@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Generated data (re-downloaded + rebuilt by the pipeline / CI)
+tennis_model/data/raw/
+tennis_model/data/output/
+web/public/data/
+
+# Node / Next
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+.DS_Store
