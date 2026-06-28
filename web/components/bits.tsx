@@ -70,6 +70,67 @@ export function HeatCell({ p }: { p: number }) {
   );
 }
 
+/** Multi-axis radar/spider chart. Each series `values` are in 0..1, aligned to `axes`. */
+export function Radar({
+  axes,
+  series,
+  maxW = 460,
+}: {
+  axes: { label: string }[];
+  series: { name: string; color: string; values: number[] }[];
+  maxW?: number;
+}) {
+  const N = axes.length;
+  if (!N) return null;
+  const cx = 220, cy = 190, R = 122, labelR = R + 16;
+  const ang = (i: number) => -Math.PI / 2 + (i * 2 * Math.PI) / N;
+  const pt = (i: number, r: number): [number, number] => [cx + Math.cos(ang(i)) * R * r, cy + Math.sin(ang(i)) * R * r];
+  const clamp = (v: number) => Math.max(0, Math.min(1, v));
+  const ring = (r: number) => axes.map((_, i) => pt(i, r).join(",")).join(" ");
+
+  return (
+    <svg viewBox="0 0 440 380" width="100%" style={{ maxWidth: maxW }} className="mx-auto block overflow-visible">
+      {/* grid rings */}
+      {[0.25, 0.5, 0.75, 1].map((r) => (
+        <polygon key={r} points={ring(r)} fill="none" stroke="var(--color-line)" strokeWidth={1} />
+      ))}
+      {/* spokes + rim labels */}
+      {axes.map((a, i) => {
+        const [ex, ey] = pt(i, 1);
+        const lx = cx + Math.cos(ang(i)) * labelR;
+        const ly = cy + Math.sin(ang(i)) * labelR;
+        const cos = Math.cos(ang(i));
+        const anchor = Math.abs(cos) < 0.25 ? "middle" : cos > 0 ? "start" : "end";
+        return (
+          <g key={a.label}>
+            <line x1={cx} y1={cy} x2={ex} y2={ey} stroke="var(--color-line)" strokeWidth={1} />
+            <text x={lx} y={ly} textAnchor={anchor} dominantBaseline="middle" fontSize={9.5} fill="var(--color-muted)" className="mono">
+              {a.label}
+            </text>
+          </g>
+        );
+      })}
+      {/* series polygons + vertex dots */}
+      {series.map((s) => (
+        <g key={s.name}>
+          <polygon
+            points={s.values.map((v, i) => pt(i, clamp(v)).join(",")).join(" ")}
+            fill={s.color}
+            fillOpacity={0.14}
+            stroke={s.color}
+            strokeWidth={1.8}
+            strokeLinejoin="round"
+          />
+          {s.values.map((v, i) => {
+            const [px, py] = pt(i, clamp(v));
+            return <circle key={i} cx={px} cy={py} r={2.4} fill={s.color} />;
+          })}
+        </g>
+      ))}
+    </svg>
+  );
+}
+
 /** Tiny SVG sparkline from [x,y] series (y auto-scaled). */
 export function Spark({ points, w = 220, h = 46, color = "var(--color-lime)" }: { points: number[]; w?: number; h?: number; color?: string }) {
   if (!points.length) return null;

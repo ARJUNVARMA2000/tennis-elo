@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useData, useTour } from "@/lib/tour";
-import { pct, surfaceColor, SURFACES } from "@/lib/ui";
+import { pct, surfaceColor, SURFACES, STYLE_LABEL } from "@/lib/ui";
 import { PageHead, Loading, Reveal, Spark } from "@/components/bits";
 
 type Profile = {
@@ -12,12 +12,6 @@ type Profile = {
   history: [string, number][];
   recent: { date: string; opp: string; surface: string; won: boolean; score: string; event: string }[];
   h2h: { opp: string; w: number; l: number }[];
-};
-
-const STYLE_LABEL: Record<string, string> = {
-  style_serve_dom: "Serve dominance", style_placement: "Serve variety", style_net: "Net frequency",
-  style_snv: "Serve & volley", style_aggression: "Aggression", style_fhbh: "Forehand bias",
-  style_return_depth: "Return depth", style_bp_clutch: "Break-point clutch",
 };
 
 export default function Players() {

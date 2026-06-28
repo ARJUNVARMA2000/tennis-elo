@@ -11,6 +11,7 @@ const LINKS = [
   ["/simulator", "Simulator"],
   ["/upcoming", "Latest"],
   ["/player", "Players"],
+  ["/style", "Style"],
   ["/trends", "Trends"],
   ["/accuracy", "Accuracy"],
   ["/method", "Method"],

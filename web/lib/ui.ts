@@ -32,6 +32,58 @@ export function heat(p: number): string {
 export const initials = (name: string) =>
   name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 
+/** Human labels for the Match Charting Project style features (shared by the player & style pages). */
+export const STYLE_LABEL: Record<string, string> = {
+  style_serve_dom: "Serve dominance", style_placement: "Serve variety", style_net: "Net frequency",
+  style_snv: "Serve & volley", style_aggression: "Aggression", style_fhbh: "Forehand bias",
+  style_return_depth: "Return depth", style_bp_clutch: "Break-point clutch",
+};
+
+export type RadarAxis = {
+  key: string;
+  label: string;
+  source: "style" | "top"; // read profile.style[key] vs profile[key]
+  fmt: (v: number) => string; // format the raw value for the readout
+};
+
+const styleFmt = (v: number) => (v * 100).toFixed(0);
+const clutchFmt = (v: number) => (v >= 0 ? "+" : "") + (v * 100).toFixed(0);
+const eloFmt = (v: number) => String(Math.round(v));
+
+/**
+ * The 13 radar axes in circle order: serve cluster → rally → return → surface skill.
+ * Style features come from profile.style; skill stats are top-level profile fields.
+ */
+export const RADAR_AXES: RadarAxis[] = [
+  { key: "servePct", label: "Serve %", source: "top", fmt: (v) => pct(v, 0) },
+  { key: "style_serve_dom", label: "Serve dom.", source: "style", fmt: styleFmt },
+  { key: "style_placement", label: "Serve variety", source: "style", fmt: styleFmt },
+  { key: "style_snv", label: "Serve & volley", source: "style", fmt: styleFmt },
+  { key: "style_net", label: "Net freq.", source: "style", fmt: styleFmt },
+  { key: "style_fhbh", label: "Forehand bias", source: "style", fmt: styleFmt },
+  { key: "style_aggression", label: "Aggression", source: "style", fmt: styleFmt },
+  { key: "style_bp_clutch", label: "BP clutch", source: "style", fmt: clutchFmt },
+  { key: "returnPct", label: "Return %", source: "top", fmt: (v) => pct(v, 0) },
+  { key: "style_return_depth", label: "Return depth", source: "style", fmt: styleFmt },
+  { key: "eloHard", label: "Hard Elo", source: "top", fmt: eloFmt },
+  { key: "eloClay", label: "Clay Elo", source: "top", fmt: eloFmt },
+  { key: "eloGrass", label: "Grass Elo", source: "top", fmt: eloFmt },
+];
+
+/**
+ * Build a mid-rank percentile scaler in [0,1] from a population of values.
+ * pct(v) = (#below + 0.5·#equal) / n — robust to outliers and ties. Nulls excluded by caller.
+ */
+export function percentileScaler(values: number[]): (v: number) => number {
+  const n = values.length;
+  return (v: number) => {
+    if (!n) return 0;
+    let lt = 0, eq = 0;
+    for (const x of values) { if (x < v) lt++; else if (x === v) eq++; }
+    return (lt + 0.5 * eq) / n;
+  };
+}
+
 const comb = (n: number, k: number) => {
   let r = 1;
   for (let i = 0; i < k; i++) r = (r * (n - i)) / (i + 1);
