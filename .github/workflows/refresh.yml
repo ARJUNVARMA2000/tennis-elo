@@ -1,9 +1,9 @@
-name: weekly-refresh
+name: daily-refresh
 
 # Pull fresh results, retrain both tours, regenerate JSON, build + deploy the site.
 on:
   schedule:
-    - cron: "0 6 * * 1" # every Monday 06:00 UTC
+    - cron: "0 6 * * *" # every day 06:00 UTC
   workflow_dispatch: {}
 
 permissions:

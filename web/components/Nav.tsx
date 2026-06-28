@@ -5,7 +5,8 @@ import { usePathname } from "next/navigation";
 import { useTour } from "@/lib/tour";
 
 const LINKS = [
-  ["/", "Rankings"],
+  ["/", "Tournaments"],
+  ["/rankings", "Rankings"],
   ["/predict", "Predict"],
   ["/simulator", "Simulator"],
   ["/upcoming", "Latest"],

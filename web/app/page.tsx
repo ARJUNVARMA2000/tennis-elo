@@ -1,101 +1,132 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useData, useTour } from "@/lib/tour";
-import { eloKey, surfaceColor, SURFACES, pct } from "@/lib/ui";
-import { PageHead, Loading, SurfacePill, Reveal } from "@/components/bits";
+import { pct, surfaceColor, heat } from "@/lib/ui";
+import { PageHead, Loading, Reveal } from "@/components/bits";
 
-type Player = {
-  name: string; eloRank: number; elo: number; eloHard: number; eloClay: number; eloGrass: number;
-  servePct: number; returnPct: number; rankPoints: number | null; matches: number; hand: string | null;
+type Proj = { name: string; champion: number; final: number | null; sf: number | null };
+type Tournament = {
+  name: string; surface: string; level: string; bestOf: number;
+  start: string; end: string; status: "completed" | "live";
+  drawSize: number; aliveCount: number;
+  champion: string | null; runnerUp: string | null;
+  modelFavorite: string | null; favoritePicked: boolean;
+  projection: Proj[];
 };
 
-export default function Rankings() {
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function dateRange(start: string, end: string): string {
+  const s = new Date(start + "T00:00"), e = new Date(end + "T00:00");
+  const sm = MONTHS[s.getMonth()], em = MONTHS[e.getMonth()];
+  return sm === em ? `${sm} ${s.getDate()}–${e.getDate()}` : `${sm} ${s.getDate()} – ${em} ${e.getDate()}`;
+}
+
+export default function Tournaments() {
   const { tour } = useTour();
-  const { data, loading } = useData<Player[]>("players.json");
-  const [surface, setSurface] = useState<string>("Overall");
-
-  const rows = useMemo(() => {
-    if (!data) return [];
-    const key = surface === "Overall" ? "elo" : eloKey(surface);
-    return [...data].sort((a, b) => (b as any)[key] - (a as any)[key]).slice(0, 100);
-  }, [data, surface]);
-
-  const top = rows[0];
+  const { data, loading } = useData<Tournament[]>("tournaments.json");
 
   return (
     <div className="pb-16">
       <PageHead
-        eyebrow={`${tour.toUpperCase()} · Elo ratings`}
-        title="The Board"
-        sub="Surface-blended Elo for every active player, with serve and return strength from the opponent-adjusted point model. Switch surfaces to re-rank."
+        eyebrow={`${tour.toUpperCase()} · the current swing`}
+        title="Latest Tournaments"
+        sub="Every recent event with the model's title odds for the field. Live events show who's favoured from here; finished events show whether the model called the champion."
       />
 
       {loading && <Loading />}
-
-      {top && (
-        <Reveal delay={0.05}>
-          <div className="mt-8 panel flex flex-wrap items-center gap-x-10 gap-y-4 p-6">
-            <div>
-              <div className="eyebrow">World #1 · {surface}</div>
-              <div className="display mt-2 text-3xl">{top.name}</div>
-            </div>
-            <div className="mono flex gap-8 text-sm">
-              <Stat label="Elo" value={surface === "Overall" ? top.elo : (top as any)[eloKey(surface)]} />
-              <Stat label="Serve" value={pct(top.servePct, 1)} />
-              <Stat label="Return" value={pct(top.returnPct, 1)} />
-              <Stat label="Matches" value={top.matches} />
-            </div>
-          </div>
-        </Reveal>
+      {data && data.length === 0 && (
+        <div className="mono mt-10 text-sm text-[var(--color-faint)]">No recent tournaments in the data yet.</div>
       )}
 
-      <div className="mt-8 mb-4 flex flex-wrap items-center gap-2">
-        <SurfacePill s="Overall" active={surface === "Overall"} onClick={() => setSurface("Overall")} />
-        {SURFACES.map((s) => (
-          <SurfacePill key={s} s={s} active={surface === s} onClick={() => setSurface(s)} />
+      <div className="mt-8 grid gap-4 lg:grid-cols-2">
+        {(data || []).map((t, i) => (
+          <Reveal key={t.name + t.start} delay={Math.min(i * 0.04, 0.3)}>
+            <Card t={t} />
+          </Reveal>
         ))}
-      </div>
-
-      <div className="panel overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="mono text-[11px] uppercase tracking-wider text-[var(--color-faint)]">
-            <tr className="border-b border-[var(--color-line)]">
-              <th className="px-3 py-3 text-left">#</th>
-              <th className="px-3 py-3 text-left">Player</th>
-              <th className="px-3 py-3 text-right">Elo</th>
-              <th className="hidden px-3 py-3 text-right sm:table-cell" style={{ color: surfaceColor("Hard") }}>Hard</th>
-              <th className="hidden px-3 py-3 text-right sm:table-cell" style={{ color: surfaceColor("Clay") }}>Clay</th>
-              <th className="hidden px-3 py-3 text-right sm:table-cell" style={{ color: surfaceColor("Grass") }}>Grass</th>
-              <th className="px-3 py-3 text-right">Serve</th>
-              <th className="hidden px-3 py-3 text-right md:table-cell">Return</th>
-            </tr>
-          </thead>
-          <tbody className="mono">
-            {rows.map((p, i) => (
-              <tr key={p.name} className="row-glow border-b border-[var(--color-line)]/50">
-                <td className="px-3 py-2.5 text-[var(--color-faint)]">{i + 1}</td>
-                <td className="px-3 py-2.5 font-[var(--font-body)] text-[var(--color-text)]">{p.name}</td>
-                <td className="px-3 py-2.5 text-right font-semibold">{surface === "Overall" ? p.elo : (p as any)[eloKey(surface)]}</td>
-                <td className="hidden px-3 py-2.5 text-right text-[var(--color-muted)] sm:table-cell">{p.eloHard}</td>
-                <td className="hidden px-3 py-2.5 text-right text-[var(--color-muted)] sm:table-cell">{p.eloClay}</td>
-                <td className="hidden px-3 py-2.5 text-right text-[var(--color-muted)] sm:table-cell">{p.eloGrass}</td>
-                <td className="px-3 py-2.5 text-right text-[var(--color-muted)]">{pct(p.servePct, 0)}</td>
-                <td className="hidden px-3 py-2.5 text-right text-[var(--color-muted)] md:table-cell">{pct(p.returnPct, 0)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
       </div>
     </div>
   );
 }
 
-function Stat({ label, value }: { label: string; value: any }) {
+function Card({ t }: { t: Tournament }) {
+  const [open, setOpen] = useState(false);
+  const sc = surfaceColor(t.surface);
+  const live = t.status === "live";
+  const shown = open ? t.projection : t.projection.slice(0, 5);
+  const maxP = Math.max(0.01, ...t.projection.map((p) => p.champion));
+
   return (
-    <div>
-      <div className="text-[10px] uppercase tracking-wider text-[var(--color-faint)]">{label}</div>
-      <div className="mt-1 text-lg text-[var(--color-text)]">{value}</div>
+    <div className="panel flex h-full flex-col p-5">
+      {/* header */}
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="chip" style={{ color: sc, borderColor: sc }}>{t.surface}</span>
+            <span className="mono text-[11px] text-[var(--color-faint)]">{t.level} · Bo{t.bestOf}</span>
+          </div>
+          <h3 className="display mt-2 text-2xl leading-tight">{t.name}</h3>
+          <div className="mono mt-1 text-[11px] text-[var(--color-faint)]">
+            {dateRange(t.start, t.end)} · {t.drawSize} draw
+          </div>
+        </div>
+        {live ? (
+          <span className="mono flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-[var(--color-lime)]">
+            <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-[var(--color-lime)]" />
+            Live · {t.aliveCount} left
+          </span>
+        ) : (
+          <span className="mono text-[11px] uppercase tracking-wider text-[var(--color-faint)]">Final</span>
+        )}
+      </div>
+
+      {/* champion banner (completed) */}
+      {t.champion && (
+        <div className="mt-4 flex items-center justify-between rounded-lg border border-[var(--color-line)] bg-[var(--color-ink3)]/40 px-3 py-2">
+          <div>
+            <div className="text-[10px] uppercase tracking-wider text-[var(--color-faint)]">Champion</div>
+            <div className="text-[15px] text-[var(--color-gold)]">🏆 {t.champion}</div>
+          </div>
+          <div className="text-right">
+            <div className="text-[10px] uppercase tracking-wider text-[var(--color-faint)]">Model favoured</div>
+            <div className="mono text-[13px]" style={{ color: t.favoritePicked ? "var(--color-lime)" : "var(--color-muted)" }}>
+              {t.modelFavorite} {t.favoritePicked ? "✓" : "✗"}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* projection */}
+      <div className="mt-4 flex-1">
+        <div className="mono mb-2 text-[10px] uppercase tracking-wider text-[var(--color-faint)]">
+          {live ? "Title odds from here" : "Pre-event title odds"}
+        </div>
+        <div className="space-y-1.5">
+          {shown.map((p, i) => {
+            const isChamp = p.name === t.champion;
+            return (
+              <div key={p.name} className="flex items-center gap-2.5">
+                <span className="mono w-4 text-right text-[11px] text-[var(--color-faint)]">{i + 1}</span>
+                <span className="w-40 truncate text-[13px]" style={{ color: isChamp ? "var(--color-gold)" : "var(--color-text)" }}>
+                  {p.name}{isChamp && " 🏆"}
+                </span>
+                <div className="bartrack h-1.5 flex-1">
+                  <div style={{ width: `${(p.champion / maxP) * 100}%`, background: heat(p.champion) }} />
+                </div>
+                <span className="mono w-10 text-right text-[12px]" style={{ color: heat(p.champion) }}>
+                  {pct(p.champion, 0)}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        {t.projection.length > 5 && (
+          <button onClick={() => setOpen(!open)} className="mono mt-3 text-[11px] text-[var(--color-cyan)] hover:underline">
+            {open ? "show less" : `show full field (${t.projection.length})`}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

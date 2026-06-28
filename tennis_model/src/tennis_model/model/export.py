@@ -6,6 +6,7 @@ Kept separate from pipeline orchestration so the export surface is easy to scan:
   ratings_history.json   monthly Elo trajectories (powers /trends)
   profiles.json         per-player detail: splits, style, recent form, H2H, Elo line
   draws.json            current-top-field tournament projections per surface
+  tournaments.json      latest real events: title odds + actual result (powers home)
   fixtures.json         latest results with the model's pre-match call + upset flags
   accuracy.json         walk-forward metrics, calibration, per-surface breakdown
   meta.json             metadata + headline backtest
@@ -210,8 +211,10 @@ def export_all(tour, df, feat, elo, srv, meta, predictor, oos=None) -> None:
     _write(tour, "ratings_history.json", build_history(elo, players))
     _write(tour, "profiles.json", build_profiles_json(df, elo, srv, meta, mcp, players))
     _write(tour, "draws.json", build_draws(predictor, players, tour))
+    from ..sim.tournaments import build_tournaments
+    _write(tour, "tournaments.json", build_tournaments(predictor, df, tour))
     _write(tour, "fixtures.json", build_fixtures(df, feat, predictor))
     if accuracy:
         _write(tour, "accuracy.json", accuracy)
     _write(tour, "meta.json", build_meta(df, players, accuracy))
-    print(f"  exported 8 JSON files for {tour} ({len(players)} players)")
+    print(f"  exported 9 JSON files for {tour} ({len(players)} players)")
