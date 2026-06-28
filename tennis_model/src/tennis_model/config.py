@@ -28,6 +28,10 @@ def fresh_dir(tour: str) -> Path:
     return RAW_DIR / tour / "fresh"
 
 
+def live_dir(tour: str) -> Path:
+    return RAW_DIR / tour / "live"      # ESPN same-day overlay (lowest de-dup priority)
+
+
 def output_dir(tour: str) -> Path:
     return OUTPUT_DIR / tour
 

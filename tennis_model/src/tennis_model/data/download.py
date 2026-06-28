@@ -82,10 +82,12 @@ def download_fresh(tours=("atp", "wta")) -> None:
 
 
 def download_all(tours=("atp", "wta")) -> None:
-    """Full bootstrap (used by CI / a fresh clone): historical + fresh + charting."""
+    """Full bootstrap (used by CI / a fresh clone): historical + fresh + live + charting."""
     for t in tours:
         download(t, "historical")
         download(t, "fresh")
+    from .live import download_live
+    download_live(tours)                 # ESPN same-day overlay (best-effort)
     from .charting import download_charting
     download_charting()
 
@@ -94,11 +96,14 @@ if __name__ == "__main__":
     import argparse
     ap = argparse.ArgumentParser()
     ap.add_argument("--tour", default="all")
-    ap.add_argument("--kind", default="fresh", choices=["fresh", "historical", "all"])
+    ap.add_argument("--kind", default="fresh", choices=["fresh", "historical", "live", "all"])
     args = ap.parse_args()
     tours = ("atp", "wta") if args.tour == "all" else (args.tour,)
     if args.kind == "all":
         download_all(tours)
+    elif args.kind == "live":
+        from .live import download_live
+        download_live(tours)
     else:
         for t in tours:
             download(t, args.kind)

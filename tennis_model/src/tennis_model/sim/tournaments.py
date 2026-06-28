@@ -25,6 +25,8 @@ TOP_PROJECTION = 24          # players kept in each event's odds list
 def _level_label(lv: object, tour: str) -> str:
     s = str(lv)
     t = tour.upper()
+    if s in ("nan", "None", ""):
+        return f"{t} Tour"
     if s in ("G", "Grand", "GrandSlam") or "grand" in s.lower():
         return "Grand Slam"
     if s == "F":
@@ -35,6 +37,26 @@ def _level_label(lv: object, tour: str) -> str:
         if s.endswith(n):
             return f"{t} {n}"
     return {"D": "Davis/BJK Cup", "O": "Olympics", "A": f"{t} Tour"}.get(s, s)
+
+
+def _known_names(df: pd.DataFrame) -> set:
+    """Tournament names that come from the archive (have a real level), for de-sponsoring."""
+    return set(df.loc[df["tourney_level"].notna(), "tourney_name"].dropna().astype(str).unique())
+
+
+def _display_name(name: str, known: set) -> str:
+    """Prefer a clean archive name (city) embedded in an ESPN sponsor title.
+
+    e.g. 'Lexus Eastbourne Open' -> 'Eastbourne', 'Vanda Pharmaceuticals Mallorca
+    Championships' -> 'Mallorca'. Falls back to the original name.
+    """
+    low = name.lower()
+    best = None
+    for kn in known:
+        k = kn.lower()
+        if len(k) >= 5 and k in low and (best is None or len(k) > len(best)):
+            best = kn
+    return best or name
 
 
 def recent_tournaments(df: pd.DataFrame, within_days: int = 40,
@@ -55,12 +77,18 @@ def recent_tournaments(df: pd.DataFrame, within_days: int = 40,
 
 
 def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
+                       known: set | None = None, top_set: set | None = None,
                        n_sims: int = 8000, seed: int = 11) -> dict | None:
     surface = g["surface_b"].mode().iloc[0]
-    best_of = int(pd.to_numeric(g["best_of"], errors="coerce").max() or 3)
+    bo = pd.to_numeric(g["best_of"], errors="coerce").max()
+    best_of = int(bo) if pd.notna(bo) else 3
     level = _level_label(g["tourney_level"].mode().iloc[0] if g["tourney_level"].notna().any() else "", tour)
 
     participants = set(g["winner_name"]) | set(g["loser_name"])
+    if len(participants) < 16:          # dedup-leftover fragment, not a real draw
+        return None
+    if top_set is not None and len(participants & top_set) < 2:
+        return None                     # sub-tour / ITF event (no tour-strength field)
     eliminated = set(g["loser_name"])
     final_rows = g[g["round"] == "F"]
     completed = len(final_rows) > 0
@@ -89,7 +117,7 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
     favorite = proj[0]["name"] if proj else None
 
     return {
-        "name": name, "surface": surface, "level": level, "bestOf": best_of,
+        "name": _display_name(name, known or set()), "surface": surface, "level": level, "bestOf": best_of,
         "start": str(g["date"].min().date()), "end": str(g["date"].max().date()),
         "status": "completed" if completed else "live",
         "drawSize": len(participants), "aliveCount": len(participants - eliminated),
@@ -101,9 +129,11 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
 
 
 def build_tournaments(predictor, df: pd.DataFrame, tour: str, **kw) -> list:
+    known = _known_names(df)
+    top_set = set(sorted(predictor.elo.overall, key=predictor.elo.elo, reverse=True)[:100])
     out = []
     for name, g in recent_tournaments(df):
-        t = project_tournament(predictor, name, g, tour, **kw)
+        t = project_tournament(predictor, name, g, tour, known=known, top_set=top_set, **kw)
         if t:
             out.append(t)
     return out

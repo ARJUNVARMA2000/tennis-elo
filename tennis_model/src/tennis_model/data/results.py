@@ -25,7 +25,13 @@ from ..config import (
     TIER_NAMES,
     fresh_dir,
     historical_dir,
+    live_dir,
 )
+
+# Surface by calendar month — the tennis season's surface swings — used only as a
+# fallback for live (ESPN) rows whose sponsor-named event isn't in the archive.
+_MONTH_SURFACE = {1: "Hard", 2: "Hard", 3: "Hard", 4: "Clay", 5: "Clay", 6: "Grass",
+                  7: "Grass", 8: "Hard", 9: "Hard", 10: "Hard", 11: "Hard", 12: "Hard"}
 from .scores import parse_score
 
 # Canonical column set every loaded frame is reindexed to, so downstream code never
@@ -98,12 +104,18 @@ def _canonicalize_names(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def merge_sources(tour: str) -> pd.DataFrame:
-    """Concatenate historical + fresh for a tour and de-dup, preferring stat-bearing rows."""
+    """Concatenate historical + fresh + live for a tour and de-dup.
+
+    Preference (lower __src wins a duplicate match): historical (serve stats + clean
+    names) > fresh mirror (results, clean city names) > live ESPN overlay (same-day,
+    but sponsor names / no surface). So events the mirror already has keep their clean
+    metadata, while ESPN-only events (this week, in-progress Slams) still come through.
+    """
     hist = _read_dir(historical_dir(tour))
     fresh = _read_dir(fresh_dir(tour))
-    hist["__src"] = 0          # historical first => wins de-dup ties (it carries serve stats)
-    fresh["__src"] = 1
-    df = pd.concat([hist, fresh], ignore_index=True)
+    live = _read_dir(live_dir(tour))
+    hist["__src"], fresh["__src"], live["__src"] = 0, 1, 2
+    df = pd.concat([hist, fresh, live], ignore_index=True)
     df["date"] = _parse_dates(df["tourney_date"])
     df = df[df["date"].notna() & df["winner_name"].notna() & df["loser_name"].notna()].copy()
     df = _canonicalize_names(df)
@@ -138,6 +150,19 @@ def _tier_name(level: object) -> str:
     return TIER_NAMES.get(str(level), "atp250")
 
 
+def _backfill_event_attrs(df: pd.DataFrame) -> pd.DataFrame:
+    """Fill surface / tourney_level / best_of on rows that lack them (ESPN live rows)
+    from each tournament's known rows in the archive, matched by name."""
+    for col in ("surface", "tourney_level", "best_of"):
+        present = df[df[col].notna()]
+        if present.empty:
+            continue
+        modal = present.groupby("tourney_name")[col].agg(
+            lambda s: s.mode().iloc[0] if not s.mode().empty else None)
+        df[col] = df[col].where(df[col].notna(), df["tourney_name"].map(modal))
+    return df
+
+
 def clean(df: pd.DataFrame) -> pd.DataFrame:
     """Add derived/normalised columns (robust to columns absent in the fresh schema)."""
     df = df.copy()
@@ -145,7 +170,10 @@ def clean(df: pd.DataFrame) -> pd.DataFrame:
         df["date"] = _parse_dates(df["tourney_date"])
     df = df[df["date"].notna() & df["winner_name"].notna() & df["loser_name"].notna()]
 
-    df["surface_b"] = df["surface"].map(SURFACE_MAP).fillna("Hard")
+    df = _backfill_event_attrs(df)
+    # surface: prefer the (now backfilled) value; else fall back to the season's surface
+    surf = df["surface"].where(df["surface"].notna(), df["date"].dt.month.map(_MONTH_SURFACE))
+    df["surface_b"] = surf.map(SURFACE_MAP).fillna(surf).fillna("Hard")
     df["tier"] = df["tourney_level"].map(_tier_name)
     df["tier_k"] = df["tier"].map(TIER_K_MULT).fillna(DEFAULT_TIER_K_MULT)
     df["round_order"] = df["round"].map(ROUND_ORDER).fillna(3).astype(int)

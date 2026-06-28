@@ -55,7 +55,9 @@ def main():
 
     if args.download:
         from .data.download import download_fresh
+        from .data.live import download_live
         download_fresh(tours)
+        download_live(tours)        # ESPN same-day overlay so current events are current
 
     for tour in tours:
         build_tour(tour, args.backtest)
