@@ -14,12 +14,27 @@ feed's missing match_num / data gaps; title odds are dominated by field strength
 
 from __future__ import annotations
 
+import json
+
 import pandas as pd
 
+from ..config import live_dir
+from ..data.results import _name_key
 from .simulate import project_field
 
 _KO_ROUNDS = {"R128", "R64", "R32", "R16", "QF", "SF", "F"}
 TOP_PROJECTION = 24          # players kept in each event's odds list
+
+
+def _load_fields(tour: str) -> dict:
+    """ESPN per-event {field, eliminated} written by data.live.download_live (if present)."""
+    p = live_dir(tour) / "fields.json"
+    if not p.exists():
+        return {}
+    try:
+        return json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
 
 
 def _level_label(lv: object, tour: str) -> str:
@@ -78,17 +93,13 @@ def recent_tournaments(df: pd.DataFrame, within_days: int = 40,
 
 def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
                        known: set | None = None, top_set: set | None = None,
+                       espn_fields: dict | None = None, resolve=None,
                        n_sims: int = 8000, seed: int = 11) -> dict | None:
     surface = g["surface_b"].mode().iloc[0]
     bo = pd.to_numeric(g["best_of"], errors="coerce").max()
     best_of = int(bo) if pd.notna(bo) else 3
     level = _level_label(g["tourney_level"].mode().iloc[0] if g["tourney_level"].notna().any() else "", tour)
 
-    participants = set(g["winner_name"]) | set(g["loser_name"])
-    if len(participants) < 16:          # dedup-leftover fragment, not a real draw
-        return None
-    if top_set is not None and len(participants & top_set) < 2:
-        return None                     # sub-tour / ITF event (no tour-strength field)
     eliminated = set(g["loser_name"])
     final_rows = g[g["round"] == "F"]
     completed = len(final_rows) > 0
@@ -97,9 +108,24 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
     if completed:
         fr = final_rows.sort_values("date").iloc[-1]
         champ, runner = fr["winner_name"], fr["loser_name"]
-        field = list(participants)
+        field_pool = set(g["winner_name"]) | set(g["loser_name"])     # full field (all played)
     else:
-        field = list(participants - eliminated)
+        # Live: prefer ESPN's FULL main-draw field (incl. scheduled) so the Day-1
+        # favourite reflects everyone still in the draw, not just those who've finished.
+        ef = (espn_fields or {}).get(name)
+        if ef and resolve and len(ef["field"]) >= 8:
+            field_pool = {resolve(n) for n in ef["field"]}
+            eliminated = {resolve(n) for n in ef["eliminated"]} | eliminated
+        else:
+            field_pool = set(g["winner_name"]) | set(g["loser_name"])
+
+    if len(field_pool) < 8:              # dedup-leftover fragment, not a real draw
+        return None
+    if top_set is not None and len(field_pool & top_set) < 2:
+        return None                      # sub-tour / ITF event (no tour-strength field)
+
+    alive = field_pool - eliminated
+    field = list(field_pool if completed else alive)
     if len(field) < 2:
         return None
 
@@ -120,7 +146,7 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
         "name": _display_name(name, known or set()), "surface": surface, "level": level, "bestOf": best_of,
         "start": str(g["date"].min().date()), "end": str(g["date"].max().date()),
         "status": "completed" if completed else "live",
-        "drawSize": len(participants), "aliveCount": len(participants - eliminated),
+        "drawSize": len(field_pool), "aliveCount": len(alive),
         "champion": champ, "runnerUp": runner,
         "modelFavorite": favorite,
         "favoritePicked": bool(completed and favorite == champ),
@@ -131,9 +157,19 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
 def build_tournaments(predictor, df: pd.DataFrame, tour: str, **kw) -> list:
     known = _known_names(df)
     top_set = set(sorted(predictor.elo.overall, key=predictor.elo.elo, reverse=True)[:100])
+    espn_fields = _load_fields(tour)
+    # map ESPN player names onto the predictor's canonical spellings (accent/punct-insensitive)
+    canon: dict = {}
+    for k in predictor.elo.overall:
+        canon.setdefault(_name_key(k), k)
+    resolve = lambda n: canon.get(_name_key(n), n)
     out = []
     for name, g in recent_tournaments(df):
-        t = project_tournament(predictor, name, g, tour, known=known, top_set=top_set, **kw)
+        t = project_tournament(predictor, name, g, tour, known=known, top_set=top_set,
+                               espn_fields=espn_fields, resolve=resolve, **kw)
         if t:
             out.append(t)
+    # Live (in-progress) events lead the board; within each group, most recent first.
+    out.sort(key=lambda t: t["end"], reverse=True)
+    out.sort(key=lambda t: t["status"] != "live")
     return out

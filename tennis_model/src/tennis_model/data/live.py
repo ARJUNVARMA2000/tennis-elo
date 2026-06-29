@@ -110,10 +110,19 @@ def parse_events(events: list, gender: str) -> pd.DataFrame:
     return df
 
 
-def fetch_live(tour: str, days_back: int = 14) -> pd.DataFrame:
-    """Union of the current featured event(s) plus a recent per-day sweep (dedup by id)."""
+def _gender(tour: str) -> str:
+    return "mens" if tour == "atp" else "womens"
+
+
+def fetch_events(tour: str, days_back: int = 14, days_fwd: int = 12) -> list:
+    """Union of the featured event(s) + a per-day sweep over a window (dedup by id).
+
+    The window spans both **past** days (completed results) and **upcoming** days
+    (scheduled matches) so a live event's FULL field is captured — e.g. a Slam's
+    Day-2/3 players, whose matches haven't happened yet, still appear in the draw."""
     today = datetime.now(timezone.utc).date()
-    queries = [None] + [(today - timedelta(days=k)).strftime("%Y%m%d") for k in range(0, days_back + 1)]
+    offsets = range(-days_fwd, days_back + 1)        # negative = upcoming, positive = past
+    queries = [None] + [(today - timedelta(days=k)).strftime("%Y%m%d") for k in offsets]
     seen: dict = {}
     for q in queries:
         try:
@@ -123,25 +132,64 @@ def fetch_live(tour: str, days_back: int = 14) -> pd.DataFrame:
                     seen[eid] = ev
         except Exception:
             continue
-    gender = "mens" if tour == "atp" else "womens"
-    return parse_events(list(seen.values()), gender)
+    return list(seen.values())
+
+
+def fetch_live(tour: str, days_back: int = 14) -> pd.DataFrame:
+    return parse_events(fetch_events(tour, days_back), _gender(tour))
+
+
+def parse_fields(events: list, gender: str) -> dict:
+    """Per active event: the FULL main-draw singles field + who's been eliminated, taken
+    from every main-draw match (completed, in-progress, AND scheduled). This lets the
+    projector seed a live Slam with its real field on Day 1 — not just the handful of
+    players who happen to have finished a match — so the favourite is correct."""
+    keep = f"{gender}-singles"
+    out = {}
+    for ev in events:
+        name = ev.get("shortName") or ev.get("name")
+        field, elim = set(), set()
+        for grp in ev.get("groupings", []) or []:
+            if (grp.get("grouping") or {}).get("slug", "") != keep:
+                continue
+            for comp in grp.get("competitions", []) or []:
+                if _round_label((comp.get("round") or {}).get("displayName", "")) is None:
+                    continue                                  # skip qualifying
+                cs = comp.get("competitors") or []
+                for c in cs:
+                    nm = (c.get("athlete") or {}).get("displayName")
+                    if nm:
+                        field.add(nm)
+                if ((comp.get("status") or {}).get("type") or {}).get("completed"):
+                    lc = next((c for c in cs if c.get("winner") is False), None)
+                    ln = (lc.get("athlete") or {}).get("displayName") if lc else None
+                    if ln:
+                        elim.add(ln)
+        if len(field) >= 8:
+            out[name] = {"field": sorted(field), "eliminated": sorted(elim)}
+    return out
 
 
 def download_live(tours=TOURS) -> None:
     for tour in tours:
         try:
-            df = fetch_live(tour)
+            events = fetch_events(tour)
+            df = parse_events(events, _gender(tour))
+            fields = parse_fields(events, _gender(tour))
         except Exception as e:
             print(f"  live/{tour}: skipped ({e})")
             continue
-        if df.empty:
-            print(f"  live/{tour}: no completed matches found")
-            continue
         d = live_dir(tour)
         d.mkdir(parents=True, exist_ok=True)
-        df.to_csv(d / "live.csv", index=False, encoding="utf-8")
-        print(f"  live/{tour}: {len(df)} matches across {df['tourney_name'].nunique()} events "
-              f"(latest {df['tourney_date'].max()}) -> {d / 'live.csv'}")
+        if not df.empty:
+            df.to_csv(d / "live.csv", index=False, encoding="utf-8")
+            print(f"  live/{tour}: {len(df)} matches across {df['tourney_name'].nunique()} events "
+                  f"(latest {df['tourney_date'].max()}) -> {d / 'live.csv'}")
+        else:
+            print(f"  live/{tour}: no completed matches found")
+        if fields:
+            (d / "fields.json").write_text(json.dumps(fields), encoding="utf-8")
+            print(f"  live/{tour}: fields for {len(fields)} event(s) -> {d / 'fields.json'}")
 
 
 if __name__ == "__main__":

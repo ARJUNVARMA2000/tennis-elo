@@ -151,10 +151,9 @@ def build_draws(predictor, players: list, tour: str) -> dict:
     return {"field": field, "bestOf": bo, "surfaces": draws}
 
 
-def build_fixtures(df, feat, predictor, n=60) -> list:
+def build_fixtures(df, predictor, n=60) -> list:
     """Latest completed matches with the model's pre-match probability + upset flag."""
-    d = df.join(feat[["p_blend", "p_point"]])
-    d = d[d["completed"]].sort_values("date").tail(400)
+    d = df[df["completed"]].sort_values("date").tail(400)
     out = []
     for r in d.tail(n).iloc[::-1].itertuples(index=False):
         # model prob the actual winner wins, from the combiner (recompute, leakage-free at ranking time)
@@ -201,7 +200,13 @@ def build_meta(df, players, accuracy) -> dict:
     }
 
 
-def export_all(tour, df, feat, elo, srv, meta, predictor, oos=None) -> None:
+def export_all(tour, df, elo, srv, meta, predictor, oos=None) -> None:
+    """Write every frontend JSON for one tour.
+
+    Works in two modes: a full run passes a fresh walk-forward `oos` (rebuilds
+    accuracy.json); a quick refresh passes oos=None and reuses the saved predictor's
+    states (elo/srv/meta) — accuracy.json is left to persist from the last full run.
+    """
     mcp = build_profiles(tour)
     players = build_players(elo, srv, meta, mcp)
     accuracy = build_accuracy(oos) if oos is not None else {}
@@ -213,8 +218,8 @@ def export_all(tour, df, feat, elo, srv, meta, predictor, oos=None) -> None:
     _write(tour, "draws.json", build_draws(predictor, players, tour))
     from ..sim.tournaments import build_tournaments
     _write(tour, "tournaments.json", build_tournaments(predictor, df, tour))
-    _write(tour, "fixtures.json", build_fixtures(df, feat, predictor))
+    _write(tour, "fixtures.json", build_fixtures(df, predictor))
     if accuracy:
         _write(tour, "accuracy.json", accuracy)
     _write(tour, "meta.json", build_meta(df, players, accuracy))
-    print(f"  exported 9 JSON files for {tour} ({len(players)} players)")
+    print(f"  exported JSON for {tour} ({len(players)} players){'' if accuracy else ' [quick]'}")

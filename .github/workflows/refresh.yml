@@ -1,10 +1,21 @@
-name: daily-refresh
+name: refresh
 
-# Pull fresh results, retrain both tours, regenerate JSON, build + deploy the site.
+# Two cadences on one workflow:
+#   * 06:00 UTC daily  -> FULL: download everything, retrain both tours, rebuild all JSON.
+#   * every 3h (offset) -> QUICK: re-pull ESPN live results and regenerate JSON from the
+#     saved model (no retrain, ~1-2 min). The data cache carries the historical archive
+#     and the trained predictor.pkl + accuracy.json between runs.
 on:
   schedule:
-    - cron: "0 6 * * *" # every day 06:00 UTC
-  workflow_dispatch: {}
+    - cron: "0 6 * * *"                     # daily FULL retrain
+    - cron: "0 0,3,9,12,15,18,21 * * *"     # every 3h QUICK refresh (skips the 06:00 slot)
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Run mode"
+        type: choice
+        options: [auto, full, quick]
+        default: auto
 
 permissions:
   contents: read
@@ -30,17 +41,42 @@ jobs:
       - name: Install Python deps
         run: pip install -r tennis_model/requirements.txt
 
-      - name: Download data (historical + fresh + charting)
-        working-directory: tennis_model
-        env:
-          PYTHONPATH: src
-        run: python -m tennis_model.data.download --kind all
+      # Carries data/raw (historical archive) + data/output (predictor.pkl, accuracy.json,
+      # JSON) across runs so quick runs have a model to refresh from. A new cache is saved
+      # each run (unique key) and the most recent is restored (restore-keys prefix).
+      - name: Restore data cache
+        uses: actions/cache@v4
+        with:
+          path: tennis_model/data
+          key: tennis-data-${{ github.run_id }}
+          restore-keys: tennis-data-
 
-      - name: Build models + JSON (both tours)
+      - name: Decide mode
+        id: mode
+        run: |
+          MODE=quick
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "${{ github.event.schedule }}" = "0 6 * * *" ]; then MODE=full; fi
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.mode }}" != "auto" ]; then MODE="${{ github.event.inputs.mode }}"; fi
+          # No saved model to refresh from yet (e.g. first run / evicted cache) -> do a full build.
+          if [ "$MODE" = "quick" ] && [ ! -f tennis_model/data/output/atp/predictor.pkl ]; then MODE=full; fi
+          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
+          echo "Selected mode: $MODE"
+
+      - name: Full refresh (download all + retrain both tours)
+        if: steps.mode.outputs.mode == 'full'
         working-directory: tennis_model
         env:
           PYTHONPATH: src
-        run: python -m tennis_model.pipeline --tour all --backtest
+        run: |
+          python -m tennis_model.data.download --kind all
+          python -m tennis_model.pipeline --tour all --backtest
+
+      - name: Quick refresh (live results + regenerate from saved model)
+        if: steps.mode.outputs.mode == 'quick'
+        working-directory: tennis_model
+        env:
+          PYTHONPATH: src
+        run: python -m tennis_model.pipeline --tour all --quick
 
       - uses: actions/setup-node@v4
         with:
