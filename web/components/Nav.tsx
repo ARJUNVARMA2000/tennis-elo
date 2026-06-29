@@ -14,6 +14,7 @@ const LINKS = [
   ["/style", "Style"],
   ["/trends", "Trends"],
   ["/accuracy", "Accuracy"],
+  ["/track", "Track record"],
   ["/method", "Method"],
 ];
 

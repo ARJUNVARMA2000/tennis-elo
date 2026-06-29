@@ -30,6 +30,16 @@ def _mirror(tour: str) -> None:
         shutil.copy(j, dst / j.name)
 
 
+def _track(tour: str, predictor, df) -> None:
+    """Log point-in-time forecasts + (re)grade them (writes track.json). Best-effort:
+    a tracking failure must never break the build/deploy."""
+    try:
+        from .eval.track import log_and_grade
+        log_and_grade(tour, predictor, df)
+    except Exception as e:                                   # noqa: BLE001 — never fatal
+        print(f"  track/{tour}: skipped ({e})")
+
+
 def build_tour(tour: str, do_backtest: bool) -> None:
     """Full build: re-walk ratings, retrain the combiner, write every JSON (daily)."""
     print(f"\n=== {tour.upper()} === loading matches + building features...")
@@ -47,6 +57,7 @@ def build_tour(tour: str, do_backtest: bool) -> None:
     predictor.save()
 
     export_all(tour, df, elo, srv, meta, predictor, oos=oos)
+    _track(tour, predictor, df)
     _mirror(tour)
 
 
@@ -58,6 +69,7 @@ def build_tour_quick(tour: str) -> None:
     df = load_matches(tour)
     predictor = TennisPredictor.load(tour)
     export_all(tour, df, predictor.elo, predictor.srv, predictor.meta, predictor, oos=None)
+    _track(tour, predictor, df)
     _mirror(tour)
 
 

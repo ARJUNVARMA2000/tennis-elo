@@ -18,7 +18,7 @@ on:
         default: auto
 
 permissions:
-  contents: read
+  contents: write      # commit the append-only forecast log back to the repo
   pages: write
   id-token: write
 
@@ -77,6 +77,25 @@ jobs:
         env:
           PYTHONPATH: src
         run: python -m tennis_model.pipeline --tour all --quick
+
+      # Durably persist the append-only forecast log (the data cache is evictable, so
+      # commit it back). Once daily on the full run keeps history to one commit/day; the
+      # cache carries the 3-hourly quick-run appends in between. Best-effort: a push
+      # failure warns but never fails the deploy. Push events don't trigger this workflow.
+      - name: Persist forecast log
+        if: steps.mode.outputs.mode == 'full'
+        working-directory: tennis_model
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/forecast_log 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "no forecast-log changes to commit"
+          else
+            git commit -m "chore(forecast-log): daily update"
+            git push || (git pull --rebase --autostash origin "${GITHUB_REF_NAME}" && git push) \
+              || echo "::warning::forecast-log push failed (will retry next run)"
+          fi
 
       - uses: actions/setup-node@v4
         with:

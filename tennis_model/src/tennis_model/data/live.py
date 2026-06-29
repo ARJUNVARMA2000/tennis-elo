@@ -170,12 +170,51 @@ def parse_fields(events: list, gender: str) -> dict:
     return out
 
 
+def parse_upcoming(events: list, gender: str) -> pd.DataFrame:
+    """ESPN event objects -> scheduled/in-progress singles matchups (not yet completed).
+
+    Mirror of `parse_events`, but keeps competitions whose status state is "pre"
+    (scheduled) or "in" (in-progress) with both competitors already known. Orientation
+    is arbitrary (playerA/playerB) — the match has no winner yet — which is the point:
+    these power point-in-time forecast logging (eval/track) *before* results exist.
+    """
+    keep = f"{gender}-singles"
+    rows = []
+    for ev in events:
+        name = ev.get("shortName") or ev.get("name")
+        for grp in ev.get("groupings", []) or []:
+            if (grp.get("grouping") or {}).get("slug", "") != keep:
+                continue
+            for comp in grp.get("competitions", []) or []:
+                stype = (comp.get("status") or {}).get("type") or {}
+                if stype.get("completed") or stype.get("state") not in ("pre", "in"):
+                    continue                                # only not-yet-finished matchups
+                rnd = _round_label((comp.get("round") or {}).get("displayName", ""))
+                if rnd is None:
+                    continue
+                names = [(c.get("athlete") or {}).get("displayName")
+                         for c in (comp.get("competitors") or [])]
+                names = [n for n in names if n]
+                if len(names) < 2:                          # matchup not set yet (TBD player)
+                    continue
+                rows.append({
+                    "tourney_name": name,
+                    "tourney_date": (comp.get("date") or "")[:10],   # YYYY-MM-DD
+                    "round": rnd, "playerA": names[0], "playerB": names[1],
+                })
+    df = pd.DataFrame(rows)
+    if not df.empty:
+        df = df.drop_duplicates(subset=["tourney_name", "playerA", "playerB"])
+    return df
+
+
 def download_live(tours=TOURS) -> None:
     for tour in tours:
         try:
             events = fetch_events(tour)
             df = parse_events(events, _gender(tour))
             fields = parse_fields(events, _gender(tour))
+            upcoming = parse_upcoming(events, _gender(tour))
         except Exception as e:
             print(f"  live/{tour}: skipped ({e})")
             continue
@@ -190,6 +229,10 @@ def download_live(tours=TOURS) -> None:
         if fields:
             (d / "fields.json").write_text(json.dumps(fields), encoding="utf-8")
             print(f"  live/{tour}: fields for {len(fields)} event(s) -> {d / 'fields.json'}")
+        if not upcoming.empty:
+            upcoming.to_csv(d / "upcoming.csv", index=False, encoding="utf-8")
+            print(f"  upcoming/{tour}: {len(upcoming)} scheduled matchups across "
+                  f"{upcoming['tourney_name'].nunique()} events -> {d / 'upcoming.csv'}")
 
 
 if __name__ == "__main__":
