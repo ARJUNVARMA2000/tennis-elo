@@ -23,6 +23,7 @@ from ..data.results import _name_key
 from .simulate import project_field
 
 _KO_ROUNDS = {"R128", "R64", "R32", "R16", "QF", "SF", "F"}
+ROUND_COLS = ["R128", "R64", "R32", "R16", "QF", "SF", "F", "Champion"]  # reach-prob columns, entry -> title
 TOP_PROJECTION = 24          # players kept in each event's odds list
 
 
@@ -139,6 +140,8 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
         "champion": round(float(r.Champion), 4),
         "final": round(float(r.F), 4) if "F" in cols else None,
         "sf": round(float(r.SF), 4) if "SF" in cols else None,
+        # per-round reach odds (entry -> title) for the round-by-round forecast table
+        "reach": {c: round(float(getattr(r, c)), 4) for c in ROUND_COLS if c in cols},
     } for r in sim.head(TOP_PROJECTION).itertuples(index=False)]
     favorite = proj[0]["name"] if proj else None
 
