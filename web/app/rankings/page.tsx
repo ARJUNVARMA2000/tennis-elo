@@ -8,6 +8,7 @@ import { PageHead, Loading, SurfacePill, Reveal } from "@/components/bits";
 type Player = {
   name: string; eloRank: number; elo: number; eloHard: number; eloClay: number; eloGrass: number;
   servePct: number; returnPct: number; rankPoints: number | null; matches: number; hand: string | null;
+  age: number | null; country: string | null;
 };
 
 export default function Rankings() {
@@ -63,6 +64,8 @@ export default function Rankings() {
             <tr className="border-b border-[var(--color-line)]">
               <th className="px-3 py-3 text-left">#</th>
               <th className="px-3 py-3 text-left">Player</th>
+              <th className="px-3 py-3 text-left">Country</th>
+              <th className="px-3 py-3 text-right">Age</th>
               <th className="px-3 py-3 text-right">Elo</th>
               <th className="hidden px-3 py-3 text-right sm:table-cell" style={{ color: surfaceColor("Hard") }}>Hard</th>
               <th className="hidden px-3 py-3 text-right sm:table-cell" style={{ color: surfaceColor("Clay") }}>Clay</th>
@@ -76,6 +79,8 @@ export default function Rankings() {
               <tr key={p.name} className="row-glow border-b border-[var(--color-line)]/50">
                 <td className="px-3 py-2.5 text-[var(--color-faint)]">{i + 1}</td>
                 <td className="px-3 py-2.5 font-[var(--font-body)] text-[var(--color-text)]">{p.name}</td>
+                <td className="px-3 py-2.5 text-[var(--color-muted)]">{p.country ?? "—"}</td>
+                <td className="px-3 py-2.5 text-right text-[var(--color-muted)]">{p.age ?? "—"}</td>
                 <td className="px-3 py-2.5 text-right font-semibold">{surface === "Overall" ? p.elo : (p as any)[eloKey(surface)]}</td>
                 <td className="hidden px-3 py-2.5 text-right text-[var(--color-muted)] sm:table-cell">{p.eloHard}</td>
                 <td className="hidden px-3 py-2.5 text-right text-[var(--color-muted)] sm:table-cell">{p.eloClay}</td>

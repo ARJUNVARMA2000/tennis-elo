@@ -126,14 +126,27 @@ def build_feature_frame(df: pd.DataFrame | None = None, tour: str = "atp") -> pd
 
 
 def player_meta(df: pd.DataFrame) -> dict:
-    """Latest-known rank points, age, height and hand per player (for inference)."""
+    """Latest-known rank points, age, height, hand and country per player.
+
+    Keeps the most recent *non-null* value per field, so a fresh ESPN live row that
+    lacks bio data doesn't blank out a player who has it. `age` is stored with the
+    date it was observed (`age_asof`) so callers can advance it to the present — fresh
+    rows carry no age, so the latest known age is often a year or two stale.
+    """
     meta: dict = {}
-    cols = ["winner_name", "winner_rank_points", "winner_age", "winner_ht", "winner_hand",
-            "loser_name", "loser_rank_points", "loser_age", "loser_ht", "loser_hand"]
-    for row in df[cols].itertuples(index=False):
-        for nm, rp, age, ht, hand in ((row[0], row[1], row[2], row[3], row[4]),
-                                      (row[5], row[6], row[7], row[8], row[9])):
-            meta[nm] = {"rank_points": rp, "age": age, "ht": ht, "hand": hand}  # last wins (chrono)
+    fields = ("rank_points", "age", "ht", "hand", "ioc")
+    cols = ["date",
+            "winner_name", "winner_rank_points", "winner_age", "winner_ht", "winner_hand", "winner_ioc",
+            "loser_name", "loser_rank_points", "loser_age", "loser_ht", "loser_hand", "loser_ioc"]
+    for row in df[cols].sort_values("date").itertuples(index=False):
+        date = row[0]
+        for nm, *vals in ((row[1], *row[2:7]), (row[7], *row[8:13])):
+            m = meta.setdefault(nm, {})
+            for k, v in zip(fields, vals):
+                if pd.notna(v):
+                    m[k] = v
+                    if k == "age":
+                        m["age_asof"] = date
     return meta
 
 

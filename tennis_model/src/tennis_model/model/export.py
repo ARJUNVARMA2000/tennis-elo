@@ -46,6 +46,18 @@ def _active(elo) -> list:
     return [n for n, last in elo.last_played.items() if last >= cutoff]
 
 
+def _current_age(m: dict, ref) -> int | None:
+    """Latest known age, advanced to `ref` (dataset's most recent date). Fresh live
+    rows carry no age, so the last observed value can be a year or two old."""
+    age = m.get("age")
+    if not pd.notna(age):
+        return None
+    asof = m.get("age_asof")
+    if asof is not None and pd.notna(asof):
+        age += max(0.0, (pd.Timestamp(ref) - pd.Timestamp(asof)).days / 365.25)
+    return int(age)
+
+
 def build_players(elo, srv, meta, profiles, top=TOP_PROFILES) -> list:
     rows = []
     for name in _active(elo):
@@ -62,6 +74,8 @@ def build_players(elo, srv, meta, profiles, top=TOP_PROFILES) -> list:
             "rankPoints": int(m["rank_points"]) if pd.notna(m.get("rank_points")) else None,
             "matches": int(elo.n.get(name, 0)),
             "hand": m.get("hand") if isinstance(m.get("hand"), str) else None,
+            "age": _current_age(m, elo.last_date),
+            "country": m.get("ioc") if isinstance(m.get("ioc"), str) else None,
             "lastPlayed": pd.Timestamp(elo.last_played[name]).strftime("%Y-%m-%d"),
             "aggression": round(st["style_aggression"], 3) if st.get("style_aggression") == st.get("style_aggression") and "style_aggression" in st else None,
             "serveDom": round(st["style_serve_dom"], 3) if st.get("style_serve_dom") == st.get("style_serve_dom") and "style_serve_dom" in st else None,
