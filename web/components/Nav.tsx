@@ -12,6 +12,7 @@ const LINKS = [
   ["/upcoming", "Latest"],
   ["/player", "Players"],
   ["/style", "Style"],
+  ["/strength", "Strength"],
   ["/trends", "Trends"],
   ["/accuracy", "Accuracy"],
   ["/track", "Track record"],
