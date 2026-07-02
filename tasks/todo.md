@@ -78,3 +78,50 @@ Full metrics progression: tasks/baseline-2026-07-01.md
 - **Data**: ATP serve stats had been frozen since Jan 17 2026 (TML GitHub died silently); WTA since May 2024. Both restored (ATP 93%, WTA ~90% for 2024–26) with daily refresh + a red-build sentinel so it can't happen silently again.
 - **Negative results kept honest**: walkover-skip, pooled-OOS calibration, isotonic, global-only surface serve — all tried, measured, rejected.
 - Tuning studies in tennis_model/data/output/tuning/*.db (resumable; `python -m tennis_model.eval.tune`).
+
+---
+
+# Task: Post-landing hardening + B8/A5 (follow-up session)
+
+Plan: C:\Users\varma\.claude\plans\anything-else-we-can-transient-gem.md
+
+## Checklist
+
+### Fixes found by the post-landing deep review (commit 61c696e)
+- [x] compare.py pnl TypeError — market.json was silently never written (reproduced live)
+- [x] results.py same-day dedup dropped ~181 real RR/finals rematches — round joins the key
+- [x] predict.py age_diff/ht_diff inference-parity break (one-missing-side → ±known value)
+- [x] pipeline.py quick-mode schema guard (stale cached predictor → full rebuild, not a crash)
+- [x] health.py Nov 21+ offseason relax + empty-frame NaT guard
+- [x] wta_stats.py atomic write_year + _paged 50-page runaway cap
+- [x] download.py strict_fatal() extracted + clamp regression test
+
+### Harness (commit d45eeaa)
+- [x] tune.py group=xgb (full walk-forward objective, match-paired trials)
+- [x] --validate re-scores on fixed row sets and prints paired d±SE + gate verdict
+- [x] point group scores on a FIXED reference serve-sample mask (selection artifact fixed)
+- [x] surface_serve_shrinkage range → 10000 (WTA optimum sat at the old 3000 bound)
+- [x] explicit XGB random_state=0; xgb_overrides threading; fallback shim suggest_int
+
+### Reliability (commit b80be18)
+- [x] data/names.py single name_key + identity-assertion lock + cross-language fixture
+- [x] contract tests: _assemble anti-symmetry, oriented-xy flip, scores, calibrators,
+      fit-fold determinism, predict-parity key set (suite 25 → 64)
+- [x] ruff clean (BLE001 enforced via reasoned noqas) + CI lint step; requirements pinned
+
+### Frontend (commit f511e2d)
+- [x] eslint flat config (0 errors / 9 deliberate warnings); vitest 52 tests green
+- [x] a11y: ticker list semantics + non-color cues; mobile freshness pill; nav labels
+- [x] useData error state + rankings fallback; web CI job (lint+test+build)
+
+### B8 — in flight
+- [ ] xgb sweeps (400 trials/tour, running), point re-sweeps _xwide (extended range)
+- [ ] validate via paired-SE gate both tours → adopt (config XGB_PARAMS / SR overrides)
+- [ ] rebuild caches + full walk-forward vs baseline (ATP 0.1984/0.686, WTA 0.2033/0.678)
+- [ ] tasks/tuning-results doc
+- [ ] feature-constant sweeps (FeatureParams), adaptive surface blend, home advantage
+      (blocked until the sweep chain frees the shared modules)
+- [ ] A5 challenger experiment (INCLUDE_CHALLENGERS)
+
+### Blocked on user
+- [ ] push the 4 local commits (deploy-on-push needs explicit approval)
