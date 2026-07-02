@@ -190,6 +190,14 @@ def download_all(tours=("atp", "wta")) -> dict[str, list]:
     return failures
 
 
+def strict_fatal(failures: dict[str, list], this_year: int) -> list[str]:
+    """Which download failures should red a --strict run: any stats-overlay failure,
+    plus current-year files from other sources — frozen archive years are immutable
+    and covered by the release-asset snapshot."""
+    return [f"{src}:{i}" for src, items in failures.items()
+            for i in items if "stats" in src or str(this_year) in str(i)]
+
+
 if __name__ == "__main__":
     import argparse
     import sys
@@ -204,12 +212,7 @@ if __name__ == "__main__":
     this_year = datetime.now(timezone.utc).year
     strict_failures: list[str] = []
     if args.kind == "all":
-        fails = download_all(tours)
-        for src_name, items in fails.items():
-            # only current-year (or stats-overlay) failures are fatal: the archive
-            # years are immutable and covered by the release-asset snapshot
-            fatal = [i for i in items if "stats" in src_name or str(this_year) in str(i)]
-            strict_failures += [f"{src_name}:{i}" for i in fatal]
+        strict_failures += strict_fatal(download_all(tours), this_year)
     elif args.kind == "live":
         from .live import download_live
         download_live(tours)

@@ -149,9 +149,12 @@ def merge_sources(tour: str) -> pd.DataFrame:
     # prefer rows that have stats, then the earlier (cleaner) source
     df = df.assign(__hs=has_stats.astype(int)).sort_values(["__hs", "__src"], ascending=[False, True])
     df = df.drop_duplicates(subset="__key", keep="first")
-    # second pass: the same ordered pair on the same calendar day is one match, however
-    # the sources disagree on score formatting or event naming — keep the preferred row
-    df = df.drop_duplicates(subset=["winner_name", "loser_name", "date"], keep="first")
+    # second pass: the same ordered pair on the same calendar day in the same round is
+    # one match, however the sources disagree on score formatting or event naming — keep
+    # the preferred row. Round must be part of the key: archive sources stamp every match
+    # with the tournament START date, so a round-robin meeting and a final rematch at the
+    # same event share a date (e.g. Federer d. Hewitt twice at the 2004 Masters Cup)
+    df = df.drop_duplicates(subset=["winner_name", "loser_name", "date", "round"], keep="first")
     return df.drop(columns=["__hs", "__key", "__src"])
 
 

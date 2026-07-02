@@ -1,6 +1,6 @@
 """Single-match predictor: the trained combiner + final rating states.
 
-Builds the exact 24-feature vector for an arbitrary (A, B, surface, format) matchup
+Builds the exact FEATURES vector for an arbitrary (A, B, surface, format) matchup
 and returns a calibrated P(A beats B) plus a set-score distribution from the point
 model. Context features that need live match conditions (rest, in-tournament fatigue)
 are set neutral for hypothetical matchups; head-to-head comes from career history.
@@ -66,6 +66,7 @@ class TennisPredictor:
             return float((asof - last) / np.timedelta64(1, "D")) if last is not None else 365.0
         da, db = _days_since(a), _days_since(b)
         age_a, age_b = _num(ma.get("age")), _num(mb.get("age"))
+        ht_a, ht_b = _num(ma.get("ht")), _num(mb.get("ht"))
 
         row = {
             "elo_diff": belo_a - belo_b,
@@ -78,8 +79,10 @@ class TennisPredictor:
             "rankpts_diff": math.log((np.nan_to_num(rpa) + 1) / (np.nan_to_num(rpb) + 1))
             if np.isfinite(rpa) and np.isfinite(rpb) else 0.0,
             "exp_diff": math.log(elo.n.get(a, 0) + 1) - math.log(elo.n.get(b, 0) + 1),
-            "age_diff": (_num(ma.get("age"), 0) - _num(mb.get("age"), 0)),
-            "ht_diff": (_num(ma.get("ht"), 0) - _num(mb.get("ht"), 0)),
+            # training fills the pair DIFFERENCE with 0 when either side is missing
+            # (features._assemble .fillna(0) after the subtraction) — mirror that here
+            "age_diff": age_a - age_b if np.isfinite(age_a) and np.isfinite(age_b) else 0.0,
+            "ht_diff": ht_a - ht_b if np.isfinite(ht_a) and np.isfinite(ht_b) else 0.0,
             "hand_matchup": int(ma.get("hand") == "L") - int(mb.get("hand") == "L"),
             "rest_diff": 0.0,
             "fatigue_diff": 0.0,

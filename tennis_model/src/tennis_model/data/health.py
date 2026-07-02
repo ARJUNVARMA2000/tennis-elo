@@ -31,24 +31,32 @@ def tour_health(tour: str, now: pd.Timestamp) -> dict:
     completed = df[df["completed"]]
     stats_rows = df[df["has_stats"]]
     cur = df[df["date"].dt.year == now.year]
+    # empty slices give NaT maxima — report None (flagged by problems()) rather than crash
+    date_max = df["date"].max() if len(df) else pd.NaT
+    res_max = completed["date"].max() if len(completed) else pd.NaT
+    stat_max = stats_rows["date"].max() if len(stats_rows) else pd.NaT
     return {
         "matches": int(len(df)),
-        "date_max": str(df["date"].max().date()),
-        "result_age_days": int((now - completed["date"].max()).days),
-        "stats_date_max": str(stats_rows["date"].max().date()) if len(stats_rows) else None,
-        "stats_age_days": int((now - stats_rows["date"].max()).days) if len(stats_rows) else None,
+        "date_max": str(date_max.date()) if pd.notna(date_max) else None,
+        "result_age_days": int((now - res_max).days) if pd.notna(res_max) else None,
+        "stats_date_max": str(stat_max.date()) if pd.notna(stat_max) else None,
+        "stats_age_days": int((now - stat_max).days) if pd.notna(stat_max) else None,
         "cur_year_matches": int(len(cur)),
         "cur_year_stats_fraction": round(float(cur["has_stats"].mean()), 4) if len(cur) else None,
     }
 
 
 def problems(tour: str, h: dict, now: pd.Timestamp) -> list[str]:
-    offseason = now.month == 12
+    # the season effectively ends mid-November (Finals/Davis Cup), not December —
+    # relax the age gates from Nov 21 so the quiet weeks don't red the build
+    offseason = now.month == 12 or (now.month == 11 and now.day > 20)
     max_result = HEALTH_OFFSEASON_RELAX_DAYS if offseason else HEALTH_MAX_RESULT_AGE_DAYS
     max_stats = HEALTH_OFFSEASON_RELAX_DAYS if offseason else HEALTH_MAX_STATS_AGE_DAYS
     min_frac = HEALTH_MIN_STATS_FRACTION.get(tour, 0.0)
     out = []
-    if h["result_age_days"] > max_result:
+    if h["result_age_days"] is None:
+        out.append(f"{tour}: no completed matches loaded")
+    elif h["result_age_days"] > max_result:
         out.append(f"{tour}: newest completed match is {h['result_age_days']}d old (max {max_result})")
     if min_frac > 0:
         if h["stats_age_days"] is None or h["stats_age_days"] > max_stats:

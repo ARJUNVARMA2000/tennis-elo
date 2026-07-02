@@ -27,6 +27,7 @@ Run:  PYTHONPATH=src python -m tennis_model.data.wta_stats --years 2024 2025 202
 from __future__ import annotations
 
 import json
+import os
 import re
 import time
 import urllib.error
@@ -101,6 +102,8 @@ def _paged(path: str, key: str, params: dict | None = None, page_size: int = 100
             return out
         prev_sig = sig
         page += 1
+        if page >= 50:  # paging-blind endpoint with unstable ordering would loop forever
+            raise RuntimeError(f"WTA API pagination runaway on {path} ({len(out)} items)")
 
 
 def fetch_tournaments(year: int) -> list[dict]:
@@ -293,7 +296,9 @@ def write_year(year: int, df_new: pd.DataFrame) -> int:
     elif path.exists():
         return len(pd.read_csv(path, low_memory=False, encoding="utf-8-sig"))
     df_new = _enrich_from_fresh(df_new, year)
-    df_new.to_csv(path, index=False)
+    tmp = path.with_suffix(".csv.tmp")   # atomic: a crash mid-write must not corrupt the year file
+    df_new.to_csv(tmp, index=False)
+    os.replace(tmp, path)
     return len(df_new)
 
 

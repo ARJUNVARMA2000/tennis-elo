@@ -128,9 +128,52 @@ def test_merge_dedup_prefers_stat_bearing_row():
     print("ok test_merge_dedup_prefers_stat_bearing_row")
 
 
+def test_same_day_rematch_survives_dedup():
+    """Archive sources stamp every match with the tournament START date, so a
+    round-robin meeting and a final rematch share (pair, date). The same-day dedup
+    pass must key on round too (regression: it silently dropped ~181 real matches,
+    e.g. Federer d. Hewitt twice at the 2004 Masters Cup)."""
+    orig = (results.historical_dir, results.stats_dir, results.fresh_dir, results.live_dir)
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            hist, stats, fresh, live = (base / "historical", base / "stats",
+                                        base / "fresh", base / "live")
+            for p in (hist, stats, fresh, live):
+                p.mkdir(parents=True, exist_ok=True)
+            results.historical_dir = lambda tour: hist
+            results.stats_dir = lambda tour: stats
+            results.fresh_dir = lambda tour: fresh
+            results.live_dir = lambda tour: live
+
+            # RR meeting + final rematch, both stamped with the event start date
+            _write_csv(hist / "2004.csv",
+                "tourney_name,tourney_date,winner_name,loser_name,round,score,w_svpt,l_svpt\n"
+                "Masters Cup,20041114,Roger Federer,Lleyton Hewitt,RR,6-3 6-4,55,50\n"
+                "Masters Cup,20041114,Roger Federer,Lleyton Hewitt,F,6-3 6-2,60,52\n")
+            # a fresh duplicate of the FINAL whose score disagrees on games (the case
+            # the same-day pass exists for) — must collapse into the historical row
+            _write_csv(fresh / "2004.csv",
+                "tourney_name,tourney_date,winner_name,loser_name,round,score\n"
+                "Masters Cup,2004/11/14,Roger Federer,Lleyton Hewitt,F,6-3 5-2 RET\n")
+
+            df = results.merge_sources("atp")
+    finally:
+        (results.historical_dir, results.stats_dir,
+         results.fresh_dir, results.live_dir) = orig
+
+    pair = df[(df["winner_name"] == "Roger Federer") & (df["loser_name"] == "Lleyton Hewitt")]
+    assert len(pair) == 2, pair[["round", "score"]]           # RR and F both survive
+    assert set(pair["round"]) == {"RR", "F"}
+    fin = pair[pair["round"] == "F"]
+    assert fin["score"].iloc[0] == "6-3 6-2"                  # stat-bearing row won the dup
+    print("ok test_same_day_rematch_survives_dedup")
+
+
 if __name__ == "__main__":
     test_name_key_folds_accents_and_punct()
     test_score_key_ignores_tiebreak_points()
     test_canonicalize_prefers_historical_spelling()
     test_merge_dedup_prefers_stat_bearing_row()
+    test_same_day_rematch_survives_dedup()
     print("\nALL PASSED")

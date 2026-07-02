@@ -63,7 +63,7 @@ def scorecard_from_oos(tour: str, oos: pd.DataFrame, edge_min: float = 0.05,
     bet_win = edge > edge_min                       # back the (actual) winner
     bet_lose = -edge > edge_min                     # back the (actual) loser
     pnl = (bet_win * (merged[ow].to_numpy() - 1.0) * stake
-           - bet_lose * stake).sum() + (bet_lose * 0)  # winner side cashes, loser side loses stake
+           - bet_lose * stake).sum()  # winner side cashes, loser side loses stake
     # loser-side winners: when we backed the loser they lose -> -stake already; we never cash those
     n_bets = int(bet_win.sum() + bet_lose.sum())
     staked = n_bets * stake
