@@ -119,6 +119,18 @@ const SURF_KEY: Record<string, "eloHard" | "eloClay" | "eloGrass"> = {
   Grass: "eloGrass",
 };
 
+/** matrix.players.map(nameKey) is O(players) string work — cache it per matrix
+    object (winProb runs per card per render). */
+const matrixKeys = new WeakMap<Matrix, string[]>();
+function keysFor(matrix: Matrix): string[] {
+  let keys = matrixKeys.get(matrix);
+  if (!keys) {
+    keys = matrix.players.map(nameKey);
+    matrixKeys.set(matrix, keys);
+  }
+  return keys;
+}
+
 /** Model P(A beats B): the precomputed combiner matrix when both players are
     in the top-120 grid, else the exact surface-blended Elo formula the model
     uses (SURFACE_BLEND=0.5, RATING_SCALE=400), else null. */
@@ -134,7 +146,7 @@ export function winProb(
   const kb = nameKey(b);
 
   if (matrix) {
-    const keys = matrix.players.map(nameKey);
+    const keys = keysFor(matrix);
     const i = keys.indexOf(ka);
     const j = keys.indexOf(kb);
     if (i >= 0 && j >= 0 && i !== j) {

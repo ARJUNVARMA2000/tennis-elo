@@ -83,7 +83,7 @@ export default function Nav() {
         </Link>
 
         {/* desktop: grouped nav with sliding active pill + glass dropdowns */}
-        <nav className="ml-2 hidden flex-1 items-center gap-1 text-[13px] text-[var(--color-muted)] lg:flex">
+        <nav aria-label="Primary" className="ml-2 hidden flex-1 items-center gap-1 text-[13px] text-[var(--color-muted)] lg:flex">
           {GROUPS.map((g) => {
             const groupActive = g.href
               ? isActive(path, g.href)
@@ -124,6 +124,7 @@ export default function Nav() {
                 <button
                   className="relative rounded-md px-3 py-1.5 hover:text-[var(--color-text)]"
                   onClick={() => setOpen((o) => (o === g.label ? null : g.label))}
+                  aria-haspopup="true"
                   aria-expanded={open === g.label}
                 >
                   {label}
@@ -213,7 +214,7 @@ export default function Nav() {
       </div>
 
       {/* mobile: flat scrollable chip strip */}
-      <nav className="flex gap-1.5 overflow-x-auto border-t border-[var(--color-line)] px-4 py-2 text-[12px] text-[var(--color-muted)] lg:hidden">
+      <nav aria-label="Primary (mobile)" className="flex gap-1.5 overflow-x-auto border-t border-[var(--color-line)] px-4 py-2 text-[12px] text-[var(--color-muted)] lg:hidden">
         {FLAT.map(({ href, label }) => {
           const a = isActive(path, href);
           return (

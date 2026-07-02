@@ -5,7 +5,7 @@ import { useData } from "@/lib/tour";
 
 type Meta = { lastUpdated?: string };
 
-function rel(iso: string, now: number): string | null {
+export function rel(iso: string, now: number): string | null {
   const t = Date.parse(iso);
   if (isNaN(t)) return null;
   const m = Math.max(0, Math.floor((now - t) / 60_000));
@@ -29,9 +29,10 @@ export default function Freshness() {
   const r = rel(data.lastUpdated, now);
   if (!r) return null;
   return (
-    <span className="chip hidden items-center gap-1.5 whitespace-nowrap text-[var(--color-muted)] sm:inline-flex">
-      <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-win)]" />
-      updated {r}
+    <span className="chip inline-flex items-center gap-1.5 whitespace-nowrap text-[var(--color-muted)]">
+      <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-[var(--color-win)]" />
+      <span className="hidden sm:inline">updated</span>
+      {r}
     </span>
   );
 }

@@ -74,7 +74,7 @@ export default function LiveTicker() {
   const mtx = matrix?.tour === tour ? matrix.m : null;
 
   return (
-    <motion.section variants={stagger(0.06)} initial="hidden" animate="show" className="mt-8">
+    <motion.section aria-label="Live matches" variants={stagger(0.06)} initial="hidden" animate="show" className="mt-8">
       <div className="mb-2.5 flex items-center gap-2">
         <span className="live-dot inline-block h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]" />
         <span className="eyebrow !text-[var(--color-text)]">Live now</span>
@@ -82,11 +82,11 @@ export default function LiveTicker() {
           ESPN scores · model win odds · refreshes every minute
         </span>
       </div>
-      <div className="flex gap-3 overflow-x-auto pb-2">
+      <ul role="list" className="flex gap-3 overflow-x-auto pb-2">
         {matches.map((m) => (
           <LiveCard key={m.id} m={m} players={players} tournaments={tournaments} matrix={mtx} />
         ))}
-      </div>
+      </ul>
     </motion.section>
   );
 }
@@ -111,14 +111,18 @@ function LiveCard({
     return (
       <div className="flex items-baseline gap-2">
         <span
-          className="w-36 truncate text-[12.5px]"
+          className={`w-36 truncate text-[12.5px]${leading ? " font-semibold" : ""}`}
           style={{ color: leading || prob === null ? "var(--color-text)" : "var(--color-muted)" }}
         >
           {name}
         </span>
         <span className="mono flex gap-1.5 text-[12px] text-[var(--color-muted)]">
           {m.sets.map((s, i) => (
-            <span key={i} style={{ color: i === currentSet ? "var(--color-text)" : undefined }}>
+            <span
+              key={i}
+              className={i === currentSet ? "underline decoration-dotted underline-offset-2" : undefined}
+              style={{ color: i === currentSet ? "var(--color-text)" : undefined }}
+            >
               {s[side]}
             </span>
           ))}
@@ -128,6 +132,7 @@ function LiveCard({
             className="mono ml-auto text-[11.5px]"
             style={{ color: leading ? "var(--color-accent)" : "var(--color-faint)" }}
           >
+            <span className="sr-only">win probability </span>
             {(prob * 100).toFixed(0)}%
           </span>
         )}
@@ -136,7 +141,11 @@ function LiveCard({
   };
 
   return (
-    <motion.div variants={fadeUp} className="panel min-w-[280px] shrink-0 p-3">
+    <motion.li
+      variants={fadeUp}
+      aria-label={`${m.a} vs ${m.b} — ${m.event}, ${m.round || m.detail}, live`}
+      className="panel min-w-[280px] shrink-0 p-3"
+    >
       <div className="flex items-center justify-between gap-2">
         <span className="truncate text-[11px] text-[var(--color-faint)]">
           {m.event} · {m.round || m.detail}
@@ -150,7 +159,7 @@ function LiveCard({
         {row(m.b, 1, p === null ? null : 1 - p)}
       </div>
       {p !== null && (
-        <div className="bartrack mt-2.5 flex h-1">
+        <div aria-hidden="true" className="bartrack mt-2.5 flex h-1">
           <motion.div
             animate={{ width: `${p * 100}%` }}
             transition={{ type: "spring", stiffness: 180, damping: 22 }}
@@ -159,6 +168,6 @@ function LiveCard({
           <div className="flex-1" style={{ background: "rgba(255,255,255,0.10)" }} />
         </div>
       )}
-    </motion.div>
+    </motion.li>
   );
 }

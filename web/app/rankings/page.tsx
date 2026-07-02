@@ -14,7 +14,7 @@ type Player = {
 
 export default function Rankings() {
   const { tour } = useTour();
-  const { data, loading } = useData<Player[]>("players.json");
+  const { data, loading, error } = useData<Player[]>("players.json");
   const [surface, setSurface] = useState<string>("Overall");
 
   const rows = useMemo(() => {
@@ -34,6 +34,10 @@ export default function Rankings() {
       />
 
       {loading && <Loading />}
+
+      {error && !data && (
+        <p className="mt-8 text-sm text-[var(--color-muted)]">Data unavailable — try again shortly.</p>
+      )}
 
       {top && (
         <Reveal delay={0.05}>

@@ -31,21 +31,35 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
 
 export const useTour = () => useContext(Ctx);
 
-/** Fetch a JSON artifact for the active tour from /data/<tour>/<file>. */
-export function useData<T>(file: string): { data: T | null; loading: boolean } {
+/** Fetch a JSON artifact for the active tour from /data/<tour>/<file>.
+    `error` flips on HTTP failure or a rejected fetch (pages may ignore it). */
+export function useData<T>(file: string): { data: T | null; loading: boolean; error: boolean } {
   const { tour } = useTour();
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   useEffect(() => {
     let live = true;
     setLoading(true);
+    setError(false);
     fetch(`${BASE}/data/${tour}/${file}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => live && (setData(j), setLoading(false)))
-      .catch(() => live && setLoading(false));
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((j) => {
+        if (live) {
+          setData(j);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (live) {
+          setData(null);
+          setError(true);
+          setLoading(false);
+        }
+      });
     return () => {
       live = false;
     };
   }, [tour, file]);
-  return { data, loading };
+  return { data, loading, error };
 }

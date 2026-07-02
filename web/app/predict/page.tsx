@@ -29,7 +29,7 @@ export default function Predict() {
   const [bo, setBo] = useState(3);
 
   const players = data?.players || [];
-  const formats = data?.formats || [3];
+  const formats = useMemo(() => data?.formats || [3], [data]);
 
   const p = useMemo(() => {
     if (!data || a === b) return null;
