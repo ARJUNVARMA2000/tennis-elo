@@ -5,10 +5,12 @@ import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
 import { RADAR_AXES, percentileScaler } from "@/lib/ui";
 import { PageHead, Loading, Reveal, Radar } from "@/components/bits";
+import Dropdown, { type DropdownOption } from "@/components/Dropdown";
 import { stagger, fadeUp } from "@/lib/motion";
 
 type Profile = {
   name: string;
+  eloRank?: number;
   servePct: number; returnPct: number;
   eloHard: number; eloClay: number; eloGrass: number;
   style: Record<string, number | null>;
@@ -17,13 +19,6 @@ type Profile = {
 const A_COLOR = "var(--color-accent)";
 const B_COLOR = "var(--color-cmp)";
 const DEFAULTS = ["Jannik Sinner", "Novak Djokovic"];
-
-/* Inline chevron for restyled <select> elements (appearance-none). */
-const SELECT_CHEVRON: React.CSSProperties = {
-  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238a8f98' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`,
-  backgroundRepeat: "no-repeat",
-  backgroundPosition: "right 0.9rem center",
-};
 
 const lastName = (n: string) => n.split(" ").slice(-1)[0];
 
@@ -36,6 +31,15 @@ export default function Style() {
   const { tour } = useTour();
   const { data, loading } = useData<Record<string, Profile>>("profiles.json");
   const names = useMemo(() => (data ? Object.keys(data) : []), [data]);
+  const options: DropdownOption[] = useMemo(
+    () =>
+      names.map((n) => ({
+        value: n,
+        label: n,
+        sublabel: data?.[n]?.eloRank != null ? `#${data[n].eloRank}` : undefined,
+      })),
+    [names, data],
+  );
   const [a, setA] = useState("");
   const [b, setB] = useState("");
 
@@ -87,8 +91,8 @@ export default function Style() {
         <>
           <Reveal>
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
-              <Picker label="Player A" value={a} onChange={setA} names={names} accent={A_COLOR} />
-              <Picker label="Player B" value={b} onChange={setB} names={names} accent={B_COLOR} />
+              <Picker label="Player A" value={a} onChange={setA} options={options} accent={A_COLOR} />
+              <Picker label="Player B" value={b} onChange={setB} options={options} accent={B_COLOR} />
             </div>
           </Reveal>
 
@@ -161,20 +165,11 @@ function Row({ label, a, b }: { label: string; a: string; b: string }) {
   );
 }
 
-function Picker({ label, value, onChange, names, accent }: { label: string; value: string; onChange: (n: string) => void; names: string[]; accent: string }) {
+function Picker({ label, value, onChange, options, accent }: { label: string; value: string; onChange: (n: string) => void; options: DropdownOption[]; accent: string }) {
   return (
-    <label className="block">
+    <div className="block">
       <div className="eyebrow mb-2" style={{ color: accent }}>{label}</div>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="mono w-full appearance-none rounded-md border border-[var(--color-line)] bg-[var(--color-panel2)] py-3 pl-4 pr-10 text-[var(--color-text)] transition-colors focus:border-[var(--color-accent)] focus:outline-none"
-        style={SELECT_CHEVRON}
-      >
-        {names.map((n) => (
-          <option key={n} value={n}>{n}</option>
-        ))}
-      </select>
-    </label>
+      <Dropdown searchable label={label} value={value} onChange={onChange} options={options} />
+    </div>
   );
 }

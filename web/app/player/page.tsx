@@ -5,10 +5,11 @@ import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
 import { pct, surfaceColor, SURFACES, STYLE_LABEL } from "@/lib/ui";
 import { PageHead, Loading, Reveal, Spark, AnimatedNumber } from "@/components/bits";
+import Dropdown, { type DropdownOption } from "@/components/Dropdown";
 import { stagger, fadeUp } from "@/lib/motion";
 
 type Profile = {
-  name: string; elo: number; eloHard: number; eloClay: number; eloGrass: number;
+  name: string; elo: number; eloHard: number; eloClay: number; eloGrass: number; eloRank?: number;
   servePct: number; returnPct: number; rankPoints: number | null; matches: number; hand: string | null;
   style: Record<string, number | null>;
   history: [string, number][];
@@ -20,6 +21,15 @@ export default function Players() {
   const { tour } = useTour();
   const { data, loading } = useData<Record<string, Profile>>("profiles.json");
   const names = useMemo(() => (data ? Object.keys(data) : []), [data]);
+  const options: DropdownOption[] = useMemo(
+    () =>
+      names.map((n) => ({
+        value: n,
+        label: n,
+        sublabel: data?.[n]?.eloRank != null ? `#${data[n].eloRank}` : undefined,
+      })),
+    [names, data],
+  );
   const [sel, setSel] = useState("");
 
   useEffect(() => { if (names.length && !names.includes(sel)) setSel(names[0]); }, [names, sel]);
@@ -34,14 +44,15 @@ export default function Players() {
       {data && (
         <>
           <Reveal>
-            <input
-              list="players"
-              value={sel}
-              onChange={(e) => setSel(e.target.value)}
+            <Dropdown
+              searchable
+              label="Search a player"
               placeholder="Search a player…"
-              className="mono mt-8 w-full max-w-md rounded-md border border-[var(--color-line)] bg-[var(--color-panel2)] px-4 py-3 transition-colors focus:border-[var(--color-accent)] focus:outline-none"
+              value={sel}
+              onChange={setSel}
+              options={options}
+              className="mt-8 w-full max-w-md"
             />
-            <datalist id="players">{names.map((n) => <option key={n} value={n} />)}</datalist>
           </Reveal>
 
           {p && (

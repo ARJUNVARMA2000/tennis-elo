@@ -159,13 +159,14 @@ function LiveCard({
         {row(m.b, 1, p === null ? null : 1 - p)}
       </div>
       {p !== null && (
-        <div aria-hidden="true" className="bartrack mt-2.5 flex h-1">
+        <div aria-hidden="true" className="bartrack relative mt-2.5 h-1">
+          <div className="absolute inset-0" style={{ background: "rgba(255,255,255,0.10)" }} />
           <motion.div
-            animate={{ width: `${p * 100}%` }}
+            className="absolute inset-0"
+            animate={{ scaleX: p }}
             transition={{ type: "spring", stiffness: 180, damping: 22 }}
-            style={{ background: "var(--color-accent)" }}
+            style={{ background: "var(--color-accent)", transformOrigin: "left", width: "100%" }}
           />
-          <div className="flex-1" style={{ background: "rgba(255,255,255,0.10)" }} />
         </div>
       )}
     </motion.li>

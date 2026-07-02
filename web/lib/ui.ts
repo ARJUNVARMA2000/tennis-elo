@@ -30,6 +30,39 @@ export function heat(p: number): string {
   return `#${c.map((v) => v.toString(16).padStart(2, "0")).join("")}`;
 }
 
+export type AgeDirection = "under" | "over";
+export type AgeFilter = { dir: AgeDirection; value: number } | null;
+
+export const AGE_MIN = 15;
+export const AGE_MAX = 45;
+
+/** Parse the age-control state into a filter. Mode "all" or an empty/non-numeric
+    input mean no filter; decimals floor; out-of-range clamps to [AGE_MIN, AGE_MAX]. */
+export function parseAgeFilter(mode: string, raw: string): AgeFilter {
+  if (mode !== "under" && mode !== "over") return null;
+  if (!raw.trim()) return null;
+  const n = Math.floor(Number(raw));
+  if (!Number.isFinite(n)) return null;
+  return { dir: mode, value: Math.min(AGE_MAX, Math.max(AGE_MIN, n)) };
+}
+
+/** True when a player passes the age filter. No filter passes everyone; unknown ages
+    never pass an active filter. Strict comparisons: Under 23 = age < 23, Over 30 = age > 30. */
+export function passesAgeFilter(age: number | null | undefined, filter: AgeFilter): boolean {
+  if (filter == null) return true;
+  if (age == null) return false;
+  return filter.dir === "under" ? age < filter.value : age > filter.value;
+}
+
+/** Rankings table rows: age-filter first, then sort by `key` descending, then top-100
+    — so the board shows the top-100 of the filtered age group. */
+export function rankRows<T extends { age: number | null }>(data: T[], key: string, filter: AgeFilter): T[] {
+  return data
+    .filter((p) => passesAgeFilter(p.age, filter))
+    .sort((a, b) => Number((b as unknown as Record<string, unknown>)[key]) - Number((a as unknown as Record<string, unknown>)[key]))
+    .slice(0, 100);
+}
+
 export const initials = (name: string) =>
   name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 

@@ -51,13 +51,17 @@ export default function Simulator() {
                 <span className="mono w-6 text-right text-[var(--color-faint)]">{i + 1}</span>
                 <span className="w-40 truncate text-sm sm:w-52">{r.name}</span>
                 <div className="bartrack relative h-5 flex-1">
-                  <motion.div
-                    className="h-full rounded-full"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${(r.champion / max) * 100}%` }}
-                    transition={{ ...SPRING_SOFT, delay: Math.min(i * 0.04, 0.4) }}
-                    style={{ background: surfaceColor(surface), opacity: 0.85 }}
-                  />
+                  {/* static width wrapper + inner scaleX keeps the pill caps crisp at rest
+                      while the entrance animation stays compositor-only */}
+                  <div className="h-full" style={{ width: `${(r.champion / max) * 100}%` }}>
+                    <motion.div
+                      className="h-full w-full rounded-full"
+                      initial={{ scaleX: 0 }}
+                      animate={{ scaleX: 1 }}
+                      transition={{ ...SPRING_SOFT, delay: Math.min(i * 0.04, 0.4) }}
+                      style={{ background: surfaceColor(surface), opacity: 0.85, transformOrigin: "left" }}
+                    />
+                  </div>
                 </div>
                 <span className="mono w-14 text-right text-sm" style={{ color: surfaceColor(surface) }}>
                   {pct(r.champion, 1)}

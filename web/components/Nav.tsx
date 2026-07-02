@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTour } from "@/lib/tour";
 import { SPRING } from "@/lib/motion";
@@ -70,9 +70,54 @@ export default function Nav() {
   const path = usePathname();
   const { tour, setTour } = useTour();
   const [open, setOpen] = useState<string | null>(null);
+  const navRef = useRef<HTMLElement>(null);
+  const btnRefs = useRef(new Map<string, HTMLButtonElement>());
+  const panelRefs = useRef(new Map<string, HTMLDivElement>());
 
   // close any dropdown when the route changes
   useEffect(() => setOpen(null), [path]);
+
+  // outside click closes the open dropdown
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      if (navRef.current && !navRef.current.contains(e.target as Node)) setOpen(null);
+    };
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, [open]);
+
+  const menuLinks = (label: string) =>
+    Array.from(panelRefs.current.get(label)?.querySelectorAll<HTMLAnchorElement>("a") ?? []);
+
+  /** Escape closes (focus back on trigger); ArrowUp/Down roves focus through the panel links. */
+  const onGroupKeyDown = (label: string) => (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") {
+      if (open === label) {
+        e.preventDefault();
+        setOpen(null);
+        btnRefs.current.get(label)?.focus();
+      }
+      return;
+    }
+    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+    e.preventDefault();
+    if (open !== label) {
+      setOpen(label);
+      requestAnimationFrame(() => menuLinks(label)[0]?.focus());
+      return;
+    }
+    const links = menuLinks(label);
+    if (!links.length) return;
+    const i = links.indexOf(document.activeElement as HTMLAnchorElement);
+    if (e.key === "ArrowDown") {
+      (links[i + 1] ?? links[links.length - 1]).focus();
+    } else if (i === 0) {
+      btnRefs.current.get(label)?.focus();
+    } else {
+      (links[i - 1] ?? links[links.length - 1]).focus();
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--color-line)] bg-[rgba(8,9,10,0.72)] backdrop-blur-[20px]">
@@ -83,7 +128,7 @@ export default function Nav() {
         </Link>
 
         {/* desktop: grouped nav with sliding active pill + glass dropdowns */}
-        <nav aria-label="Primary" className="ml-2 hidden flex-1 items-center gap-1 text-[13px] text-[var(--color-muted)] lg:flex">
+        <nav ref={navRef} aria-label="Primary" className="ml-2 hidden flex-1 items-center gap-1 text-[13px] text-[var(--color-muted)] lg:flex">
           {GROUPS.map((g) => {
             const groupActive = g.href
               ? isActive(path, g.href)
@@ -114,18 +159,25 @@ export default function Nav() {
                 </Link>
               );
             }
+            const menuId = `nav-menu-${g.label}`;
             return (
               <div
                 key={g.label}
                 className="relative"
                 onMouseEnter={() => setOpen(g.label)}
                 onMouseLeave={() => setOpen((o) => (o === g.label ? null : o))}
+                onKeyDown={onGroupKeyDown(g.label)}
               >
                 <button
+                  ref={(el) => {
+                    if (el) btnRefs.current.set(g.label, el);
+                    else btnRefs.current.delete(g.label);
+                  }}
                   className="relative rounded-md px-3 py-1.5 hover:text-[var(--color-text)]"
                   onClick={() => setOpen((o) => (o === g.label ? null : g.label))}
                   aria-haspopup="true"
                   aria-expanded={open === g.label}
+                  aria-controls={open === g.label ? menuId : undefined}
                 >
                   {label}
                 </button>
@@ -138,14 +190,24 @@ export default function Nav() {
                       transition={{ duration: 0.16, ease: "easeOut" }}
                       className="absolute left-0 top-full w-64 pt-2"
                     >
-                      <div className="rounded-lg border border-[var(--color-line)] bg-[rgba(15,16,17,0.88)] p-1.5 shadow-[var(--shadow-pop)] backdrop-blur-xl">
+                      <div
+                        ref={(el) => {
+                          if (el) panelRefs.current.set(g.label, el);
+                          else panelRefs.current.delete(g.label);
+                        }}
+                        id={menuId}
+                        role="menu"
+                        aria-label={g.label}
+                        className="rounded-lg border border-[var(--color-line)] bg-[rgba(15,16,17,0.88)] p-1.5 shadow-[var(--shadow-pop)] backdrop-blur-xl"
+                      >
                         {g.items!.map((it) => {
                           const a = isActive(path, it.href);
                           return (
                             <Link
                               key={it.href}
                               href={it.href}
-                              className="flex items-start gap-2.5 rounded-md px-2.5 py-2 transition-colors hover:bg-white/[0.05]"
+                              role="menuitem"
+                              className="flex items-start gap-2.5 rounded-md px-2.5 py-2 transition-colors hover:bg-white/[0.05] focus-visible:bg-white/[0.05] focus-visible:outline-none"
                               style={{ background: a ? "var(--color-accent-dim)" : undefined }}
                             >
                               <span

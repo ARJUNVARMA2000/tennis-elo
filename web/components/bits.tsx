@@ -74,17 +74,19 @@ export function SurfacePill({ s, active, onClick }: { s: string; active?: boolea
   );
 }
 
-/** Two-sided win-probability bar (A accent, B comparison-cyan). Springs on change. */
+/** Two-sided win-probability bar (A accent, B comparison-cyan). Springs on change.
+    Compositor-only: the accent layer is full-width and scaled, never re-laid-out. */
 export function ProbBar({ p, w = 120 }: { p: number; w?: number }) {
   return (
-    <div className="bartrack flex h-1.5" style={{ width: w }}>
+    <div className="bartrack relative h-1.5" style={{ width: w }}>
+      <div className="absolute inset-0" style={{ background: "var(--color-cmp)" }} />
       <motion.div
-        initial={{ width: 0 }}
-        animate={{ width: `${p * 100}%` }}
+        className="absolute inset-0"
+        initial={{ scaleX: 0 }}
+        animate={{ scaleX: p }}
         transition={SPRING_SOFT}
-        style={{ background: "var(--color-accent)" }}
+        style={{ background: "var(--color-accent)", transformOrigin: "left", width: "100%" }}
       />
-      <div className="flex-1" style={{ background: "var(--color-cmp)" }} />
     </div>
   );
 }
@@ -223,15 +225,19 @@ export function Radar({
           />
           {s.values.map((v, i) => {
             const [px, py] = pt(i, clamp(v));
+            // fixed geometry at the origin; position via transform translate so
+            // dataset switches never animate SVG cx/cy attributes per-frame
             return (
               <motion.circle
                 key={i}
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ cx: px, cy: py, scale: 1, opacity: 1 }}
-                transition={{ ...SPRING_SOFT, delay: i * 0.03 }}
-                style={{ transformBox: "fill-box", transformOrigin: "center" }}
+                cx={0}
+                cy={0}
                 r={2.4}
                 fill={s.color}
+                initial={{ x: px, y: py, scale: 0, opacity: 0 }}
+                animate={{ x: px, y: py, scale: 1, opacity: 1 }}
+                transition={{ ...SPRING_SOFT, delay: i * 0.03 }}
+                style={{ transformBox: "fill-box", transformOrigin: "center" }}
               />
             );
           })}

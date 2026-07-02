@@ -264,11 +264,11 @@ function Card({ t }: { t: Tournament }) {
                 </span>
                 <div className="bartrack h-1.5 flex-1">
                   <motion.div
-                    className="h-full"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${(p.champion / maxP) * 100}%` }}
+                    className="h-full w-full"
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: p.champion / maxP }}
                     transition={{ ...SPRING_SOFT, delay: Math.min(i * 0.04, 0.4) }}
-                    style={{ background: heat(p.champion) }}
+                    style={{ background: heat(p.champion), transformOrigin: "left" }}
                   />
                 </div>
                 <span className="mono w-10 text-right text-[12px]" style={{ color: heat(p.champion) }}>

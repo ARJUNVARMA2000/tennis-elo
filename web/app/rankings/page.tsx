@@ -3,25 +3,50 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
-import { eloKey, surfaceColor, SURFACES, pct } from "@/lib/ui";
+import { eloKey, surfaceColor, SURFACES, pct, rankRows, parseAgeFilter, AGE_MIN, AGE_MAX } from "@/lib/ui";
 import { PageHead, Loading, SurfacePill, Reveal, StatCard } from "@/components/bits";
+import Dropdown from "@/components/Dropdown";
+
+const AGE_MODES = [
+  { value: "all", label: "All ages" },
+  { value: "under", label: "Under" },
+  { value: "over", label: "Over" },
+];
 
 type Player = {
   name: string; eloRank: number; elo: number; eloHard: number; eloClay: number; eloGrass: number;
   servePct: number; returnPct: number; rankPoints: number | null; matches: number; hand: string | null;
   age: number | null; country: string | null;
+  liveRank?: number | null; liveRankDelta?: number | null;
 };
+
+function DeltaBadge({ d }: { d: number | null | undefined }) {
+  if (d == null || d === 0) return null;
+  const up = d > 0;
+  return (
+    <span
+      className="mono ml-1 text-[10px]"
+      style={{ color: up ? "var(--color-win)" : "var(--color-loss)" }}
+      title="vs last official ranking"
+    >
+      {up ? "▲" : "▼"}{Math.abs(d)}
+    </span>
+  );
+}
 
 export default function Rankings() {
   const { tour } = useTour();
   const { data, loading, error } = useData<Player[]>("players.json");
   const [surface, setSurface] = useState<string>("Overall");
+  const [ageMode, setAgeMode] = useState("all");
+  const [ageValue, setAgeValue] = useState("23");   // persists across mode toggles
+  const ageFilter = useMemo(() => parseAgeFilter(ageMode, ageValue), [ageMode, ageValue]);
 
   const rows = useMemo(() => {
     if (!data) return [];
     const key = surface === "Overall" ? "elo" : eloKey(surface);
-    return [...data].sort((a, b) => (b as any)[key] - (a as any)[key]).slice(0, 100);
-  }, [data, surface]);
+    return rankRows(data, key, ageFilter);
+  }, [data, surface, ageFilter]);
 
   const top = rows[0];
 
@@ -64,6 +89,33 @@ export default function Rankings() {
         {SURFACES.map((s) => (
           <SurfacePill key={s} s={s} active={surface === s} onClick={() => setSurface(s)} />
         ))}
+        <div className="ml-auto flex items-center gap-2">
+          <Dropdown
+            compact
+            align="right"
+            label="Age filter"
+            value={ageMode}
+            onChange={setAgeMode}
+            options={AGE_MODES}
+          />
+          {ageMode !== "all" && (
+            <input
+              type="number"
+              inputMode="numeric"
+              min={AGE_MIN}
+              max={AGE_MAX}
+              step={1}
+              value={ageValue}
+              onChange={(e) => setAgeValue(e.target.value)}
+              onBlur={() => {
+                const f = parseAgeFilter(ageMode, ageValue);
+                if (f) setAgeValue(String(f.value));   // snap display to the clamped parse
+              }}
+              aria-label={`Age threshold (${ageMode === "under" ? "younger than" : "older than"})`}
+              className="mono w-16 rounded-md border border-[var(--color-line)] bg-[var(--color-panel2)] px-3 py-1.5 text-right text-[12px] text-[var(--color-text)] transition-colors focus:border-[var(--color-accent)] focus:outline-none"
+            />
+          )}
+        </div>
       </div>
 
       <div className="panel overflow-hidden">
@@ -75,6 +127,7 @@ export default function Rankings() {
               <th className="px-3 py-3 text-left font-normal">Country</th>
               <th className="px-3 py-3 text-right font-normal">Age</th>
               <th className="px-3 py-3 text-right font-normal">Elo</th>
+              <th className="hidden px-3 py-3 text-right font-normal sm:table-cell">Live rank</th>
               <th className="hidden px-3 py-3 text-right font-normal sm:table-cell" style={{ color: surfaceColor("Hard") }}>Hard</th>
               <th className="hidden px-3 py-3 text-right font-normal sm:table-cell" style={{ color: surfaceColor("Clay") }}>Clay</th>
               <th className="hidden px-3 py-3 text-right font-normal sm:table-cell" style={{ color: surfaceColor("Grass") }}>Grass</th>
@@ -98,6 +151,9 @@ export default function Rankings() {
                 <td className="mono px-3 py-2.5 text-right font-semibold text-[var(--color-text)]">
                   {surface === "Overall" ? p.elo : (p as any)[eloKey(surface)]}
                 </td>
+                <td className="mono hidden px-3 py-2.5 whitespace-nowrap text-right text-[var(--color-muted)] sm:table-cell">
+                  {p.liveRank != null ? <>#{p.liveRank}<DeltaBadge d={p.liveRankDelta} /></> : "—"}
+                </td>
                 <td className="mono hidden px-3 py-2.5 text-right text-[var(--color-muted)] sm:table-cell">{p.eloHard}</td>
                 <td className="mono hidden px-3 py-2.5 text-right text-[var(--color-muted)] sm:table-cell">{p.eloClay}</td>
                 <td className="mono hidden px-3 py-2.5 text-right text-[var(--color-muted)] sm:table-cell">{p.eloGrass}</td>
@@ -108,6 +164,21 @@ export default function Rankings() {
           </tbody>
         </table>
       </div>
+
+      {rows.some((p) => p.liveRank != null) && (
+        <p className="mono mt-3 text-[11px] text-[var(--color-faint)]">
+          Official live rankings via{" "}
+          <a
+            href={`https://live-tennis.eu/en/${tour}-live-ranking`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline decoration-[var(--color-line)] underline-offset-2 hover:text-[var(--color-muted)]"
+          >
+            live-tennis.eu
+          </a>
+          {" "}— movement vs the last official release, refreshed hourly.
+        </p>
+      )}
     </div>
   );
 }

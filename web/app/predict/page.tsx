@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
 import { SURFACES, pct, scoreDist } from "@/lib/ui";
 import { PageHead, Loading, SurfacePill, Reveal, ProbBar, AnimatedNumber } from "@/components/bits";
+import Dropdown, { type DropdownOption } from "@/components/Dropdown";
 import { SPRING, stagger, pop } from "@/lib/motion";
 
 type Matrix = {
@@ -13,23 +14,27 @@ type Matrix = {
   surfaces: Record<string, Record<string, number[][]>>;
 };
 
-/* Inline chevron for restyled <select> elements (appearance-none). */
-const SELECT_CHEVRON: React.CSSProperties = {
-  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238a8f98' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`,
-  backgroundRepeat: "no-repeat",
-  backgroundPosition: "right 0.9rem center",
-};
-
 export default function Predict() {
   const { tour } = useTour();
   const { data, loading } = useData<Matrix>("matrix.json");
+  const { data: roster } = useData<{ name: string; eloRank: number }[]>("players.json");
   const [a, setA] = useState(0);
   const [b, setB] = useState(1);
   const [surface, setSurface] = useState("Hard");
   const [bo, setBo] = useState(3);
 
-  const players = data?.players || [];
+  const players = useMemo(() => data?.players || [], [data]);
   const formats = useMemo(() => data?.formats || [3], [data]);
+
+  // Elo rank sublabels for the pickers, where the roster has the player.
+  const options: DropdownOption[] = useMemo(() => {
+    const rank = new Map((roster ?? []).map((r) => [r.name, r.eloRank]));
+    return players.map((name, i) => ({
+      value: String(i),
+      label: name,
+      sublabel: rank.has(name) ? `#${rank.get(name)}` : undefined,
+    }));
+  }, [players, roster]);
 
   const p = useMemo(() => {
     if (!data || a === b) return null;
@@ -53,8 +58,8 @@ export default function Predict() {
         <>
           <Reveal>
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
-              <Picker label="Player A" value={a} onChange={setA} players={players} accent="var(--color-accent)" />
-              <Picker label="Player B" value={b} onChange={setB} players={players} accent="var(--color-cmp)" />
+              <Picker label="Player A" value={a} onChange={setA} options={options} accent="var(--color-accent)" />
+              <Picker label="Player B" value={b} onChange={setB} options={options} accent="var(--color-cmp)" />
             </div>
           </Reveal>
 
@@ -148,20 +153,17 @@ export default function Predict() {
   );
 }
 
-function Picker({ label, value, onChange, players, accent }: { label: string; value: number; onChange: (n: number) => void; players: string[]; accent: string }) {
+function Picker({ label, value, onChange, options, accent }: { label: string; value: number; onChange: (n: number) => void; options: DropdownOption[]; accent: string }) {
   return (
-    <label className="block">
+    <div className="block">
       <div className="eyebrow mb-2" style={{ color: accent }}>{label}</div>
-      <select
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="mono w-full appearance-none rounded-md border border-[var(--color-line)] bg-[var(--color-panel2)] py-3 pl-4 pr-10 text-[var(--color-text)] transition-colors focus:border-[var(--color-accent)] focus:outline-none"
-        style={SELECT_CHEVRON}
-      >
-        {players.map((name, i) => (
-          <option key={name} value={i}>{name}</option>
-        ))}
-      </select>
-    </label>
+      <Dropdown
+        searchable
+        label={label}
+        value={String(value)}
+        onChange={(v) => onChange(Number(v))}
+        options={options}
+      />
+    </div>
   );
 }

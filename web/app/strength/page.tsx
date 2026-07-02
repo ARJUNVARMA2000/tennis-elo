@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
 import { pct } from "@/lib/ui";
@@ -54,6 +54,9 @@ export default function Strength() {
   const [query, setQuery] = useState("");
   const [adding, setAdding] = useState(false);
   const [hover, setHover] = useState<string | null>(null);
+  const [activeSug, setActiveSug] = useState(-1);
+  const addRef = useRef<HTMLDivElement>(null);
+  const addBtnRef = useRef<HTMLButtonElement>(null);
 
   // ATP ↔ WTA swaps the roster — clear manual picks and the search box.
   useEffect(() => {
@@ -62,6 +65,21 @@ export default function Strength() {
     setAdding(false);
     setHover(null);
   }, [tour]);
+
+  // outside click closes the add-player popover
+  useEffect(() => {
+    if (!adding) return;
+    const onDown = (e: PointerEvent) => {
+      if (addRef.current && !addRef.current.contains(e.target as Node)) setAdding(false);
+    };
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, [adding]);
+
+  // keep the keyboard-highlighted suggestion in view
+  useEffect(() => {
+    if (activeSug >= 0) document.getElementById(`strength-sug-${activeSug}`)?.scrollIntoView({ block: "nearest" });
+  }, [activeSug]);
 
   const sorted = useMemo(
     () => (data ? [...data].sort((a, b) => b.elo - a.elo) : []),
@@ -115,6 +133,29 @@ export default function Strength() {
   };
   const removePick = (name: string) => setPicks((prev) => prev.filter((n) => n !== name));
 
+  // keyboard support for the add-player popover (Escape / ArrowUp / ArrowDown / Enter)
+  const onAddKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      setAdding(false);
+      addBtnRef.current?.focus();
+      return;
+    }
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      if (!suggestions.length) return;
+      setActiveSug((i) =>
+        e.key === "ArrowDown" ? Math.min(i + 1, suggestions.length - 1) : Math.max(i - 1, 0),
+      );
+      return;
+    }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const pick = suggestions[activeSug] ?? suggestions[0];
+      if (pick) addPick(pick.name);
+    }
+  };
+
   return (
     <div className="pb-16">
       <PageHead
@@ -149,11 +190,18 @@ export default function Strength() {
                 ))}
               </div>
 
-              <div className="relative">
+              <div ref={addRef} className="relative">
                 <motion.button
-                  onClick={() => setAdding((v) => !v)}
+                  ref={addBtnRef}
+                  onClick={() => {
+                    setAdding((v) => !v);
+                    setActiveSug(-1);
+                  }}
                   whileTap={{ scale: 0.96 }}
                   transition={SPRING}
+                  aria-haspopup="listbox"
+                  aria-expanded={adding}
+                  aria-controls={adding ? "strength-add-list" : undefined}
                   className="mono flex items-center gap-1.5 rounded-full border border-[var(--color-line)] px-3 py-1 text-[11px] text-[var(--color-muted)] transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-text)]"
                 >
                   <span className="text-[var(--color-accent)]">＋</span> Add player
@@ -165,22 +213,37 @@ export default function Strength() {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 2, scale: 0.98 }}
                       transition={{ duration: 0.14 }}
+                      onKeyDown={onAddKeyDown}
                       className="absolute left-0 top-9 z-20 w-64 rounded-lg border border-[var(--color-line)] bg-[rgba(22,23,26,0.92)] p-2 shadow-[var(--shadow-pop)] backdrop-blur-xl"
                     >
                       <input
                         autoFocus
                         value={query}
-                        onChange={(e) => setQuery(e.target.value)}
+                        onChange={(e) => {
+                          setQuery(e.target.value);
+                          setActiveSug(-1);
+                        }}
                         placeholder="Type a name…"
+                        role="combobox"
+                        aria-expanded={suggestions.length > 0}
+                        aria-controls="strength-add-list"
+                        aria-activedescendant={activeSug >= 0 ? `strength-sug-${activeSug}` : undefined}
+                        aria-autocomplete="list"
+                        aria-label="Add player"
                         className="mono w-full rounded-lg border border-[var(--color-line)] bg-[var(--color-bg)] px-3 py-2 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
                       />
                       {suggestions.length > 0 && (
-                        <div className="mt-1.5 max-h-60 overflow-y-auto">
-                          {suggestions.map((p) => (
+                        <div id="strength-add-list" role="listbox" aria-label="Player suggestions" className="mt-1.5 max-h-60 overflow-y-auto">
+                          {suggestions.map((p, i) => (
                             <button
                               key={p.name}
+                              id={`strength-sug-${i}`}
+                              role="option"
+                              aria-selected={i === activeSug}
                               onClick={() => addPick(p.name)}
+                              onMouseEnter={() => setActiveSug(i)}
                               className="row-glow flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-sm text-[var(--color-text)]"
+                              style={{ background: i === activeSug ? "rgba(255,255,255,0.06)" : undefined }}
                             >
                               <span>{p.name}</span>
                               <span className="mono text-[11px] text-[var(--color-faint)]">#{p.eloRank}</span>
