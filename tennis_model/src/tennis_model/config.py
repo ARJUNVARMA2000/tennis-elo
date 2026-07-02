@@ -48,11 +48,13 @@ HISTORICAL_SOURCE = {
         "repo": "Tennismylife/TML-Database",
         "path": "{year}.csv",
         "raw": "https://raw.githubusercontent.com/Tennismylife/TML-Database/master/{year}.csv",
+        "last_year": 2026,   # repo froze Jan 2026 — later years come from the stats overlay
     },
     "wta": {  # full-schema WTA snapshot (serve stats), through 2024
         "repo": "zeldao08/tennis_players_analysis",
         "path": "files/wta/wta_matches_{year}.csv",
         "raw": "https://raw.githubusercontent.com/zeldao08/tennis_players_analysis/main/files/wta/wta_matches_{year}.csv",
+        "last_year": 2024,   # snapshot ends 2024 — later years come from the stats overlay
     },
 }
 FRESH_SOURCE = {  # LuckyLoser91/TennisCourtLog: results-only, auto-refreshed ~weekly

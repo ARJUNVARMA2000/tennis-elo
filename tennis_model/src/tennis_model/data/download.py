@@ -110,7 +110,13 @@ def download(tour: str, kind: str = "fresh", years=None) -> tuple[list[int], lis
     Returns (done, failed) so callers can escalate failures (see --strict)."""
     this_year = datetime.now(timezone.utc).year
     if years is None:
-        years = [this_year - 1, this_year] if kind == "fresh" else range(FIRST_YEAR, this_year + 1)
+        if kind == "fresh":
+            years = [this_year - 1, this_year]
+        else:
+            # frozen archives end at a known year — requesting later files would only
+            # produce guaranteed failures that trip the strict gate
+            last = min(_source(tour, kind).get("last_year", this_year), this_year)
+            years = range(FIRST_YEAR, last + 1)
     done, failed = [], []
     for y in years:
         (done if download_year(tour, kind, y) else failed).append(y)

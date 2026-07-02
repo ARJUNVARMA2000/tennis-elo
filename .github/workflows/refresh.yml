@@ -61,8 +61,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if [ ! -f tennis_model/data/raw/atp/historical/2020.csv ]; then
-            echo "cache empty -> restoring from release asset"
+          # the WTA stats backfill (2024+) only exists in the snapshot — a cache that
+          # predates it must also trigger the restore
+          if [ ! -f tennis_model/data/raw/atp/historical/2020.csv ] \
+             || [ ! -f tennis_model/data/raw/wta/stats/2024.csv ]; then
+            echo "cache empty/incomplete -> restoring from release asset"
             gh release download data-archive --pattern 'raw-archive.tar.gz' -O /tmp/raw-archive.tar.gz \
               && tar -xzf /tmp/raw-archive.tar.gz -C tennis_model/data \
               || echo "::warning::no release snapshot available yet"
