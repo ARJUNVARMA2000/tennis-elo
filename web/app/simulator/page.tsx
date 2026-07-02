@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
 import { SURFACES, pct, surfaceColor } from "@/lib/ui";
-import { PageHead, Loading, SurfacePill, Reveal } from "@/components/bits";
+import { PageHead, Loading, SurfacePill } from "@/components/bits";
+import { EASE, SPRING_SOFT } from "@/lib/motion";
 
 type Draws = {
   field: string[];
@@ -37,26 +39,33 @@ export default function Simulator() {
             ))}
           </div>
 
-          <div className="panel p-4 sm:p-6">
+          <div key={surface} className="panel p-4 sm:p-6">
             {rows.map((r, i) => (
-              <Reveal key={r.name} delay={Math.min(i * 0.015, 0.25)}>
-                <div className="row-glow flex items-center gap-3 border-b border-[var(--color-line)]/40 py-2.5">
-                  <span className="mono w-6 text-right text-[var(--color-faint)]">{i + 1}</span>
-                  <span className="w-40 truncate text-sm sm:w-52">{r.name}</span>
-                  <div className="bartrack relative h-5 flex-1">
-                    <div
-                      className="h-full rounded-full"
-                      style={{ width: `${(r.champion / max) * 100}%`, background: surfaceColor(surface), opacity: 0.85 }}
-                    />
-                  </div>
-                  <span className="mono w-14 text-right text-sm" style={{ color: surfaceColor(surface) }}>
-                    {pct(r.champion, 1)}
-                  </span>
-                  <span className="mono hidden w-28 text-right text-xs text-[var(--color-muted)] sm:inline">
-                    F {pct(r.final, 0)} · SF {pct(r.sf, 0)}
-                  </span>
+              <motion.div
+                key={r.name}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.45, ease: EASE, delay: Math.min(i * 0.015, 0.25) }}
+                className="row-glow flex items-center gap-3 border-b border-[var(--color-line)]/40 py-2.5"
+              >
+                <span className="mono w-6 text-right text-[var(--color-faint)]">{i + 1}</span>
+                <span className="w-40 truncate text-sm sm:w-52">{r.name}</span>
+                <div className="bartrack relative h-5 flex-1">
+                  <motion.div
+                    className="h-full rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(r.champion / max) * 100}%` }}
+                    transition={{ ...SPRING_SOFT, delay: Math.min(i * 0.04, 0.4) }}
+                    style={{ background: surfaceColor(surface), opacity: 0.85 }}
+                  />
                 </div>
-              </Reveal>
+                <span className="mono w-14 text-right text-sm" style={{ color: surfaceColor(surface) }}>
+                  {pct(r.champion, 1)}
+                </span>
+                <span className="mono hidden w-28 text-right text-xs text-[var(--color-muted)] sm:inline">
+                  F {pct(r.final, 0)} · SF {pct(r.sf, 0)}
+                </span>
+              </motion.div>
             ))}
           </div>
           <p className="mono mt-4 text-xs text-[var(--color-faint)]">

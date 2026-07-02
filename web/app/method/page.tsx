@@ -1,7 +1,9 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
-import { PageHead, Reveal } from "@/components/bits";
+import { PageHead, StatCard } from "@/components/bits";
+import { stagger, fadeUp } from "@/lib/motion";
 
 type Meta = { dataThrough: string; matches: number; players: number; activePlayers: number; modelVersion: string };
 
@@ -27,30 +29,41 @@ export default function Method() {
       />
 
       {data && (
-        <Reveal>
-          <div className="mono mt-8 flex flex-wrap gap-x-10 gap-y-3 panel p-5 text-sm">
-            <span>Tour <b>{tour.toUpperCase()}</b></span>
-            <span>Data through <b>{data.dataThrough}</b></span>
-            <span><b>{data.matches?.toLocaleString()}</b> matches</span>
-            <span><b>{data.activePlayers}</b> active players</span>
-            <span>v<b>{data.modelVersion}</b></span>
-          </div>
-        </Reveal>
+        <motion.div
+          variants={stagger(0.05)}
+          initial="hidden"
+          animate="show"
+          className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5"
+        >
+          <motion.div variants={fadeUp}>
+            <StatCard label="Tour" value={tour.toUpperCase()} />
+          </motion.div>
+          <motion.div variants={fadeUp}>
+            <StatCard label="Data through" value={data.dataThrough} />
+          </motion.div>
+          <motion.div variants={fadeUp}>
+            <StatCard label="Matches" value={data.matches ?? 0} />
+          </motion.div>
+          <motion.div variants={fadeUp}>
+            <StatCard label="Active players" value={data.activePlayers ?? 0} />
+          </motion.div>
+          <motion.div variants={fadeUp}>
+            <StatCard label="Model" value={`v${data.modelVersion}`} />
+          </motion.div>
+        </motion.div>
       )}
 
-      <div className="mt-8 space-y-4">
+      <motion.div variants={stagger(0.05)} initial="hidden" animate="show" className="mt-8 space-y-4">
         {STEPS.map(([title, body], i) => (
-          <Reveal key={title} delay={Math.min(i * 0.05, 0.3)}>
-            <div className="panel flex gap-5 p-6">
-              <div className="display text-3xl text-[var(--color-lime)]">{String(i + 1).padStart(2, "0")}</div>
-              <div>
-                <div className="display text-lg">{title}</div>
-                <p className="mt-2 text-[15px] leading-relaxed text-[var(--color-muted)]">{body}</p>
-              </div>
+          <motion.div key={title} variants={fadeUp} className="panel flex gap-5 p-6">
+            <div className="display text-3xl text-[var(--color-accent)]">{String(i + 1).padStart(2, "0")}</div>
+            <div>
+              <div className="display text-lg">{title}</div>
+              <p className="mt-2 text-[15px] leading-relaxed text-[var(--color-muted)]">{body}</p>
             </div>
-          </Reveal>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
     </div>
   );
 }

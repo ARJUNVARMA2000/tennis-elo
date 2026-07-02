@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
 import { pct } from "@/lib/ui";
 import { PageHead, Loading, Reveal } from "@/components/bits";
+import { SPRING, SPRING_SOFT, EASE } from "@/lib/motion";
 
 type Player = {
   name: string; eloRank: number; elo: number;
@@ -16,10 +18,10 @@ const lastName = (n: string) => n.split(" ").slice(-1)[0];
 
 // Quadrant palette (relative to the selected-set average).
 const QUADS = [
-  { key: "complete", label: "Complete", color: "var(--color-lime)", hint: "above avg serve & return" },
-  { key: "server", label: "Serve-first", color: "var(--color-cyan)", hint: "strong serve, weaker return" },
-  { key: "returner", label: "Return-first", color: "var(--color-gold)", hint: "strong return, weaker serve" },
-  { key: "below", label: "Below avg", color: "var(--color-coral)", hint: "below avg serve & return" },
+  { key: "complete", label: "Complete", color: "var(--color-win)", hint: "above avg serve & return" },
+  { key: "server", label: "Serve-first", color: "var(--color-hard)", hint: "strong serve, weaker return" },
+  { key: "returner", label: "Return-first", color: "var(--color-champ)", hint: "strong return, weaker serve" },
+  { key: "below", label: "Below avg", color: "var(--color-loss)", hint: "below avg serve & return" },
 ] as const;
 
 function quadColor(p: Player, mean: { s: number; r: number }) {
@@ -131,68 +133,82 @@ export default function Strength() {
               <span className="eyebrow">Show top</span>
               <div className="flex rounded-full border border-[var(--color-line)] p-0.5">
                 {N_OPTIONS.map((n) => (
-                  <button
+                  <motion.button
                     key={n}
                     onClick={() => setCount(n)}
+                    whileTap={{ scale: 0.96 }}
+                    transition={SPRING}
                     className="mono rounded-full px-3 py-1 text-[11px] transition-colors"
                     style={{
-                      background: count === n ? "var(--color-lime)" : "transparent",
-                      color: count === n ? "#07090d" : "var(--color-muted)",
+                      background: count === n ? "var(--color-accent)" : "transparent",
+                      color: count === n ? "var(--color-on-accent)" : "var(--color-muted)",
                     }}
                   >
                     {n}
-                  </button>
+                  </motion.button>
                 ))}
               </div>
 
               <div className="relative">
-                <button
+                <motion.button
                   onClick={() => setAdding((v) => !v)}
-                  className="mono flex items-center gap-1.5 rounded-full border border-[var(--color-line)] px-3 py-1 text-[11px] text-[var(--color-muted)] transition-colors hover:border-[var(--color-lime)] hover:text-[var(--color-text)]"
+                  whileTap={{ scale: 0.96 }}
+                  transition={SPRING}
+                  className="mono flex items-center gap-1.5 rounded-full border border-[var(--color-line)] px-3 py-1 text-[11px] text-[var(--color-muted)] transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-text)]"
                 >
-                  <span className="text-[var(--color-lime)]">＋</span> Add player
-                </button>
-                {adding && (
-                  <div className="absolute left-0 top-9 z-20 w-64 rounded-xl border border-[var(--color-line)] bg-[var(--color-ink2)] p-2 shadow-xl">
-                    <input
-                      autoFocus
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                      placeholder="Type a name…"
-                      className="mono w-full rounded-lg border border-[var(--color-line)] bg-[var(--color-ink)] px-3 py-2 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-lime)]"
-                    />
-                    {suggestions.length > 0 && (
-                      <div className="mt-1.5 max-h-60 overflow-y-auto">
-                        {suggestions.map((p) => (
-                          <button
-                            key={p.name}
-                            onClick={() => addPick(p.name)}
-                            className="row-glow flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-sm text-[var(--color-text)]"
-                          >
-                            <span>{p.name}</span>
-                            <span className="mono text-[11px] text-[var(--color-faint)]">#{p.eloRank}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    {query.trim() && suggestions.length === 0 && (
-                      <div className="mono px-2.5 py-2 text-[11px] text-[var(--color-faint)]">no match (or already shown)</div>
-                    )}
-                  </div>
-                )}
+                  <span className="text-[var(--color-accent)]">＋</span> Add player
+                </motion.button>
+                <AnimatePresence>
+                  {adding && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 4, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 2, scale: 0.98 }}
+                      transition={{ duration: 0.14 }}
+                      className="absolute left-0 top-9 z-20 w-64 rounded-lg border border-[var(--color-line)] bg-[rgba(22,23,26,0.92)] p-2 shadow-[var(--shadow-pop)] backdrop-blur-xl"
+                    >
+                      <input
+                        autoFocus
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        placeholder="Type a name…"
+                        className="mono w-full rounded-lg border border-[var(--color-line)] bg-[var(--color-bg)] px-3 py-2 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
+                      />
+                      {suggestions.length > 0 && (
+                        <div className="mt-1.5 max-h-60 overflow-y-auto">
+                          {suggestions.map((p) => (
+                            <button
+                              key={p.name}
+                              onClick={() => addPick(p.name)}
+                              className="row-glow flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-sm text-[var(--color-text)]"
+                            >
+                              <span>{p.name}</span>
+                              <span className="mono text-[11px] text-[var(--color-faint)]">#{p.eloRank}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {query.trim() && suggestions.length === 0 && (
+                        <div className="mono px-2.5 py-2 text-[11px] text-[var(--color-faint)]">no match (or already shown)</div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
               {/* manually added players */}
               {picks.map((n) => (
-                <button
+                <motion.button
                   key={n}
                   onClick={() => removePick(n)}
-                  className="chip flex items-center gap-1.5 text-[var(--color-text)] transition-colors hover:border-[var(--color-coral)] hover:text-[var(--color-coral)]"
-                  style={{ borderColor: "var(--color-lime)" }}
+                  whileTap={{ scale: 0.96 }}
+                  transition={SPRING}
+                  className="chip flex items-center gap-1.5 text-[var(--color-text)] transition-colors hover:border-[var(--color-loss)] hover:text-[var(--color-loss)]"
+                  style={{ borderColor: "var(--color-accent)" }}
                   title="Remove"
                 >
                   {lastName(n)} <span className="text-[var(--color-faint)]">✕</span>
-                </button>
+                </motion.button>
               ))}
             </div>
           </Reveal>
@@ -201,6 +217,7 @@ export default function Strength() {
           <Reveal delay={0.05}>
             <div className="mt-5 panel p-3 sm:p-5">
               <ScatterChart
+                key={`${tour}-${count}`}
                 players={shown}
                 picks={new Set(picks)}
                 sel={sel}
@@ -299,21 +316,21 @@ function ScatterChart({
       <line x1={M.left} y1={ty} x2={M.left + iw} y2={ty} stroke="var(--color-faint)" strokeWidth={1} strokeDasharray="3 4" />
 
       {/* selected-group average cross (solid, brighter) */}
-      <line x1={cx} y1={M.top} x2={cx} y2={M.top + ih} stroke="rgba(255,255,255,0.22)" strokeWidth={1} />
-      <line x1={M.left} y1={cy} x2={M.left + iw} y2={cy} stroke="rgba(255,255,255,0.22)" strokeWidth={1} />
+      <line x1={cx} y1={M.top} x2={cx} y2={M.top + ih} stroke="var(--color-line2)" strokeWidth={1} />
+      <line x1={M.left} y1={cy} x2={M.left + iw} y2={cy} stroke="var(--color-line2)" strokeWidth={1} />
 
       {/* quadrant corner labels (relative to the selected cross) */}
-      <text x={M.left + iw - 8} y={M.top + 16} textAnchor="end" fontSize={10} fill="var(--color-lime)" fillOpacity={0.55} className="mono">complete</text>
-      <text x={M.left + 8} y={M.top + 16} textAnchor="start" fontSize={10} fill="var(--color-gold)" fillOpacity={0.55} className="mono">return-first</text>
-      <text x={M.left + iw - 8} y={M.top + ih - 8} textAnchor="end" fontSize={10} fill="var(--color-cyan)" fillOpacity={0.55} className="mono">serve-first</text>
-      <text x={M.left + 8} y={M.top + ih - 8} textAnchor="start" fontSize={10} fill="var(--color-coral)" fillOpacity={0.5} className="mono">below avg</text>
+      <text x={M.left + iw - 8} y={M.top + 16} textAnchor="end" fontSize={10} fill="var(--color-win)" fillOpacity={0.55} className="mono">complete</text>
+      <text x={M.left + 8} y={M.top + 16} textAnchor="start" fontSize={10} fill="var(--color-champ)" fillOpacity={0.55} className="mono">return-first</text>
+      <text x={M.left + iw - 8} y={M.top + ih - 8} textAnchor="end" fontSize={10} fill="var(--color-hard)" fillOpacity={0.55} className="mono">serve-first</text>
+      <text x={M.left + 8} y={M.top + ih - 8} textAnchor="start" fontSize={10} fill="var(--color-loss)" fillOpacity={0.5} className="mono">below avg</text>
 
       {/* dots + labels (hovered drawn last) */}
-      {players.map((p) => {
+      {players.map((p, i) => {
         if (hover === p.name) return null;
-        return <Dot key={p.name} p={p} X={X} Y={Y} color={quadColor(p, sel)} isPick={picks.has(p.name)} onHover={setHover} />;
+        return <Dot key={p.name} p={p} X={X} Y={Y} color={quadColor(p, sel)} isPick={picks.has(p.name)} onHover={setHover} delay={i * 0.015} />;
       })}
-      {hovered && <Dot p={hovered} X={X} Y={Y} color={quadColor(hovered, sel)} isPick={picks.has(hovered.name)} onHover={setHover} />}
+      {hovered && <Dot p={hovered} X={X} Y={Y} color={quadColor(hovered, sel)} isPick={picks.has(hovered.name)} onHover={setHover} delay={0} />}
 
       {/* tooltip */}
       {hovered && <Tooltip p={hovered} x={X(hovered.servePct)} y={Y(hovered.returnPct)} W={W} M={M} iw={iw} />}
@@ -322,9 +339,9 @@ function ScatterChart({
 }
 
 function Dot({
-  p, X, Y, color, isPick, onHover,
+  p, X, Y, color, isPick, onHover, delay,
 }: {
-  p: Player; X: (v: number) => number; Y: (v: number) => number; color: string; isPick: boolean; onHover: (n: string | null) => void;
+  p: Player; X: (v: number) => number; Y: (v: number) => number; color: string; isPick: boolean; onHover: (n: string | null) => void; delay: number;
 }) {
   const x = X(p.servePct), y = Y(p.returnPct);
   return (
@@ -335,9 +352,43 @@ function Dot({
     >
       {/* generous invisible hit area */}
       <circle cx={x} cy={y} r={11} fill="transparent" />
-      {isPick && <circle cx={x} cy={y} r={6.5} fill="none" stroke="#fff" strokeWidth={1.4} strokeOpacity={0.85} />}
-      <circle cx={x} cy={y} r={isPick ? 4.6 : 4} fill={color} />
-      <text x={x + 7} y={y + 3} fontSize={9} fill="var(--color-muted)" className="mono">{lastName(p.name)}</text>
+      {isPick && (
+        <motion.circle
+          cx={x}
+          cy={y}
+          r={6.5}
+          fill="none"
+          stroke="var(--color-accent)"
+          strokeWidth={1.4}
+          strokeOpacity={0.85}
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ ...SPRING_SOFT, delay }}
+          style={{ transformBox: "fill-box", transformOrigin: "center" }}
+        />
+      )}
+      <motion.circle
+        cx={x}
+        cy={y}
+        r={isPick ? 4.6 : 4}
+        fill={color}
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ ...SPRING_SOFT, delay }}
+        style={{ transformBox: "fill-box", transformOrigin: "center" }}
+      />
+      <motion.text
+        x={x + 7}
+        y={y + 3}
+        fontSize={9}
+        fill="var(--color-muted)"
+        className="mono"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3, delay: delay + 0.3, ease: EASE }}
+      >
+        {lastName(p.name)}
+      </motion.text>
     </g>
   );
 }
@@ -352,13 +403,19 @@ function Tooltip({
   const left = x + bw + 14 > M.left + iw ? x - bw - 12 : x + 12;
   const top = y - bh - 10 < M.top ? y + 12 : y - bh - 10;
   return (
-    <g pointerEvents="none">
-      <rect x={left} y={top} width={bw} height={bh} rx={8} fill="var(--color-ink3)" stroke="var(--color-line)" />
+    <motion.g
+      pointerEvents="none"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.14 }}
+      style={{ filter: "drop-shadow(0 8px 32px rgba(0, 0, 0, 0.55))" }}
+    >
+      <rect x={left} y={top} width={bw} height={bh} rx={8} fill="rgba(22, 23, 26, 0.92)" stroke="var(--color-line)" />
       <text x={left + 10} y={top + 17} fontSize={11} fill="var(--color-text)" className="mono">{p.name}</text>
       <text x={left + 10} y={top + 32} fontSize={10} fill="var(--color-muted)" className="mono">
         serve {pct(p.servePct, 1)} · ret {pct(p.returnPct, 1)}
       </text>
       <text x={left + 10} y={top + 44} fontSize={10} fill="var(--color-faint)" className="mono">elo rank #{p.eloRank}</text>
-    </g>
+    </motion.g>
   );
 }

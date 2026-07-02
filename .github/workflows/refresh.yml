@@ -1,14 +1,15 @@
 name: refresh
 
 # Two cadences on one workflow:
-#   * 06:00 UTC daily  -> FULL: download everything, retrain both tours, rebuild all JSON.
-#   * every 3h (offset) -> QUICK: re-pull ESPN live results and regenerate JSON from the
+#   * 06:00 UTC daily -> FULL: download everything, retrain both tours, rebuild all JSON.
+#   * hourly at :17   -> QUICK: re-pull ESPN live results and regenerate JSON from the
 #     saved model (no retrain, ~1-2 min). The data cache carries the historical archive
-#     and the trained predictor.pkl + accuracy.json between runs.
+#     and the trained predictor.pkl + accuracy.json between runs. (:17 dodges the
+#     top-of-hour Actions scheduling congestion; the 06:00 hour belongs to the full run.)
 on:
   schedule:
-    - cron: "0 6 * * *"                     # daily FULL retrain
-    - cron: "0 0,3,9,12,15,18,21 * * *"     # every 3h QUICK refresh (skips the 06:00 slot)
+    - cron: "0 6 * * *"            # daily FULL retrain
+    - cron: "17 0-5,7-23 * * *"    # hourly QUICK refresh (skips the 06:00 full slot)
   workflow_dispatch:
     inputs:
       mode:

@@ -11,14 +11,15 @@ export const surfaceColor = (s: string) =>
 export const eloKey = (s: string) =>
   ({ Hard: "eloHard", Clay: "eloClay", Grass: "eloGrass" } as Record<string, string>)[s] || "elo";
 
-/** Heat color for a probability 0..1 (ink → cyan → lime → gold). */
+/** Heat color for a probability 0..1 — single-hue indigo luminance ramp.
+    Returns hex so callers can append alpha digits (e.g. `${heat(p)}22`). */
 export function heat(p: number): string {
   const stops: [number, [number, number, number]][] = [
-    [0, [17, 22, 31]],
-    [0.35, [84, 160, 255]],
-    [0.6, [120, 200, 90]],
-    [0.85, [200, 255, 60]],
-    [1, [255, 194, 75]],
+    [0, [27, 29, 36]],
+    [0.35, [57, 64, 110]],
+    [0.6, [94, 106, 210]],
+    [0.85, [130, 143, 255]],
+    [1, [199, 205, 255]],
   ];
   let a = stops[0], b = stops[stops.length - 1];
   for (let i = 0; i < stops.length - 1; i++) {
@@ -26,7 +27,7 @@ export function heat(p: number): string {
   }
   const t = (p - a[0]) / (b[0] - a[0] || 1);
   const c = a[1].map((v, i) => Math.round(v + (b[1][i] - v) * t));
-  return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+  return `#${c.map((v) => v.toString(16).padStart(2, "0")).join("")}`;
 }
 
 export const initials = (name: string) =>

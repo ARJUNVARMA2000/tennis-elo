@@ -35,26 +35,36 @@ export default function Trends() {
 
       {data && (
         <div className="mt-8 grid gap-8 lg:grid-cols-2">
-          <MoverList title="Rising" color="var(--color-lime)" rows={movers.up} />
-          <MoverList title="Falling" color="var(--color-coral)" rows={movers.down} />
+          <MoverList title="Rising" color="var(--color-win)" arrow="↑" rows={movers.up} />
+          <MoverList title="Falling" color="var(--color-loss)" arrow="↓" rows={movers.down} />
         </div>
       )}
     </div>
   );
 }
 
-function MoverList({ title, color, rows }: { title: string; color: string; rows: { name: string; delta: number; series: number[] }[] }) {
+function MoverList({
+  title,
+  color,
+  arrow,
+  rows,
+}: {
+  title: string;
+  color: string;
+  arrow: string;
+  rows: { name: string; delta: number; series: number[] }[];
+}) {
   return (
     <div>
       <div className="eyebrow mb-3" style={{ color }}>{title}</div>
-      <div className="panel divide-y divide-[var(--color-line)]/40">
+      <div className="panel divide-y divide-[var(--color-line)]">
         {rows.map((r, i) => (
-          <Reveal key={r.name} delay={Math.min(i * 0.03, 0.25)}>
-            <div className="flex items-center gap-4 p-4">
+          <Reveal key={r.name} delay={Math.min(i * 0.04, 0.3)}>
+            <div className="row-glow flex items-center gap-4 p-4">
               <div className="flex-1">
-                <div className="text-sm">{r.name}</div>
+                <div className="text-[13px] text-[var(--color-text)]">{r.name}</div>
                 <div className="mono mt-1 text-xs" style={{ color }}>
-                  {r.delta >= 0 ? "+" : ""}{Math.round(r.delta)} Elo / 12mo
+                  <span aria-hidden>{arrow}</span> {r.delta >= 0 ? "+" : ""}{Math.round(r.delta)} Elo / 12mo
                 </div>
               </div>
               <Spark points={r.series} color={color} />

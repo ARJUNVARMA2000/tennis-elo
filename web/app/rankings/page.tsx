@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
 import { eloKey, surfaceColor, SURFACES, pct } from "@/lib/ui";
-import { PageHead, Loading, SurfacePill, Reveal } from "@/components/bits";
+import { PageHead, Loading, SurfacePill, Reveal, StatCard } from "@/components/bits";
 
 type Player = {
   name: string; eloRank: number; elo: number; eloHard: number; eloClay: number; eloGrass: number;
@@ -36,16 +37,19 @@ export default function Rankings() {
 
       {top && (
         <Reveal delay={0.05}>
-          <div className="mt-8 panel flex flex-wrap items-center gap-x-10 gap-y-4 p-6">
+          <div className="mt-8 flex flex-wrap items-center gap-x-10 gap-y-5">
             <div>
               <div className="eyebrow">World #1 · {surface}</div>
-              <div className="display mt-2 text-3xl">{top.name}</div>
+              <div className="display mt-2 text-3xl sm:text-4xl">{top.name}</div>
             </div>
-            <div className="mono flex gap-8 text-sm">
-              <Stat label="Elo" value={surface === "Overall" ? top.elo : (top as any)[eloKey(surface)]} />
-              <Stat label="Serve" value={pct(top.servePct, 1)} />
-              <Stat label="Return" value={pct(top.returnPct, 1)} />
-              <Stat label="Matches" value={top.matches} />
+            <div className="grid min-w-[260px] flex-1 grid-cols-2 gap-3 sm:grid-cols-4">
+              <StatCard
+                label="Elo"
+                value={surface === "Overall" ? top.elo : ((top as any)[eloKey(surface)] as number)}
+              />
+              <StatCard label="Serve" value={top.servePct * 100} decimals={1} suffix="%" />
+              <StatCard label="Return" value={top.returnPct * 100} decimals={1} suffix="%" />
+              <StatCard label="Matches" value={top.matches} />
             </div>
           </div>
         </Reveal>
@@ -59,48 +63,47 @@ export default function Rankings() {
       </div>
 
       <div className="panel overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="mono text-[11px] uppercase tracking-wider text-[var(--color-faint)]">
-            <tr className="border-b border-[var(--color-line)]">
-              <th className="px-3 py-3 text-left">#</th>
-              <th className="px-3 py-3 text-left">Player</th>
-              <th className="px-3 py-3 text-left">Country</th>
-              <th className="px-3 py-3 text-right">Age</th>
-              <th className="px-3 py-3 text-right">Elo</th>
-              <th className="hidden px-3 py-3 text-right sm:table-cell" style={{ color: surfaceColor("Hard") }}>Hard</th>
-              <th className="hidden px-3 py-3 text-right sm:table-cell" style={{ color: surfaceColor("Clay") }}>Clay</th>
-              <th className="hidden px-3 py-3 text-right sm:table-cell" style={{ color: surfaceColor("Grass") }}>Grass</th>
-              <th className="px-3 py-3 text-right">Serve</th>
-              <th className="hidden px-3 py-3 text-right md:table-cell">Return</th>
+        <table className="w-full border-collapse text-[13px]">
+          <thead>
+            <tr className="mono text-[10px] uppercase tracking-wider text-[var(--color-faint)]">
+              <th className="px-3 py-3 text-right font-normal">#</th>
+              <th className="px-3 py-3 text-left font-normal">Player</th>
+              <th className="px-3 py-3 text-left font-normal">Country</th>
+              <th className="px-3 py-3 text-right font-normal">Age</th>
+              <th className="px-3 py-3 text-right font-normal">Elo</th>
+              <th className="hidden px-3 py-3 text-right font-normal sm:table-cell" style={{ color: surfaceColor("Hard") }}>Hard</th>
+              <th className="hidden px-3 py-3 text-right font-normal sm:table-cell" style={{ color: surfaceColor("Clay") }}>Clay</th>
+              <th className="hidden px-3 py-3 text-right font-normal sm:table-cell" style={{ color: surfaceColor("Grass") }}>Grass</th>
+              <th className="px-3 py-3 text-right font-normal">Serve</th>
+              <th className="hidden px-3 py-3 text-right font-normal md:table-cell">Return</th>
             </tr>
           </thead>
-          <tbody className="mono">
+          <tbody>
             {rows.map((p, i) => (
-              <tr key={p.name} className="row-glow border-b border-[var(--color-line)]/50">
-                <td className="px-3 py-2.5 text-[var(--color-faint)]">{i + 1}</td>
-                <td className="px-3 py-2.5 font-[var(--font-body)] text-[var(--color-text)]">{p.name}</td>
-                <td className="px-3 py-2.5 text-[var(--color-muted)]">{p.country ?? "—"}</td>
-                <td className="px-3 py-2.5 text-right text-[var(--color-muted)]">{p.age ?? "—"}</td>
-                <td className="px-3 py-2.5 text-right font-semibold">{surface === "Overall" ? p.elo : (p as any)[eloKey(surface)]}</td>
-                <td className="hidden px-3 py-2.5 text-right text-[var(--color-muted)] sm:table-cell">{p.eloHard}</td>
-                <td className="hidden px-3 py-2.5 text-right text-[var(--color-muted)] sm:table-cell">{p.eloClay}</td>
-                <td className="hidden px-3 py-2.5 text-right text-[var(--color-muted)] sm:table-cell">{p.eloGrass}</td>
-                <td className="px-3 py-2.5 text-right text-[var(--color-muted)]">{pct(p.servePct, 0)}</td>
-                <td className="hidden px-3 py-2.5 text-right text-[var(--color-muted)] md:table-cell">{pct(p.returnPct, 0)}</td>
-              </tr>
+              <motion.tr
+                key={p.name}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.35, delay: Math.min(i * 0.02, 0.3) }}
+                className="row-glow border-t border-[var(--color-line)]"
+              >
+                <td className="mono px-3 py-2.5 text-right text-[11px] text-[var(--color-faint)]">{i + 1}</td>
+                <td className="px-3 py-2.5 whitespace-nowrap text-[var(--color-text)]">{p.name}</td>
+                <td className="mono px-3 py-2.5 text-[11px] text-[var(--color-muted)]">{p.country ?? "—"}</td>
+                <td className="mono px-3 py-2.5 text-right text-[var(--color-muted)]">{p.age ?? "—"}</td>
+                <td className="mono px-3 py-2.5 text-right font-semibold text-[var(--color-text)]">
+                  {surface === "Overall" ? p.elo : (p as any)[eloKey(surface)]}
+                </td>
+                <td className="mono hidden px-3 py-2.5 text-right text-[var(--color-muted)] sm:table-cell">{p.eloHard}</td>
+                <td className="mono hidden px-3 py-2.5 text-right text-[var(--color-muted)] sm:table-cell">{p.eloClay}</td>
+                <td className="mono hidden px-3 py-2.5 text-right text-[var(--color-muted)] sm:table-cell">{p.eloGrass}</td>
+                <td className="mono px-3 py-2.5 text-right text-[var(--color-muted)]">{pct(p.servePct, 0)}</td>
+                <td className="mono hidden px-3 py-2.5 text-right text-[var(--color-muted)] md:table-cell">{pct(p.returnPct, 0)}</td>
+              </motion.tr>
             ))}
           </tbody>
         </table>
       </div>
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: any }) {
-  return (
-    <div>
-      <div className="text-[10px] uppercase tracking-wider text-[var(--color-faint)]">{label}</div>
-      <div className="mt-1 text-lg text-[var(--color-text)]">{value}</div>
     </div>
   );
 }

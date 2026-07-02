@@ -1,8 +1,10 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
 import { pct } from "@/lib/ui";
 import { PageHead, Loading, Reveal } from "@/components/bits";
+import { EASE, SPRING_SOFT } from "@/lib/motion";
 
 type Accuracy = {
   window: string; n: number;
@@ -16,6 +18,7 @@ const LABELS: Record<string, string> = { eloBlend: "Elo (surface-blended)", poin
 export default function AccuracyPage() {
   const { tour } = useTour();
   const { data, loading } = useData<Accuracy>("accuracy.json");
+  const modelRows = data ? Object.entries(data.models) : [];
 
   return (
     <div className="pb-16">
@@ -31,7 +34,7 @@ export default function AccuracyPage() {
         <>
           <Reveal>
             <div className="mt-8 panel overflow-hidden">
-              <table className="w-full text-sm">
+              <table className="w-full text-[13px]">
                 <thead className="mono text-[11px] uppercase tracking-wider text-[var(--color-faint)]">
                   <tr className="border-b border-[var(--color-line)]">
                     <th className="px-4 py-3 text-left">Model</th>
@@ -41,20 +44,34 @@ export default function AccuracyPage() {
                   </tr>
                 </thead>
                 <tbody className="mono">
-                  {Object.entries(data.models).map(([k, m]) => (
-                    <tr key={k} className="row-glow border-b border-[var(--color-line)]/50" style={{ background: k === "combiner" ? "rgba(200,255,60,0.04)" : undefined }}>
+                  {modelRows.map(([k, m], i) => (
+                    <motion.tr
+                      key={k}
+                      initial={{ opacity: 0, y: 6 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.35, ease: EASE, delay: Math.min(i * 0.05, 0.3) }}
+                      className="row-glow border-b border-[var(--color-line)]/50"
+                      style={{ background: k === "combiner" ? "var(--color-accent-dim)" : undefined }}
+                    >
                       <td className="px-4 py-3 font-[var(--font-body)]">{LABELS[k] || k}</td>
                       <td className="px-4 py-3 text-right">{pct(m.acc, 1)}</td>
                       <td className="px-4 py-3 text-right text-[var(--color-muted)]">{m.logloss.toFixed(4)}</td>
-                      <td className="px-4 py-3 text-right" style={{ color: k === "combiner" ? "var(--color-lime)" : undefined }}>{m.brier.toFixed(4)}</td>
-                    </tr>
+                      <td className="px-4 py-3 text-right" style={{ color: k === "combiner" ? "var(--color-accent)" : undefined }}>{m.brier.toFixed(4)}</td>
+                    </motion.tr>
                   ))}
-                  <tr className="text-[var(--color-faint)]">
+                  <motion.tr
+                    initial={{ opacity: 0, y: 6 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.35, ease: EASE, delay: Math.min(modelRows.length * 0.05, 0.3) }}
+                    className="text-[var(--color-faint)]"
+                  >
                     <td className="px-4 py-3">Bookmaker (literature anchor)</td>
                     <td className="px-4 py-3 text-right">{pct(data.marketAnchor.acc, 1)}</td>
                     <td className="px-4 py-3 text-right">—</td>
                     <td className="px-4 py-3 text-right">{data.marketAnchor.brier.toFixed(3)}</td>
-                  </tr>
+                  </motion.tr>
                 </tbody>
               </table>
             </div>
@@ -64,13 +81,27 @@ export default function AccuracyPage() {
             <div className="mt-8">
               <div className="eyebrow mb-3">Calibration — predicted vs actual win rate</div>
               <div className="panel p-5">
-                {data.calibration.map((c) => (
+                {data.calibration.map((c, i) => (
                   <div key={c.bin} className="flex items-center gap-3 py-1.5">
                     <span className="mono w-16 text-xs text-[var(--color-faint)]">{c.bin}</span>
                     <div className="relative h-6 flex-1">
                       <div className="bartrack absolute inset-y-0 left-0 h-full w-full" />
-                      <div className="absolute inset-y-0 rounded-full" style={{ left: 0, width: `${c.pred * 100}%`, background: "rgba(84,210,255,0.35)" }} />
-                      <div className="absolute top-1/2 h-3 w-3 -translate-y-1/2 rounded-full border-2 border-[var(--color-ink)]" style={{ left: `calc(${c.actual * 100}% - 6px)`, background: "var(--color-lime)" }} />
+                      <motion.div
+                        className="absolute inset-y-0 left-0 rounded-full"
+                        initial={{ width: 0 }}
+                        whileInView={{ width: `${c.pred * 100}%` }}
+                        viewport={{ once: true }}
+                        transition={{ ...SPRING_SOFT, delay: Math.min(i * 0.05, 0.4) }}
+                        style={{ background: "rgba(130,143,255,0.35)" }}
+                      />
+                      <motion.div
+                        className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[var(--color-bg)]"
+                        initial={{ left: "0%", opacity: 0 }}
+                        whileInView={{ left: `${c.actual * 100}%`, opacity: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ ...SPRING_SOFT, delay: Math.min(i * 0.05, 0.4) }}
+                        style={{ background: "var(--color-win)" }}
+                      />
                     </div>
                     <span className="mono w-24 text-right text-xs text-[var(--color-muted)]">
                       {pct(c.pred, 0)} → {pct(c.actual, 0)}
@@ -78,8 +109,8 @@ export default function AccuracyPage() {
                   </div>
                 ))}
                 <div className="mono mt-3 flex gap-4 text-[10px] text-[var(--color-faint)]">
-                  <span><span className="text-[var(--color-cyan)]">▰</span> predicted</span>
-                  <span><span className="text-[var(--color-lime)]">●</span> actual</span>
+                  <span><span className="text-[var(--color-accent)]">▰</span> predicted</span>
+                  <span><span className="text-[var(--color-win)]">●</span> actual</span>
                 </div>
               </div>
             </div>

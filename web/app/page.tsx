@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
 import { pct, surfaceColor, heat } from "@/lib/ui";
 import { PageHead, Loading, Reveal } from "@/components/bits";
+import { SPRING_SOFT } from "@/lib/motion";
+import LiveTicker from "@/components/LiveTicker";
 
 type Proj = { name: string; champion: number; final: number | null; sf: number | null; reach?: Record<string, number> };
 type Tournament = {
@@ -55,6 +58,7 @@ export default function Tournaments() {
           title={slam.name}
           sub="The model's live title odds — every contender's chance of reaching each round, from the favourites on down. Updated as the draw thins."
         />
+        <LiveTicker />
         <Reveal>
           <SlamHero t={slam} />
         </Reveal>
@@ -70,6 +74,7 @@ export default function Tournaments() {
         title="Latest Tournaments"
         sub="Every recent event with the model's title odds for the field. Live events show who's favoured from here; finished events show whether the model called the champion."
       />
+      <LiveTicker />
 
       {loading && <Loading />}
       {data && data.length === 0 && (
@@ -96,7 +101,7 @@ function SlamHero({ t }: { t: Tournament }) {
   const shown = open ? t.projection : t.projection.slice(0, 16);
 
   return (
-    <div className="panel mt-8 p-5 sm:p-6">
+    <div className="panel-glow mt-8 p-5 sm:p-6">
       {/* header */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -109,8 +114,8 @@ function SlamHero({ t }: { t: Tournament }) {
             {dateRange(t.start, t.end)} · {t.drawSize} draw
           </div>
         </div>
-        <span className="mono flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-[var(--color-lime)]">
-          <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-[var(--color-lime)]" />
+        <span className="mono flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-[var(--color-accent)]">
+          <span className="live-dot inline-block h-2 w-2 rounded-full bg-[var(--color-accent)]" />
           Live · {t.aliveCount} left
         </span>
       </div>
@@ -128,7 +133,7 @@ function SlamHero({ t }: { t: Tournament }) {
               {cols.map((c) => (
                 <th
                   key={c}
-                  className={`px-1 pb-2 text-center font-normal ${c === "Champion" ? "text-[var(--color-gold)]" : ""}`}
+                  className={`px-1 pb-2 text-center font-normal ${c === "Champion" ? "text-[var(--color-champ)]" : ""}`}
                 >
                   {ROUND_LABEL[c]}
                 </th>
@@ -139,7 +144,7 @@ function SlamHero({ t }: { t: Tournament }) {
             {shown.map((p, i) => {
               const r = reachOf(p);
               return (
-                <tr key={p.name} className="border-t border-[var(--color-line)]">
+                <tr key={p.name} className="row-glow border-t border-[var(--color-line)]">
                   <td className="mono px-1 py-1.5 text-right text-[11px] text-[var(--color-faint)]">{i + 1}</td>
                   <td className="px-1 py-1.5 text-[13px] whitespace-nowrap">{p.name}</td>
                   {cols.map((c) => {
@@ -167,7 +172,7 @@ function SlamHero({ t }: { t: Tournament }) {
         </table>
       </div>
       {t.projection.length > 16 && (
-        <button onClick={() => setOpen(!open)} className="mono mt-3 text-[11px] text-[var(--color-cyan)] hover:underline">
+        <button onClick={() => setOpen(!open)} className="mono mt-3 text-[11px] text-[var(--color-accent)] hover:underline">
           {open ? "show less" : `show full field (${t.projection.length})`}
         </button>
       )}
@@ -180,7 +185,7 @@ function OtherEvents({ events }: { events: Tournament[] }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="mt-10 border-t border-[var(--color-line)] pt-6">
-      <button onClick={() => setOpen(!open)} className="mono text-[12px] text-[var(--color-cyan)] hover:underline">
+      <button onClick={() => setOpen(!open)} className="mono text-[12px] text-[var(--color-accent)] hover:underline">
         {open ? "hide other recent events" : `show other recent events (${events.length})`}
       </button>
       {open && (
@@ -218,8 +223,8 @@ function Card({ t }: { t: Tournament }) {
           </div>
         </div>
         {live ? (
-          <span className="mono flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-[var(--color-lime)]">
-            <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-[var(--color-lime)]" />
+          <span className="mono flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-[var(--color-accent)]">
+            <span className="live-dot inline-block h-2 w-2 rounded-full bg-[var(--color-accent)]" />
             Live · {t.aliveCount} left
           </span>
         ) : (
@@ -229,14 +234,14 @@ function Card({ t }: { t: Tournament }) {
 
       {/* champion banner (completed) */}
       {t.champion && (
-        <div className="mt-4 flex items-center justify-between rounded-lg border border-[var(--color-line)] bg-[var(--color-ink3)]/40 px-3 py-2">
+        <div className="mt-4 flex items-center justify-between rounded-lg border border-[var(--color-line)] bg-[var(--color-panel2)]/40 px-3 py-2">
           <div>
             <div className="text-[10px] uppercase tracking-wider text-[var(--color-faint)]">Champion</div>
-            <div className="text-[15px] text-[var(--color-gold)]">🏆 {t.champion}</div>
+            <div className="text-[15px] font-medium text-[var(--color-champ)]">{t.champion}</div>
           </div>
           <div className="text-right">
             <div className="text-[10px] uppercase tracking-wider text-[var(--color-faint)]">Model favoured</div>
-            <div className="mono text-[13px]" style={{ color: t.favoritePicked ? "var(--color-lime)" : "var(--color-muted)" }}>
+            <div className="mono text-[13px]" style={{ color: t.favoritePicked ? "var(--color-win)" : "var(--color-muted)" }}>
               {t.modelFavorite} {t.favoritePicked ? "✓" : "✗"}
             </div>
           </div>
@@ -254,11 +259,17 @@ function Card({ t }: { t: Tournament }) {
             return (
               <div key={p.name} className="flex items-center gap-2.5">
                 <span className="mono w-4 text-right text-[11px] text-[var(--color-faint)]">{i + 1}</span>
-                <span className="w-40 truncate text-[13px]" style={{ color: isChamp ? "var(--color-gold)" : "var(--color-text)" }}>
-                  {p.name}{isChamp && " 🏆"}
+                <span className="w-40 truncate text-[13px]" style={{ color: isChamp ? "var(--color-champ)" : "var(--color-text)" }}>
+                  {p.name}
                 </span>
                 <div className="bartrack h-1.5 flex-1">
-                  <div style={{ width: `${(p.champion / maxP) * 100}%`, background: heat(p.champion) }} />
+                  <motion.div
+                    className="h-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(p.champion / maxP) * 100}%` }}
+                    transition={{ ...SPRING_SOFT, delay: Math.min(i * 0.04, 0.4) }}
+                    style={{ background: heat(p.champion) }}
+                  />
                 </div>
                 <span className="mono w-10 text-right text-[12px]" style={{ color: heat(p.champion) }}>
                   {pct(p.champion, 0)}
@@ -268,7 +279,7 @@ function Card({ t }: { t: Tournament }) {
           })}
         </div>
         {t.projection.length > 5 && (
-          <button onClick={() => setOpen(!open)} className="mono mt-3 text-[11px] text-[var(--color-cyan)] hover:underline">
+          <button onClick={() => setOpen(!open)} className="mono mt-3 text-[11px] text-[var(--color-accent)] hover:underline">
             {open ? "show less" : `show full field (${t.projection.length})`}
           </button>
         )}

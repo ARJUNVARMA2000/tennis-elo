@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
+import { MotionConfig } from "framer-motion";
 
 export type Tour = "atp" | "wta";
 
@@ -21,7 +22,11 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
     setTour(t);
     localStorage.setItem("tour", t);
   };
-  return <Ctx.Provider value={{ tour, setTour: set }}>{children}</Ctx.Provider>;
+  return (
+    <Ctx.Provider value={{ tour, setTour: set }}>
+      <MotionConfig reducedMotion="user">{children}</MotionConfig>
+    </Ctx.Provider>
+  );
 }
 
 export const useTour = () => useContext(Ctx);

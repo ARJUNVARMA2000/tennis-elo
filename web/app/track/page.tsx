@@ -1,8 +1,10 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
 import { pct, surfaceColor } from "@/lib/ui";
-import { PageHead, Loading, Reveal } from "@/components/bits";
+import { PageHead, Loading, Reveal, StatCard } from "@/components/bits";
+import { EASE, SPRING_SOFT } from "@/lib/motion";
 
 type Metrics = { n: number; acc: number | null; logloss: number | null; brier: number | null };
 type Track = {
@@ -30,14 +32,9 @@ type Track = {
 const num = (x: number | null | undefined, d = 4) =>
   x == null || isNaN(x) ? "—" : x.toFixed(d);
 
-function Stat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
-  return (
-    <div className="panel p-4">
-      <div className="mono text-[11px] uppercase tracking-wider text-[var(--color-faint)]">{label}</div>
-      <div className="mono mt-2 text-2xl" style={{ color: accent ? "var(--color-lime)" : undefined }}>{value}</div>
-    </div>
-  );
-}
+/** number → StatCard count-up value, null → em dash. */
+const statVal = (x: number | null | undefined): number | string =>
+  x == null || isNaN(x) ? "—" : x;
 
 export default function TrackPage() {
   const { tour } = useTour();
@@ -62,10 +59,10 @@ export default function TrackPage() {
           {/* headline match-forecast metrics */}
           <Reveal>
             <div className="mt-8 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-              <Stat label="Graded calls" value={String(mf.graded)} />
-              <Stat label="Accuracy" value={mf.overall.acc == null ? "—" : pct(mf.overall.acc, 1)} accent />
-              <Stat label="Brier" value={num(mf.overall.brier)} accent />
-              <Stat label="Log-loss" value={num(mf.overall.logloss)} />
+              <StatCard label="Graded calls" value={mf.graded} />
+              <StatCard label="Accuracy" value={mf.overall.acc == null ? "—" : mf.overall.acc * 100} decimals={1} suffix="%" />
+              <StatCard label="Brier" value={statVal(mf.overall.brier)} decimals={4} />
+              <StatCard label="Log-loss" value={statVal(mf.overall.logloss)} decimals={4} />
             </div>
             <div className="mono mt-2 text-[11px] text-[var(--color-faint)]">
               {mf.logged} forecasts logged · {mf.graded} graded · {mf.pending} awaiting results
@@ -88,13 +85,27 @@ export default function TrackPage() {
               <div className="mt-8">
                 <div className="eyebrow mb-3">Calibration — predicted vs actual win rate (live forecasts)</div>
                 <div className="panel p-5">
-                  {mf.calibration.map((c) => (
+                  {mf.calibration.map((c, i) => (
                     <div key={c.bin} className="flex items-center gap-3 py-1.5">
                       <span className="mono w-16 text-xs text-[var(--color-faint)]">{c.bin}</span>
                       <div className="relative h-6 flex-1">
                         <div className="bartrack absolute inset-y-0 left-0 h-full w-full" />
-                        <div className="absolute inset-y-0 rounded-full" style={{ left: 0, width: `${c.pred * 100}%`, background: "rgba(84,210,255,0.35)" }} />
-                        <div className="absolute top-1/2 h-3 w-3 -translate-y-1/2 rounded-full border-2 border-[var(--color-ink)]" style={{ left: `calc(${c.actual * 100}% - 6px)`, background: "var(--color-lime)" }} />
+                        <motion.div
+                          className="absolute inset-y-0 left-0 rounded-full"
+                          initial={{ width: 0 }}
+                          whileInView={{ width: `${c.pred * 100}%` }}
+                          viewport={{ once: true }}
+                          transition={{ ...SPRING_SOFT, delay: Math.min(i * 0.05, 0.4) }}
+                          style={{ background: "rgba(130,143,255,0.35)" }}
+                        />
+                        <motion.div
+                          className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[var(--color-bg)]"
+                          initial={{ left: "0%", opacity: 0 }}
+                          whileInView={{ left: `${c.actual * 100}%`, opacity: 1 }}
+                          viewport={{ once: true }}
+                          transition={{ ...SPRING_SOFT, delay: Math.min(i * 0.05, 0.4) }}
+                          style={{ background: "var(--color-win)" }}
+                        />
                       </div>
                       <span className="mono w-28 text-right text-xs text-[var(--color-muted)]">
                         {pct(c.pred, 0)} → {pct(c.actual, 0)} · n{c.n}
@@ -102,8 +113,8 @@ export default function TrackPage() {
                     </div>
                   ))}
                   <div className="mono mt-3 flex gap-4 text-[10px] text-[var(--color-faint)]">
-                    <span><span className="text-[var(--color-cyan)]">▰</span> predicted</span>
-                    <span><span className="text-[var(--color-lime)]">●</span> actual</span>
+                    <span><span className="text-[var(--color-accent)]">▰</span> predicted</span>
+                    <span><span className="text-[var(--color-win)]">●</span> actual</span>
                   </div>
                 </div>
               </div>
@@ -137,12 +148,12 @@ export default function TrackPage() {
               <div className="mt-10">
                 <div className="eyebrow mb-3">Tournament title odds — did the favourite deliver?</div>
                 <div className="mb-3 grid grid-cols-3 gap-2.5">
-                  <Stat label="Events graded" value={String(to.events)} />
-                  <Stat label="Favourite won" value={to.hitRate == null ? "—" : pct(to.hitRate, 0)} accent />
-                  <Stat label="Champion Brier" value={num(to.championBrier)} />
+                  <StatCard label="Events graded" value={to.events} />
+                  <StatCard label="Favourite won" value={to.hitRate == null ? "—" : to.hitRate * 100} suffix="%" />
+                  <StatCard label="Champion Brier" value={statVal(to.championBrier)} decimals={4} />
                 </div>
                 <div className="panel overflow-hidden">
-                  <table className="w-full text-sm">
+                  <table className="w-full text-[13px]">
                     <thead className="mono text-[11px] uppercase tracking-wider text-[var(--color-faint)]">
                       <tr className="border-b border-[var(--color-line)]">
                         <th className="px-4 py-3 text-left">Event</th>
@@ -152,15 +163,22 @@ export default function TrackPage() {
                       </tr>
                     </thead>
                     <tbody className="mono">
-                      {to.recent.map((e) => (
-                        <tr key={e.event + e.end} className="border-b border-[var(--color-line)]/50">
+                      {to.recent.map((e, i) => (
+                        <motion.tr
+                          key={e.event + e.end}
+                          initial={{ opacity: 0, y: 6 }}
+                          whileInView={{ opacity: 1, y: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 0.35, ease: EASE, delay: Math.min(i * 0.04, 0.3) }}
+                          className="row-glow border-b border-[var(--color-line)]/50"
+                        >
                           <td className="px-4 py-3 font-[var(--font-body)]">{e.event}<span className="ml-2 text-[11px] text-[var(--color-faint)]">{e.end}</span></td>
-                          <td className="px-4 py-3 text-[var(--color-lime)]">{e.champion}</td>
-                          <td className="px-4 py-3" style={{ color: e.favoritePicked ? "var(--color-lime)" : "var(--color-muted)" }}>
+                          <td className="px-4 py-3 text-[var(--color-champ)]">{e.champion}</td>
+                          <td className="px-4 py-3" style={{ color: e.favoritePicked ? "var(--color-win)" : "var(--color-muted)" }}>
                             {e.modelFavorite}{e.favoritePicked && " ✓"}
                           </td>
                           <td className="px-4 py-3 text-right">{num(e.championBrier)}</td>
-                        </tr>
+                        </motion.tr>
                       ))}
                     </tbody>
                   </table>
@@ -178,28 +196,30 @@ export default function TrackPage() {
                   {mf.recent.map((r, i) => {
                     const aWon = r.actualWinner === r.playerA;
                     return (
-                      <div key={i} className="panel p-4">
-                        <div className="flex items-center justify-between">
-                          <span className="chip" style={{ color: surfaceColor(r.surface), borderColor: surfaceColor(r.surface) }}>{r.surface}</span>
-                          <span className="mono text-[11px] text-[var(--color-faint)]">{r.event} · {r.round} · {r.date}</span>
-                        </div>
-                        <div className="mt-3 flex items-center justify-between gap-2">
-                          <div>
-                            <div className="text-[15px]" style={{ color: aWon ? "var(--color-lime)" : "var(--color-muted)" }}>
-                              {r.playerA}
+                      <Reveal key={i} delay={Math.min(i * 0.04, 0.3)}>
+                        <div className="panel h-full p-4">
+                          <div className="flex items-center justify-between">
+                            <span className="chip" style={{ color: surfaceColor(r.surface), borderColor: surfaceColor(r.surface) }}>{r.surface}</span>
+                            <span className="mono text-[11px] text-[var(--color-faint)]">{r.event} · {r.round} · {r.date}</span>
+                          </div>
+                          <div className="mt-3 flex items-center justify-between gap-2">
+                            <div>
+                              <div className="text-[15px]" style={{ color: aWon ? "var(--color-win)" : "var(--color-muted)" }}>
+                                {r.playerA}
+                              </div>
+                              <div className="text-[15px]" style={{ color: !aWon ? "var(--color-win)" : "var(--color-muted)" }}>
+                                {r.playerB}
+                              </div>
                             </div>
-                            <div className="text-[15px]" style={{ color: !aWon ? "var(--color-lime)" : "var(--color-muted)" }}>
-                              {r.playerB}
+                            <div className="text-right">
+                              <div className="mono text-sm">{pct(r.p, 0)}</div>
+                              <div className="mono mt-1 text-xs" style={{ color: r.hit ? "var(--color-win)" : "var(--color-loss)" }}>
+                                {r.hit ? "called it ✓" : "missed ✗"}
+                              </div>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <div className="mono text-sm">{pct(r.p, 0)}</div>
-                            <div className="mono mt-1 text-xs" style={{ color: r.hit ? "var(--color-muted)" : "var(--color-coral)" }}>
-                              {r.hit ? "called it" : "missed"}
-                            </div>
-                          </div>
                         </div>
-                      </div>
+                      </Reveal>
                     );
                   })}
                 </div>

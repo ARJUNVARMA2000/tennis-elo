@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
 import { RADAR_AXES, percentileScaler } from "@/lib/ui";
 import { PageHead, Loading, Reveal, Radar } from "@/components/bits";
+import { stagger, fadeUp } from "@/lib/motion";
 
 type Profile = {
   name: string;
@@ -12,9 +14,16 @@ type Profile = {
   style: Record<string, number | null>;
 };
 
-const A_COLOR = "var(--color-lime)";
-const B_COLOR = "var(--color-cyan)";
+const A_COLOR = "var(--color-accent)";
+const B_COLOR = "var(--color-cmp)";
 const DEFAULTS = ["Jannik Sinner", "Novak Djokovic"];
+
+/* Inline chevron for restyled <select> elements (appearance-none). */
+const SELECT_CHEVRON: React.CSSProperties = {
+  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238a8f98' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`,
+  backgroundRepeat: "no-repeat",
+  backgroundPosition: "right 0.9rem center",
+};
 
 const lastName = (n: string) => n.split(" ").slice(-1)[0];
 
@@ -98,7 +107,12 @@ export default function Style() {
                 {/* readout table */}
                 <div className="panel p-6 lg:col-span-2">
                   <div className="eyebrow mb-3">Stat lines</div>
-                  <div className="grid grid-cols-[1fr_auto_auto] gap-x-5 gap-y-1.5">
+                  <motion.div
+                    variants={stagger(0.015)}
+                    initial="hidden"
+                    animate="show"
+                    className="grid grid-cols-[1fr_auto_auto] gap-x-5 gap-y-1.5"
+                  >
                     <span className="eyebrow self-end text-[10px]">metric</span>
                     <span className="mono justify-self-end text-xs" style={{ color: A_COLOR }}>{lastName(a)}</span>
                     <span className="mono justify-self-end text-xs" style={{ color: B_COLOR }}>{lastName(b)}</span>
@@ -114,7 +128,7 @@ export default function Style() {
                         />
                       );
                     })}
-                  </div>
+                  </motion.div>
                   <div className="mono mt-3 text-[10px] text-[var(--color-faint)]">
                     style metrics ×100 (Match Charting Project) · Elo absolute
                   </div>
@@ -140,9 +154,9 @@ function Legend({ name, color }: { name: string; color: string }) {
 function Row({ label, a, b }: { label: string; a: string; b: string }) {
   return (
     <>
-      <span className="text-xs text-[var(--color-muted)]">{label}</span>
-      <span className="mono justify-self-end text-xs">{a}</span>
-      <span className="mono justify-self-end text-xs">{b}</span>
+      <motion.span variants={fadeUp} className="text-xs text-[var(--color-muted)]">{label}</motion.span>
+      <motion.span variants={fadeUp} className="mono justify-self-end text-xs">{a}</motion.span>
+      <motion.span variants={fadeUp} className="mono justify-self-end text-xs">{b}</motion.span>
     </>
   );
 }
@@ -154,7 +168,8 @@ function Picker({ label, value, onChange, names, accent }: { label: string; valu
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="mono w-full rounded-xl border border-[var(--color-line)] bg-[var(--color-ink2)] px-4 py-3 text-[var(--color-text)] outline-none focus:border-[var(--color-lime)]"
+        className="mono w-full appearance-none rounded-md border border-[var(--color-line)] bg-[var(--color-panel2)] py-3 pl-4 pr-10 text-[var(--color-text)] transition-colors focus:border-[var(--color-accent)] focus:outline-none"
+        style={SELECT_CHEVRON}
       >
         {names.map((n) => (
           <option key={n} value={n}>{n}</option>

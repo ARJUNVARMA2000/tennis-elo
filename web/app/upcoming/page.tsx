@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
 import { pct, surfaceColor } from "@/lib/ui";
 import { PageHead, Loading, Reveal } from "@/components/bits";
@@ -30,20 +31,21 @@ export default function Upcoming() {
       {data && (
         <>
           <div className="mt-8 mb-4 flex items-center gap-3">
-            <button
+            <motion.button
               onClick={() => setOnlyUpsets(!onlyUpsets)}
+              whileTap={{ scale: 0.94 }}
               className="chip transition-colors"
-              style={{ background: onlyUpsets ? "var(--color-coral)" : "transparent", color: onlyUpsets ? "#07090d" : "var(--color-coral)", borderColor: "var(--color-coral)" }}
+              style={{ background: onlyUpsets ? "var(--color-loss)" : "transparent", color: onlyUpsets ? "var(--color-on-accent)" : "var(--color-loss)", borderColor: "var(--color-loss)" }}
             >
               Upsets only
-            </button>
+            </motion.button>
             <span className="mono text-xs text-[var(--color-faint)]">{rows.length} matches</span>
           </div>
 
-          <div className="grid gap-2.5 sm:grid-cols-2">
+          <div key={onlyUpsets ? "upsets" : "all"} className="grid gap-2.5 sm:grid-cols-2">
             {rows.map((f, i) => (
               <Reveal key={i} delay={Math.min(i * 0.01, 0.2)}>
-                <div className="panel p-4">
+                <div className="panel row-glow p-4">
                   <div className="flex items-center justify-between">
                     <span className="chip" style={{ color: surfaceColor(f.surface), borderColor: surfaceColor(f.surface) }}>
                       {f.surface}
@@ -52,12 +54,15 @@ export default function Upcoming() {
                   </div>
                   <div className="mt-3 flex items-center justify-between gap-2">
                     <div>
-                      <div className="text-[15px] text-[var(--color-lime)]">{f.winner}</div>
-                      <div className="text-[15px] text-[var(--color-muted)]">{f.loser}</div>
+                      <div className="flex items-center gap-2 text-[15px] text-[var(--color-text)]">
+                        <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-win)]" />
+                        {f.winner}
+                      </div>
+                      <div className="pl-3.5 text-[15px] text-[var(--color-muted)]">{f.loser}</div>
                     </div>
                     <div className="text-right">
                       <div className="mono text-sm">{f.score}</div>
-                      <div className="mono mt-1 text-xs" style={{ color: f.upset ? "var(--color-coral)" : "var(--color-muted)" }}>
+                      <div className="mono mt-1 text-xs" style={{ color: f.upset ? "var(--color-loss)" : "var(--color-muted)" }}>
                         model {pct(f.modelProb, 0)} {f.upset && "· upset"}
                       </div>
                     </div>
