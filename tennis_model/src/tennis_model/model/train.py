@@ -43,7 +43,7 @@ def _xgb(**overrides):
         n_estimators=600, max_depth=4, learning_rate=0.03,
         subsample=0.85, colsample_bytree=0.85, min_child_weight=5.0,
         reg_lambda=1.0, objective="binary:logistic", eval_metric="logloss",
-        tree_method="hist", n_jobs=0,
+        tree_method="hist", n_jobs=0, random_state=0,  # explicit: sweeps A/B paired fits
     )
     params.update(overrides)
     return xgb.XGBClassifier(**params)
@@ -109,12 +109,13 @@ def _orient_for_cal(p_raw: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
 
 
 def _fit_fold(core: pd.DataFrame, cal: pd.DataFrame, seed: int,
-              calibrator: str = "platt", pooled_raw: np.ndarray | None = None):
+              calibrator: str = "platt", pooled_raw: np.ndarray | None = None,
+              xgb_overrides: dict | None = None):
     """Fit XGB on `core` with early stopping on `cal`; calibrate on the pooled OOS
     predictions of earlier folds when available, else on `cal`."""
     Xtr, ytr = make_oriented_xy(core, seed=seed)
     Xcal, ycal = make_oriented_xy(cal, seed=seed + 1)
-    clf = _xgb(early_stopping_rounds=40)
+    clf = _xgb(early_stopping_rounds=40, **(xgb_overrides or {}))
     clf.fit(Xtr, ytr, eval_set=[(Xcal, ycal)], verbose=False)
     if pooled_raw is not None and len(pooled_raw) >= _MIN_POOLED:
         p, y = _orient_for_cal(pooled_raw)
@@ -126,7 +127,8 @@ def _fit_fold(core: pd.DataFrame, cal: pd.DataFrame, seed: int,
 
 def walk_forward(feat: pd.DataFrame, start_test: int = BACKTEST_START_YEAR,
                  end_test: int | None = None, min_train_year: int = 1991,
-                 cal: str = "platt", pooled_cal: bool = False) -> pd.DataFrame:
+                 cal: str = "platt", pooled_cal: bool = False,
+                 xgb_overrides: dict | None = None, verbose: bool = True) -> pd.DataFrame:
     """Out-of-sample predictions for every test season, winner-oriented."""
     from .features import ANTISYM  # noqa: F401  (kept explicit for clarity)
     if end_test is None:
@@ -145,13 +147,18 @@ def walk_forward(feat: pd.DataFrame, start_test: int = BACKTEST_START_YEAR,
             core, cal_rows = train, train  # early seasons: reuse (mild, warm-up folds only)
         pooled = (np.concatenate([c["p_raw"].to_numpy() for c in chunks])
                   if pooled_cal and chunks else None)
-        clf, cal_model = _fit_fold(core, cal_rows, seed=ty, calibrator=cal, pooled_raw=pooled)
+        clf, cal_model = _fit_fold(core, cal_rows, seed=ty, calibrator=cal, pooled_raw=pooled,
+                                   xgb_overrides=xgb_overrides)
         raw = clf.predict_proba(test[FEATURES])[:, 1]
         p = cal_model.predict(raw)              # P(winner wins) — test is winner-oriented
         chunks.append(test.assign(p_combiner=p, p_raw=raw))
         importances.append(pd.Series(clf.feature_importances_, index=FEATURES))
-        print(f"  {ty}: train={len(train):,} test={len(test):,}  combiner brier="
-              f"{np.mean((1 - p) ** 2):.4f}")
+        if verbose:
+            print(f"  {ty}: train={len(train):,} test={len(test):,}  combiner brier="
+                  f"{np.mean((1 - p) ** 2):.4f}")
+    if not chunks:
+        raise ValueError(f"walk_forward: no scoreable folds in [{start_test}, {end_test}]"
+                         " — check the feature frame's year range")
     oos = pd.concat(chunks, ignore_index=True)
     imp = pd.concat(importances, axis=1).mean(axis=1).sort_values(ascending=False)
     walk_forward.importances = imp  # stash for the caller

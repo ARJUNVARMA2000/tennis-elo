@@ -1,16 +1,23 @@
-"""Offline hyperparameter tuning for the rating walkers (never runs in CI).
+"""Offline hyperparameter tuning for the rating walkers and the combiner (never in CI).
 
-Component-level objectives — much cheaper and sharper than retraining the combiner:
-  group=elo    log-loss of p_blend   (one run_elo pass per trial, ~5-10 s)
-  group=point  log-loss of p_point   (one run_serve_return pass per trial)
+Objectives per group:
+  group=elo    log-loss of p_blend     (one run_elo pass per trial, ~5-10 s)
+  group=point  log-loss of p_point     (one run_serve_return pass per trial, scored on
+                                        a FIXED reference serve-sample mask so every
+                                        trial sees identical rows)
+  group=xgb    log-loss of p_combiner  (full walk-forward over the tune window per
+                                        trial — minutes, run overnight; folds/seeds are
+                                        deterministic so trials are match-paired)
 
 Protocol (anti-overfitting):
   * TUNE window: test years 2010-2019 — the only thing the optimizer ever sees.
   * VALIDATION window: 2020-latest — evaluated once per group via --validate on the
     top configs; adopt only if tune improves AND validation does not regress by more
-    than one paired standard error, on BOTH tours.
+    than one paired standard error, on BOTH tours. --validate prints d ± SE from
+    per-match paired log-loss vectors.
   * Adopt round plateau-center values by hand-editing config.py (the dataclass
-    defaults read from config, so a single edit re-tunes production).
+    defaults read from config, so a single edit re-tunes production; xgb values go
+    to the _xgb() defaults in model/train.py).
 
 Uses Optuna if installed (pip install optuna — resumable SQLite studies under
 data/output/tuning/), else falls back to seeded random search.
@@ -56,15 +63,28 @@ def _logloss(p: np.ndarray) -> float:
 
 
 class Objective:
-    """Loads a tour's matches once; each __call__ is one walker pass + log-loss."""
+    """Loads a tour's data once; each evaluation is one walker/backtest pass + log-loss."""
 
     def __init__(self, tour: str, group: str, years: tuple[int, int] = TUNE_YEARS):
         self.tour, self.group = tour, group
-        self.df = load_matches(tour)
         self.years = years
+        if group == "xgb":
+            from ..model.train import load_or_build_features
+            self.feat = load_or_build_features(tour=tour)
+            return
+        self.df = load_matches(tour)
         yr = self.df["date"].dt.year
         self.mask = (self.df["completed"].to_numpy()
                      & (yr >= years[0]).to_numpy() & (yr <= years[1]).to_numpy())
+        self.vmask = self.df["completed"].to_numpy() & (yr >= VAL_START).to_numpy()
+        if group == "point":
+            # fixed reference serve-sample mask: the srv-pts accumulators DECAY with the
+            # trial's halflife, so a per-trial filter scores different trials on
+            # different rows (a selection artifact) and breaks match-pairing for d±SE
+            from ..points.serve_return import run_serve_return, sr_params_for
+            _, ref = run_serve_return(self.df, params=sr_params_for(tour))
+            self.ref_srv_ok = ((ref["w_srv_pts"].to_numpy() >= MIN_SRV_PTS)
+                               & (ref["l_srv_pts"].to_numpy() >= MIN_SRV_PTS))
 
     # -- parameter spaces ----------------------------------------------------
     def suggest(self, trial) -> dict:
@@ -86,51 +106,79 @@ class Objective:
                 gs_mult=s("gs_mult", 0.9, 1.3),
                 chall_mult=s("chall_mult", 0.6, 1.1),
             )
+        if self.group == "xgb":
+            return dict(
+                learning_rate=s("learning_rate", 0.01, 0.10, log=True),
+                max_depth=trial.suggest_int("max_depth", 3, 7),
+                min_child_weight=s("min_child_weight", 1.0, 50.0, log=True),
+                subsample=s("subsample", 0.50, 1.00),
+                colsample_bytree=s("colsample_bytree", 0.50, 1.00),
+                reg_alpha=s("reg_alpha", 1e-3, 10.0, log=True),
+                reg_lambda=s("reg_lambda", 0.03, 30.0, log=True),
+                gamma=s("gamma", 1e-4, 5.0, log=True),
+            )
         return dict(
             form_halflife_days=s("form_halflife_days", 60, 1500, log=True),
             serve_shrinkage_points=s("serve_shrinkage_points", 50, 2000, log=True),
-            surface_serve_shrinkage=s("surface_serve_shrinkage", 30, 3000, log=True),
+            # WTA's optimum sat AT the old 3000 ceiling (adopted value == bound), so
+            # the range extends to 10k — near-infinite shrinkage = global-only serve.
+            # NOTE: a changed range can't resume an old study; use a fresh --tag
+            surface_serve_shrinkage=s("surface_serve_shrinkage", 30, 10000, log=True),
         )
 
     # -- evaluation ----------------------------------------------------------
-    def evaluate(self, cfg: dict, mask: np.ndarray | None = None) -> float:
+    def evaluate_vec(self, cfg: dict, window: str = "tune") -> np.ndarray:
+        """Per-match -log(p) over the window's FIXED row set (identical rows in
+        identical order for every config, so vectors from two configs pair up)."""
         from ..points.serve_return import sr_params_for
         from ..ratings.elo import params_for
-        m = self.mask if mask is None else mask
+        if self.group == "xgb":
+            from ..model.train import walk_forward
+            overrides = dict(cfg)
+            # high cap so the lr x trees frontier is governed by early stopping
+            overrides.setdefault("n_estimators", 2000)
+            start, end = (self.years if window == "tune"
+                          else (VAL_START, int(self.feat["year"].max())))
+            oos = walk_forward(self.feat, start_test=start, end_test=end,
+                               xgb_overrides=overrides, verbose=False)
+            return -np.log(np.clip(oos["p_combiner"].to_numpy(), 1e-12, None))
+        m = self.mask if window == "tune" else self.vmask
         if self.group == "elo":
             cfg = dict(cfg)
-            tiers = _tier_map(cfg.pop("gs_mult", None) or TIER_K_MULT["grand_slam"],
-                              cfg.pop("chall_mult", None) or TIER_K_MULT["challenger"])
-            df = self.df.copy()
-            df["tier_k"] = df["tier"].map(tiers).fillna(tiers["atp250"])
+            gs, ch = cfg.pop("gs_mult", None), cfg.pop("chall_mult", None)
+            tiers = _tier_map(TIER_K_MULT["grand_slam"] if gs is None else gs,
+                              TIER_K_MULT["challenger"] if ch is None else ch)
+            # overwrite tier_k in place — every trial re-assigns the full column, and
+            # run_elo only reads, so no copy of the 150k-row frame is needed per trial
+            self.df["tier_k"] = self.df["tier"].map(tiers).fillna(tiers["atp250"])
             # skip_walkovers measured slightly WORSE on both tours (a withdrawal is
             # weak evidence of injury/decline), so the walk keeps updating on them
             params = replace(params_for(self.tour), **cfg)
-            _, feats = run_elo(df, params=params)
-            return _logloss(feats["p_blend"].to_numpy()[m])
-        params = replace(sr_params_for(self.tour), **cfg)
-        _, feats = run_serve_return(self.df, params=params)
-        ok = m & (feats["w_srv_pts"].to_numpy() >= MIN_SRV_PTS) \
-               & (feats["l_srv_pts"].to_numpy() >= MIN_SRV_PTS)
-        return _logloss(feats["p_point"].to_numpy()[ok])
+            _, feats = run_elo(self.df, params=params)
+            p = feats["p_blend"].to_numpy()[m]
+        else:
+            params = replace(sr_params_for(self.tour), **cfg)
+            _, feats = run_serve_return(self.df, params=params)
+            p = feats["p_point"].to_numpy()[m & self.ref_srv_ok]
+        return -np.log(np.clip(p, 1e-12, None))
 
-    def val_mask(self) -> np.ndarray:
-        yr = self.df["date"].dt.year
-        base = self.df["completed"].to_numpy() & (yr >= VAL_START).to_numpy()
-        if self.group != "point":
-            return base
-        return base  # srv-pts filter applied inside evaluate for the point group
+    def evaluate(self, cfg: dict, window: str = "tune") -> float:
+        return float(np.mean(self.evaluate_vec(cfg, window)))
 
-    def baseline(self) -> dict:
-        """Current adopted config's scores on tune and validation windows."""
-        cfg = {}
+    def baseline_cfg(self) -> dict:
+        """The currently adopted config, expressed in this group's parameter space."""
         if self.group == "elo":
             from ..config import TIER_ANCHORS
             gs, ch = TIER_ANCHORS.get(self.tour) or (TIER_K_MULT["grand_slam"],
                                                      TIER_K_MULT["challenger"])
-            cfg = dict(gs_mult=gs, chall_mult=ch)
-        return {"tune": self.evaluate(dict(cfg)),
-                "val": self.evaluate(dict(cfg), mask=self.val_mask())}
+            return dict(gs_mult=gs, chall_mult=ch)
+        return {}
+
+    def baseline(self) -> dict:
+        """Current adopted config's scores on tune and validation windows."""
+        cfg = self.baseline_cfg()
+        return {"tune": self.evaluate(dict(cfg), "tune"),
+                "val": self.evaluate(dict(cfg), "val")}
 
 
 def tune(tour: str, group: str, trials: int, seed: int = 7, tag: str = "") -> None:
@@ -171,6 +219,11 @@ def tune(tour: str, group: str, trials: int, seed: int = 7, tag: str = "") -> No
                 return float(np.exp(rng.uniform(np.log(lo), np.log(hi))) if log
                              else rng.uniform(lo, hi))
 
+            def suggest_int(self, name, lo, hi, log=False):
+                if log:
+                    return int(round(np.exp(rng.uniform(np.log(lo), np.log(hi)))))
+                return int(rng.integers(lo, hi + 1))
+
         best, best_cfg = np.inf, None
         for i in range(trials):
             cfg = obj.suggest(_T())
@@ -183,20 +236,31 @@ def tune(tour: str, group: str, trials: int, seed: int = 7, tag: str = "") -> No
 
 
 def validate(tour: str, group: str, top: int = 5, tag: str = "") -> None:
-    """Score the study's top configs on the untouched validation window."""
+    """Score the study's top configs on the untouched validation window.
+
+    Both windows are RE-scored per config (not read from the study) so every number
+    comes from the same fixed row set as the baseline, and the adoption gate's
+    paired d ± SE is computed from per-match log-loss differences. Gate: d_tune > 0
+    AND d_val > -1*SE, on both tours."""
     import optuna
     optuna.logging.set_verbosity(optuna.logging.WARNING)
     name = f"{tour}_{group}{tag}"
     study = optuna.load_study(study_name=name,
                               storage=f"sqlite:///{TUNE_DIR / f'{name}.db'}")
     obj = Objective(tour, group)
-    base = obj.baseline()
-    print(f"[{tour}/{group}] baseline: tune={base['tune']:.5f}  val={base['val']:.5f}")
+    base_tune = obj.evaluate_vec(obj.baseline_cfg(), "tune")
+    base_val = obj.evaluate_vec(obj.baseline_cfg(), "val")
+    print(f"[{tour}/{group}] baseline: tune={base_tune.mean():.5f}  val={base_val.mean():.5f}")
     done = [t for t in study.trials if t.value is not None]
     for t in sorted(done, key=lambda t: t.value)[:top]:
-        val = obj.evaluate(dict(t.params), mask=obj.val_mask())
-        print(f"  #{t.number}: tune={t.value:.5f}  val={val:.5f}  "
-              f"d_tune={base['tune'] - t.value:+.5f}  d_val={base['val'] - val:+.5f}")
+        tune_vec = obj.evaluate_vec(dict(t.params), "tune")
+        val_vec = obj.evaluate_vec(dict(t.params), "val")
+        dt, dv = base_tune - tune_vec, base_val - val_vec
+        se_t = float(dt.std(ddof=1) / np.sqrt(len(dt)))
+        se_v = float(dv.std(ddof=1) / np.sqrt(len(dv)))
+        gate = "PASS" if dt.mean() > 0 and dv.mean() > -se_v else "no"
+        print(f"  #{t.number}: tune={tune_vec.mean():.5f}  val={val_vec.mean():.5f}  "
+              f"d_tune={dt.mean():+.5f}±{se_t:.5f}  d_val={dv.mean():+.5f}±{se_v:.5f}  gate={gate}")
         print(f"    {json.dumps({k: round(v, 4) for k, v in t.params.items()})}")
 
 
@@ -204,13 +268,14 @@ if __name__ == "__main__":
     import argparse
     ap = argparse.ArgumentParser()
     ap.add_argument("--tour", default="atp", choices=["atp", "wta"])
-    ap.add_argument("--group", default="elo", choices=["elo", "point"])
+    ap.add_argument("--group", default="elo", choices=["elo", "point", "xgb"])
     ap.add_argument("--trials", type=int, default=200)
     ap.add_argument("--validate", action="store_true")
+    ap.add_argument("--top", type=int, default=5, help="configs to score in --validate")
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--tag", default="", help="study-name suffix (e.g. _wide)")
     args = ap.parse_args()
     if args.validate:
-        validate(args.tour, args.group, tag=args.tag)
+        validate(args.tour, args.group, top=args.top, tag=args.tag)
     else:
         tune(args.tour, args.group, args.trials, seed=args.seed, tag=args.tag)
