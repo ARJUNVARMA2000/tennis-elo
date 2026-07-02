@@ -107,6 +107,15 @@ def test_fit_fold_deterministic():
     print("ok test_fit_fold_deterministic")
 
 
+def test_xgb_params_for_reads_adopted_overrides():
+    from tennis_model.model.train import xgb_params_for
+    wta = xgb_params_for("wta")
+    assert wta and wta["max_depth"] == 7          # the adopted WTA combiner config
+    assert xgb_params_for("atp") == {}            # ATP sweep rejected: defaults stand
+    assert xgb_params_for("wta") is not xgb_params_for("wta")   # defensive copy
+    print("ok test_xgb_params_for_reads_adopted_overrides")
+
+
 def test_fit_fold_respects_overrides():
     feat = _synthetic_feat(seed=4)
     core, cal = feat[feat["year"] == 2020], feat[feat["year"] == 2021]

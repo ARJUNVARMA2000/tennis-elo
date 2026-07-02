@@ -114,14 +114,18 @@ Plan: C:\Users\varma\.claude\plans\anything-else-we-can-transient-gem.md
 - [x] a11y: ticker list semantics + non-color cues; mobile freshness pill; nav labels
 - [x] useData error state + rankings fallback; web CI job (lint+test+build)
 
-### B8 — in flight
-- [ ] xgb sweeps (400 trials/tour, running), point re-sweeps _xwide (extended range)
-- [ ] validate via paired-SE gate both tours → adopt (config XGB_PARAMS / SR overrides)
-- [ ] rebuild caches + full walk-forward vs baseline (ATP 0.1984/0.686, WTA 0.2033/0.678)
-- [ ] tasks/tuning-results doc
+### B8 — combiner + point re-sweeps (done; see tasks/tuning-results-2026-07-02.md)
+- [x] xgb sweeps (400 trials/tour) + point re-sweeps _xwide (extended range)
+- [x] paired-SE gates: WTA combiner ADOPTED (acc 0.679→0.681, Brier 0.2032→0.2027);
+      ATP combiner rejected (tune-overfit); WTA point re-sweep = noise (plateau
+      confirmed, old 3000 bound not binding); ATP point passed the component gate
+      but FAILED the full-pipeline arbiter → reverted, incumbents stand
+- [x] full walk-forward table under pinned stack; ATP 0.688/0.5788/0.1984 (0.002 acc
+      from the bookmaker anchor — dedup fix contributed the acc gain)
+- [x] tasks/tuning-results-2026-07-02.md
 - [ ] feature-constant sweeps (FeatureParams), adaptive surface blend, home advantage
-      (blocked until the sweep chain frees the shared modules)
 - [ ] A5 challenger experiment (INCLUDE_CHALLENGERS)
+- [ ] WTA combiner min_child_weight range extension (sat at the 50 bound)
 
 ### Blocked on user
 - [ ] push the 4 local commits (deploy-on-push needs explicit approval)

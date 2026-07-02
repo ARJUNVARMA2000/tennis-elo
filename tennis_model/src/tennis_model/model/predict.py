@@ -178,8 +178,9 @@ class TennisPredictor:
 
 def fit_predictor(tour: str = "atp", save: bool = True) -> TennisPredictor:
     """Build states + train the production combiner, returning a ready predictor."""
+    from .train import xgb_params_for
     feat, elo, srv, ctx, meta = build_predictor_inputs(tour=tour)
-    clf, iso, _ = train_final(feat)
+    clf, iso, _ = train_final(feat, xgb_overrides=xgb_params_for(tour))
     pred = TennisPredictor(clf, iso, elo, srv, ctx, meta, tour=tour)
     if save:
         pred.save()

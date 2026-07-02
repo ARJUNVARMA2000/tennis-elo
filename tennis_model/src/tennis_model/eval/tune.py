@@ -170,6 +170,9 @@ class Objective:
             gs, ch = TIER_ANCHORS.get(self.tour) or (TIER_K_MULT["grand_slam"],
                                                      TIER_K_MULT["challenger"])
             return dict(gs_mult=gs, chall_mult=ch)
+        if self.group == "xgb":
+            from ..model.train import xgb_params_for
+            return xgb_params_for(self.tour)   # adopted per-tour combiner overrides
         return {}
 
     def baseline(self) -> dict:

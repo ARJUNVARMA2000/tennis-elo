@@ -18,7 +18,7 @@ from .data.results import load_matches
 from .model.export import export_all
 from .model.features import FEATURES, build_predictor_inputs
 from .model.predict import TennisPredictor
-from .model.train import train_final, walk_forward
+from .model.train import train_final, walk_forward, xgb_params_for
 
 WEB_DATA_DIR = MODEL_DIR.parent / "web" / "public" / "data"
 
@@ -51,10 +51,11 @@ def build_tour(tour: str, do_backtest: bool) -> None:
     if do_backtest:
         from datetime import datetime
         print("  walk-forward backtest...")
-        oos = walk_forward(feat, start_test=2016, end_test=datetime.now(UTC).year)
+        oos = walk_forward(feat, start_test=2016, end_test=datetime.now(UTC).year,
+                           xgb_overrides=xgb_params_for(tour))
 
     print("  training production combiner...")
-    clf, iso, _ = train_final(feat)
+    clf, iso, _ = train_final(feat, xgb_overrides=xgb_params_for(tour))
     predictor = TennisPredictor(clf, iso, elo, srv, ctx, meta, tour=tour)
     predictor.save()
 

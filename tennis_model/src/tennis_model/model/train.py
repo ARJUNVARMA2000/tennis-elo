@@ -38,6 +38,12 @@ def load_or_build_features(rebuild: bool = False, tour: str = "atp") -> pd.DataF
     return feat
 
 
+def xgb_params_for(tour: str) -> dict:
+    """The adopted per-tour combiner hyperparameters (empty dict = _xgb defaults)."""
+    from ..config import XGB_PARAM_OVERRIDES  # read at call time (patchable)
+    return dict(XGB_PARAM_OVERRIDES.get(tour, {}))
+
+
 def _xgb(**overrides):
     import xgboost as xgb
     params = dict(
@@ -189,7 +195,8 @@ def report(oos: pd.DataFrame) -> None:
 
 
 def train_final(feat: pd.DataFrame, min_train_year: int = 1991, cal_days: int = 365,
-                cal: str = "platt", oos: pd.DataFrame | None = None):
+                cal: str = "platt", oos: pd.DataFrame | None = None,
+                xgb_overrides: dict | None = None):
     """Train the production combiner on all data. Calibrates on the walk-forward's
     pooled OOS predictions when provided (honest, large), else on the most recent
     ~12 months (a robust holdout — the partial current season alone is too small)."""
@@ -199,7 +206,8 @@ def train_final(feat: pd.DataFrame, min_train_year: int = 1991, cal_days: int = 
     cal_rows = feat[feat["date"] >= cutoff]
     pooled = (oos["p_raw"].to_numpy()
               if oos is not None and "p_raw" in oos and len(oos) >= _MIN_POOLED else None)
-    clf, cal_model = _fit_fold(core, cal_rows, seed=12345, calibrator=cal, pooled_raw=pooled)
+    clf, cal_model = _fit_fold(core, cal_rows, seed=12345, calibrator=cal, pooled_raw=pooled,
+                               xgb_overrides=xgb_overrides)
     return clf, cal_model, FEATURES
 
 
@@ -217,5 +225,6 @@ if __name__ == "__main__":
     args = ap.parse_args()
     feat = load_or_build_features(rebuild=args.rebuild, tour=args.tour)
     oos = walk_forward(feat, start_test=args.start, end_test=args.end,
-                       cal=args.cal, pooled_cal=args.pooled_cal)
+                       cal=args.cal, pooled_cal=args.pooled_cal,
+                       xgb_overrides=xgb_params_for(args.tour))
     report(oos)

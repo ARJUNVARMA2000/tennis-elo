@@ -183,7 +183,11 @@ ELO_PARAM_OVERRIDES: dict = {
 SR_PARAM_OVERRIDES: dict = {
     # 200-trial sweep (tune ll 0.6091->0.5886, val 0.6400->0.6145): same story as
     # WTA — form halflife 540->200d, much harder shrinkage, surface serve deviations
-    # nearly (not fully) noise.
+    # nearly (not fully) noise. The 250-trial _xwide re-sweep (2026-07-02) found
+    # 220/660/1900 passing the COMPONENT gate on both windows (+0.0002 point-model
+    # LL), but the full-pipeline arbiter disagreed: combiner LL 0.5788->0.5791 on
+    # 2010-26 after retraining on the shifted features — component gains this small
+    # don't survive the combiner, so the incumbents stand.
     "atp": dict(form_halflife_days=200.0, serve_shrinkage_points=600.0,
                 surface_serve_shrinkage=1400.0),
     # 200-trial sweep (tune ll 0.6402->0.6098, val 0.6460->0.6239): serve/return
@@ -194,6 +198,17 @@ SR_PARAM_OVERRIDES: dict = {
                 surface_serve_shrinkage=3000.0),
 }
 TIER_ANCHORS: dict = {"atp": (1.15, 0.95), "wta": (0.93, 0.68)}  # (grand_slam, challenger)
+XGB_PARAM_OVERRIDES: dict = {
+    # 400-trial TPE sweep of the combiner (full walk-forward objective, 2026-07-02),
+    # plateau center of five gate-passing configs (d_tune +0.00145±0.00034,
+    # d_val +0.00046±0.00041). n_estimators is a CAP — early stopping governs.
+    # min_child_weight sat at the search bound (50); extending is a future sweep.
+    # The ATP sweep was REJECTED: every candidate beat the tune window but regressed
+    # validation beyond ~1 SE (overfit) — ATP keeps the _xgb() defaults.
+    "wta": dict(learning_rate=0.025, max_depth=7, min_child_weight=50.0,
+                subsample=0.58, colsample_bytree=0.87, reg_alpha=0.002,
+                reg_lambda=0.8, gamma=0.08, n_estimators=2000),
+}
 
 # ---------------------------------------------------------------------------
 # Surfaces — Carpet (mostly pre-2009 indoor) folds into Hard for the surface bucket.
