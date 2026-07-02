@@ -26,15 +26,17 @@ Across the literature, sophisticated ML doesn't beat a good Elo on its own — i
 winning recipe is a **hybrid**: engineer strong Elo + point-model features, then let
 gradient boosting combine and calibrate them. Walk-forward, leakage-free results:
 
-| Model | ATP Brier | WTA Brier |
+| Model (walk-forward 2010–2026) | ATP Brier | WTA Brier |
 |---|---|---|
-| Surface-blended Elo | 0.218 | 0.219 |
-| Serve/return point model | 0.220 | 0.225 |
-| **XGBoost combiner** | **0.205** | **0.210** |
+| Surface-blended Elo (tuned per tour) | 0.207 | 0.212 |
+| Serve/return point model (tuned) | 0.209 | 0.215 |
+| **XGBoost combiner** | **0.198** | **0.203** |
 | _Bookmaker (literature anchor)_ | _0.196_ | _0.196_ |
 
-The combiner beats every component and closes ~90% of the Elo→market gap on both tours.
-Feature importance confirms the thesis: Elo (overall + surface) is ~78% of the signal.
+The combiner beats every component on both tours; the ATP model sits within ~0.002
+Brier of the bookmaker ceiling. Every constant is tuned offline per tour (Optuna,
+2010–19 tune window, 2020+ validation — see `eval/tune.py`); feature importance
+confirms the thesis: Elo (overall + surface) carries most of the signal.
 
 ## Architecture
 
@@ -50,20 +52,27 @@ data ─┬─ surface-blended Elo (dynamic K, margin-of-victory)
 
 ## Data — hourly fresh (the hard part)
 
-Jeff Sackmann's canonical repos went private in 2026, and no single free mirror is both
-fresh *and* full-schema. So each tour **merges** two sources:
+Jeff Sackmann's canonical repos went private in 2026 and the free mirrors keep freezing,
+so each tour **merges four sources**, deduplicated with stats-bearing rows winning:
 
-- **Full-schema historical** (serve stats; slow-moving): `Tennismylife/TML-Database` (ATP),
-  a full-schema WTA snapshot (`zeldao08/tennis_players_analysis`).
-- **Fresh weekly results** (results-only; drives Elo): `LuckyLoser91/TennisCourtLog`
-  (auto-refreshed, both tours).
-- **Style**: `JeffSackmann/tennis_MatchChartingProject` (`charting-m/w-*`).
+- **Full-schema historical** (serve stats; frozen upstreams, snapshot-backed):
+  `Tennismylife/TML-Database` (ATP), a full-schema WTA snapshot.
+- **Daily stats overlay** (serve stats, current season): ATP from
+  [stats.tennismylife.org](https://stats.tennismylife.org) (TML's daily-updated home);
+  WTA **scraped from the first-party wtatennis.com API** (`data/wta_stats.py`) — no free
+  bulk source has carried WTA serve stats since mid-2024.
+- **Fresh weekly results** (results-only): `LuckyLoser91/TennisCourtLog` (both tours).
+- **Style**: `JeffSackmann/tennis_MatchChartingProject`; **odds benchmark**:
+  Tennis-Data.co.uk closing odds (Pinnacle/Bet365), auto-downloaded, never a model input.
 
-Results (the dominant ~78% signal) stay current to the hour via **ESPN's live scoreboard
-API**; serve stats lag harmlessly. Names are canonicalised across sources so the same
-player isn't split. A **GitHub Action**
-([`.github/workflows/refresh.yml`](.github/workflows/refresh.yml)) re-pulls ESPN results
-and redeploys **hourly**, and does a full re-download + retrain of both tours daily.
+Results (the dominant signal) stay current to the hour via **ESPN's live scoreboard
+API**. Names are canonicalised across sources so the same player isn't split. A
+**GitHub Action** ([`.github/workflows/refresh.yml`](.github/workflows/refresh.yml))
+re-pulls ESPN results and redeploys **hourly**, does a full re-download + retrain of
+both tours daily, snapshots the raw data to a release asset weekly (upstreams keep
+disappearing), and a **freshness sentinel** (`data/health.py`) turns the build red if
+any source silently stalls — schema-validated, atomic downloads mean a broken upstream
+can never clobber good data.
 
 ## Repo layout
 

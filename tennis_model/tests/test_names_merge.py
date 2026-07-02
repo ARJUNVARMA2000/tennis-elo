@@ -39,7 +39,10 @@ def test_name_key_folds_accents_and_punct():
 
 def test_score_key_ignores_tiebreak_points():
     sk = results._score_key
-    assert sk("7-6(4) 6-3") == sk("7-6 6-3") == "7-66-3"
+    assert sk("7-6(4) 6-3") == sk("7-6 6-3") == "7-6,6-3"
+    # retirement formatting differs across sources: markers and 0-0 placeholder
+    # sets are ignored so the same match keys identically
+    assert sk("6-3 3-2 RET") == sk("6-3 3-2") == sk("6-3 3-2 0-0 RET") == "6-3,3-2"
     assert sk(None) == ""
     print("ok test_score_key_ignores_tiebreak_points")
 
@@ -68,14 +71,16 @@ def _write_csv(path: Path, text: str) -> None:
 
 
 def test_merge_dedup_prefers_stat_bearing_row():
-    orig = (results.historical_dir, results.fresh_dir, results.live_dir)
+    orig = (results.historical_dir, results.stats_dir, results.fresh_dir, results.live_dir)
     try:
         with tempfile.TemporaryDirectory() as d:
             base = Path(d)
-            hist, fresh, live = base / "historical", base / "fresh", base / "live"
-            for p in (hist, fresh, live):
+            hist, stats, fresh, live = (base / "historical", base / "stats",
+                                        base / "fresh", base / "live")
+            for p in (hist, stats, fresh, live):
                 p.mkdir(parents=True, exist_ok=True)
             results.historical_dir = lambda tour: hist       # redirect (as in test_track)
+            results.stats_dir = lambda tour: stats
             results.fresh_dir = lambda tour: fresh
             results.live_dir = lambda tour: live
 
@@ -98,7 +103,8 @@ def test_merge_dedup_prefers_stat_bearing_row():
 
             df = results.merge_sources("atp")
     finally:
-        results.historical_dir, results.fresh_dir, results.live_dir = orig
+        (results.historical_dir, results.stats_dir,
+         results.fresh_dir, results.live_dir) = orig
 
     # 4 duplicate-collapsed rows -> 3 distinct matches
     assert len(df) == 3, df[["winner_name", "loser_name", "score"]]

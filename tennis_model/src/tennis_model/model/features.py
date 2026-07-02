@@ -28,16 +28,30 @@ FATIGUE_WINDOW_DAYS = 14
 
 
 class H2HState:
-    """Final head-to-head record store, for inference-time feature construction."""
+    """Final context store (head-to-head, surface H2H, recent form) for inference."""
 
-    def __init__(self, h2h: dict):
+    def __init__(self, h2h: dict, h2h_surface: dict | None = None,
+                 last10: dict | None = None):
         self._h2h = h2h
+        self._h2h_surface = h2h_surface or {}
+        self._last10 = last10 or {}
 
     def record(self, a: str, b: str) -> tuple[int, int]:
         """(a_wins, b_wins) between a and b."""
         key = (a, b) if a < b else (b, a)
         rec = self._h2h.get(key, [0, 0])
         return (rec[0], rec[1]) if a < b else (rec[1], rec[0])
+
+    def record_surface(self, a: str, b: str, surf: str) -> tuple[int, int]:
+        """(a_wins, b_wins) between a and b on `surf` only."""
+        key = ((a, b) if a < b else (b, a), surf)
+        rec = getattr(self, "_h2h_surface", {}).get(key, [0, 0])
+        return (rec[0], rec[1]) if a < b else (rec[1], rec[0])
+
+    def winrate10(self, name: str) -> float:
+        """Win rate over the player's last <=10 completed matches (0.5 if none)."""
+        dq = getattr(self, "_last10", {}).get(name)
+        return float(sum(dq) / len(dq)) if dq else 0.5
 
 # MCP tactical-style diffs (anti-symmetric); 0 when a player lacks a charted profile.
 STYLE_DIFFS = [s + "_diff" for s in STYLE_FEATURES]
@@ -48,14 +62,24 @@ ANTISYM = [
     "serve_skill_diff", "return_skill_diff",
     "rankpts_diff", "exp_diff", "age_diff", "ht_diff",
     "hand_matchup", "rest_diff", "fatigue_diff", "h2h_diff",
+    # layoff (rest_diff is clipped at +-60d, so long absences need their own signal)
+    "log_days_since_diff", "layoff_flag_diff",
+    # short-term form (veterans' small K under-reflects hot/cold streaks)
+    "form90_diff", "winrate10_diff",
+    # rivalry & profile
+    "h2h_surface_diff", "entry_q_diff", "peak_age_dev_diff",
 ] + STYLE_DIFFS
 # Features that are unchanged by the swap (match context / symmetric confidence).
 SYMMETRIC = [
     "best_of", "is_indoor", "tier_k", "round_order",
     "surf_hard", "surf_clay", "surf_grass",
     "log_min_srv_pts", "log_min_matches", "has_style",
+    "log1p_h2h_total",              # lets the trees gate how much to trust h2h_diff
 ]
 FEATURES = ANTISYM + SYMMETRIC
+
+LAYOFF_DAYS = 120                   # threshold for the layoff flag
+PEAK_AGE = 26.5                     # center of the age curve (both tours, roughly)
 
 
 def _logit(p: np.ndarray) -> np.ndarray:
@@ -64,18 +88,23 @@ def _logit(p: np.ndarray) -> np.ndarray:
 
 
 def run_context(df: pd.DataFrame) -> pd.DataFrame:
-    """Rest (days since last match), recent workload, and head-to-head — pre-match."""
+    """Rest, recent workload, head-to-head (career + surface), last-10 form — pre-match."""
     n = len(df)
     out = {c: np.zeros(n, dtype=float) for c in
-           ["w_days_since", "l_days_since", "w_fat", "l_fat", "w_h2h", "l_h2h"]}
+           ["w_days_since", "l_days_since", "w_fat", "l_fat", "w_h2h", "l_h2h",
+            "w_h2h_s", "l_h2h_s", "w_wr10", "l_wr10"]}
 
     last_date: dict = {}
     recent: dict = defaultdict(deque)          # player -> deque[(date, games_played)]
     h2h: dict = defaultdict(lambda: [0, 0])    # (a,b) sorted -> [wins_a, wins_b]
+    h2h_s: dict = defaultdict(lambda: [0, 0])  # ((a,b) sorted, surface) -> [wins]
+    last10: dict = defaultdict(lambda: deque(maxlen=10))   # player -> 1/0 results
 
     winners = df["winner_name"].to_numpy()
     losers = df["loser_name"].to_numpy()
     dates = df["date"].to_numpy()
+    surfs = df["surface_b"].to_numpy()
+    completed = df["completed"].to_numpy()
     games = (df["w_games"] + df["l_games"]).to_numpy()
 
     def workload(name, t):
@@ -84,35 +113,46 @@ def run_context(df: pd.DataFrame) -> pd.DataFrame:
             dq.popleft()
         return sum(g for _, g in dq)
 
+    def wr10(name):
+        dq = last10[name]
+        return sum(dq) / len(dq) if dq else 0.5
+
     for i in range(n):
-        w, l, t = winners[i], losers[i], dates[i]
+        w, l, t, s = winners[i], losers[i], dates[i], surfs[i]
         out["w_days_since"][i] = (t - last_date[w]) / _DAY if w in last_date else 365.0
         out["l_days_since"][i] = (t - last_date[l]) / _DAY if l in last_date else 365.0
         out["w_fat"][i] = workload(w, t)
         out["l_fat"][i] = workload(l, t)
+        out["w_wr10"][i], out["l_wr10"][i] = wr10(w), wr10(l)
         key = (w, l) if w < l else (l, w)
-        rec = h2h[key]
+        rec, rec_s = h2h[key], h2h_s[(key, s)]
         if w < l:
             out["w_h2h"][i], out["l_h2h"][i] = rec[0], rec[1]
+            out["w_h2h_s"][i], out["l_h2h_s"][i] = rec_s[0], rec_s[1]
         else:
             out["w_h2h"][i], out["l_h2h"][i] = rec[1], rec[0]
+            out["w_h2h_s"][i], out["l_h2h_s"][i] = rec_s[1], rec_s[0]
 
         # update
         gp = games[i]
         last_date[w] = last_date[l] = t
         recent[w].append((t, gp)); recent[l].append((t, gp))
-        if w < l:
-            rec[0] += 1
-        else:
-            rec[1] += 1
+        if completed[i]:                       # walkovers/retirements say little of form
+            last10[w].append(1); last10[l].append(0)
+        idx = 0 if w < l else 1
+        rec[idx] += 1
+        rec_s[idx] += 1
 
-    return H2HState(dict(h2h)), pd.DataFrame(out, index=df.index)
+    return H2HState(dict(h2h), dict(h2h_s), dict(last10)), pd.DataFrame(out, index=df.index)
 
 
 def _run_all(df: pd.DataFrame):
     """Run the three chronological passes and assemble features; keep the states."""
-    elo_state, elo = run_elo(df)
-    srv_state, srv = run_serve_return(df)
+    from ..points.serve_return import sr_params_for
+    from ..ratings.elo import params_for
+    tour = str(df["tour"].iloc[0]) if "tour" in df and len(df) else "atp"
+    elo_state, elo = run_elo(df, params=params_for(tour))
+    srv_state, srv = run_serve_return(df, params=sr_params_for(tour))
     ctx_state, ctx = run_context(df)
     d = df.join(elo).join(srv).join(ctx)
     return _assemble(d), elo_state, srv_state, ctx_state
@@ -184,6 +224,22 @@ def _assemble(d: pd.DataFrame) -> pd.DataFrame:
     f["fatigue_diff"] = d["w_fat"] - d["l_fat"]
     f["h2h_diff"] = d["w_h2h"] - d["l_h2h"]
 
+    # layoff: rest_diff's clip destroys long-absence information — restore it
+    f["log_days_since_diff"] = np.log1p(d["w_days_since"]) - np.log1p(d["l_days_since"])
+    f["layoff_flag_diff"] = ((d["w_days_since"] > LAYOFF_DAYS).astype(int)
+                             - (d["l_days_since"] > LAYOFF_DAYS).astype(int))
+    # short-term form
+    f["form90_diff"] = d["w_form90"] - d["l_form90"]
+    f["winrate10_diff"] = d["w_wr10"] - d["l_wr10"]
+    # rivalry & profile
+    f["h2h_surface_diff"] = d["w_h2h_s"] - d["l_h2h_s"]
+    w_q = d.get("winner_entry", pd.Series(index=d.index, dtype=object)).isin(("Q", "LL"))
+    l_q = d.get("loser_entry", pd.Series(index=d.index, dtype=object)).isin(("Q", "LL"))
+    f["entry_q_diff"] = w_q.astype(int) - l_q.astype(int)
+    wa = pd.to_numeric(d["winner_age"], errors="coerce")
+    la = pd.to_numeric(d["loser_age"], errors="coerce")
+    f["peak_age_dev_diff"] = ((wa - PEAK_AGE).abs() - (la - PEAK_AGE).abs()).fillna(0.0)
+
     # symmetric context + confidence
     f["best_of"] = pd.to_numeric(d["best_of"], errors="coerce").fillna(3)
     f["is_indoor"] = d["is_indoor"].map({True: 1, False: 0}).fillna(0)
@@ -194,6 +250,7 @@ def _assemble(d: pd.DataFrame) -> pd.DataFrame:
     f["surf_grass"] = (d["surface_b"] == "Grass").astype(int)
     f["log_min_srv_pts"] = np.log1p(np.minimum(d["w_srv_pts"], d["l_srv_pts"]))
     f["log_min_matches"] = np.log1p(np.minimum(d["w_n"], d["l_n"]))
+    f["log1p_h2h_total"] = np.log1p(d["w_h2h"] + d["l_h2h"])
 
     # MCP tactical-style diffs (0 unless both players have a charted profile)
     tour = str(d["tour"].iloc[0]) if "tour" in d and len(d) else "atp"

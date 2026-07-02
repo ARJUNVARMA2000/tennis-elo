@@ -1,10 +1,15 @@
 """Bookmaker odds from Tennis-Data.co.uk, for benchmarking the model vs the market.
 
-One spreadsheet per year with Pinnacle (PSW/PSL) and Bet365 (B365W/B365L) closing
-odds. Names there are "Lastname F." while ours are "First Last", so both sides are
-normalised to a "lastname firstinitial" key for joining. Download uses plain HTTPS
-(works off a normal connection; this repo's sandbox blocks non-GitHub hosts, so in
-that case drop the files into data/raw/odds/ manually).
+One spreadsheet per tour-year with Pinnacle (PSW/PSL) and Bet365 (B365W/B365L)
+closing odds, in per-tour subdirs (data/raw/odds/{atp,wta}). Names there are
+"Lastname F." while ours are "First Last", so both sides are normalised to a
+"lastname firstinitial" key for joining.
+
+Odds are a BENCHMARK, never a model input: downloads soft-fail (a missing year
+warns; it never reddens the build). The daily workflow refreshes the current and
+previous year; the archive years live in the release snapshot.
+
+Run:  PYTHONPATH=src python -m tennis_model.data.odds [--tour all] [--archive]
 """
 
 from __future__ import annotations
@@ -16,7 +21,7 @@ from datetime import datetime, timezone
 
 import pandas as pd
 
-from ..config import ODDS_BASE_URL, ODDS_DIR
+from ..config import ODDS_SOURCE, TOURS, odds_dir
 
 
 def normalize_name(name: str) -> str:
@@ -35,31 +40,37 @@ def normalize_name(name: str) -> str:
     return f"{' '.join(toks[1:])} {toks[0][0]}"
 
 
-def download_odds(years) -> list:
+def download_odds(tour: str, years) -> list:
     import urllib.request
-    ODDS_DIR.mkdir(parents=True, exist_ok=True)
+    d = odds_dir(tour)
+    d.mkdir(parents=True, exist_ok=True)
     done = []
     for y in years:
         try:
-            url = ODDS_BASE_URL.format(year=y).replace(".zip", ".xlsx")
+            url = ODDS_SOURCE[tour].format(year=y)
             req = urllib.request.Request(url, headers={"User-Agent": "tennis_model"})
             with urllib.request.urlopen(req, timeout=30) as r:
-                (ODDS_DIR / f"{y}.xlsx").write_bytes(r.read())
+                data = r.read()
+            if len(data) < 10_000:                 # error page, not a spreadsheet
+                raise ValueError(f"suspiciously small payload ({len(data)} bytes)")
+            (d / f"{y}.xlsx").write_bytes(data)
             done.append(y)
-        except Exception as e:
-            print(f"  odds {y}: {e} (drop {y}.xlsx into {ODDS_DIR} manually)")
+        except Exception as e:                     # noqa: BLE001 — benchmark, soft-fail
+            print(f"  odds {tour}/{y}: {e} (drop {y}.xlsx into {d} manually)")
     return done
 
 
-def load_odds(years=None) -> pd.DataFrame:
+def load_odds(tour: str = "atp", years=None) -> pd.DataFrame:
     """Standardised odds frame: date, surface, best_of, winner/loser keys, odds."""
-    files = sorted(glob.glob(str(ODDS_DIR / "*.xlsx")) + glob.glob(str(ODDS_DIR / "*.csv")))
+    d = odds_dir(tour)
+    files = sorted(glob.glob(str(d / "*.xlsx")) + glob.glob(str(d / "*.csv")))
     if not files:
-        raise FileNotFoundError(f"No odds files in {ODDS_DIR}; run download_odds() on a connected machine.")
+        raise FileNotFoundError(
+            f"No odds files in {d}; run `python -m tennis_model.data.odds --tour {tour}`.")
     frames = []
     for f in files:
-        d = pd.read_excel(f) if f.endswith("xlsx") else pd.read_csv(f)
-        frames.append(d)
+        raw = pd.read_excel(f) if f.endswith("xlsx") else pd.read_csv(f)
+        frames.append(raw)
     raw = pd.concat(frames, ignore_index=True)
 
     out = pd.DataFrame()
@@ -85,5 +96,14 @@ def market_prob(odds_w, odds_l):
 
 
 if __name__ == "__main__":
-    yrs = range(2015, datetime.now(timezone.utc).year + 1)
-    print("Downloaded:", download_odds(yrs))
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--tour", default="all")
+    ap.add_argument("--archive", action="store_true",
+                    help="pull the full archive (ATP 2001+, WTA 2007+), not just recent years")
+    args = ap.parse_args()
+    this_year = datetime.now(timezone.utc).year
+    for t in (TOURS if args.tour == "all" else (args.tour,)):
+        first = (2001 if t == "atp" else 2007) if args.archive else this_year - 1
+        done = download_odds(t, range(first, this_year + 1))
+        print(f"  odds/{t}: downloaded {len(done)} year file(s)")

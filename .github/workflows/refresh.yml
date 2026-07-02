@@ -55,6 +55,19 @@ jobs:
           key: tennis-data-${{ github.run_id }}
           restore-keys: tennis-data-
 
+      # If the cache was evicted, bootstrap the immutable archive from the release
+      # snapshot instead of hammering (increasingly disappearing) upstreams.
+      - name: Bootstrap from release snapshot (cache miss only)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ ! -f tennis_model/data/raw/atp/historical/2020.csv ]; then
+            echo "cache empty -> restoring from release asset"
+            gh release download data-archive --pattern 'raw-archive.tar.gz' -O /tmp/raw-archive.tar.gz \
+              && tar -xzf /tmp/raw-archive.tar.gz -C tennis_model/data \
+              || echo "::warning::no release snapshot available yet"
+          fi
+
       - name: Decide mode
         id: mode
         run: |
@@ -72,7 +85,8 @@ jobs:
         env:
           PYTHONPATH: src
         run: |
-          python -m tennis_model.data.download --kind all
+          python -m tennis_model.data.download --kind all --strict
+          python -m tennis_model.data.odds --tour all || true
           python -m tennis_model.pipeline --tour all --backtest
 
       - name: Quick refresh (live results + regenerate from saved model)
@@ -119,3 +133,39 @@ jobs:
           path: web/out
       - id: deploy
         uses: actions/deploy-pages@v4
+
+      # Weekly (Mondays, or whenever the release is missing) snapshot of the raw data
+      # to a rolling release asset — upstream disappearance can then never break a
+      # bootstrap. Runs after deploy: a snapshot hiccup must not block the site.
+      - name: Snapshot raw data to release
+        if: steps.mode.outputs.mode == 'full'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view data-archive >/dev/null 2>&1; then
+            gh release create data-archive --title "Rolling raw-data archive" \
+              --notes "Automated snapshot of raw match data (historical archives are no longer downloadable upstream)." \
+              --latest=false
+            FORCE=1
+          fi
+          if [ "$(date -u +%u)" = "1" ] || [ -n "$FORCE" ]; then
+            cd tennis_model/data
+            DIRS=""
+            for d in raw/atp/historical raw/atp/stats raw/wta/historical raw/wta/stats raw/charting raw/odds; do
+              [ -d "$d" ] && DIRS="$DIRS $d"
+            done
+            tar -czf /tmp/raw-archive.tar.gz $DIRS
+            gh release upload data-archive /tmp/raw-archive.tar.gz --clobber
+            echo "snapshot uploaded ($(du -h /tmp/raw-archive.tar.gz | cut -f1))"
+          else
+            echo "not Monday - skipping snapshot"
+          fi
+
+      # Freshness sentinel LAST: the site has already deployed with the best data we
+      # have; a stale source still turns the run red so GitHub emails the owner.
+      - name: Data health check
+        if: steps.mode.outputs.mode == 'full'
+        working-directory: tennis_model
+        env:
+          PYTHONPATH: src
+        run: python -m tennis_model.data.health --strict

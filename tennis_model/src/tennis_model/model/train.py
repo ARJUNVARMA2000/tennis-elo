@@ -2,10 +2,15 @@
 
 The combiner takes the leakage-free feature frame (Elo + point-model + context) and
 learns one calibrated P(A beats B). Validation is strictly walk-forward: for each
-test season we train only on prior seasons, calibrate on the most recent prior season
-(isotonic), then predict the held-out season. We compare against the two component
-models (Elo blend, point model) on identical rows, and against the literature/market
-anchors.
+test season we train only on prior seasons, then predict the held-out season.
+
+Calibration: each fold Platt-calibrates on the most recent prior season. The
+"honest" alternative — calibrating on the pooled out-of-sample predictions of all
+earlier folds (--pooled-cal) — measured clearly WORSE (ATP Brier 0.2013 vs 0.1994):
+early folds' weaker models pollute the mapping, while the prior-season fit matches
+the current fold's output distribution. Isotonic also lost to Platt at every size
+tried (--cal isotonic to re-check). We compare against the two component models
+(Elo blend, point model) on identical rows, and against the literature/market anchors.
 """
 
 from __future__ import annotations
@@ -47,9 +52,9 @@ def _xgb(**overrides):
 class PlattCalibrator:
     """Smooth, monotonic probability calibration: sigmoid(a*logit(p) + b).
 
-    Preferred over isotonic for the deployed model: with a few thousand calibration
-    points isotonic forms wide piecewise-constant plateaus (distinct matchups collapse
-    to identical probabilities), whereas Platt stays smooth and order-preserving.
+    Stays smooth and order-preserving at any calibration-set size (isotonic forms
+    piecewise-constant plateaus when the set is small — with the pooled-OOS set it
+    becomes viable; compare via --cal isotonic).
     """
 
     def __init__(self, C: float = 1e4):
@@ -69,25 +74,63 @@ class PlattCalibrator:
         return self.lr.predict_proba(self._z(p))[:, 1]
 
 
-def _fit_fold(core: pd.DataFrame, cal: pd.DataFrame, seed: int):
-    """Fit XGB on `core` with early stopping on `cal`, then Platt-calibrate on `cal`."""
+class IsotonicCalibrator:
+    """Non-parametric monotone calibration (needs a large calibration set)."""
+
+    def __init__(self):
+        from sklearn.isotonic import IsotonicRegression
+        self.ir = IsotonicRegression(y_min=1e-4, y_max=1 - 1e-4, out_of_bounds="clip")
+
+    def fit(self, p, y):
+        self.ir.fit(np.asarray(p, dtype=float), np.asarray(y))
+        return self
+
+    def predict(self, p):
+        return self.ir.predict(np.asarray(p, dtype=float))
+
+
+class IdentityCalibrator:
+    def fit(self, p, y):
+        return self
+
+    def predict(self, p):
+        return np.asarray(p, dtype=float)
+
+
+_CALIBRATORS = {"platt": PlattCalibrator, "isotonic": IsotonicCalibrator,
+                "none": IdentityCalibrator}
+_MIN_POOLED = 3000            # pooled-OOS rows needed before we trust pooled calibration
+
+
+def _orient_for_cal(p_raw: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Winner-oriented raw predictions -> balanced (p, y) for calibrator fitting."""
+    flip = np.arange(len(p_raw)) % 2 == 1
+    return np.where(flip, 1.0 - p_raw, p_raw), np.where(flip, 0, 1)
+
+
+def _fit_fold(core: pd.DataFrame, cal: pd.DataFrame, seed: int,
+              calibrator: str = "platt", pooled_raw: np.ndarray | None = None):
+    """Fit XGB on `core` with early stopping on `cal`; calibrate on the pooled OOS
+    predictions of earlier folds when available, else on `cal`."""
     Xtr, ytr = make_oriented_xy(core, seed=seed)
     Xcal, ycal = make_oriented_xy(cal, seed=seed + 1)
     clf = _xgb(early_stopping_rounds=40)
     clf.fit(Xtr, ytr, eval_set=[(Xcal, ycal)], verbose=False)
-    cal_model = PlattCalibrator().fit(clf.predict_proba(Xcal)[:, 1], ycal)
+    if pooled_raw is not None and len(pooled_raw) >= _MIN_POOLED:
+        p, y = _orient_for_cal(pooled_raw)
+    else:
+        p, y = clf.predict_proba(Xcal)[:, 1], ycal
+    cal_model = _CALIBRATORS[calibrator]().fit(p, y)
     return clf, cal_model
 
 
-def _predict(clf, iso, feat_rows: pd.DataFrame) -> np.ndarray:
-    raw = clf.predict_proba(feat_rows[FEATURES])[:, 1]
-    return iso.predict(raw)
-
-
 def walk_forward(feat: pd.DataFrame, start_test: int = BACKTEST_START_YEAR,
-                 end_test: int = 2025, min_train_year: int = 1991) -> pd.DataFrame:
+                 end_test: int | None = None, min_train_year: int = 1991,
+                 cal: str = "platt", pooled_cal: bool = False) -> pd.DataFrame:
     """Out-of-sample predictions for every test season, winner-oriented."""
     from .features import ANTISYM  # noqa: F401  (kept explicit for clarity)
+    if end_test is None:
+        end_test = int(feat["year"].max())
     feat = feat[feat["completed"]].copy()
     chunks, importances = [], []
     for ty in range(start_test, end_test + 1):
@@ -97,12 +140,15 @@ def walk_forward(feat: pd.DataFrame, start_test: int = BACKTEST_START_YEAR,
             continue
         cal_year = ty - 1
         core = train[train["year"] < cal_year]
-        cal = train[train["year"] == cal_year]
-        if len(cal) < 500 or len(core) < 2000:
-            core, cal = train, train  # early seasons: reuse (mild, only affects warm-up folds)
-        clf, iso = _fit_fold(core, cal, seed=ty)
-        p = _predict(clf, iso, test)            # P(winner wins) — test is winner-oriented
-        chunks.append(test.assign(p_combiner=p))
+        cal_rows = train[train["year"] == cal_year]
+        if len(cal_rows) < 500 or len(core) < 2000:
+            core, cal_rows = train, train  # early seasons: reuse (mild, warm-up folds only)
+        pooled = (np.concatenate([c["p_raw"].to_numpy() for c in chunks])
+                  if pooled_cal and chunks else None)
+        clf, cal_model = _fit_fold(core, cal_rows, seed=ty, calibrator=cal, pooled_raw=pooled)
+        raw = clf.predict_proba(test[FEATURES])[:, 1]
+        p = cal_model.predict(raw)              # P(winner wins) — test is winner-oriented
+        chunks.append(test.assign(p_combiner=p, p_raw=raw))
         importances.append(pd.Series(clf.feature_importances_, index=FEATURES))
         print(f"  {ty}: train={len(train):,} test={len(test):,}  combiner brier="
               f"{np.mean((1 - p) ** 2):.4f}")
@@ -134,15 +180,19 @@ def report(oos: pd.DataFrame) -> None:
         print(walk_forward.importances.head(12).to_string())
 
 
-def train_final(feat: pd.DataFrame, min_train_year: int = 1991, cal_days: int = 365):
-    """Train the production combiner on all data, calibrating on the most recent
+def train_final(feat: pd.DataFrame, min_train_year: int = 1991, cal_days: int = 365,
+                cal: str = "platt", oos: pd.DataFrame | None = None):
+    """Train the production combiner on all data. Calibrates on the walk-forward's
+    pooled OOS predictions when provided (honest, large), else on the most recent
     ~12 months (a robust holdout — the partial current season alone is too small)."""
     feat = feat[feat["completed"] & (feat["year"] >= min_train_year)]
     cutoff = feat["date"].max() - np.timedelta64(cal_days, "D")
     core = feat[feat["date"] < cutoff]
-    cal = feat[feat["date"] >= cutoff]
-    clf, iso = _fit_fold(core, cal, seed=12345)
-    return clf, iso, FEATURES
+    cal_rows = feat[feat["date"] >= cutoff]
+    pooled = (oos["p_raw"].to_numpy()
+              if oos is not None and "p_raw" in oos and len(oos) >= _MIN_POOLED else None)
+    clf, cal_model = _fit_fold(core, cal_rows, seed=12345, calibrator=cal, pooled_raw=pooled)
+    return clf, cal_model, FEATURES
 
 
 if __name__ == "__main__":
@@ -150,8 +200,14 @@ if __name__ == "__main__":
     ap.add_argument("--tour", default="atp", choices=["atp", "wta"])
     ap.add_argument("--rebuild", action="store_true", help="rebuild feature cache")
     ap.add_argument("--start", type=int, default=BACKTEST_START_YEAR)
-    ap.add_argument("--end", type=int, default=2025)
+    ap.add_argument("--end", type=int, default=None,
+                    help="last test year (default: latest year in the data)")
+    ap.add_argument("--cal", default="platt", choices=sorted(_CALIBRATORS))
+    ap.add_argument("--pooled-cal", action="store_true",
+                    help="calibrate on pooled prior-fold OOS (measured worse; kept "
+                         "for experiments)")
     args = ap.parse_args()
     feat = load_or_build_features(rebuild=args.rebuild, tour=args.tour)
-    oos = walk_forward(feat, start_test=args.start, end_test=args.end)
+    oos = walk_forward(feat, start_test=args.start, end_test=args.end,
+                       cal=args.cal, pooled_cal=args.pooled_cal)
     report(oos)

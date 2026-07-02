@@ -7,6 +7,9 @@ Produces two things from a single pass:
 
 Surface ratings are seeded from a player's current overall rating the first time they
 appear on a surface, so a clay debut doesn't drag a strong player down to 1500.
+
+The walk is fully parameterized by EloParams (see ratings/elo.py); the state carries
+its params so prediction-time blending always matches how the ratings were built.
 """
 
 from __future__ import annotations
@@ -16,14 +19,18 @@ from dataclasses import dataclass, field
 import numpy as np
 import pandas as pd
 
-from ..config import DEFAULT_RATING, SURFACES, SURFACE_BLEND, USE_MOV
-from .elo import dynamic_k, expected_score, mov_multiplier, surface_k
+from ..config import DEFAULT_RATING, SURFACES, USE_MOV
+from .elo import DEFAULT_PARAMS, EloParams, dynamic_k, expected_score, mov_multiplier, surface_k
+
+_DAY = np.timedelta64(1, "D")
+_FORM_WINDOW_D = 120        # keep ~4 months of snapshots for the 90-day form delta
 
 
 @dataclass
 class RatingState:
     """Mutable rating store, advanced one match at a time."""
 
+    params: EloParams = DEFAULT_PARAMS
     overall: dict = field(default_factory=dict)
     surface: dict = field(default_factory=lambda: {s: {} for s in SURFACES})
     n: dict = field(default_factory=dict)                 # career match counts
@@ -31,6 +38,7 @@ class RatingState:
     last_played: dict = field(default_factory=dict)
     history: dict = field(default_factory=dict)           # name -> [(month, elo)] monthly
     _hist_month: dict = field(default_factory=dict)
+    _form: dict = field(default_factory=dict)             # name -> [(date, elo)] recent
     last_date = None
 
     # -- reads --------------------------------------------------------------
@@ -42,27 +50,54 @@ class RatingState:
         s = self.surface.get(surf, {})
         return s[name] if name in s else self.elo(name)
 
+    @property
+    def _params(self) -> EloParams:
+        # tolerate RatingState pickles from before the params refactor (quick runs
+        # load predictor.pkl built by an older full run)
+        return getattr(self, "params", None) or DEFAULT_PARAMS
+
     def blended(self, name: str, surf: str) -> float:
-        return (1.0 - SURFACE_BLEND) * self.elo(name) + SURFACE_BLEND * self.surface_elo(name, surf)
+        b = self._params.surface_blend
+        return (1.0 - b) * self.elo(name) + b * self.surface_elo(name, surf)
 
-    def win_prob(self, a: str, b: str, surf: str) -> float:
+    def win_prob(self, a: str, b: str, surf: str, best_of: int = 3) -> float:
         """Blended, surface-aware win probability of A over B."""
-        return expected_score(self.blended(a, surf), self.blended(b, surf))
+        ds = self._params.bo5_scale if best_of == 5 else 1.0
+        return expected_score(self.blended(a, surf), self.blended(b, surf),
+                              self._params, diff_scale=ds)
+
+    def form_delta(self, name: str, asof, days: int = 90) -> float:
+        """Overall-Elo change vs ~`days` ago (0 if no snapshot in the window)."""
+        hist = getattr(self, "_form", {}).get(name)
+        if not hist:
+            return 0.0
+        cutoff = asof - days * _DAY
+        past = None
+        for d, r in hist:
+            if d <= cutoff:
+                past = r
+            else:
+                break
+        return 0.0 if past is None else self.elo(name) - past
 
 
-def run_elo(df: pd.DataFrame, use_mov: bool | None = None) -> tuple[RatingState, pd.DataFrame]:
+def run_elo(df: pd.DataFrame, use_mov: bool | None = None,
+            params: EloParams | None = None) -> tuple[RatingState, pd.DataFrame]:
     """Single chronological pass. `df` must be cleaned + chronologically sorted.
 
     Returns (final RatingState, per-match pre-match feature frame aligned to df.index).
     """
     if use_mov is None:
         use_mov = USE_MOV
-    st = RatingState()
+    p = params or DEFAULT_PARAMS
+    st = RatingState(params=p)
+    blend = p.surface_blend
 
     n = len(df)
     # Pre-allocate output columns (winner/loser oriented, pre-match values).
     cols = ["w_elo", "l_elo", "w_selo", "l_selo", "w_belo", "l_belo",
-            "w_n", "l_n", "w_sn", "l_sn", "p_overall", "p_surface", "p_blend"]
+            "w_n", "l_n", "w_sn", "l_sn", "p_overall", "p_surface", "p_blend",
+            "w_form90", "l_form90"]
     out = {c: np.empty(n, dtype=float) for c in cols}
 
     winners = df["winner_name"].to_numpy()
@@ -71,6 +106,9 @@ def run_elo(df: pd.DataFrame, use_mov: bool | None = None) -> tuple[RatingState,
     tier_ks = df["tier_k"].to_numpy()
     gdiffs = df["game_diff"].to_numpy()
     completed = df["completed"].to_numpy()
+    walkovers = df["walkover"].to_numpy() if "walkover" in df else np.zeros(n, dtype=bool)
+    best_ofs = (pd.to_numeric(df["best_of"], errors="coerce").fillna(3).to_numpy()
+                if "best_of" in df else np.full(n, 3))
     dates = df["date"].to_numpy()
     months = dates.astype("datetime64[M]")
 
@@ -79,9 +117,10 @@ def run_elo(df: pd.DataFrame, use_mov: bool | None = None) -> tuple[RatingState,
 
         rw, rl = st.elo(w), st.elo(l)
         sw, sl = st.surface_elo(w, s), st.surface_elo(l, s)
-        bw, bl = (1 - SURFACE_BLEND) * rw + SURFACE_BLEND * sw, (1 - SURFACE_BLEND) * rl + SURFACE_BLEND * sl
+        bw, bl = (1 - blend) * rw + blend * sw, (1 - blend) * rl + blend * sl
         nw, nl = st.n.get(w, 0), st.n.get(l, 0)
         nsw, nsl = st.n_surface[s].get(w, 0), st.n_surface[s].get(l, 0)
+        ds = p.bo5_scale if best_ofs[i] == 5 else 1.0
 
         # --- record pre-match features (no leakage) ---
         out["w_elo"][i], out["l_elo"][i] = rw, rl
@@ -89,21 +128,43 @@ def run_elo(df: pd.DataFrame, use_mov: bool | None = None) -> tuple[RatingState,
         out["w_belo"][i], out["l_belo"][i] = bw, bl
         out["w_n"][i], out["l_n"][i] = nw, nl
         out["w_sn"][i], out["l_sn"][i] = nsw, nsl
-        out["p_overall"][i] = expected_score(rw, rl)
-        out["p_surface"][i] = expected_score(sw, sl)
-        out["p_blend"][i] = expected_score(bw, bl)
+        out["p_overall"][i] = expected_score(rw, rl, p, diff_scale=ds)
+        out["p_surface"][i] = expected_score(sw, sl, p, diff_scale=ds)
+        out["p_blend"][i] = expected_score(bw, bl, p, diff_scale=ds)
+        out["w_form90"][i] = st.form_delta(w, dates[i])
+        out["l_form90"][i] = st.form_delta(l, dates[i])
 
         # --- update ---
-        mov = mov_multiplier(gdiffs[i]) if (use_mov and completed[i]) else 1.0
-        tk = tier_ks[i]
+        if p.skip_walkovers and walkovers[i]:
+            continue                       # nobody hit a ball: ratings, counts, dates untouched
 
+        mov = mov_multiplier(gdiffs[i], p) if (use_mov and completed[i]) else 1.0
+        tk = tier_ks[i]
+        if not completed[i] and not walkovers[i]:
+            tk *= p.ret_k_mult             # retirement/default: noisy, down-weighted
+
+        kw, kl = dynamic_k(nw, p) * tk, dynamic_k(nl, p) * tk
+        skw, skl = surface_k(nsw, p) * tk, surface_k(nsl, p) * tk
+        if p.inact_days > 0:               # first match back from a long layoff moves fast
+
+            def _boost(name: str) -> float:
+                last = st.last_played.get(name)
+                if last is None:
+                    return 1.0
+                gap = (dates[i] - last) / _DAY
+                if gap <= p.inact_days:
+                    return 1.0
+                return 1.0 + p.inact_boost * min(gap / 365.0, 2.0)
+
+            bw_, bl_ = _boost(w), _boost(l)
+            kw, skw = kw * bw_, skw * bw_
+            kl, skl = kl * bl_, skl * bl_
+
+        # update expectation shares the (Bo5-scaled) recorded probabilities
         e_overall = out["p_overall"][i]
-        kw, kl = dynamic_k(nw) * tk, dynamic_k(nl) * tk
+        e_surf = out["p_surface"][i]
         st.overall[w] = rw + kw * mov * (1.0 - e_overall)
         st.overall[l] = rl + kl * mov * (0.0 - (1.0 - e_overall))
-
-        e_surf = out["p_surface"][i]
-        skw, skl = surface_k(nsw) * tk, surface_k(nsl) * tk
         st.surface[s][w] = sw + skw * mov * (1.0 - e_surf)
         st.surface[s][l] = sl + skl * mov * (0.0 - (1.0 - e_surf))
 
@@ -111,12 +172,17 @@ def run_elo(df: pd.DataFrame, use_mov: bool | None = None) -> tuple[RatingState,
         st.n_surface[s][w], st.n_surface[s][l] = nsw + 1, nsl + 1
         st.last_played[w] = st.last_played[l] = dates[i]
 
-        # monthly Elo snapshot per player (for trends / profile charts)
+        # rolling snapshots: monthly (trends/profiles) + recent (90-day form feature)
         m = months[i]
+        cutoff = dates[i] - _FORM_WINDOW_D * _DAY
         for nm, rating in ((w, st.overall[w]), (l, st.overall[l])):
             if st._hist_month.get(nm) != m:
                 st._hist_month[nm] = m
                 st.history.setdefault(nm, []).append((str(m), round(rating)))
+            f = st._form.setdefault(nm, [])
+            f.append((dates[i], rating))
+            while f and f[0][0] < cutoff:
+                f.pop(0)
 
     st.last_date = dates[-1] if n else None
     feats = pd.DataFrame(out, index=df.index)

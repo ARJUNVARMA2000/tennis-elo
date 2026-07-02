@@ -5,7 +5,10 @@ Tennis-Data closing odds and reports model vs market accuracy / log-loss / Brier
 the matched matches, plus the ROI of flat-staking the model's edge over the market.
 
 Uses the walk-forward OOS predictions (not final ratings) so the comparison is honest:
-every model probability was generated before its match.
+every model probability was generated before its match. `scorecard_from_oos` lets the
+daily pipeline reuse the OOS frame it already computed (no second walk-forward).
+
+Run:  PYTHONPATH=src python -m tennis_model.eval.compare [atp|wta]
 """
 
 from __future__ import annotations
@@ -25,15 +28,15 @@ def _odds_cols(odds: pd.DataFrame):
     raise ValueError("no odds columns found")
 
 
-def build_scorecard(start: int = 2012, end: int = 2025, edge_min: float = 0.05,
-                    stake: float = 100.0) -> dict:
-    feat = load_or_build_features()
-    oos = walk_forward(feat, start_test=start, end_test=end)
+def scorecard_from_oos(tour: str, oos: pd.DataFrame, edge_min: float = 0.05,
+                       stake: float = 100.0) -> dict:
+    """Model-vs-market scorecard from an existing walk-forward OOS frame."""
+    start, end = int(oos["year"].min()), int(oos["year"].max())
     oos = oos.assign(w_key=oos["winner_name"].map(normalize_name),
                      l_key=oos["loser_name"].map(normalize_name),
                      d=oos["date"].dt.normalize())
 
-    odds = load_odds(years=range(start, end + 1))
+    odds = load_odds(tour, years=range(start, end + 1))
     ow, ol = _odds_cols(odds)
     odds = odds.assign(d=odds["date"].dt.normalize()).dropna(subset=[ow, ol])
 
@@ -49,6 +52,7 @@ def build_scorecard(start: int = 2012, end: int = 2025, edge_min: float = 0.05,
     model = merged["p_combiner"].to_numpy()
 
     sc = {
+        "tour": tour, "years": [start, end],
         "matched": int(len(merged)),
         "model": {k: round(v, 4) for k, v in score(model).items()},
         "market": {k: round(v, 4) for k, v in score(mkt).items()},
@@ -71,9 +75,18 @@ def build_scorecard(start: int = 2012, end: int = 2025, edge_min: float = 0.05,
     return sc
 
 
+def build_scorecard(tour: str = "atp", start: int = 2012, end: int | None = None,
+                    edge_min: float = 0.05, stake: float = 100.0) -> dict:
+    feat = load_or_build_features(tour=tour)
+    oos = walk_forward(feat, start_test=start, end_test=end)
+    return scorecard_from_oos(tour, oos, edge_min=edge_min, stake=stake)
+
+
 if __name__ == "__main__":
     import json
+    import sys
+    tour = sys.argv[1] if len(sys.argv) > 1 else "atp"
     try:
-        print(json.dumps(build_scorecard(), indent=2))
+        print(json.dumps(build_scorecard(tour), indent=2))
     except FileNotFoundError as e:
         print(e)

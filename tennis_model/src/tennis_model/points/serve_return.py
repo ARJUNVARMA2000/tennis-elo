@@ -37,6 +37,24 @@ from .markov import P_CLIP, match_win_prob
 _DAY = np.timedelta64(1, "D")
 
 
+@dataclass(frozen=True)
+class ServeReturnParams:
+    """Tunable knobs of the serve/return walk (defaults = config = production)."""
+
+    form_halflife_days: float = FORM_HALFLIFE_DAYS
+    serve_shrinkage_points: float = SERVE_SHRINKAGE_POINTS
+    surface_serve_shrinkage: float = SURFACE_SERVE_SHRINKAGE
+
+
+DEFAULT_SR_PARAMS = ServeReturnParams()
+
+
+def sr_params_for(tour: str) -> ServeReturnParams:
+    """The tour's ServeReturnParams: shared defaults + the tour's tuned overrides."""
+    from ..config import SR_PARAM_OVERRIDES
+    return ServeReturnParams(**SR_PARAM_OVERRIDES.get(tour, {}))
+
+
 def serve_averages(df: pd.DataFrame) -> tuple[float, dict]:
     """League-average service-points-won overall and per surface (computed from data)."""
     s = df[df["has_stats"]]
@@ -56,6 +74,7 @@ class ServeReturnState:
 
     avg: float = 0.62                                    # league serve-points-won
     base: dict = field(default_factory=dict)             # surface -> serve%
+    params: ServeReturnParams = DEFAULT_SR_PARAMS
     # global accumulators
     gsw: dict = field(default_factory=dict); gsp: dict = field(default_factory=dict)
     grw: dict = field(default_factory=dict); grp: dict = field(default_factory=dict)
@@ -73,12 +92,17 @@ class ServeReturnState:
     def avg_ret(self) -> float:
         return 1.0 - self.avg
 
+    @property
+    def _p(self) -> ServeReturnParams:
+        # tolerate pickles from before the params refactor
+        return getattr(self, "params", None) or DEFAULT_SR_PARAMS
+
     def _decay_to(self, name: str, t) -> None:
         prev = self.t_last.get(name)
         if prev is not None:
             dt = (t - prev) / _DAY
             if dt > 0:
-                f = 0.5 ** (dt / FORM_HALFLIFE_DAYS)
+                f = 0.5 ** (dt / self._p.form_halflife_days)
                 for d in (self.gsw, self.gsp, self.grw, self.grp):
                     if name in d:
                         d[name] *= f
@@ -90,30 +114,34 @@ class ServeReturnState:
 
     # -- skills -------------------------------------------------------------
     def global_serve_skill(self, name: str) -> float:
+        k = self._p.serve_shrinkage_points
         sp = self.gsp.get(name, 0.0)
-        return (self.gsw.get(name, 0.0) + self.avg * SERVE_SHRINKAGE_POINTS) / (sp + SERVE_SHRINKAGE_POINTS) - self.avg
+        return (self.gsw.get(name, 0.0) + self.avg * k) / (sp + k) - self.avg
 
     def global_return_skill(self, name: str) -> float:
+        k = self._p.serve_shrinkage_points
         rp = self.grp.get(name, 0.0)
-        return (self.grw.get(name, 0.0) + self.avg_ret * SERVE_SHRINKAGE_POINTS) / (rp + SERVE_SHRINKAGE_POINTS) - self.avg_ret
+        return (self.grw.get(name, 0.0) + self.avg_ret * k) / (rp + k) - self.avg_ret
 
     def serve_skill(self, name: str, surf: str | None = None) -> float:
         """Surface-specific serve skill (relative to the surface baseline), shrunk
         toward the player's global skill. Falls back to global when surf is None."""
         if surf is None or surf not in self.base:
             return self.global_serve_skill(name)
+        k = self._p.surface_serve_shrinkage
         bs = self.base[surf]
         prior = bs + self.global_serve_skill(name)               # player's global level, on this surface
         sp = self.ssp[surf].get(name, 0.0)
-        return (self.ssw[surf].get(name, 0.0) + prior * SURFACE_SERVE_SHRINKAGE) / (sp + SURFACE_SERVE_SHRINKAGE) - bs
+        return (self.ssw[surf].get(name, 0.0) + prior * k) / (sp + k) - bs
 
     def return_skill(self, name: str, surf: str | None = None) -> float:
         if surf is None or surf not in self.base:
             return self.global_return_skill(name)
+        k = self._p.surface_serve_shrinkage
         br = 1.0 - self.base[surf]
         prior = br + self.global_return_skill(name)
         rp = self.srp[surf].get(name, 0.0)
-        return (self.srw[surf].get(name, 0.0) + prior * SURFACE_SERVE_SHRINKAGE) / (rp + SURFACE_SERVE_SHRINKAGE) - br
+        return (self.srw[surf].get(name, 0.0) + prior * k) / (rp + k) - br
 
     def point_probs(self, a: str, b: str, surf: str) -> tuple[float, float]:
         base = self.base.get(surf, self.avg)
@@ -138,10 +166,11 @@ class ServeReturnState:
         self.srp[surf][name] = self.srp[surf].get(name, 0.0) + rpt
 
 
-def run_serve_return(df: pd.DataFrame) -> tuple[ServeReturnState, pd.DataFrame]:
+def run_serve_return(df: pd.DataFrame,
+                     params: ServeReturnParams | None = None) -> tuple[ServeReturnState, pd.DataFrame]:
     """Chronological pass: record pre-match (surface) skills + point-model probability."""
     avg, base = serve_averages(df)
-    st = ServeReturnState(avg=avg, base=base)
+    st = ServeReturnState(avg=avg, base=base, params=params or DEFAULT_SR_PARAMS)
     n = len(df)
     cols = ["w_serve_skill", "l_serve_skill", "w_return_skill", "l_return_skill",
             "w_srv_pts", "l_srv_pts", "pa_serve", "pb_serve", "p_point"]

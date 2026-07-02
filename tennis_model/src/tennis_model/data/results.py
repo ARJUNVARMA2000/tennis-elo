@@ -21,12 +21,26 @@ from ..config import (
     DEFAULT_TIER_K_MULT,
     ROUND_ORDER,
     SURFACE_MAP,
+    TIER_ANCHORS,
     TIER_K_MULT,
     TIER_NAMES,
     fresh_dir,
     historical_dir,
     live_dir,
+    stats_dir,
 )
+
+
+def tier_mults(tour: str | None) -> tuple[dict, float]:
+    """(tier -> K multiplier, default) for a tour: TIER_K_MULT rescaled linearly
+    between the tour's tuned (grand_slam, challenger) anchors, if adopted."""
+    anchors = TIER_ANCHORS.get(tour or "")
+    if not anchors:
+        return TIER_K_MULT, DEFAULT_TIER_K_MULT
+    gs, ch = anchors
+    lo, hi = min(TIER_K_MULT.values()), max(TIER_K_MULT.values())
+    scale = lambda v: ch + (v - lo) / (hi - lo) * (gs - ch)
+    return {k: scale(v) for k, v in TIER_K_MULT.items()}, scale(DEFAULT_TIER_K_MULT)
 
 # Surface by calendar month — the tennis season's surface swings — used only as a
 # fallback for live (ESPN) rows whose sponsor-named event isn't in the archive.
@@ -71,9 +85,13 @@ def _parse_dates(s: pd.Series) -> pd.Series:
 
 
 def _score_key(score: object) -> str:
+    """Games-only normalization: drop tiebreak digits, RET/W-O markers and 0-0
+    placeholder sets so the same match keys identically across sources that format
+    retirements differently ('6-3 3-2 RET' vs '6-3 3-2 0-0 RET')."""
     if not isinstance(score, str):
         return ""
-    return re.sub(r"\(\d+\)", "", score).replace(" ", "").strip()
+    pairs = re.findall(r"\d+-\d+", re.sub(r"\(\d+\)", "", score))
+    return ",".join(p for p in pairs if p != "0-0")
 
 
 def _name_key(name: object) -> str:
@@ -104,29 +122,37 @@ def _canonicalize_names(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def merge_sources(tour: str) -> pd.DataFrame:
-    """Concatenate historical + fresh + live for a tour and de-dup.
+    """Concatenate historical + stats + fresh + live for a tour and de-dup.
 
-    Preference (lower __src wins a duplicate match): historical (serve stats + clean
-    names) > fresh mirror (results, clean city names) > live ESPN overlay (same-day,
-    but sponsor names / no surface). So events the mirror already has keep their clean
-    metadata, while ESPN-only events (this week, in-progress Slams) still come through.
+    Preference (lower __src wins a duplicate match): historical archive (serve stats +
+    clean names, frozen upstreams) > stats overlay (same full schema, updated daily —
+    TML site for ATP, scraped for WTA) > fresh mirror (results, clean city names) >
+    live ESPN overlay (same-day, but sponsor names / no surface). Rows carrying serve
+    stats always beat results-only duplicates regardless of source (see the __hs sort),
+    so the stats overlay fills every match the frozen archive is missing.
     """
     hist = _read_dir(historical_dir(tour))
+    stats = _read_dir(stats_dir(tour))
     fresh = _read_dir(fresh_dir(tour))
     live = _read_dir(live_dir(tour))
-    hist["__src"], fresh["__src"], live["__src"] = 0, 1, 2
-    df = pd.concat([hist, fresh, live], ignore_index=True)
+    hist["__src"], stats["__src"], fresh["__src"], live["__src"] = 0, 1, 2, 3
+    df = pd.concat([hist, stats, fresh, live], ignore_index=True)
     df["date"] = _parse_dates(df["tourney_date"])
     df = df[df["date"].notna() & df["winner_name"].notna() & df["loser_name"].notna()].copy()
     df = _canonicalize_names(df)
 
     has_stats = pd.to_numeric(df["w_svpt"], errors="coerce").notna()
+    # year is part of the key: rivalries repeat identical scorelines across seasons,
+    # and sources agree on year (dates themselves can drift a day between sources)
     df["__key"] = (df["winner_name"].astype(str) + "|" + df["loser_name"].astype(str)
-                   + "|" + df["score"].map(_score_key))
-    # prefer rows that have stats, then the historical source
+                   + "|" + df["date"].dt.year.astype(str) + "|" + df["score"].map(_score_key))
+    # prefer rows that have stats, then the earlier (cleaner) source
     df = df.assign(__hs=has_stats.astype(int)).sort_values(["__hs", "__src"], ascending=[False, True])
-    df = df.drop_duplicates(subset="__key", keep="first").drop(columns=["__hs", "__key", "__src"])
-    return df
+    df = df.drop_duplicates(subset="__key", keep="first")
+    # second pass: the same ordered pair on the same calendar day is one match, however
+    # the sources disagree on score formatting or event naming — keep the preferred row
+    df = df.drop_duplicates(subset=["winner_name", "loser_name", "date"], keep="first")
+    return df.drop(columns=["__hs", "__key", "__src"])
 
 
 def _backfill_bios(df: pd.DataFrame) -> pd.DataFrame:
@@ -163,7 +189,7 @@ def _backfill_event_attrs(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def clean(df: pd.DataFrame) -> pd.DataFrame:
+def clean(df: pd.DataFrame, tour: str | None = None) -> pd.DataFrame:
     """Add derived/normalised columns (robust to columns absent in the fresh schema)."""
     df = df.copy()
     if "date" not in df:
@@ -175,7 +201,8 @@ def clean(df: pd.DataFrame) -> pd.DataFrame:
     surf = df["surface"].where(df["surface"].notna(), df["date"].dt.month.map(_MONTH_SURFACE))
     df["surface_b"] = surf.map(SURFACE_MAP).fillna(surf).fillna("Hard")
     df["tier"] = df["tourney_level"].map(_tier_name)
-    df["tier_k"] = df["tier"].map(TIER_K_MULT).fillna(DEFAULT_TIER_K_MULT)
+    mults, default_mult = tier_mults(tour)
+    df["tier_k"] = df["tier"].map(mults).fillna(default_mult)
     df["round_order"] = df["round"].map(ROUND_ORDER).fillna(3).astype(int)
     df["is_indoor"] = df["indoor"].map({"I": True, "O": False})
 
@@ -204,7 +231,7 @@ def chronological(df: pd.DataFrame) -> pd.DataFrame:
 
 def load_matches(tour: str = "atp") -> pd.DataFrame:
     """Top-level entry: merge sources, clean, backfill bios, chronologically sort."""
-    df = clean(merge_sources(tour))
+    df = clean(merge_sources(tour), tour=tour)
     df = _backfill_bios(df)
     df["tour"] = tour
     return chronological(df)

@@ -18,7 +18,7 @@ from ..config import output_dir
 from ..data.charting import STYLE_FEATURES, build_profiles, name_key
 from ..points.markov import match_win_prob, score_distribution
 from ..ratings.elo import expected_score
-from .features import FEATURES, build_predictor_inputs
+from .features import FEATURES, LAYOFF_DAYS, PEAK_AGE, build_predictor_inputs
 from .train import train_final
 
 
@@ -52,11 +52,20 @@ class TennisPredictor:
         ma, mb = meta.get(a, {}), meta.get(b, {})
 
         belo_a, belo_b = elo.blended(a, surface), elo.blended(b, surface)
-        p_blend = expected_score(belo_a, belo_b)
+        p_blend = elo.win_prob(a, b, surface, best_of=best_of)   # Bo5-scale parity
         pa, pb = srv.point_probs(a, b, surface)
         p_point = match_win_prob(pa, pb, best_of)
         rpa, rpb = _num(ma.get("rank_points")), _num(mb.get("rank_points"))
         h2a, h2b = ctx.record(a, b)
+        h2sa, h2sb = ctx.record_surface(a, b, surface)
+
+        # layoff/form relative to the newest match in the data (~today in production)
+        asof = elo.last_date
+        def _days_since(name):
+            last = elo.last_played.get(name)
+            return float((asof - last) / np.timedelta64(1, "D")) if last is not None else 365.0
+        da, db = _days_since(a), _days_since(b)
+        age_a, age_b = _num(ma.get("age")), _num(mb.get("age"))
 
         row = {
             "elo_diff": belo_a - belo_b,
@@ -75,6 +84,14 @@ class TennisPredictor:
             "rest_diff": 0.0,
             "fatigue_diff": 0.0,
             "h2h_diff": h2a - h2b,
+            "log_days_since_diff": math.log1p(da) - math.log1p(db),
+            "layoff_flag_diff": int(da > LAYOFF_DAYS) - int(db > LAYOFF_DAYS),
+            "form90_diff": elo.form_delta(a, asof) - elo.form_delta(b, asof),
+            "winrate10_diff": ctx.winrate10(a) - ctx.winrate10(b),
+            "h2h_surface_diff": h2sa - h2sb,
+            "entry_q_diff": 0.0,               # entry method unknown for hypotheticals
+            "peak_age_dev_diff": (abs(age_a - PEAK_AGE) - abs(age_b - PEAK_AGE)
+                                  if np.isfinite(age_a) and np.isfinite(age_b) else 0.0),
             "best_of": best_of,
             "is_indoor": int(bool(indoor)),
             "tier_k": tier_k,
@@ -84,6 +101,7 @@ class TennisPredictor:
             "surf_grass": int(surface == "Grass"),
             "log_min_srv_pts": math.log1p(min(srv.gsp.get(a, 0.0), srv.gsp.get(b, 0.0))),
             "log_min_matches": math.log1p(min(elo.n.get(a, 0), elo.n.get(b, 0))),
+            "log1p_h2h_total": math.log1p(h2a + h2b),
         }
         # MCP tactical-style diffs (0 unless both players are profiled)
         profiles = build_profiles(self.tour)

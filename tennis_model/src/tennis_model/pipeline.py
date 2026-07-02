@@ -48,8 +48,9 @@ def build_tour(tour: str, do_backtest: bool) -> None:
 
     oos = None
     if do_backtest:
+        from datetime import datetime, timezone
         print("  walk-forward backtest...")
-        oos = walk_forward(feat, start_test=2016, end_test=2025)
+        oos = walk_forward(feat, start_test=2016, end_test=datetime.now(timezone.utc).year)
 
     print("  training production combiner...")
     clf, iso, _ = train_final(feat)
@@ -57,8 +58,24 @@ def build_tour(tour: str, do_backtest: bool) -> None:
     predictor.save()
 
     export_all(tour, df, elo, srv, meta, predictor, oos=oos)
+    if oos is not None:
+        _market_scorecard(tour, oos)
     _track(tour, predictor, df)
     _mirror(tour)
+
+
+def _market_scorecard(tour: str, oos) -> None:
+    """Model-vs-Pinnacle scorecard from the just-computed OOS predictions (writes
+    market.json). Best-effort: odds are a benchmark, never a build dependency."""
+    try:
+        import json
+        from .eval.compare import scorecard_from_oos
+        sc = scorecard_from_oos(tour, oos)
+        (output_dir(tour) / "market.json").write_text(json.dumps(sc, indent=2))
+        print(f"  market/{tour}: matched={sc.get('matched')} "
+              f"model={sc.get('model', {}).get('brier')} market={sc.get('market', {}).get('brier')}")
+    except Exception as e:                                   # noqa: BLE001 — never fatal
+        print(f"  market/{tour}: skipped ({e})")
 
 
 def build_tour_quick(tour: str) -> None:

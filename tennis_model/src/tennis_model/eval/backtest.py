@@ -27,9 +27,11 @@ def _rank_baseline_p(df: pd.DataFrame) -> np.ndarray:
     return 1.0 / (1.0 + np.exp(-r))  # slope 1 in log-points; rough but honest baseline
 
 
-def run_backtest(start_year: int = BACKTEST_START_YEAR, min_matches: int = 0) -> dict:
-    df = load_matches()
-    st, feats = run_elo(df)
+def run_backtest(start_year: int = BACKTEST_START_YEAR, min_matches: int = 0,
+                 tour: str = "atp") -> dict:
+    from ..ratings.elo import params_for
+    df = load_matches(tour)
+    st, feats = run_elo(df, params=params_for(tour))
     data = df.join(feats)
 
     mask = (
@@ -70,7 +72,8 @@ def run_backtest(start_year: int = BACKTEST_START_YEAR, min_matches: int = 0) ->
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--start", type=int, default=BACKTEST_START_YEAR)
+    ap.add_argument("--tour", default="atp", choices=["atp", "wta"])
     ap.add_argument("--min-matches", type=int, default=0,
                     help="restrict to matches where both players have >= N career matches")
     args = ap.parse_args()
-    run_backtest(start_year=args.start, min_matches=args.min_matches)
+    run_backtest(start_year=args.start, min_matches=args.min_matches, tour=args.tour)
