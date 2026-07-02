@@ -14,17 +14,18 @@ what stops the model from trivially learning "player A always wins".
 from __future__ import annotations
 
 from collections import defaultdict, deque
+from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
 
+from .. import config as _config
 from ..data.charting import STYLE_FEATURES, build_profiles, name_key
 from ..data.results import load_matches
 from ..points.serve_return import run_serve_return
 from ..ratings.build import run_elo
 
 _DAY = np.timedelta64(1, "D")
-FATIGUE_WINDOW_DAYS = 14
 
 
 class H2HState:
@@ -68,6 +69,10 @@ ANTISYM = [
     "form90_diff", "winrate10_diff",
     # rivalry & profile
     "h2h_surface_diff", "entry_q_diff", "peak_age_dev_diff",
+    # E1 box-score decomposition (bp_clutch/ace/df/first-in/minutes14/ret_recent)
+    # was tried and REJECTED by the paired walk-forward gate on both tours
+    # (2026-07-02 core round): the opponent-adjusted spw% walk already compresses
+    # the box score; the extra dimensions cost capacity without net signal.
 ] + STYLE_DIFFS
 # Features that are unchanged by the swap (match context / symmetric confidence).
 SYMMETRIC = [
@@ -78,8 +83,30 @@ SYMMETRIC = [
 ]
 FEATURES = ANTISYM + SYMMETRIC
 
-LAYOFF_DAYS = 120                   # threshold for the layoff flag
-PEAK_AGE = 26.5                     # center of the age curve (both tours, roughly)
+
+@dataclass(frozen=True)
+class FeatureParams:
+    """Tunable context/feature constants (defaults = config = production).
+
+    Carried on the TennisPredictor (`fp`) so inference always applies the same
+    thresholds the training frame was built with — module-level constants were
+    import-bound copies that a tune-time override could never reach.
+    (form_days lives on EloParams: the Elo walk computes that feature.)
+    """
+
+    fatigue_window_days: float = _config.FATIGUE_WINDOW_DAYS
+    layoff_days: float = _config.LAYOFF_DAYS
+    peak_age: float = _config.PEAK_AGE
+    winrate_window: int = _config.WINRATE_WINDOW
+
+
+DEFAULT_FEAT_PARAMS = FeatureParams()
+
+
+def feat_params_for(tour: str) -> FeatureParams:
+    """The tour's FeatureParams: shared defaults + the tour's tuned overrides."""
+    from ..config import FEAT_PARAM_OVERRIDES
+    return FeatureParams(**FEAT_PARAM_OVERRIDES.get(tour, {}))
 
 
 def _logit(p: np.ndarray) -> np.ndarray:
@@ -87,18 +114,20 @@ def _logit(p: np.ndarray) -> np.ndarray:
     return np.log(p / (1 - p))
 
 
-def run_context(df: pd.DataFrame) -> pd.DataFrame:
-    """Rest, recent workload, head-to-head (career + surface), last-10 form — pre-match."""
+def run_context(df: pd.DataFrame,
+                params: FeatureParams = DEFAULT_FEAT_PARAMS) -> pd.DataFrame:
+    """Rest, recent workload, head-to-head (career + surface), last-N form — pre-match."""
     n = len(df)
     out = {c: np.zeros(n, dtype=float) for c in
            ["w_days_since", "l_days_since", "w_fat", "l_fat", "w_h2h", "l_h2h",
             "w_h2h_s", "l_h2h_s", "w_wr10", "l_wr10"]}
 
+    wr_window = int(params.winrate_window)
     last_date: dict = {}
     recent: dict = defaultdict(deque)          # player -> deque[(date, games_played)]
     h2h: dict = defaultdict(lambda: [0, 0])    # (a,b) sorted -> [wins_a, wins_b]
     h2h_s: dict = defaultdict(lambda: [0, 0])  # ((a,b) sorted, surface) -> [wins]
-    last10: dict = defaultdict(lambda: deque(maxlen=10))   # player -> 1/0 results
+    last10: dict = defaultdict(lambda: deque(maxlen=wr_window))  # player -> 1/0 results
 
     winners = df["winner_name"].to_numpy()
     losers = df["loser_name"].to_numpy()
@@ -109,7 +138,7 @@ def run_context(df: pd.DataFrame) -> pd.DataFrame:
 
     def workload(name, t):
         dq = recent[name]
-        while dq and (t - dq[0][0]) / _DAY > FATIGUE_WINDOW_DAYS:
+        while dq and (t - dq[0][0]) / _DAY > params.fatigue_window_days:
             dq.popleft()
         return sum(g for _, g in dq)
 
@@ -151,11 +180,12 @@ def _run_all(df: pd.DataFrame):
     from ..points.serve_return import sr_params_for
     from ..ratings.elo import params_for
     tour = str(df["tour"].iloc[0]) if "tour" in df and len(df) else "atp"
+    fp = feat_params_for(tour)
     elo_state, elo = run_elo(df, params=params_for(tour))
     srv_state, srv = run_serve_return(df, params=sr_params_for(tour))
-    ctx_state, ctx = run_context(df)
+    ctx_state, ctx = run_context(df, params=fp)
     d = df.join(elo).join(srv).join(ctx)
-    return _assemble(d), elo_state, srv_state, ctx_state
+    return _assemble(d, params=fp), elo_state, srv_state, ctx_state
 
 
 def build_feature_frame(df: pd.DataFrame | None = None, tour: str = "atp") -> pd.DataFrame:
@@ -198,7 +228,8 @@ def build_predictor_inputs(df: pd.DataFrame | None = None, tour: str = "atp"):
     return f, elo_state, srv_state, ctx_state, player_meta(df)
 
 
-def _assemble(d: pd.DataFrame) -> pd.DataFrame:
+def _assemble(d: pd.DataFrame,
+              params: FeatureParams = DEFAULT_FEAT_PARAMS) -> pd.DataFrame:
     """Build the winner-oriented feature columns from the joined walk outputs."""
     f = pd.DataFrame(index=d.index)
     # anti-symmetric (A = winner)
@@ -226,8 +257,8 @@ def _assemble(d: pd.DataFrame) -> pd.DataFrame:
 
     # layoff: rest_diff's clip destroys long-absence information — restore it
     f["log_days_since_diff"] = np.log1p(d["w_days_since"]) - np.log1p(d["l_days_since"])
-    f["layoff_flag_diff"] = ((d["w_days_since"] > LAYOFF_DAYS).astype(int)
-                             - (d["l_days_since"] > LAYOFF_DAYS).astype(int))
+    f["layoff_flag_diff"] = ((d["w_days_since"] > params.layoff_days).astype(int)
+                             - (d["l_days_since"] > params.layoff_days).astype(int))
     # short-term form
     f["form90_diff"] = d["w_form90"] - d["l_form90"]
     f["winrate10_diff"] = d["w_wr10"] - d["l_wr10"]
@@ -238,7 +269,8 @@ def _assemble(d: pd.DataFrame) -> pd.DataFrame:
     f["entry_q_diff"] = w_q.astype(int) - l_q.astype(int)
     wa = pd.to_numeric(d["winner_age"], errors="coerce")
     la = pd.to_numeric(d["loser_age"], errors="coerce")
-    f["peak_age_dev_diff"] = ((wa - PEAK_AGE).abs() - (la - PEAK_AGE).abs()).fillna(0.0)
+    f["peak_age_dev_diff"] = ((wa - params.peak_age).abs()
+                              - (la - params.peak_age).abs()).fillna(0.0)
 
     # symmetric context + confidence
     f["best_of"] = pd.to_numeric(d["best_of"], errors="coerce").fillna(3)

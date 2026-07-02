@@ -16,7 +16,14 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import tennis_model.model.features as features
-from tennis_model.model.features import ANTISYM, FEATURES, SYMMETRIC, make_oriented_xy
+from tennis_model.model.features import (
+    ANTISYM,
+    FEATURES,
+    SYMMETRIC,
+    FeatureParams,
+    make_oriented_xy,
+    run_context,
+)
 
 
 def test_feature_partition_sane():
@@ -82,6 +89,49 @@ def test_assemble_orientation_contract():
     print("ok test_assemble_orientation_contract")
 
 
+def test_assemble_respects_feature_params():
+    """Non-default layoff/peak-age params must change the assembled features — the
+    guard that FeatureParams actually threads through (not silently ignored)."""
+    d = _joined_frame()          # w_days_since=7, l_days_since=21; ages 24.5 / 29.0
+    orig = features.build_profiles
+    try:
+        features.build_profiles = lambda tour: {}
+        base = features._assemble(d)
+        tuned = features._assemble(d, params=FeatureParams(layoff_days=10.0,
+                                                           peak_age=29.0))
+    finally:
+        features.build_profiles = orig
+    assert base["layoff_flag_diff"].iloc[0] == 0        # neither side idle > 120d
+    assert tuned["layoff_flag_diff"].iloc[0] == -1      # only loser (21d) > 10d
+    assert np.isclose(base["peak_age_dev_diff"].iloc[0], -0.5)   # |24.5-26.5|-|29-26.5|
+    assert np.isclose(tuned["peak_age_dev_diff"].iloc[0], 4.5)   # |24.5-29|-|29-29|
+    print("ok test_assemble_respects_feature_params")
+
+
+def test_run_context_respects_params():
+    """winrate_window and fatigue_window_days must govern the context walk."""
+    day0 = pd.Timestamp("2024-01-01")
+    rows = []
+    for i in range(12):          # Alfa loses 6, then wins 6 (one match per day)
+        w, l = ("Bravo Two", "Alfa One") if i < 6 else ("Alfa One", "Bravo Two")
+        rows.append(dict(winner_name=w, loser_name=l, date=day0 + pd.Timedelta(days=i),
+                         surface_b="Hard", completed=True, w_games=12, l_games=8))
+    rows.append(dict(winner_name="Alfa One", loser_name="Charlie Three",
+                     date=day0 + pd.Timedelta(days=12), surface_b="Hard",
+                     completed=True, w_games=12, l_games=8))
+    df = pd.DataFrame(rows)
+
+    _, base = run_context(df)                            # window 10, fatigue 14d
+    assert np.isclose(base["w_wr10"].iloc[-1], 0.6)      # last 10: 4 losses + 6 wins
+    assert np.isclose(base["w_fat"].iloc[-1], 12 * 20)   # all 12 matches in 14d
+
+    _, tuned = run_context(df, params=FeatureParams(winrate_window=5,
+                                                    fatigue_window_days=3.0))
+    assert np.isclose(tuned["w_wr10"].iloc[-1], 1.0)     # last 5 are all wins
+    assert np.isclose(tuned["w_fat"].iloc[-1], 3 * 20)   # only 3 days back
+    print("ok test_run_context_respects_params")
+
+
 def test_make_oriented_xy_flip_contract():
     rng = np.random.default_rng(11)
     n = 400
@@ -106,5 +156,7 @@ def test_make_oriented_xy_flip_contract():
 if __name__ == "__main__":
     test_feature_partition_sane()
     test_assemble_orientation_contract()
+    test_assemble_respects_feature_params()
+    test_run_context_respects_params()
     test_make_oriented_xy_flip_contract()
     print("\nALL PASSED")

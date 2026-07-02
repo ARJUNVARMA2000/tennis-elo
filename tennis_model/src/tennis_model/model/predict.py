@@ -18,7 +18,7 @@ from ..config import output_dir
 from ..data.charting import STYLE_FEATURES, build_profiles, name_key
 from ..points.markov import match_win_prob, score_distribution
 from ..ratings.elo import expected_score
-from .features import FEATURES, LAYOFF_DAYS, PEAK_AGE, build_predictor_inputs
+from .features import DEFAULT_FEAT_PARAMS, FEATURES, build_predictor_inputs
 from .train import train_final
 
 
@@ -40,10 +40,16 @@ def _num(x, default=np.nan) -> float:
 
 
 class TennisPredictor:
-    def __init__(self, clf, iso, elo, srv, ctx, meta, tour="atp"):
+    def __init__(self, clf, iso, elo, srv, ctx, meta, tour="atp", fp=None):
         self.clf, self.iso = clf, iso
         self.elo, self.srv, self.ctx, self.meta = elo, srv, ctx, meta
         self.tour = tour
+        self.fp = fp                       # FeatureParams the training frame was built with
+
+    @property
+    def _fp(self):
+        # tolerate pickles from before the FeatureParams refactor
+        return getattr(self, "fp", None) or DEFAULT_FEAT_PARAMS
 
     # -- feature construction (must mirror features._assemble, winner-slot = A) ----
     def _feature_dict(self, a: str, b: str, surface: str, best_of: int,
@@ -67,6 +73,7 @@ class TennisPredictor:
         da, db = _days_since(a), _days_since(b)
         age_a, age_b = _num(ma.get("age")), _num(mb.get("age"))
         ht_a, ht_b = _num(ma.get("ht")), _num(mb.get("ht"))
+        fp = self._fp
 
         row = {
             "elo_diff": belo_a - belo_b,
@@ -88,12 +95,12 @@ class TennisPredictor:
             "fatigue_diff": 0.0,
             "h2h_diff": h2a - h2b,
             "log_days_since_diff": math.log1p(da) - math.log1p(db),
-            "layoff_flag_diff": int(da > LAYOFF_DAYS) - int(db > LAYOFF_DAYS),
+            "layoff_flag_diff": int(da > fp.layoff_days) - int(db > fp.layoff_days),
             "form90_diff": elo.form_delta(a, asof) - elo.form_delta(b, asof),
             "winrate10_diff": ctx.winrate10(a) - ctx.winrate10(b),
             "h2h_surface_diff": h2sa - h2sb,
             "entry_q_diff": 0.0,               # entry method unknown for hypotheticals
-            "peak_age_dev_diff": (abs(age_a - PEAK_AGE) - abs(age_b - PEAK_AGE)
+            "peak_age_dev_diff": (abs(age_a - fp.peak_age) - abs(age_b - fp.peak_age)
                                   if np.isfinite(age_a) and np.isfinite(age_b) else 0.0),
             "best_of": best_of,
             "is_indoor": int(bool(indoor)),
@@ -178,10 +185,12 @@ class TennisPredictor:
 
 def fit_predictor(tour: str = "atp", save: bool = True) -> TennisPredictor:
     """Build states + train the production combiner, returning a ready predictor."""
+    from .features import feat_params_for
     from .train import xgb_params_for
     feat, elo, srv, ctx, meta = build_predictor_inputs(tour=tour)
     clf, iso, _ = train_final(feat, xgb_overrides=xgb_params_for(tour))
-    pred = TennisPredictor(clf, iso, elo, srv, ctx, meta, tour=tour)
+    pred = TennisPredictor(clf, iso, elo, srv, ctx, meta, tour=tour,
+                           fp=feat_params_for(tour))
     if save:
         pred.save()
     return pred

@@ -110,6 +110,11 @@ SURFACE_K_SHAPE = 0.4
 # At prediction time, blend overall and surface Elo (Sackmann's ~50/50 mix).
 SURFACE_BLEND = 0.5            # weight on the surface-specific rating
 
+# Cross-surface transfer (E2): a result on surface s also moves the OTHER surface
+# ratings by XSURF_TRANSFER x the surface-s update (clay form partially informs
+# hard-court form). 0 = off = surface ratings update only on their own surface.
+XSURF_TRANSFER = 0.0
+
 # Margin-of-victory ("Weighted Elo"): scale the update by how dominant the win was,
 # measured from games won. Disabled => standard Elo (useful as a backtest baseline).
 USE_MOV = True
@@ -133,6 +138,10 @@ INACT_BOOST = 0.0
 # Bo3 logistic, so the rating difference is scaled by BO5_SCALE for slams — in both
 # the recorded pre-match probability and the update expectation. 1.0 disables.
 BO5_SCALE = 1.0
+
+# Window (days) for the form90 Elo-momentum feature: overall-rating change vs
+# ~FORM_DAYS ago. Lives on EloParams (the walk computes it), tunable via group=feat.
+FORM_DAYS = 90.0
 
 # ---------------------------------------------------------------------------
 # Tournament tiers — importance multiplier on K, keyed by `tourney_level`.
@@ -165,20 +174,32 @@ DEFAULT_TIER_K_MULT = 0.90
 # TIER_K_MULT linearly between (grand_slam, challenger) anchors; None keeps it.
 # ---------------------------------------------------------------------------
 ELO_PARAM_OVERRIDES: dict = {
-    # 650-trial TPE sweep, plateau-center values (tune ll 0.5956->0.5860, val
-    # 0.6387->0.6208). Near-flat K curve with strong MOV weighting, mild layoff
-    # boost, and a REAL Bo5 effect: slam favorites' rating edge scales x1.28.
-    "atp": dict(k_scale=40.0, k_offset=25.0, k_shape=0.10,
-                surface_k_scale=45.0, surface_k_shape=0.31, surface_blend=0.45,
-                mov_factor=0.45, mov_cap=2.5, inact_days=80.0, inact_boost=0.15,
-                bo5_scale=1.28),
-    # 400-trial TPE sweep, plateau-center values (tune ll 0.6196->0.6096, val
-    # 0.6294->0.6168). Flatter K curve, softer MOV, blend 0.5->0.375, and a real
-    # layoff K-boost (+47%/idle-year after ~110 days out). bo5/ret stay default
-    # (WTA has no Bo5; retirement down-weight measured ~irrelevant).
-    "wta": dict(k_scale=100.0, k_offset=5.0, k_shape=0.20,
-                surface_k_scale=130.0, surface_k_shape=0.56, surface_blend=0.375,
-                mov_factor=0.20, mov_cap=1.85, inact_days=110.0, inact_boost=0.47),
+    # 400-trial `_xsurf` re-sweep (2026-07-02 core round): all five top configs
+    # passed the component gate at 3-4 SE (d_tune +0.0017, d_val +0.0011..0.0024);
+    # full-pipeline arbiter on the plateau center: acc 0.6878->0.6883, Brier
+    # 0.1984->0.1983, d_val +0.00041±0.00040 -> ADOPTED. Cross-surface transfer
+    # (xsurf 0.27) reorganizes the geometry: blend 0.45->0.63, MOV factor halved
+    # (transfer absorbs part of the margin signal), layoff boost moves to very
+    # long absences (~400d), tier anchors flatten (see TIER_ANCHORS). The Bo5
+    # rating-diff scale re-converged to 1.28 independently — robust effect.
+    "atp": dict(k_scale=145.0, k_offset=5.0, k_shape=0.21,
+                surface_k_scale=52.0, surface_k_shape=0.33, surface_blend=0.63,
+                mov_factor=0.22, mov_cap=2.0, inact_days=400.0, inact_boost=0.44,
+                bo5_scale=1.28, xsurf=0.27),
+    # 400-trial `_xsurf` re-sweep with cross-surface transfer in the space
+    # (2026-07-02 core round): all five top configs passed the component gate at
+    # ~3 SE (d_tune +0.0027, d_val +0.0018..0.0021); full-pipeline arbiter on the
+    # plateau center: acc 0.6822->0.6841, Brier 0.2024->0.2023, d_tune
+    # +0.00060±0.00045, d_val -0.00032±0.00059 -> ADOPTED. Transfer reorganizes
+    # the whole geometry: xsurf 0.17 feeds every surface from every result, so
+    # the blend can trust surface ratings (0.375->0.62), the K curve steepens
+    # (100/5/0.20 -> 320/1.5/0.37), surface K shrinks (130->45), and retirements
+    # are down-weighted (0.72 — measured irrelevant only WITHOUT transfer).
+    # bo5 stays default (WTA has no Bo5).
+    "wta": dict(k_scale=320.0, k_offset=1.5, k_shape=0.37,
+                surface_k_scale=45.0, surface_k_shape=0.40, surface_blend=0.62,
+                mov_factor=0.22, mov_cap=1.65, ret_k_mult=0.72,
+                inact_days=86.0, inact_boost=0.16, xsurf=0.17),
 }
 SR_PARAM_OVERRIDES: dict = {
     # 200-trial sweep (tune ll 0.6091->0.5886, val 0.6400->0.6145): same story as
@@ -197,18 +218,28 @@ SR_PARAM_OVERRIDES: dict = {
     "wta": dict(form_halflife_days=200.0, serve_shrinkage_points=550.0,
                 surface_serve_shrinkage=3000.0),
 }
-TIER_ANCHORS: dict = {"atp": (1.15, 0.95), "wta": (0.93, 0.68)}  # (grand_slam, challenger)
+TIER_ANCHORS: dict = {"atp": (0.91, 0.89),
+                      "wta": (1.22, 0.81)}  # (grand_slam, challenger); both re-tuned
+                                            # with the xsurf geometry (2026-07-02) —
+                                            # ATP flattens almost completely
 XGB_PARAM_OVERRIDES: dict = {
-    # 400-trial TPE sweep of the combiner (full walk-forward objective, 2026-07-02),
-    # plateau center of five gate-passing configs (d_tune +0.00145±0.00034,
-    # d_val +0.00046±0.00041). n_estimators is a CAP — early stopping governs.
-    # min_child_weight sat at the search bound (50); extending is a future sweep.
-    # The ATP sweep was REJECTED: every candidate beat the tune window but regressed
-    # validation beyond ~1 SE (overfit) — ATP keeps the _xgb() defaults.
-    "wta": dict(learning_rate=0.025, max_depth=7, min_child_weight=50.0,
-                subsample=0.58, colsample_bytree=0.87, reg_alpha=0.002,
-                reg_lambda=0.8, gamma=0.08, n_estimators=2000),
+    # 200-trial `_mcw` re-sweep with min_child_weight bound 50→400 and TPE anchored
+    # at the prior adopted config (2026-07-02 core round). All five top configs
+    # passed the gate on BOTH windows; this is the plateau center of the four
+    # clustered ones (anchor #129: d_tune +0.00066±0.00024, d_val +0.00108±0.00030).
+    # Full 2010–2026 arbiter vs the prior config: acc 0.6811→0.6821, Brier
+    # 0.2027→0.2024, d_full +0.00058±0.00020 → ADOPTED. The optimum moved to a new
+    # regularization regime (reg_alpha ~5 vs 0.002, mcw ~70 — the old 50 bound was
+    # mildly binding; the new 400 bound is not). n_estimators is a CAP — early
+    # stopping governs.
+    # The ATP sweep remains REJECTED: every candidate beat the tune window but
+    # regressed validation beyond ~1 SE (overfit) — ATP keeps the _xgb() defaults.
+    "wta": dict(learning_rate=0.03, max_depth=7, min_child_weight=70.0,
+                subsample=0.77, colsample_bytree=0.75, reg_alpha=5.0,
+                reg_lambda=0.1, gamma=0.0005, n_estimators=2000),
 }
+FEAT_PARAM_OVERRIDES: dict = {}   # FeatureParams per-tour overrides (group=feat sweeps;
+                                  # form_days adoptions go into ELO_PARAM_OVERRIDES)
 
 # ---------------------------------------------------------------------------
 # Surfaces — Carpet (mostly pre-2009 indoor) folds into Hard for the surface bucket.
@@ -236,6 +267,15 @@ SERVE_SHRINKAGE_POINTS = 200.0
 # Surface-specific estimates see less data, so they shrink (harder) toward the
 # player's own global skill — a two-level hierarchical prior.
 SURFACE_SERVE_SHRINKAGE = 120.0
+
+# ---------------------------------------------------------------------------
+# Context features (model/features.py) — rest/fatigue/form/age constants, carried
+# on the frozen FeatureParams dataclass so sweeps and inference can't diverge.
+# ---------------------------------------------------------------------------
+FATIGUE_WINDOW_DAYS = 14.0    # rolling window for the games-played workload feature
+LAYOFF_DAYS = 120.0           # idle-days threshold for the layoff flag
+PEAK_AGE = 26.5               # center of the age curve (both tours, roughly)
+WINRATE_WINDOW = 10           # last-N completed matches for the winrate10 feature
 
 # ---------------------------------------------------------------------------
 # Data health thresholds (data/health.py) — stale sources turn the daily build red

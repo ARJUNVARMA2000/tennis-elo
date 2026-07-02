@@ -8,6 +8,11 @@ Objectives per group:
   group=xgb    log-loss of p_combiner  (full walk-forward over the tune window per
                                         trial — minutes, run overnight; folds/seeds are
                                         deterministic so trials are match-paired)
+  group=feat   log-loss of p_combiner  (FeatureParams + form_days: Elo/context walks
+                                        re-run per trial, then a full walk-forward
+                                        UNDER the adopted combiner params — the
+                                        component-vs-arbiter gap is absent by
+                                        construction; ~2-2.5 min/trial)
 
 Protocol (anti-overfitting):
   * TUNE window: test years 2010-2019 — the only thing the optimizer ever sees.
@@ -75,6 +80,12 @@ class Objective:
         self.mask = (self.df["completed"].to_numpy()
                      & (yr >= years[0]).to_numpy() & (yr <= years[1]).to_numpy())
         self.vmask = self.df["completed"].to_numpy() & (yr >= VAL_START).to_numpy()
+        if group == "feat":
+            # serve/return params are fixed across trials — run that walk once
+            from ..model.train import xgb_params_for
+            from ..points.serve_return import run_serve_return, sr_params_for
+            _, self.srv_feats = run_serve_return(self.df, params=sr_params_for(tour))
+            self.adopted_xgb = xgb_params_for(tour)
         if group == "point":
             # fixed reference serve-sample mask: the srv-pts accumulators DECAY with the
             # trial's halflife, so a per-trial filter scores different trials on
@@ -101,6 +112,8 @@ class Objective:
                 inact_days=s("inact_days", 60, 540),
                 inact_boost=s("inact_boost", 0.0, 1.5),
                 bo5_scale=s("bo5_scale", 1.0, 1.3),
+                # E2 cross-surface transfer; space changed -> fresh --tag required
+                xsurf=s("xsurf", 0.0, 0.5),
                 gs_mult=s("gs_mult", 0.9, 1.3),
                 chall_mult=s("chall_mult", 0.6, 1.1),
             )
@@ -108,12 +121,22 @@ class Objective:
             return dict(
                 learning_rate=s("learning_rate", 0.01, 0.10, log=True),
                 max_depth=trial.suggest_int("max_depth", 3, 7),
-                min_child_weight=s("min_child_weight", 1.0, 50.0, log=True),
+                # WTA's adopted optimum sat AT the old 50 ceiling; range extended so
+                # the bound can't bind again. NOTE: changed range ⇒ fresh --tag
+                min_child_weight=s("min_child_weight", 1.0, 400.0, log=True),
                 subsample=s("subsample", 0.50, 1.00),
                 colsample_bytree=s("colsample_bytree", 0.50, 1.00),
                 reg_alpha=s("reg_alpha", 1e-3, 10.0, log=True),
                 reg_lambda=s("reg_lambda", 0.03, 30.0, log=True),
                 gamma=s("gamma", 1e-4, 5.0, log=True),
+            )
+        if self.group == "feat":
+            return dict(
+                fatigue_window_days=s("fatigue_window_days", 3.0, 45.0),
+                layoff_days=s("layoff_days", 30.0, 365.0),
+                peak_age=s("peak_age", 23.0, 29.0),
+                form_days=s("form_days", 30.0, 240.0),
+                winrate_window=trial.suggest_int("winrate_window", 5, 30),
             )
         return dict(
             form_halflife_days=s("form_halflife_days", 60, 1500, log=True),
@@ -139,6 +162,20 @@ class Objective:
                           else (VAL_START, int(self.feat["year"].max())))
             oos = walk_forward(self.feat, start_test=start, end_test=end,
                                xgb_overrides=overrides, verbose=False)
+            return -np.log(np.clip(oos["p_combiner"].to_numpy(), 1e-12, None))
+        if self.group == "feat":
+            from ..model.features import FeatureParams, _assemble, run_context
+            from ..model.train import walk_forward
+            cfg = dict(cfg)
+            elo_p = replace(params_for(self.tour), form_days=cfg.pop("form_days"))
+            _, elo = run_elo(self.df, params=elo_p)
+            fp = FeatureParams(**cfg)
+            _, ctx = run_context(self.df, params=fp)
+            feat = _assemble(self.df.join(elo).join(self.srv_feats).join(ctx), params=fp)
+            start, end = (self.years if window == "tune"
+                          else (VAL_START, int(feat["year"].max())))
+            oos = walk_forward(feat, start_test=start, end_test=end,
+                               xgb_overrides=self.adopted_xgb, verbose=False)
             return -np.log(np.clip(oos["p_combiner"].to_numpy(), 1e-12, None))
         m = self.mask if window == "tune" else self.vmask
         if self.group == "elo":
@@ -173,6 +210,14 @@ class Objective:
         if self.group == "xgb":
             from ..model.train import xgb_params_for
             return xgb_params_for(self.tour)   # adopted per-tour combiner overrides
+        if self.group == "feat":
+            from ..model.features import feat_params_for
+            from ..ratings.elo import params_for
+            fp = feat_params_for(self.tour)
+            return dict(fatigue_window_days=fp.fatigue_window_days,
+                        layoff_days=fp.layoff_days, peak_age=fp.peak_age,
+                        winrate_window=fp.winrate_window,
+                        form_days=params_for(self.tour).form_days)
         return {}
 
     def baseline(self) -> dict:
@@ -198,6 +243,10 @@ def tune(tour: str, group: str, trials: int, seed: int = 7, tag: str = "") -> No
             load_if_exists=True, direction="minimize",
             sampler=optuna.samplers.TPESampler(seed=seed),
         )
+        # anchor TPE at the incumbent so the search starts from the adopted config
+        anchor = {k: v for k, v in obj.baseline_cfg().items() if k != "n_estimators"}
+        if anchor and not study.trials:
+            study.enqueue_trial(anchor)
 
         def _obj(trial):
             cfg = obj.suggest(trial)
@@ -269,7 +318,7 @@ if __name__ == "__main__":
     import argparse
     ap = argparse.ArgumentParser()
     ap.add_argument("--tour", default="atp", choices=["atp", "wta"])
-    ap.add_argument("--group", default="elo", choices=["elo", "point", "xgb"])
+    ap.add_argument("--group", default="elo", choices=["elo", "point", "xgb", "feat"])
     ap.add_argument("--trials", type=int, default=200)
     ap.add_argument("--validate", action="store_true")
     ap.add_argument("--top", type=int, default=5, help="configs to score in --validate")

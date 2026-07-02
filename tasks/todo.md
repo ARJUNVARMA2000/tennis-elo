@@ -128,4 +128,90 @@ Plan: C:\Users\varma\.claude\plans\anything-else-we-can-transient-gem.md
 - [ ] WTA combiner min_child_weight range extension (sat at the 50 bound)
 
 ### Blocked on user
-- [ ] push the 4 local commits (deploy-on-push needs explicit approval)
+- [x] push the 4 local commits — resolved: verified local == origin/master on 2026-07-02
+
+---
+
+# Task: Core round P0/P1/E1/E2 + market stacker + UI track (2026-07-02)
+
+Plan: C:\Users\varma\.claude\plans\did-you-improve-the-composed-manatee.md
+
+## Checklist
+
+### Model track
+- [x] P0: **ADOPTED** — WTA combiner re-tuned (5/5 gate PASS; arbiter acc
+      0.6811→0.6821, Brier 0.2027→0.2024, d_val +0.00100±0.00036); new
+      XGB_PARAM_OVERRIDES["wta"] in config (lr .03, depth 7, mcw 70, alpha 5)
+- [x] P1 code: FeatureParams refactor (config constants, dataclass, feat_params_for,
+      form_days → EloParams, predict.py parity fix, contract tests); bit-identical
+      gate PASSED both tours (WTA dtype-metadata-only delta from pre-pin cache)
+- [x] P1 sweeps: REJECTED both tours (ATP 5/5 tune-overfit; WTA 5/5 val-negative,
+      2 formal passers declined on direction). Refactor + feat group stand
+- [x] E1: REJECTED (block AND workload-pair subset, paired A/B both tours: ATP val
+      regression / WTA tune regression) — code fully reverted, tombstone comment in
+      ANTISYM, bit-identical gate re-passed. Honest negative recorded in results doc
+- [x] E2 BOTH TOURS **ADOPTED** — cross-surface transfer Elo:
+      WTA xsurf=0.17 (blend 0.62, k 320/1.5/0.37, anchors 1.22/0.81; arbiter acc
+      0.6822→0.6841, Brier 0.2024→0.2023); ATP xsurf=0.27 (blend 0.63, k 145/5/0.21,
+      mov halved, anchors 0.91/0.89, bo5 1.28 re-confirmed; arbiter acc
+      0.6878→0.6883, Brier 0.1984→0.1983)
+- [x] P1 feat ATP: REJECTED (5/5 tune-overfit — third ATP instance of the pattern)
+- [x] S1: DONE — ATP stack BEATS the closing market on validation (Brier 0.1996 vs
+      0.2016; a_model 0.33); WTA between inputs (0.2004). Paper ROI positive but
+      uncaveated — follow-up: audit the 629 ATP stack-disagreement bets for
+      odds-join/RET artifacts before trusting +19% flat ROI
+- [x] results doc tasks/tuning-results-2026-07-02-core-round.md (SKIP rationale written;
+      gate numbers pending)
+- suite 71 passed; ruff clean
+
+### UI track (DONE — verified independently: vitest 75/75, lint 0 errors, build green)
+- [x] U2: web/components/Dropdown.tsx primitive (~290 lines: listbox ARIA, outside-click,
+      Escape→refocus, arrows/Home/End/Enter, 600ms typeahead, searchable variant,
+      compact/align props) + 18 vitest tests (pure logic + SSR ARIA contract)
+- [x] U2: Nav dropdowns outside-click/Escape/roving focus; strength add-player keyboard
+      nav wired in place (add-to-set semantics ≠ primitive's select-one)
+- [x] U2: predict/style Pickers + player-page datalist → searchable Dropdown w/ rank
+      sublabels
+- [x] U1: rankings age filter (rankRows/passesAgeFilter in lib/ui.ts, null-age excluded,
+      filter-before-slice) + 7 tests; preview-verified (U23 → 33 rows, all <23)
+- [x] U3: ALL layout-property animations → compositor (ProbBar/LiveTicker/home/simulator/
+      accuracy/track bars → scaleX; radar vertices → translate; live-dot → ::after
+      transform ring; will-change hints; template 0.22s); preview-inspected matrices
+- [x] verify: mobile 375px no overflow (panels in-viewport), zero console errors
+
+### Deferred (next candidates)
+- [ ] P2 home advantage (ioc backfill + ~300-entry tourney→country map — data verified
+      feasible: pair coverage 99.5%+ after backfill)
+- [ ] P3 adaptive per-player surface blend (blend_n50 shrinkage param)
+- [ ] E3 event-speed serve baseline (per-tourney_id shrunk priors)
+- [ ] A5/P4 challenger ingestion (needs load-time gate in results.py first — flag currently
+      gates downloads only)
+- [ ] ATP combiner re-sweep ONLY if E1/P1 adoption changes the ATP feature frame
+
+## 2026-07-02 — live official rankings + dynamic age filter (rankings page)
+
+- [x] scraper: tennis_model/data/rankings.py — live-tennis.eu u868 table, stdlib HTMLParser,
+      browser UA (403 otherwise), fail-closed validation (>=100 rows, first rank 1),
+      keep-last-good rankings.json in live_dir; ø/đ/ł Latin fold + additive ALIASES
+      (players.json carries duplicate spellings of the same human — both get the rank)
+- [x] wiring: pipeline quick + --download paths, download.py all/live kinds (best-effort,
+      never strict-fatal)
+- [x] export: liveRank/liveRankDelta merged into players.json via name_key + sorted-token
+      fallback (Wang Xinyu <-> Xinyu Wang); "matched N/200" log line = drift tripwire
+      (currently ATP 189/200, WTA 186/200; all misses verified retired/unranked)
+- [x] web: rankings page "Live rank" column (hidden <sm) + green/red movement badge vs last
+      official release + live-tennis.eu attribution footnote
+- [x] web: age filter now All/Under/Over dropdown + editable number (15-45 clamp, blur
+      snap-back, empty input = no filter); parseAgeFilter/passesAgeFilter/rankRows in lib/ui
+- [x] tests: +8 pytest (parser fixture from real page, keep-last-good, aliases, merge),
+      rankings.test.ts rewritten for direction filter (81 vitest total)
+- [x] verify: pytest 79 passed; real scrape 1000/tour; quick pipeline end-to-end both tours;
+      vitest/lint/build green; headless Playwright on /rankings — 13/13 checks
+      (column values, badges, footnote, under/over/empty/clamp filter behaviors, no console
+      errors)
+
+### Review
+Scraper is best-effort by contract: any failure (Cloudflare challenge, layout drift) keeps
+the previous rankings.json from the CI cache — the site degrades to stale ranks, never a
+red build. Freshness = hourly quick run. Name-join residuals are individually verified
+retired/doubles/unranked players, correctly shown as "—".

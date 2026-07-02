@@ -113,10 +113,30 @@ def test_run_elo_no_leakage():
     print("ok test_run_elo_no_leakage")
 
 
+def test_run_elo_cross_surface_transfer():
+    """xsurf=0 must reproduce today's walk exactly (no off-surface writes); xsurf>0
+    moves the other surfaces by a fraction of the source-surface update."""
+    from dataclasses import replace
+
+    from tennis_model.ratings.elo import DEFAULT_PARAMS
+    df = _df([("Ana", "Ben", "Clay", 4, "2026-01-05")])
+    st0, _ = run_elo(df)
+    assert "Ana" not in st0.surface["Hard"]                # incumbent behavior intact
+    st1, _ = run_elo(df, params=replace(DEFAULT_PARAMS, xsurf=0.3))
+    clay_gain = st1.surface["Clay"]["Ana"] - DEFAULT_RATING
+    hard_gain = st1.surface["Hard"]["Ana"] - DEFAULT_RATING
+    assert 0 < hard_gain < clay_gain
+    assert abs(hard_gain - 0.3 * clay_gain) < 1e-9         # exactly xsurf x source
+    assert st1.surface["Hard"]["Ben"] < DEFAULT_RATING     # loser transfers down
+    assert st1.surface["Clay"]["Ana"] == st0.surface["Clay"]["Ana"]  # source unchanged
+    print("ok test_run_elo_cross_surface_transfer")
+
+
 if __name__ == "__main__":
     test_expected_score()
     test_dynamic_k_monotone()
     test_mov_multiplier()
     test_run_elo_updates_and_seeding()
     test_run_elo_no_leakage()
+    test_run_elo_cross_surface_transfer()
     print("\nALL PASSED")

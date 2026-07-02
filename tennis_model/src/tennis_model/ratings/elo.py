@@ -19,6 +19,7 @@ from dataclasses import dataclass
 
 from ..config import (
     BO5_SCALE,
+    FORM_DAYS,
     INACT_BOOST,
     INACT_DAYS,
     K_OFFSET,
@@ -33,6 +34,7 @@ from ..config import (
     SURFACE_K_OFFSET,
     SURFACE_K_SCALE,
     SURFACE_K_SHAPE,
+    XSURF_TRANSFER,
 )
 
 
@@ -55,6 +57,8 @@ class EloParams:
     inact_days: float = INACT_DAYS          # layoff K-boost threshold (0 = off)
     inact_boost: float = INACT_BOOST
     bo5_scale: float = BO5_SCALE            # rating-diff scale for best-of-5
+    form_days: float = FORM_DAYS            # window for the form90 momentum feature
+    xsurf: float = XSURF_TRANSFER           # cross-surface transfer weight (0 = off)
 
 
 DEFAULT_PARAMS = EloParams()

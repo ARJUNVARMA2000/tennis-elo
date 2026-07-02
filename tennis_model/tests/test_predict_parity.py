@@ -40,7 +40,7 @@ class _Elo:
     def surface_elo(self, name, surf):
         return 1560.0 if name == "Alfa One" else 1500.0
 
-    def form_delta(self, name, asof, days=90):
+    def form_delta(self, name, asof, days=None):
         return 0.02 if name == "Alfa One" else -0.01
 
 
@@ -114,7 +114,33 @@ def test_missing_bio_matches_training_semantics():
     print("ok test_missing_bio_matches_training_semantics")
 
 
+def test_feature_params_thread_to_inference():
+    """The predictor must apply its OWN FeatureParams (fp) — the module constants it
+    used to import at load time could never see a tuned override. Old pickles
+    (no fp attribute) fall back to the config defaults."""
+    from tennis_model.model.features import FeatureParams
+    meta = {"Alfa One": {"age": 24.0, "ht": 185.0, "hand": "R", "rank_points": 3000},
+            "Bravo Two": {"age": 27.0, "ht": 190.0, "hand": "L", "rank_points": 1500}}
+    # _Elo stub: Alfa idle 6 days, Bravo idle 3 days as of 2026-07-01
+    pred = TennisPredictor(clf=None, iso=None, elo=_Elo(), srv=_Srv(), ctx=_Ctx(),
+                           meta=meta, tour="atp",
+                           fp=FeatureParams(layoff_days=5.0, peak_age=27.0))
+    row = _with_no_profiles(lambda: pred._feature_dict(
+        "Alfa One", "Bravo Two", "Hard", 3, False, 1.0, 3))
+    assert row["layoff_flag_diff"] == 1                    # 6d > 5; 3d is not
+    assert np.isclose(row["peak_age_dev_diff"], 3.0)       # |24-27| - |27-27|
+
+    legacy = _predictor(meta)
+    del legacy.fp                                          # simulate a pre-refactor pickle
+    row = _with_no_profiles(lambda: legacy._feature_dict(
+        "Alfa One", "Bravo Two", "Hard", 3, False, 1.0, 3))
+    assert row["layoff_flag_diff"] == 0                    # config default: 120d
+    assert np.isclose(row["peak_age_dev_diff"], 2.0)       # |24-26.5| - |27-26.5|
+    print("ok test_feature_params_thread_to_inference")
+
+
 if __name__ == "__main__":
     test_feature_dict_keys_match_FEATURES()
     test_missing_bio_matches_training_semantics()
+    test_feature_params_thread_to_inference()
     print("\nALL PASSED")

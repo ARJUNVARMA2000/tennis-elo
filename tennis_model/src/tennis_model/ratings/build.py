@@ -23,7 +23,12 @@ from ..config import DEFAULT_RATING, SURFACES, USE_MOV
 from .elo import DEFAULT_PARAMS, EloParams, dynamic_k, expected_score, mov_multiplier, surface_k
 
 _DAY = np.timedelta64(1, "D")
-_FORM_WINDOW_D = 120        # keep ~4 months of snapshots for the 90-day form delta
+
+
+def _form_keep_days(params: EloParams) -> float:
+    """Snapshot retention for the form feature: 4/3 of the window (>=120d) so the
+    delta always finds a snapshot at least form_days old."""
+    return max(120.0, getattr(params, "form_days", 90.0) * 4.0 / 3.0)
 
 
 @dataclass
@@ -66,11 +71,16 @@ class RatingState:
         return expected_score(self.blended(a, surf), self.blended(b, surf),
                               self._params, diff_scale=ds)
 
-    def form_delta(self, name: str, asof, days: int = 90) -> float:
-        """Overall-Elo change vs ~`days` ago (0 if no snapshot in the window)."""
+    def form_delta(self, name: str, asof, days: float | None = None) -> float:
+        """Overall-Elo change vs ~form_days ago (0 if no snapshot in the window).
+
+        `days=None` reads the state's own params, so inference always matches how
+        the walk recorded w_form90/l_form90 (old pickles fall back to 90)."""
         hist = getattr(self, "_form", {}).get(name)
         if not hist:
             return 0.0
+        if days is None:
+            days = getattr(self._params, "form_days", 90.0)
         cutoff = asof - days * _DAY
         past = None
         for d, r in hist:
@@ -92,6 +102,8 @@ def run_elo(df: pd.DataFrame, use_mov: bool | None = None,
     p = params or DEFAULT_PARAMS
     st = RatingState(params=p)
     blend = p.surface_blend
+    form_keep = _form_keep_days(p)
+    xsurf = getattr(p, "xsurf", 0.0)
 
     n = len(df)
     # Pre-allocate output columns (winner/loser oriented, pre-match values).
@@ -167,14 +179,21 @@ def run_elo(df: pd.DataFrame, use_mov: bool | None = None,
         st.overall[l] = rl + kl * mov * (0.0 - (1.0 - e_overall))
         st.surface[s][w] = sw + skw * mov * (1.0 - e_surf)
         st.surface[s][l] = sl + skl * mov * (0.0 - (1.0 - e_surf))
+        if xsurf > 0:                      # cross-surface transfer (E2): other
+            dw = xsurf * skw * mov * (1.0 - e_surf)   # surfaces get a fraction of
+            dl = xsurf * skl * mov * (1.0 - e_surf)   # the surface-s update
+            for s2 in SURFACES:
+                if s2 != s:
+                    st.surface[s2][w] = st.surface[s2].get(w, rw) + dw
+                    st.surface[s2][l] = st.surface[s2].get(l, rl) - dl
 
         st.n[w], st.n[l] = nw + 1, nl + 1
         st.n_surface[s][w], st.n_surface[s][l] = nsw + 1, nsl + 1
         st.last_played[w] = st.last_played[l] = dates[i]
 
-        # rolling snapshots: monthly (trends/profiles) + recent (90-day form feature)
+        # rolling snapshots: monthly (trends/profiles) + recent (form_days feature)
         m = months[i]
-        cutoff = dates[i] - _FORM_WINDOW_D * _DAY
+        cutoff = dates[i] - form_keep * _DAY
         for nm, rating in ((w, st.overall[w]), (l, st.overall[l])):
             if st._hist_month.get(nm) != m:
                 st._hist_month[nm] = m

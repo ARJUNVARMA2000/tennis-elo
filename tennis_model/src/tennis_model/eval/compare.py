@@ -8,16 +8,22 @@ Uses the walk-forward OOS predictions (not final ratings) so the comparison is h
 every model probability was generated before its match. `scorecard_from_oos` lets the
 daily pipeline reuse the OOS frame it already computed (no second walk-forward).
 
+Also fits an EVAL-ONLY market stacker sigma(a*logit(p_model) + b*logit(p_market) + c)
+on the tune years and scores it on the validation years (betting track). Odds remain
+a benchmark: nothing here feeds the product model, features, or exports.
+
 Run:  PYTHONPATH=src python -m tennis_model.eval.compare [atp|wta]
 """
 
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 
 from ..data.odds import load_odds, market_prob, normalize_name
 from ..eval.metrics import score
 from ..model.train import load_or_build_features, walk_forward
+from .tune import TUNE_YEARS, VAL_START
 
 
 def _odds_cols(odds: pd.DataFrame):
@@ -25,6 +31,72 @@ def _odds_cols(odds: pd.DataFrame):
         if f"odds_w_{tag}" in odds:
             return f"odds_w_{tag}", f"odds_l_{tag}"
     raise ValueError("no odds columns found")
+
+
+def _logit(p: np.ndarray) -> np.ndarray:
+    p = np.clip(np.asarray(p, dtype=float), 1e-6, 1 - 1e-6)
+    return np.log(p / (1 - p))
+
+
+def _flat_roi(p: np.ndarray, mkt: np.ndarray, odds_w: np.ndarray,
+              edge_min: float = 0.05, stake: float = 100.0) -> dict:
+    """Flat-stake the side where `p` disagrees with the market by > edge_min.
+    Rows are winner-oriented: backing the actual winner cashes (odds_w - 1)*stake,
+    backing the actual loser burns the stake."""
+    edge = p - mkt
+    bet_win, bet_lose = edge > edge_min, -edge > edge_min
+    n = int(bet_win.sum() + bet_lose.sum())
+    pnl = float((bet_win * (odds_w - 1.0) * stake - bet_lose * stake).sum())
+    return {"nBets": n, "roi": round(pnl / (n * stake), 4) if n else None}
+
+
+def _kelly_roi(p: np.ndarray, odds_w: np.ndarray, odds_l: np.ndarray,
+               cap: float = 0.25, unit: float = 100.0) -> dict:
+    """Per-match capped Kelly on any positive-EV side, fixed unit bankroll per match
+    (no compounding — an ROI scorecard, not a bankroll simulation)."""
+    f_w = np.clip((p * odds_w - 1.0) / (odds_w - 1.0), 0.0, cap) * unit
+    f_l = np.clip(((1.0 - p) * odds_l - 1.0) / (odds_l - 1.0), 0.0, cap) * unit
+    staked = float(f_w.sum() + f_l.sum())
+    pnl = float((f_w * (odds_w - 1.0) - f_l).sum())
+    return {"nBets": int(((f_w > 0) | (f_l > 0)).sum()),
+            "roi": round(pnl / staked, 4) if staked else None}
+
+
+def _stacker_block(merged: pd.DataFrame, model: np.ndarray, mkt: np.ndarray,
+                   odds_w: np.ndarray, odds_l: np.ndarray,
+                   edge_min: float, stake: float) -> dict | None:
+    """Fit the eval-only stacker on TUNE_YEARS, score everything on VAL_START+.
+    Returns None when either window is too thin to be meaningful."""
+    yr = merged["year"].to_numpy()
+    tm = (yr >= TUNE_YEARS[0]) & (yr <= TUNE_YEARS[1])
+    vm = yr >= VAL_START
+    if tm.sum() < 300 or vm.sum() < 100:
+        return None
+    from sklearn.linear_model import LogisticRegression
+    flip = np.arange(int(tm.sum())) % 2 == 1          # break winner-orientation
+    pm = np.where(flip, 1.0 - model[tm], model[tm])
+    mk = np.where(flip, 1.0 - mkt[tm], mkt[tm])
+    lr = LogisticRegression(C=1e4, solver="lbfgs")
+    lr.fit(np.column_stack([_logit(pm), _logit(mk)]), np.where(flip, 0, 1))
+    p_stack = lr.predict_proba(
+        np.column_stack([_logit(model[vm]), _logit(mkt[vm])]))[:, 1]
+    ow_v, ol_v, mk_v = odds_w[vm], odds_l[vm], mkt[vm]
+    return {
+        "fit": {"a_model": round(float(lr.coef_[0][0]), 3),
+                "b_market": round(float(lr.coef_[0][1]), 3),
+                "c": round(float(lr.intercept_[0]), 3),
+                "tuneYears": list(TUNE_YEARS), "valStart": VAL_START,
+                "nTune": int(tm.sum()), "nVal": int(vm.sum())},
+        "val": {"model": {k: round(v, 4) for k, v in score(model[vm]).items()},
+                "market": {k: round(v, 4) for k, v in score(mk_v).items()},
+                "stack": {k: round(v, 4) for k, v in score(p_stack).items()}},
+        "bettingVal": {
+            "flatModel": _flat_roi(model[vm], mk_v, ow_v, edge_min, stake),
+            "flatStack": _flat_roi(p_stack, mk_v, ow_v, edge_min, stake),
+            "kellyModel": _kelly_roi(model[vm], ow_v, ol_v),
+            "kellyStack": _kelly_roi(p_stack, ow_v, ol_v),
+        },
+    }
 
 
 def scorecard_from_oos(tour: str, oos: pd.DataFrame, edge_min: float = 0.05,
@@ -71,6 +143,12 @@ def scorecard_from_oos(tour: str, oos: pd.DataFrame, edge_min: float = 0.05,
         "roi": round(float(pnl / staked), 4) if staked else None,
         "note": "flat stake on model edge vs market; illustrative, closing odds",
     }
+
+    # eval-only betting track: stacker fit on tune years, scored on validation years
+    stack = _stacker_block(merged, model, mkt, merged[ow].to_numpy(),
+                           merged[ol].to_numpy(), edge_min, stake)
+    if stack is not None:
+        sc["stack"] = stack
     return sc
 
 
