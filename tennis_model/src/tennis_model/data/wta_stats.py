@@ -33,7 +33,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pandas as pd
 
@@ -71,7 +71,7 @@ def _get(path: str, params: dict | None = None, retries: int = RETRIES):
                 return None
             # 429: the API wants a real cool-down, not a quick retry
             time.sleep(min(120, 30 * (attempt + 1)) if e.code == 429 else 2 ** attempt)
-        except Exception:
+        except Exception:  # noqa: BLE001 — transient network error: back off and retry, then soft-None
             if attempt == retries - 1:
                 return None
             time.sleep(2 ** attempt)
@@ -303,7 +303,7 @@ def write_year(year: int, df_new: pd.DataFrame) -> int:
 
 
 def download_wta_stats(years=None, incremental: bool = False) -> None:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     if years is None:
         years = [now.year]
     since = now - timedelta(days=INCREMENTAL_DAYS) if incremental else None

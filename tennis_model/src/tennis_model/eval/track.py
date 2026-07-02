@@ -27,7 +27,7 @@ from __future__ import annotations
 import json
 import re
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import numpy as np
 import pandas as pd
@@ -58,7 +58,7 @@ def _season(*candidates) -> int:
         s = str(c) if c is not None else ""
         if len(s) >= 4 and s[:4].isdigit():
             return int(s[:4])
-    return datetime.now(timezone.utc).year
+    return datetime.now(UTC).year
 
 
 def _match_key(r: dict) -> str:
@@ -221,7 +221,7 @@ def _grade_tournaments(tourns: list, tour: str) -> dict:
         by_event[(_norm_event(r.get("event")), r.get("season"))].append(r)
 
     events = []
-    for (ek, _season_), snaps in by_event.items():
+    for (ek, _), snaps in by_event.items():
         ev = completed.get(ek)
         if not ev:
             continue                                        # not finished (or name miss)
@@ -286,7 +286,7 @@ def grade(tour: str, df: pd.DataFrame) -> dict:
 
     out = {
         "tour": tour,
-        "lastUpdated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "lastUpdated": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "matchForecasts": {
             "logged": len(matches), "graded": len(graded), "pending": len(matches) - len(graded),
             "overall": _score_or_empty([g["p_winner"] for g in graded]),
@@ -307,13 +307,13 @@ def _read_upcoming(tour: str) -> pd.DataFrame | None:
         return None
     try:
         return pd.read_csv(path, encoding="utf-8")
-    except Exception:
+    except Exception:  # noqa: BLE001 — a corrupt/absent upcoming file must not break grading
         return None
 
 
 def log_and_grade(tour: str, predictor, df: pd.DataFrame) -> dict:
     """Pipeline entry point: log today's forecasts, then (re)grade the whole log."""
-    as_of = datetime.now(timezone.utc).date().isoformat()
+    as_of = datetime.now(UTC).date().isoformat()
     n = log_forecasts(tour, predictor, df, _read_upcoming(tour), as_of)
     out = grade(tour, df)
     mf = out["matchForecasts"]

@@ -10,8 +10,6 @@ Two ways to get a 2^k bracket order (player at each slot, top-to-bottom):
 
 from __future__ import annotations
 
-import math
-
 import pandas as pd
 
 _ROUND_SEQ = ["R128", "R64", "R32", "R16", "QF", "SF", "F"]

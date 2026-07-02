@@ -147,11 +147,11 @@ def run_elo(df: pd.DataFrame, use_mov: bool | None = None,
         skw, skl = surface_k(nsw, p) * tk, surface_k(nsl, p) * tk
         if p.inact_days > 0:               # first match back from a long layoff moves fast
 
-            def _boost(name: str) -> float:
+            def _boost(name: str, asof=dates[i]) -> float:   # bind the date, not the loop var
                 last = st.last_played.get(name)
                 if last is None:
                     return 1.0
-                gap = (dates[i] - last) / _DAY
+                gap = (asof - last) / _DAY
                 if gap <= p.inact_days:
                     return 1.0
                 return 1.0 + p.inact_boost * min(gap / 365.0, 2.0)

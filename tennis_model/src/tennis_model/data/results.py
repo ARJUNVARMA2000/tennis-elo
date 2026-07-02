@@ -11,10 +11,8 @@ from __future__ import annotations
 
 import glob
 import re
-import unicodedata
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 from ..config import (
@@ -94,13 +92,9 @@ def _score_key(score: object) -> str:
     return ",".join(p for p in pairs if p != "0-0")
 
 
-def _name_key(name: object) -> str:
-    """Accent/punctuation-insensitive key so the same player matches across sources."""
-    if not isinstance(name, str):
-        return ""
-    s = "".join(c for c in unicodedata.normalize("NFKD", name) if not unicodedata.combining(c))
-    s = re.sub(r"[-.'`]", " ", s.lower())
-    return re.sub(r"\s+", " ", s).strip()
+# single shared implementation (kept importable here as results._name_key — the
+# established path used by wta_stats, odds joins and the tests)
+from .names import name_key as _name_key  # noqa: E402
 
 
 def _canonicalize_names(df: pd.DataFrame) -> pd.DataFrame:

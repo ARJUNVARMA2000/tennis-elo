@@ -120,5 +120,6 @@ Outputs land in `data/output/`: `predictor.pkl`, `players.json` (current ratings
   a true historical sim backtest would need as-of-date ratings.
 - **MCP tactical-profile layer**, surface-specific serve skill, and opponent-adjusted
   (strength-of-schedule) serve/return are the highest-value next features.
-- A **web frontend** (Python → JSON → Next.js) can mirror the soccer project once desired.
+- The **web frontend** (Python → JSON → Next.js, `web/`) is live at
+  https://arjunvarma2000.github.io/tennis-elo/ — see the root README.
 ```

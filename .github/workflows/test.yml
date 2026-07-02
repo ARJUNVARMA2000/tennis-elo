@@ -17,7 +17,10 @@ jobs:
           cache-dependency-path: tennis_model/requirements.txt
 
       - name: Install dependencies
-        run: pip install -r tennis_model/requirements.txt pytest
+        run: pip install -r tennis_model/requirements.txt
+
+      - name: Lint
+        run: pip install ruff && ruff check .
 
       - name: Run tests
         run: pytest tennis_model/tests -q

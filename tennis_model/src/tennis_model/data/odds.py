@@ -17,7 +17,7 @@ from __future__ import annotations
 import glob
 import re
 import unicodedata
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pandas as pd
 
@@ -102,7 +102,7 @@ if __name__ == "__main__":
     ap.add_argument("--archive", action="store_true",
                     help="pull the full archive (ATP 2001+, WTA 2007+), not just recent years")
     args = ap.parse_args()
-    this_year = datetime.now(timezone.utc).year
+    this_year = datetime.now(UTC).year
     for t in (TOURS if args.tour == "all" else (args.tour,)):
         first = (2001 if t == "atp" else 2007) if args.archive else this_year - 1
         done = download_odds(t, range(first, this_year + 1))

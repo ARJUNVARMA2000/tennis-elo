@@ -23,6 +23,7 @@ import pandas as pd
 from ..config import BACKTEST_START_YEAR, OUTPUT_DIR
 from .features import FEATURES, build_feature_frame, make_oriented_xy
 
+
 def _cache_path(tour: str):
     return OUTPUT_DIR / f"_features_{tour}.pkl"
 

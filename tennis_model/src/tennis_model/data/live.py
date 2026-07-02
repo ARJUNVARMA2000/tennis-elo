@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import json
 import urllib.request
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pandas as pd
 
@@ -120,7 +120,7 @@ def fetch_events(tour: str, days_back: int = 14, days_fwd: int = 12) -> list:
     The window spans both **past** days (completed results) and **upcoming** days
     (scheduled matches) so a live event's FULL field is captured — e.g. a Slam's
     Day-2/3 players, whose matches haven't happened yet, still appear in the draw."""
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(UTC).date()
     offsets = range(-days_fwd, days_back + 1)        # negative = upcoming, positive = past
     queries = [None] + [(today - timedelta(days=k)).strftime("%Y%m%d") for k in offsets]
     seen: dict = {}
@@ -130,7 +130,7 @@ def fetch_events(tour: str, days_back: int = 14, days_fwd: int = 12) -> list:
                 eid = ev.get("id")
                 if eid and eid not in seen:
                     seen[eid] = ev
-        except Exception:
+        except Exception:  # noqa: BLE001 — one malformed ESPN query must not kill the scoreboard
             continue
     return list(seen.values())
 
@@ -215,7 +215,7 @@ def download_live(tours=TOURS) -> None:
             df = parse_events(events, _gender(tour))
             fields = parse_fields(events, _gender(tour))
             upcoming = parse_upcoming(events, _gender(tour))
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — live overlay is best-effort, never build-fatal
             print(f"  live/{tour}: skipped ({e})")
             continue
         d = live_dir(tour)

@@ -18,10 +18,10 @@ from collections import defaultdict, deque
 import numpy as np
 import pandas as pd
 
-from ..data.results import load_matches
 from ..data.charting import STYLE_FEATURES, build_profiles, name_key
-from ..ratings.build import run_elo
+from ..data.results import load_matches
 from ..points.serve_return import run_serve_return
+from ..ratings.build import run_elo
 
 _DAY = np.timedelta64(1, "D")
 FATIGUE_WINDOW_DAYS = 14
@@ -259,8 +259,8 @@ def _assemble(d: pd.DataFrame) -> pd.DataFrame:
     lk = d["loser_name"].map(name_key)
     f["has_style"] = (wk.isin(profiles) & lk.isin(profiles)).astype(int)
     for s in STYLE_FEATURES:
-        wv = wk.map(lambda k: profiles.get(k, {}).get(s, np.nan)).astype(float)
-        lv = lk.map(lambda k: profiles.get(k, {}).get(s, np.nan)).astype(float)
+        wv = wk.map(lambda k, s=s: profiles.get(k, {}).get(s, np.nan)).astype(float)
+        lv = lk.map(lambda k, s=s: profiles.get(k, {}).get(s, np.nan)).astype(float)
         f[s + "_diff"] = (wv - lv).where(f["has_style"] == 1, 0.0).fillna(0.0)
 
     # carry-through id/baseline columns

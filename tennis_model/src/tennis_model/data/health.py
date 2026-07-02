@@ -11,7 +11,7 @@ Run:  PYTHONPATH=src python -m tennis_model.data.health [--strict]
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pandas as pd
 
@@ -73,7 +73,7 @@ def main() -> int:
     ap.add_argument("--strict", action="store_true", help="exit non-zero on any problem")
     args = ap.parse_args()
 
-    now = pd.Timestamp(datetime.now(timezone.utc).date())
+    now = pd.Timestamp(datetime.now(UTC).date())
     report, all_problems = {"generated": str(now.date()), "tours": {}}, []
     for tour in TOURS:
         h = tour_health(tour, now)

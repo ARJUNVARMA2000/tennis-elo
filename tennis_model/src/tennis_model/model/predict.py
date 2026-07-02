@@ -170,7 +170,7 @@ class TennisPredictor:
             pickle.dump(self, fh)
 
     @staticmethod
-    def load(tour: str = "atp", path=None) -> "TennisPredictor":
+    def load(tour: str = "atp", path=None) -> TennisPredictor:
         path = path or predictor_path(tour)
         with open(path, "rb") as fh:
             return pickle.load(fh)

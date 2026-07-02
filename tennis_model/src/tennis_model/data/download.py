@@ -20,7 +20,7 @@ import io
 import os
 import subprocess
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from ..config import (
@@ -56,7 +56,7 @@ def _via_https(url: str, retries: int = 3) -> bytes | None:
                 data = r.read()
             if data:
                 return data
-        except Exception:
+        except Exception:  # noqa: BLE001 — transient transport error: retry, then gh fallback
             pass
         if attempt < retries - 1:
             time.sleep(2 ** attempt)
@@ -71,7 +71,7 @@ def _via_gh(repo: str, path: str) -> bytes | None:
             capture_output=True, timeout=60,
         )
         return out.stdout if out.returncode == 0 and out.stdout else None
-    except Exception:
+    except Exception:  # noqa: BLE001 — gh CLI absent/broken: transport unavailable, caller falls back
         return None
 
 
@@ -83,7 +83,7 @@ def _valid_csv(data: bytes, required: set[str]) -> bool:
     try:
         import pandas as pd
         head = pd.read_csv(io.BytesIO(data), encoding="utf-8-sig", nrows=5)
-    except Exception:
+    except Exception:  # noqa: BLE001 — unparseable payload is by definition not a valid CSV
         return False
     return required.issubset(set(head.columns))
 
@@ -108,7 +108,7 @@ def download_year(tour: str, kind: str, year: int) -> bool:
 def download(tour: str, kind: str = "fresh", years=None) -> tuple[list[int], list[int]]:
     """Fetch the given years (default: recent two for fresh, full archive for historical).
     Returns (done, failed) so callers can escalate failures (see --strict)."""
-    this_year = datetime.now(timezone.utc).year
+    this_year = datetime.now(UTC).year
     if years is None:
         if kind == "fresh":
             years = [this_year - 1, this_year]
@@ -136,7 +136,7 @@ def download_tml_stats(full: bool = False,
     Returns (done, failed) file names.
     """
     src = TML_STATS_SOURCE
-    this_year = datetime.now(timezone.utc).year
+    this_year = datetime.now(UTC).year
     years = range(src["first_year"], this_year + 1) if full else [this_year]
     names = [src["year_file"].format(year=y) for y in years]
     if include_challengers:
@@ -209,7 +209,7 @@ if __name__ == "__main__":
                     help="exit non-zero if any current-year or stats download failed")
     args = ap.parse_args()
     tours = ("atp", "wta") if args.tour == "all" else (args.tour,)
-    this_year = datetime.now(timezone.utc).year
+    this_year = datetime.now(UTC).year
     strict_failures: list[str] = []
     if args.kind == "all":
         strict_failures += strict_fatal(download_all(tours), this_year)

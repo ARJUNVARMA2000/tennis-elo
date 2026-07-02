@@ -37,6 +37,28 @@ def test_name_key_folds_accents_and_punct():
     print("ok test_name_key_folds_accents_and_punct")
 
 
+def test_name_key_single_implementation():
+    """Anti-re-drift lock: every consumer must hold THE SAME function object from
+    data/names.py — a re-copied implementation fails this even if byte-identical."""
+    import tennis_model.data.charting as charting
+    import tennis_model.data.names as names
+    assert results._name_key is names.name_key
+    assert charting.name_key is names.name_key
+    print("ok test_name_key_single_implementation")
+
+
+def test_name_key_shared_fixture():
+    """The fixture is also consumed by the web test suite against the TS port of
+    name_key (web/lib/live.ts) — it is the cross-language parity tripwire."""
+    import json
+    fixture = Path(__file__).parent / "fixtures" / "name_key_cases.json"
+    cases = json.loads(fixture.read_text(encoding="utf-8"))
+    assert len(cases) >= 15
+    for case in cases:
+        assert results._name_key(case["name"]) == case["key"], case
+    print("ok test_name_key_shared_fixture")
+
+
 def test_score_key_ignores_tiebreak_points():
     sk = results._score_key
     assert sk("7-6(4) 6-3") == sk("7-6 6-3") == "7-6,6-3"

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import shutil
+from datetime import UTC
 
 from .config import MODEL_DIR, TOURS, output_dir
 from .data.results import load_matches
@@ -48,9 +49,9 @@ def build_tour(tour: str, do_backtest: bool) -> None:
 
     oos = None
     if do_backtest:
-        from datetime import datetime, timezone
+        from datetime import datetime
         print("  walk-forward backtest...")
-        oos = walk_forward(feat, start_test=2016, end_test=datetime.now(timezone.utc).year)
+        oos = walk_forward(feat, start_test=2016, end_test=datetime.now(UTC).year)
 
     print("  training production combiner...")
     clf, iso, _ = train_final(feat)
@@ -69,6 +70,7 @@ def _market_scorecard(tour: str, oos) -> None:
     market.json). Best-effort: odds are a benchmark, never a build dependency."""
     try:
         import json
+
         from .eval.compare import scorecard_from_oos
         sc = scorecard_from_oos(tour, oos)
         (output_dir(tour) / "market.json").write_text(json.dumps(sc, indent=2))

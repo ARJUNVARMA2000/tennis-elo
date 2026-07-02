@@ -16,8 +16,6 @@ from __future__ import annotations
 
 import glob
 import math
-import re
-import unicodedata
 from functools import lru_cache
 
 import numpy as np
@@ -46,12 +44,12 @@ def download_charting() -> int:
                 url = f"https://raw.githubusercontent.com/{_CHARTING_REPO}/master/{fn}"
                 with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "tennis_model"}), timeout=60) as r:
                     data = r.read()
-            except Exception:
+            except Exception:  # noqa: BLE001 — raw HTTPS blocked/failed: try the gh transport
                 try:
                     out = subprocess.run(["gh", "api", "-H", "Accept: application/vnd.github.raw",
                                           f"repos/{_CHARTING_REPO}/contents/{fn}"], capture_output=True, timeout=90)
                     data = out.stdout if out.returncode == 0 else None
-                except Exception:
+                except Exception:  # noqa: BLE001 — last transport: give up on this one file
                     data = None
             if data and len(data) > 100:
                 (CHARTING_DIR / fn).write_bytes(data)
@@ -67,13 +65,9 @@ STYLE_FEATURES = [
 MIN_SERVE_PTS = 200          # need this many charted serve points to trust a profile
 
 
-def name_key(name: object) -> str:
-    """Accent/punctuation-insensitive key (matches data.results name canonicalisation)."""
-    if not isinstance(name, str):
-        return ""
-    s = "".join(c for c in unicodedata.normalize("NFKD", name) if not unicodedata.combining(c))
-    return re.sub(r"\s+", " ", re.sub(r"[-.'`]", " ", s.lower())).strip()
-
+# single shared implementation (kept importable here as charting.name_key — the
+# established path used by model/features and model/predict)
+from .names import name_key  # noqa: E402
 
 _key = name_key
 
@@ -124,7 +118,7 @@ def build_profiles(tour: str) -> dict:
         if not sp or sp < MIN_SERVE_PTS:
             continue
         rp = o.get("return_pts", 0)
-        b, s, d, n, v, r, k = (sb.loc[player] if player in sb.index else None,
+        b, s, _d, n, v, r, k = (sb.loc[player] if player in sb.index else None,
                                sd.loc[player] if player in sd.index else None,
                                None, np_.loc[player] if player in np_.index else None,
                                snv.loc[player] if player in snv.index else None,

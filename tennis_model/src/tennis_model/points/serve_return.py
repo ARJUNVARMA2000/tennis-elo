@@ -220,6 +220,7 @@ def run_serve_return(df: pd.DataFrame,
 
 if __name__ == "__main__":
     import sys
+
     from ..data.results import load_matches
     tour = sys.argv[1] if len(sys.argv) > 1 else "atp"
     df = load_matches(tour)

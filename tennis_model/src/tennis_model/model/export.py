@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import json
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import numpy as np
 import pandas as pd
@@ -204,7 +204,7 @@ def build_meta(df, players, accuracy) -> dict:
     s = summary(df)
     return {
         "tour": df["tour"].iloc[0] if "tour" in df else "atp",
-        "lastUpdated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "lastUpdated": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "dataThrough": s["date_max"], "modelVersion": __version__,
         "matches": s["matches"], "players": s["players"], "activePlayers": len(players),
         "features": FEATURES, "surfaces": list(SURFACES),

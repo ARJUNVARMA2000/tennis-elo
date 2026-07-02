@@ -1,0 +1,21 @@
+# Lint config for tennis_model (the web app lints via eslint).
+# BLE is enabled deliberately: the codebase's broad excepts are intentional
+# (scrapers/trackers must never kill the build) and each carries a reasoned
+# `# noqa: BLE001` — any NEW undocumented broad except fails lint.
+
+target-version = "py312"
+line-length = 120
+
+[lint]
+select = ["E4", "E7", "E9", "F", "W", "I", "B", "UP", "BLE"]
+ignore = [
+    "E741",   # `l`/`w` loser/winner shorthands are idiomatic throughout
+    "E731",   # lambda assignment used deliberately (dir redirects in tests, aggs)
+    "E702",   # paired one-line statements (`ii.append(i); jj.append(j)`) are house style
+    "B905",   # zip(strict=) would change failure modes on ragged inputs — reviewed case by case
+]
+
+[lint.per-file-ignores]
+"tennis_model/tests/*" = ["E402"]                      # sys.path.insert before imports
+"tennis_model/src/tennis_model/data/results.py" = ["E402"]   # names re-export after helpers
+"tennis_model/src/tennis_model/data/charting.py" = ["E402"]

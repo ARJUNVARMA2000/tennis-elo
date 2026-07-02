@@ -13,7 +13,6 @@ Run:  PYTHONPATH=src python -m tennis_model.eval.compare [atp|wta]
 
 from __future__ import annotations
 
-import numpy as np
 import pandas as pd
 
 from ..data.odds import load_odds, market_prob, normalize_name
