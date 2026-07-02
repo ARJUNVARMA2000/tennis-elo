@@ -185,6 +185,8 @@ def download_all(tours=("atp", "wta")) -> dict[str, list]:
         failures["wta/stats"] = [str(e)]
     from .live import download_live
     download_live(tours)                 # ESPN same-day overlay (best-effort)
+    from .rankings import download_rankings
+    download_rankings(tours)             # official live ranks (best-effort, not strict-fatal)
     from .charting import download_charting
     download_charting()
     return failures
@@ -215,7 +217,9 @@ if __name__ == "__main__":
         strict_failures += strict_fatal(download_all(tours), this_year)
     elif args.kind == "live":
         from .live import download_live
+        from .rankings import download_rankings
         download_live(tours)
+        download_rankings(tours)
     elif args.kind == "stats":
         _, f = download_tml_stats(full=True)
         strict_failures += [f"atp/stats:{i}" for i in f]

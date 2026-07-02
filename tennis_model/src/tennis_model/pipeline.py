@@ -120,7 +120,9 @@ def main():
 
     if args.quick:
         from .data.live import download_live
+        from .data.rankings import download_rankings
         download_live(tours)        # ESPN same-day overlay is the whole point of a quick run
+        download_rankings(tours)    # official live ranks (best-effort, keeps last good file)
         for tour in tours:
             build_tour_quick(tour)
         return
@@ -128,8 +130,10 @@ def main():
     if args.download:
         from .data.download import download_fresh
         from .data.live import download_live
+        from .data.rankings import download_rankings
         download_fresh(tours)
         download_live(tours)        # ESPN same-day overlay so current events are current
+        download_rankings(tours)
 
     for tour in tours:
         build_tour(tour, args.backtest)

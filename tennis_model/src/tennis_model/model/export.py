@@ -24,6 +24,7 @@ import pandas as pd
 from .. import __version__
 from ..config import SURFACES, output_dir
 from ..data.charting import build_profiles, name_key
+from ..data.rankings import load_rankings
 from ..data.results import summary
 from .features import FEATURES, STYLE_FEATURES
 
@@ -58,7 +59,27 @@ def _current_age(m: dict, ref) -> int | None:
     return int(age)
 
 
-def build_players(elo, srv, meta, profiles, top=TOP_PROFILES) -> list:
+def _with_token_order_keys(rankings: dict) -> dict:
+    """Also index each ranked player by alphabetically-sorted name tokens, so
+    surname-first source forms still join (Xinyu Wang vs the model's Wang Xinyu).
+    setdefault keeps real keys authoritative over fallback ones."""
+    out = dict(rankings)
+    for k, v in rankings.items():
+        out.setdefault(" ".join(sorted(k.split())), v)
+    return out
+
+
+def _live_rank_fields(name: str, rankings: dict) -> dict:
+    """liveRank/liveRankDelta from the scraped official live rankings (data.rankings),
+    joined by the shared name_key; both None when the player isn't matched."""
+    k = name_key(name)
+    lr = rankings.get(k) or rankings.get(" ".join(sorted(k.split())))
+    return {"liveRank": lr["rank"] if lr else None,
+            "liveRankDelta": lr.get("delta") if lr else None}
+
+
+def build_players(elo, srv, meta, profiles, rankings=None, top=TOP_PROFILES) -> list:
+    rankings = _with_token_order_keys(rankings or {})
     rows = []
     for name in _active(elo):
         m = meta.get(name, {})
@@ -79,6 +100,7 @@ def build_players(elo, srv, meta, profiles, top=TOP_PROFILES) -> list:
             "lastPlayed": pd.Timestamp(elo.last_played[name]).strftime("%Y-%m-%d"),
             "aggression": round(st["style_aggression"], 3) if st.get("style_aggression") == st.get("style_aggression") and "style_aggression" in st else None,
             "serveDom": round(st["style_serve_dom"], 3) if st.get("style_serve_dom") == st.get("style_serve_dom") and "style_serve_dom" in st else None,
+            **_live_rank_fields(name, rankings),
         })
     rows.sort(key=lambda r: -r["elo"])
     for i, r in enumerate(rows, 1):
@@ -222,7 +244,11 @@ def export_all(tour, df, elo, srv, meta, predictor, oos=None) -> None:
     states (elo/srv/meta) — accuracy.json is left to persist from the last full run.
     """
     mcp = build_profiles(tour)
-    players = build_players(elo, srv, meta, mcp)
+    rankings = load_rankings(tour)
+    players = build_players(elo, srv, meta, mcp, rankings)
+    if rankings:   # drift tripwire: a sudden drop in CI logs = source name-format change
+        matched = sum(1 for p in players if p["liveRank"] is not None)
+        print(f"  rankings/{tour}: matched {matched}/{len(players)} exported players")
     accuracy = build_accuracy(oos) if oos is not None else {}
 
     _write(tour, "players.json", players)
