@@ -27,7 +27,11 @@
   --color-win: #4cc38a;
   --color-loss: #ec5d5e;
   --color-champ: #d9a854;
-  --color-cmp: #26b5ce; /* comparison series: "player B" */
+  /* comparison series "player B": warm amber, complementary to the indigo accent.
+     The old teal #26b5ce read as the same cool blue at radar fill opacity, and
+     blue vs teal is the hardest pair for color-blind users (blue vs orange is
+     the safest). Brighter + less saturated than --color-champ so they stay apart. */
+  --color-cmp: #f5a35c;
 
   /* court surfaces */
   --color-hard: #4ea7de;
