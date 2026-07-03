@@ -22,26 +22,36 @@ negative. Data frozen (no downloads); feature caches of 2026-07-02 19:35/19:45.
   calibration, and the honest variant costs a training season; pooled-OOS already lost.
 
 ## Wave 2 — Elo structure (elo-group sweeps ~5-10s/trial)
-- [ ] W2a P3 adaptive surface blend: blend_n50 implemented — `_ablend` sweeps near
-      done, top-5 trials all at blend_n50≈0 (headed for REJECT; --validate pending)
+- [x] W2a P3 adaptive surface blend: REJECTED both tours BY THE SEARCHES — 400
+      trials each, the enqueued incumbent (blend_n50=0) unbeaten; xsurf transfer
+      already informs debutant surface ratings
 - [x] W2b P2 home advantage: **ADOPTED both tours on the review-fixed geo** (ATP
       d_val +0.00134 (3.6 SE); WTA +0.00034, honest-sized after the Fed Cup fix).
       Adversarial review caught + fixed the Fed Cup host mislabeling that had
       inflated WTA 5×; candidates re-measured clean
-- [ ] W2c Elo-level home bonus (home_adv, venue-free recording after review fix):
-      `_home` sweeps after _ablend completes
+- [x] W2c Elo-level home bonus: REJECTED both tours by the `_home` searches
+      (home_adv=0 anchor unbeaten in 400 trials each); Elo geometry is a
+      triple-confirmed plateau (xsurf → _ablend → _home identical optima)
 
 ## Wave 3 — point model
-- [x] W3a-impl E3 event-speed serve baselines (event_shrinkage, residual accumulator,
-      credited-skill de-bias; bit-identical off; 87 tests green)
-- [ ] W3a sweeps: `_espd` point group 250 trials both tours + gate + arbiter
-- [ ] W3b LR raw-blend probe (lr10/lr20) + top-5 xgb configs under bag5 (w3_runner)
+- [x] W3a-impl E3 event-speed serve baselines (review-hardened: off-free svpt-
+      weighted residuals, state-mirrored inference, exact-value tests)
+- [x] W3a sweeps: WTA REJECTED (noise, event≈off); ATP component gate 5/5 PASS →
+      **arbiter REJECTED** (combiner d_val −0.00075 after retraining on shifted
+      features — fourth ATP component-pass/arbiter-veto). E3 closed
+- [x] W3b probes vs candidate: LR blend (both tours), beta calibration
+      (year-unstable acc jitter), base-margin boosting, top-5 rejected configs
+      under bagging (both tours) — ALL REJECTED with documented gates
 
 ## Wave 4 — consolidation
-- [ ] Combiner re-sweep if the feature frame changed (home adoption ⇒ re-check)
+- [x] Combiner re-sweep check: top-5 study configs re-gated under bag5+home — all
+      declined (ATP repeats tune-overfit even bagged; WTA val-only noise)
 - [x] A5 challengers: SKIPPED — no source has challenger matches for 2010–19 (TML
       starts 2018; mirrors carry no qual_chall) ⇒ adoption gate powerless; documented
-- [ ] Final walk-forward table, results doc, lessons, commit
+- [x] Final walk-forward table + round summary in
+      tasks/tuning-results-2026-07-02-autoresearch.md; lessons.md updated (3 new);
+      adopted set committed (9db1f8d) — push left to the user; production verified
+      end-to-end (bagged predictor fit/pickle/reload, venue-threaded predictions)
 
 ---
 

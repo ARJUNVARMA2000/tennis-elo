@@ -95,7 +95,16 @@ Implemented: `EloParams.blend_n50` — per-player surface-blend weight scaled by
 n_s/(n_s+n50) (0 = incumbent, bit-identical unit-tested); mirrored in
 RatingState.blended. tune.py: blend_n50 ∈ [0, 100] in the elo space; baseline_cfg
 now enqueues the FULL incumbent as the TPE anchor (previously only tier anchors).
-400-trial `_ablend` sweeps both tours: RUNNING.
+
+**REJECTED on BOTH tours by the searches themselves**: after 400 `_ablend` trials
+per tour, the best config IS the enqueued incumbent (blend_n50=0.0) — no trial in
+either study beat the anchor, and the top-5 all sit at blend_n50 ≈ 0. Mechanism:
+under cross-surface transfer every result already informs every surface rating,
+so debutant surface ratings aren't noisy enough to need count-gating — the blend
+gate double-corrects. The knob stays in EloParams (default 0). Side benefit
+retained: elo-group sweeps now anchor TPE at the FULL incumbent config (trial 0 =
+the adopted config exactly), which these studies validated (trial 0 reproduced
+the baseline to the digit on both tours).
 
 ## Candidate configs (bag5 + home_flag_diff)
 
@@ -176,7 +185,108 @@ credited serve/return skills (fast-court numbers no longer inflate serve skill).
 Subsumes an indoor/outdoor split (indoor events learn positive offsets). Sweeps:
 `_espd` point-group, event_shrinkage ∈ [200, 5e5] log (5e5 ≈ off; a slam accrues
 ~4e4 svc pts/yr). Point baseline_cfg now returns the true incumbent and tune()
-clamps the enqueued anchor's event_shrinkage into the space.
+clamps the enqueued anchor's event_shrinkage into the space. (First `_espd`
+launch discarded — it searched the pre-review halved estimator; relaunched on
+the fixed math.)
+
+**WTA — REJECTED (noise)**: 250 fixed-math trials, best +0.00002 over baseline
+with event_shrinkage ≈ 158k (≈ off) and the other params at the incumbent. The
+event-speed dimension is flat for WTA; same verdict as the `_xwide` plateau.
+
+**ATP — component gate 5/5 PASS, then REJECTED by the arbiter** (fourth ATP
+instance of this exact pattern). Component: baseline tune 0.58856 / val 0.61440;
+best #219 d_tune +0.00021±0.00016, d_val +0.00035±0.00021; tight plateau (form_hl
+219–236, shrink 654–722, surf_shrink 1949–2159, event_shrink 9.7k–12.8k — a real
+event effect, unlike WTA). Arbiter under the plateau center (227/685/2090/11000),
+bag5 + home, paired vs cand: combiner LL 0.57647→0.57695, d_tune −0.00030±0.00011,
+d_val **−0.00075±0.00013** — worse on BOTH windows after the combiner retrains on
+the shifted serve features. The trees already extract venue speed better through
+is_indoor/surface/context than through event-adjusted p_point. **E3 closed both
+tours**; the event_shrinkage code stays (default off, exact-value unit tests,
+state-mirrored inference).
+
+## W2c — Elo-level home bonus (`_home` sweeps, post-review venue-free recording)
+
+`EloParams.home_adv` adds rating points to the home player in the UPDATE
+expectation only (recorded probabilities stay venue-free for parity — review fix).
+400-trial sweeps with home_adv ∈ [0, 120] + the full prior space, anchored at the
+incumbent:
+
+**REJECTED on BOTH tours by the searches**: the anchor (home_adv=0) is the best
+of 400 trials on each tour. The combiner's home_flag_diff carries the venue
+signal; venue-adjusted rating updates don't improve the walk itself. Notable:
+three consecutive 400-trial elo sweeps per tour (xsurf round → `_ablend` →
+`_home`) now converge on the identical config — the Elo geometry is a confirmed
+plateau; further elo-space sweeps are not worth compute until the space itself
+changes.
+
+## Probe round on top of the adopted candidate (bag5 + home, fixed geo)
+
+All paired against `cand` on identical rows; ATP verdicts:
+
+- **Rejected ATP combiner configs, retried under bagging** (top-5 of the `atp_xgb`
+  study): every one repeats the tune-positive / val-negative ATP pattern even
+  bagged (best: #114 d_tune +0.00051, d_val −0.00011). The 2026-07-02 rejection
+  stands; bagging does not rescue them. ATP keeps the `_xgb()` defaults.
+- **Base-margin boosting from the Elo prior** (base_margin = logit_p_blend, trees
+  learn the residual): d_tune +0.00057±0.00029, d_val **−0.00053±0.00033** —
+  textbook overfit shape. REJECTED.
+- **Beta calibration** (LR on [ln p, −ln(1−p)] replacing Platt): fails the LL gate
+  (d_tune −0.00021) but showed a tempting +0.37pp val accuracy. Robustness check
+  killed it: only 9/17 years improve (swings ±1pp), the gain concentrates in the
+  partial 2026 season (+3.0pp on 1,650 rows), and every changed call sits at
+  p ∈ [0.49, 0.50] — season-unstable threshold jitter, not signal. REJECTED.
+- **LR raw-blend — REJECTED both tours.** ATP w=0.2 formal pass at +0.0001–0.0002
+  (val acc dips); WTA w=0.1 is exactly zero (d_tune +0.00000) and w=0.2 negative.
+  A permanent extra production component (LR fit + blend in every fold and the
+  final model) is not worth ≤0.0002 on one tour with zero on the other.
+
+WTA study-config retries under bag+home (top-5 of `wta_xgb_mcw`): all declined.
+Two formal passers (#193 d_val +0.00037±0.00012, #191 +0.00032) have ZERO
+tune-window movement (+0.00001 / −0.00003) — the val-only-gain shape the
+protocol's precedents treat as regime noise (E1b), and the incumbent was itself
+adopted as the plateau center of this exact study. Incumbent stands.
+
+WTA beta calibration: REJECTED (fails gate; tune acc −0.8pp — worse than ATP).
+WTA base-margin: formal pass at noise (d_tune +0.00024±0.00024 ≈1 SE, d_val
++0.00002 ≈ 0); with ATP's overfit-shaped rejection, base-margin is dead both
+tours. **Probe round complete: every probe on top of the candidate rejected —
+the adopted set stays bag5 + home_flag_diff.**
+
+## Final walk-forward (2010–2026, adopted config: bag5 + home, fixed geo)
+
+| tour | model | acc | logloss | brier |
+|---|---|---|---|---|
+| ATP | Elo blended (xsurf) | 0.671 | 0.5973 | 0.2062 |
+| ATP | Point model | 0.649 | 0.6035 | 0.2093 |
+| ATP | **XGB combiner** | **0.690** | **0.5765** | **0.1975** |
+| WTA | Elo blended (xsurf) | 0.662 | 0.6095 | 0.2111 |
+| WTA | Point model | 0.636 | 0.6166 | 0.2147 |
+| WTA | **XGB combiner** | **0.683** | **0.5879** | **0.2019** |
+
+45,762 ATP / 42,348 WTA matches. Bookmaker anchor ≈ 0.690 acc / 0.196 Brier.
+Gaps: ATP **0.000 acc** / 0.0015 Brier (was 0.002 / 0.0023 this morning); WTA
+0.007 acc / 0.0059 Brier (was 0.006 / 0.0063). Production verified end-to-end:
+fit_predictor (85s, BaggedClassifier), pickle reload, venue-threaded prediction
+(Alcaraz at Madrid +2.8pp vs neutral clay), 16.4 MB predictor.pkl; the pipeline's
+stale-schema guard now delegates through BaggedClassifier.get_booster().
+
+## Round summary
+
+Adopted (commit 9db1f8d): **seed-bagged combiner (N_BAG=5)** and **home advantage
+(home_flag_diff + venue threading)**. Rejected with documented evidence: monotone
+constraints, stacked calibration, recency weighting (incl. under bagging), bag10,
+adaptive surface blend (both tours, by the searches), Elo home bonus (both tours,
+by the searches), event-speed baseline (WTA noise / ATP arbiter veto), LR
+raw-blend, beta calibration (year-unstable threshold jitter), base-margin
+boosting, rejected-config retries under bagging (both tours), A5 challengers
+(no tune-window data). The adversarial review (28 agents, 14 confirmed findings)
+caught the Fed Cup host mislabeling before it shipped inside an adopted feature —
+the WTA home gain measured on the broken map was 5× inflated by outcome-correlated
+flags.
+
+Since the July-1 baseline: ATP 0.678→0.690 acc / 0.2022→0.1975 Brier; WTA
+0.670→0.683 / 0.2065→0.2019.
 
 ## A5 challenger ingestion — SKIPPED (data unavailable for the tune window)
 
