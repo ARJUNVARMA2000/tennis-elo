@@ -194,7 +194,8 @@ def build_fixtures(df, predictor, n=60) -> list:
     for r in d.tail(n).iloc[::-1].itertuples(index=False):
         # model prob the actual winner wins, from the combiner (recompute, leakage-free at ranking time)
         p = predictor.win_prob(r.winner_name, r.loser_name, surface=r.surface_b,
-                               best_of=int(r.best_of) if pd.notna(r.best_of) else 3)
+                               best_of=int(r.best_of) if pd.notna(r.best_of) else 3,
+                               event=r.tourney_name)
         out.append({
             "date": pd.Timestamp(r.date).strftime("%Y-%m-%d"),
             "event": r.tourney_name, "surface": r.surface_b, "round": r.round,

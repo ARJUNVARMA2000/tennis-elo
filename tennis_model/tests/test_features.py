@@ -52,6 +52,7 @@ def _joined_frame() -> pd.DataFrame:
         "surface_b": "Clay", "w_srv_pts": 900.0, "l_srv_pts": 750.0,
         "date": pd.Timestamp("2024-06-01"), "completed": True,
         "winner_name": "Alfa One", "loser_name": "Bravo Two", "tour": "atp",
+        "tourney_name": "Roland Garros", "winner_ioc": "FRA", "loser_ioc": "USA",
     }
     r1 = dict(r0)
     for w, l in (("w_elo", "l_elo"), ("w_selo", "l_selo"),
@@ -61,7 +62,7 @@ def _joined_frame() -> pd.DataFrame:
                  ("w_fat", "l_fat"), ("w_h2h", "l_h2h"), ("w_form90", "l_form90"),
                  ("w_wr10", "l_wr10"), ("w_h2h_s", "l_h2h_s"),
                  ("winner_entry", "loser_entry"), ("w_srv_pts", "l_srv_pts"),
-                 ("winner_name", "loser_name")):
+                 ("winner_name", "loser_name"), ("winner_ioc", "loser_ioc")):
         r1[w], r1[l] = r0[l], r0[w]
     r1["elo_diff"] = -r0["elo_diff"]
     r1["serve_skill_diff"] = -r0["serve_skill_diff"]

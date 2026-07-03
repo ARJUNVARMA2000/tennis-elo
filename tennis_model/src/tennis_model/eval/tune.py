@@ -114,6 +114,12 @@ class Objective:
                 bo5_scale=s("bo5_scale", 1.0, 1.3),
                 # E2 cross-surface transfer; space changed -> fresh --tag required
                 xsurf=s("xsurf", 0.0, 0.5),
+                # P3 adaptive surface blend (0 = incumbent fixed blend); space
+                # changed -> fresh --tag required (`_ablend`)
+                blend_n50=s("blend_n50", 0.0, 100.0),
+                # W2c Elo home advantage (rating points; 0 = off); space changed
+                # again -> `_home` tag
+                home_adv=s("home_adv", 0.0, 120.0),
                 gs_mult=s("gs_mult", 0.9, 1.3),
                 chall_mult=s("chall_mult", 0.6, 1.1),
             )
@@ -145,6 +151,9 @@ class Objective:
             # the range extends to 10k — near-infinite shrinkage = global-only serve.
             # NOTE: a changed range can't resume an old study; use a fresh --tag
             surface_serve_shrinkage=s("surface_serve_shrinkage", 30, 10000, log=True),
+            # E3 event-speed baseline; 5e5 ≈ off (a slam accrues ~4e4 pts/year).
+            # Space changed -> fresh --tag (`_espd`)
+            event_shrinkage=s("event_shrinkage", 200.0, 500000.0, log=True),
         )
 
     # -- evaluation ----------------------------------------------------------
@@ -160,8 +169,10 @@ class Objective:
             overrides.setdefault("n_estimators", 2000)
             start, end = (self.years if window == "tune"
                           else (VAL_START, int(self.feat["year"].max())))
+            # n_bag=1: sweeps search the single fit for speed; gates/arbiters
+            # re-score bagged (config.N_BAG) outside the study
             oos = walk_forward(self.feat, start_test=start, end_test=end,
-                               xgb_overrides=overrides, verbose=False)
+                               xgb_overrides=overrides, verbose=False, n_bag=1)
             return -np.log(np.clip(oos["p_combiner"].to_numpy(), 1e-12, None))
         if self.group == "feat":
             from ..model.features import FeatureParams, _assemble, run_context
@@ -175,7 +186,7 @@ class Objective:
             start, end = (self.years if window == "tune"
                           else (VAL_START, int(feat["year"].max())))
             oos = walk_forward(feat, start_test=start, end_test=end,
-                               xgb_overrides=self.adopted_xgb, verbose=False)
+                               xgb_overrides=self.adopted_xgb, verbose=False, n_bag=1)
             return -np.log(np.clip(oos["p_combiner"].to_numpy(), 1e-12, None))
         m = self.mask if window == "tune" else self.vmask
         if self.group == "elo":
@@ -204,9 +215,21 @@ class Objective:
         """The currently adopted config, expressed in this group's parameter space."""
         if self.group == "elo":
             from ..config import TIER_ANCHORS
+            from ..ratings.elo import params_for
             gs, ch = TIER_ANCHORS.get(self.tour) or (TIER_K_MULT["grand_slam"],
                                                      TIER_K_MULT["challenger"])
-            return dict(gs_mult=gs, chall_mult=ch)
+            p = params_for(self.tour)
+            # the FULL incumbent (not just the tier anchors), so the enqueued TPE
+            # anchor trial really is the adopted config
+            return dict(k_scale=p.k_scale, k_offset=p.k_offset, k_shape=p.k_shape,
+                        surface_k_scale=p.surface_k_scale,
+                        surface_k_shape=p.surface_k_shape,
+                        surface_blend=p.surface_blend,
+                        mov_factor=p.mov_factor, mov_cap=p.mov_cap,
+                        ret_k_mult=p.ret_k_mult, inact_days=max(p.inact_days, 60.0),
+                        inact_boost=p.inact_boost, bo5_scale=p.bo5_scale,
+                        xsurf=p.xsurf, blend_n50=p.blend_n50, home_adv=p.home_adv,
+                        gs_mult=gs, chall_mult=ch)
         if self.group == "xgb":
             from ..model.train import xgb_params_for
             return xgb_params_for(self.tour)   # adopted per-tour combiner overrides
@@ -218,7 +241,12 @@ class Objective:
                         layoff_days=fp.layoff_days, peak_age=fp.peak_age,
                         winrate_window=fp.winrate_window,
                         form_days=params_for(self.tour).form_days)
-        return {}
+        from ..points.serve_return import sr_params_for
+        p = sr_params_for(self.tour)
+        return dict(form_halflife_days=p.form_halflife_days,
+                    serve_shrinkage_points=p.serve_shrinkage_points,
+                    surface_serve_shrinkage=p.surface_serve_shrinkage,
+                    event_shrinkage=p.event_shrinkage)
 
     def baseline(self) -> dict:
         """Current adopted config's scores on tune and validation windows."""
@@ -245,6 +273,8 @@ def tune(tour: str, group: str, trials: int, seed: int = 7, tag: str = "") -> No
         )
         # anchor TPE at the incumbent so the search starts from the adopted config
         anchor = {k: v for k, v in obj.baseline_cfg().items() if k != "n_estimators"}
+        if anchor.get("event_shrinkage", 1) <= 0:      # 0 = off, outside the log
+            anchor["event_shrinkage"] = 500000.0       # space; ~off within it
         if anchor and not study.trials:
             study.enqueue_trial(anchor)
 

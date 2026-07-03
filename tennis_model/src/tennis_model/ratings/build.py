@@ -62,7 +62,12 @@ class RatingState:
         return getattr(self, "params", None) or DEFAULT_PARAMS
 
     def blended(self, name: str, surf: str) -> float:
-        b = self._params.surface_blend
+        p = self._params
+        b = p.surface_blend
+        n50 = getattr(p, "blend_n50", 0.0)
+        if n50 > 0:      # adaptive: debutants lean on overall, veterans on surface
+            ns = self.n_surface.get(surf, {}).get(name, 0)
+            b *= ns / (ns + n50)
         return (1.0 - b) * self.elo(name) + b * self.surface_elo(name, surf)
 
     def win_prob(self, a: str, b: str, surf: str, best_of: int = 3) -> float:
@@ -104,6 +109,8 @@ def run_elo(df: pd.DataFrame, use_mov: bool | None = None,
     blend = p.surface_blend
     form_keep = _form_keep_days(p)
     xsurf = getattr(p, "xsurf", 0.0)
+    blend_n50 = getattr(p, "blend_n50", 0.0)
+    home_adv = getattr(p, "home_adv", 0.0)
 
     n = len(df)
     # Pre-allocate output columns (winner/loser oriented, pre-match values).
@@ -124,17 +131,43 @@ def run_elo(df: pd.DataFrame, use_mov: bool | None = None,
     dates = df["date"].to_numpy()
     months = dates.astype("datetime64[M]")
 
+    # W2c home advantage: rating bonus for playing in your own country. Flags are
+    # precomputed once (host from tournament name + year via data/geo.py).
+    if home_adv > 0 and "tourney_name" in df and "winner_ioc" in df:
+        from ..data.geo import IOC_ALIAS, host_ioc
+        yrs = df["date"].dt.year.to_numpy()
+        tnames = df["tourney_name"].to_numpy()
+        _tour = str(df["tour"].iloc[0]) if "tour" in df and len(df) else None
+        wio = df["winner_ioc"].map(lambda x: IOC_ALIAS.get(x, x)).to_numpy()
+        lio = df["loser_ioc"].map(lambda x: IOC_ALIAS.get(x, x)).to_numpy()
+        host = [host_ioc(nm, int(y), _tour) if isinstance(nm, str) else None
+                for nm, y in zip(tnames, yrs)]
+        w_hadv = np.array([home_adv if (h is not None and h == x) else 0.0
+                           for h, x in zip(host, wio)])
+        l_hadv = np.array([home_adv if (h is not None and h == x) else 0.0
+                           for h, x in zip(host, lio)])
+    else:
+        w_hadv = l_hadv = np.zeros(n)
+
     for i in range(n):
         w, l, s = winners[i], losers[i], surfs[i]
 
         rw, rl = st.elo(w), st.elo(l)
         sw, sl = st.surface_elo(w, s), st.surface_elo(l, s)
-        bw, bl = (1 - blend) * rw + blend * sw, (1 - blend) * rl + blend * sl
         nw, nl = st.n.get(w, 0), st.n.get(l, 0)
         nsw, nsl = st.n_surface[s].get(w, 0), st.n_surface[s].get(l, 0)
+        if blend_n50 > 0:   # adaptive blend, mirrored by RatingState.blended
+            b_w = blend * nsw / (nsw + blend_n50)
+            b_l = blend * nsl / (nsl + blend_n50)
+        else:
+            b_w = b_l = blend
+        bw, bl = (1 - b_w) * rw + b_w * sw, (1 - b_l) * rl + b_l * sl
         ds = p.bo5_scale if best_ofs[i] == 5 else 1.0
 
         # --- record pre-match features (no leakage) ---
+        # recorded probabilities stay VENUE-FREE so logit_p_blend keeps
+        # train/inference parity (RatingState.win_prob knows no venue); the home
+        # bonus enters only the UPDATE expectations below, de-biasing the ratings
         out["w_elo"][i], out["l_elo"][i] = rw, rl
         out["w_selo"][i], out["l_selo"][i] = sw, sl
         out["w_belo"][i], out["l_belo"][i] = bw, bl
@@ -172,9 +205,16 @@ def run_elo(df: pd.DataFrame, use_mov: bool | None = None,
             kw, skw = kw * bw_, skw * bw_
             kl, skl = kl * bl_, skl * bl_
 
-        # update expectation shares the (Bo5-scaled) recorded probabilities
-        e_overall = out["p_overall"][i]
-        e_surf = out["p_surface"][i]
+        # update expectation shares the (Bo5-scaled) recorded probabilities —
+        # except under home_adv, where the expectation is venue-adjusted so a
+        # home win moves the rating less (ratings become venue-neutral)
+        hw, hl = w_hadv[i], l_hadv[i]
+        if hw != 0.0 or hl != 0.0:
+            e_overall = expected_score(rw + hw, rl + hl, p, diff_scale=ds)
+            e_surf = expected_score(sw + hw, sl + hl, p, diff_scale=ds)
+        else:
+            e_overall = out["p_overall"][i]
+            e_surf = out["p_surface"][i]
         st.overall[w] = rw + kw * mov * (1.0 - e_overall)
         st.overall[l] = rl + kl * mov * (0.0 - (1.0 - e_overall))
         st.surface[s][w] = sw + skw * mov * (1.0 - e_surf)

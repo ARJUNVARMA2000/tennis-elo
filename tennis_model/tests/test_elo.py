@@ -132,6 +132,61 @@ def test_run_elo_cross_surface_transfer():
     print("ok test_run_elo_cross_surface_transfer")
 
 
+def test_run_elo_adaptive_blend():
+    """blend_n50=0 must reproduce the incumbent fixed blend exactly; >0 gates the
+    surface weight by the player's own-surface match count (P3)."""
+    from dataclasses import replace
+
+    from tennis_model.ratings.elo import DEFAULT_PARAMS
+    df = _df([
+        ("Ana", "Ben", "Hard", 4, "2026-01-05"),
+        ("Ana", "Ben", "Hard", 4, "2026-01-12"),
+        ("Ana", "Ben", "Clay", 4, "2026-01-19"),
+    ])
+    _, f0 = run_elo(df)
+    _, f1 = run_elo(df, params=replace(DEFAULT_PARAMS, blend_n50=0.0))
+    assert (f0 == f1).all().all()                          # 0 = off = incumbent walk
+    st2, f2 = run_elo(df, params=replace(DEFAULT_PARAMS, blend_n50=10.0))
+    # match 1: Ana has 1 hard match -> effective blend = SURFACE_BLEND * 1/11
+    exp_b = SURFACE_BLEND * 1.0 / 11.0
+    exp = (1 - exp_b) * f2.loc[1, "w_elo"] + exp_b * f2.loc[1, "w_selo"]
+    assert abs(f2.loc[1, "w_belo"] - exp) < 1e-9
+    # prediction-time mirror: RatingState.blended applies the same gating
+    ns = st2.n_surface["Hard"]["Ana"]
+    b = SURFACE_BLEND * ns / (ns + 10.0)
+    exp_state = (1 - b) * st2.elo("Ana") + b * st2.surface_elo("Ana", "Hard")
+    assert abs(st2.blended("Ana", "Hard") - exp_state) < 1e-9
+    # debutant on a surface (ns=0) leans fully on overall Elo
+    assert st2.blended("Ben", "Grass") == st2.elo("Ben")
+    print("ok test_run_elo_adaptive_blend")
+
+
+def test_run_elo_home_advantage():
+    """home_adv > 0 venue-adjusts only the UPDATE expectation (a home win moves the
+    rating less); the RECORDED probabilities stay venue-free so logit_p_blend keeps
+    train/inference parity. Frames without venue/ioc columns are untouched (W2c)."""
+    from dataclasses import replace
+
+    from tennis_model.ratings.elo import DEFAULT_PARAMS
+    df = pd.DataFrame([{
+        "winner_name": "Ana", "loser_name": "Ben", "surface_b": "Hard",
+        "tier_k": 1.0, "game_diff": 4, "completed": True,
+        "date": pd.Timestamp("2026-01-05"),
+        "tourney_name": "Roland Garros", "winner_ioc": "FRA", "loser_ioc": "USA",
+    }])
+    st0, f0 = run_elo(df)
+    st1, f1 = run_elo(df, params=replace(DEFAULT_PARAMS, home_adv=50.0))
+    assert (f0 == f1).all().all()                          # recorded features venue-free
+    assert st1.overall["Ana"] < st0.overall["Ana"]         # home win moves less
+    assert st1.overall["Ben"] > st0.overall["Ben"]         # away loss punished less
+    # ioc-less frames (e.g. synthetic tests) are untouched even with home_adv on
+    df2 = _df([("Ana", "Ben", "Hard", 4, "2026-01-05")])
+    _, g0 = run_elo(df2)
+    _, g1 = run_elo(df2, params=replace(DEFAULT_PARAMS, home_adv=50.0))
+    assert (g0 == g1).all().all()
+    print("ok test_run_elo_home_advantage")
+
+
 if __name__ == "__main__":
     test_expected_score()
     test_dynamic_k_monotone()
@@ -139,4 +194,6 @@ if __name__ == "__main__":
     test_run_elo_updates_and_seeding()
     test_run_elo_no_leakage()
     test_run_elo_cross_surface_transfer()
+    test_run_elo_adaptive_blend()
+    test_run_elo_home_advantage()
     print("\nALL PASSED")

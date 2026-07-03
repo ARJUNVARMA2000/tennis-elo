@@ -153,19 +153,24 @@ def merge_sources(tour: str) -> pd.DataFrame:
 
 
 def _backfill_bios(df: pd.DataFrame) -> pd.DataFrame:
-    """Fill missing hand/height on (fresh) rows from each player's known values."""
-    hand, ht = {}, {}
+    """Fill missing hand/height/country on (fresh) rows from each player's known values."""
+    hand, ht, ioc = {}, {}, {}
     for who in ("winner", "loser"):
-        for nm, h, t in zip(df[f"{who}_name"], df[f"{who}_hand"], df[f"{who}_ht"]):
+        for nm, h, t, io in zip(df[f"{who}_name"], df[f"{who}_hand"],
+                                df[f"{who}_ht"], df[f"{who}_ioc"]):
             if isinstance(h, str) and nm not in hand:
                 hand[nm] = h
             if pd.notna(t) and nm not in ht:
                 ht[nm] = t
+            if isinstance(io, str) and nm not in ioc:
+                ioc[nm] = io
     for who in ("winner", "loser"):
         df[f"{who}_hand"] = df[f"{who}_hand"].where(df[f"{who}_hand"].notna(),
                                                     df[f"{who}_name"].map(hand))
         df[f"{who}_ht"] = df[f"{who}_ht"].where(df[f"{who}_ht"].notna(),
                                                 df[f"{who}_name"].map(ht))
+        df[f"{who}_ioc"] = df[f"{who}_ioc"].where(df[f"{who}_ioc"].notna(),
+                                                  df[f"{who}_name"].map(ioc))
     return df
 
 

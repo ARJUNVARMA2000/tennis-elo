@@ -51,15 +51,34 @@ class TennisPredictor:
         # tolerate pickles from before the FeatureParams refactor
         return getattr(self, "fp", None) or DEFAULT_FEAT_PARAMS
 
+    def _home_flag(self, a: str, b: str, event: str | None) -> float:
+        """home_flag_diff for a real match at a known event (0 for hypotheticals)."""
+        if not event:
+            return 0.0
+        from ..data.geo import IOC_ALIAS, host_ioc
+        asof = self.elo.last_date
+        # year-dependent hosts (Olympics, Tour Finals) resolve with the data's
+        # newest year — correct for live forecasts, approximate only across a
+        # year boundary for a year-keyed event (negligible in practice)
+        year = pd.Timestamp(asof).year if asof is not None else pd.Timestamp.now().year
+        host = host_ioc(str(event), int(year), self.tour)
+        if host is None:
+            return 0.0
+        ia = self.meta.get(a, {}).get("ioc")
+        ib = self.meta.get(b, {}).get("ioc")
+        ia, ib = IOC_ALIAS.get(ia, ia), IOC_ALIAS.get(ib, ib)
+        return float(int(host == ia) - int(host == ib))
+
     # -- feature construction (must mirror features._assemble, winner-slot = A) ----
     def _feature_dict(self, a: str, b: str, surface: str, best_of: int,
-                      indoor: bool, tier_k: float, round_order: int) -> dict:
+                      indoor: bool, tier_k: float, round_order: int,
+                      event: str | None = None) -> dict:
         elo, srv, ctx, meta = self.elo, self.srv, self.ctx, self.meta
         ma, mb = meta.get(a, {}), meta.get(b, {})
 
         belo_a, belo_b = elo.blended(a, surface), elo.blended(b, surface)
         p_blend = elo.win_prob(a, b, surface, best_of=best_of)   # Bo5-scale parity
-        pa, pb = srv.point_probs(a, b, surface)
+        pa, pb = srv.point_probs(a, b, surface, event=event)     # event-speed parity
         p_point = match_win_prob(pa, pb, best_of)
         rpa, rpb = _num(ma.get("rank_points")), _num(mb.get("rank_points"))
         h2a, h2b = ctx.record(a, b)
@@ -100,6 +119,8 @@ class TennisPredictor:
             "winrate10_diff": ctx.winrate10(a) - ctx.winrate10(b),
             "h2h_surface_diff": h2sa - h2sb,
             "entry_q_diff": 0.0,               # entry method unknown for hypotheticals
+            # neutral for hypotheticals; real matches pass event= for the venue
+            "home_flag_diff": self._home_flag(a, b, event),
             "peak_age_dev_diff": (abs(age_a - fp.peak_age) - abs(age_b - fp.peak_age)
                                   if np.isfinite(age_a) and np.isfinite(age_b) else 0.0),
             "best_of": best_of,
@@ -126,8 +147,10 @@ class TennisPredictor:
         return row
 
     def features(self, a: str, b: str, surface: str = "Hard", best_of: int = 3,
-                 indoor: bool = False, tier_k: float = 1.0, round_order: int = 3) -> pd.DataFrame:
-        row = self._feature_dict(a, b, surface, best_of, indoor, tier_k, round_order)
+                 indoor: bool = False, tier_k: float = 1.0, round_order: int = 3,
+                 event: str | None = None) -> pd.DataFrame:
+        row = self._feature_dict(a, b, surface, best_of, indoor, tier_k, round_order,
+                                 event=event)
         return pd.DataFrame([[row[c] for c in FEATURES]], columns=FEATURES)
 
     # -- predictions ---------------------------------------------------------------
@@ -136,7 +159,8 @@ class TennisPredictor:
         return float(self.iso.predict(raw)[0])
 
     def win_prob_matrix(self, players: list, surface: str = "Hard", best_of: int = 3,
-                        indoor: bool = False, tier_k: float = 1.0, round_order: int = 3):
+                        indoor: bool = False, tier_k: float = 1.0, round_order: int = 3,
+                        event: str | None = None):
         """Pairwise P(i beats j) matrix, antisymmetrised so P[i,j] = 1 - P[j,i].
 
         Builds the upper triangle in one batched prediction (the hot path for the
@@ -147,7 +171,7 @@ class TennisPredictor:
         for i in range(n):
             for j in range(i + 1, n):
                 rows.append(self._feature_dict(players[i], players[j], surface, best_of,
-                                               indoor, tier_k, round_order))
+                                               indoor, tier_k, round_order, event=event))
                 ii.append(i); jj.append(j)
         X = pd.DataFrame(rows, columns=FEATURES)
         p = self.iso.predict(self.clf.predict_proba(X)[:, 1])
@@ -158,7 +182,7 @@ class TennisPredictor:
 
     def predict(self, a: str, b: str, surface: str = "Hard", best_of: int = 3, **kw) -> dict:
         p = self.win_prob(a, b, surface=surface, best_of=best_of, **kw)
-        pa, pb = self.srv.point_probs(a, b, surface)
+        pa, pb = self.srv.point_probs(a, b, surface, event=kw.get("event"))
         dist = score_distribution(p, best_of)          # consistent with the combiner prob
         return {
             "a": a, "b": b, "surface": surface, "best_of": best_of,

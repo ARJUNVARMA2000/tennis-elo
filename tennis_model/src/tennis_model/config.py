@@ -115,6 +115,17 @@ SURFACE_BLEND = 0.5            # weight on the surface-specific rating
 # hard-court form). 0 = off = surface ratings update only on their own surface.
 XSURF_TRANSFER = 0.0
 
+# Adaptive surface blend (P3): scale each player's surface-blend weight by
+# n_s / (n_s + BLEND_N50) where n_s is their own-surface match count, so debutants
+# lean on overall Elo and veterans on the surface rating. 0 = off = fixed blend.
+BLEND_N50 = 0.0
+
+# Elo home advantage (W2c): rating points added to a player competing in their own
+# country when computing expectations (recorded probabilities AND update sizes), so
+# home wins move ratings less and ratings become venue-neutral estimates.
+# 0 = off. Venue comes from data/geo.py; prediction time stays venue-free.
+HOME_ADV = 0.0
+
 # Margin-of-victory ("Weighted Elo"): scale the update by how dominant the win was,
 # measured from games won. Disabled => standard Elo (useful as a backtest baseline).
 USE_MOV = True
@@ -241,6 +252,14 @@ XGB_PARAM_OVERRIDES: dict = {
 FEAT_PARAM_OVERRIDES: dict = {}   # FeatureParams per-tour overrides (group=feat sweeps;
                                   # form_days adoptions go into ELO_PARAM_OVERRIDES)
 
+# Seed-bagging (W1a, adopted 2026-07-02): the combiner is the average of N_BAG
+# seed-varied XGB fits (training orientation + tree seed vary; k=0 = the old single
+# fit). Paired gate PASSED both tours (ATP d_tune +0.00174, d_val +0.00042; WTA
+# +0.00093/+0.00074); ~0.001 full-window LL for pure variance reduction. bag10
+# measured no better — 5 is the plateau. Sweeps still search n_bag=1 for speed;
+# adoption gates re-score bagged.
+N_BAG = 5
+
 # ---------------------------------------------------------------------------
 # Surfaces — Carpet (mostly pre-2009 indoor) folds into Hard for the surface bucket.
 # ---------------------------------------------------------------------------
@@ -267,6 +286,10 @@ SERVE_SHRINKAGE_POINTS = 200.0
 # Surface-specific estimates see less data, so they shrink (harder) toward the
 # player's own global skill — a two-level hierarchical prior.
 SURFACE_SERVE_SHRINKAGE = 120.0
+# Event-speed baseline (E3): per-event serve-pct residual accumulator, shrunk toward
+# 0 by this many service points. Fast/slow venues shift both players' serve probs and
+# de-bias the credited serve/return skills. 0 = off (incumbent walk, bit-identical).
+EVENT_SHRINKAGE = 0.0
 
 # ---------------------------------------------------------------------------
 # Context features (model/features.py) — rest/fatigue/form/age constants, carried

@@ -27,11 +27,13 @@ import numpy as np
 import pandas as pd
 
 from ..config import (
+    EVENT_SHRINKAGE,
     FORM_HALFLIFE_DAYS,
     SERVE_SHRINKAGE_POINTS,
     SURFACE_SERVE_SHRINKAGE,
     SURFACES,
 )
+from ..data.geo import _norm
 from .markov import P_CLIP, match_win_prob
 
 _DAY = np.timedelta64(1, "D")
@@ -44,6 +46,7 @@ class ServeReturnParams:
     form_halflife_days: float = FORM_HALFLIFE_DAYS
     serve_shrinkage_points: float = SERVE_SHRINKAGE_POINTS
     surface_serve_shrinkage: float = SURFACE_SERVE_SHRINKAGE
+    event_shrinkage: float = EVENT_SHRINKAGE      # E3 event-speed baseline (0 = off)
 
 
 DEFAULT_SR_PARAMS = ServeReturnParams()
@@ -82,6 +85,8 @@ class ServeReturnState:
     ssw: dict = field(default_factory=dict); ssp: dict = field(default_factory=dict)
     srw: dict = field(default_factory=dict); srp: dict = field(default_factory=dict)
     t_last: dict = field(default_factory=dict)
+    # E3 event-speed accumulators: (event_key, surface) -> residual sum / points
+    esw: dict = field(default_factory=dict); esp: dict = field(default_factory=dict)
 
     def __post_init__(self):
         for d in (self.ssw, self.ssp, self.srw, self.srp):
@@ -143,15 +148,31 @@ class ServeReturnState:
         rp = self.srp[surf].get(name, 0.0)
         return (self.srw[surf].get(name, 0.0) + prior * k) / (rp + k) - br
 
-    def point_probs(self, a: str, b: str, surf: str) -> tuple[float, float]:
-        base = self.base.get(surf, self.avg)
+    def event_offset(self, event: str | None, surf: str) -> float:
+        """Shrunk fast/slow-court serve-pct offset for a named event (0 = unknown/off).
+
+        Mirrors the walk exactly so prediction-time point probs reproduce the
+        training feature when an event is known (old pickles: no esw -> 0)."""
+        k = getattr(self._p, "event_shrinkage", 0.0)
+        if not k or k <= 0 or not event:
+            return 0.0
+        esw = getattr(self, "esw", None)
+        if not esw:
+            return 0.0
+        ek = (_norm(str(event)), surf)
+        return esw.get(ek, 0.0) / (self.esp.get(ek, 0.0) + k)
+
+    def point_probs(self, a: str, b: str, surf: str,
+                    event: str | None = None) -> tuple[float, float]:
+        base = self.base.get(surf, self.avg) + self.event_offset(event, surf)
         pa = base + self.serve_skill(a, surf) - self.return_skill(b, surf)
         pb = base + self.serve_skill(b, surf) - self.return_skill(a, surf)
         clip = lambda x: min(max(x, P_CLIP[0]), P_CLIP[1])
         return clip(pa), clip(pb)
 
-    def match_prob(self, a: str, b: str, surf: str, best_of: int = 3) -> float:
-        pa, pb = self.point_probs(a, b, surf)
+    def match_prob(self, a: str, b: str, surf: str, best_of: int = 3,
+                   event: str | None = None) -> float:
+        pa, pb = self.point_probs(a, b, surf, event=event)
         return match_win_prob(pa, pb, best_of)
 
     # -- updates ------------------------------------------------------------
@@ -185,6 +206,16 @@ def run_serve_return(df: pd.DataFrame,
     w_1w, w_2w = g("w_1stWon"), g("w_2ndWon")
     l_1w, l_2w = g("l_1stWon"), g("l_2ndWon")
 
+    # E3 event-speed baseline: per-(event, surface) serve-pct residual accumulators
+    # (live on the state so prediction-time point_probs can mirror the walk)
+    ev_k = getattr(st._p, "event_shrinkage", 0.0)
+    use_ev = bool(ev_k and ev_k > 0)
+    if use_ev:
+        enames = (df["tourney_name"].to_numpy() if "tourney_name" in df
+                  else np.full(n, "", dtype=object))
+        ecache: dict = {}
+        esw, esp = st.esw, st.esp
+
     for i in range(n):
         w, l, s, t = winners[i], losers[i], surfs[i], dates[i]
         st._decay_to(w, t); st._decay_to(l, t)
@@ -195,8 +226,16 @@ def run_serve_return(df: pd.DataFrame,
         gss_w, gss_l = st.global_serve_skill(w), st.global_serve_skill(l)
         grs_w, grs_l = st.global_return_skill(w), st.global_return_skill(l)
         b = st.base.get(s, st.avg)
-        pa = min(max(b + ss_w - rs_l, P_CLIP[0]), P_CLIP[1])
-        pb = min(max(b + ss_l - rs_w, P_CLIP[0]), P_CLIP[1])
+        off = 0.0
+        if use_ev:                        # shrunk fast/slow-court offset (0 prior)
+            nm = enames[i]
+            ekey = ecache.get(nm)
+            if ekey is None:
+                ekey = ecache[nm] = _norm(nm) if isinstance(nm, str) else ""
+            ek = (ekey, s)
+            off = esw.get(ek, 0.0) / (esp.get(ek, 0.0) + ev_k)
+        pa = min(max(b + off + ss_w - rs_l, P_CLIP[0]), P_CLIP[1])
+        pb = min(max(b + off + ss_l - rs_w, P_CLIP[0]), P_CLIP[1])
 
         out["w_serve_skill"][i], out["l_serve_skill"][i] = ss_w, ss_l
         out["w_return_skill"][i], out["l_return_skill"][i] = rs_w, rs_l
@@ -206,11 +245,23 @@ def run_serve_return(df: pd.DataFrame,
 
         if has_stats[i] and w_svpt[i] > 0 and l_svpt[i] > 0:
             wsw, lsw = w_1w[i] + w_2w[i], l_1w[i] + l_2w[i]
-            # opponent-adjusted: shift raw % by the opponent's global return/serve skill
-            st._add(w, s, w_svpt[i], (wsw / w_svpt[i]) + grs_l,
-                    l_svpt[i], ((l_svpt[i] - lsw) / l_svpt[i]) + gss_l)
-            st._add(l, s, l_svpt[i], (lsw / l_svpt[i]) + grs_w,
-                    w_svpt[i], ((w_svpt[i] - wsw) / w_svpt[i]) + gss_w)
+            # opponent-adjusted: shift raw % by the opponent's global return/serve
+            # skill; the event offset de-biases fast/slow-court numbers symmetrically
+            st._add(w, s, w_svpt[i], (wsw / w_svpt[i]) + grs_l - off,
+                    l_svpt[i], ((l_svpt[i] - lsw) / l_svpt[i]) + gss_l + off)
+            st._add(l, s, l_svpt[i], (lsw / l_svpt[i]) + grs_w - off,
+                    w_svpt[i], ((w_svpt[i] - wsw) / w_svpt[i]) + gss_w + off)
+            if use_ev:
+                # residual vs the OFF-FREE, svpt-weighted expectation, so the
+                # shrunk mean esw/(esp+k) estimates the full venue offset (with
+                # off inside the expectation the recursion converges to half),
+                # and lopsided matches don't leak player quality into it
+                pool_pts = w_svpt[i] + l_svpt[i]
+                raw_pool = (wsw + lsw) / pool_pts
+                exp_pool = b + ((ss_w - rs_l) * w_svpt[i]
+                                + (ss_l - rs_w) * l_svpt[i]) / pool_pts
+                esw[ek] = esw.get(ek, 0.0) + (raw_pool - exp_pool) * pool_pts
+                esp[ek] = esp.get(ek, 0.0) + pool_pts
 
     feats = pd.DataFrame(out, index=df.index)
     feats["serve_skill_diff"] = feats["w_serve_skill"] - feats["l_serve_skill"]

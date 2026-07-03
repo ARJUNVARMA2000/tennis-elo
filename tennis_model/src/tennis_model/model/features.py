@@ -21,6 +21,7 @@ import pandas as pd
 
 from .. import config as _config
 from ..data.charting import STYLE_FEATURES, build_profiles, name_key
+from ..data.geo import IOC_ALIAS, host_ioc
 from ..data.results import load_matches
 from ..points.serve_return import run_serve_return
 from ..ratings.build import run_elo
@@ -69,6 +70,9 @@ ANTISYM = [
     "form90_diff", "winrate10_diff",
     # rivalry & profile
     "h2h_surface_diff", "entry_q_diff", "peak_age_dev_diff",
+    # home advantage (P2): playing in your own country (crowd, familiarity, and for
+    # team ties the host's choice of ground); 0 when the venue is unknown/neutral
+    "home_flag_diff",
     # E1 box-score decomposition (bp_clutch/ace/df/first-in/minutes14/ret_recent)
     # was tried and REJECTED by the paired walk-forward gate on both tours
     # (2026-07-02 core round): the opponent-adjusted spw% walk already compresses
@@ -271,6 +275,17 @@ def _assemble(d: pd.DataFrame,
     la = pd.to_numeric(d["loser_age"], errors="coerce")
     f["peak_age_dev_diff"] = ((wa - params.peak_age).abs()
                               - (la - params.peak_age).abs()).fillna(0.0)
+    # home advantage (P2): host country from the tournament name + year
+    empty = pd.Series(index=d.index, dtype=object)
+    names_s = d.get("tourney_name", empty)
+    yrs = d["date"].dt.year.to_numpy()
+    _tour = str(d["tour"].iloc[0]) if "tour" in d and len(d) else None
+    host = [host_ioc(nm, int(y), _tour) if isinstance(nm, str) else None
+            for nm, y in zip(names_s.to_numpy(), yrs)]
+    wio = d.get("winner_ioc", empty).map(lambda x: IOC_ALIAS.get(x, x)).to_numpy()
+    lio = d.get("loser_ioc", empty).map(lambda x: IOC_ALIAS.get(x, x)).to_numpy()
+    f["home_flag_diff"] = [(0 if h is None else int(h == w) - int(h == lo))
+                           for h, w, lo in zip(host, wio, lio)]
 
     # symmetric context + confidence
     f["best_of"] = pd.to_numeric(d["best_of"], errors="coerce").fillna(3)

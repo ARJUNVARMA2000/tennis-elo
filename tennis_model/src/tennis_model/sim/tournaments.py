@@ -133,7 +133,7 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
     elo = predictor.elo
     field = sorted(field, key=lambda p: elo.blended(p, surface), reverse=True)
     sim = project_field(predictor, field, surface=surface, best_of=best_of,
-                        n_sims=n_sims, seed=seed)
+                        n_sims=n_sims, seed=seed, event=name)
     cols = set(sim.columns)
     proj = [{
         "name": r.player,

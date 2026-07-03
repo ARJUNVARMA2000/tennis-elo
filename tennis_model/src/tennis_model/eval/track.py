@@ -146,7 +146,8 @@ def log_forecasts(tour: str, predictor, df: pd.DataFrame,
             k = _match_key(rec)
             if k in seen_match:
                 continue
-            rec["p"] = round(float(predictor.win_prob(a, b, surface=surface, best_of=int(bo))), 4)
+            rec["p"] = round(float(predictor.win_prob(
+                a, b, surface=surface, best_of=int(bo), event=str(r.tourney_name))), 4)
             seen_match.add(k)
             new.append(rec)
 

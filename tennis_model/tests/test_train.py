@@ -125,6 +125,26 @@ def test_fit_fold_respects_overrides():
     print("ok test_fit_fold_respects_overrides")
 
 
+def test_fit_fold_bagging():
+    """n_bag>1 returns a BaggedClassifier whose k=0 member is the incumbent single
+    fit, and whose predictions are the member average (the W1a adoption contract)."""
+    from tennis_model.model.train import BaggedClassifier
+    feat = _synthetic_feat(seed=5)
+    core, cal = feat[feat["year"] == 2020], feat[feat["year"] == 2021]
+    xo = {"max_depth": 2, "n_estimators": 40}
+    single, _ = _fit_fold(core, cal, seed=7, xgb_overrides=xo)
+    bagged, _ = _fit_fold(core, cal, seed=7, xgb_overrides=xo, n_bag=3)
+    assert isinstance(bagged, BaggedClassifier) and len(bagged.clfs) == 3
+    X = feat[FEATURES].iloc[:100]
+    p0 = bagged.clfs[0].predict_proba(X)[:, 1]
+    assert np.array_equal(p0, single.predict_proba(X)[:, 1])   # member 0 = incumbent
+    mean = np.mean([c.predict_proba(X)[:, 1] for c in bagged.clfs], axis=0)
+    assert np.allclose(bagged.predict_proba(X)[:, 1], mean)
+    # the pipeline's stale-schema guard must still introspect feature names
+    assert list(bagged.get_booster().feature_names) == list(FEATURES)
+    print("ok test_fit_fold_bagging")
+
+
 if __name__ == "__main__":
     test_platt_monotone_and_improves_overconfident()
     test_platt_near_identity_on_calibrated_input()
@@ -133,4 +153,5 @@ if __name__ == "__main__":
     test_orient_for_cal_alternating_flip()
     test_fit_fold_deterministic()
     test_fit_fold_respects_overrides()
+    test_fit_fold_bagging()
     print("\nALL PASSED")

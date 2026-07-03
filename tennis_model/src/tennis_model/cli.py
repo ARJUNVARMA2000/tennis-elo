@@ -38,7 +38,8 @@ def _project_slam(p: TennisPredictor, args) -> None:
     print(f"\n{draw['name']} {args.year} ({draw['surface']}, Bo{draw['best_of']}, "
           f"draw {len(draw['slots'])}) — actual champion: {draw['champion']}")
     sim = simulate_tournament(p, draw["slots"], surface=draw["surface"],
-                              best_of=draw["best_of"], n_sims=args.sims, seed=1)
+                              best_of=draw["best_of"], n_sims=args.sims, seed=1,
+                              event=draw["name"])
     print(sim.head(args.top)[["player", "SF", "F", "Champion"]].to_string(index=False))
 
 

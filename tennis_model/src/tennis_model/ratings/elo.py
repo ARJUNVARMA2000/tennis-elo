@@ -18,8 +18,10 @@ import math
 from dataclasses import dataclass
 
 from ..config import (
+    BLEND_N50,
     BO5_SCALE,
     FORM_DAYS,
+    HOME_ADV,
     INACT_BOOST,
     INACT_DAYS,
     K_OFFSET,
@@ -59,6 +61,8 @@ class EloParams:
     bo5_scale: float = BO5_SCALE            # rating-diff scale for best-of-5
     form_days: float = FORM_DAYS            # window for the form90 momentum feature
     xsurf: float = XSURF_TRANSFER           # cross-surface transfer weight (0 = off)
+    blend_n50: float = BLEND_N50            # adaptive-blend half-saturation (0 = off)
+    home_adv: float = HOME_ADV              # home-country rating bonus (0 = off)
 
 
 DEFAULT_PARAMS = EloParams()

@@ -1,3 +1,50 @@
+# Task: Autoresearch round — maximize model performance (2026-07-02 evening)
+
+Goal: close the gap to the bookmaker (ATP 0.1983 vs 0.196 Brier; WTA 0.2023 vs 0.196).
+Protocol per candidate: implement opt-in (incumbent-default, bit-identical), evaluate on
+the full 2010–2026 walk-forward with paired d±SE split into tune (2010–19) / val (2020+)
+windows, gate d_tune > 0 AND d_val > −1·SE, adopt plateau centers, document every
+negative. Data frozen (no downloads); feature caches of 2026-07-02 19:35/19:45.
+
+## Wave 1 — combiner mechanics (cheap paired A/Bs, both tours)
+- [x] W1-impl: train.py opt-in knobs (n_bag/BaggedClassifier, weight_halflife,
+      cal="stacked"; monotone via xgb_overrides) — bit-identical at defaults, 79→80 tests
+- [x] W1-base: baseline OOS pickles reproduce last round exactly (ATP 0.57845, WTA 0.58889)
+- [x] W1a seed-bagging: **bag5 PASS both tours** (ATP d_tune +0.00174/d_val +0.00042;
+      WTA +0.00093/+0.00074; full LL ATP →0.57721, WTA →0.58803)
+- [x] W1b monotone constraints: REJECTED (val regression both tours)
+- [x] W1c stacked calibration: REJECTED (val −0.004/−0.009 — hard no)
+- [x] W1d recency weighting: WTA REJECTED; ATP rec10/rec20 formal pass w/ flat val —
+      deciding under bag5 (combo runs in flight)
+- [x] W1-combine: **bag5 ADOPTED** (config.N_BAG=5, production defaults; bag10
+      saturated both tours, recency rejected both tours incl. under bagging)
+- SKIP cal2 (two-season Platt): ty−2 rows are in-sample for the fold model → biased
+  calibration, and the honest variant costs a training season; pooled-OOS already lost.
+
+## Wave 2 — Elo structure (elo-group sweeps ~5-10s/trial)
+- [ ] W2a P3 adaptive surface blend: blend_n50 implemented — `_ablend` sweeps near
+      done, top-5 trials all at blend_n50≈0 (headed for REJECT; --validate pending)
+- [x] W2b P2 home advantage: **ADOPTED both tours on the review-fixed geo** (ATP
+      d_val +0.00134 (3.6 SE); WTA +0.00034, honest-sized after the Fed Cup fix).
+      Adversarial review caught + fixed the Fed Cup host mislabeling that had
+      inflated WTA 5×; candidates re-measured clean
+- [ ] W2c Elo-level home bonus (home_adv, venue-free recording after review fix):
+      `_home` sweeps after _ablend completes
+
+## Wave 3 — point model
+- [x] W3a-impl E3 event-speed serve baselines (event_shrinkage, residual accumulator,
+      credited-skill de-bias; bit-identical off; 87 tests green)
+- [ ] W3a sweeps: `_espd` point group 250 trials both tours + gate + arbiter
+- [ ] W3b LR raw-blend probe (lr10/lr20) + top-5 xgb configs under bag5 (w3_runner)
+
+## Wave 4 — consolidation
+- [ ] Combiner re-sweep if the feature frame changed (home adoption ⇒ re-check)
+- [x] A5 challengers: SKIPPED — no source has challenger matches for 2010–19 (TML
+      starts 2018; mirrors carry no qual_chall) ⇒ adoption gate powerless; documented
+- [ ] Final walk-forward table, results doc, lessons, commit
+
+---
+
 # Task: Real-time updates + Linear-style UI overhaul + resume polish
 
 Plan: C:\Users\varma\.claude\plans\can-you-check-if-purrfect-robin.md

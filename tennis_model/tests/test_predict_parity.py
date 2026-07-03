@@ -47,7 +47,7 @@ class _Elo:
 class _Srv:
     gsp = {"Alfa One": 500.0, "Bravo Two": 400.0}
 
-    def point_probs(self, a, b, surf):
+    def point_probs(self, a, b, surf, event=None):
         return 0.64, 0.62
 
     def serve_skill(self, name, surf):
@@ -139,8 +139,26 @@ def test_feature_params_thread_to_inference():
     print("ok test_feature_params_thread_to_inference")
 
 
+def test_home_flag_threads_event():
+    """Real matches pass event=; the venue's host country sets home_flag_diff.
+    Hypotheticals (no event) and unmapped events stay neutral."""
+    meta = {"Alfa One": {"age": 24.0, "ht": 185.0, "hand": "R", "rank_points": 3000,
+                         "ioc": "GBR"},
+            "Bravo Two": {"age": 27.0, "ht": 190.0, "hand": "L", "rank_points": 1500,
+                          "ioc": "USA"}}
+    pred = _predictor(meta)
+    fd = lambda **kw: _with_no_profiles(lambda: pred._feature_dict(
+        "Alfa One", "Bravo Two", "Hard", 3, False, 1.0, 3, **kw))
+    assert fd()["home_flag_diff"] == 0.0                       # hypothetical
+    assert fd(event="Wimbledon")["home_flag_diff"] == 1.0      # GBR at home
+    assert fd(event="US Open")["home_flag_diff"] == -1.0       # USA at home
+    assert fd(event="Mystery Invitational")["home_flag_diff"] == 0.0
+    print("ok test_home_flag_threads_event")
+
+
 if __name__ == "__main__":
     test_feature_dict_keys_match_FEATURES()
     test_missing_bio_matches_training_semantics()
     test_feature_params_thread_to_inference()
+    test_home_flag_threads_event()
     print("\nALL PASSED")

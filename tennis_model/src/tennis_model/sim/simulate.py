@@ -41,14 +41,16 @@ def simulate_bracket(P: np.ndarray, n_sims: int = DEFAULT_N_SIMS, seed: int = 0,
 
 def simulate_tournament(predictor, slots: list, surface: str = "Hard", best_of: int = 3,
                         n_sims: int = DEFAULT_N_SIMS, seed: int = 0,
-                        indoor: bool = False, tier_k: float = 1.0) -> pd.DataFrame:
+                        indoor: bool = False, tier_k: float = 1.0,
+                        event: str | None = None) -> pd.DataFrame:
     """Simulate a bracket given as a list of player names (None = bye)."""
     # Map byes to a sentinel that loses to everyone.
     bye_mask = np.array([p is None for p in slots])
     real = [p if p is not None else "__BYE__" for p in slots]
     uniq = list(dict.fromkeys(real))             # de-dup while keeping order
     P_small = predictor.win_prob_matrix(
-        [u for u in uniq if u != "__BYE__"], surface, best_of, indoor, tier_k)
+        [u for u in uniq if u != "__BYE__"], surface, best_of, indoor, tier_k,
+        event=event)
     name_to_small = {u: i for i, u in enumerate([u for u in uniq if u != "__BYE__"])}
 
     n = len(slots)
@@ -75,10 +77,11 @@ def simulate_tournament(predictor, slots: list, surface: str = "Hard", best_of: 
 
 
 def project_field(predictor, players: list, surface: str = "Hard", best_of: int = 3,
-                  ratings=None, n_sims: int = DEFAULT_N_SIMS, seed: int = 0) -> pd.DataFrame:
+                  ratings=None, n_sims: int = DEFAULT_N_SIMS, seed: int = 0,
+                  event: str | None = None) -> pd.DataFrame:
     """Convenience: seed a field by Elo and simulate the standard bracket."""
     rank = ratings or (lambda p: predictor.elo.blended(p, surface))
     ordered = sorted(players, key=rank, reverse=True)
     slots = standard_seed_draw(ordered)
     return simulate_tournament(predictor, slots, surface=surface, best_of=best_of,
-                               n_sims=n_sims, seed=seed)
+                               n_sims=n_sims, seed=seed, event=event)
