@@ -25,6 +25,20 @@ from ..config import TOURS, live_dir
 
 SCOREBOARD = "https://site.api.espn.com/apis/site/v2/sports/tennis/{tour}/scoreboard"
 
+# ESPN fills an undetermined slot in a scheduled match (opponent awaiting a prior
+# result, or a draw not yet published) with a pseudo-athlete named "TBD" — a
+# placeholder, not a player. It must never enter a field / matchup / result row:
+# one leaked "TBD" makes a 128-player Slam draw count 129.
+_PLACEHOLDER_NAMES = {"tbd", "tba", "bye", "qualifier"}
+
+
+def _athlete_name(c: dict | None) -> str | None:
+    """Competitor -> athlete displayName, or None for draw placeholders like 'TBD'."""
+    nm = ((c or {}).get("athlete") or {}).get("displayName")
+    if not isinstance(nm, str) or nm.strip().lower() in _PLACEHOLDER_NAMES:
+        return None
+    return nm
+
 
 def _round_label(disp: str) -> str | None:
     """Map an ESPN round name to our codes; None drops the match (qualifying/doubles)."""
@@ -92,8 +106,8 @@ def parse_events(events: list, gender: str) -> pd.DataFrame:
                 los = next((c for c in cs if c.get("winner") is False), None)
                 if not win or not los:
                     continue
-                wn = (win.get("athlete") or {}).get("displayName")
-                ln = (los.get("athlete") or {}).get("displayName")
+                wn = _athlete_name(win)
+                ln = _athlete_name(los)
                 if not wn or not ln:
                     continue
                 rows.append({
@@ -157,12 +171,12 @@ def parse_fields(events: list, gender: str) -> dict:
                     continue                                  # skip qualifying
                 cs = comp.get("competitors") or []
                 for c in cs:
-                    nm = (c.get("athlete") or {}).get("displayName")
+                    nm = _athlete_name(c)
                     if nm:
                         field.add(nm)
                 if ((comp.get("status") or {}).get("type") or {}).get("completed"):
                     lc = next((c for c in cs if c.get("winner") is False), None)
-                    ln = (lc.get("athlete") or {}).get("displayName") if lc else None
+                    ln = _athlete_name(lc)
                     if ln:
                         elim.add(ln)
         if len(field) >= 8:
@@ -192,8 +206,7 @@ def parse_upcoming(events: list, gender: str) -> pd.DataFrame:
                 rnd = _round_label((comp.get("round") or {}).get("displayName", ""))
                 if rnd is None:
                     continue
-                names = [(c.get("athlete") or {}).get("displayName")
-                         for c in (comp.get("competitors") or [])]
+                names = [_athlete_name(c) for c in (comp.get("competitors") or [])]
                 names = [n for n in names if n]
                 if len(names) < 2:                          # matchup not set yet (TBD player)
                     continue
