@@ -74,6 +74,12 @@ def _events():
              "competitions": [
                  _completed("Round of 16", f"Winner {i}", (6, 6), f"Loser {i}", (3, 4))
                  for i in range(4)
+             ] + [
+                 # ESPN's placeholder pseudo-athlete for an undetermined opponent: a
+                 # scheduled QF awaiting a prior result, and a not-yet-drawn shell
+                 # match. Neither "TBD" may enter the field (129-player Slam bug).
+                 _pending("Quarterfinal", "Winner 0", "TBD", state="pre"),
+                 _pending("Quarterfinal", "TBD", "TBD", state="pre"),
              ]},
         ],
     }
@@ -145,7 +151,9 @@ def test_parse_upcoming():
     assert ("Aaron Ace", "Dave Drop") in pairs        # in-progress kept
     assert ("Bob Baseline", "Carl Clay") in pairs     # scheduled kept
     # completed matches and TBD matchups are excluded
-    assert "Known Player" not in {n for p in pairs for n in p}
+    names = {n for p in pairs for n in p}
+    assert "Known Player" not in names
+    assert "TBD" not in names                         # placeholder never a matchup side
     assert set(up["round"]) == {"QF"}
     print("ok test_parse_upcoming")
 
@@ -155,10 +163,22 @@ def test_parse_fields():
     # Test Open has < 8 known players -> only Big Slam qualifies as a live field
     assert set(fields) == {"Big Slam"}, fields
     bs = fields["Big Slam"]
+    # exactly the 8 real players — the scheduled-match "TBD" placeholder must not
+    # inflate the field (regression: Wimbledon 2026 showed a "129 draw")
     assert bs["field"] == sorted([f"Winner {i}" for i in range(4)]
                                  + [f"Loser {i}" for i in range(4)])
     assert bs["eliminated"] == sorted(f"Loser {i}" for i in range(4))
     print("ok test_parse_fields")
+
+
+def test_placeholder_names_dropped():
+    # the shared competitor->name gate: placeholder pseudo-athletes map to None
+    for nm in ("TBD", "tbd", " TBD ", "TBA", "Bye", "Qualifier"):
+        assert live._athlete_name({"athlete": {"displayName": nm}}) is None, nm
+    assert live._athlete_name({"athlete": {"displayName": "Aaron Ace"}}) == "Aaron Ace"
+    assert live._athlete_name({"athlete": {}}) is None
+    assert live._athlete_name(None) is None
+    print("ok test_placeholder_names_dropped")
 
 
 if __name__ == "__main__":
@@ -168,4 +188,5 @@ if __name__ == "__main__":
     test_parse_events_other_tour()
     test_parse_upcoming()
     test_parse_fields()
+    test_placeholder_names_dropped()
     print("\nALL PASSED")
