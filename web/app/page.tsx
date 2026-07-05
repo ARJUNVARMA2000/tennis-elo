@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
 import { pct, surfaceColor, heat } from "@/lib/ui";
@@ -39,6 +39,13 @@ function reachOf(p: Proj): Record<string, number> {
   if (p.final != null) r.F = p.final;
   r.Champion = p.champion;
   return r;
+}
+
+/** Heat-tint background for a reach-odds pill. The number itself is always drawn at full
+    contrast; only this backdrop carries the heat gradient, brighter as the odds climb. */
+function heatBg(v: number, strong = false): string {
+  const a = Math.min(255, Math.round((strong ? 0x30 : 0x22) + v * (strong ? 0x55 : 0x48)));
+  return `${heat(v)}${a.toString(16).padStart(2, "0")}`;
 }
 
 export default function Tournaments() {
@@ -92,13 +99,32 @@ export default function Tournaments() {
   );
 }
 
-/** Prominent forecast hero for the focused Slam: top players × per-round reach odds. */
+/** Prominent forecast hero for the focused Slam: top players × per-round reach odds.
+    Columns are sortable — tap a round to rank the field by its chance of getting there. */
 function SlamHero({ t }: { t: Tournament }) {
   const [open, setOpen] = useState(false);
   const sc = surfaceColor(t.surface);
   const present = new Set(t.projection.flatMap((p) => Object.keys(reachOf(p))));
   const cols = DEEP_ROUNDS.filter((c) => present.has(c));
-  const shown = open ? t.projection : t.projection.slice(0, 16);
+
+  // Sortable table. Default is the title odds (Champion) — the order the data already ships
+  // in — so the page opens unchanged; tapping a round header re-ranks the whole field by it.
+  const [sortKey, setSortKey] = useState<string>("Champion");
+  const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
+  const sortBy = (c: string) => {
+    if (sortKey === c) setSortDir((d) => (d === "desc" ? "asc" : "desc"));
+    else { setSortKey(c); setSortDir("desc"); }
+  };
+
+  const sorted = useMemo(() => {
+    const arr = [...t.projection];
+    arr.sort((a, b) => {
+      const av = reachOf(a)[sortKey] ?? -1, bv = reachOf(b)[sortKey] ?? -1;
+      return sortDir === "desc" ? bv - av : av - bv;
+    });
+    return arr;
+  }, [t.projection, sortKey, sortDir]);
+  const shown = open ? sorted : sorted.slice(0, 16);
 
   return (
     <div className="panel-glow mt-8 p-5 sm:p-6">
@@ -122,7 +148,7 @@ function SlamHero({ t }: { t: Tournament }) {
 
       {/* round-by-round forecast table */}
       <div className="mono mt-5 mb-2 text-[10px] uppercase tracking-wider text-[var(--color-faint)]">
-        Title race · chance of reaching each round
+        Title race · chance of reaching each round · <span className="text-[var(--color-muted)]">tap a round to sort</span>
       </div>
       <div className="-mx-1 overflow-x-auto">
         <table className="w-full min-w-[460px] border-collapse">
@@ -130,14 +156,25 @@ function SlamHero({ t }: { t: Tournament }) {
             <tr className="mono text-[10px] uppercase tracking-wider text-[var(--color-faint)]">
               <th className="px-1 pb-2 text-right font-normal">#</th>
               <th className="px-1 pb-2 text-left font-normal">Player</th>
-              {cols.map((c) => (
-                <th
-                  key={c}
-                  className={`px-1 pb-2 text-center font-normal ${c === "Champion" ? "text-[var(--color-champ)]" : ""}`}
-                >
-                  {ROUND_LABEL[c]}
-                </th>
-              ))}
+              {cols.map((c) => {
+                const active = sortKey === c;
+                const isWin = c === "Champion";
+                return (
+                  <th key={c} className="px-1 pb-2 font-normal">
+                    <button
+                      type="button"
+                      onClick={() => sortBy(c)}
+                      aria-label={`Sort by chance of reaching ${ROUND_LABEL[c]}`}
+                      className={`mono mx-auto flex items-center gap-0.5 uppercase tracking-wider transition-colors hover:text-[var(--color-text)] ${
+                        isWin ? "text-[var(--color-champ)]" : active ? "text-[var(--color-text)]" : "text-[var(--color-faint)]"
+                      }`}
+                    >
+                      {ROUND_LABEL[c]}
+                      <span className="w-1.5 text-[7px] leading-none">{active ? (sortDir === "desc" ? "▼" : "▲") : ""}</span>
+                    </button>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
@@ -157,7 +194,7 @@ function SlamHero({ t }: { t: Tournament }) {
                         ) : (
                           <span
                             className={`mono inline-block rounded px-1.5 py-0.5 text-[11px] ${isWin ? "font-semibold" : ""}`}
-                            style={{ background: `${heat(v)}${isWin ? "33" : "1a"}`, color: heat(v) }}
+                            style={{ background: heatBg(v, isWin), color: isWin ? "var(--color-champ)" : "var(--color-text)" }}
                           >
                             {pct(v, 0)}
                           </span>
@@ -271,7 +308,7 @@ function Card({ t }: { t: Tournament }) {
                     style={{ background: heat(p.champion), transformOrigin: "left" }}
                   />
                 </div>
-                <span className="mono w-10 text-right text-[12px]" style={{ color: heat(p.champion) }}>
+                <span className="mono w-10 text-right text-[12px]" style={{ color: isChamp ? "var(--color-champ)" : "var(--color-text)" }}>
                   {pct(p.champion, 0)}
                 </span>
               </div>
