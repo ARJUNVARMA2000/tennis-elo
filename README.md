@@ -5,8 +5,9 @@
 [![live site](https://img.shields.io/badge/live-arjunvarma2000.github.io%2Ftennis--elo-828fff)](https://arjunvarma2000.github.io/tennis-elo/)
 
 A hybrid forecasting system for men's and women's professional tennis. It pairs
-**surface-blended Elo** with an **opponent-adjusted serve/return point model** and
-**Match-Charting style features**, fused by a **Platt-calibrated XGBoost combiner**.
+**surface Elo with cross-surface transfer**, an **opponent-adjusted serve/return
+point model**, **Match-Charting style features**, and context signals (rest, fatigue,
+H2H, home advantage), fused by a **seed-bagged, Platt-calibrated XGBoost combiner**.
 Outputs calibrated match win probabilities, full set-score distributions, Monte Carlo
 draw projections, and a live web app — data refreshed **hourly**, retrained daily, for
 **both tours**, with a real-time ESPN live-score ticker on the site.
@@ -17,35 +18,50 @@ draw projections, and a live web app — data refreshed **hourly**, retrained da
 
 | Slam forecast + live ticker | Rankings | Playing-style radar |
 |---|---|---|
-| ![Home — round-by-round slam forecast](docs/home.png) | ![Rankings — surface-blended Elo board](docs/rankings.png) | ![Playing style — 13-axis radar comparison](docs/style.png) |
+| ![Home — round-by-round slam forecast](docs/home.png) | ![Rankings — Elo board with official live ranks](docs/rankings.png) | ![Playing style — 13-axis radar comparison](docs/style.png) |
 
 ## Why this design
 
 Across the literature, sophisticated ML doesn't beat a good Elo on its own — it only
 *matches* it, while the betting market is the ceiling (~69% acc / 0.196 Brier). The
 winning recipe is a **hybrid**: engineer strong Elo + point-model features, then let
-gradient boosting combine and calibrate them. Walk-forward, leakage-free results:
+gradient boosting combine and calibrate them. Walk-forward, leakage-free results
+(45,762 ATP / 42,348 WTA matches):
 
 | Model (walk-forward 2010–2026) | ATP Brier | WTA Brier |
 |---|---|---|
-| Surface-blended Elo (tuned per tour) | 0.207 | 0.212 |
-| Serve/return point model (tuned) | 0.209 | 0.215 |
-| **XGBoost combiner** | **0.198** | **0.203** |
+| Surface Elo + cross-surface transfer (tuned per tour) | 0.2062 | 0.2111 |
+| Serve/return point model (tuned) | 0.2093 | 0.2147 |
+| **XGBoost combiner (seed-bagged)** | **0.1975** | **0.2019** |
 | _Bookmaker (literature anchor)_ | _0.196_ | _0.196_ |
 
-The combiner beats every component on both tours; the ATP model sits within ~0.002
-Brier of the bookmaker ceiling. Every constant is tuned offline per tour (Optuna,
-2010–19 tune window, 2020+ validation — see `eval/tune.py`); feature importance
-confirms the thesis: Elo (overall + surface) carries most of the signal.
+The combiner beats every component on both tours; the ATP model's **accuracy (0.690)
+sits exactly at the bookmaker anchor**, with its Brier gap down to 0.0015. Every
+constant is tuned offline per tour (Optuna, 2010–19 tune window, 2020+ validation —
+see `eval/tune.py`); feature importance confirms the thesis: Elo (overall + surface)
+carries most of the signal.
+
+**How changes get adopted.** Every candidate — a constant, a feature, a training
+trick — must pass a paired-SE gate on a held-out window *and* a full walk-forward
+arbiter before it ships; component-level wins that don't survive the retrained
+combiner are rejected. Failed experiments are documented with their numbers, not
+discarded (~15 written-up rejections, including an event-speed serve baseline that
+passed its component gate 5/5 and still lost the arbiter), and each round's diff gets
+an adversarial multi-agent review before adoption — one caught a Fed Cup
+host-mislabeling bug that had inflated the WTA home-advantage gain 5× before it could
+ship. Full logs:
+[`tasks/tuning-results-2026-07-02.md`](tasks/tuning-results-2026-07-02.md),
+[`…-core-round.md`](tasks/tuning-results-2026-07-02-core-round.md),
+[`…-autoresearch.md`](tasks/tuning-results-2026-07-02-autoresearch.md).
 
 ## Architecture
 
 ```
-data ─┬─ surface-blended Elo (dynamic K, margin-of-victory)
+data ─┬─ surface Elo + cross-surface transfer (dynamic K, margin-of-victory)
       ├─ serve/return point model (per-surface, opponent-adjusted; point→game→set→match Markov)
-      └─ MCP style + context (rest, fatigue, H2H, hand, rank)
+      └─ MCP style + context (rest, fatigue, H2H, hand, rank, home advantage)
                          │
-                  XGBoost combiner  ──Platt──> calibrated P(A beats B) + set distribution
+      seed-bagged XGBoost combiner (5×) ──Platt──> calibrated P(A beats B) + set distribution
             ┌────────────┴────────────┐
      match predictor            Monte Carlo draw simulator
 ```
@@ -62,6 +78,9 @@ so each tour **merges four sources**, deduplicated with stats-bearing rows winni
   WTA **scraped from the first-party wtatennis.com API** (`data/wta_stats.py`) — no free
   bulk source has carried WTA serve stats since mid-2024.
 - **Fresh weekly results** (results-only): `LuckyLoser91/TennisCourtLog` (both tours).
+- **Official live rankings**: scraped hourly from live-tennis.eu (`data/rankings.py`)
+  to put real ATP/WTA ranks and movement next to the model's Elo board (display only,
+  never a model input).
 - **Style**: `JeffSackmann/tennis_MatchChartingProject`; **odds benchmark**:
   Tennis-Data.co.uk closing odds (Pinnacle/Bet365), auto-downloaded, never a model input.
 
@@ -79,9 +98,23 @@ can never clobber good data.
 ```
 tennis_model/        Python model + pipeline (see tennis_model/README.md)
   src/tennis_model/  config · data · ratings · points · model · sim · eval
-web/                 Next.js 16 app (8 views, ATP/WTA toggle, static export)
-.github/workflows/   weekly-refresh + Pages deploy
+web/                 Next.js 16 app (12 views, ATP/WTA toggle, static export)
+.github/workflows/   hourly refresh + daily retrain + weekly snapshot; CI on every push
 ```
+
+## Engineering quality
+
+- **172 tests green on every push** — 91 pytest (model, data, geo, parity) + 81 vitest
+  (lib math, UI logic), plus ruff + eslint and a type-checked static-export build in CI
+  ([`.github/workflows/test.yml`](.github/workflows/test.yml)).
+- **Cross-language contract tests**: player-name canonicalisation (`name_key`) is
+  implemented in both Python and TypeScript and pinned to shared fixtures, so the site
+  can never disagree with the pipeline about who a player is.
+- **Determinism**: explicit seeds end-to-end (the 5-fit bag averages fixed seed
+  variants; `n_bag=1` is bit-identical to the incumbent), with anti-drift regression
+  locks on walk-forward outputs.
+- **Accessibility**: keyboard-navigable ARIA listbox dropdowns, screen-reader labels on
+  the live ticker, non-color cues for the leading player, compositor-only animations.
 
 ## Run it locally
 
@@ -102,8 +135,9 @@ cd ../web && npm install && npm run dev
 ## The twelve views
 
 Slam-focus home (round-by-round title forecast + **live ESPN score ticker with model
-win odds, polled straight from the browser**) · Rankings · Match Predictor · Draw
-Simulator · Latest results (with model calls) · Player profiles (Elo history, surface
-splits, serve/return + style fingerprint, H2H) · Playing-style radar · Serve/return
-strength map · Trends & movers · Accuracy vs market · Track record · Method — all with
-an ATP/WTA toggle, a Linear-style dark UI, and an "updated Xm ago" freshness pill.
+win odds, polled straight from the browser**) · Rankings (Elo board with **official
+live ranks** and an age filter) · Match Predictor · Draw Simulator · Latest results
+(with model calls) · Player profiles (Elo history, surface splits, serve/return +
+style fingerprint, H2H) · Playing-style radar · Serve/return strength map · Trends &
+movers · Accuracy vs market · Track record · Method — all with an ATP/WTA toggle, a
+Linear-style dark UI, and an "updated Xm ago" freshness pill.

@@ -1,5 +1,14 @@
 # Lessons
 
+- **Re-read the git tip immediately before finalizing any plan or doc built from
+  exploration.** (2026-07-05) A README-refresh plan was drafted from subagent
+  exploration of the repo state, but three commits (including an adopted model
+  change that moved the headline Brier numbers) landed between exploration and
+  the final plan — the plan quoted stale metrics until the user said "check the
+  latest commits". Rule: exploration results have a timestamp; before writing
+  conclusions that cite repo facts (metrics, features, file lists), run
+  `git log` again and diff against the commits the exploration actually saw.
+
 - **Verify a source's naming convention per file, not per format.** (2026-07-02)
   "XXX vs YYY" tie names are host-first in the ATP Davis Cup file but carry NO
   venue order in the WTA Fed Cup file (single-venue weeks; arbitrary/winner-first
