@@ -14,7 +14,7 @@ are closed questions — re-opening one requires the underlying space to have ch
    is empty). ~20 trials/tour (~2–2.5 min each), tag `_fp1`, then `--validate`.
 
 2. **pa5 — WTA xgb re-sweep under post-A5 features** (Tier 1, `--group xgb`, WTA
-   first) — `OPEN`
+   first) — `DONE-REJECT (R1-004: incumbent unbeaten post-A5+fp1; optimum robust)`
    A5 (ratings-only challenger ingestion, adopted 2026-07-06) changed the VALUES of
    the Elo/point feature columns the combiner consumes; the adopted WTA xgb params
    predate that shift, and WTA carries the open anchor gap. ~12 trials, tag `_pa5`.
