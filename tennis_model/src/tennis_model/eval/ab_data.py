@@ -101,6 +101,20 @@ def _verdict(b: pd.DataFrame, a: pd.DataFrame) -> None:
               f"{d.mean():>+13.5f}±{se:.5f}{sb['acc']:>10.4f}{sa['acc']:>10.4f}"
               f"{sb['brier']:>9.4f}{sa['brier']:>9.4f}")
 
+    # per-year paired d — the instability tripwire (lessons.md): a real improvement
+    # lifts (nearly) every year; bidirectional many-SE flapping = distribution artifact
+    print("\nper-year paired d (>0 = arm better):")
+    year_means = []
+    for y in np.unique(years):
+        dy = llb[years == y] - lla[years == y]
+        se_y = float(dy.std(ddof=1) / np.sqrt(len(dy))) if len(dy) > 1 else 0.0
+        t = f"{dy.mean() / se_y:+6.1f}" if se_y > 0 else "     -"
+        year_means.append(float(dy.mean()))
+        print(f"  {int(y)}: {dy.mean():+.5f}±{se_y:.5f}  t={t}  n={len(dy):,}")
+    n_pos = sum(1 for m in year_means if m > 0)
+    print(f"per-year: {n_pos}/{len(year_means)} positive, "
+          f"max |d| = {max(abs(m) for m in year_means):.5f}")
+
     d_tune, _ = results["tune 2010-19"]
     d_val, se_val = results[f"val {VAL_START}+"]
     gate = d_tune > 0 and d_val > -se_val

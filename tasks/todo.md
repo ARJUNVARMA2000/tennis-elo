@@ -1,3 +1,51 @@
+# Task: Autoresearch harness — codified overnight research loop (2026-07-06)
+
+Plan: C:\Users\varma\.claude\plans\fizzy-frolicking-starfish.md
+Adapt karpathy/autoresearch to this repo: standing agent program + append-only
+experiment ledger + seeded ideas backlog + /research-round skill, wrapping the
+existing three-stage gate (component sweep → validation window → full arbiter).
+
+## Checklist
+- [x] tasks/research/PROGRAM.md — standing program (invariants, tiers with budgets,
+      gate parsing formats, git protocol, stop conditions, consolidation)
+- [x] tasks/research/ledger.tsv — append-only ledger, seeded R0-000 baseline row
+      (ATP 0.6958/0.5700/0.1947, WTA 0.6829/0.5878/0.2018 @ 5c4d012)
+- [x] tasks/research/ideas.md — backlog: fp1 FeatureParams sweep, pa5 WTA xgb
+      re-sweep post-A5; wta24 BLOCKED (no-download); do-not-retry table; stale
+      mcw-range idea recorded as superseded (range already 1–400, mcw=70 adopted)
+- [x] .claude/skills/research-round/SKILL.md — thin launcher (args 8h/N/smoke,
+      preconditions, branch, resume-from-ledger note)
+- [x] ab_data.py _verdict(): per-year paired-d table + N/M-positive summary
+      (encodes the lessons.md instability tripwire into every Tier-2 run)
+- [x] tests/test_ab_data.py — exact pinned per-year values + GATE line format
+- [x] verify: full suite + ruff green (103 passed)
+- [x] verify: A5 ground-truth replay through _align+_verdict reproduces the
+      documented adoption exactly (d_tune +0.00587±0.00089, d_val +0.00756±0.00100,
+      17/17 positive, max |d| 0.01140 — a clean textbook per-year signature)
+- [x] verify: smoke experiment — real 30-trial elo sweep (_smoke tag), gate
+      parsed, ledger row R0-001 appended, honest REJECT (best = incumbent anchor)
+
+## Review
+
+- **What shipped**: the autoresearch loop (karpathy-style edit→run→gate→log→revert)
+  codified over the existing three-stage protocol. PROGRAM.md is the program,
+  ledger.tsv the append-only record, ideas.md the backlog, /research-round the
+  launcher. One code change: _verdict() now prints the per-year paired-d table +
+  N/M-positive summary, so the lessons.md instability tripwire is printed by the
+  tool instead of recomputed ad hoc.
+- **Deviations from plan**: smoke was executed directly (skill registered mid-
+  session, invoked steps manually) and recorded as R0-001 on master rather than a
+  throwaway research branch — real rounds (R1+) use research/YYYY-MM-DD branches
+  per PROGRAM.md. The queued "WTA mcw range extension" idea was found stale
+  (tune.py already sweeps 1–400; mcw=70 adopted) and was replaced by pa5 (WTA xgb
+  re-sweep under post-A5 feature values).
+- **Verification**: 103 pytest + ruff green; A5 pickle replay bit-matches the
+  documented adoption; smoke sweep produced the expected honest REJECT.
+- **Next**: `/research-round 8h` for a full overnight round (fp1 → pa5 first);
+  `/loop /research-round 8h` for resilience. Push left to the user.
+
+---
+
 # Task: Data-gap round — challenger ingestion + WTA backfill + altitude (2026-07-05)
 
 Plan: C:\Users\varma\.claude\plans\give-me-a-clear-rosy-raccoon.md
