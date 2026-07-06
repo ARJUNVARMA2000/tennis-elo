@@ -1,3 +1,4 @@
 id	date	tier	tour	group	hypothesis	change	budget_min	d_tune	se_tune	d_val	se_val	yrs_pos	verdict	git	notes
 R0-000	2026-07-06	-	both	-	baseline	incumbent adopted set	-	-	-	-	-	-	BASELINE	5c4d012	walk-forward 2010-2026: ATP 0.6958/0.5700/0.1947, WTA 0.6829/0.5878/0.2018 (acc/LL/Brier)
 R0-001	2026-07-06	1	atp	elo	smoke: harness check via elo-plateau reconfirm	sweep tag _smoke, 30 trials	10	+0.00000	0.00000	+0.00000	0.00000	-	REJECT	-	best = incumbent anchor (tune 0.57130); top-5 all gate=no; expected honest negative — plateau stands
+R1-001	2026-07-06	1	atp	feat	fp1: FeatureParams (fatigue/layoff/peak-age) never swept	sweep tag _fp1, 20 trials	60	+0.00168	0.00032	+0.00034	0.00032	-	PASS-comp	-	round R1 base 5180300, start 08:14 EDT; 5/5 gate=PASS, coherent cluster (fatigue~18, layoff~30-45, peak~28.7, form~210, wr~24-28); #10 best val +0.00044±0.00033; ATP tune-overfit precedent x3 -> Tier-2 required
