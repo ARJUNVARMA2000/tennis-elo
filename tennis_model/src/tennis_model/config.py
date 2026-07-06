@@ -237,7 +237,8 @@ ELO_PARAM_OVERRIDES: dict = {
     "wta": dict(k_scale=320.0, k_offset=1.5, k_shape=0.37,
                 surface_k_scale=45.0, surface_k_shape=0.40, surface_blend=0.62,
                 mov_factor=0.22, mov_cap=1.65, ret_k_mult=0.72,
-                inact_days=86.0, inact_boost=0.16, xsurf=0.17),
+                inact_days=86.0, inact_boost=0.16, xsurf=0.17,
+                form_days=65.0),   # `_fp1` 2026-07-06, adopted with FEAT_PARAM_OVERRIDES
 }
 SR_PARAM_OVERRIDES: dict = {
     # 200-trial sweep (tune ll 0.6091->0.5886, val 0.6400->0.6145): same story as
@@ -276,8 +277,20 @@ XGB_PARAM_OVERRIDES: dict = {
                 subsample=0.77, colsample_bytree=0.75, reg_alpha=5.0,
                 reg_lambda=0.1, gamma=0.0005, n_estimators=2000),
 }
-FEAT_PARAM_OVERRIDES: dict = {}   # FeatureParams per-tour overrides (group=feat sweeps;
-                                  # form_days adoptions go into ELO_PARAM_OVERRIDES)
+FEAT_PARAM_OVERRIDES: dict = {   # FeatureParams per-tour overrides (group=feat sweeps;
+                                 # form_days adoptions go into ELO_PARAM_OVERRIDES)
+    # 20-trial `_fp1` sweep (2026-07-06, round R1): #13 was the only val-positive
+    # passer (unbagged d_tune +0.00089±0.00035, d_val +0.00037±0.00046); full bagged
+    # 2010-26 arbiter on the rounded config: d_tune +0.00084±0.00027, d_val
+    # +0.00085±0.00038 (val gain == tune gain, 13/17 years positive), acc
+    # 0.6829->0.6836, Brier 0.2018->0.2015 -> ADOPTED. Reading: the WTA layoff flag
+    # is ~disabled (360d threshold ~never fires), fatigue windows lengthen, peak age
+    # moves earlier, form decays faster (form_days 90->65, in ELO_PARAM_OVERRIDES).
+    # The ATP `_fp1` arbiter was DECLINED (d_val -0.00006 — 4th ATP tune-overfit
+    # instance); ATP keeps the shared defaults below.
+    "wta": dict(fatigue_window_days=33.0, layoff_days=360.0, peak_age=24.0,
+                winrate_window=23),
+}
 
 # Seed-bagging (W1a, adopted 2026-07-02): the combiner is the average of N_BAG
 # seed-varied XGB fits (training orientation + tree seed vary; k=0 = the old single
