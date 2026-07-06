@@ -21,7 +21,10 @@ are closed questions — re-opening one requires the underlying space to have ch
    ATP only if WTA shows a real signal — ATP combiner re-sweeps have tune-overfit
    three times (tasks/tuning-results-2026-07-02.md).
 
-3. **wta24 — WTA 2024 stats top-up** (data, needs API scrape) — `BLOCKED
+3. **fp2 — WTA feat re-sweep around the post-fp1 incumbent** (self-generated, R1) —
+   `DONE-REJECT (R1-005: 0/5 gate, new incumbent unbeaten in its neighborhood)`
+
+4. **wta24 — WTA 2024 stats top-up** (data, needs API scrape) — `BLOCKED
    (user-supervised only: violates the no-download invariant; WTA 429s)`
    2024 merged coverage is 78.2%; a supervised backfill session is the path
    (tasks/tuning-results-2026-07-05-data-round.md, Phase B).

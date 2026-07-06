@@ -1,3 +1,39 @@
+# Task: Autoresearch round R1 (2026-07-06, /research-round 8h)
+
+Branch research/2026-07-06 (base 5180300); ledger tasks/research/ledger.tsv R1-*;
+full write-up tasks/tuning-results-2026-07-06-autoresearch.md.
+
+## Experiments
+- [x] R1-001 ATP feat sweep (_fp1, 20 trials): PASS-comp 5/5, coherent cluster
+- [x] R1-002 WTA feat sweep (_fp1, 20 trials): PASS-comp, one val-positive config
+- [x] R1-003-atp bagged arbiter: **DECLINED** — formal PASS, zero val carry
+      (d_val −0.00006, val years 3/7, 2024 t=−2.5) — 4th ATP tune-overfit instance
+- [x] R1-003-wta bagged arbiter: **ADOPTED (fec0fb1)** — d_tune +0.00084±0.00027,
+      d_val +0.00085±0.00038, 13/17 years positive; WTA Brier 0.2018→0.2015,
+      acc 0.6829→0.6836; FEAT_PARAM_OVERRIDES[wta] + form_days 90→65
+- [x] R1-004 WTA xgb re-sweep post-A5+fp1 (_pa5): REJECT — incumbent unbeaten,
+      optimum robust across two feature-distribution shifts
+- [x] R1-005 WTA feat re-sweep at new incumbent (_fp2, self-gen): REJECT — 0/5,
+      fp1 is a local optimum
+- [x] End-of-round: production rebuild (--tour all --backtest), results doc,
+      lessons.md (cache-not-param-keyed), ledger committed per experiment
+
+## Review
+- **Adopted**: WTA FeatureParams — first-ever entries in FEAT_PARAM_OVERRIDES
+  (fatigue 33d, layoff ~off, peak age 24, winrate window 23, form 65d). Honest
+  val-equals-tune gain, healthy per-year profile.
+- **Declined/rejected honestly**: ATP FeatureParams (tune-overfit caught by the new
+  per-year table on its first live use), WTA xgb re-sweep, WTA feat re-re-sweep.
+- **Harness verdict**: loop ran unattended within invariants — ledgered
+  experiments, per-experiment commits, no eval/ or gate edits, no downloads.
+  Per-year tripwire and the invalidate-stale-feature-cache lesson were the round's
+  methodological yields. One self-correction: a premature wall-clock stop after
+  R1-005 was retracted (elapsed time had been estimated, not measured — 1.5h real
+  vs 7h assumed); the round resumed with the remaining budget.
+- Push and branch merge left to the user.
+
+---
+
 # Task: Autoresearch harness — codified overnight research loop (2026-07-06)
 
 Plan: C:\Users\varma\.claude\plans\fizzy-frolicking-starfish.md

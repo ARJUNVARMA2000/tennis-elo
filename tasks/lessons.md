@@ -1,5 +1,15 @@
 # Lessons
 
+- **The tuning feature cache is regime/schema-keyed, not param-keyed.** (2026-07-06)
+  After adopting new FeatureParams (fp1), the cached `_features_wta*.pkl` still
+  carried pre-adoption feature values; the next `group=xgb` sweep would have tuned
+  the combiner against a stale frame and measured deltas off a phantom baseline.
+  Production is immune (the pipeline builds frames fresh each run) — only
+  `load_or_build_features` consumers are exposed. Rule: after adopting any parameter
+  that changes recorded feature values, delete `_features_{tour}*.pkl` before the
+  next cache-reading sweep; frame-building groups (feat/elo/point) are immune
+  because they rebuild per trial.
+
 - **A data-ingestion experiment is two experiments; separate them or the gate
   measures the wrong thing.** (2026-07-05) Ingesting challengers "fully" (rows in
   the walks AND the combiner) produced +0.0087 tune LL but failed validation with
