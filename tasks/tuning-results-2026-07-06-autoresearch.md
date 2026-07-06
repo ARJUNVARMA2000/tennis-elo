@@ -15,6 +15,7 @@ per-year paired-d table) decides. Data frozen for the round (feature caches of
 | wta_feat_fp1 | 20 | " | 0.58663 | 0.58574 |
 | wta_xgb_pa5 | 12 | p_combiner LL, full walk-forward 2010–19 | 0.58605 | 0.58552 |
 | wta_feat_fp2 | 20 | p_combiner LL, anchored at post-fp1 incumbent | 0.58605 | 0.58587 |
+| atp_xgb_pa5 | 12 | p_combiner LL, full walk-forward 2010–19, post-A5 frame | 0.56406 | 0.56314 |
 
 ## Adoption decisions
 
@@ -51,6 +52,16 @@ Confirms fp1 is a local optimum rather than a knife-edge. (An initial wall-clock
 stop declared after this experiment was retracted — it rested on a mis-estimated
 elapsed time of ~7 h when the true elapsed was ~1.5 h; the harness should read the
 clock, not accumulate duration guesses. The round continued.)
+
+**REJECTED — ATP combiner re-sweep post-A5 (`_pa5`, self-generated).** The
+re-examination was justified (all prior ATP xgb rejections predate the A5 frame
+shift), and the answer is now regime-independent: best d_tune +0.00092±0.00024 with
+ALL top-5 configs val-negative (−0.00002…−0.00073) — the fourth instance of the
+identical shape. ATP keeps the `_xgb()` defaults; this plateau needs no fifth visit
+unless the frame changes again materially.
+
+Round ended on stop condition 3: ideas backlog exhausted + two consecutive
+self-generated rejections (R1-005, R1-006), at ~2 h elapsed of the 8 h budget.
 
 ## Final walk-forward (2010–2026, production stack, bagged)
 

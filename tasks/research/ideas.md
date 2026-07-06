@@ -24,6 +24,16 @@ are closed questions — re-opening one requires the underlying space to have ch
 3. **fp2 — WTA feat re-sweep around the post-fp1 incumbent** (self-generated, R1) —
    `DONE-REJECT (R1-005: 0/5 gate, new incumbent unbeaten in its neighborhood)`
 
+3b. **ATP xgb re-sweep post-A5** (self-generated, R1) — `DONE-REJECT (R1-006: 4th
+   instance of the ATP tune-overfit shape, regime-independent; do not revisit
+   without a material frame change)`
+
+3c. **Maintenance for a future round (needs a between-rounds tune.py edit —
+   eval/ is read-only mid-round)**: the adopted WTA `layoff_days=360` sits near
+   the 365 search ceiling (same bound-sitting pattern as the old mcw=50). Extend
+   the feat-group layoff range (e.g. →730) to test whether the flag should be
+   fully off; fresh tag required.
+
 4. **wta24 — WTA 2024 stats top-up** (data, needs API scrape) — `BLOCKED
    (user-supervised only: violates the no-download invariant; WTA 429s)`
    2024 merged coverage is 78.2%; a supervised backfill session is the path

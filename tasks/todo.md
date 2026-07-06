@@ -15,8 +15,14 @@ full write-up tasks/tuning-results-2026-07-06-autoresearch.md.
       optimum robust across two feature-distribution shifts
 - [x] R1-005 WTA feat re-sweep at new incumbent (_fp2, self-gen): REJECT — 0/5,
       fp1 is a local optimum
-- [x] End-of-round: production rebuild (--tour all --backtest), results doc,
-      lessons.md (cache-not-param-keyed), ledger committed per experiment
+- [x] R1-006 ATP xgb re-sweep post-A5 (_pa5, self-gen): REJECT — 4th instance of
+      the ATP tune-overfit shape, now regime-independent (all top-5 val-negative)
+- [x] Round ended on stop condition 3 (backlog exhausted + 2 consecutive self-gen
+      rejections), ~2h elapsed of 8h — by the clock this time
+- [x] End-of-round: production rebuild (--tour all --backtest) verified — WTA
+      deployed-window (2016–26) LL 0.5946→0.5937 / Brier 0.2045, ATP unchanged
+      (0.6832 acc / 0.2001 Brier, folds bit-match the arbiter base arm); results
+      doc, lessons.md (cache-not-param-keyed), ledger committed per experiment
 
 ## Review
 - **Adopted**: WTA FeatureParams — first-ever entries in FEAT_PARAM_OVERRIDES
