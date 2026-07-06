@@ -20,19 +20,22 @@ paraphrase the program's rules from memory; the file is the authority.
 
 ## Preconditions (abort the round if any fails)
 
-1. Working tree clean (`git status --porcelain` — untracked scratch is tolerable,
+1. Run `date` and record it as the round's measured start time (all elapsed-time
+   decisions use the clock, never duration estimates).
+2. Working tree clean (`git status --porcelain` — untracked scratch is tolerable,
    modified tracked files are not).
-2. Incumbent suite green: `cd tennis_model && PYTHONPATH=src python -m pytest -q`.
-3. Record `git rev-parse HEAD` as the round's base sha.
-4. Create/checkout the round branch: `git checkout -b research/YYYY-MM-DD` (today's
+3. Incumbent suite green: `cd tennis_model && PYTHONPATH=src python -m pytest -q`.
+4. Record `git rev-parse HEAD` as the round's base sha.
+5. Create/checkout the round branch: `git checkout -b research/YYYY-MM-DD` (today's
    date; if it exists, check it out and RESUME from the ledger tail — the ledger is
    append-only, so re-entry is idempotent).
 
 ## Run
 
-Follow `tasks/research/PROGRAM.md`: the loop, the tiers, the gate parsing, the git
-protocol, the stop conditions, the end-of-round consolidation. Within its invariants,
-do not pause to ask the user.
+Follow `tasks/research/PROGRAM.md`: round-zero ideation fan-out when the backlog is
+thin, then the loop, the tiers, the gate parsing, the git protocol, the stop
+conditions, the end-of-round consolidation. Within its invariants, do not pause to
+ask the user.
 
 For overnight resilience the user can wrap this skill in a loop
 (`/loop /research-round 8h`); because preconditions re-check on entry and the ledger

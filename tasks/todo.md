@@ -1,3 +1,43 @@
+# Task: Harness improvements from R1's observed failures (2026-07-06 evening)
+
+Plan: C:\Users\varma\.claude\plans\fizzy-frolicking-starfish.md (v2)
+
+## Checklist
+- [x] tune.py: per-year tripwire in --validate (`_per_year_line` + last_years
+      capture in evaluate_vec, all four groups)
+- [x] tune.py: TPE anchor fallback to _xgb() defaults for override-free tours
+      (reg_alpha/gamma floor-clamped into the log space)
+- [x] tune.py: feat layoff_days range 365→730 (WTA optimum sat at ceiling)
+- [x] tests/test_tune_validate.py: pinned-value tests for _per_year_line
+- [x] ledger.tsv: clock column (HH:MM-HH:MM), R1 rows backfilled from commit times
+- [x] PROGRAM.md: measure-don't-estimate clock rule, measured R1 tier costs,
+      round-zero ideation stage, PYTHONIOENCODING, parallelism verdict
+- [x] SKILL.md: date at round start + round-zero reference
+- [x] ideas.md: 3c resolved; new OPEN fp3 (widened layoff space)
+- [x] verify: 105 pytest + ruff green; anchor check trial 0 = 0.56383 vs baseline
+      0.56406 (enqueued _xgb defaults, floors ≈ off — was a random draw before);
+      per-year line live on the real _pa5 study ("val-yrs: 3/7 pos, worst 2022
+      -0.00156 (t=-2.7)" — flags the R1-006 overfit at Tier-1); contention
+      measured atp 332s / wta 181s solo vs 417s concurrent (1.26× ≤ 1.3 threshold)
+
+## Review
+- **All five R1 lessons are now mechanical**: the clock is stamped per ledger row
+  and read (never estimated) at stop checks; the per-year tripwire prints at
+  Tier-1 --validate (would have saved R1-003-atp's arbiter run); override-free
+  tours get a real TPE warm start; the layoff bound is unstuck (fp3 queued);
+  round-zero ideation fan-out attacks the actual bottleneck (ideas, not compute).
+- **Parallelism verdict**: tour-pairs permitted at Tier 1 with measured honesty —
+  19% wall-clock saving, not 2× (XGB already saturates cores); Tier-2 sequential
+  by design (adoption changes the incumbent).
+- **Measured tier costs** replace docstring folklore in PROGRAM.md (feat ~1 min,
+  xgb ~30 s per trial; Tier-2 ~7–8 min per tour — 6× cheaper than budgeted in R1).
+- One shell mishap during verification (a backgrounded && chain corrupted the
+  first contention run) was caught before producing numbers, killed, and re-run
+  as a script; orphan check confirmed a clean rerun.
+- Push and branch merge left to the user.
+
+---
+
 # Task: Autoresearch round R1 (2026-07-06, /research-round 8h)
 
 Branch research/2026-07-06 (base 5180300); ledger tasks/research/ledger.tsv R1-*;

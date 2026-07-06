@@ -60,13 +60,20 @@ Modifiable:
 
 1. Pick the highest-priority OPEN idea in `ideas.md` (never anything on its
    do-not-retry list).
-2. Append a ledger row (id, tier, hypothesis, declared budget) **before** starting.
+2. Run `date`; append a ledger row (id, tier, hypothesis, declared budget, clock
+   start) **before** starting.
 3. Run the tier (commands below). If the declared budget is exceeded by ~50% with no
    gate-relevant signal, verdict `TIMEOUT` and move on.
 4. Parse the gate output (stable formats quoted below). Decide the verdict.
 5. Keep (adoption path) or revert (`git reset --hard HEAD~1` for committed attempts;
    pure sweeps have nothing to revert).
-6. Fill in the ledger row, update the idea's status, commit the ledger change, loop.
+6. Run `date`; fill in the ledger row (metrics, verdict, clock end), update the
+   idea's status, commit the ledger change, loop.
+
+**Clock discipline (R1 lesson): elapsed time is MEASURED, never estimated.** Every
+stop-condition evaluation begins with `date` and compares against the recorded round
+start. R1 declared a premature wall-clock stop from accumulated duration guesses
+that were 5× off — durations in this file are calibration hints, not clocks.
 
 ## Tiers
 
@@ -78,23 +85,38 @@ reading study DBs. Not ledgered; goes in the parent experiment's notes.
 
 ```bash
 cd tennis_model
+export PYTHONIOENCODING=utf-8   # keeps ± readable in captured Windows output
 PYTHONPATH=src python -m tennis_model.eval.tune --tour wta --group xgb --trials 12 --tag _r1a
 PYTHONPATH=src python -m tennis_model.eval.tune --tour wta --group xgb --validate --top 5 --tag _r1a
 ```
 
-Trial counts by wall-clock, not round numbers: `elo`/`point` ~5–10 s/trial → 200–400;
-`feat` ~2–2.5 min → ~20; `xgb` ~3–5 min → ~12 per budget hour. `--validate` output
-(stable, parse these lines):
+Per-trial costs MEASURED in R1 on this machine (recalibrate from ledger clock
+columns as rounds accumulate): `elo`/`point` ~5–10 s; `feat` ~50–60 s (20 trials +
+validate ≈ 20–25 min); `xgb` ~25–35 s (12 trials + validate ≈ 8–10 min incl. frame
+build). `--validate` output (stable, parse these lines — `val-yrs` is the per-year
+tripwire, added after R1):
 
 ```
 [wta/xgb] baseline: tune=0.57078  val=0.58950
   #145: tune=0.56993  val=0.58792  d_tune=+0.00145±0.00034  d_val=+0.00046±0.00041  gate=PASS
+    val-yrs: 5/7 pos, worst 2024 -0.00130 (t=-2.5)
 ```
+
+A formal `gate=PASS` with a val-negative `val-yrs` majority is the tune-overfit
+signature (4 ATP precedents) — do not spend a Tier-2 on it without a reason.
 
 Best possible Tier-1 outcome is **PASS-comp**. A component pass is NOT adoption —
 this repo has four ATP precedents of component-pass → arbiter-veto.
 
-**Tier 2 — paired arbiter A/B** (budget ~45 min per tour). Entry: a Tier-1 pass, or a
+**Tour-parallelism (measured 2026-07-06, feat group / XGB n_jobs=0 worst case: atp
+solo 332 s, wta solo 181 s, concurrent pair 417 s = 1.26× the slower solo, ~19%
+wall-clock saved).** The two tours of ONE hypothesis MAY run concurrently at Tier 1 —
+a modest win, not a doubling. Never run two different hypotheses concurrently, and
+Tier-2 arbiters stay strictly sequential: verdict order matters, since an adoption
+changes the incumbent every later experiment is measured against.
+
+**Tier 2 — paired arbiter A/B** (budget ~15 min per tour; measured ~7–8 min in R1
+for both bagged arms including frame builds). Entry: a Tier-1 pass, or a
 code/data change a fixed-frame sweep cannot express. The ONLY tier that can grant
 ADOPT. Run BOTH tours when the change is tour-agnostic. Drive it with a scratch
 script (scratchpad only, never committed) on `eval/ab_data.py`'s primitives — this is
@@ -146,7 +168,7 @@ production rebuild (`PYTHONPATH=src python -m tennis_model.pipeline --tour all
 Append-only, tab-separated, one row per experiment:
 
 ```
-id  date  tier  tour  group  hypothesis  change  budget_min  d_tune  se_tune  d_val  se_val  yrs_pos  verdict  git  notes
+id  date  tier  tour  group  hypothesis  change  budget_min  d_tune  se_tune  d_val  se_val  yrs_pos  verdict  git  clock  notes
 ```
 
 - `id` = `R<round>-<seq>`; Tier-2 tour pairs share the seq with `-atp`/`-wta` suffix.
@@ -155,6 +177,8 @@ id  date  tier  tour  group  hypothesis  change  budget_min  d_tune  se_tune  d_
 - `yrs_pos` (Tier 2 only): e.g. `17/17`, or `9/17 max0.035` when flapping.
 - `verdict` ∈ `PASS-comp | REJECT | ADOPT | DECLINED | TIMEOUT | CRASH | SKIP | BASELINE`.
 - `git`: adoption sha, `reverted:<sha>`, or `-`.
+- `clock`: measured `HH:MM-HH:MM` local (start stamped at step 2, end at step 6) —
+  the source of truth for elapsed time and for recalibrating the tier cost table.
 
 ## Stop conditions (earliest wins)
 
@@ -177,9 +201,22 @@ id  date  tier  tour  group  hypothesis  change  budget_min  d_tune  se_tune  d_
 
 ## Idea generation
 
-Consult `ideas.md` first. When self-generating: prefer the WTA anchor gap (+0.0059
-Brier) — ATP already clears the anchor. Respect the do-not-retry list: Elo geometry
-is a triple-confirmed plateau (`xsurf` → `_ablend` → `_home` sweeps found identical
+Consult `ideas.md` first. When self-generating: prefer the WTA anchor gap — ATP
+already clears the anchor. Respect the do-not-retry list: Elo geometry is a
+triple-confirmed plateau (`xsurf` → `_ablend` → `_home` sweeps found identical
 optima) — do not re-sweep a confirmed plateau unless the space itself changed (e.g. a
 new data regime like A5). Ideas that need downloads are user-supervised only — mark
 them `BLOCKED`, do not run them.
+
+**Round zero — ideation fan-out (R1 lesson: ideas, not compute, are the binding
+constraint).** At round start — and again whenever fewer than 2 OPEN ideas remain —
+fan out 2–3 parallel read-only subagents with distinct lenses before continuing the
+loop: (a) data gaps — coverage holes, unexploited columns, ingestible sources already
+on disk; (b) feature families — signals the combiner doesn't see, each costed with
+its parity-mirror burden; (c) methodology — calibration, weighting, ensembling angles
+not yet in the rejection docs. Each subagent proposes candidates with a mechanism
+hypothesis and rough tier cost. The ROUND AGENT then triages against ideas.md's
+do-not-retry table and the tuning-results docs, appends survivors to ideas.md with
+rationale (download-dependent ones marked `BLOCKED`), and discards the rest with a
+one-line reason in the round results doc. Subagents propose; only the round agent
+writes files or runs experiments.

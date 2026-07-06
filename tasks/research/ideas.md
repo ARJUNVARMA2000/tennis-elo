@@ -28,11 +28,15 @@ are closed questions — re-opening one requires the underlying space to have ch
    instance of the ATP tune-overfit shape, regime-independent; do not revisit
    without a material frame change)`
 
-3c. **Maintenance for a future round (needs a between-rounds tune.py edit —
-   eval/ is read-only mid-round)**: the adopted WTA `layoff_days=360` sits near
-   the 365 search ceiling (same bound-sitting pattern as the old mcw=50). Extend
-   the feat-group layoff range (e.g. →730) to test whether the flag should be
-   fully off; fresh tag required.
+3c. ~~Maintenance: extend feat layoff range~~ — `RESOLVED 2026-07-06` (post-R1
+   harness maintenance: tune.py layoff_days range 365→730). Testable via **fp3**.
+
+5. **fp3 — WTA feat re-sweep in the widened layoff space** (Tier 1, `--group feat`,
+   WTA; tag `_fp3` — space changed, fresh tag mandatory) — `OPEN`
+   The adopted `layoff_days=360` sat at the old 365 ceiling; the widened range
+   (→730) makes "layoff flag fully off" reachable. Anchor = current incumbent.
+   Low expected yield (R1-005 showed a local optimum) but the bound question is
+   now answerable; cheap at measured feat costs (~25 min incl. validate).
 
 4. **wta24 — WTA 2024 stats top-up** (data, needs API scrape) — `BLOCKED
    (user-supervised only: violates the no-download invariant; WTA 429s)`

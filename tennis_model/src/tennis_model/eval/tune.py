@@ -65,12 +65,31 @@ def _logloss(p: np.ndarray) -> float:
     return float(-np.mean(np.log(np.clip(p, 1e-12, None))))
 
 
+def _per_year_line(d: np.ndarray, years: np.ndarray) -> str:
+    """Compact per-year tripwire for --validate (lessons.md): a real gain lifts
+    (nearly) every year; tune-overfit shows val years split with a big negative."""
+    uniq = np.unique(years)
+    means, ses = [], []
+    for y in uniq:
+        dy = d[years == y]
+        means.append(float(dy.mean()))
+        ses.append(float(dy.std(ddof=1) / np.sqrt(len(dy))) if len(dy) > 1 else 0.0)
+    pos = sum(1 for v in means if v > 0)
+    w = int(np.argmin(means))
+    t = f"{means[w] / ses[w]:+.1f}" if ses[w] > 0 else "-"
+    return f"{pos}/{len(uniq)} pos, worst {int(uniq[w])} {means[w]:+.5f} (t={t})"
+
+
 class Objective:
     """Loads a tour's data once; each evaluation is one walker/backtest pass + log-loss."""
 
     def __init__(self, tour: str, group: str, years: tuple[int, int] = TUNE_YEARS):
         self.tour, self.group = tour, group
         self.years = years
+        # year of every row in the LAST evaluate_vec() call; row sets are fixed
+        # per window, so one capture from the baseline pass aligns with every
+        # config's vector (consumed by validate()'s per-year tripwire)
+        self.last_years: np.ndarray | None = None
         if group == "xgb":
             from ..model.features import main_rows
             from ..model.train import load_or_build_features
@@ -145,7 +164,10 @@ class Objective:
         if self.group == "feat":
             return dict(
                 fatigue_window_days=s("fatigue_window_days", 3.0, 45.0),
-                layoff_days=s("layoff_days", 30.0, 365.0),
+                # WTA's adopted optimum (360, `_fp1` R1) sat at the old 365 ceiling;
+                # extended so "layoff flag fully off" is testable. Space changed ⇒
+                # fresh --tag required
+                layoff_days=s("layoff_days", 30.0, 730.0),
                 peak_age=s("peak_age", 23.0, 29.0),
                 form_days=s("form_days", 30.0, 240.0),
                 winrate_window=trial.suggest_int("winrate_window", 5, 30),
@@ -179,6 +201,7 @@ class Objective:
             # re-score bagged (config.N_BAG) outside the study
             oos = walk_forward(self.feat, start_test=start, end_test=end,
                                xgb_overrides=overrides, verbose=False, n_bag=1)
+            self.last_years = oos["year"].to_numpy()
             return -np.log(np.clip(oos["p_combiner"].to_numpy(), 1e-12, None))
         if self.group == "feat":
             from ..model.features import FeatureParams, _assemble, main_rows, run_context
@@ -194,6 +217,7 @@ class Objective:
                           else (VAL_START, int(feat["year"].max())))
             oos = walk_forward(feat, start_test=start, end_test=end,
                                xgb_overrides=self.adopted_xgb, verbose=False, n_bag=1)
+            self.last_years = oos["year"].to_numpy()
             return -np.log(np.clip(oos["p_combiner"].to_numpy(), 1e-12, None))
         m = self.mask if window == "tune" else self.vmask
         if self.group == "elo":
@@ -209,10 +233,12 @@ class Objective:
             params = replace(params_for(self.tour), **cfg)
             _, feats = run_elo(self.df, params=params)
             p = feats["p_blend"].to_numpy()[m]
+            self.last_years = self.df["date"].dt.year.to_numpy()[m]
         else:
             params = replace(sr_params_for(self.tour), **cfg)
             _, feats = run_serve_return(self.df, params=params)
             p = feats["p_point"].to_numpy()[m & self.ref_srv_ok]
+            self.last_years = self.df["date"].dt.year.to_numpy()[m & self.ref_srv_ok]
         return -np.log(np.clip(p, 1e-12, None))
 
     def evaluate(self, cfg: dict, window: str = "tune") -> float:
@@ -282,6 +308,16 @@ def tune(tour: str, group: str, trials: int, seed: int = 7, tag: str = "") -> No
         anchor = {k: v for k, v in obj.baseline_cfg().items() if k != "n_estimators"}
         if anchor.get("event_shrinkage", 1) <= 0:      # 0 = off, outside the log
             anchor["event_shrinkage"] = 500000.0       # space; ~off within it
+        if not anchor and group == "xgb":
+            # tours with no adopted overrides (ATP): anchor at the _xgb() defaults.
+            # reg_alpha/gamma default to 0 = outside the log space; the range floors
+            # are ≈ off (same clamp pattern as event_shrinkage above)
+            from ..model.train import _xgb
+            d = _xgb().get_params()
+            anchor = {k: d[k] for k in ("learning_rate", "max_depth",
+                                        "min_child_weight", "subsample",
+                                        "colsample_bytree", "reg_lambda")}
+            anchor.update(reg_alpha=1e-3, gamma=1e-4)
         if anchor and not study.trials:
             study.enqueue_trial(anchor)
 
@@ -337,6 +373,7 @@ def validate(tour: str, group: str, top: int = 5, tag: str = "") -> None:
     obj = Objective(tour, group)
     base_tune = obj.evaluate_vec(obj.baseline_cfg(), "tune")
     base_val = obj.evaluate_vec(obj.baseline_cfg(), "val")
+    years_val = obj.last_years   # captured from the base_val pass; fixed row set
     print(f"[{tour}/{group}] baseline: tune={base_tune.mean():.5f}  val={base_val.mean():.5f}")
     done = [t for t in study.trials if t.value is not None]
     for t in sorted(done, key=lambda t: t.value)[:top]:
@@ -348,6 +385,7 @@ def validate(tour: str, group: str, top: int = 5, tag: str = "") -> None:
         gate = "PASS" if dt.mean() > 0 and dv.mean() > -se_v else "no"
         print(f"  #{t.number}: tune={tune_vec.mean():.5f}  val={val_vec.mean():.5f}  "
               f"d_tune={dt.mean():+.5f}±{se_t:.5f}  d_val={dv.mean():+.5f}±{se_v:.5f}  gate={gate}")
+        print(f"    val-yrs: {_per_year_line(dv, years_val)}")
         print(f"    {json.dumps({k: round(v, 4) for k, v in t.params.items()})}")
 
 
