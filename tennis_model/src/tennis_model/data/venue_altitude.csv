@@ -1,0 +1,332 @@
+city_key,ioc,query,resolved_name,lat,lon,elevation_m
+abu dhabi,UAE,abu dhabi,Abu Dhabi,24.45118,54.39696,6.0
+acapulco,MEX,acapulco,Acapulco de Juárez,16.84942,-99.90891,16.0
+adelaide,AUS,adelaide,Adelaide,-34.92866,138.59863,59.0
+albuquerque,USA,albuquerque,Albuquerque,35.08449,-106.65114,1511.0
+almaty,KAZ,almaty,Almaty,43.25249,76.9115,783.0
+amelia island,USA,amelia island,Amelia Island,30.61147,-81.4559,8.0
+amersfoort,NED,amersfoort,Amersfoort,52.155,5.3875,8.0
+amsterdam,NED,amsterdam,Amsterdam,52.37403,4.88969,13.0
+antalya,TUR,antalya,Antalya,36.90812,30.69556,61.0
+antwerp,BEL,antwerp,Antwerp,51.22047,4.40026,13.0
+astana,KAZ,astana,Astana,51.1801,71.44598,358.0
+athens,GRE,athens,Athens,37.98376,23.72784,70.0
+athens olympics,GRE,Athens,Athens,37.98376,23.72784,70.0
+atlanta,USA,atlanta,Atlanta,33.749,-84.38798,320.0
+atlanta olympics,USA,Atlanta,Atlanta,33.749,-84.38798,320.0
+atp cup,AUS,Sydney,Sydney,-33.86785,151.20732,58.0
+auckland,NZL,auckland,Auckland,-36.84853,174.76349,43.0
+austin,USA,austin,Austin,30.26715,-97.74306,149.0
+australian open,AUS,Melbourne,Melbourne,-37.814,144.96332,25.0
+bad gastein,AUT,bad gastein,Bad Gastein,47.11547,13.13467,998.0
+bad homburg,GER,bad homburg,Bad Homburg,50.22683,8.61816,186.0
+bahia,BRA,Salvador,Salvador,-12.97563,-38.49096,4.0
+baku,AZE,baku,Baku,40.37767,49.89201,23.0
+bali,INA,bali,Bali,-8.33333,115.0,618.0
+bangalore,IND,Bengaluru,Bengaluru,12.97194,77.59369,920.0
+bangkok,THA,bangkok,Bangkok,13.75398,100.50144,12.0
+banja luka,BIH,banja luka,Banja Luka,44.77879,17.20629,151.0
+barcelona,ESP,barcelona,Barcelona,41.38879,2.15899,15.0
+barcelona olympics,ESP,Barcelona,Barcelona,41.38879,2.15899,15.0
+basel,SUI,basel,Basel,47.55839,7.57327,279.0
+bastad,SWE,bastad,Båstad,56.42689,12.85339,14.0
+bayonne,FRA,bayonne,Bayonne,43.49316,-1.473,6.0
+beijing,CHN,beijing,Beijing,39.9075,116.39723,49.0
+beijing olympics,CHN,Beijing,Beijing,39.9075,116.39723,49.0
+belgrade,SRB,belgrade,Belgrade,44.80401,20.46513,120.0
+berlin,GER,berlin,Berlin,52.52437,13.41053,74.0
+bermuda,BER,bermuda,Bermuda,32.33022,-64.74003,8.0
+biel,SUI,biel,Biel/Bienne,47.13713,7.24608,434.0
+birmingham,GBR,birmingham,Birmingham,52.48142,-1.89983,149.0
+boca raton,USA,boca raton,Boca Raton,26.35869,-80.0831,4.0
+bogota,COL,bogota,Bogotá,4.60971,-74.08175,2582.0
+bol,CRO,Bol,Bol,43.26194,16.655,9.0
+bologna,ITA,bologna,Bologna,44.49381,11.33875,54.0
+bolzano,ITA,bolzano,Bolzano,46.49067,11.33982,262.0
+bordeaux,FRA,bordeaux,Bordeaux,44.84124,-0.58046,20.0
+boston,USA,boston,Boston,42.35843,-71.05977,14.0
+bournemouth,GBR,bournemouth,Bournemouth,50.72048,-1.8795,19.0
+brasilia,BRA,brasilia,Brasília,-15.77972,-47.92972,1136.0
+bratislava,SVK,bratislava,Bratislava,48.14816,17.10674,157.0
+brescia,ITA,brescia,Brescia,45.53558,10.21472,149.0
+brighton,GBR,brighton,Brighton,50.82838,-0.13947,29.0
+brisbane,AUS,brisbane,Brisbane,-27.46794,153.02809,27.0
+brussels,BEL,brussels,Brussels,50.85045,4.34878,28.0
+bucharest,ROU,bucharest,Bucharest,44.43225,26.10626,83.0
+budapest,HUN,budapest,Budapest,47.49835,19.04045,104.0
+buenos aires,ARG,buenos aires,Buenos Aires,-34.61315,-58.37723,31.0
+buzios,BRA,buzios,Búzios,-22.77523,-41.91336,10.0
+cabo san lucas,MEX,Cabo San Lucas,Cabo San Lucas,22.89088,-109.91238,11.0
+cagliari,ITA,cagliari,Cagliari,39.23054,9.11917,6.0
+calvia,ESP,calvia,Calvià,39.5657,2.50621,125.0
+canada masters,CAN,Toronto,Toronto,43.70643,-79.39864,161.0
+canadian open,CAN,Toronto,Toronto,43.70643,-79.39864,161.0
+canberra,AUS,canberra,Canberra,-35.28346,149.12807,571.0
+cancun finals,MEX,Cancun,Cancún,21.17429,-86.84656,11.0
+cardiff,GBR,cardiff,Cardiff,51.48,-3.18,17.0
+carlsbad,USA,carlsbad,Carlsbad,33.15809,-117.35059,16.0
+casablanca,MAR,casablanca,Casablanca,33.58831,-7.61138,27.0
+charleston,USA,charleston,Charleston,32.77632,-79.93275,6.0
+charlotte,USA,charlotte,Charlotte,35.22709,-80.84313,229.0
+chengdu,CHN,chengdu,Chengdu,30.66667,104.06667,499.0
+chennai,IND,chennai,Chennai,13.08784,80.27847,14.0
+chicago,USA,chicago,Chicago,41.85003,-87.65005,179.0
+cincinnati,USA,cincinnati,Cincinnati,39.12711,-84.51439,191.0
+cincinnati masters,USA,Cincinnati,Cincinnati,39.12711,-84.51439,191.0
+cleveland,USA,cleveland,Cleveland,41.4995,-81.69541,199.0
+cluj napoca,ROU,Cluj-Napoca,Cluj-Napoca,46.76667,23.6,352.0
+cologne,GER,cologne,Cologne,50.93333,6.95,58.0
+copenhagen,DEN,copenhagen,Copenhagen,55.67594,12.56553,14.0
+coral springs,USA,coral springs,Coral Springs,26.27119,-80.2706,3.0
+cordoba,ARG,cordoba,Córdoba,-31.40648,-64.18853,378.0
+costa do sauipe,BRA,Mata de Sao Joao,Mata de São João,-12.53028,-38.29917,35.0
+courmayeur,ITA,courmayeur,Courmayeur,45.79659,6.96893,1224.0
+dallas,USA,dallas,Dallas,32.78306,-96.80667,128.0
+delray beach,USA,Delray Beach,Delray Beach,26.46146,-80.07282,5.0
+doha,QAT,doha,Doha,25.28545,51.53096,11.0
+dubai,UAE,dubai,Dubai,25.07725,55.30927,24.0
+durban,RSA,durban,Durban,-29.8579,31.0292,21.0
+dusseldorf,GER,dusseldorf,Düsseldorf,51.22319,6.77927,42.0
+east hanover,USA,east hanover,East Hanover,40.8201,-74.36487,70.0
+eastbourne,GBR,eastbourne,Eastbourne,50.76871,0.28453,8.0
+essen,GER,essen,Essen,51.45657,7.01228,83.0
+estoril,POR,estoril,Estoril,38.70571,-9.39773,24.0
+fes,MAR,fes,Fes,34.03313,-5.00028,406.0
+figueira da foz,POR,figueira da foz,Figueira da Foz Municipality,40.15085,-8.86179,15.0
+filderstadt,GER,filderstadt,Filderstadt,48.65698,9.22049,393.0
+florence,ITA,florence,Florence,43.77925,11.24626,50.0
+florianopolis,BRA,florianopolis,Florianópolis,-27.59667,-48.54917,26.0
+forest hills,USA,forest hills,Forest Hills,40.71621,-73.85014,18.0
+fort worth finals,USA,Fort Worth,Fort Worth,32.72541,-97.32085,199.0
+gdynia,POL,gdynia,Gdynia,54.51889,18.53188,14.0
+geneva,SUI,geneva,Geneva,46.20222,6.14569,400.0
+genova,ITA,genova,Genova,45.21604,11.87211,3.0
+german open,GER,Hamburg,Hamburg,53.55073,9.99302,9.0
+gijon,ESP,gijon,Gijón,43.53573,-5.66152,22.0
+gippsland trophy,AUS,Melbourne,Melbourne,-37.814,144.96332,25.0
+gold coast,AUS,gold coast,Gold Coast,-28.00029,153.43088,12.0
+grampians trophy,AUS,Melbourne,Melbourne,-37.814,144.96332,25.0
+granby,CAN,granby,Granby,45.40008,-72.73243,102.0
+great ocean road open,AUS,Melbourne,Melbourne,-37.814,144.96332,25.0
+gstaad,SUI,gstaad,Gstaad,46.47215,7.28685,1055.0
+guadalajara,MEX,guadalajara,Guadalajara,20.67738,-103.34749,1546.0
+guadalajara finals,MEX,Guadalajara,Guadalajara,20.67738,-103.34749,1546.0
+guangzhou,CHN,guangzhou,Guangzhou,23.11667,113.25,15.0
+guaruja,BRA,guaruja,Guarujá,-23.99306,-46.25639,13.0
+halle,GER,halle,Halle,51.48158,11.97947,114.0
+hamburg,GER,hamburg,Hamburg,53.55073,9.99302,9.0
+hamburg masters,GER,Hamburg,Hamburg,53.55073,9.99302,9.0
+hangzhou,CHN,hangzhou,Hangzhou,30.29365,120.16142,12.0
+hanover,GER,hanover,Hanover,52.37052,9.73322,57.0
+hasselt,BEL,hasselt,Hasselt,50.93106,5.33781,42.0
+helsinki,FIN,helsinki,Helsinki,60.16952,24.93545,26.0
+hilton head,USA,Hilton Head Island,Hilton Head Island,32.19382,-80.73816,3.0
+hilversum,NED,hilversum,Hilversum,52.22333,5.17639,7.0
+hiroshima,JPN,hiroshima,Hiroshima,34.4,132.45,16.0
+ho chi minh city,VIE,Ho Chi Minh City,Ho Chi Minh City,10.82302,106.62965,7.0
+hobart,AUS,hobart,Hobart,-42.87936,147.3294,19.0
+hong kong,HKG,hong kong,Hong Kong,22.27832,114.17469,60.0
+hope island,AUS,Hope Island,Hope Island,-27.87036,153.35164,4.0
+houston,USA,houston,Houston,29.76328,-95.36327,12.0
+hua hin,THA,hua hin,Hua Hin,12.57065,99.95876,10.0
+hyderabad,IND,hyderabad,Hyderabad,17.38405,78.45636,515.0
+iasi,ROU,iasi,Iași,47.16667,27.6,66.0
+ibaraki,JPN,Mito,Mito,36.35,140.45,28.0
+indian wells,USA,indian wells,Indio,33.7207,-116.21677,4.0
+indian wells masters,USA,Indian Wells,Indio,33.7207,-116.21677,4.0
+indianapolis,USA,indianapolis,Indianapolis,39.76838,-86.15804,218.0
+istanbul,TUR,istanbul,Istanbul,41.01384,28.94966,39.0
+jakarta,INA,jakarta,Jakarta,-6.21462,106.84513,16.0
+japan open,JPN,Tokyo,Tokyo,35.6895,139.69171,44.0
+japan open tokyo,JPN,Tokyo,Tokyo,35.6895,139.69171,44.0
+jeddah,KSA,jeddah,Jeddah,21.49012,39.18624,7.0
+jiujiang,CHN,jiujiang,Jiujiang,29.70475,116.00206,41.0
+johannesburg,RSA,johannesburg,Johannesburg,-26.20227,28.04363,1767.0
+jurmala,LAT,jurmala,Jūrmala,56.968,23.77038,6.0
+kaohsiung,TPE,kaohsiung,Kaohsiung City,22.61626,120.31333,9.0
+katowice,POL,katowice,Katowice,50.2597,19.02173,276.0
+key biscayne,USA,Key Biscayne,Key Biscayne,25.69371,-80.16282,1.0
+kitzbuhel,AUT,kitzbuhel,Kitzbühel,47.44637,12.39215,751.0
+knokke heist,BEL,Knokke-Heist,Knokke-Heist,51.35,3.26667,5.0
+kolkata,IND,kolkata,Kolkata,22.56263,88.36304,11.0
+kremlin cup,RUS,Moscow,Moscow,55.75204,37.61781,155.0
+kuala lumpur,MAS,Kuala Lumpur,Kuala Lumpur,3.1412,101.68653,56.0
+kugayama,JPN,Tokyo,Tokyo,35.6895,139.69171,44.0
+las vegas,USA,las vegas,Las Vegas,36.17497,-115.13722,610.0
+lausanne,SUI,lausanne,Lausanne,46.516,6.63282,453.0
+leipzig,GER,leipzig,Leipzig,51.33962,12.37129,116.0
+lexington,USA,lexington,Lexington,37.98869,-84.47772,295.0
+liege,BEL,liege,Liège,50.63373,5.56749,66.0
+limoges,FRA,limoges,Limoges,45.83362,1.24759,309.0
+linz,AUT,linz,Linz,48.30639,14.28611,266.0
+london,GBR,london,London,51.50853,-0.12574,25.0
+london olympics,GBR,London,London,51.50853,-0.12574,25.0
+long island,USA,long island,Long Island,40.81677,-73.06622,29.0
+los angeles,USA,los angeles,Los Angeles,34.05223,-118.24368,89.0
+los cabos,MEX,Cabo San Lucas,Cabo San Lucas,22.89088,-109.91238,11.0
+lucerne,SUI,lucerne,Lucerne,47.05048,8.30635,437.0
+lugano,SUI,lugano,Lugano,46.01008,8.96004,284.0
+luxembourg,LUX,luxembourg,Luxembourg,49.75,6.16667,406.0
+lyon,FRA,lyon,Lyon,45.74906,4.84789,173.0
+m rida,MEX,Merida,Mérida,20.967,-89.62318,10.0
+maceio,BRA,maceio,Maceió,-9.66583,-35.73528,11.0
+madrid,ESP,madrid,Madrid,40.4165,-3.70256,665.0
+madrid masters,ESP,Madrid,Madrid,40.4165,-3.70256,665.0
+mallorca,ESP,mallorca,Majorca,39.6078,3.01197,201.0
+manchester,GBR,manchester,Manchester,53.48095,-2.23743,51.0
+manhattan beach,USA,manhattan beach,Manhattan Beach,33.88474,-118.41091,20.0
+marbella,ESP,marbella,Marbella,36.51543,-4.88583,57.0
+maria lankowitz,AUT,Maria Lankowitz,Maria Lankowitz,47.0622,15.06525,508.0
+marrakech,MAR,Marrakesh,Marrakesh,31.63416,-7.99994,457.0
+marseille,FRA,marseille,Marseille,43.29695,5.38107,28.0
+melbourne,AUS,melbourne,Melbourne,-37.814,144.96332,25.0
+memphis,USA,memphis,Memphis,35.14953,-90.04898,78.0
+merano,ITA,merano,Merano,46.66817,11.15953,325.0
+merida,MEX,merida,Mérida,20.967,-89.62318,10.0
+metz,FRA,metz,Metz,49.11911,6.17269,182.0
+mexico city,MEX,Mexico City,Mexico City,19.42847,-99.12766,2240.0
+miami,USA,miami,Miami,25.77427,-80.19366,2.0
+miami masters,USA,Miami,Miami,25.77427,-80.19366,2.0
+milan,ITA,milan,Milan,45.46427,9.18951,122.0
+monastir,TUN,monastir,Monastir,35.77799,10.82617,20.0
+monte carlo,MON,Monte-Carlo,Monte Carlo,43.73976,7.42732,45.0
+monte carlo masters,MON,Monte-Carlo,Monte Carlo,43.73976,7.42732,45.0
+monterrey,MEX,monterrey,Monterrey,25.68435,-100.31721,560.0
+montevideo,URU,montevideo,Montevideo,-34.90328,-56.18816,34.0
+montpellier,FRA,montpellier,Montpellier,43.61093,3.87635,55.0
+montreal,CAN,montreal,Montreal,45.50884,-73.58781,216.0
+moscow,RUS,moscow,Moscow,55.75204,37.61781,155.0
+mumbai,IND,mumbai,Mumbai,19.07283,72.88261,8.0
+munich,GER,munich,Munich,48.13743,11.57549,524.0
+murray river open,AUS,Melbourne,Melbourne,-37.814,144.96332,25.0
+nanchang,CHN,nanchang,Nanchang,28.68396,115.85306,20.0
+naples,ITA,naples,Naples,40.85216,14.26811,17.0
+new delhi,IND,New Delhi,New Delhi,28.62137,77.2148,211.0
+new haven,USA,new haven,New Haven,41.30815,-72.92816,18.0
+new york,USA,new york,New York,40.71427,-74.00597,10.0
+new york open,USA,Uniondale,Uniondale,40.70038,-73.59291,16.0
+newport,USA,newport,Newport,39.09145,-84.49578,156.0
+nice,FRA,nice,Nice,43.70313,7.26608,25.0
+ningbo,CHN,ningbo,Ningbo,29.87819,121.54945,15.0
+nottingham,GBR,nottingham,Nottingham,52.9536,-1.15047,46.0
+nur sultan,KAZ,Astana,Astana,51.1801,71.44598,358.0
+nuremberg,GER,nuremberg,Nuremberg,49.45421,11.07752,300.0
+nurnberg,GER,nurnberg,Nuremberg,49.45421,11.07752,300.0
+oahu,USA,Honolulu,Honolulu,21.30694,-157.85834,5.0
+oakland,USA,oakland,Oakland,37.80437,-122.2708,13.0
+oeiras,POR,oeiras,Oeiras,38.69105,-9.31085,36.0
+oklahoma,USA,oklahoma,Oklahoma,40.58145,-79.57393,293.0
+oporto,POR,oporto,Porto,41.1485,-8.61097,91.0
+orlando,USA,orlando,Orlando,28.53834,-81.37924,30.0
+osaka,JPN,osaka,Osaka,34.69379,135.50107,4.0
+ostrava,CZE,ostrava,Ostrava,49.83465,18.28204,211.0
+palermo,ITA,palermo,Palermo,38.1166,13.3636,14.0
+palm springs,USA,palm springs,Palm Springs,33.8303,-116.54529,146.0
+paris,FRA,paris,Paris,48.85341,2.3488,42.0
+paris masters,FRA,Paris,Paris,48.85341,2.3488,42.0
+paris olympics,FRA,Paris,Paris,48.85341,2.3488,42.0
+parma,ITA,parma,Parma,44.79935,10.32618,57.0
+pattaya,THA,pattaya,Pattaya,12.93333,100.88333,9.0
+philadelphia,USA,philadelphia,Philadelphia,39.95238,-75.16362,12.0
+phillip island trophy,AUS,Melbourne,Melbourne,-37.814,144.96332,25.0
+pinehurst,USA,pinehurst,Pinehurst,35.19543,-79.46948,160.0
+poertschach,AUT,Portschach,Pörtschach am Wörthersee,46.63639,14.14639,449.0
+ponte vedra beach,USA,Ponte Vedra Beach,Ponte Vedra Beach,30.23969,-81.38564,4.0
+portoroz,SLO,portoroz,Portorož,45.51429,13.59206,6.0
+prague,CZE,prague,Prague,50.08804,14.42076,202.0
+pune,IND,pune,Pune,18.51957,73.85535,554.0
+quebec city,CAN,Quebec,Québec,46.81228,-71.21454,54.0
+queen s club,GBR,London,London,51.50853,-0.12574,25.0
+queens,GBR,London,London,51.50853,-0.12574,25.0
+queens club,GBR,London,London,51.50853,-0.12574,25.0
+quito,ECU,quito,Quito,-0.22985,-78.52495,2854.0
+rabat,MAR,rabat,Rabat,34.01325,-6.83255,46.0
+rio de janeiro,BRA,rio de janeiro,Rio de Janeiro,-22.90642,-43.18223,12.0
+rio olympics,BRA,Rio de Janeiro,Rio de Janeiro,-22.90642,-43.18223,12.0
+riyadh,KSA,riyadh,Riyadh,24.68773,46.72185,612.0
+roland garros,FRA,Paris,Paris,48.85341,2.3488,42.0
+rome,ITA,rome,Rome,41.89193,12.51133,20.0
+rome masters,ITA,Rome,Rome,41.89193,12.51133,20.0
+rosmalen,NED,Rosmalen,Rosmalen,51.71667,5.36528,6.0
+rotterdam,NED,rotterdam,Rotterdam,51.9225,4.47917,9.0
+rouen,FRA,rouen,Rouen,49.44313,1.09932,21.0
+s hertogenbosch,NED,Hertogenbosch,'s-Hertogenbosch,51.69917,5.30417,7.0
+salvador,BRA,salvador,Salvador,-12.97563,-38.49096,4.0
+san antonio,USA,san antonio,San Antonio,29.42412,-98.49363,198.0
+san diego,USA,san diego,San Diego,32.71571,-117.16472,20.0
+san francisco,USA,san francisco,San Francisco,37.77493,-122.41942,16.0
+san jose,USA,San Jose,San Jose,37.33939,-121.89496,26.0
+san juan,PUR,san juan,San Juan,18.46633,-66.10572,7.0
+san marino,SMR,san marino,San Marino,43.93667,12.44639,683.0
+santiago,CHI,Santiago,Santiago,-33.45694,-70.64827,556.0
+sao paulo,BRA,sao paulo,São Paulo,-23.5475,-46.63611,769.0
+sarasota,USA,sarasota,Sarasota,27.33643,-82.53065,7.0
+sardinia,ITA,Cagliari,Cagliari,39.23054,9.11917,6.0
+schenectady,USA,schenectady,Schenectady,42.81424,-73.93957,74.0
+scottsdale,USA,scottsdale,Scottsdale,33.50921,-111.89903,383.0
+seoul,KOR,seoul,Seoul,37.566,126.9784,38.0
+serbia,SRB,Belgrade,Belgrade,44.80401,20.46513,120.0
+shanghai,CHN,shanghai,Shanghai,31.22222,121.45806,12.0
+shanghai masters,CHN,Shanghai,Shanghai,31.22222,121.45806,12.0
+shenzhen,CHN,shenzhen,Shenzhen,22.54554,114.0683,4.0
+shenzhen finals,CHN,Shenzhen,Shenzhen,22.54554,114.0683,4.0
+singapore,SGP,singapore,Singapore,1.28967,103.85007,23.0
+sofia,BUL,sofia,Sofia,42.69751,23.32415,562.0
+sopot,POL,sopot,Sopot,54.4418,18.56003,20.0
+split,CRO,split,Split,43.50891,16.43915,12.0
+st petersburg,RUS,st petersburg,St Petersburg,59.93863,30.31413,11.0
+st poelten,AUT,Sankt Polten,Sankt Pölten,48.20762,15.63725,265.0
+stanford,USA,stanford,Burgaw,34.55211,-77.9261,15.0
+stockholm,SWE,stockholm,Stockholm,59.32938,18.06871,17.0
+stockholm masters,SWE,Stockholm,Stockholm,59.32938,18.06871,17.0
+strasbourg,FRA,strasbourg,Strasbourg,48.58392,7.74553,147.0
+stratton mountain,USA,stratton mountain,Stratton Mountain,43.11674,-72.90649,610.0
+stuttgart,GER,stuttgart,Stuttgart,48.78232,9.17702,252.0
+stuttgart indoor,GER,Stuttgart,Stuttgart,48.78232,9.17702,252.0
+stuttgart masters,GER,Stuttgart,Stuttgart,48.78232,9.17702,252.0
+stuttgart outdoor,GER,Stuttgart,Stuttgart,48.78232,9.17702,252.0
+styria,AUT,Bad Waltersdorf,Bad Waltersdorf,47.1696,16.0087,290.0
+sun city,RSA,sun city,Sun City,-25.33997,27.09738,1258.0
+surabaya,INA,surabaya,Surabaya,-7.24917,112.75083,8.0
+sydney,AUS,sydney,Sydney,-33.86785,151.20732,58.0
+sydney indoor,AUS,Sydney,Sydney,-33.86785,151.20732,58.0
+sydney olympics,AUS,Sydney,Sydney,-33.86785,151.20732,58.0
+sydney outdoor,AUS,Sydney,Sydney,-33.86785,151.20732,58.0
+taipei,TPE,taipei,Taipei,25.05306,121.52639,5.0
+tallinn,EST,tallinn,Tallinn,59.43696,24.75353,12.0
+tampa,USA,tampa,Tampa,27.94752,-82.45843,1.0
+taranto,ITA,taranto,Taranto,40.46438,17.24707,15.0
+tashkent,UZB,tashkent,Tashkent,41.26465,69.21627,424.0
+tel aviv,ISR,tel aviv,Tel Aviv,32.08088,34.78057,15.0
+tenerife,ESP,tenerife,Tenerife,28.32977,-16.5097,10.0
+tianjin,CHN,tianjin,Tianjin,39.14222,117.17667,11.0
+tokyo,JPN,tokyo,Tokyo,35.6895,139.69171,44.0
+tokyo indoor,JPN,Tokyo,Tokyo,35.6895,139.69171,44.0
+tokyo japan open,JPN,Tokyo,Tokyo,35.6895,139.69171,44.0
+tokyo nichirei,JPN,Tokyo,Tokyo,35.6895,139.69171,44.0
+tokyo olympics,JPN,Tokyo,Tokyo,35.6895,139.69171,44.0
+tokyo outdoor,JPN,Tokyo,Tokyo,35.6895,139.69171,44.0
+tokyo pan pacific,JPN,Tokyo,Tokyo,35.6895,139.69171,44.0
+toronto,CAN,toronto,Toronto,43.70643,-79.39864,161.0
+toulouse,FRA,toulouse,Toulouse,43.60426,1.44367,150.0
+umag,CRO,umag,Umag,45.43139,13.52389,4.0
+united cup,AUS,Sydney,Sydney,-33.86785,151.20732,58.0
+us open,USA,New York,New York,40.71427,-74.00597,10.0
+valencia,ESP,valencia,Valencia,39.47391,-0.37966,15.0
+vienna,AUT,vienna,Vienna,48.20849,16.37208,171.0
+vina del mar,CHI,Vina del Mar,Viña del Mar,-33.02457,-71.55183,17.0
+waikoloa,USA,waikoloa,Waikoloa,19.93942,-155.7893,262.0
+warrnambool,AUS,warrnambool,Warrnambool,-38.38176,142.48799,24.0
+warsaw,POL,warsaw,Warsaw,52.22977,21.01178,113.0
+washington,USA,washington,Washington D.C.,38.89511,-77.03637,7.0
+washington dc,USA,Washington,Washington D.C.,38.89511,-77.03637,7.0
+wellington,NZL,wellington,Wellington,-41.28664,174.77557,31.0
+wimbledon,GBR,London,London,51.50853,-0.12574,25.0
+winston salem,USA,Winston-Salem,Winston-Salem,36.09986,-80.24422,293.0
+wuhan,CHN,wuhan,Wuhan,30.58333,114.26667,20.0
+yarra valley classic,AUS,Melbourne,Melbourne,-37.814,144.96332,25.0
+zagreb,CRO,zagreb,Zagreb,45.81444,15.97798,135.0
+zaragoza,ESP,zaragoza,Zaragoza,41.65606,-0.87734,214.0
+zhengzhou,CHN,zhengzhou,Zhengzhou,34.75778,113.64861,104.0
+zhuhai,CHN,zhuhai,Zhuhai,22.27694,113.56778,35.0
+zurich,SUI,zurich,Zurich,47.36667,8.55,429.0

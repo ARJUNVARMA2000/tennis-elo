@@ -72,14 +72,20 @@ class Objective:
         self.tour, self.group = tour, group
         self.years = years
         if group == "xgb":
+            from ..model.features import main_rows
             from ..model.train import load_or_build_features
-            self.feat = load_or_build_features(tour=tour)
+            # combiner regime = main rows only (A5 ratings-only adoption)
+            self.feat = main_rows(load_or_build_features(tour=tour))
             return
         self.df = load_matches(tour)
         yr = self.df["date"].dt.year
-        self.mask = (self.df["completed"].to_numpy()
+        # lower-tier rows (A5) inform every walk but are never SCORED — objectives
+        # must stay comparable to the arbiter's main-draw eval set
+        main = ((self.df["draw_level"] == "main").to_numpy()
+                if "draw_level" in self.df.columns else True)
+        self.mask = (self.df["completed"].to_numpy() & main
                      & (yr >= years[0]).to_numpy() & (yr <= years[1]).to_numpy())
-        self.vmask = self.df["completed"].to_numpy() & (yr >= VAL_START).to_numpy()
+        self.vmask = self.df["completed"].to_numpy() & main & (yr >= VAL_START).to_numpy()
         if group == "feat":
             # serve/return params are fixed across trials — run that walk once
             from ..model.train import xgb_params_for
@@ -175,14 +181,15 @@ class Objective:
                                xgb_overrides=overrides, verbose=False, n_bag=1)
             return -np.log(np.clip(oos["p_combiner"].to_numpy(), 1e-12, None))
         if self.group == "feat":
-            from ..model.features import FeatureParams, _assemble, run_context
+            from ..model.features import FeatureParams, _assemble, main_rows, run_context
             from ..model.train import walk_forward
             cfg = dict(cfg)
             elo_p = replace(params_for(self.tour), form_days=cfg.pop("form_days"))
             _, elo = run_elo(self.df, params=elo_p)
             fp = FeatureParams(**cfg)
             _, ctx = run_context(self.df, params=fp)
-            feat = _assemble(self.df.join(elo).join(self.srv_feats).join(ctx), params=fp)
+            feat = main_rows(_assemble(self.df.join(elo).join(self.srv_feats).join(ctx),
+                                       params=fp))
             start, end = (self.years if window == "tune"
                           else (VAL_START, int(feat["year"].max())))
             oos = walk_forward(feat, start_test=start, end_test=end,

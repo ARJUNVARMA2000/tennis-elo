@@ -25,7 +25,11 @@ from .features import FEATURES, build_feature_frame, make_oriented_xy
 
 
 def _cache_path(tour: str):
-    return OUTPUT_DIR / f"_features_{tour}.pkl"
+    from ..config import INCLUDE_CHALLENGERS  # read at call time (patchable)
+    # regime-keyed: a cache built without lower-tier rows must never silently
+    # serve a run that expects them (and vice versa)
+    suffix = "_lower" if INCLUDE_CHALLENGERS else ""
+    return OUTPUT_DIR / f"_features_{tour}{suffix}.pkl"
 
 
 def load_or_build_features(rebuild: bool = False, tour: str = "atp") -> pd.DataFrame:

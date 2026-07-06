@@ -76,14 +76,16 @@ def test_paged_runaway_cap_raises():
 
 
 def test_write_year_merges_and_is_atomic():
-    orig = (ws.stats_dir, ws.fresh_dir)
+    orig = (ws.stats_dir, ws.fresh_dir, ws.historical_dir)
     try:
         with tempfile.TemporaryDirectory() as d:
             base = Path(d)
             (base / "stats").mkdir()
             (base / "fresh").mkdir()
+            (base / "historical").mkdir()
             ws.stats_dir = lambda tour: base / "stats"
             ws.fresh_dir = lambda tour: base / "fresh"
+            ws.historical_dir = lambda tour: base / "historical"
 
             old = pd.DataFrame({"tourney_id": ["2026-W1", "2026-W2"],
                                 "winner_name": ["A", "B"], "loser_name": ["X", "Y"],
@@ -98,11 +100,93 @@ def test_write_year_merges_and_is_atomic():
             # empty incremental scrape: no-op that reports the existing count
             n_empty = ws.write_year(2026, pd.DataFrame())
     finally:
-        ws.stats_dir, ws.fresh_dir = orig
+        ws.stats_dir, ws.fresh_dir, ws.historical_dir = orig
     assert n == 2 and n_empty == 2
     assert set(merged["score"]) == {"6-1 6-1", "6-3 6-3"}, merged
     assert leftovers == []                       # atomic write left no temp file behind
     print("ok test_write_year_merges_and_is_atomic")
+
+
+def test_scrape_year_tolerates_minority_dead_endpoints():
+    """Old seasons carry a few permanently-404 event endpoints; a minority must be
+    skipped loudly (additive merge), while a majority still raises (real outage)."""
+    def events(n):
+        return [{"id": i, "name": f"E{i}", "year": 2016, "level": "WTA500",
+                 "surface": "Hard", "indoor": "O", "start": "2016-01-01",
+                 "end": "2016-01-08", "draw": 32} for i in range(n)]
+
+    orig = (ws.fetch_tournaments, ws.scrape_tournament)
+    try:
+        ws.fetch_tournaments = lambda year: events(10)
+        # 2 dead endpoints out of 10 -> tolerated (max(2, 10//5) = 2 threshold... 2 is not > 2)
+        def two_dead(ev):
+            if ev["id"] < 2:
+                raise RuntimeError("dead endpoint")
+            return [{"tourney_id": f"2016-W{ev['id']}", "winner_name": "A",
+                     "loser_name": "B", "score": "6-1 6-1"}]
+        ws.scrape_tournament = two_dead
+        df = ws.scrape_year(2016)
+        assert len(df) == 8, len(df)
+
+        # 5 dead out of 10 -> majority-ish: must raise, not silently produce a husk
+        def five_dead(ev):
+            if ev["id"] < 5:
+                raise RuntimeError("dead endpoint")
+            return [{"tourney_id": f"2016-W{ev['id']}", "winner_name": "A",
+                     "loser_name": "B", "score": "6-1 6-1"}]
+        ws.scrape_tournament = five_dead
+        try:
+            ws.scrape_year(2016)
+            raise AssertionError("expected RuntimeError on majority hard-fail")
+        except RuntimeError as e:
+            assert "outage" in str(e)
+    finally:
+        ws.fetch_tournaments, ws.scrape_tournament = orig
+    print("ok test_scrape_year_tolerates_minority_dead_endpoints")
+
+
+def test_enrich_inherits_from_historical_archive():
+    """Backfill years have no fresh overlay: rankings/age/bios must be inherited
+    from the frozen historical archive's duplicate of the same match instead
+    (the API returns neither rankings nor per-match age)."""
+    orig = (ws.stats_dir, ws.fresh_dir, ws.historical_dir)
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            for n in ("stats", "fresh", "historical"):
+                (base / n).mkdir()
+            ws.stats_dir = lambda tour: base / "stats"
+            ws.fresh_dir = lambda tour: base / "fresh"
+            ws.historical_dir = lambda tour: base / "historical"
+
+            pd.DataFrame({
+                "winner_name": ["Serena Williams"], "loser_name": ["Angelique Kerber"],
+                "winner_rank": [1], "loser_rank": [10],
+                "winner_rank_points": [9000], "loser_rank_points": [3000],
+                "winner_age": [34.5], "loser_age": [28.0],
+                "winner_hand": ["R"], "loser_hand": ["L"],
+                "winner_ht": [175], "loser_ht": [173],
+                "score": ["6-4 3-6 6-4"],
+            }).to_csv(base / "historical" / "2016.csv", index=False)
+
+            scraped = pd.DataFrame({
+                "winner_name": ["Serena Williams"], "loser_name": ["Angelique Kerber"],
+                "winner_rank": [None], "loser_rank": [None],
+                "winner_rank_points": [None], "loser_rank_points": [None],
+                "winner_age": [None], "loser_age": [None],
+                "winner_hand": [None], "loser_hand": [None],
+                "winner_ht": [None], "loser_ht": [None],
+                "score": ["6-4 3-6 6-4"],
+            })
+            out = ws._enrich_from_local(scraped, 2016)
+    finally:
+        ws.stats_dir, ws.fresh_dir, ws.historical_dir = orig
+    row = out.iloc[0]
+    assert row["winner_rank"] == 1 and row["loser_rank"] == 10
+    assert row["winner_rank_points"] == 9000
+    assert row["winner_age"] == 34.5 and row["loser_hand"] == "L"
+    assert row["winner_ht"] == 175
+    print("ok test_enrich_inherits_from_historical_archive")
 
 
 if __name__ == "__main__":
@@ -111,4 +195,6 @@ if __name__ == "__main__":
     test_paged_short_page_ends_walk()
     test_paged_runaway_cap_raises()
     test_write_year_merges_and_is_atomic()
+    test_scrape_year_tolerates_minority_dead_endpoints()
+    test_enrich_inherits_from_historical_archive()
     print("\nALL PASSED")

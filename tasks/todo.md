@@ -1,3 +1,90 @@
+# Task: Data-gap round — challenger ingestion + WTA backfill + altitude (2026-07-05)
+
+Plan: C:\Users\varma\.claude\plans\give-me-a-clear-rosy-raccoon.md
+Headline: stats.tennismylife.org backfilled {year}_challenger.csv to 1978 and hosts
+atp_quali/{year}_atp_quali.csv from 2007 (verified per-year, full serve stats) —
+A5 is unblocked. All adoptions via the full walk-forward arbiter (paired d±SE,
+tune 2010–19 / val 2020+), scored on the IDENTICAL main-draw eval set.
+
+## Phase A — ATP challenger + qualifying ingestion (A5)
+- [x] config: quali_file (+quali_first_year 2007) + ongoing_challenger_file,
+      lower_dir(), LOWER_TIER_FIRST_YEAR=2005, TIER_NAMES "Q"→challenger,
+      ROUND_ORDER Q1–Q3 (negative = pre-main-draw), stale comment fixed
+- [x] download.py: download_lower() + --kind lower + download_all wiring (gated);
+      archive bootstrapped: 43 files 2005–2026 (quali starts 2007 upstream)
+- [x] results.py: load-time gate — _read_lower(), draw_level marker, __src=4,
+      quali rows tourney_level→"Q"
+- [x] features.py: draw_level carried through _assemble
+- [x] tests: 4 new lower-ingestion tests; suite 96 passed; ruff clean
+- [x] sanity: main rows bit-identical with flag on (152,952), +129,968 lower rows
+      (100.5k chall + 29.4k qual), stats coverage 79.9%, 2019 upstream dip (3,099)
+      + 2020 COVID (2,180) noted, 1,904/5,049 lower players overlap tour population
+- [x] A/B arbiter mode=full: REJECT — d_tune +0.00869±0.00087 (10 SE, acc
+      0.698→0.708!) but d_val −0.00107±0.00101; per-year d swings ±0.03
+      (2024 −0.035 t=−15) ⇒ combiner training/calibration destabilized by
+      challenger-dominated row mix, not a rating-priors failure
+- [x] A/B arbiter mode=ratings-only: **PASS → ADOPTED** — d_tune +0.00587±0.00089,
+      d_val +0.00756±0.00100 (7.6 SE, val > tune), full acc 0.6900→0.6958, Brier
+      0.1975→0.1947 (crosses the 0.196 bookmaker anchor); 17/17 years positive
+- [x] adoption: INCLUDE_CHALLENGERS=True; INCLUDE_WTA_125=False decoupled;
+      pipeline main_rows() combiner filter; tune.py scoring masks main-only;
+      regime-keyed feature cache; tests 98 passed + ruff clean
+- [x] production rebuild (--tour all --backtest) verified complete 2026-07-06
+      02:21 UTC: 2016-26 window ATP acc 0.6757→0.6832 / Brier 0.2034→0.2001;
+      42-feature schema clean; health --strict green (ATP season stats 97.6%)
+- [x] lessons.md: data-experiments-are-two-experiments lesson
+- [ ] README metrics refresh (single pass after the altitude verdict)
+
+## Phase B — WTA stats backfill
+- [x] probe: API match detail starts 2016 — 2010–2015 CONFIRMED unreachable
+      (tournaments enumerate but matches arrays empty; negative recorded)
+- [x] scraper hardening: 404 fast-path; per-event hard-fail tolerance with
+      majority-outage raise (+2 tests)
+- [x] _enrich_from_local: scraped rows inherit rank/age/ht/hand from the frozen
+      historical archive too (backfill years have no fresh overlay) (+1 test)
+- [x] backfill 2016 + 2023: 2016 coverage 73.4%→94.3% (+387 recovered matches);
+      2023 91.5%→91.8% (API lacks RG/USO stats); production rebuild verified
+      WTA LL 0.5966→0.5946 on the 2016-26 window
+- [ ] optional follow-up: 2024 top-up (78.2% merged), 2017–2022 marginal
+
+## Phase C — altitude feature (gated experiment)
+- [x] static venue→altitude table: data/altitude.py builder + committed
+      venue_altitude.csv (331 venues, 0 unresolved; Quito 2854/Bogotá 2582/
+      Gstaad 1055 verified); geo.city_key() extracted for shared resolution
+- [x] altitude_km symmetric feature + predict.py mirror (event= path) + tests
+      (key-set parity tripwire green; venue lookup + sponsor-prefix tests);
+      101 passed, ruff clean
+- [x] A/B arbiter both tours: **REJECT** — ATP +0.00005 (noise), WTA d_tune
+      −0.00005 / d_val −0.00017±0.00012; wiring reverted with tombstone in
+      SYMMETRIC; table/module/tests retained; schema re-verified == production
+      predictor (42 features)
+- [x] README metrics refresh (final numbers, five-source data section,
+      data-round doc link, 182-test count)
+
+## Review (round complete 2026-07-06)
+
+- **Adopted**: A5 challenger+quali ingestion, ratings-only form — the largest
+  gate-passing result in project history (d_val +0.00756±0.00100, 17/17 years
+  positive). Full 2010–26 walk: ATP combiner 0.690→0.6958 acc, 0.1975→0.1947
+  Brier — now clears the bookmaker literature anchor on both axes. Component
+  effect even larger: ATP Elo-blend Brier 0.2062→0.2006.
+- **Data refresh**: WTA 2016 stats 73.4%→94.3% (+387 recovered matches) + 2023
+  top-up; 2010–2015 confirmed unreachable via the WTA API (negative recorded).
+- **Rejected honestly**: A5 full variant (combiner-training contamination,
+  ±0.03/yr instability); altitude feature (noise ATP, negative WTA) — both fully
+  documented in tasks/tuning-results-2026-07-05-data-round.md.
+- **Deviations from plan**: the plan's single Phase-A A/B became two (full +
+  ratings-only) after the per-year instability diagnosis — the split IS the
+  result (new lesson in lessons.md). Production pipeline gained the main_rows
+  combiner filter, which the plan hadn't anticipated.
+- **Verification**: 101 pytest + ruff green; production rebuild artifacts +
+  schema verified; data.health --strict green; deployed-window metrics improved
+  (ATP acc 0.6757→0.6832 on 2016–26).
+- **Follow-ups parked**: WTA 2024 stats top-up (78.2%); WTA lower-tier remains
+  gate-untestable; commit/push left to the user.
+
+---
+
 # Task: Autoresearch round — maximize model performance (2026-07-02 evening)
 
 Goal: close the gap to the bookmaker (ATP 0.1983 vs 0.196 Brier; WTA 0.2023 vs 0.196).

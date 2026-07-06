@@ -209,6 +209,23 @@ _PER_TOUR = {("birmingham", "atp"): "USA"}
 
 
 @cache
+def city_key(name: str) -> str | None:
+    """The CITY_IOC key a tournament name resolves to (exact, then longest
+    substring for sponsor-prefixed variants), or None. Shared by host_ioc and the
+    venue-altitude lookup so both resolve names identically."""
+    if not isinstance(name, str) or not name:
+        return None
+    n = _norm(name)
+    if n in CITY_IOC:
+        return n
+    padded = f" {n} "
+    for key in _SUBSTR_KEYS:
+        if f" {key} " in padded:
+            return key
+    return None
+
+
+@cache
 def host_ioc(name: str, year: int, tour: str | None = None) -> str | None:
     """Host nation IOC code for a tournament name + year, or None if unknown."""
     if not isinstance(name, str) or not name:
@@ -228,11 +245,5 @@ def host_ioc(name: str, year: int, tour: str | None = None) -> str | None:
     fn = _YEARLY.get(n)
     if fn is not None:
         return fn(int(year))
-    hit = CITY_IOC.get(n)
-    if hit is not None:
-        return hit
-    padded = f" {n} "
-    for key in _SUBSTR_KEYS:                 # sponsor-prefixed variants
-        if f" {key} " in padded:
-            return CITY_IOC[key]
-    return None
+    key = city_key(name)
+    return CITY_IOC[key] if key is not None else None

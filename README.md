@@ -26,20 +26,22 @@ Across the literature, sophisticated ML doesn't beat a good Elo on its own — i
 *matches* it, while the betting market is the ceiling (~69% acc / 0.196 Brier). The
 winning recipe is a **hybrid**: engineer strong Elo + point-model features, then let
 gradient boosting combine and calibrate them. Walk-forward, leakage-free results
-(45,762 ATP / 42,348 WTA matches):
+(45,762 ATP / 42,513 WTA matches):
 
 | Model (walk-forward 2010–2026) | ATP Brier | WTA Brier |
 |---|---|---|
-| Surface Elo + cross-surface transfer (tuned per tour) | 0.2062 | 0.2111 |
-| Serve/return point model (tuned) | 0.2093 | 0.2147 |
-| **XGBoost combiner (seed-bagged)** | **0.1975** | **0.2019** |
+| Surface Elo + cross-surface transfer (tuned per tour) | 0.2006 | 0.2112 |
+| Serve/return point model (tuned) | 0.2055 | 0.2148 |
+| **XGBoost combiner (seed-bagged)** | **0.1947** | **0.2018** |
 | _Bookmaker (literature anchor)_ | _0.196_ | _0.196_ |
 
-The combiner beats every component on both tours; the ATP model's **accuracy (0.690)
-sits exactly at the bookmaker anchor**, with its Brier gap down to 0.0015. Every
-constant is tuned offline per tour (Optuna, 2010–19 tune window, 2020+ validation —
-see `eval/tune.py`); feature importance confirms the thesis: Elo (overall + surface)
-carries most of the signal.
+The combiner beats every component on both tours, and the ATP model now **clears the
+bookmaker anchor on both accuracy (0.696 vs ~0.690) and Brier (0.1947 vs 0.196)** —
+the single largest jump came from ingesting ~130k Challenger + qualifying matches
+into the rating walks (ratings-only: the combiner still trains on main draws;
+d_val +0.0076 ± 0.0010, 17/17 years positive). Every constant is tuned offline per
+tour (Optuna, 2010–19 tune window, 2020+ validation — see `eval/tune.py`); feature
+importance confirms the thesis: Elo (overall + surface) carries most of the signal.
 
 **How changes get adopted.** Every candidate — a constant, a feature, a training
 trick — must pass a paired-SE gate on a held-out window *and* a full walk-forward
@@ -52,7 +54,8 @@ host-mislabeling bug that had inflated the WTA home-advantage gain 5× before it
 ship. Full logs:
 [`tasks/tuning-results-2026-07-02.md`](tasks/tuning-results-2026-07-02.md),
 [`…-core-round.md`](tasks/tuning-results-2026-07-02-core-round.md),
-[`…-autoresearch.md`](tasks/tuning-results-2026-07-02-autoresearch.md).
+[`…-autoresearch.md`](tasks/tuning-results-2026-07-02-autoresearch.md),
+[`…-2026-07-05-data-round.md`](tasks/tuning-results-2026-07-05-data-round.md).
 
 ## Architecture
 
@@ -69,14 +72,19 @@ data ─┬─ surface Elo + cross-surface transfer (dynamic K, margin-of-victor
 ## Data — hourly fresh (the hard part)
 
 Jeff Sackmann's canonical repos went private in 2026 and the free mirrors keep freezing,
-so each tour **merges four sources**, deduplicated with stats-bearing rows winning:
+so each tour **merges five sources**, deduplicated with stats-bearing rows winning:
 
 - **Full-schema historical** (serve stats; frozen upstreams, snapshot-backed):
   `Tennismylife/TML-Database` (ATP), a full-schema WTA snapshot.
 - **Daily stats overlay** (serve stats, current season): ATP from
   [stats.tennismylife.org](https://stats.tennismylife.org) (TML's daily-updated home);
   WTA **scraped from the first-party wtatennis.com API** (`data/wta_stats.py`) — no free
-  bulk source has carried WTA serve stats since mid-2024.
+  bulk source has carried WTA serve stats since mid-2024 (2016+ back-filled from the
+  same API).
+- **Challenger + qualifying overlay** (ATP, 2005+, serve stats): ~130k lower-tier
+  matches feeding the rating walks only — the combiner still trains on main draws
+  (`draw_level` gate; the "full" variant measurably destabilized training and was
+  rejected).
 - **Fresh weekly results** (results-only): `LuckyLoser91/TennisCourtLog` (both tours).
 - **Official live rankings**: scraped hourly from live-tennis.eu (`data/rankings.py`)
   to put real ATP/WTA ranks and movement next to the model's Elo board (display only,
@@ -104,7 +112,7 @@ web/                 Next.js 16 app (12 views, ATP/WTA toggle, static export)
 
 ## Engineering quality
 
-- **172 tests green on every push** — 91 pytest (model, data, geo, parity) + 81 vitest
+- **182 tests green on every push** — 101 pytest (model, data, geo, parity) + 81 vitest
   (lib math, UI logic), plus ruff + eslint and a type-checked static-export build in CI
   ([`.github/workflows/test.yml`](.github/workflows/test.yml)).
 - **Cross-language contract tests**: player-name canonicalisation (`name_key`) is

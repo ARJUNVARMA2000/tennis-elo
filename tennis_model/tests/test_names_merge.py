@@ -93,18 +93,21 @@ def _write_csv(path: Path, text: str) -> None:
 
 
 def test_merge_dedup_prefers_stat_bearing_row():
-    orig = (results.historical_dir, results.stats_dir, results.fresh_dir, results.live_dir)
+    orig = (results.historical_dir, results.stats_dir, results.fresh_dir,
+            results.live_dir, results.lower_dir)
     try:
         with tempfile.TemporaryDirectory() as d:
             base = Path(d)
-            hist, stats, fresh, live = (base / "historical", base / "stats",
-                                        base / "fresh", base / "live")
-            for p in (hist, stats, fresh, live):
+            hist, stats, fresh, live, lower = (base / "historical", base / "stats",
+                                               base / "fresh", base / "live",
+                                               base / "lower")
+            for p in (hist, stats, fresh, live, lower):
                 p.mkdir(parents=True, exist_ok=True)
             results.historical_dir = lambda tour: hist       # redirect (as in test_track)
             results.stats_dir = lambda tour: stats
             results.fresh_dir = lambda tour: fresh
             results.live_dir = lambda tour: live
+            results.lower_dir = lambda tour: lower
 
             # historical: full schema (serve stats), accented spelling, YYYYMMDD dates
             _write_csv(hist / "2026.csv",
@@ -126,7 +129,7 @@ def test_merge_dedup_prefers_stat_bearing_row():
             df = results.merge_sources("atp")
     finally:
         (results.historical_dir, results.stats_dir,
-         results.fresh_dir, results.live_dir) = orig
+         results.fresh_dir, results.live_dir, results.lower_dir) = orig
 
     # 4 duplicate-collapsed rows -> 3 distinct matches
     assert len(df) == 3, df[["winner_name", "loser_name", "score"]]
@@ -155,18 +158,21 @@ def test_same_day_rematch_survives_dedup():
     round-robin meeting and a final rematch share (pair, date). The same-day dedup
     pass must key on round too (regression: it silently dropped ~181 real matches,
     e.g. Federer d. Hewitt twice at the 2004 Masters Cup)."""
-    orig = (results.historical_dir, results.stats_dir, results.fresh_dir, results.live_dir)
+    orig = (results.historical_dir, results.stats_dir, results.fresh_dir,
+            results.live_dir, results.lower_dir)
     try:
         with tempfile.TemporaryDirectory() as d:
             base = Path(d)
-            hist, stats, fresh, live = (base / "historical", base / "stats",
-                                        base / "fresh", base / "live")
-            for p in (hist, stats, fresh, live):
+            hist, stats, fresh, live, lower = (base / "historical", base / "stats",
+                                               base / "fresh", base / "live",
+                                               base / "lower")
+            for p in (hist, stats, fresh, live, lower):
                 p.mkdir(parents=True, exist_ok=True)
             results.historical_dir = lambda tour: hist
             results.stats_dir = lambda tour: stats
             results.fresh_dir = lambda tour: fresh
             results.live_dir = lambda tour: live
+            results.lower_dir = lambda tour: lower
 
             # RR meeting + final rematch, both stamped with the event start date
             _write_csv(hist / "2004.csv",
@@ -182,7 +188,7 @@ def test_same_day_rematch_survives_dedup():
             df = results.merge_sources("atp")
     finally:
         (results.historical_dir, results.stats_dir,
-         results.fresh_dir, results.live_dir) = orig
+         results.fresh_dir, results.live_dir, results.lower_dir) = orig
 
     pair = df[(df["winner_name"] == "Roger Federer") & (df["loser_name"] == "Lleyton Hewitt")]
     assert len(pair) == 2, pair[["round", "score"]]           # RR and F both survive

@@ -84,6 +84,10 @@ SYMMETRIC = [
     "surf_hard", "surf_clay", "surf_grass",
     "log_min_srv_pts", "log_min_matches", "has_style",
     "log1p_h2h_total",              # lets the trees gate how much to trust h2h_diff
+    # altitude_km (static venue-elevation table, data/altitude.py) was tried and
+    # REJECTED by the paired walk-forward gate (2026-07-05 data round): ATP
+    # +0.00005 (noise), WTA d_tune −0.00005 / d_val −0.00017 — exogenous venue
+    # physics adds nothing the surface/indoor context and ratings don't carry.
 ]
 FEATURES = ANTISYM + SYMMETRIC
 
@@ -197,6 +201,17 @@ def build_feature_frame(df: pd.DataFrame | None = None, tour: str = "atp") -> pd
     if df is None:
         df = load_matches(tour)
     return _run_all(df)[0]
+
+
+def main_rows(feat: pd.DataFrame) -> pd.DataFrame:
+    """Main-draw rows only — the combiner's training/calibration/eval regime.
+
+    A5 (adopted 2026-07-05, ratings-only form): lower-tier rows inform the rating
+    walks but never the combiner — training on the challenger-dominated row mix
+    was measured to destabilize fold training/calibration (full-variant REJECT)."""
+    if "draw_level" not in feat.columns:
+        return feat
+    return feat[feat["draw_level"] == "main"]
 
 
 def player_meta(df: pd.DataFrame) -> dict:
@@ -318,6 +333,9 @@ def _assemble(d: pd.DataFrame,
     f["p_point"] = d["p_point"]
     f["winner_name"] = d["winner_name"]
     f["loser_name"] = d["loser_name"]
+    # main/qual/chall marker (A5): lower-tier rows feed the walks but are excluded
+    # from the arbiter's scored eval set, which must be identical across arms
+    f["draw_level"] = d.get("draw_level", "main")
     return f
 
 

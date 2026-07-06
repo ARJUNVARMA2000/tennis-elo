@@ -37,7 +37,7 @@ from datetime import UTC, datetime, timedelta
 
 import pandas as pd
 
-from ..config import INCLUDE_CHALLENGERS, fresh_dir, stats_dir
+from ..config import INCLUDE_WTA_125, fresh_dir, historical_dir, stats_dir
 from .results import CANON, _name_key, _score_key
 
 BASE = "https://api.wtatennis.com/tennis"
@@ -67,6 +67,8 @@ def _get(path: str, params: dict | None = None, retries: int = RETRIES):
             time.sleep(PAUSE_S)
             return data
         except urllib.error.HTTPError as e:
+            if e.code == 404:
+                return None          # deterministic: the record does not exist upstream
             if attempt == retries - 1:
                 return None
             # 429: the API wants a real cool-down, not a quick retry
@@ -115,8 +117,8 @@ def fetch_tournaments(year: int) -> list[dict]:
         level = re.sub(r"\s+", "", str(t.get("level") or ""))
         if str(t.get("level")) in _SKIP_LEVELS or level in ("ITF",):
             continue
-        if level == "WTA125" and not INCLUDE_CHALLENGERS:
-            continue          # challenger-tier ingestion is a gated experiment (A5)
+        if level == "WTA125" and not INCLUDE_WTA_125:
+            continue          # 125-tier ingestion is gate-untestable (no tune-window source)
         out.append({
             "id": t["tournamentGroup"]["id"],
             "name": str(t["tournamentGroup"].get("name") or "").title(),
@@ -228,33 +230,43 @@ def scrape_tournament(ev: dict) -> list[dict]:
     return rows
 
 
-def _enrich_from_fresh(df: pd.DataFrame, year: int) -> pd.DataFrame:
-    """Inherit rankings (and RET-marked scores) from the fresh overlay's duplicate of
-    the same match — scraped rows out-rank fresh rows in the merge, so anything the
-    fresh row alone carries would otherwise be lost."""
-    f = fresh_dir("wta") / f"{year}.csv"
-    if not f.exists() or df.empty:
+# columns a scraped row can inherit from a local duplicate of the same match
+_ENRICH_COLS = ("winner_rank", "loser_rank", "winner_rank_points", "loser_rank_points",
+                "winner_age", "loser_age", "winner_ht", "loser_ht",
+                "winner_hand", "loser_hand")
+
+
+def _enrich_from_local(df: pd.DataFrame, year: int) -> pd.DataFrame:
+    """Inherit rankings/bios (and RET-marked scores) from local duplicates of the
+    same match — the fresh overlay first, then the frozen historical archive (the
+    only local source for backfill years, where no fresh file exists). Scraped rows
+    out-rank both in the merge, so anything only they carry would otherwise be lost
+    (rankings, per-match age — the API returns neither)."""
+    if df.empty:
         return df
-    fresh = pd.read_csv(f, low_memory=False, encoding="utf-8-sig")
-    fresh["__k"] = fresh["winner_name"].map(_name_key) + "|" + fresh["loser_name"].map(_name_key)
-    fresh = fresh.drop_duplicates("__k", keep="last")          # latest meeting wins
     df["__k"] = df["winner_name"].map(_name_key) + "|" + df["loser_name"].map(_name_key)
-    idx = fresh.set_index("__k")
-    for col in ("winner_rank", "loser_rank", "winner_rank_points", "loser_rank_points"):
-        if col in fresh.columns:
-            df[col] = df[col].where(df[col].notna(), df["__k"].map(idx[col]))
-    # keep the fresh RET/W-O marker so parse_score flags retirements correctly —
-    # but only when the games agree (the pair may have met twice in the year, and a
-    # rematch's marker must not overwrite this meeting's score)
-    fresh_score = df["__k"].map(idx["score"]) if "score" in fresh.columns else None
-    if fresh_score is not None:
-        ret = fresh_score.astype(str).str.contains("RET|W/O|DEF|ABN|ABD", case=False, na=False)
-        same = [
-            bool(r) and (_score_key(fs).startswith(_score_key(ms))
-                         or _score_key(ms).startswith(_score_key(fs)))
-            for r, fs, ms in zip(ret, fresh_score.astype(str), df["score"].astype(str))
-        ]
-        df.loc[same, "score"] = fresh_score[same]
+    for f in (fresh_dir("wta") / f"{year}.csv", historical_dir("wta") / f"{year}.csv"):
+        if not f.exists():
+            continue
+        loc = pd.read_csv(f, low_memory=False, encoding="utf-8-sig")
+        loc["__k"] = loc["winner_name"].map(_name_key) + "|" + loc["loser_name"].map(_name_key)
+        loc = loc.drop_duplicates("__k", keep="last")          # latest meeting wins
+        idx = loc.set_index("__k")
+        for col in _ENRICH_COLS:
+            if col in loc.columns:
+                df[col] = df[col].where(df[col].notna(), df["__k"].map(idx[col]))
+        # keep the local RET/W-O marker so parse_score flags retirements correctly —
+        # but only when the games agree (the pair may have met twice in the year, and
+        # a rematch's marker must not overwrite this meeting's score)
+        loc_score = df["__k"].map(idx["score"]) if "score" in loc.columns else None
+        if loc_score is not None:
+            ret = loc_score.astype(str).str.contains("RET|W/O|DEF|ABN|ABD", case=False, na=False)
+            same = [
+                bool(r) and (_score_key(fs).startswith(_score_key(ms))
+                             or _score_key(ms).startswith(_score_key(fs)))
+                for r, fs, ms in zip(ret, loc_score.astype(str), df["score"].astype(str))
+            ]
+            df.loc[same, "score"] = loc_score[same]
     return df.drop(columns="__k")
 
 
@@ -266,13 +278,25 @@ def scrape_year(year: int, since: datetime | None = None) -> pd.DataFrame:
     print(f"    wta/stats {year}: {len(events)} tour-level events")
     rows: list[dict] = []
     empty: list[str] = []
+    dead: list[str] = []
     for ev in events:
-        got = scrape_tournament(ev)
+        try:
+            got = scrape_tournament(ev)
+        except RuntimeError as e:
+            # a single permanently-dead event endpoint (old seasons have a few)
+            # must not kill the season — the merge is purely additive. A MAJORITY
+            # of failures is a real outage/throttle storm and still raises below.
+            print(f"    wta/stats {year} {ev['name']}: HARD FAIL ({e})")
+            dead.append(ev["name"])
+            continue
         rows += got
         if not got:
             empty.append(ev["name"])
         if got:
             print(f"    wta/stats {year} {ev['name']}: {len(got)} matches")
+    if dead and len(dead) > max(2, len(events) // 5):
+        raise RuntimeError(f"WTA API: {len(dead)}/{len(events)} events hard-failed "
+                           f"for {year} — treating as an outage, not data absence")
     if empty:
         print(f"    wta/stats {year}: 0 stat rows for {len(empty)} event(s): "
               f"{', '.join(empty[:8])}{'...' if len(empty) > 8 else ''}")
@@ -290,12 +314,12 @@ def write_year(year: int, df_new: pd.DataFrame) -> int:
     if path.exists() and not df_new.empty:
         old = pd.read_csv(path, low_memory=False, encoding="utf-8-sig")
         keep = old[~old["tourney_id"].isin(set(df_new["tourney_id"]))]
-        if not INCLUDE_CHALLENGERS and "tourney_level" in keep.columns:
+        if not INCLUDE_WTA_125 and "tourney_level" in keep.columns:
             keep = keep[keep["tourney_level"] != "WTA125"]
         df_new = pd.concat([keep, df_new], ignore_index=True)
     elif path.exists():
         return len(pd.read_csv(path, low_memory=False, encoding="utf-8-sig"))
-    df_new = _enrich_from_fresh(df_new, year)
+    df_new = _enrich_from_local(df_new, year)
     tmp = path.with_suffix(".csv.tmp")   # atomic: a crash mid-write must not corrupt the year file
     df_new.to_csv(tmp, index=False)
     os.replace(tmp, path)

@@ -1,5 +1,19 @@
 # Lessons
 
+- **A data-ingestion experiment is two experiments; separate them or the gate
+  measures the wrong thing.** (2026-07-05) Ingesting challengers "fully" (rows in
+  the walks AND the combiner) produced +0.0087 tune LL but failed validation with
+  ±0.03 per-year swings — the challenger-dominated row mix destabilized fold
+  training and prior-season calibration. The ratings-only variant (walks see the
+  rows, combiner never does) passed at 7.6 SE with 17/17 years positive and was
+  adopted. Rules: (1) score both arms on the IDENTICAL main-draw eval set — new
+  rows must never enter the scored set or d measures eval drift, not model
+  quality; (2) when a data addition shifts the training distribution, always run
+  a ratings-only / states-only variant before concluding anything from the full
+  variant; (3) per-year paired d is the instability tripwire — a real prior
+  improvement lifts every year a little (17/17 positive), a distribution artifact
+  flaps year-to-year at ±10 SE in both directions.
+
 - **Re-read the git tip immediately before finalizing any plan or doc built from
   exploration.** (2026-07-05) A README-refresh plan was drafted from subagent
   exploration of the repo state, but three commits (including an adopted model

@@ -16,7 +16,7 @@ from datetime import UTC
 from .config import MODEL_DIR, TOURS, output_dir
 from .data.results import load_matches
 from .model.export import export_all
-from .model.features import FEATURES, build_predictor_inputs
+from .model.features import FEATURES, build_predictor_inputs, main_rows
 from .model.predict import TennisPredictor
 from .model.train import train_final, walk_forward, xgb_params_for
 
@@ -46,6 +46,7 @@ def build_tour(tour: str, do_backtest: bool) -> None:
     print(f"\n=== {tour.upper()} === loading matches + building features...")
     df = load_matches(tour)
     feat, elo, srv, ctx, meta = build_predictor_inputs(df)
+    feat = main_rows(feat)   # combiner never sees lower-tier rows (A5 ratings-only)
 
     oos = None
     if do_backtest:

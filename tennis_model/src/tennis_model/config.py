@@ -73,18 +73,43 @@ FRESH_SOURCE = {  # LuckyLoser91/TennisCourtLog: results-only, auto-refreshed ~w
 # serves the same-schema year CSVs (full serve stats) updated daily, plus Challenger
 # and qualifying companions. ATP only. The STATS overlay dir holds these fast-moving
 # files (and, for WTA, our scraped stats), separate from the frozen HISTORICAL archive.
+# Challenger files reach back to 1978 and quali files to 2007 (upstream backfilled,
+# verified 2026-07-05); first_year=2018 applies to the tour-level year files only.
 TML_STATS_SOURCE = {
     "files_api": "https://stats.tennismylife.org/api/data-files",
     "data_url": "https://stats.tennismylife.org/data/{name}",
     "year_file": "{year}.csv",                      # tour-level main draws
     "challenger_file": "{year}_challenger.csv",     # A5 experiment (INCLUDE_CHALLENGERS)
+    "quali_file": "atp_quali/{year}_atp_quali.csv",  # tour-event qualifying (Q1-Q3)
+    "quali_first_year": 2007,                        # earliest quali file upstream
+    "ongoing_challenger_file": "challenger_ongoing_tourneys.csv",  # in-progress events
     "first_year": 2018,
 }
-INCLUDE_CHALLENGERS = False   # gate for the Challenger-ingestion experiment
+# A5 challenger+quali ingestion — ADOPTED 2026-07-05 in RATINGS-ONLY form: lower
+# rows feed the rating/point/context walks, while the combiner trains, calibrates
+# and is scored on main-draw rows only (see pipeline.py main_rows filter). Full
+# 2010-26 arbiter on the identical main-draw eval set: d_tune +0.00587±0.00089,
+# d_val +0.00756±0.00100, acc 0.6900→0.6958, Brier 0.1975→0.1947; 17/17 years
+# positive. The FULL variant (lower rows also in the combiner) was REJECTED:
+# +0.00869 tune but −0.00107 val with ±0.03 per-year swings — the challenger-
+# dominated row mix destabilizes fold training/calibration.
+INCLUDE_CHALLENGERS = True
+# WTA 125s stay OUT: decoupled from the ATP adoption above (no 125/lower source
+# covers the 2010-19 tune window, so a 125 experiment is gate-untestable — same
+# regime problem the original A5 had).
+INCLUDE_WTA_125 = False
+# Lower-tier (challenger + qualifying) ingestion starts here: 5 warm-up years of
+# rating history before the 2010 tune window; the full 1978+ archive would double
+# the walk for matches that can no longer influence any scored year.
+LOWER_TIER_FIRST_YEAR = 2005
 
 
 def stats_dir(tour: str) -> Path:
     return RAW_DIR / tour / "stats"     # daily full-schema overlay (TML site / WTA scraper)
+
+
+def lower_dir(tour: str) -> Path:
+    return RAW_DIR / tour / "lower"     # challenger + qualifying overlay (A5, gated)
 
 
 FIRST_YEAR = 1980          # Elo warm-up era; serve stats begin ~1991
@@ -163,6 +188,8 @@ TIER_NAMES = {
     # historical Sackmann/TML codes
     "G": "grand_slam", "F": "tour_finals", "M": "masters", "O": "olympics",
     "500": "atp500", "250": "atp250", "A": "atp250", "D": "davis_cup", "C": "challenger",
+    "Q": "challenger",   # tour-event qualifying rows (results.py stamps them "Q"):
+                         # challenger-strength fields, so they update at challenger K
     "P": "masters", "PM": "masters", "I": "atp250", "W": "atp250",   # legacy WTA codes
     # fresh-overlay vocabulary (LuckyLoser91), mapped onto the same tier names so the
     # K-multipliers below apply unchanged
@@ -267,7 +294,10 @@ SURFACES = ("Hard", "Clay", "Grass")
 SURFACE_MAP = {"Hard": "Hard", "Clay": "Clay", "Grass": "Grass", "Carpet": "Hard"}
 
 # Round progression order (for chronological sorting within a tournament).
+# Qualifying rounds share the main draw's tourney_id and start date, so they must
+# sort strictly before R128 within the same event (negative = pre-main-draw).
 ROUND_ORDER = {
+    "Q1": -3, "Q2": -2, "Q3": -1,
     "RR": 0, "BR": 0, "R128": 1, "R64": 2, "R32": 3, "R16": 4,
     "QF": 5, "SF": 6, "3rd/4th": 6, "F": 7,
 }

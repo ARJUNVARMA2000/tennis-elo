@@ -28,9 +28,11 @@ from ..config import (
     FRESH_SOURCE,
     HISTORICAL_SOURCE,
     INCLUDE_CHALLENGERS,
+    LOWER_TIER_FIRST_YEAR,
     TML_STATS_SOURCE,
     fresh_dir,
     historical_dir,
+    lower_dir,
     stats_dir,
 )
 
@@ -157,6 +159,38 @@ def download_tml_stats(full: bool = False,
     return done, failed
 
 
+def download_lower(full: bool = False) -> tuple[list[str], list[str]]:
+    """ATP challenger + tour-qualifying overlay from the TML site (A5 experiment,
+    gated by INCLUDE_CHALLENGERS at the call sites).
+
+    full=True pulls every year from LOWER_TIER_FIRST_YEAR (bootstrap / weekly
+    repair); otherwise the current year plus the in-progress-challengers file.
+    Files land in lower_dir("atp") under their basename (the quali files live in an
+    atp_quali/ subdir upstream). Returns (done, failed) file names.
+    """
+    src = TML_STATS_SOURCE
+    this_year = datetime.now(UTC).year
+    years = range(LOWER_TIER_FIRST_YEAR, this_year + 1) if full else [this_year]
+    q_first = src.get("quali_first_year", LOWER_TIER_FIRST_YEAR)
+    names = ([src["challenger_file"].format(year=y) for y in years]
+             + [src["quali_file"].format(year=y) for y in years if y >= q_first]
+             + [src["ongoing_challenger_file"]])
+    d = lower_dir("atp")
+    done, failed = [], []
+    for name in names:
+        data = _via_https(src["data_url"].format(name=name))
+        if _valid_csv(data, _REQUIRED_STATS):
+            _atomic_write(d / name.split("/")[-1], data)
+            done.append(name)
+        else:
+            failed.append(name)
+    msg = f"  atp/lower: downloaded {len(done)} file(s) from TML site"
+    if failed:
+        msg += f", FAILED {len(failed)}: {failed}"
+    print(msg)
+    return done, failed
+
+
 def download_fresh(tours=("atp", "wta")) -> None:
     """Weekly refresh: pull the results-only overlay for both tours."""
     for t in tours:
@@ -177,6 +211,11 @@ def download_all(tours=("atp", "wta")) -> dict[str, list]:
     _, f = download_tml_stats(full=True)
     if f:
         failures["atp/stats"] = f
+    from .. import config as _cfg
+    if _cfg.INCLUDE_CHALLENGERS:               # read at call time (patchable)
+        _, f = download_lower(full=True)
+        if f:
+            failures["atp/lower"] = f
     try:
         from .wta_stats import download_wta_stats
         download_wta_stats(incremental=True)   # staleness is caught by data/health.py
@@ -206,7 +245,7 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--tour", default="all")
     ap.add_argument("--kind", default="fresh",
-                    choices=["fresh", "historical", "stats", "live", "all"])
+                    choices=["fresh", "historical", "stats", "lower", "live", "all"])
     ap.add_argument("--strict", action="store_true",
                     help="exit non-zero if any current-year or stats download failed")
     args = ap.parse_args()
@@ -225,6 +264,9 @@ if __name__ == "__main__":
         strict_failures += [f"atp/stats:{i}" for i in f]
         from .wta_stats import download_wta_stats
         download_wta_stats(incremental=True)
+    elif args.kind == "lower":
+        # explicit CLI use bootstraps the archive regardless of the experiment gate
+        download_lower(full=True)
     else:
         for t in tours:
             _, f = download(t, args.kind)

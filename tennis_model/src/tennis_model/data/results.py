@@ -25,6 +25,7 @@ from ..config import (
     fresh_dir,
     historical_dir,
     live_dir,
+    lower_dir,
     stats_dir,
 )
 
@@ -70,6 +71,30 @@ def _read_dir(d: Path) -> pd.DataFrame:
         return pd.DataFrame(columns=CANON)
     out = pd.concat(frames, ignore_index=True)
     return out.reindex(columns=sorted(set(CANON) | set(out.columns), key=str))
+
+
+def _read_lower(tour: str) -> pd.DataFrame:
+    """Challenger + tour-qualifying overlay (A5 experiment, INCLUDE_CHALLENGERS).
+
+    Challenger files keep their 'C' level; qualifying rows are stamped level 'Q'
+    (challenger-tier K via TIER_NAMES — a slam Q1 between challenger-strength
+    players must not update at slam K). `draw_level` marks every row so the
+    arbiter and exports can separate them from the main-draw eval set.
+    """
+    frames = []
+    for f in sorted(glob.glob(str(lower_dir(tour) / "*.csv"))):
+        df = pd.read_csv(f, encoding="utf-8-sig", low_memory=False)
+        df = df.reindex(columns=[c for c in set(CANON) | set(df.columns)])
+        if f.endswith("_atp_quali.csv"):
+            df["draw_level"] = "qual"
+            df["tourney_level"] = "Q"
+        else:
+            df["draw_level"] = "chall"
+        frames.append(df)
+    if not frames:
+        return pd.DataFrame(columns=[*CANON, "draw_level"])
+    out = pd.concat(frames, ignore_index=True)
+    return out.reindex(columns=sorted(set(out.columns), key=str))
 
 
 def _parse_dates(s: pd.Series) -> pd.Series:
@@ -130,7 +155,16 @@ def merge_sources(tour: str) -> pd.DataFrame:
     fresh = _read_dir(fresh_dir(tour))
     live = _read_dir(live_dir(tour))
     hist["__src"], stats["__src"], fresh["__src"], live["__src"] = 0, 1, 2, 3
-    df = pd.concat([hist, stats, fresh, live], ignore_index=True)
+    frames = [hist, stats, fresh, live]
+    from .. import config as _cfg
+    if _cfg.INCLUDE_CHALLENGERS:               # read at call time (patchable A/Bs)
+        low = _read_lower(tour)
+        if len(low):
+            low["__src"] = 4
+            frames.append(low)
+    df = pd.concat(frames, ignore_index=True)
+    df["draw_level"] = (df["draw_level"].fillna("main")
+                        if "draw_level" in df.columns else "main")
     df["date"] = _parse_dates(df["tourney_date"])
     df = df[df["date"].notna() & df["winner_name"].notna() & df["loser_name"].notna()].copy()
     df = _canonicalize_names(df)
