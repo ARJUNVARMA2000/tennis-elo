@@ -7,7 +7,8 @@ are closed questions — re-opening one requires the underlying space to have ch
 
 ## Open
 
-1. **fp1 — FeatureParams sweep** (Tier 1, `--group feat`, both tours) — `IN-PROGRESS (R1-001 atp)`
+1. **fp1 — FeatureParams sweep** (Tier 1, `--group feat`, both tours) —
+   `DONE: WTA ADOPT (R1-003-wta, fec0fb1) / ATP DECLINED (R1-003-atp, tune-overfit)`
    The context-feature constants have never been swept: `FATIGUE_WINDOW_DAYS=14.0`,
    `LAYOFF_DAYS=120.0`, `PEAK_AGE=26.5` (config.py:328–330; `FEAT_PARAM_OVERRIDES`
    is empty). ~20 trials/tour (~2–2.5 min each), tag `_fp1`, then `--validate`.
