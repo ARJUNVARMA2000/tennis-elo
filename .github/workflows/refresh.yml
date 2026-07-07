@@ -110,11 +110,11 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/forecast_log 2>/dev/null || true
+          git add data/forecast_log data/kalshi_ledger 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "no forecast-log changes to commit"
           else
-            git commit -m "chore(forecast-log): daily update"
+            git commit -m "chore(eval-logs): daily forecast log + kalshi ledger update"
             git push || (git pull --rebase --autostash origin "${GITHUB_REF_NAME}" && git push) \
               || echo "::warning::forecast-log push failed (will retry next run)"
           fi
@@ -154,7 +154,7 @@ jobs:
           if [ "$(date -u +%u)" = "1" ] || [ -n "$FORCE" ]; then
             cd tennis_model/data
             DIRS=""
-            for d in raw/atp/historical raw/atp/stats raw/wta/historical raw/wta/stats raw/charting raw/odds; do
+            for d in raw/atp/historical raw/atp/stats raw/wta/historical raw/wta/stats raw/charting raw/odds raw/kalshi; do
               [ -d "$d" ] && DIRS="$DIRS $d"
             done
             tar -czf /tmp/raw-archive.tar.gz $DIRS

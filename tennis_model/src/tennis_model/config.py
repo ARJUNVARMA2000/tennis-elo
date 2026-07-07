@@ -36,6 +36,13 @@ def output_dir(tour: str) -> Path:
     return OUTPUT_DIR / tour
 
 
+KALSHI_LEDGER_DIR = DATA_DIR / "kalshi_ledger"   # committed CSVs + report (eval-only)
+
+
+def kalshi_dir(tour: str) -> Path:
+    return RAW_DIR / "kalshi" / tour    # snapshot cache (evictable; ledger is durable)
+
+
 # ---------------------------------------------------------------------------
 # Data sources (per tour)
 # ---------------------------------------------------------------------------

@@ -41,6 +41,18 @@ def _track(tour: str, predictor, df) -> None:
         print(f"  track/{tour}: skipped ({e})")
 
 
+def _kalshi(tour: str, df, oos) -> None:
+    """Kalshi eval ledger: capture market snapshots, upsert the CSV. Best-effort:
+    Kalshi is a benchmark, never a build dependency (report runs after both tours)."""
+    try:
+        from .data.kalshi import refresh_snapshots
+        from .eval.kalshi_ledger import refresh_ledger
+        refresh_snapshots(tour)
+        refresh_ledger(tour, df, oos=oos)
+    except Exception as e:                                   # noqa: BLE001 — never fatal
+        print(f"  kalshi/{tour}: skipped ({e})")
+
+
 def build_tour(tour: str, do_backtest: bool) -> None:
     """Full build: re-walk ratings, retrain the combiner, write every JSON (daily)."""
     print(f"\n=== {tour.upper()} === loading matches + building features...")
@@ -63,7 +75,8 @@ def build_tour(tour: str, do_backtest: bool) -> None:
     export_all(tour, df, elo, srv, meta, predictor, oos=oos)
     if oos is not None:
         _market_scorecard(tour, oos)
-    _track(tour, predictor, df)
+    _track(tour, predictor, df)                  # logs upcoming forecasts first, so
+    _kalshi(tour, df, oos)                       # the ledger can price them (live)
     _mirror(tour)
 
 
@@ -138,6 +151,14 @@ def main():
 
     for tour in tours:
         build_tour(tour, args.backtest)
+
+    try:                                         # cross-tour scorecard, then re-mirror
+        from .eval.kalshi_report import build_report
+        build_report()                           # (kalshi.json postdates each _mirror)
+        for tour in tours:
+            _mirror(tour)
+    except Exception as e:                                   # noqa: BLE001 — never fatal
+        print(f"  kalshi-report: skipped ({e})")
 
 
 if __name__ == "__main__":
