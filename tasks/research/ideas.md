@@ -58,13 +58,10 @@ are closed questions — re-opening one requires the underlying space to have ch
    skipped. The antisym w_sn/l_sn diff variant is presumed dominated: weaker prior
    + R2-002's capacity-cost evidence — do not spend a Tier-2 without new reasoning)`
 
-8. **mty — combiner training-window floor** (Tier 2 scratch driver, WTA first) — `OPEN`
-   Window is ALREADY expanding-from-1991 (train.py:240; scout's rolling→expanding
-   premise was a misread). The real knob: `walk_forward(min_train_year=...)` —
-   A/B floors 2000/2005 vs 1991; WTA distribution drift may make 1990s rows
-   net-negative. Zero tracked-file changes until adoption. CAUTION: same family as
-   rejected recency weighting (W1d) — hard truncation is a different mechanism, but
-   apply extra per-year val scrutiny.
+8. **mty — combiner training-window floor** (Tier 2 scratch driver, WTA first) —
+   `DONE-REJECT (R2-004: floors 2000/2005 both d_tune-negative; early test years
+   lose the most and 2024-26 gains a little — drift exists but truncation overpays
+   for it, and the graded version is the already-rejected W1d recency weighting)`
 
 9. **h2hr — recent-h2h (3-year) diff** (Tier 2, both tours) — `OPEN`
    h2h dicts are career-flat; recent meetings should predict better than 2010-era

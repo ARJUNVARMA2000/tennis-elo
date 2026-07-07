@@ -73,3 +73,14 @@ motivating tour hard-failing validation, no ATP outcome could produce an adoptio
 and the capacity-cost prior from R2-002 makes a positive surprise unlikely. The
 antisymmetric `w_sn/l_sn` diff variant is presumed dominated and stays shelved.
 Clock 22:55–23:00.
+
+**REJECTED — R2-004 mty, combiner training-window floor (driver-only, nothing to
+revert).** `walk_forward(min_train_year=2000/2005)` vs the incumbent 1991 on WTA
+(data reaches 1980; 56k of 129k frame rows predate 2000). Floor 2000: **d_tune
+−0.00100±0.00029** (gate dead), d_val +0.00056±0.00034; floor 2005 strictly worse
+(d_tune −0.00212). The per-year gradient is the useful residue: early test years
+lose the most training data and hurt hardest (2012–15 t≈−2.5), while 2024–26 are
+positive (t>+2.4) — distribution drift is real, but hard truncation overpays for
+it, and the graded alternative (recency weighting) is already closed (W1d).
+Tier-0 side-result: the R2-002 and R2-003 WTA base arms are bit-identical —
+frame build + bagged walk reproducibility reconfirmed. Clock 23:02–23:07.
