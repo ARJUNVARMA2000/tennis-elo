@@ -45,3 +45,17 @@ d_tune +0.00038±0.00022 / **d_val −0.00027±0.00034** (worst year 2021 t=−4
 the nearest same-family config (#17, layoff 493) is d_tune −0.00000 — the
 "layoff flag off" region is flat, exactly as the fp1 adoption assumed. Tier-1
 sweep 20 trials, 22:12–22:33; no Tier-2 spent (formal PASS declined on direction).
+
+**REJECTED — R2-002 eloSx, explicit overall-minus-surface Elo gap column
+(`elo_osgap_diff`, commit `1f06d9b`, reverted).** Top-ranked ideation survivor: give
+the trees the surface-dampening term `elo_overall_diff − elo_surface_diff` explicitly
+instead of via paired splits. Bagged arbiter, both tours, base arm = incumbent
+feature list on the identical frame (bit-reproduces the R0-000 baseline):
+- ATP: d_tune **−0.00028±0.00011**, d_val **−0.00038±0.00010**, 6/17 years positive
+  — the column actively hurts.
+- WTA (the mechanism's motivating tour): d_tune −0.00002±0.00010 (noise), d_val
+  **−0.00032±0.00014**, 9/17 flapping.
+Reading: linear recombinations of columns the model already sees add capacity cost
+without signal — the same shape as the E1 box-score rejection. This narrows the
+surviving feature ideas to ones that surface genuinely NEW state (sconf's per-surface
+counts qualify; further pure-algebra transforms do not). Clock 22:36–22:51.

@@ -47,10 +47,10 @@ are closed questions — re-opening one requires the underlying space to have ch
 
 ### R2 ideation fan-out (2026-07-06, 3-lens scout triage; discards logged in tuning-results-2026-07-06-autoresearch-r2.md)
 
-6. **eloSx — overall-vs-surface Elo gap delta** (Tier 2, both tours) — `OPEN`
-   New antisymmetric column `elo_overall_diff - elo_surface_diff`: an explicit
-   surface-dampening term trees only approximate via sequential splits. Pure algebra
-   of existing mirrored columns → zero parity burden. Cheapest open feature idea.
+6. **eloSx — overall-vs-surface Elo gap delta** (Tier 2, both tours) —
+   `DONE-REJECT (R2-002: ATP d_val −0.00038 t≈−4, WTA tune-noise/val-negative;
+   explicit recombinations of existing Elo columns are pure capacity cost — same
+   shape as the E1 box-score rejection)`
 
 7. **sconf — per-surface match-count confidence diff** (Tier 2, both tours) — `OPEN`
    `log(w_sn+1)-log(l_sn+1)`; RatingState already tracks per-surface counts and the
