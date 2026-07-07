@@ -85,9 +85,9 @@ are closed questions — re-opening one requires the underlying space to have ch
     counter-evidence for injury-family signals there.
 
 13. **pooled — cross-tour pooled combiner with is_wta flag** (Tier 2, WTA target) —
-    `OPEN, low priority` Concat both frames, one combiner; WTA borrows ATP capacity.
-    Heavy complexity (per-tour overrides conflict; eval harness is per-tour) —
-    likely DECLINED on simplicity unless the win is large.
+    `DONE-REJECT (R2-006: WTA d_val −0.00578 with ±10–18 SE per-year flapping, ATP
+    ±32 SE — training-distribution contamination exactly like the A5 full variant;
+    a tour flag does not rescue pooling)`
 
 ## Stale / superseded
 
@@ -111,3 +111,8 @@ are closed questions — re-opening one requires the underlying space to have ch
 | Altitude feature | tuning-results-2026-07-05-data-round.md Phase C |
 | A5 full variant (combiner-training contamination; ratings-only IS adopted) | tuning-results-2026-07-05-data-round.md Phase A |
 | Pooled-OOS / isotonic calibration, walkover-skip | tasks/todo.md Track B (2026-07-01 round) |
+| Pure-recombination combiner features (eloSx; also the E1 shape) — new columns must carry NEW state, and even then face a ~0.0003 LL capacity toll | tuning-results-2026-07-06-autoresearch-r2.md R2-002 |
+| Surface-sample confidence gate (sconf log_min_surf_matches; antisym variant presumed dominated) | tuning-results-2026-07-06-autoresearch-r2.md R2-003 |
+| Combiner training-window truncation (mty; graded version = W1d) | tuning-results-2026-07-06-autoresearch-r2.md R2-004 |
+| Tier/importance sample weighting in combiner folds (tierw; family 0-for-2 with W1d) | tuning-results-2026-07-06-autoresearch-r2.md R2-005 |
+| Cross-tour pooled combiner, tour flag or not (contamination = A5-full shape) | tuning-results-2026-07-06-autoresearch-r2.md R2-006 |

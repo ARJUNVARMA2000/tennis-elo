@@ -1,3 +1,37 @@
+# Task: Autoresearch round R2 (2026-07-06 night, /research-round 8h)
+
+Branch research/2026-07-06 (fast-forwarded to base cf241f8); ledger R2-*;
+full write-up tasks/tuning-results-2026-07-06-autoresearch-r2.md.
+
+## Experiments
+- [x] Round-zero ideation fan-out (3 read-only scouts, 18 proposals → 8 backlog
+      survivors, 9 discards with reasons)
+- [x] R2-001 fp3 WTA widened-layoff sweep: **REJECT** (flag-off region flat;
+      360 was not a ceiling artifact)
+- [x] R2-002 eloSx overall−surface gap column: **REJECT both tours** (capacity
+      cost without signal; reverted 1f06d9b)
+- [x] R2-003 sconf surface-sample gate: **REJECT** (tune-era-only signal, every
+      2021+ year negative; reverted d328688; ATP arm skipped)
+- [x] R2-004 mty training-window floor 2000/2005: **REJECT** (truncation overpays
+      for drift; driver-only)
+- [x] R2-005 tierw tier_k^α sample weighting: **REJECT** (uniformly hurts LL while
+      helping acc — miscalibration; driver-only)
+- [x] R2-006 pooled cross-tour combiner + is_wta: **REJECT** (contamination at
+      ±10–32 SE per-year; A5-full shape; driver-only)
+
+## Review
+- **Stop condition 2 (plateau)**: five consecutive Tier-2 rejects; round ran
+  22:10–23:24 EDT (1h14m of the 8h budget). Nothing adopted; incumbent unchanged
+  since fec0fb1 — no production rebuild required.
+- Useful residue: quantified ~0.0003 LL capacity toll for stateless feature
+  columns (new lessons.md entry); five families added to ideas.md do-not-retry;
+  R2-004's Tier-0 probe re-proved bit-reproducibility of frame+bagged-walk.
+- OPEN for a future round: h2hr, seedf (verify seeds reach the prediction feed
+  first), retd; wta24 remains BLOCKED (supervised).
+- Branch left for user review; not pushed.
+
+---
+
 # Task: Harness improvements from R1's observed failures (2026-07-06 evening)
 
 Plan: C:\Users\varma\.claude\plans\fizzy-frolicking-starfish.md (v2)

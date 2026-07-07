@@ -1,5 +1,15 @@
 # Lessons
 
+- **A combiner feature that adds no new state is a pre-paid loss: budget a
+  ~0.0003 LL capacity toll for any new column.** (2026-07-06, round R2) Adding
+  `elo_osgap_diff` — pure algebra of two columns already in the frame — measured
+  d_val −0.00038 (ATP) / −0.00032 (WTA) with no compensating tune gain; the
+  E1 box-score rejection had the same shape. Even the genuinely-new-state
+  surface-count gate lost more to the toll + overfit than its signal was worth.
+  Rule: when costing a feature idea, its expected validation signal must clear
+  the toll, not zero; pure recombinations of existing columns never qualify
+  (trees already approximate them), so spend those Tier-2 slots elsewhere.
+
 - **The tuning feature cache is regime/schema-keyed, not param-keyed.** (2026-07-06)
   After adopting new FeatureParams (fp1), the cached `_features_wta*.pkl` still
   carried pre-adoption feature values; the next `group=xgb` sweep would have tuned
