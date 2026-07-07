@@ -32,7 +32,9 @@ are closed questions — re-opening one requires the underlying space to have ch
    harness maintenance: tune.py layoff_days range 365→730). Testable via **fp3**.
 
 5. **fp3 — WTA feat re-sweep in the widened layoff space** (Tier 1, `--group feat`,
-   WTA; tag `_fp3` — space changed, fresh tag mandatory) — `OPEN`
+   WTA; tag `_fp3` — space changed, fresh tag mandatory) — `DONE-REJECT (R2-001:
+   anchor unbeaten; layoff 493–695 configs val-negative or exactly zero — the
+   flag-off region is flat, 360 was not a ceiling artifact)`
    The adopted `layoff_days=360` sat at the old 365 ceiling; the widened range
    (→730) makes "layoff flag fully off" reachable. Anchor = current incumbent.
    Low expected yield (R1-005 showed a local optimum) but the bound question is

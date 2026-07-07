@@ -37,4 +37,11 @@ knob is the `min_train_year` floor (ideas.md item 8, mty).
 
 ## Experiments
 
-(filled as the round proceeds; every experiment gets a verdict entry)
+**REJECTED — R2-001 fp3, WTA feat re-sweep in the widened layoff space (`_fp3`).**
+The post-R1 harness maintenance widened `layoff_days` 365→730 because the adopted
+value (360) sat at the old ceiling. Answer: the ceiling was not binding. The
+incumbent anchor (#0) is unbeaten; the best challenger (#5, layoff 695) is
+d_tune +0.00038±0.00022 / **d_val −0.00027±0.00034** (worst year 2021 t=−4.3), and
+the nearest same-family config (#17, layoff 493) is d_tune −0.00000 — the
+"layoff flag off" region is flat, exactly as the fp1 adoption assumed. Tier-1
+sweep 20 trials, 22:12–22:33; no Tier-2 spent (formal PASS declined on direction).
