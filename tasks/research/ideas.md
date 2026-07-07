@@ -52,11 +52,11 @@ are closed questions — re-opening one requires the underlying space to have ch
    explicit recombinations of existing Elo columns are pure capacity cost — same
    shape as the E1 box-score rejection)`
 
-7. **sconf — per-surface match-count confidence diff** (Tier 2, both tours) — `OPEN`
-   `log(w_sn+1)-log(l_sn+1)`; RatingState already tracks per-surface counts and the
-   walk outputs w_sn/l_sn — features.py never surfaces them (only symmetric
-   log_min_matches). Lets trees down-weight elo_surface_diff on thin surface history.
-   Parity: small state accessor. Mechanism targets WTA surface variance.
+7. **sconf — per-surface match-count confidence** (Tier 2, both tours) —
+   `DONE-REJECT (R2-003: symmetric log_min_surf_matches gate; WTA d_val −0.00045
+   at −3.75 SE with every 2021+ year negative — tune-era-only signal; ATP arm
+   skipped. The antisym w_sn/l_sn diff variant is presumed dominated: weaker prior
+   + R2-002's capacity-cost evidence — do not spend a Tier-2 without new reasoning)`
 
 8. **mty — combiner training-window floor** (Tier 2 scratch driver, WTA first) — `OPEN`
    Window is ALREADY expanding-from-1991 (train.py:240; scout's rolling→expanding

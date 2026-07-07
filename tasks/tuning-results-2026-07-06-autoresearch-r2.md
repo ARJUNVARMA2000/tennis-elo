@@ -59,3 +59,17 @@ Reading: linear recombinations of columns the model already sees add capacity co
 without signal — the same shape as the E1 box-score rejection. This narrows the
 surviving feature ideas to ones that surface genuinely NEW state (sconf's per-surface
 counts qualify; further pure-algebra transforms do not). Clock 22:36–22:51.
+
+**REJECTED — R2-003 sconf, symmetric surface-sample gate (`log_min_surf_matches`,
+commit `d328688`, reverted).** The strongest surviving feature idea: surface
+genuinely NEW state (per-surface match counts, tracked by RatingState but never
+surfaced) as a min-gate so trees can down-weight `elo_surface_diff` on thin surface
+history — the exact analog of the adopted `log_min_matches`/`log1p_h2h_total`
+pattern. WTA arm (mechanism's motivating tour): d_tune +0.00013±0.00009 (noise),
+**d_val −0.00045±0.00012 (−3.75 SE)** — and the per-year table is the cleanest
+tune-era-only signature yet: positive 2012–2019, negative EVERY year 2021+ (2021
+t=−4.1). Fifth instance of the tune-overfit shape. ATP arm skipped: with the
+motivating tour hard-failing validation, no ATP outcome could produce an adoption,
+and the capacity-cost prior from R2-002 makes a positive surprise unlikely. The
+antisymmetric `w_sn/l_sn` diff variant is presumed dominated and stays shelved.
+Clock 22:55–23:00.
