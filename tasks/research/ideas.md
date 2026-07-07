@@ -69,9 +69,9 @@ are closed questions — re-opening one requires the underlying space to have ch
    mirror in the same commit.
 
 10. **tierw — per-tier sample weighting in combiner folds** (Tier 2 scratch driver,
-    both tours) — `OPEN` sample_weight already plumbed through _fit_fold; weight core
-    rows by tier_k. NOT the rejected per-year recency weighting, but same
-    importance-weighting family — expect simplicity-bias scrutiny at the gate.
+    both tours) — `DONE-REJECT (R2-005: tier_k^2 uniformly negative on WTA LL,
+    tier_k^4 monotonically worse — upweighting slams sharpens accuracy but
+    miscalibrates; importance-weighting family 0-for-2 with W1d)`
 
 11. **seedf — seed_rank_diff** (Tier 2, both tours) — `OPEN`
     winner_seed/loser_seed ingested but unused (entry_q_diff proves the raw pathway

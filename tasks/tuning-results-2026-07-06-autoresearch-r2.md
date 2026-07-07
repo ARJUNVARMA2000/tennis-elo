@@ -84,3 +84,13 @@ positive (t>+2.4) — distribution drift is real, but hard truncation overpays f
 it, and the graded alternative (recency weighting) is already closed (W1d).
 Tier-0 side-result: the R2-002 and R2-003 WTA base arms are bit-identical —
 frame build + bagged walk reproducibility reconfirmed. Clock 23:02–23:07.
+
+**REJECTED — R2-005 tierw, per-tier sample weighting in combiner folds
+(driver-only, nothing to revert).** sample_weight = mean-normalized `tier_k^α`
+injected via a `_fit_fold` monkeypatch, WTA. α=2: d_tune −0.00046±0.00014, d_val
+−0.00047±0.00017, **2/17 years positive** — uniformly harmful; α=4 monotonically
+worse (d_tune −0.00128). Upweighting slams/masters is dead on arrival for the LL
+gate. Side observation: accuracy *improved* (+0.17pp val) while LL degraded —
+tier emphasis sharpens the classifier but miscalibrates its probabilities. The
+importance-weighting family is now 0-for-2 (with W1d recency weighting).
+Clock 23:09–23:14.
