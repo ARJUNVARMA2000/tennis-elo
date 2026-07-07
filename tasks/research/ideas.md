@@ -43,6 +43,53 @@ are closed questions — re-opening one requires the underlying space to have ch
    2024 merged coverage is 78.2%; a supervised backfill session is the path
    (tasks/tuning-results-2026-07-05-data-round.md, Phase B).
 
+### R2 ideation fan-out (2026-07-06, 3-lens scout triage; discards logged in tuning-results-2026-07-06-autoresearch-r2.md)
+
+6. **eloSx — overall-vs-surface Elo gap delta** (Tier 2, both tours) — `OPEN`
+   New antisymmetric column `elo_overall_diff - elo_surface_diff`: an explicit
+   surface-dampening term trees only approximate via sequential splits. Pure algebra
+   of existing mirrored columns → zero parity burden. Cheapest open feature idea.
+
+7. **sconf — per-surface match-count confidence diff** (Tier 2, both tours) — `OPEN`
+   `log(w_sn+1)-log(l_sn+1)`; RatingState already tracks per-surface counts and the
+   walk outputs w_sn/l_sn — features.py never surfaces them (only symmetric
+   log_min_matches). Lets trees down-weight elo_surface_diff on thin surface history.
+   Parity: small state accessor. Mechanism targets WTA surface variance.
+
+8. **mty — combiner training-window floor** (Tier 2 scratch driver, WTA first) — `OPEN`
+   Window is ALREADY expanding-from-1991 (train.py:240; scout's rolling→expanding
+   premise was a misread). The real knob: `walk_forward(min_train_year=...)` —
+   A/B floors 2000/2005 vs 1991; WTA distribution drift may make 1990s rows
+   net-negative. Zero tracked-file changes until adoption. CAUTION: same family as
+   rejected recency weighting (W1d) — hard truncation is a different mechanism, but
+   apply extra per-year val scrutiny.
+
+9. **h2hr — recent-h2h (3-year) diff** (Tier 2, both tours) — `OPEN`
+   h2h dicts are career-flat; recent meetings should predict better than 2010-era
+   ones. Parity burden medium: pair-date tracking in the h2h state + prediction
+   mirror in the same commit.
+
+10. **tierw — per-tier sample weighting in combiner folds** (Tier 2 scratch driver,
+    both tours) — `OPEN` sample_weight already plumbed through _fit_fold; weight core
+    rows by tier_k. NOT the rejected per-year recency weighting, but same
+    importance-weighting family — expect simplicity-bias scrutiny at the gate.
+
+11. **seedf — seed_rank_diff** (Tier 2, both tours) — `OPEN`
+    winner_seed/loser_seed ingested but unused (entry_q_diff proves the raw pathway
+    works). Redundancy risk vs Elo/rankpts. Parity precondition: verify the
+    prediction-time upcoming-match feed carries seeds BEFORE building.
+
+12. **retd — retirement-depth injury signal** (Tier 2, both tours) — `OPEN`
+    parse_score discards where in the match a retirement happened; a late-match
+    retirement is a stronger injury prior for the player's NEXT matches. Needs
+    last-retirement state + mirror. Sparse-row risk; WTA fp1 layoff≈off is mild
+    counter-evidence for injury-family signals there.
+
+13. **pooled — cross-tour pooled combiner with is_wta flag** (Tier 2, WTA target) —
+    `OPEN, low priority` Concat both frames, one combiner; WTA borrows ATP capacity.
+    Heavy complexity (per-tour overrides conflict; eval harness is per-tour) —
+    likely DECLINED on simplicity unless the win is large.
+
 ## Stale / superseded
 
 - **WTA xgb `min_child_weight` range extension** — the todo item predates the
