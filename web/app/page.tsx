@@ -3,9 +3,10 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
-import { pct, surfaceColor, heat } from "@/lib/ui";
+import { pct, surfaceColor, heat, eloKey } from "@/lib/ui";
 import { PageHead, Loading, Reveal } from "@/components/bits";
 import { SPRING_SOFT } from "@/lib/motion";
+import { nameKey, type PlayerRow } from "@/lib/live";
 import LiveTicker from "@/components/LiveTicker";
 
 type Proj = { name: string; champion: number; final: number | null; sf: number | null; reach?: Record<string, number> };
@@ -107,6 +108,20 @@ function SlamHero({ t }: { t: Tournament }) {
   const present = new Set(t.projection.flatMap((p) => Object.keys(reachOf(p))));
   const cols = DEEP_ROUNDS.filter((c) => present.has(c));
 
+  // Each contender's Elo on THIS surface + that surface's rank, joined from players.json by
+  // canonical name. Rank is within the top-200 board — the same population the /rankings page shows.
+  const { data: players } = useData<PlayerRow[]>("players.json");
+  const eloBySurface = useMemo(() => {
+    const key = eloKey(t.surface) as keyof PlayerRow;
+    const m = new Map<string, { rating: number; rank: number }>();
+    if (!players) return m;
+    players
+      .filter((p) => typeof p[key] === "number")
+      .sort((a, b) => Number(b[key]) - Number(a[key]))
+      .forEach((p, i) => m.set(nameKey(p.name), { rating: Number(p[key]), rank: i + 1 }));
+    return m;
+  }, [players, t.surface]);
+
   // Sortable table. Default is the title odds (Champion) — the order the data already ships
   // in — so the page opens unchanged; tapping a round header re-ranks the whole field by it.
   const [sortKey, setSortKey] = useState<string>("Champion");
@@ -151,11 +166,12 @@ function SlamHero({ t }: { t: Tournament }) {
         Title race · chance of reaching each round · <span className="text-[var(--color-muted)]">tap a round to sort</span>
       </div>
       <div className="-mx-1 overflow-x-auto">
-        <table className="w-full min-w-[460px] border-collapse">
+        <table className="w-full min-w-[520px] border-collapse">
           <thead>
             <tr className="mono text-[10px] uppercase tracking-wider text-[var(--color-faint)]">
               <th className="px-1 pb-2 text-right font-normal">#</th>
               <th className="px-1 pb-2 text-left font-normal">Player</th>
+              <th className="px-1 pb-2 text-center font-normal whitespace-nowrap">{t.surface} Elo</th>
               {cols.map((c) => {
                 const active = sortKey === c;
                 const isWin = c === "Champion";
@@ -180,10 +196,21 @@ function SlamHero({ t }: { t: Tournament }) {
           <tbody>
             {shown.map((p, i) => {
               const r = reachOf(p);
+              const e = eloBySurface.get(nameKey(p.name));
               return (
                 <tr key={p.name} className="row-glow border-t border-[var(--color-line)]">
                   <td className="mono px-1 py-1.5 text-right text-[11px] text-[var(--color-faint)]">{i + 1}</td>
                   <td className="px-1 py-1.5 text-[13px] whitespace-nowrap">{p.name}</td>
+                  <td className="mono px-1 py-1.5 text-center text-[11px] whitespace-nowrap">
+                    {e ? (
+                      <>
+                        <span className="text-[var(--color-text)]">{e.rating}</span>
+                        <span className="ml-1 text-[10px] text-[var(--color-faint)]">#{e.rank}</span>
+                      </>
+                    ) : (
+                      <span className="text-[var(--color-faint)]">—</span>
+                    )}
+                  </td>
                   {cols.map((c) => {
                     const v = r[c];
                     const isWin = c === "Champion";
