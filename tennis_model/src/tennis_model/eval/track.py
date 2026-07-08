@@ -33,17 +33,14 @@ import numpy as np
 import pandas as pd
 
 from .. import __version__
-from ..config import DATA_DIR, SURFACES, live_dir, output_dir
+from ..config import DATA_DIR, SURFACES, output_dir
 from ..data.results import _name_key as nkey
+from ..model.upcoming import enrich_upcoming, load_upcoming
 from .metrics import calibration_table, score
 
 FORECAST_DIR = DATA_DIR / "forecast_log"
 JOIN_WINDOW_DAYS = 21          # max gap between forecast and the result it grades
 RECENT_N = 60                  # graded decisions surfaced for the UI table
-
-# Season-by-month fallback when an event's surface isn't yet in the match frame.
-_MONTH_SURFACE = {1: "Hard", 2: "Hard", 3: "Hard", 4: "Clay", 5: "Clay", 6: "Grass",
-                  7: "Grass", 8: "Hard", 9: "Hard", 10: "Hard", 11: "Hard", 12: "Hard"}
 
 
 # ---------------------------------------------------------------------------
@@ -88,23 +85,6 @@ def _read_json(path):
     return json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
 
 
-def _event_attrs(df: pd.DataFrame, event: str) -> tuple:
-    """(surface, best_of) for an ESPN event name, taken from its rows in the match
-    frame (matched by loose name containment). Returns (None, None) if not found."""
-    if "tourney_name" not in df.columns or "surface_b" not in df.columns:
-        return None, None
-    ek = str(event).lower()
-    names = df["tourney_name"].astype(str)
-    mask = names.str.lower().apply(lambda t: bool(t) and (t in ek or ek in t))
-    sub = df[mask]
-    if sub.empty:
-        return None, None
-    surf = sub["surface_b"].mode()
-    bo = pd.to_numeric(sub["best_of"], errors="coerce").max()
-    return (surf.iloc[0] if not surf.empty else None,
-            int(bo) if pd.notna(bo) else None)
-
-
 # ---------------------------------------------------------------------------
 # Logging
 # ---------------------------------------------------------------------------
@@ -121,35 +101,24 @@ def log_forecasts(tour: str, predictor, df: pd.DataFrame,
     seen_match = {_match_key(r) for r in existing if r.get("type") == "match"}
     seen_tourn = {_tourn_key(r) for r in existing if r.get("type") == "tournament"}
 
-    # resolve ESPN display names to the model's canonical spellings (else win_prob,
-    # which keys off exact names, silently returns ~0.5 for unknown players).
-    key2name = {nkey(n): n for n in predictor.elo.overall}
     new: list = []
-
-    if upcoming is not None and not upcoming.empty:
-        for r in upcoming.itertuples(index=False):
-            a, b = key2name.get(nkey(r.playerA)), key2name.get(nkey(r.playerB))
-            if not a or not b or nkey(a) == nkey(b):
-                continue                                    # unknown player / same player
-            surface, bo = _event_attrs(df, r.tourney_name)
-            if surface is None:
-                month = int(str(r.tourney_date)[5:7]) if str(r.tourney_date)[5:7].isdigit() else 1
-                surface = _MONTH_SURFACE.get(month, "Hard")
-            bo = bo or 3
-            rec = {
-                "type": "match", "as_of": as_of, "tour": tour,
-                "event": str(r.tourney_name), "round": r.round,
-                "surface": surface, "best_of": int(bo),
-                "season": _season(r.tourney_date, as_of),
-                "playerA": a, "playerB": b, "model_version": __version__,
-            }
-            k = _match_key(rec)
-            if k in seen_match:
-                continue
-            rec["p"] = round(float(predictor.win_prob(
-                a, b, surface=surface, best_of=int(bo), event=str(r.tourney_name))), 4)
-            seen_match.add(k)
-            new.append(rec)
+    # match forecasts: one locked P(playerA wins) per scheduled matchup (first sighting).
+    # Name-resolution / surface inference / pricing live in model.upcoming.enrich_upcoming,
+    # shared with the web schedule board so the two can never disagree on a matchup.
+    for row in enrich_upcoming(predictor, df, upcoming):
+        rec = {
+            "type": "match", "as_of": as_of, "tour": tour,
+            "event": row["event"], "round": row["round"],
+            "surface": row["surface"], "best_of": row["best_of"],
+            "season": _season(row["date"], as_of),
+            "playerA": row["playerA"], "playerB": row["playerB"], "model_version": __version__,
+        }
+        k = _match_key(rec)
+        if k in seen_match:
+            continue
+        rec["p"] = round(row["pA"], 4)
+        seen_match.add(k)
+        new.append(rec)
 
     # tournament snapshots: reuse the title odds already computed for tournaments.json
     # (status == "live" only — completed events have no pre-result odds to log).
@@ -302,20 +271,10 @@ def grade(tour: str, df: pd.DataFrame) -> dict:
     return out
 
 
-def _read_upcoming(tour: str) -> pd.DataFrame | None:
-    path = live_dir(tour) / "upcoming.csv"
-    if not path.exists():
-        return None
-    try:
-        return pd.read_csv(path, encoding="utf-8")
-    except Exception:  # noqa: BLE001 — a corrupt/absent upcoming file must not break grading
-        return None
-
-
 def log_and_grade(tour: str, predictor, df: pd.DataFrame) -> dict:
     """Pipeline entry point: log today's forecasts, then (re)grade the whole log."""
     as_of = datetime.now(UTC).date().isoformat()
-    n = log_forecasts(tour, predictor, df, _read_upcoming(tour), as_of)
+    n = log_forecasts(tour, predictor, df, load_upcoming(tour), as_of)
     out = grade(tour, df)
     mf = out["matchForecasts"]
     print(f"  track/{tour}: +{n} logged, {mf['graded']} graded / {mf['pending']} pending; "

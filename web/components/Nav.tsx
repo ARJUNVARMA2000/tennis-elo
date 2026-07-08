@@ -31,6 +31,7 @@ const GROUPS: Group[] = [
     items: [
       { href: "/predict", label: "Predictor", desc: "Any matchup, any surface" },
       { href: "/simulator", label: "Draw simulator", desc: "Monte Carlo title odds" },
+      { href: "/schedule", label: "Upcoming matches", desc: "Win probability for scheduled matches" },
       { href: "/upcoming", label: "Latest results", desc: "Model calls on results" },
     ],
   },

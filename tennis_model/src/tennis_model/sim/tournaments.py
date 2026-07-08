@@ -1,15 +1,21 @@
-"""Project the model's title odds for the latest tournaments.
+"""Project the model's title + round-by-round odds for the latest tournaments.
 
 Recent matches are grouped into events (the fresh feed has no tourney_id, so we group
-by name within a capture window wide enough to hold a two-week Slam). For each event we
-seed its field by surface-blended Elo into a standard bracket and Monte-Carlo it:
+by name within a capture window wide enough to hold a two-week Slam). Each event is
+Monte-Carlo'd over a bracket:
 
-  - completed events  -> field = all participants; show the model's pre-tournament title
-    odds alongside the actual champion (did the favourite deliver?).
-  - in-progress events -> field = players who haven't lost yet; live title odds.
+  - completed events  -> field = all participants, seeded by surface-blended Elo into a
+    standard bracket; shows the model's pre-tournament title odds alongside the actual
+    champion (did the favourite deliver?).
+  - in-progress events -> field = players who haven't lost yet, seated by the ACTUAL
+    remaining draw (the scheduled/in-progress matchups in upcoming.csv) so the round-by-
+    round reach odds pair survivors by who really plays whom. Where the feed hasn't posted
+    a full round yet, only the unknown downstream pairings fall back to rating seeding.
 
-Re-seeding (rather than reconstructing the exact draw) keeps this robust to the fresh
-feed's missing match_num / data gaps; title odds are dominated by field strength anyway.
+Completed events re-seed (rather than reconstruct the exact historical draw) because
+pre-tournament title odds are dominated by field strength anyway; live events must honour
+the real draw or the SF/F reach numbers are nonsense — two players who face each other in
+the semis would otherwise both show >50% to reach the final.
 """
 
 from __future__ import annotations
@@ -20,7 +26,8 @@ import pandas as pd
 
 from ..config import live_dir
 from ..data.results import _name_key
-from .simulate import project_field
+from .draws import live_draw, standard_seed_draw
+from .simulate import simulate_tournament
 
 _KO_ROUNDS = {"R128", "R64", "R32", "R16", "QF", "SF", "F"}
 ROUND_COLS = ["R128", "R64", "R32", "R16", "QF", "SF", "F", "Champion"]  # reach-prob columns, entry -> title
@@ -36,6 +43,17 @@ def _load_fields(tour: str) -> dict:
         return json.loads(p.read_text(encoding="utf-8"))
     except Exception:  # noqa: BLE001 — missing/corrupt fields cache simply means no live field
         return {}
+
+
+def _load_upcoming(tour: str) -> dict:
+    """Scheduled/in-progress matchups {event: [(playerA, playerB), ...]} — the real
+    current-round draw. Reshapes the shared upcoming.csv loader into per-event matchup
+    pairs so the live projector pairs survivors by who actually plays whom, not by seeding."""
+    from ..model.upcoming import load_upcoming
+    out: dict = {}
+    for r in load_upcoming(tour).itertuples(index=False):
+        out.setdefault(str(r.tourney_name), []).append((str(r.playerA), str(r.playerB)))
+    return out
 
 
 def _level_label(lv: object, tour: str) -> str:
@@ -95,6 +113,7 @@ def recent_tournaments(df: pd.DataFrame, within_days: int = 40,
 def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
                        known: set | None = None, top_set: set | None = None,
                        espn_fields: dict | None = None, resolve=None,
+                       matchups: list | None = None,
                        n_sims: int = 8000, seed: int = 11) -> dict | None:
     surface = g["surface_b"].mode().iloc[0]
     bo = pd.to_numeric(g["best_of"], errors="coerce").max()
@@ -130,10 +149,13 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
     if len(field) < 2:
         return None
 
-    elo = predictor.elo
-    field = sorted(field, key=lambda p: elo.blended(p, surface), reverse=True)
-    sim = project_field(predictor, field, surface=surface, best_of=best_of,
-                        n_sims=n_sims, seed=seed, event=name)
+    rank = lambda p: predictor.elo.blended(p, surface)
+    if completed:              # retrospective: pre-tournament title odds over the full field
+        slots = standard_seed_draw(sorted(field, key=rank, reverse=True))
+    else:                      # live: seat survivors by the ACTUAL current-round draw
+        slots = live_draw(field, matchups or [], rank)
+    sim = simulate_tournament(predictor, slots, surface=surface, best_of=best_of,
+                              n_sims=n_sims, seed=seed, event=name)
     cols = set(sim.columns)
     proj = [{
         "name": r.player,
@@ -161,6 +183,7 @@ def build_tournaments(predictor, df: pd.DataFrame, tour: str, **kw) -> list:
     known = _known_names(df)
     top_set = set(sorted(predictor.elo.overall, key=predictor.elo.elo, reverse=True)[:100])
     espn_fields = _load_fields(tour)
+    upcoming = _load_upcoming(tour)
     # map ESPN player names onto the predictor's canonical spellings (accent/punct-insensitive)
     canon: dict = {}
     for k in predictor.elo.overall:
@@ -168,8 +191,9 @@ def build_tournaments(predictor, df: pd.DataFrame, tour: str, **kw) -> list:
     resolve = lambda n: canon.get(_name_key(n), n)
     out = []
     for name, g in recent_tournaments(df):
+        matchups = [(resolve(a), resolve(b)) for a, b in upcoming.get(name, [])]
         t = project_tournament(predictor, name, g, tour, known=known, top_set=top_set,
-                               espn_fields=espn_fields, resolve=resolve, **kw)
+                               espn_fields=espn_fields, resolve=resolve, matchups=matchups, **kw)
         if t:
             out.append(t)
     # Live (in-progress) events lead the board; within each group, most recent first.

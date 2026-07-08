@@ -86,6 +86,53 @@ def standard_seed_draw(players_by_rating: list) -> list:
     return [field[s - 1] for s in _seed_positions(n)]
 
 
+def live_draw(alive: list, matchups: list, rank) -> list:
+    """Seat still-alive players into a bracket using the *actual* remaining draw.
+
+    Unlike ``standard_seed_draw`` (which invents a rating-seeded bracket), this respects
+    the real matchups the live feed already knows — the fix for a live board that paired
+    survivors by strength (1v4/2v3) instead of by who actually plays whom.
+
+    ``matchups`` is an iterable of (playerA, playerB) pairs scheduled/in-progress among
+    the alive field (the true current-round draw, from ``upcoming.csv``); ``rank(player)``
+    orders players/units by strength to resolve the pairings the feed can't yet know
+    (which side of the bracket two future winners land on).
+
+      - each real matchup becomes an adjacent slot pair (they meet next round, as they will)
+      - a player already through this round (no listed opponent) gets a bye into the next
+      - the resulting "units" (one per current-round match) are spread by strength, so the
+        two strongest survivors still can't meet before the final
+
+    Falls back to ``standard_seed_draw`` when the feed gives no usable matchup, or when the
+    unit count isn't a power of two (a partial/odd frontier we can't seat cleanly) — never
+    worse than the old behaviour, exact whenever the round's matchups are fully posted.
+    """
+    alive = list(dict.fromkeys(alive))
+    aset = set(alive)
+    used: set = set()
+    pairs = []
+    for a, b in matchups:
+        if a in aset and b in aset and a != b and a not in used and b not in used:
+            pairs.append(tuple(sorted((a, b), key=rank, reverse=True)))    # stronger first
+            used.update((a, b))
+    if not pairs:                                     # no real draw info -> old behaviour
+        return standard_seed_draw(sorted(alive, key=rank, reverse=True))
+
+    singles = sorted((p for p in alive if p not in used), key=rank, reverse=True)
+    units = [list(pr) for pr in pairs] + [[s] for s in singles]     # one unit per frontier match
+    u = len(units)
+    if u & (u - 1):                                   # not 2^k: can't seat a clean bracket
+        return standard_seed_draw(sorted(alive, key=rank, reverse=True))
+
+    units.sort(key=lambda un: rank(un[0]), reverse=True)           # strongest unit first
+    order = _seed_positions(u) if u > 1 else [1]                   # spread strong units apart
+    slots: list = []
+    for un in (units[s - 1] for s in order):
+        slots.append(un[0])
+        slots.append(un[1] if len(un) > 1 else None)              # lone survivor -> bye partner
+    return slots
+
+
 def draw_size_rounds(n: int) -> list:
     """Round-size labels reachable from a draw of size n (entry .. champion)."""
     sizes = []

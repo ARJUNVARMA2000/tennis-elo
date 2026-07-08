@@ -19,6 +19,10 @@ const PAGE_META: Record<string, { title: string; description: string }> = {
     title: "Latest Results",
     description: "Recent results with the model's pre-match calls, upset flags included.",
   },
+  schedule: {
+    title: "Upcoming Matches",
+    description: "Model win probabilities for every scheduled ATP & WTA match, by surface and round.",
+  },
   player: {
     title: "Player Profiles",
     description: "Elo history, surface splits, serve/return stats and head-to-heads for every ranked player.",

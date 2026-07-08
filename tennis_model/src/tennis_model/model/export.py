@@ -7,6 +7,7 @@ Kept separate from pipeline orchestration so the export surface is easy to scan:
   profiles.json         per-player detail: splits, style, recent form, H2H, Elo line
   draws.json            current-top-field tournament projections per surface
   tournaments.json      latest real events: title odds + actual result (powers home)
+  upcoming.json         scheduled matches + the model's current win prob (powers /schedule)
   fixtures.json         latest results with the model's pre-match call + upset flags
   accuracy.json         walk-forward metrics, calibration, per-surface breakdown
   meta.json             metadata + headline backtest
@@ -205,6 +206,28 @@ def build_fixtures(df, predictor, n=60) -> list:
     return out
 
 
+_ROUND_DEPTH = {r: i for i, r in enumerate(["R128", "R64", "R32", "R16", "QF", "SF", "F"])}
+
+
+def build_upcoming(predictor, df, tour: str) -> list:
+    """Scheduled / in-progress matches with the model's current win prob (schedule board).
+
+    Sourced from the live feed's upcoming.csv through the shared enricher (model.upcoming) —
+    the same primitive the forecast log uses, so a matchup is priced identically in both.
+    Event names are de-sponsored like the home board; rows are ordered soonest-first, then
+    by round depth within a day."""
+    from ..sim.tournaments import _display_name, _known_names
+    from .upcoming import enrich_upcoming, load_upcoming
+    known = _known_names(df)
+    rows = [{
+        "event": _display_name(r["event"], known), "date": r["date"], "round": r["round"],
+        "surface": r["surface"], "bestOf": r["best_of"],
+        "playerA": r["playerA"], "playerB": r["playerB"], "pA": round(r["pA"], 4),
+    } for r in enrich_upcoming(predictor, df, load_upcoming(tour))]
+    rows.sort(key=lambda m: (m["date"], _ROUND_DEPTH.get(m["round"], 9), m["event"]))
+    return rows
+
+
 def build_accuracy(oos: pd.DataFrame) -> dict:
     from ..eval.metrics import calibration_table, score, winner_oriented
     out = {"window": f"{int(oos['year'].min())}-{int(oos['year'].max())}", "n": int(len(oos))}
@@ -259,6 +282,7 @@ def export_all(tour, df, elo, srv, meta, predictor, oos=None) -> None:
     _write(tour, "draws.json", build_draws(predictor, players, tour))
     from ..sim.tournaments import build_tournaments
     _write(tour, "tournaments.json", build_tournaments(predictor, df, tour))
+    _write(tour, "upcoming.json", build_upcoming(predictor, df, tour))
     _write(tour, "fixtures.json", build_fixtures(df, predictor))
     if accuracy:
         _write(tour, "accuracy.json", accuracy)
