@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
-import { eloKey, surfaceColor, SURFACES, pct, rankRows, parseAgeFilter, AGE_MIN, AGE_MAX } from "@/lib/ui";
+import { eloKey, surfaceColor, SURFACES, pct, blendedElo, passesAgeFilter, parseAgeFilter, AGE_MIN, AGE_MAX } from "@/lib/ui";
 import { PageHead, Loading, SurfacePill, Reveal, StatCard } from "@/components/bits";
 import Dropdown from "@/components/Dropdown";
 
@@ -44,9 +44,16 @@ export default function Rankings() {
 
   const rows = useMemo(() => {
     if (!data) return [];
-    const key = surface === "Overall" ? "elo" : eloKey(surface);
-    return rankRows(data, key, ageFilter);
-  }, [data, surface, ageFilter]);
+    // Overall = raw overall Elo; a surface = the model's surface-BLENDED rating (what it predicts with),
+    // not the heavily-shrunk raw surface Elo. Age-filter, then rank the top 100 by the chosen rating.
+    const rate = (p: Player) =>
+      surface === "Overall" ? p.elo : blendedElo(p.elo, (p as any)[eloKey(surface)] as number, tour);
+    return data
+      .filter((p) => passesAgeFilter(p.age, ageFilter))
+      .map((p) => ({ ...p, rate: rate(p) }))
+      .sort((a, b) => b.rate - a.rate)
+      .slice(0, 100);
+  }, [data, surface, ageFilter, tour]);
 
   const top = rows[0];
 
@@ -55,7 +62,7 @@ export default function Rankings() {
       <PageHead
         eyebrow={`${tour.toUpperCase()} · Elo ratings`}
         title="The Board"
-        sub="Surface-blended Elo for every active player, with serve and return strength from the opponent-adjusted point model. Switch surfaces to re-rank."
+        sub="Overall Elo, or each player's surface-blended rating — the number the model actually predicts with (raw surface Elo is heavily shrunk and misleads). Switch surfaces to re-rank; serve and return come from the opponent-adjusted point model."
       />
 
       {loading && <Loading />}
@@ -72,10 +79,7 @@ export default function Rankings() {
               <div className="display mt-2 text-3xl sm:text-4xl">{top.name}</div>
             </div>
             <div className="grid min-w-[260px] flex-1 grid-cols-2 gap-3 sm:grid-cols-4">
-              <StatCard
-                label="Elo"
-                value={surface === "Overall" ? top.elo : ((top as any)[eloKey(surface)] as number)}
-              />
+              <StatCard label={surface === "Overall" ? "Elo" : "Blended"} value={top.rate} />
               <StatCard label="Serve" value={top.servePct * 100} decimals={1} suffix="%" />
               <StatCard label="Return" value={top.returnPct * 100} decimals={1} suffix="%" />
               <StatCard label="Matches" value={top.matches} />
@@ -149,14 +153,14 @@ export default function Rankings() {
                 <td className="mono px-3 py-2.5 text-[11px] text-[var(--color-muted)]">{p.country ?? "—"}</td>
                 <td className="mono px-3 py-2.5 text-right text-[var(--color-muted)]">{p.age ?? "—"}</td>
                 <td className="mono px-3 py-2.5 text-right font-semibold text-[var(--color-text)]">
-                  {surface === "Overall" ? p.elo : (p as any)[eloKey(surface)]}
+                  {p.rate}
                 </td>
                 <td className="mono hidden px-3 py-2.5 whitespace-nowrap text-right text-[var(--color-muted)] sm:table-cell">
                   {p.liveRank != null ? <>#{p.liveRank}<DeltaBadge d={p.liveRankDelta} /></> : "—"}
                 </td>
-                <td className="mono hidden px-3 py-2.5 text-right text-[var(--color-muted)] sm:table-cell">{p.eloHard}</td>
-                <td className="mono hidden px-3 py-2.5 text-right text-[var(--color-muted)] sm:table-cell">{p.eloClay}</td>
-                <td className="mono hidden px-3 py-2.5 text-right text-[var(--color-muted)] sm:table-cell">{p.eloGrass}</td>
+                <td className="mono hidden px-3 py-2.5 text-right text-[var(--color-muted)] sm:table-cell">{blendedElo(p.elo, p.eloHard, tour)}</td>
+                <td className="mono hidden px-3 py-2.5 text-right text-[var(--color-muted)] sm:table-cell">{blendedElo(p.elo, p.eloClay, tour)}</td>
+                <td className="mono hidden px-3 py-2.5 text-right text-[var(--color-muted)] sm:table-cell">{blendedElo(p.elo, p.eloGrass, tour)}</td>
                 <td className="mono px-3 py-2.5 text-right text-[var(--color-muted)]">{pct(p.servePct, 0)}</td>
                 <td className="mono hidden px-3 py-2.5 text-right text-[var(--color-muted)] md:table-cell">{pct(p.returnPct, 0)}</td>
               </motion.tr>

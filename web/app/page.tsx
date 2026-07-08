@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
-import { pct, surfaceColor, heat, eloKey } from "@/lib/ui";
+import { pct, surfaceColor, heat, eloKey, blendedElo } from "@/lib/ui";
 import { PageHead, Loading, Reveal } from "@/components/bits";
 import { SPRING_SOFT } from "@/lib/motion";
 import { nameKey, type PlayerRow } from "@/lib/live";
@@ -104,23 +104,31 @@ export default function Tournaments() {
     Columns are sortable — tap a round to rank the field by its chance of getting there. */
 function SlamHero({ t }: { t: Tournament }) {
   const [open, setOpen] = useState(false);
+  const { tour } = useTour();
   const sc = surfaceColor(t.surface);
   const present = new Set(t.projection.flatMap((p) => Object.keys(reachOf(p))));
   const cols = DEEP_ROUNDS.filter((c) => present.has(c));
 
-  // Each contender's Elo on THIS surface + that surface's rank, joined from players.json by
-  // canonical name. Rank is within the top-200 board — the same population the /rankings page shows.
+  // Per contender: overall Elo + rank, and the surface-BLENDED rating + rank (the number the model
+  // actually predicts with — raw surface Elo is heavily shrunk and misleads). Joined from players.json
+  // by canonical name; ranks are within the top-200 board, the same population /rankings shows.
   const { data: players } = useData<PlayerRow[]>("players.json");
-  const eloBySurface = useMemo(() => {
-    const key = eloKey(t.surface) as keyof PlayerRow;
-    const m = new Map<string, { rating: number; rank: number }>();
+  const eloInfo = useMemo(() => {
+    const m = new Map<string, { overall: number; overallRank: number; blended: number; blendedRank: number }>();
     if (!players) return m;
+    const key = eloKey(t.surface) as keyof PlayerRow;
+    const overallRank = new Map<string, number>();
+    [...players]
+      .filter((p) => typeof p.elo === "number")
+      .sort((a, b) => b.elo - a.elo)
+      .forEach((p, i) => overallRank.set(nameKey(p.name), i + 1));
     players
-      .filter((p) => typeof p[key] === "number")
-      .sort((a, b) => Number(b[key]) - Number(a[key]))
-      .forEach((p, i) => m.set(nameKey(p.name), { rating: Number(p[key]), rank: i + 1 }));
+      .filter((p) => typeof p.elo === "number" && typeof p[key] === "number")
+      .map((p) => ({ k: nameKey(p.name), overall: p.elo, blended: blendedElo(p.elo, Number(p[key]), tour) }))
+      .sort((a, b) => b.blended - a.blended)
+      .forEach((x, i) => m.set(x.k, { overall: x.overall, overallRank: overallRank.get(x.k) ?? 0, blended: x.blended, blendedRank: i + 1 }));
     return m;
-  }, [players, t.surface]);
+  }, [players, t.surface, tour]);
 
   // Sortable table. Default is the title odds (Champion) — the order the data already ships
   // in — so the page opens unchanged; tapping a round header re-ranks the whole field by it.
@@ -166,12 +174,13 @@ function SlamHero({ t }: { t: Tournament }) {
         Title race · chance of reaching each round · <span className="text-[var(--color-muted)]">tap a round to sort</span>
       </div>
       <div className="-mx-1 overflow-x-auto">
-        <table className="w-full min-w-[520px] border-collapse">
+        <table className="w-full min-w-[620px] border-collapse">
           <thead>
             <tr className="mono text-[10px] uppercase tracking-wider text-[var(--color-faint)]">
               <th className="px-1 pb-2 text-right font-normal">#</th>
               <th className="px-1 pb-2 text-left font-normal">Player</th>
-              <th className="px-1 pb-2 text-center font-normal whitespace-nowrap">{t.surface} Elo</th>
+              <th className="px-1 pb-2 text-center font-normal whitespace-nowrap">Overall</th>
+              <th className="px-1 pb-2 text-center font-normal whitespace-nowrap">{t.surface} blend</th>
               {cols.map((c) => {
                 const active = sortKey === c;
                 const isWin = c === "Champion";
@@ -196,7 +205,7 @@ function SlamHero({ t }: { t: Tournament }) {
           <tbody>
             {shown.map((p, i) => {
               const r = reachOf(p);
-              const e = eloBySurface.get(nameKey(p.name));
+              const e = eloInfo.get(nameKey(p.name));
               return (
                 <tr key={p.name} className="row-glow border-t border-[var(--color-line)]">
                   <td className="mono px-1 py-1.5 text-right text-[11px] text-[var(--color-faint)]">{i + 1}</td>
@@ -204,8 +213,18 @@ function SlamHero({ t }: { t: Tournament }) {
                   <td className="mono px-1 py-1.5 text-center text-[11px] whitespace-nowrap">
                     {e ? (
                       <>
-                        <span className="text-[var(--color-text)]">{e.rating}</span>
-                        <span className="ml-1 text-[10px] text-[var(--color-faint)]">#{e.rank}</span>
+                        <span className="text-[var(--color-text)]">{e.overall}</span>
+                        <span className="ml-1 text-[10px] text-[var(--color-faint)]">#{e.overallRank}</span>
+                      </>
+                    ) : (
+                      <span className="text-[var(--color-faint)]">—</span>
+                    )}
+                  </td>
+                  <td className="mono px-1 py-1.5 text-center text-[11px] whitespace-nowrap">
+                    {e ? (
+                      <>
+                        <span className="text-[var(--color-text)]">{e.blended}</span>
+                        <span className="ml-1 text-[10px] text-[var(--color-faint)]">#{e.blendedRank}</span>
                       </>
                     ) : (
                       <span className="text-[var(--color-faint)]">—</span>

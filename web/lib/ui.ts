@@ -11,6 +11,18 @@ export const surfaceColor = (s: string) =>
 export const eloKey = (s: string) =>
   ({ Hard: "eloHard", Clay: "eloClay", Grass: "eloGrass" } as Record<string, string>)[s] || "elo";
 
+/** Surface-blend weight per tour — mirrors tennis_model config.py ELO_PARAM_OVERRIDES[tour].surface_blend
+    (ATP 0.63, WTA 0.62; BLEND_N50 = 0, so the blend is a fixed linear mix). The exported surface Elo already
+    carries cross-surface transfer, so this reproduces the model's own `elo.blended()` rating exactly. Keep in
+    sync with config.py if the blend is ever retuned. */
+export const SURFACE_BLEND: Record<string, number> = { atp: 0.63, wta: 0.62 };
+
+/** The rating the model actually predicts with on a surface: (1 − b)·overall + b·surface.
+    Unlike raw surface Elo (heavily shrunk, low spread), this tracks overall class — so it lines up
+    with who the model favours. */
+export const blendedElo = (overall: number, surfaceElo: number, tour: string): number =>
+  Math.round((1 - (SURFACE_BLEND[tour] ?? 0.5)) * overall + (SURFACE_BLEND[tour] ?? 0.5) * surfaceElo);
+
 /** Heat color for a probability 0..1 — single-hue indigo luminance ramp.
     Returns hex so callers can append alpha digits (e.g. `${heat(p)}22`). */
 export function heat(p: number): string {
