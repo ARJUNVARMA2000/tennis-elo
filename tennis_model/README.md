@@ -92,7 +92,8 @@ src/tennis_model/
                        predict.py, export.py (site JSON)
   sim/                 draws.py, tournaments.py, simulate.py (Monte Carlo)
   eval/                metrics.py, backtest.py, compare.py (vs market),
-                       track.py (graded point-in-time calls), tune.py (Optuna sweeps)
+                       track.py (graded point-in-time calls), tune.py (Optuna sweeps),
+                       kalshi_ledger.py + kalshi_report.py (vs Kalshi, see below)
 ```
 
 ## Usage
@@ -121,6 +122,25 @@ PYTHONPATH=src python -m tennis_model.data.health --strict
 Outputs land in `data/output/<tour>/`: `predictor.pkl`, `players.json` (current
 ratings + official live ranks), `meta.json`, `accuracy.json` (rolling-window metrics
 for the site's accuracy view).
+
+### Kalshi evaluation ledger (benchmark only — never a model input)
+
+`data/kalshi_ledger/{atp,wta}.csv` records every Kalshi tennis match market next to
+our pre-match probability and the final result; `report.md` alongside is the
+segmented model-vs-market scorecard (paired d±SE by rank band, favorite strength,
+surface, tier, round, disagreement size). Both are committed daily by CI. Kalshi
+prices are de-vigged bid/ask mids at 08:00 UTC on match day, reconstructed from
+1-minute candlesticks — in-play trading makes settled last-prices useless, and
+Kalshi's own start timestamps mutate on settled markets, so morning-of is the
+latest provably pre-match anchor; `pred_source` separates live-frozen forecasts
+from walk-forward backfill.
+
+```bash
+# capture market snapshots (public API, no key) + rebuild ledger and scorecard
+PYTHONPATH=src python -m tennis_model.data.kalshi --tour all
+PYTHONPATH=src python -m tennis_model.eval.kalshi_ledger --tour all
+PYTHONPATH=src python -m tennis_model.eval.kalshi_report
+```
 
 ## Methodology notes
 

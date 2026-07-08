@@ -1,5 +1,15 @@
 # Lessons
 
+- **A combiner feature that adds no new state is a pre-paid loss: budget a
+  ~0.0003 LL capacity toll for any new column.** (2026-07-06, round R2) Adding
+  `elo_osgap_diff` — pure algebra of two columns already in the frame — measured
+  d_val −0.00038 (ATP) / −0.00032 (WTA) with no compensating tune gain; the
+  E1 box-score rejection had the same shape. Even the genuinely-new-state
+  surface-count gate lost more to the toll + overfit than its signal was worth.
+  Rule: when costing a feature idea, its expected validation signal must clear
+  the toll, not zero; pure recombinations of existing columns never qualify
+  (trees already approximate them), so spend those Tier-2 slots elsewhere.
+
 - **The tuning feature cache is regime/schema-keyed, not param-keyed.** (2026-07-06)
   After adopting new FeatureParams (fp1), the cached `_features_wta*.pkl` still
   carried pre-adoption feature values; the next `group=xgb` sweep would have tuned
@@ -69,3 +79,18 @@
   native deps (@emnapi/*); CI's `npm ci` refuses it. Rule: after adding a dep, run
   `npm install --package-lock-only` (computes the full cross-platform ideal tree)
   and verify with `npm ci` before committing the lockfile.
+
+- **An API field's semantics can mutate over an object's lifecycle — validate on
+  the SETTLED objects you'll actually score, not the live ones you explored.**
+  (2026-07-07) Kalshi's `occurrence_datetime` looked like a clean scheduled-start
+  on open markets, but it is a draw-time placeholder for smaller events (actual
+  play trailed it by 3–7 days for ~215/955 ATP events) AND on settled markets it
+  drifts to ~the determination time (close_time lands seconds after it) — so
+  "quote at T−5 before occurrence" silently scored final in-play prices for part
+  of the set. The pre-registered leak sentinel (a second quote 30 min earlier,
+  p95 |Δ| = 0.23) is what caught it. Rules: (1) join windows against market
+  timestamps must tolerate play up to ~a week later (ledger uses −8..+21 vs
+  result dates); (2) anchor scoring quotes only to timestamps YOU own — the
+  ledger uses 08:00 UTC on the result row's date, provably pre-match for this
+  era's event footprint and immune to upstream mutation; (3) always ship a
+  cheap redundant-measurement sentinel with any external price/time source.

@@ -1,0 +1,90 @@
+{
+  "comment": "Trimmed real-shape Kalshi market objects (fields the client reads). occ 2026-07-06T13:00:00Z = epoch 1783342800.",
+  "markets": [
+    {
+      "ticker": "KXATPMATCH-26JUL08COBFER-COB",
+      "event_ticker": "KXATPMATCH-26JUL08COBFER",
+      "yes_sub_title": "Flavio Cobolli",
+      "result": "yes",
+      "status": "settled",
+      "occurrence_datetime": "2026-07-08T13:00:00Z",
+      "expected_expiration_time": "2026-07-08T13:00:00Z",
+      "volume_fp": "27057.60",
+      "open_interest_fp": "26221.14",
+      "liquidity_dollars": "0.0000",
+      "yes_bid_dollars": "0.6900",
+      "yes_ask_dollars": "0.7000",
+      "rules_primary": "If Flavio Cobolli wins the Cobolli vs Fery professional tennis match in the 2026 Wimbledon Men Singles Quarterfinal after a ball has been played, then the market resolves to Yes."
+    },
+    {
+      "ticker": "KXATPMATCH-26JUL08COBFER-FER",
+      "event_ticker": "KXATPMATCH-26JUL08COBFER",
+      "yes_sub_title": "Arthur Fery",
+      "result": "no",
+      "status": "settled",
+      "occurrence_datetime": "2026-07-08T13:00:00Z",
+      "expected_expiration_time": "2026-07-08T13:00:00Z",
+      "volume_fp": "9000.00",
+      "open_interest_fp": "7868.47",
+      "liquidity_dollars": "0.0000",
+      "yes_bid_dollars": "0.3000",
+      "yes_ask_dollars": "0.3100",
+      "rules_primary": "If Arthur Fery wins the Cobolli vs Fery professional tennis match in the 2026 Wimbledon Men Singles Quarterfinal after a ball has been played, then the market resolves to Yes."
+    },
+    {
+      "ticker": "KXWTAMATCH-26JUN22MBOKEY-MBO",
+      "event_ticker": "KXWTAMATCH-26JUN22MBOKEY",
+      "yes_sub_title": "Lourdes Carlé-Müller",
+      "result": "",
+      "status": "active",
+      "occurrence_datetime": "2026-06-22T11:00:00Z",
+      "volume_fp": "10.00",
+      "open_interest_fp": "5.00",
+      "liquidity_dollars": "100.0000",
+      "yes_bid_dollars": "0.4400",
+      "yes_ask_dollars": "0.4600",
+      "rules_primary": "If Lourdes Carlé-Müller wins the Carlé-Müller vs Keys professional tennis match in the 2026 Eastbourne Women Singles Round of 16 after a ball has been played, then the market resolves to Yes."
+    },
+    {
+      "ticker": "KXWTAMATCH-26JUN22MBOKEY-KEY",
+      "event_ticker": "KXWTAMATCH-26JUN22MBOKEY",
+      "yes_sub_title": "Madison Keys",
+      "result": "",
+      "status": "active",
+      "occurrence_datetime": "2026-06-22T11:00:00Z",
+      "volume_fp": "10.00",
+      "open_interest_fp": "5.00",
+      "liquidity_dollars": "100.0000",
+      "yes_bid_dollars": "0.5500",
+      "yes_ask_dollars": "0.5700",
+      "rules_primary": "If Madison Keys wins the Carlé-Müller vs Keys professional tennis match in the 2026 Eastbourne Women Singles Round of 16 after a ball has been played, then the market resolves to Yes."
+    },
+    {
+      "ticker": "KXATPMATCH-26JUL01ORPHAN-ORP",
+      "event_ticker": "KXATPMATCH-26JUL01ORPHAN",
+      "yes_sub_title": "Lone Player",
+      "result": "",
+      "status": "settled",
+      "occurrence_datetime": "2026-07-01T10:00:00Z",
+      "rules_primary": "malformed"
+    },
+    {
+      "ticker": "KXATPMATCH-26JUL02DOUBLS-AAA",
+      "event_ticker": "KXATPMATCH-26JUL02DOUBLS",
+      "yes_sub_title": "A Smith / B Jones",
+      "result": "",
+      "status": "settled",
+      "occurrence_datetime": "2026-07-02T10:00:00Z",
+      "rules_primary": ""
+    },
+    {
+      "ticker": "KXATPMATCH-26JUL02DOUBLS-BBB",
+      "event_ticker": "KXATPMATCH-26JUL02DOUBLS",
+      "yes_sub_title": "C Lee / D Kim",
+      "result": "",
+      "status": "settled",
+      "occurrence_datetime": "2026-07-02T10:00:00Z",
+      "rules_primary": ""
+    }
+  ]
+}

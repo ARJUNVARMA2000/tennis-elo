@@ -1,3 +1,99 @@
+# Task: Kalshi vs model — ledger + segmented scorecard (2026-07-07)
+
+Plan: C:\Users\varma\.claude\plans\looks-like-we-have-lovely-puddle.md
+
+## Checklist
+- [x] config.py: KALSHI_LEDGER_DIR + kalshi_dir(tour) path helpers
+- [x] data/kalshi.py: public API client (markets/candlesticks), snapshot cache,
+      T-5/T-30 pre-match quotes, KALSHI_ALIASES; tests (parse + candles)
+- [x] eval/kalshi_ledger.py: Kalshi→match join (asym −2..+21d window),
+      p_model fill (forecast_log live > OOS backtest), per-tour CSV upsert with
+      frozen-field policy; tests (orientation, idempotency, RET/WO, rematch)
+- [x] One-time local backfill --backfill-since 2026-04-30; seed aliases from
+      unmatched table; ≥95% matched acceptance
+- [x] eval/kalshi_report.py: paired d±SE scorecard (segments: top-20, rank bands,
+      favorite buckets, surface/tier/round/month, disagreement bands), calibration,
+      QA/leak sentinel; report.md + kalshi.json; tests
+- [x] tests/test_kalshi_purity.py: kalshi never imported by model code
+- [x] pipeline.py hook (_kalshi after _track; report + re-mirror in main)
+- [x] refresh.yml: widen persist step to data/kalshi_ledger; raw/kalshi in
+      release snapshot DIRS
+- [x] Verification: pytest (142 passed), double ledger run byte-identical (md5),
+      5 rows hand-recomputed from the API (prices exact, orientation + settlement
+      consistent), ruff clean; review below
+
+## Review (2026-07-07)
+- **Shipped**: data/kalshi.py (public-API client + snapshot cache),
+  eval/kalshi_ledger.py (per-tour CSVs, 955 ATP + 975 WTA events), eval/
+  kalshi_report.py (paired d±SE scorecard: report.md + kalshi.json), pipeline
+  hook, refresh.yml persist/snapshot widening, 37 new tests incl. import-purity
+  guard. Backfill spans 2026-04-30 → today; 973 scored matches.
+- **Deviation from plan (price anchor)**: planned "T−5 before occurrence_datetime"
+  was UNSOUND — the field mutates to ~determination time on settled markets, and
+  the T-30 leak sentinel caught final in-play prices contaminating 160 rows (p95
+  |Δ|=0.23). Re-anchored ALL scoring quotes to 08:00 UTC on the result row's date
+  (provably pre-match; sentinel now 0 rows > 0.05). Comparison is therefore
+  "our forecast vs Kalshi MORNING line", not closing line. lessons.md updated.
+- **Deviation (join window)**: −2..+21 → −8..+21 (draw-time placeholder dates).
+- **Match rates**: ATP 890/955 (13 unmatched, 32 cancelled=scalar fair-price
+  settlements); WTA 542/975 — 314 quali + 65 slam-quali-as-R128 markets are
+  structurally unmatchable (no WTA quali results source); rest self-heals.
+- **Deviation (verification)**: full `pipeline --tour all --backtest` not run
+  locally (hook exercised standalone end-to-end instead; soft-fail wrapped).
+  First CI daily run is the live proof — check tomorrow's run + committed diff.
+- **First scorecard** (n=973, morning line): pooled d_ll −0.011±0.007; ATP at
+  parity (−0.001±0.010), WTA behind (−0.021±0.009); parity among top-10 pairs
+  and 0.6–0.9 favorites; weakest: coin-flips (0.5–0.6), rank-11–20 pairs, grass/
+  June, and big disagreements (model right 71/203 when |Δp|≥0.10).
+
+## Web surfacing (2026-07-07, follow-up)
+- New page web/app/scorecard/ ("Vs the Exchange", nav "Vs Kalshi" in the Model
+  group) reading the mirrored kalshi.json. Signature viz: an SVG forest plot of
+  paired d_ll ± 95% CI per segment (grouped: provenance, rank, favourite band,
+  surface, tier, round, month, agreement), colored by significance
+  (win-green ahead / loss-red behind / faint even). Headline verdict chip,
+  StatCards, coverage table, morning-line caveat. Reused the site's dark Linear
+  design system + bits (PageHead/StatCard/Reveal), NOT the artifact's own look.
+- Verified: next build (page in static export), 81/81 vitest, tsc clean, page
+  0 lint warnings, tour toggle swaps data (ATP parity / WTA behind), no NaN,
+  no page overflow. kalshi.json rides the existing _mirror path in CI.
+
+---
+
+# Task: Autoresearch round R2 (2026-07-06 night, /research-round 8h)
+
+Branch research/2026-07-06 (fast-forwarded to base cf241f8); ledger R2-*;
+full write-up tasks/tuning-results-2026-07-06-autoresearch-r2.md.
+
+## Experiments
+- [x] Round-zero ideation fan-out (3 read-only scouts, 18 proposals → 8 backlog
+      survivors, 9 discards with reasons)
+- [x] R2-001 fp3 WTA widened-layoff sweep: **REJECT** (flag-off region flat;
+      360 was not a ceiling artifact)
+- [x] R2-002 eloSx overall−surface gap column: **REJECT both tours** (capacity
+      cost without signal; reverted 1f06d9b)
+- [x] R2-003 sconf surface-sample gate: **REJECT** (tune-era-only signal, every
+      2021+ year negative; reverted d328688; ATP arm skipped)
+- [x] R2-004 mty training-window floor 2000/2005: **REJECT** (truncation overpays
+      for drift; driver-only)
+- [x] R2-005 tierw tier_k^α sample weighting: **REJECT** (uniformly hurts LL while
+      helping acc — miscalibration; driver-only)
+- [x] R2-006 pooled cross-tour combiner + is_wta: **REJECT** (contamination at
+      ±10–32 SE per-year; A5-full shape; driver-only)
+
+## Review
+- **Stop condition 2 (plateau)**: five consecutive Tier-2 rejects; round ran
+  22:10–23:24 EDT (1h14m of the 8h budget). Nothing adopted; incumbent unchanged
+  since fec0fb1 — no production rebuild required.
+- Useful residue: quantified ~0.0003 LL capacity toll for stateless feature
+  columns (new lessons.md entry); five families added to ideas.md do-not-retry;
+  R2-004's Tier-0 probe re-proved bit-reproducibility of frame+bagged-walk.
+- OPEN for a future round: h2hr, seedf (verify seeds reach the prediction feed
+  first), retd; wta24 remains BLOCKED (supervised).
+- Branch left for user review; not pushed.
+
+---
+
 # Task: Harness improvements from R1's observed failures (2026-07-06 evening)
 
 Plan: C:\Users\varma\.claude\plans\fizzy-frolicking-starfish.md (v2)

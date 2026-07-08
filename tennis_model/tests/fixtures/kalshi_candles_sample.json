@@ -1,0 +1,41 @@
+{
+  "comment": "1-min candles around occ=1783342800 (2026-07-06T13:00:00Z). Offsets: -40m two-sided, -35m one-sided (no ask), -31m two-sided (T-30 pick), -7m two-sided zero-volume (T-5 pick), -2m two-sided (INSIDE the T-5 lead: must be ignored), +1m in-play (must never be picked).",
+  "occurrence_ts": 1783342800,
+  "candlesticks": [
+    {
+      "end_period_ts": 1783340400,
+      "volume_fp": "120.00",
+      "yes_bid": {"close_dollars": "0.6000"},
+      "yes_ask": {"close_dollars": "0.6400"}
+    },
+    {
+      "end_period_ts": 1783340700,
+      "volume_fp": "0.00",
+      "yes_bid": {"close_dollars": "0.6100"}
+    },
+    {
+      "end_period_ts": 1783340940,
+      "volume_fp": "15.00",
+      "yes_bid": {"close_dollars": "0.6300"},
+      "yes_ask": {"close_dollars": "0.6500"}
+    },
+    {
+      "end_period_ts": 1783342380,
+      "volume_fp": "0.00",
+      "yes_bid": {"close_dollars": "0.6600"},
+      "yes_ask": {"close_dollars": "0.6700"}
+    },
+    {
+      "end_period_ts": 1783342680,
+      "volume_fp": "40.00",
+      "yes_bid": {"close_dollars": "0.7000"},
+      "yes_ask": {"close_dollars": "0.7200"}
+    },
+    {
+      "end_period_ts": 1783342860,
+      "volume_fp": "500.00",
+      "yes_bid": {"close_dollars": "0.9000"},
+      "yes_ask": {"close_dollars": "0.9200"}
+    }
+  ]
+}

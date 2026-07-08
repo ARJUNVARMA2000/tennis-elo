@@ -32,7 +32,9 @@ are closed questions — re-opening one requires the underlying space to have ch
    harness maintenance: tune.py layoff_days range 365→730). Testable via **fp3**.
 
 5. **fp3 — WTA feat re-sweep in the widened layoff space** (Tier 1, `--group feat`,
-   WTA; tag `_fp3` — space changed, fresh tag mandatory) — `OPEN`
+   WTA; tag `_fp3` — space changed, fresh tag mandatory) — `DONE-REJECT (R2-001:
+   anchor unbeaten; layoff 493–695 configs val-negative or exactly zero — the
+   flag-off region is flat, 360 was not a ceiling artifact)`
    The adopted `layoff_days=360` sat at the old 365 ceiling; the widened range
    (→730) makes "layoff flag fully off" reachable. Anchor = current incumbent.
    Low expected yield (R1-005 showed a local optimum) but the bound question is
@@ -42,6 +44,50 @@ are closed questions — re-opening one requires the underlying space to have ch
    (user-supervised only: violates the no-download invariant; WTA 429s)`
    2024 merged coverage is 78.2%; a supervised backfill session is the path
    (tasks/tuning-results-2026-07-05-data-round.md, Phase B).
+
+### R2 ideation fan-out (2026-07-06, 3-lens scout triage; discards logged in tuning-results-2026-07-06-autoresearch-r2.md)
+
+6. **eloSx — overall-vs-surface Elo gap delta** (Tier 2, both tours) —
+   `DONE-REJECT (R2-002: ATP d_val −0.00038 t≈−4, WTA tune-noise/val-negative;
+   explicit recombinations of existing Elo columns are pure capacity cost — same
+   shape as the E1 box-score rejection)`
+
+7. **sconf — per-surface match-count confidence** (Tier 2, both tours) —
+   `DONE-REJECT (R2-003: symmetric log_min_surf_matches gate; WTA d_val −0.00045
+   at −3.75 SE with every 2021+ year negative — tune-era-only signal; ATP arm
+   skipped. The antisym w_sn/l_sn diff variant is presumed dominated: weaker prior
+   + R2-002's capacity-cost evidence — do not spend a Tier-2 without new reasoning)`
+
+8. **mty — combiner training-window floor** (Tier 2 scratch driver, WTA first) —
+   `DONE-REJECT (R2-004: floors 2000/2005 both d_tune-negative; early test years
+   lose the most and 2024-26 gains a little — drift exists but truncation overpays
+   for it, and the graded version is the already-rejected W1d recency weighting)`
+
+9. **h2hr — recent-h2h (3-year) diff** (Tier 2, both tours) — `OPEN`
+   h2h dicts are career-flat; recent meetings should predict better than 2010-era
+   ones. Parity burden medium: pair-date tracking in the h2h state + prediction
+   mirror in the same commit.
+
+10. **tierw — per-tier sample weighting in combiner folds** (Tier 2 scratch driver,
+    both tours) — `DONE-REJECT (R2-005: tier_k^2 uniformly negative on WTA LL,
+    tier_k^4 monotonically worse — upweighting slams sharpens accuracy but
+    miscalibrates; importance-weighting family 0-for-2 with W1d)`
+
+11. **seedf — seed_rank_diff** (Tier 2, both tours) — `OPEN`
+    winner_seed/loser_seed ingested but unused (entry_q_diff proves the raw pathway
+    works). Redundancy risk vs Elo/rankpts. Parity precondition: verify the
+    prediction-time upcoming-match feed carries seeds BEFORE building.
+
+12. **retd — retirement-depth injury signal** (Tier 2, both tours) — `OPEN`
+    parse_score discards where in the match a retirement happened; a late-match
+    retirement is a stronger injury prior for the player's NEXT matches. Needs
+    last-retirement state + mirror. Sparse-row risk; WTA fp1 layoff≈off is mild
+    counter-evidence for injury-family signals there.
+
+13. **pooled — cross-tour pooled combiner with is_wta flag** (Tier 2, WTA target) —
+    `DONE-REJECT (R2-006: WTA d_val −0.00578 with ±10–18 SE per-year flapping, ATP
+    ±32 SE — training-distribution contamination exactly like the A5 full variant;
+    a tour flag does not rescue pooling)`
 
 ## Stale / superseded
 
@@ -65,3 +111,8 @@ are closed questions — re-opening one requires the underlying space to have ch
 | Altitude feature | tuning-results-2026-07-05-data-round.md Phase C |
 | A5 full variant (combiner-training contamination; ratings-only IS adopted) | tuning-results-2026-07-05-data-round.md Phase A |
 | Pooled-OOS / isotonic calibration, walkover-skip | tasks/todo.md Track B (2026-07-01 round) |
+| Pure-recombination combiner features (eloSx; also the E1 shape) — new columns must carry NEW state, and even then face a ~0.0003 LL capacity toll | tuning-results-2026-07-06-autoresearch-r2.md R2-002 |
+| Surface-sample confidence gate (sconf log_min_surf_matches; antisym variant presumed dominated) | tuning-results-2026-07-06-autoresearch-r2.md R2-003 |
+| Combiner training-window truncation (mty; graded version = W1d) | tuning-results-2026-07-06-autoresearch-r2.md R2-004 |
+| Tier/importance sample weighting in combiner folds (tierw; family 0-for-2 with W1d) | tuning-results-2026-07-06-autoresearch-r2.md R2-005 |
+| Cross-tour pooled combiner, tour flag or not (contamination = A5-full shape) | tuning-results-2026-07-06-autoresearch-r2.md R2-006 |

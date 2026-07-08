@@ -38,6 +38,7 @@ const GROUPS: Group[] = [
     label: "Model",
     items: [
       { href: "/accuracy", label: "Vs the market", desc: "Brier & calibration" },
+      { href: "/scorecard", label: "Vs Kalshi", desc: "Match-by-match ledger" },
       { href: "/track", label: "Track record", desc: "Graded point-in-time calls" },
       { href: "/method", label: "Method", desc: "How the engine works" },
     ],

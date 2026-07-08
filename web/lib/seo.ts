@@ -43,6 +43,10 @@ const PAGE_META: Record<string, { title: string; description: string }> = {
     title: "Track Record",
     description: "A graded, point-in-time forecast log — every call the model made, scored.",
   },
+  scorecard: {
+    title: "Vs Kalshi",
+    description: "A match-by-match ledger against the Kalshi prediction market — paired log-loss by rank, surface, tier and favourite strength.",
+  },
   method: {
     title: "Method",
     description: "How the engine works: surface-blended Elo, a serve/return Markov model and an XGBoost combiner.",
