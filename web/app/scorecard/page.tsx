@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
 import { pct } from "@/lib/ui";
 import { PageHead, Loading, Reveal, StatCard } from "@/components/bits";
+import { rel } from "@/components/Freshness";
 import { EASE } from "@/lib/motion";
 
 type Block = { n: number; acc: number; logloss: number; brier: number };
@@ -160,6 +162,15 @@ export default function ScorecardPage() {
   const range = data?.coverage.date_range;
   const v = head ? verdictOf(head.d_ll, head.d_ll_se) : "even";
 
+  // client-only clock so "updated Xm ago" doesn't mismatch the prerender (Freshness pattern)
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    setNow(Date.now());
+    const id = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  const freshness = data?.lastUpdated && now !== null ? rel(data.lastUpdated, now) : null;
+
   return (
     <div className="pb-16">
       <PageHead
@@ -185,6 +196,12 @@ export default function ScorecardPage() {
               <span className="chip" style={{ color: VCOLOR[v], borderColor: VCOLOR[v] }}>
                 {v === "ahead" ? "Ahead of the market" : v === "behind" ? "Behind the market" : "At parity"}
               </span>
+              {freshness && (
+                <span className="chip inline-flex items-center gap-1.5 whitespace-nowrap text-[var(--color-muted)]">
+                  <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-[var(--color-win)]" />
+                  ledger updated {freshness}
+                </span>
+              )}
               <span className="text-[14px] text-[var(--color-muted)]">
                 Across <span className="mono text-[var(--color-text)]">{head.n}</span> scored matches, the model&rsquo;s
                 log-loss is <span className="mono text-[var(--color-text)]">{num(head.model.logloss)}</span> vs the market&rsquo;s{" "}

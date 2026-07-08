@@ -53,6 +53,20 @@ def _kalshi(tour: str, df, oos) -> None:
         print(f"  kalshi/{tour}: skipped ({e})")
 
 
+def _kalshi_report(tours) -> None:
+    """Regenerate the cross-tour Kalshi scorecard (kalshi.json + report.md) from the
+    ledger CSVs, then re-mirror so the fresh kalshi.json reaches web/public/data (the
+    first _mirror ran before the report existed). Reads the committed CSVs, so it also
+    republishes kalshi.json on quick runs / after a data-cache eviction. Best-effort."""
+    try:
+        from .eval.kalshi_report import build_report
+        build_report()
+        for tour in tours:
+            _mirror(tour)
+    except Exception as e:                                   # noqa: BLE001 — never fatal
+        print(f"  kalshi-report: skipped ({e})")
+
+
 def build_tour(tour: str, do_backtest: bool) -> None:
     """Full build: re-walk ratings, retrain the combiner, write every JSON (daily)."""
     print(f"\n=== {tour.upper()} === loading matches + building features...")
@@ -118,8 +132,9 @@ def build_tour_quick(tour: str) -> None:
         build_tour(tour, do_backtest=False)
         return
     export_all(tour, df, predictor.elo, predictor.srv, predictor.meta, predictor, oos=None)
-    _track(tour, predictor, df)
-    _mirror(tour)
+    _track(tour, predictor, df)                  # refreshes the forecast log first, so
+    _kalshi(tour, df, oos=None)                  # the ledger prices live matches (cheap:
+    _mirror(tour)                                # settled sweep early-stops on frozen tickers)
 
 
 def main():
@@ -139,6 +154,7 @@ def main():
         download_rankings(tours)    # official live ranks (best-effort, keeps last good file)
         for tour in tours:
             build_tour_quick(tour)
+        _kalshi_report(tours)       # republish kalshi.json hourly from the fresh ledger
         return
 
     if args.download:
@@ -152,13 +168,7 @@ def main():
     for tour in tours:
         build_tour(tour, args.backtest)
 
-    try:                                         # cross-tour scorecard, then re-mirror
-        from .eval.kalshi_report import build_report
-        build_report()                           # (kalshi.json postdates each _mirror)
-        for tour in tours:
-            _mirror(tour)
-    except Exception as e:                                   # noqa: BLE001 — never fatal
-        print(f"  kalshi-report: skipped ({e})")
+    _kalshi_report(tours)
 
 
 if __name__ == "__main__":
