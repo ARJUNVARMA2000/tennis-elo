@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
 import { pct, surfaceColor } from "@/lib/ui";
-import { PageHead, Loading, Reveal, StatCard } from "@/components/bits";
+import { PageHead, Loading, Reveal, StatCard, CallCard } from "@/components/bits";
 import { EASE, SPRING_SOFT } from "@/lib/motion";
 
 type Metrics = { n: number; acc: number | null; logloss: number | null; brier: number | null };
@@ -205,34 +205,20 @@ export default function TrackPage() {
                     const aWon = r.actualWinner === r.playerA;
                     return (
                       <Reveal key={i} delay={Math.min(i * 0.04, 0.3)}>
-                        <div className="panel h-full p-4">
-                          <div className="flex items-center justify-between">
-                            <span className="chip" style={{ color: surfaceColor(r.surface), borderColor: surfaceColor(r.surface) }}>{r.surface}</span>
-                            <span className="mono text-[11px] text-[var(--color-faint)]">{r.event} · {r.round} · {r.date}</span>
-                          </div>
-                          <div className="mt-3 flex items-center justify-between gap-2">
-                            <div>
-                              <div className="text-[15px]" style={{ color: aWon ? "var(--color-win)" : "var(--color-muted)" }}>
-                                {r.playerA}
-                              </div>
-                              <div className="text-[15px]" style={{ color: !aWon ? "var(--color-win)" : "var(--color-muted)" }}>
-                                {r.playerB}
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="mono text-sm">{pct(r.p, 0)}</div>
-                              <div className="mono mt-1 text-xs" style={{ color: r.hit ? "var(--color-win)" : "var(--color-loss)" }}>
-                                {r.hit ? "called it ✓" : "missed ✗"}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
+                        <CallCard
+                          surface={r.surface}
+                          meta={`${r.event} · ${r.round} · ${r.date}`}
+                          top={{ name: r.playerA, prob: r.p, won: aWon }}
+                          bottom={{ name: r.playerB, prob: 1 - r.p, won: !aWon }}
+                          note={`model favoured ${r.p >= 0.5 ? r.playerA : r.playerB}`}
+                          verdict={{ label: r.hit ? "called it ✓" : "missed ✗", good: r.hit }}
+                        />
                       </Reveal>
                     );
                   })}
                 </div>
                 <div className="mono mt-3 text-[11px] text-[var(--color-faint)]">
-                  Probability shown is the model’s pre-match P({"{"}first player{"}"} wins). Green = actual winner.
+                  Bars are the model’s pre-match win probability for each player (they sum to 100%). Green marks the actual winner.
                 </div>
               </div>
             </Reveal>

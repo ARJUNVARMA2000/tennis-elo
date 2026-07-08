@@ -91,6 +91,76 @@ export function ProbBar({ p, w = 120 }: { p: number; w?: number }) {
   );
 }
 
+/** Two players, each with their model win probability as a bar (they sum to 100%).
+    tone="result" (default) marks the actual winner in green with a verdict — the Track
+    "recent calls" grid and the Feed; tone="projection" marks the model's favourite in
+    accent for a not-yet-played match — the /schedule board. One component so the three
+    surfaces can't visually drift. */
+type CallSide = { name: string; prob: number; won: boolean };
+export function CallCard({
+  surface,
+  meta,
+  top,
+  bottom,
+  note,
+  verdict,
+  glow = false,
+  tone = "result",
+}: {
+  surface: string;
+  meta: string;
+  top: CallSide;
+  bottom: CallSide;
+  note?: string;
+  verdict?: { label: string; good: boolean };
+  glow?: boolean;
+  tone?: "result" | "projection";
+}) {
+  // Show complementary integers so the two labels always sum to 100 (bar widths still
+  // use the true probabilities). Round the top/authoritative side; complement the other.
+  const topPct = Math.round(top.prob * 100);
+  const pcts = [topPct, 100 - topPct];
+  // green = the side that actually won; accent = the side we favour in an unplayed match.
+  const hi = tone === "projection" ? "var(--color-accent)" : "var(--color-win)";
+  return (
+    <div className={`panel h-full p-4 ${glow ? "row-glow" : ""}`}>
+      <div className="flex items-center justify-between gap-2">
+        <span className="chip" style={{ color: surfaceColor(surface), borderColor: surfaceColor(surface) }}>{surface}</span>
+        <span className="mono text-[11px] text-[var(--color-faint)]">{meta}</span>
+      </div>
+      <div className="mt-3">
+        {[top, bottom].map((r, i) => (
+          <div key={i}>
+            <div className="flex items-center justify-between gap-3">
+              <span className="flex items-center gap-2 text-[15px]" style={{ color: r.won ? "var(--color-text)" : "var(--color-muted)" }}>
+                <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: r.won ? hi : "transparent" }} />
+                {r.name}
+              </span>
+              <span className="mono text-sm" style={{ color: r.won ? "var(--color-text)" : "var(--color-muted)" }}>{pcts[i]}%</span>
+            </div>
+            <div className="bartrack mt-1.5 mb-2.5 h-1.5">
+              <motion.div
+                className="h-full rounded-full"
+                initial={{ scaleX: 0 }}
+                whileInView={{ scaleX: r.prob }}
+                viewport={{ once: true }}
+                transition={SPRING_SOFT}
+                style={{ width: "100%", transformOrigin: "left", background: r.won ? hi : "rgba(255,255,255,0.22)" }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+      {(note || verdict) && (
+        <div className="mono flex items-center justify-between text-[11px]">
+          <span className="text-[var(--color-faint)]">{note}</span>
+          {verdict && <span style={{ color: verdict.good ? "var(--color-win)" : "var(--color-loss)" }}>{verdict.label}</span>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function HeatCell({ p }: { p: number }) {
   const c = heat(p);
   return (

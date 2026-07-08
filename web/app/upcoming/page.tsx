@@ -3,8 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
-import { pct, surfaceColor } from "@/lib/ui";
-import { PageHead, Loading, Reveal } from "@/components/bits";
+import { PageHead, Loading, Reveal, CallCard } from "@/components/bits";
 
 type Fixture = {
   date: string; event: string; surface: string; round: string;
@@ -45,29 +44,15 @@ export default function Upcoming() {
           <div key={onlyUpsets ? "upsets" : "all"} className="grid gap-2.5 sm:grid-cols-2">
             {rows.map((f, i) => (
               <Reveal key={i} delay={Math.min(i * 0.01, 0.2)}>
-                <div className="panel row-glow p-4">
-                  <div className="flex items-center justify-between">
-                    <span className="chip" style={{ color: surfaceColor(f.surface), borderColor: surfaceColor(f.surface) }}>
-                      {f.surface}
-                    </span>
-                    <span className="mono text-[11px] text-[var(--color-faint)]">{f.event} · {f.round} · {f.date}</span>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between gap-2">
-                    <div>
-                      <div className="flex items-center gap-2 text-[15px] text-[var(--color-text)]">
-                        <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-win)]" />
-                        {f.winner}
-                      </div>
-                      <div className="pl-3.5 text-[15px] text-[var(--color-muted)]">{f.loser}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="mono text-sm">{f.score}</div>
-                      <div className="mono mt-1 text-xs" style={{ color: f.upset ? "var(--color-loss)" : "var(--color-muted)" }}>
-                        model {pct(f.modelProb, 0)} {f.upset && "· upset"}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <CallCard
+                  glow
+                  surface={f.surface}
+                  meta={`${f.event} · ${f.round} · ${f.date}`}
+                  top={{ name: f.winner, prob: f.modelProb, won: true }}
+                  bottom={{ name: f.loser, prob: 1 - f.modelProb, won: false }}
+                  note={f.score}
+                  verdict={{ label: f.upset ? "upset ✗" : "called it ✓", good: !f.upset }}
+                />
               </Reveal>
             ))}
           </div>
