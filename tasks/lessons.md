@@ -1,5 +1,41 @@
 # Lessons
 
+- **A new data-backed web page is a 6-part contract; miss one and it silently
+  half-works.** (2026-07-08, /schedule) (1) add a `build_*` in `model/export.py` +
+  a `_write(tour, "X.json", ...)` line in `export_all` — it's auto-mirrored to
+  `web/public/data/<tour>/` by `pipeline._mirror` and regenerated on full AND
+  `--quick` runs; it's overwrite-only output (like fixtures.json), so NO refresh.yml
+  persistence step (that's only for append-only state like forecast_log). (2)
+  `web/public/data/` is gitignored + machine-generated, so generate the JSON locally
+  from the saved model (`TennisPredictor.load(tour)` + `load_matches(tour)` + the
+  builder) or the dev page hangs on `<Loading/>`. (3) `page.tsx` is `"use client"` +
+  `useData<T>("X.json")` — the global tour context auto-switches ATP/WTA, the page
+  does nothing. (4) client pages can't export `metadata`, so add a sibling server
+  `layout.tsx` (`export const metadata = pageMetadata(slug)`) AND a `PAGE_META` entry
+  in `web/lib/seo.ts`. (5) a `Nav.tsx` GROUPS item — `isActive` uses
+  `path.startsWith`, so a slug that prefixes another (`/predictions` vs `/predict`)
+  double-highlights; pick a non-prefix slug. (6) handle empty/missing data
+  (`useData` sets `data=null`/`error`) with an explicit empty state. Reuse `CallCard`
+  (two players + prob bars, `tone` for result vs projection), `pct`, `surfaceColor`.
+  See [[future-proof-no-quick-fixes]].
+
+- **Live tournament reach-odds must be seated on the ACTUAL draw, not a rating
+  re-seed.** (2026-07-08) The live scorecard showed Sinner 97% + Djokovic 55% to
+  reach the same final while they actually met in the SF (must sum to 100%). Cause:
+  `project_field` → `standard_seed_draw` re-seeded survivors into a synthetic
+  1v4/2v3 bracket. Field-strength dominates *champion* odds on a full draw, so this
+  looked harmless — but it makes the round-by-round SF/F reach table nonsense, most
+  visibly once the draw is small and the real pairings are known. The real matchups
+  were already on disk: `data/live.parse_upcoming` writes them to `upcoming.csv`
+  (and `eval/track` reads it), the projector just never opened the file. Fix:
+  `sim/draws.live_draw` seats survivors by their real current-round matchups (pairs
+  adjacent; already-advanced players get a bye into the next round), seeding only
+  the genuinely-unknown downstream pairings; completed events keep full-field
+  seeding (that path is a deliberate pre-tournament hypothetical). Rule: any
+  live/forecast surface that shows per-round structure must consume the real draw
+  from `upcoming.csv`; a "sums to >100% across two players who face each other" is
+  the canary. See [[plans-adapt-to-landed-code]].
+
 - **A combiner feature that adds no new state is a pre-paid loss: budget a
   ~0.0003 LL capacity toll for any new column.** (2026-07-06, round R2) Adding
   `elo_osgap_diff` — pure algebra of two columns already in the frame — measured
