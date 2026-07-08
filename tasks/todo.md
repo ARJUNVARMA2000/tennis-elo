@@ -46,6 +46,18 @@ Plan: C:\Users\varma\.claude\plans\looks-like-we-have-lovely-puddle.md
   and 0.6–0.9 favorites; weakest: coin-flips (0.5–0.6), rank-11–20 pairs, grass/
   June, and big disagreements (model right 71/203 when |Δp|≥0.10).
 
+## Web surfacing (2026-07-07, follow-up)
+- New page web/app/scorecard/ ("Vs the Exchange", nav "Vs Kalshi" in the Model
+  group) reading the mirrored kalshi.json. Signature viz: an SVG forest plot of
+  paired d_ll ± 95% CI per segment (grouped: provenance, rank, favourite band,
+  surface, tier, round, month, agreement), colored by significance
+  (win-green ahead / loss-red behind / faint even). Headline verdict chip,
+  StatCards, coverage table, morning-line caveat. Reused the site's dark Linear
+  design system + bits (PageHead/StatCard/Reveal), NOT the artifact's own look.
+- Verified: next build (page in static export), 81/81 vitest, tsc clean, page
+  0 lint warnings, tour toggle swaps data (ATP parity / WTA behind), no NaN,
+  no page overflow. kalshi.json rides the existing _mirror path in CI.
+
 ---
 
 # Task: Autoresearch round R2 (2026-07-06 night, /research-round 8h)
