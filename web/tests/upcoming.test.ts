@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { groupByEvent, type Upcoming } from "@/lib/upcoming";
+import { groupByEvent, upcomingCard, type Upcoming } from "@/lib/upcoming";
 
 const mk = (event: string, round: string, a: string, b: string, pA: number, surface = "Hard"): Upcoming => ({
   event,
@@ -40,5 +40,36 @@ describe("groupByEvent", () => {
 
   it("returns [] for no rows", () => {
     expect(groupByEvent([])).toEqual([]);
+  });
+});
+
+describe("upcomingCard", () => {
+  it("puts player A on top (highlighted) when they are the favourite", () => {
+    const c = upcomingCard(mk("Wimbledon", "SF", "Alcaraz", "Sinner", 0.75, "Grass"));
+    expect(c.top).toEqual({ name: "Alcaraz", prob: 0.75, won: true });
+    expect(c.bottom).toEqual({ name: "Sinner", prob: 0.25, won: false });
+    expect(c.surface).toBe("Grass");
+    expect(c.meta).toBe("SF · 2026-07-10");
+  });
+
+  it("puts player B on top when pA < 0.5 (B is the favourite)", () => {
+    const c = upcomingCard(mk("Wimbledon", "SF", "Alcaraz", "Sinner", 0.25));
+    expect(c.top).toEqual({ name: "Sinner", prob: 0.75, won: true });
+    expect(c.bottom).toEqual({ name: "Alcaraz", prob: 0.25, won: false });
+  });
+
+  it("treats an exact 50/50 as player A favoured (deterministic tie-break)", () => {
+    const c = upcomingCard(mk("X", "F", "P1", "P2", 0.5));
+    expect(c.top.name).toBe("P1");
+    expect(c.top.won).toBe(true);
+  });
+
+  it("the two sides always sum to 1 (real pA values included)", () => {
+    for (const p of [0.02, 0.5, 0.6518, 0.99]) {
+      const c = upcomingCard(mk("X", "R64", "A", "B", p));
+      expect(c.top.prob + c.bottom.prob).toBeCloseTo(1, 12);
+      expect(c.top.won).toBe(true);
+      expect(c.bottom.won).toBe(false);
+    }
   });
 });
