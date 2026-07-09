@@ -13,6 +13,7 @@ web/public/data/
 node_modules/
 .next/
 out/
+web/.verify/
 *.tsbuildinfo
 next-env.d.ts
 
