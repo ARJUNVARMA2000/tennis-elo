@@ -74,7 +74,7 @@ are closed questions — re-opening one requires the underlying space to have ch
     prior for the existing opponent-adjusted SPW estimate when direct SPW evidence
     is thin; it adds no combiner columns and vanishes for well-observed players.
 
-9c. **rankord — ordinal-rank difference** (Tier 2, WTA-first) — `IN-PROGRESS (R3-004; self-generated)`
+9c. **rankord — ordinal-rank difference** (Tier 2, WTA-first) — `DONE-REJECT (R3-004: WTA d_tune +0.00017 but d_val -0.00024+/-0.00014; 2024/25 losses -2.9/-3.0 SE)`
     `rank_points` is modeled but the raw ordinal rank is not. Historical main-draw
     pair coverage is 96.5% WTA / 97.9% ATP; prediction uses the existing official
     rankings cache with a latest-historical-rank fallback. This is raw new state,
