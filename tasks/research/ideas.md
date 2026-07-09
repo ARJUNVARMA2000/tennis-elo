@@ -63,7 +63,7 @@ are closed questions — re-opening one requires the underlying space to have ch
    lose the most and 2024-26 gains a little — drift exists but truncation overpays
    for it, and the graded version is the already-rejected W1d recency weighting)`
 
-9. **h2hr — recent-h2h (3-year) diff** (Tier 2, both tours) — `OPEN`
+9. **h2hr — recent-h2h (3-year) diff** (Tier 2, both tours) — `DONE-REJECT (R3-001: WTA passed narrowly, but ATP d_tune -0.00004 / d_val -0.00014; 6/17 years positive)`
    h2h dicts are career-flat; recent meetings should predict better than 2010-era
    ones. Parity burden medium: pair-date tracking in the h2h state + prediction
    mirror in the same commit.
