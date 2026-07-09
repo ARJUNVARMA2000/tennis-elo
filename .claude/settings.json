@@ -33,11 +33,10 @@
       "Bash(npm run build:*)",
       "Bash(npm ci:*)",
       "Bash(git push origin research/*)",
-      "Bash(git push -u origin research/*)"
+      "Bash(git push -u origin research/*)",
+      "Bash(git push origin master)"
     ],
     "deny": [
-      "Bash(git push origin master:*)",
-      "Bash(git push origin master)",
       "Bash(git push --force origin master:*)",
       "Bash(git push --force origin master)"
     ]

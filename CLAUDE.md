@@ -23,3 +23,6 @@ cd web && npm test && npm run lint                        # web tests + lint
 - After changing web deps: `npm install --package-lock-only`, then verify with `npm ci` (Windows-generated lockfiles can miss Linux optional deps).
 - WTA API rate-limits (429s after ~2k calls): backfill one year at a time; CI incremental refresh is safe.
 - Before finalizing any doc/plan that cites repo facts (metrics, features, file lists), re-run `git log` and reconcile with what exploration saw.
+
+## Git & deploy
+- Direct `git push origin master` is allowed and auto-approved (allow-listed in `.claude/settings.json`) — no per-push approval needed. It triggers the production deploy (`refresh.yml`) and bypasses PR review, so push master deliberately: typically after a `research → master` merge with tests passing. Force-push to master (`git push --force origin master`) stays denied as a history-safety backstop.
