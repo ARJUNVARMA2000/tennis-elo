@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { groupByEvent, upcomingCard, type Upcoming } from "@/lib/upcoming";
+import { byTournamentTier, groupByEvent, upcomingCard, type Upcoming } from "@/lib/upcoming";
 
 const mk = (event: string, round: string, a: string, b: string, pA: number, surface = "Hard"): Upcoming => ({
   event,
@@ -40,6 +40,51 @@ describe("groupByEvent", () => {
 
   it("returns [] for no rows", () => {
     expect(groupByEvent([])).toEqual([]);
+  });
+});
+
+describe("byTournamentTier", () => {
+  const row = (event: string, level: string | undefined, a: string): Upcoming => ({
+    event, date: "2026-07-09", round: "R64", surface: "Grass", bestOf: 3,
+    playerA: a, playerB: "opp", pA: 0.6, level,
+  });
+
+  it("leads with the marquee event, so a live slam surfaces over same-week 125s", () => {
+    // Mirrors the real upcoming.json order (soonest-first): the concurrent WTA 125s land before
+    // the two Wimbledon SFs, which would otherwise be buried past the 6-card "Up next" cutoff.
+    const rows = [
+      row("Grand Est Open 88", "W125", "Selekhmeteva"),
+      row("Nordea Open", "W125", "Badosa"),
+      row("Cerity Partners Hall of Fame Open", "W125", "Rogers"),
+      row("Wimbledon", "Q", "Gauff"),   // slam is pinned by name even with a mislabeled "Q" level
+      row("Wimbledon", "Q", "Noskova"),
+    ];
+    const ordered = byTournamentTier(rows);
+    expect(ordered.slice(0, 2).map((r) => r.event)).toEqual(["Wimbledon", "Wimbledon"]);
+    expect(ordered.slice(0, 2).map((r) => r.playerA)).toEqual(["Gauff", "Noskova"]); // stable
+  });
+
+  it("orders by tier (1000 → 500 → 250) and stays soonest-first within a tier", () => {
+    const rows = [
+      row("Bastad", "ATP 250", "a"),
+      row("Hamburg", "ATP 500", "b"),
+      row("Canada", "ATP 1000", "c"),
+      row("Hamburg", "ATP 500", "d"),   // a later 500 match — must stay after "b" (stable sort)
+    ];
+    const ordered = byTournamentTier(rows);
+    expect(ordered.map((r) => r.event)).toEqual(["Canada", "Hamburg", "Hamburg", "Bastad"]);
+    expect(ordered.map((r) => r.playerA)).toEqual(["c", "b", "d", "a"]);
+  });
+
+  it("does not mutate the input array", () => {
+    const rows = [row("Bastad", "ATP 250", "a"), row("Wimbledon", "Q", "b")];
+    const before = [...rows];
+    byTournamentTier(rows);
+    expect(rows).toEqual(before);
+  });
+
+  it("returns [] for no rows", () => {
+    expect(byTournamentTier([])).toEqual([]);
   });
 });
 

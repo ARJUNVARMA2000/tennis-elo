@@ -12,7 +12,20 @@ export type Upcoming = {
   level?: string;
 };
 
+import { tournamentTier } from "./ui";
+
 export type EventGroup = { event: string; surface: string; level?: string; matches: Upcoming[] };
+
+/** Order scheduled matches by tournament prestige (Grand Slam → 1000 → 500 → …), the same tier
+    sort the /schedule board and the home tournament cards use. The rows already ship soonest-first
+    and Array.sort is stable, so this preserves soonest-first *within* each tier. Used by the home
+    "Up next" teaser so the marquee event leads — e.g. during Wimbledon its SF cards surface ahead
+    of a concurrent 125's opening round, instead of being buried past the fold by date alone. */
+export function byTournamentTier(rows: Upcoming[]): Upcoming[] {
+  return [...rows].sort(
+    (a, b) => tournamentTier(a.level, a.event).rank - tournamentTier(b.level, b.event).rank,
+  );
+}
 
 /** One side of a projection card: a player, their model win probability, and whether
     they're the highlighted side (the favourite, for an unplayed match). Structurally

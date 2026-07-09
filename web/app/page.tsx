@@ -9,7 +9,7 @@ import { SPRING_SOFT } from "@/lib/motion";
 import { nameKey, type PlayerRow } from "@/lib/live";
 import LiveTicker from "@/components/LiveTicker";
 import Link from "next/link";
-import { upcomingCard, type Upcoming } from "@/lib/upcoming";
+import { upcomingCard, byTournamentTier, type Upcoming } from "@/lib/upcoming";
 
 type Proj = { name: string; champion: number; final: number | null; sf: number | null; reach?: Record<string, number> };
 type Tournament = {
@@ -322,7 +322,10 @@ function OtherEvents({ events }: { events: Tournament[] }) {
 const UP_NEXT_COUNT = 6;
 function UpNext() {
   const { data } = useData<Upcoming[]>("upcoming.json");
-  const rows = (data || []).slice(0, UP_NEXT_COUNT);
+  // Lead with the marquee events: byTournamentTier orders by prestige (Grand Slam → 1000 → …),
+  // keeping soonest-first within a tier — so during Wimbledon the SF cards surface here instead
+  // of a concurrent 125's opening round that merely happens to be scheduled a day sooner.
+  const rows = byTournamentTier(data || []).slice(0, UP_NEXT_COUNT);
   if (rows.length === 0) return null;
   return (
     <section aria-label="Upcoming matches" className="mt-10">
