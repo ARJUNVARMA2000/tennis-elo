@@ -118,23 +118,30 @@ describe("winProb", () => {
   ];
 
   it("tier 1: hits the matrix across accent-mismatched spellings", () => {
-    expect(winProb("Felix Auger Aliassime", "Iga Swiatek", "Hard", 3, null, matrix)).toEqual({
+    expect(winProb("Felix Auger Aliassime", "Iga Swiatek", "Hard", 3, null, matrix, "wta")).toEqual({
       p: 0.62,
       source: "matrix",
     });
   });
 
   it("falls through to Elo when the grid cell is non-numeric", () => {
-    const r = winProb("Felix Auger Aliassime", "Iga Swiatek", "Clay", 3, players, matrix);
+    const r = winProb("Felix Auger Aliassime", "Iga Swiatek", "Clay", 3, players, matrix, "wta");
     expect(r.source).toBe("elo");
     expect(r.p).not.toBeNull();
   });
 
-  it("tier 2: surface-blended Elo formula (SURFACE_BLEND=0.5, RATING_SCALE=400)", () => {
-    // ra = .5·2000 + .5·2100 = 2050, rb = .5·1900 + .5·1900 = 1900 → Δ = 150
-    const r = winProb("Felix Auger Aliassime", "Iga Swiatek", "Hard", 3, players, null);
+  it("tier 2: surface-blended Elo via the canonical per-tour blend (WTA 0.62)", () => {
+    // ra = .38·2000 + .62·2100 = 2062, rb = 1900 → Δ = 162
+    const r = winProb("Felix Auger Aliassime", "Iga Swiatek", "Hard", 3, players, null, "wta");
     expect(r.source).toBe("elo");
-    expect(r.p).toBeCloseTo(1 / (1 + Math.pow(10, -150 / 400)), 6); // ≈ 0.7034
+    expect(r.p).toBeCloseTo(1 / (1 + Math.pow(10, -162 / 400)), 6);
+  });
+
+  it("tier 2: uses the ATP blend weight when tour is atp (0.63)", () => {
+    // ra = .37·2000 + .63·2100 = 2063, rb = 1900 → Δ = 163
+    const r = winProb("Felix Auger Aliassime", "Iga Swiatek", "Hard", 3, players, null, "atp");
+    expect(r.source).toBe("elo");
+    expect(r.p).toBeCloseTo(1 / (1 + Math.pow(10, -163 / 400)), 6);
   });
 
   it("blends elo with itself when the surface rating is missing", () => {
@@ -142,12 +149,12 @@ describe("winProb", () => {
       { name: "Felix Auger Aliassime", elo: 2000 }, // no eloHard → ra = 2000
       { name: "Iga Swiatek", elo: 1900 },
     ];
-    const r = winProb("Felix Auger Aliassime", "Iga Swiatek", "Hard", 3, bare, null);
+    const r = winProb("Felix Auger Aliassime", "Iga Swiatek", "Hard", 3, bare, null, "wta");
     expect(r.p).toBeCloseTo(1 / (1 + Math.pow(10, -100 / 400)), 6);
   });
 
   it("returns nulls for unknown players", () => {
-    expect(winProb("Nobody Atall", "Iga Swiatek", "Hard", 3, players, matrix)).toEqual({
+    expect(winProb("Nobody Atall", "Iga Swiatek", "Hard", 3, players, matrix, "wta")).toEqual({
       p: null,
       source: null,
     });
@@ -155,7 +162,7 @@ describe("winProb", () => {
 
   it("returns null when the same player is on both sides (regression)", () => {
     expect(
-      winProb("Iga Swiatek", "Iga Świątek", "Hard", 3, players, matrix),
+      winProb("Iga Swiatek", "Iga Świątek", "Hard", 3, players, matrix, "wta"),
     ).toEqual({ p: null, source: null });
   });
 });
