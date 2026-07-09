@@ -133,9 +133,11 @@ def main():
     tours = list(TOURS) if args.tour == "all" else [args.tour]
 
     if args.quick:
+        from .data.draws_wiki import download_wiki_draws
         from .data.live import download_live
         from .data.rankings import download_rankings
         download_live(tours)        # ESPN same-day overlay is the whole point of a quick run
+        download_wiki_draws(tours)  # authoritative full draws at release (best-effort)
         download_rankings(tours)    # official live ranks (best-effort, keeps last good file)
         for tour in tours:
             build_tour_quick(tour)
@@ -143,10 +145,12 @@ def main():
 
     if args.download:
         from .data.download import download_fresh
+        from .data.draws_wiki import download_wiki_draws
         from .data.live import download_live
         from .data.rankings import download_rankings
         download_fresh(tours)
         download_live(tours)        # ESPN same-day overlay so current events are current
+        download_wiki_draws(tours)  # authoritative full draws at release (best-effort)
         download_rankings(tours)
 
     for tour in tours:

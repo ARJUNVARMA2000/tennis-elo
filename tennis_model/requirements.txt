@@ -10,5 +10,6 @@ scikit-learn==1.9.0
 xgboost==3.3.0
 openpyxl==3.1.5   # only for reading Tennis-Data odds spreadsheets (eval/compare)
 xlrd==2.0.2       # Tennis-Data serves legacy .xls content under .xlsx names
+mwparserfromhell==0.7.2   # parse Wikipedia draw brackets (data/draws_wiki); pure parser, not model-affecting
 pytest==8.3.3     # kept here so CI and local runs agree
 # optuna          # OPTIONAL, local only: hyperparameter sweeps (eval/tune) — not needed by CI

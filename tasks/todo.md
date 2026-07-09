@@ -1,3 +1,109 @@
+# Task: "Up next" upcoming-matches grid on the Overview page (2026-07-08)
+
+Plan: C:\Users\varma\.claude\plans\foamy-hugging-castle.md
+Goal: surface the model's latest match predictions on the landing page ("so the latest
+models are always available"). Frontend-only — reuses the already-wired upcoming.json +
+CallCard(tone="projection"). User-chosen design: a 2-col card grid BELOW the title race.
+
+## Checklist
+- [x] web/lib/upcoming.ts: pure `upcomingCard(m)` helper (fav on top → CallCard props);
+      dedups the aFav/fav/dog block previously inlined in schedule/page.tsx
+- [x] web/app/schedule/page.tsx: consume the helper (behaviour identical)
+- [x] web/app/page.tsx: local `UpNext` component (next 6, soonest-first; header + "full
+      schedule →" link; self-hides when empty); mounted below SlamHero (slam view) and
+      above the tournaments grid (no-slam view); aria-label for parity with LiveTicker
+- [x] web/tests/upcoming.test.ts: upcomingCard cases (A-fav, B-fav, complement, meta)
+- [x] Verify: npm test (90) + lint (0 err) + build (17 routes) green; :3000 Playwright
+      render (grid below title race, fav accent, %s sum to 100, tour swaps, empty-hides,
+      /schedule unchanged)
+
+## Review (2026-07-08)
+- **Shipped**: an "Up next" grid on the Overview page — next 6 scheduled matches with the
+  model's win prob, favourite in accent, "full schedule →" to /schedule. Sits BELOW the
+  title race in the Slam view and above the tournaments grid otherwise; self-hides when
+  `upcoming.json` is empty (the explicit empty-state stays on /schedule). New local
+  `UpNext` in web/app/page.tsx, mounted in both layout branches.
+- **Reuse / no drift**: the favourite/underdog → CallCard mapping is now a single pure
+  helper `upcomingCard` in web/lib/upcoming.ts, consumed by BOTH the home grid and the
+  /schedule board (refactored to it — behaviour identical). Reuses existing `CallCard
+  tone="projection"`, `useData`, `Reveal`. Frontend-only — no pipeline/data change.
+- **"Latest models always available"**: `upcoming.json` is already regenerated on every
+  full and `--quick` refresh and auto-mirrored, so the landing page always shows the
+  current model's calls with zero extra plumbing.
+- **Proof**: web 90 tests (4 new `upcomingCard`, one tied to real pA=0.6518), lint 0
+  errors, build 17 routes. Playwright verified on :3000 (the concurrent session's dev
+  server serves the shared tree; a 2nd Next dev on :3001 is refused): WTA + ATP each
+  render 6 cards below the title race, every card cross-checked vs upcoming.json (names +
+  complementary %s + round; e.g. WTA Bencic 69% / Kalinskaya 31%); empty upcoming.json →
+  section absent; /schedule still 16 panels. Screenshots in scratchpad.
+- **Coexists with the concurrent Wikipedia-draw session**: both sessions edited
+  web/app/page.tsx (their drawStatus/DrawCaveat + my UpNext); combined build/lint/tests
+  green.
+- **Note**: local upcoming.json is a round behind the local title race (R64 vs R16 stage)
+  — a stale-snapshot artifact; production regenerates both together each refresh.
+
+---
+
+# Task: Download the full tournament draw at release (Wikipedia) + honest draw labeling (2026-07-08)
+
+Plan: C:\Users\varma\.claude\plans\do-you-download-the-curried-pancake.md
+Goal: ESPN can't supply a full draw at release (fills the bracket by daily order-of-play, so
+`live_draw` silently Elo-seeds a hypothetical bracket). Add Wikipedia (MediaWiki API) as the
+authoritative draw source — the complete ORDERED bracket the day it's released, down to ATP-250 —
+so tournaments project on the REAL draw from release onward (incl. pre-start). ESPN stays for live
+scores/eliminations. Add a `drawStatus` (real/partial/seeded/final) label as an honest safety net.
+Closes the 2026-07-08 "known limit" below.
+
+## Checklist
+- [x] config.py: WIKI_API, WIKI_UA, WIKI_TITLE_OVERRIDES; requirements.txt pin mwparserfromhell==0.7.2
+- [x] data/live.py: parse_event_meta (event → start/end/espnId) for pre-start discovery
+- [x] data/draws_wiki.py: discover (fetch_events) → resolve title (search API, year+anchor+gender
+      gated) → parse `-Compact-` sections in doc order (geometry-aware byes via RD2) → ordered
+      slots + seeds + bestOf → wiki_draws.json; idempotent (keep captured draws) + best-effort
+- [x] sim/draws.py: advance_slots (collapse ORDERED bracket by eliminated, keeping adjacency —
+      chosen over the planned `current_matchups`+live_draw round-trip, which would strength-seed
+      downstream halves and lose the real draw); _seat_frontier + draw_status; refactor live_draw
+      (bit-identical, existing 5 tests green)
+- [x] sim/tournaments.py: _load_wiki_draws; wiki precedence in project_tournament (+drawStatus);
+      _simulate_projection helper; project_upcoming + pre-start discovery (display-name dedup +
+      already-ended skip) in build_tournaments
+- [x] model/upcoming.py: union wiki R1 rows into load_upcoming (schedule board + forecast log)
+- [x] pipeline.py + data/download.py: wire download_wiki_draws (quick + full + --kind wiki/live)
+- [x] web/lib/ui.ts: drawCaveat; web/app/page.tsx: upcoming status + drawStatus type + DrawCaveat UI
+- [x] tests: test_draws_wiki.py, test_tournament_status.py, extend test_sim_draw.py, web ui.test.ts
+- [x] Verify: pytest 166 + ruff clean; web 90 tests + lint 0-err + build 17 routes; live smoke
+      (draws_wiki → Wimbledon 128 real; --quick → tournaments.json drawStatus real); :3001 Playwright
+      (seeded caveat / partial caveat / upcoming badge / real = no caveat, 6/6, 0 console errors)
+
+## Review (2026-07-08)
+- **Shipped**: Wikipedia (MediaWiki API) as the authoritative draw source. `data/draws_wiki.py`
+  discovers current/upcoming events from the ESPN sweep, resolves each to its draw article
+  (year + distinctive-anchor + exact-tour gated — verified this rejects last-year and wrong-tour
+  hits, e.g. Winston-Salem→AO and ATP Eastbourne→Women's), and parses the ORDERED bracket by
+  stitching the `-Compact-` section templates in document order (byes read from RD2 geometry,
+  disambiguators stripped, qualifiers kept distinct). `sim/tournaments.project_tournament` now
+  prefers the wiki ordered draw (`advance_slots` collapses it by ESPN eliminations, keeping real
+  adjacency → exact every round, closing the "downstream pairings strength-seeded" known limit
+  below), and `build_tournaments` surfaces not-yet-started events as `status:"upcoming"`. A
+  `drawStatus` (real/partial/seeded/final) rides through to the web, where `DrawCaveat` flags a
+  seeded/partial board so a projected bracket never masquerades as the official one.
+- **Deviation from plan**: used `advance_slots` (order-preserving collapse) for the wiki path
+  instead of `current_matchups`→`live_draw`; the latter re-seats by strength and would have
+  re-introduced the very downstream-half error the wiki draw exists to fix. Honest labeling
+  (`draw_status`/`_seat_frontier`) still ships for the ESPN-only fallback.
+- **Proof**: Python 166 passed + ruff clean; web 90 passed + lint 0 errors + build 17 routes.
+  Live: `draws_wiki` parsed 2026 Wimbledon (128, bo5, ordered) + Eastbourne; `--quick` produced
+  `tournaments.json` with Wimbledon `status:live drawStatus:real size:128`, no phantom duplicate.
+  Playwright on :3001 (server was the concurrent session's :3000): seeded Slam → "PROJECTED DRAW"
+  banner, partial → "DRAW INCOMPLETE", upcoming → "DRAW RELEASED" badge + pre-event odds, real →
+  unchanged (no caveat); 6/6 assertions, 0 console errors (screenshots in scratchpad).
+- **Not done (by design)**: Challenger/ITF draws (spotty on Wikipedia — would need a paid API);
+  the seeded-Slam SlamHero shows the banner but keeps the full table (no collapse-to-Champion —
+  the banner already makes the projection honest); WTA wiki cache filled on the next full/quick
+  refresh (smoke ran ATP only). New lesson recorded in tasks/lessons.md.
+
+---
+
 # Task: "Upcoming matches" predictions page — ATP + WTA (2026-07-08)
 
 Plan: C:\Users\varma\.claude\plans\radiant-sniffing-moonbeam.md

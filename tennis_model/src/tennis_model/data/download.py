@@ -224,6 +224,8 @@ def download_all(tours=("atp", "wta")) -> dict[str, list]:
         failures["wta/stats"] = [str(e)]
     from .live import download_live
     download_live(tours)                 # ESPN same-day overlay (best-effort)
+    from .draws_wiki import download_wiki_draws
+    download_wiki_draws(tours)           # authoritative full draws at release (best-effort)
     from .rankings import download_rankings
     download_rankings(tours)             # official live ranks (best-effort, not strict-fatal)
     from .charting import download_charting
@@ -245,7 +247,7 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--tour", default="all")
     ap.add_argument("--kind", default="fresh",
-                    choices=["fresh", "historical", "stats", "lower", "live", "all"])
+                    choices=["fresh", "historical", "stats", "lower", "live", "wiki", "all"])
     ap.add_argument("--strict", action="store_true",
                     help="exit non-zero if any current-year or stats download failed")
     args = ap.parse_args()
@@ -255,10 +257,15 @@ if __name__ == "__main__":
     if args.kind == "all":
         strict_failures += strict_fatal(download_all(tours), this_year)
     elif args.kind == "live":
+        from .draws_wiki import download_wiki_draws
         from .live import download_live
         from .rankings import download_rankings
         download_live(tours)
+        download_wiki_draws(tours)
         download_rankings(tours)
+    elif args.kind == "wiki":
+        from .draws_wiki import download_wiki_draws
+        download_wiki_draws(tours)
     elif args.kind == "stats":
         _, f = download_tml_stats(full=True)
         strict_failures += [f"atp/stats:{i}" for i in f]

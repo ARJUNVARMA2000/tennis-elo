@@ -86,6 +86,37 @@ def standard_seed_draw(players_by_rating: list) -> list:
     return [field[s - 1] for s in _seed_positions(n)]
 
 
+def _seat_frontier(alive: list, matchups: list, rank) -> tuple[list | None, str]:
+    """Shared core of ``live_draw`` + ``draw_status``: classify the posted current-round
+    draw and, when fully seatable, return its 2^k "units" (one per frontier match; a
+    player already through is a singleton that will take a bye). Returns (units, status):
+
+      (units, "real")     every alive player seats into a clean power-of-two frontier;
+      (None,  "partial")  some real matchups posted but not yet a seatable bracket;
+      (None,  "seeded")   no usable matchup among the alive field (draw unreleased).
+
+    Keeping the label and the seating in one place guarantees the drawStatus we report
+    is exactly the decision the simulator ran on.
+    """
+    alive = list(dict.fromkeys(alive))
+    aset = set(alive)
+    used: set = set()
+    pairs = []
+    for a, b in matchups:
+        if a in aset and b in aset and a != b and a not in used and b not in used:
+            pairs.append(tuple(sorted((a, b), key=rank, reverse=True)))    # stronger first
+            used.update((a, b))
+    if not pairs:                                     # no real draw info
+        return None, "seeded"
+    singles = sorted((p for p in alive if p not in used), key=rank, reverse=True)
+    units = [list(pr) for pr in pairs] + [[s] for s in singles]     # one unit per frontier match
+    u = len(units)
+    if u & (u - 1):                                   # not 2^k: can't seat a clean bracket
+        return None, "partial"
+    units.sort(key=lambda un: rank(un[0]), reverse=True)           # strongest unit first
+    return units, "real"
+
+
 def live_draw(alive: list, matchups: list, rank) -> list:
     """Seat still-alive players into a bracket using the *actual* remaining draw.
 
@@ -106,31 +137,61 @@ def live_draw(alive: list, matchups: list, rank) -> list:
     Falls back to ``standard_seed_draw`` when the feed gives no usable matchup, or when the
     unit count isn't a power of two (a partial/odd frontier we can't seat cleanly) — never
     worse than the old behaviour, exact whenever the round's matchups are fully posted.
+    When the *whole ordered draw* is known (Wikipedia), prefer ``advance_slots`` instead —
+    it keeps the real bracket adjacency that this rating-seeding can only approximate.
     """
     alive = list(dict.fromkeys(alive))
-    aset = set(alive)
-    used: set = set()
-    pairs = []
-    for a, b in matchups:
-        if a in aset and b in aset and a != b and a not in used and b not in used:
-            pairs.append(tuple(sorted((a, b), key=rank, reverse=True)))    # stronger first
-            used.update((a, b))
-    if not pairs:                                     # no real draw info -> old behaviour
+    units, _ = _seat_frontier(alive, matchups, rank)
+    if units is None:                                 # no/partial info -> old behaviour
         return standard_seed_draw(sorted(alive, key=rank, reverse=True))
-
-    singles = sorted((p for p in alive if p not in used), key=rank, reverse=True)
-    units = [list(pr) for pr in pairs] + [[s] for s in singles]     # one unit per frontier match
     u = len(units)
-    if u & (u - 1):                                   # not 2^k: can't seat a clean bracket
-        return standard_seed_draw(sorted(alive, key=rank, reverse=True))
-
-    units.sort(key=lambda un: rank(un[0]), reverse=True)           # strongest unit first
     order = _seed_positions(u) if u > 1 else [1]                   # spread strong units apart
     slots: list = []
     for un in (units[s - 1] for s in order):
         slots.append(un[0])
         slots.append(un[1] if len(un) > 1 else None)              # lone survivor -> bye partner
     return slots
+
+
+def draw_status(alive: list, matchups: list, rank) -> str:
+    """How much of the current-round draw the live feed pins down, from the *same* decision
+    ``live_draw`` makes: "real" (posted matchups seat the whole frontier -> live_draw honours
+    the actual draw), "partial" (some posted but not yet seatable -> live_draw seeds), or
+    "seeded" (none usable -> pure rating seed)."""
+    return _seat_frontier(alive, matchups, rank)[1]
+
+
+def _winner(a, b, elim: set):
+    """The survivor of a decided bracket match: the non-bye, non-eliminated side."""
+    if a is None or a in elim:
+        return b
+    if b is None or b in elim:
+        return a
+    return None                                       # undecided — caller must not fold it
+
+
+def advance_slots(slots: list, eliminated) -> list:
+    """Collapse a KNOWN ordered bracket (e.g. a Wikipedia draw) by results down to the
+    current frontier, **keeping bracket order** so every downstream pairing stays exact.
+
+    Fully-decided rounds fold to their winners (half the width); at the shallowest round
+    that still has an undecided match, that match is kept intact while its already-decided
+    neighbours fold to (winner, bye) — mirroring ``live_draw``'s mixed-round handling, but
+    on the real adjacency rather than a rating re-seed. ``None`` slots are byes.
+    """
+    elim = set(eliminated)
+    cur = list(slots)
+    while len(cur) > 2:
+        matches = [(cur[i], cur[i + 1]) for i in range(0, len(cur), 2)]
+        pending = [a is not None and b is not None and a not in elim and b not in elim
+                   for a, b in matches]
+        if any(pending):                              # this round is the frontier
+            out: list = []
+            for (a, b), live in zip(matches, pending):
+                out += [a, b] if live else [_winner(a, b, elim), None]
+            return out
+        cur = [_winner(a, b, elim) for a, b in matches]   # whole round decided -> fold
+    return cur
 
 
 def draw_size_rounds(n: int) -> list:

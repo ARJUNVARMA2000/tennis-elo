@@ -380,4 +380,21 @@ def odds_dir(tour: str) -> Path:
     return ODDS_DIR / tour       # per-tour subdirs: mixing would corrupt the benchmark
 
 
+# ---------------------------------------------------------------------------
+# Tournament draws (Wikipedia / MediaWiki API) — the authoritative full draw.
+# ESPN's scoreboard fills a pre-created bracket with real names only via the daily
+# order of play, so it never carries a complete draw at release; Wikipedia posts the
+# ORDERED bracket the day the official draw is released (verified down to ATP-250).
+# data/draws_wiki.py fetches each current/upcoming event's draw article and parses it.
+# ---------------------------------------------------------------------------
+WIKI_API = "https://en.wikipedia.org/w/api.php"
+# Wikimedia etiquette REQUIRES a descriptive User-Agent with contact info (generic UAs
+# get blocked) and asks for sequential (not parallel) requests — we make a few/day.
+WIKI_UA = "TennisEloModel/1.0 (https://github.com/; av3342@columbia.edu)"
+# ESPN sponsor name -> exact Wikipedia article base (year is prefixed, "– Singles"/
+# "– Men's singles"/"– Women's singles" is appended at resolve time). Only needed when
+# the search API can't disambiguate; keep small, extend when draws_wiki logs a miss.
+WIKI_TITLE_OVERRIDES: dict[str, str] = {}
+
+
 BACKTEST_START_YEAR = 2010    # walk-forward evaluation window start

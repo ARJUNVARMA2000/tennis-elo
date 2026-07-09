@@ -25,15 +25,31 @@ UPCOMING_COLS = ["tourney_name", "tourney_date", "round", "playerA", "playerB"]
 
 
 def load_upcoming(tour: str) -> pd.DataFrame:
-    """The tour's scheduled / in-progress matchups, or an empty frame if the feed hasn't
-    been captured yet. A missing or corrupt file is a no-op, never a build failure."""
+    """The tour's scheduled / in-progress matchups: ESPN's day-by-day feed unioned with the
+    full first round from any released Wikipedia draw (so the board shows every opening-round
+    match at release, not just the handful ESPN has named). Deduped by event + unordered
+    player pair (ESPN wins ties). A missing or corrupt source is a no-op, never fatal."""
+    frames = []
     path = live_dir(tour) / "upcoming.csv"
     if path.exists():
         try:
-            return pd.read_csv(path, encoding="utf-8")
+            frames.append(pd.read_csv(path, encoding="utf-8"))
         except Exception:  # noqa: BLE001 — a corrupt upcoming file must not break anything
             pass
-    return pd.DataFrame(columns=UPCOMING_COLS)
+    try:
+        from ..data.draws_wiki import wiki_upcoming_rows
+        rows = wiki_upcoming_rows(tour)
+        if rows:
+            frames.append(pd.DataFrame(rows))
+    except Exception:  # noqa: BLE001 — the wiki overlay is a bonus, never a build failure
+        pass
+    if not frames:
+        return pd.DataFrame(columns=UPCOMING_COLS)
+    df = pd.concat(frames, ignore_index=True).reindex(columns=UPCOMING_COLS)
+    pair = [frozenset((str(a), str(b))) for a, b in zip(df["playerA"], df["playerB"])]
+    df = df.assign(_ev=df["tourney_name"].astype(str), _pair=pair)
+    return (df[~df.duplicated(subset=["_ev", "_pair"])]
+            .drop(columns=["_ev", "_pair"]).reset_index(drop=True))
 
 
 def event_attrs(df: pd.DataFrame, event: str) -> tuple:
