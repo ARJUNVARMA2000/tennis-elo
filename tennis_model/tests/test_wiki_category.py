@@ -51,6 +51,8 @@ def test_resolve_level_fallback(monkeypatch):
     assert surface.resolve_level("wta", "Nordea Open") == "WTA 250"
     assert surface.resolve_level("atp", "Nordea Open") == "ATP 250"
     assert surface.resolve_level("wta", "Unlisted Event") == "WTA Tour"
+    # a fallback key inside a giant sponsor name still matches (substring)
+    assert surface.resolve_level("wta", "Cerity Partners Hall of Fame Open for the Van Alen Cup") == "WTA 250"
 
 
 def test_resolve_level_wiki_beats_fallback(monkeypatch):

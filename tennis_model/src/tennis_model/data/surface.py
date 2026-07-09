@@ -91,6 +91,9 @@ def resolve_level(tour: str, event: str, archive_level: str | None = None) -> st
     if cat:
         return cat
     fb = EVENT_TIER_FALLBACK.get(str(event))
+    if not fb:  # tolerate sponsor prefixes/suffixes: a fallback key that appears in the event name
+        low = str(event).lower()
+        fb = next((v for k, v in EVENT_TIER_FALLBACK.items() if k.lower() in low), None)
     if fb:
         return f"{tour.upper()} {fb}" if str(fb).isdigit() else str(fb)
     return generic
