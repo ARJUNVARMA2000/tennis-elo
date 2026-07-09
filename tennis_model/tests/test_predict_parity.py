@@ -64,6 +64,9 @@ class _Ctx:
     def record_surface(self, a, b, surf):
         return (1, 0)
 
+    def record_recent(self, a, b, as_of=None):
+        return (1, 0)
+
     def winrate10(self, name):
         return 0.6 if name == "Alfa One" else 0.5
 
@@ -92,6 +95,7 @@ def test_feature_dict_keys_match_FEATURES():
     assert set(row) == set(FEATURES), (set(row) ^ set(FEATURES))
     f = _with_no_profiles(lambda: _predictor(meta).features("Alfa One", "Bravo Two"))
     assert list(f.columns) == list(FEATURES)
+    assert row["h2h_recent_diff"] == 1
     print("ok test_feature_dict_keys_match_FEATURES")
 
 

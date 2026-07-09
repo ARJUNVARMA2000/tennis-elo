@@ -364,6 +364,8 @@ FATIGUE_WINDOW_DAYS = 14.0    # rolling window for the games-played workload fea
 LAYOFF_DAYS = 120.0           # idle-days threshold for the layoff flag
 PEAK_AGE = 26.5               # center of the age curve (both tours, roughly)
 WINRATE_WINDOW = 10           # last-N completed matches for the winrate10 feature
+# Recent rivalry window: H2H results older than this do not enter h2h_recent_diff.
+H2H_RECENT_DAYS = 3 * 365
 
 # ---------------------------------------------------------------------------
 # Data health thresholds (data/health.py) — stale sources turn the daily build red
