@@ -68,6 +68,12 @@ are closed questions — re-opening one requires the underlying space to have ch
    ones. Parity burden medium: pair-date tracking in the h2h state + prediction
    mirror in the same commit.
 
+9b. **srrp — rate-conditioned serve prior** (Tier 1/2, WTA-only) — `IN-PROGRESS (R3-002)`
+    The rejected E1 block exposed raw ace/DF/first-in differences to the combiner.
+    This distinct mechanism stores decayed rate state and uses it only as a shrunk
+    prior for the existing opponent-adjusted SPW estimate when direct SPW evidence
+    is thin; it adds no combiner columns and vanishes for well-observed players.
+
 10. **tierw — per-tier sample weighting in combiner folds** (Tier 2 scratch driver,
     both tours) — `DONE-REJECT (R2-005: tier_k^2 uniformly negative on WTA LL,
     tier_k^4 monotonically worse — upweighting slams sharpens accuracy but
@@ -78,7 +84,7 @@ are closed questions — re-opening one requires the underlying space to have ch
     works). Redundancy risk vs Elo/rankpts. Parity precondition: verify the
     prediction-time upcoming-match feed carries seeds BEFORE building.
 
-12. **retd — retirement-depth injury signal** (Tier 2, both tours) — `OPEN`
+12. **retd — retirement-depth injury signal** (Tier 2, both tours) — `DONE-DECLINED (R3 Tier 0: 2010+ next-match win rate rises rather than falls for late retirements: WTA 53.4% early vs 54.0% late; ATP 50.6% vs 53.1%; no evidence to justify reopening the rejected ret_recent family)`
     parse_score discards where in the match a retirement happened; a late-match
     retirement is a stronger injury prior for the player's NEXT matches. Needs
     last-retirement state + mirror. Sparse-row risk; WTA fp1 layoff≈off is mild
