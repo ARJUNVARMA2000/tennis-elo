@@ -62,6 +62,48 @@ def _round_label(disp: str) -> str | None:
     return "R64"          # generic main-draw round (only "F" must be exact for status)
 
 
+def _next_pow2(n: int) -> int:
+    p = 1
+    while p < n:
+        p <<= 1
+    return p
+
+
+def _draw_size(comps: list) -> int:
+    """Main-draw bracket size for one event grouping, or 0 if indeterminable.
+
+    ESPN numbers main-draw rounds from 1 (id 1 = the opening, most-populous round) and always
+    tags QF/SF/F as ids 5/6/7 — so the *label* "Round 2" is R64 at a 128-draw Slam but R16 at
+    a 32-draw event; only the draw size disambiguates. We take it as the next power of two
+    >= 2 x (largest numbered round's match count): the opening round ships complete when the
+    draw is published, so it fixes the size even mid-event, and the power-of-two rounding
+    absorbs byes (a 28-player field brackets as 32)."""
+    from collections import Counter
+    per_round: Counter = Counter()
+    for c in comps:
+        rid = (c.get("round") or {}).get("id")
+        if isinstance(rid, str) and rid.isdigit() and 1 <= int(rid) <= 4:
+            per_round[int(rid)] += 1
+    return _next_pow2(2 * max(per_round.values())) if per_round else 0
+
+
+def _round_code(rnd: dict, draw: int) -> str | None:
+    """ESPN round object + the event's draw size -> our round code (None drops the match).
+
+    The numbered main-draw rounds (ESPN ids 1-4, labelled "Round N") are draw-relative and
+    resolved against `draw`; qualifying is dropped; everything else (QF/SF/F, or any other
+    wording) falls to the draw-agnostic name map. Keeps the historical vocabulary
+    (R128/R64/R32/R16/QF/SF/F)."""
+    disp = (rnd or {}).get("displayName", "")
+    if "qualif" in disp.lower():
+        return None
+    rid = (rnd or {}).get("id")
+    if draw and isinstance(rid, str) and rid.isdigit() and 1 <= int(rid) <= 4:
+        size = draw >> (int(rid) - 1)                # id 1 = full draw, halving each round
+        return {8: "QF", 4: "SF", 2: "F"}.get(size, f"R{size}")
+    return _round_label(disp)
+
+
 def _score(win_ls: list, los_ls: list) -> str:
     """Winner-perspective games string, e.g. '6-7 6-4 7-5' (tiebreak points dropped)."""
     sets = []
@@ -94,11 +136,13 @@ def parse_events(events: list, gender: str) -> pd.DataFrame:
             slug = (grp.get("grouping") or {}).get("slug", "")
             if slug != keep_slug:                           # skip doubles + the other tour
                 continue
-            for comp in grp.get("competitions", []) or []:
+            comps = grp.get("competitions", []) or []
+            draw = _draw_size(comps)
+            for comp in comps:
                 stype = (comp.get("status") or {}).get("type") or {}
                 if not stype.get("completed"):              # only finished matches
                     continue
-                rnd = _round_label((comp.get("round") or {}).get("displayName", ""))
+                rnd = _round_code(comp.get("round") or {}, draw)
                 if rnd is None:
                     continue
                 cs = comp.get("competitors") or []
@@ -166,8 +210,10 @@ def parse_fields(events: list, gender: str) -> dict:
         for grp in ev.get("groupings", []) or []:
             if (grp.get("grouping") or {}).get("slug", "") != keep:
                 continue
-            for comp in grp.get("competitions", []) or []:
-                if _round_label((comp.get("round") or {}).get("displayName", "")) is None:
+            comps = grp.get("competitions", []) or []
+            draw = _draw_size(comps)
+            for comp in comps:
+                if _round_code(comp.get("round") or {}, draw) is None:
                     continue                                  # skip qualifying
                 cs = comp.get("competitors") or []
                 for c in cs:
@@ -199,11 +245,13 @@ def parse_upcoming(events: list, gender: str) -> pd.DataFrame:
         for grp in ev.get("groupings", []) or []:
             if (grp.get("grouping") or {}).get("slug", "") != keep:
                 continue
-            for comp in grp.get("competitions", []) or []:
+            comps = grp.get("competitions", []) or []
+            draw = _draw_size(comps)
+            for comp in comps:
                 stype = (comp.get("status") or {}).get("type") or {}
                 if stype.get("completed") or stype.get("state") not in ("pre", "in"):
                     continue                                # only not-yet-finished matchups
-                rnd = _round_label((comp.get("round") or {}).get("displayName", ""))
+                rnd = _round_code(comp.get("round") or {}, draw)
                 if rnd is None:
                     continue
                 names = [_athlete_name(c) for c in (comp.get("competitors") or [])]

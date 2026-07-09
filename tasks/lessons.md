@@ -172,3 +172,21 @@
   ledger uses 08:00 UTC on the result row's date, provably pre-match for this
   era's event footprint and immune to upstream mutation; (3) always ship a
   cheap redundant-measurement sentinel with any external price/time source.
+
+- **A live feed's round label is draw-relative — resolve it against draw size, not
+  the label/number alone.** (2026-07-08) ESPN's tennis scoreboard tags main-draw
+  rounds "Round 1".."Round 4" with numeric `round.id` 1-4 (start-anchored,
+  left-aligned) and always QF/SF/F = ids 5/6/7. So "Round 1" is R128 at a 128-draw
+  Slam but R32 at a 32-draw event — the number alone is meaningless. The old
+  name-only `_round_label` matched none of "Round N" and fell through to a generic
+  `return "R64"`, so every Slam R128/R32/R16 match shipped as R64 (Wimbledon
+  fixtures showed 120 matches as "R64"). Fix: `_draw_size` per event grouping =
+  `next_pow2(2 x opening-round match count)` (the opening round ships complete when
+  the draw drops, and pow2-rounding absorbs byes), then map numbered id `r` to
+  `draw >> (r-1)`; QF/SF/F stay name-anchored; `_round_label` kept only as an
+  id-less fallback. Rules: (1) map live rounds against draw size, computed per
+  event, never from the bare round label; (2) anchor the named rounds (QF/SF/F) by
+  their fixed marker, not by counting — the numbered-round<->QF id gap is not
+  constant across draw sizes; (3) any keyword round map needs its fallback proven
+  against the SOURCE's real vocabulary (ESPN sends "Round 4", not the
+  documented-looking "Round of 16"/"4th Round").

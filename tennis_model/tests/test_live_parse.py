@@ -44,6 +44,29 @@ def _pending(rnd, a, b, state="pre", date="2026-06-09T11:00Z"):
     }
 
 
+def _mens_round(rid, disp, n, completed=True):
+    """n ESPN competitions in one main-draw round, tagged with ESPN's numeric round id
+    (1-4 numbered, 5/6/7 = QF/SF/F) — mirrors the real scoreboard payload."""
+    comps = []
+    for i in range(n):
+        w, ls = f"W{rid}_{i}", f"L{rid}_{i}"
+        comps.append({
+            "status": {"type": {"state": "post" if completed else "pre",
+                                 "completed": completed}},
+            "round": {"id": str(rid), "displayName": disp},
+            "date": "2026-07-01T12:00Z",
+            "competitors": [
+                {"winner": True, "athlete": {"displayName": w},
+                 "linescores": [{"value": 6.0}]},
+                {"winner": False, "athlete": {"displayName": ls},
+                 "linescores": [{"value": 3.0}]},
+            ] if completed else [
+                {"athlete": {"displayName": w}}, {"athlete": {"displayName": ls}},
+            ],
+        })
+    return comps
+
+
 def _events():
     final = _completed("Final", "Aaron Ace", (6, 6), "Bob Baseline", (3, 4))
     semi = _completed("Semifinal", "Aaron Ace", (7, 6), "Carl Clay", (6, 4))
@@ -104,6 +127,55 @@ def test_round_label():
     # unrecognised main-draw name -> generic round
     assert live._round_label("") == "R64"
     print("ok test_round_label")
+
+
+def test_draw_size():
+    # 128-draw Slam: opening round has 64 matches -> draw 128
+    slam = (_mens_round(1, "Round 1", 64) + _mens_round(2, "Round 2", 32)
+            + _mens_round(5, "Quarterfinal", 4))
+    assert live._draw_size(slam) == 128
+    # 32-draw event: opening round has 16 matches -> draw 32
+    assert live._draw_size(_mens_round(1, "Round 1", 16) + _mens_round(2, "Round 2", 8)) == 32
+    # byes: a 28-player field (12 opening matches) still brackets as 32
+    assert live._draw_size(_mens_round(1, "Round 1", 12)) == 32
+    # QF/SF/F ids never size the draw; no numbered rounds -> unknown (0)
+    assert live._draw_size(_mens_round(5, "Quarterfinal", 4)) == 0
+    assert live._draw_size([]) == 0
+    print("ok test_draw_size")
+
+
+def test_round_code_draw_relative():
+    # THE BUG: ESPN labels Slam main-draw rounds "Round 1".."Round 4" (ids 1-4), which the
+    # old name map collapsed to R64. They must resolve against draw size instead.
+    for rid, disp, code in [(1, "Round 1", "R128"), (2, "Round 2", "R64"),
+                            (3, "Round 3", "R32"), (4, "Round 4", "R16")]:
+        assert live._round_code({"id": str(rid), "displayName": disp}, 128) == code
+    # the SAME labels are earlier rounds at a 32-draw event
+    assert live._round_code({"id": "1", "displayName": "Round 1"}, 32) == "R32"
+    assert live._round_code({"id": "2", "displayName": "Round 2"}, 32) == "R16"
+    # QF/SF/F are draw-agnostic (ids 5/6/7, resolved by name) — never touched by the numbered path
+    assert live._round_code({"id": "5", "displayName": "Quarterfinal"}, 128) == "QF"
+    assert live._round_code({"id": "6", "displayName": "Semifinal"}, 32) == "SF"
+    assert live._round_code({"id": "7", "displayName": "Final"}, 128) == "F"
+    # qualifying dropped even carrying a numeric id
+    assert live._round_code({"id": "11", "displayName": "Qualifying 1st Round"}, 128) is None
+    # unknown draw -> graceful fall back to the name map (id-less / legacy payloads)
+    assert live._round_code({"displayName": "Round of 16"}, 0) == "R16"
+    print("ok test_round_code_draw_relative")
+
+
+def test_parse_events_slam_rounds_not_all_r64():
+    # end-to-end regression: a real-shaped 128-draw must yield R128/R64/R32/R16, not four
+    # buckets of "R64" (the symptom the deployed fixtures showed during Wimbledon).
+    from collections import Counter
+    comps = (_mens_round(1, "Round 1", 64) + _mens_round(2, "Round 2", 32)
+             + _mens_round(3, "Round 3", 16) + _mens_round(4, "Round 4", 8)
+             + _mens_round(5, "Quarterfinal", 4))
+    ev = {"id": "900", "name": "Grand Slam",
+          "groupings": [{"grouping": {"slug": "mens-singles"}, "competitions": comps}]}
+    df = live.parse_events([ev], "mens")
+    assert Counter(df["round"]) == {"R128": 64, "R64": 32, "R32": 16, "R16": 8, "QF": 4}
+    print("ok test_parse_events_slam_rounds_not_all_r64")
 
 
 def test_score_winner_perspective():
@@ -183,6 +255,9 @@ def test_placeholder_names_dropped():
 
 if __name__ == "__main__":
     test_round_label()
+    test_draw_size()
+    test_round_code_draw_relative()
+    test_parse_events_slam_rounds_not_all_r64()
     test_score_winner_perspective()
     test_parse_events_completed_singles_only()
     test_parse_events_other_tour()
