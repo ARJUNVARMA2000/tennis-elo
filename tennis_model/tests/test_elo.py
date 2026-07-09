@@ -187,6 +187,26 @@ def test_run_elo_home_advantage():
     print("ok test_run_elo_home_advantage")
 
 
+def test_surface_blend_web_mirror_contract():
+    """Cross-language contract (like the name_key fixture): web/lib/ui.ts hardcodes
+    SURFACE_BLEND as a mirror of the tuned per-tour surface_blend. Both sides are
+    pinned to fixtures/model_constants.json — retuning the blend without updating
+    the web mirror (or vice versa) fails one side of CI."""
+    import json
+
+    from tennis_model.ratings.elo import params_for
+
+    fixture = Path(__file__).parent / "fixtures" / "model_constants.json"
+    pinned = json.loads(fixture.read_text(encoding="utf-8"))["surface_blend"]
+    assert set(pinned) == {"atp", "wta"}
+    for tour, expected in pinned.items():
+        assert params_for(tour).surface_blend == expected, (
+            f"{tour} surface_blend retuned: update fixtures/model_constants.json "
+            f"AND web/lib/ui.ts SURFACE_BLEND together"
+        )
+    print("ok test_surface_blend_web_mirror_contract")
+
+
 if __name__ == "__main__":
     test_expected_score()
     test_dynamic_k_monotone()
@@ -196,4 +216,5 @@ if __name__ == "__main__":
     test_run_elo_cross_surface_transfer()
     test_run_elo_adaptive_blend()
     test_run_elo_home_advantage()
+    test_surface_blend_web_mirror_contract()
     print("\nALL PASSED")
