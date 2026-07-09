@@ -1,5 +1,14 @@
 # Lessons
 
+- **Public method-page copy hardcodes tuned constants and cadences — re-verify it after
+  adoptions.** (2026-07-09) `/method` still said "blended ~50/50" and "weekly refresh" while
+  config.py carried surface_blend 0.63/0.62 and refresh.yml ran hourly QUICK + daily FULL; the
+  page text was last touched 2026-07-01 and a week of adoptions invalidated four of its six
+  sections (blend ratio, 6-vs-8 style dims, combiner input list, cadence). Rule: any adoption
+  that changes a headline fact (blend weights, feature families, style dimensions, refresh
+  cadence) includes a pass over `web/app/method/page.tsx` STEPS; phrase tuned values as
+  "currently about X" so they read as snapshots, not spec.
+
 - **Live-event surface has ONE authoritative source (Wikipedia's main article) and must be
   fixed at the loader source, not the prediction points.** (2026-07-08, surface backfill) ESPN
   carries no surface, so it's re-derived as archive-by-name -> `_MONTH_SURFACE` (July="Grass").
