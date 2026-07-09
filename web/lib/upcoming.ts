@@ -38,11 +38,16 @@ export type CardSide = { name: string; prob: number; won: boolean };
     can never drift. */
 export type UpcomingCard = { surface: string; meta: string; top: CardSide; bottom: CardSide };
 
-export function upcomingCard(m: Upcoming): UpcomingCard {
+/** `showEvent` prepends the tournament name to the meta line ("event · round · date", the
+    same convention the Feed and Track "recent calls" cards use). The home "Up next" grid is a
+    flat, cross-tournament list, so it needs the event for context; the /schedule board leaves
+    it off because each card already sits under its tournament's section header. */
+export function upcomingCard(m: Upcoming, opts?: { showEvent?: boolean }): UpcomingCard {
   const aFav = m.pA >= 0.5;
+  const meta = opts?.showEvent ? `${m.event} · ${m.round} · ${m.date}` : `${m.round} · ${m.date}`;
   return {
     surface: m.surface,
-    meta: `${m.round} · ${m.date}`,
+    meta,
     top: { name: aFav ? m.playerA : m.playerB, prob: aFav ? m.pA : 1 - m.pA, won: true },
     bottom: { name: aFav ? m.playerB : m.playerA, prob: aFav ? 1 - m.pA : m.pA, won: false },
   };

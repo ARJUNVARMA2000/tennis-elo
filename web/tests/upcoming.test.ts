@@ -117,4 +117,12 @@ describe("upcomingCard", () => {
       expect(c.bottom.won).toBe(false);
     }
   });
+
+  it("prepends the tournament name to the meta only when showEvent is set", () => {
+    const m = mk("Wimbledon", "SF", "Alcaraz", "Sinner", 0.75, "Grass");
+    // /schedule board (grouped under an event header): no event in the meta.
+    expect(upcomingCard(m).meta).toBe("SF · 2026-07-10");
+    // home "Up next" (flat, cross-tournament grid): event · round · date.
+    expect(upcomingCard(m, { showEvent: true }).meta).toBe("Wimbledon · SF · 2026-07-10");
+  });
 });

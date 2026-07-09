@@ -925,3 +925,35 @@ Scraper is best-effort by contract: any failure (Cloudflare challenge, layout dr
 the previous rankings.json from the CI cache — the site degrades to stale ranks, never a
 red build. Freshness = hourly quick run. Name-join residuals are individually verified
 retired/doubles/unranked players, correctly shown as "—".
+
+---
+
+# Task: Name the tournament on the home "Up next" cards (2026-07-09)
+
+User: the "Up next" prediction cards show only surface + `round · date` (e.g. "SF ·
+2026-07-10") — the tournament is missing. The flat grid mixes tournaments, so each card
+should name its event.
+
+## Checklist
+- [x] web/lib/upcoming.ts: `upcomingCard(m, { showEvent })` — when set, meta becomes
+      `event · round · date` (the exact convention the Feed + Track "recent calls" cards
+      already use); default unchanged so the /schedule board (event is a section header)
+      stays clean. No change to the shared CallCard.
+- [x] web/app/page.tsx: home `UpNext` grid passes `{ showEvent: true }`
+- [x] web/tests/upcoming.test.ts: +1 case pinning meta with/without showEvent
+- [x] Verify: vitest 12/12 (upcoming suite); `npm run lint` 0 errors
+
+## Review
+- **Shipped:** the home "Up next" cards now read e.g. "Wimbledon · SF · 2026-07-10". Chose to
+  match the established meta convention (Feed/Track already prefix the event) rather than
+  restructure the shared `CallCard` header — one canonical format across all four card
+  surfaces, zero drift, minimal diff.
+- **Why gated, not always-on:** `upcomingCard` feeds both the home grid and /schedule; the
+  schedule board groups cards under a per-event `<h2>` header, so prefixing the event there
+  would be redundant. The `showEvent` flag keeps that surface untouched.
+- **Verification:** the unit test asserts the exact rendered string, and `CallCard` renders
+  `{meta}` verbatim via a path already proven in production by the Feed/Track cards — so no
+  new render behavior. No launch.json / Playwright in the tree now (unlike the original
+  Up-next task), so browser capture was disproportionate for a proven string concat; the meta
+  span wraps (no `whitespace-nowrap`) so long sponsor names degrade gracefully, and the real
+  marquee data ("Wimbledon") fits the 3-col grid.
