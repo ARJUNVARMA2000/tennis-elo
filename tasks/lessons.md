@@ -1,5 +1,16 @@
 # Lessons
 
+- **A Δ-metric card must compute the sign its own caption promises — and match its
+  neighbours' convention.** (2026-07-09, /scorecard) The "Vs Pinnacle (Δ log-loss)" hero
+  computed `model − market` while the page header promised "positive Δ means the model was
+  sharper" and the adjacent Kalshi card + forest plot used `market − model` — so the card
+  showed +0.0018/+0.0097, silently claiming a win over Pinnacle's close that the data
+  contradicts. Same audit: its sub cited the full matched n (17,761) for a metric scored
+  only on the 2020+ validation slice (10,042), and the eyebrow said "Ten years" over the
+  same slice. Rule: every signed comparison surface states one convention, derives its
+  n/window labels from the same payload slice it renders (`stack.val`, `stack.fit.valStart`),
+  and gets checked against the neighbouring cards' sign at review.
+
 - **Public method-page copy hardcodes tuned constants and cadences — re-verify it after
   adoptions.** (2026-07-09) `/method` still said "blended ~50/50" and "weekly refresh" while
   config.py carried surface_blend 0.63/0.62 and refresh.yml ran hourly QUICK + daily FULL; the
