@@ -1,5 +1,14 @@
 # Lessons
 
+- **Public method-page copy hardcodes tuned constants and cadences — re-verify it after
+  adoptions.** (2026-07-09) `/method` still said "blended ~50/50" and "weekly refresh" while
+  config.py carried surface_blend 0.63/0.62 and refresh.yml ran hourly QUICK + daily FULL; the
+  page text was last touched 2026-07-01 and a week of adoptions invalidated four of its six
+  sections (blend ratio, 6-vs-8 style dims, combiner input list, cadence). Rule: any adoption
+  that changes a headline fact (blend weights, feature families, style dimensions, refresh
+  cadence) includes a pass over `web/app/method/page.tsx` STEPS; phrase tuned values as
+  "currently about X" so they read as snapshots, not spec.
+
 - **Live-event surface has ONE authoritative source (Wikipedia's main article) and must be
   fixed at the loader source, not the prediction points.** (2026-07-08, surface backfill) ESPN
   carries no surface, so it's re-derived as archive-by-name -> `_MONTH_SURFACE` (July="Grass").
@@ -190,3 +199,23 @@
   constant across draw sizes; (3) any keyword round map needs its fallback proven
   against the SOURCE's real vocabulary (ESPN sends "Round 4", not the
   documented-looking "Round of 16"/"4th Round").
+
+- **Python `json.dump` emits a bare `NaN`, which the browser's strict `JSON.parse`
+  REJECTS — one non-finite float blanks a whole page, and every Python-side check
+  passes it.** (2026-07-09, WTA /player + /style) A scoreless WTA match left
+  `"score": NaN` in `profiles.json`. Python's `json.load` accepts `NaN`/`Infinity` by
+  default, so a local `python -c json.load` AND the health gate (reading with plain
+  `json.loads`) both saw a valid file — but the frontend `useData` → `r.json()` threw
+  on the invalid token, leaving `data` null so the page rendered a blank body between
+  header and footer (looks "not loading", not errored). ATP was clean only by luck (no
+  scoreless top-200 recent match). Three-part durable fix: (1) sanitise at the single
+  write seam `export._write` — `_finite()` recursively maps non-finite floats → `None`
+  (`null`), so no field/file/builder can ship the token (`build_fixtures` carried the
+  same latent `"score": r.score`); (2) the gate now parses web JSON with
+  `json.loads(..., parse_constant=<raise>)` in `health.py:read_outputs`, so a NaN file
+  lands in `corrupt` → "present but unparseable", mirroring the browser; (3) both pages
+  degrade to an explicit empty state on `!data`, never a blank body. Rules: emit web
+  JSON only through a seam that strips non-finite floats; NEVER validate shipped JSON
+  with Python's lenient `json.load` — use a browser-equivalent STRICT parser, since the
+  two disagree exactly on NaN/Infinity. Extends the health-gate "catch the shipped-wrong
+  class, not just the bug" rule. See [[future-proof-no-quick-fixes]].

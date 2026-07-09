@@ -957,3 +957,40 @@ should name its event.
   Up-next task), so browser capture was disproportionate for a proven string concat; the meta
   span wraps (no `whitespace-nowrap`) so long sponsor names degrade gracefully, and the real
   marquee data ("Wimbledon") fits the 3-col grid.
+
+# Task: WTA /player + /style rendered blank — NaN in profiles.json (2026-07-09)
+
+Repro (user): the deployed WTA player & style pages "look like the site is not loading".
+Root cause: a scoreless WTA recent-match left `"score": NaN` in `profiles.json`. Python's
+`json.dump` emits the bare token `NaN` (valid Python-JSON, accepted by `json.load`), but the
+browser's strict `JSON.parse` rejects it → `useData`'s `r.json()` throws → `data` stays null →
+the page renders a blank body between header and footer. ATP was clean by luck (no scoreless
+top-200 recent match). Confirmed in-browser: `fetch('/data/wta/profiles.json').then(r=>r.json())`
+threw `Unexpected token 'N' ... "score": NaN`.
+
+## Changes
+- [x] `model/export.py`: `_finite()` recursively maps non-finite floats → None; applied at the
+      single write seam `_write` so no field/file/builder can ship NaN/Infinity (`build_fixtures`
+      had the same latent `"score": r.score`).
+- [x] `data/health.py`: `read_outputs` now parses web JSON with `parse_constant=<raise>`, so a
+      NaN/Infinity file lands in `corrupt` → existing "present but unparseable" gate message
+      (mirrors the browser; the old plain `json.loads` accepted NaN and never caught it).
+- [x] `web/app/player/page.tsx` + `web/app/style/page.tsx`: explicit empty state on `!data`/empty
+      roster (schedule-style muted message) instead of a blank body.
+- [x] tests: new `tests/test_export.py` (3 cases: `_finite` scalars/nesting, `_write` browser-strict
+      round-trip); `tests/test_health.py::test_read_outputs_flags_nan_as_corrupt`.
+
+## Review
+- **Verified locally** (Playwright on :3001, regenerated web JSON via the real `_finite`):
+  WTA /player renders the full Sabalenka dossier (4 panels), WTA /style renders the radar +
+  stat lines, the forced-fetch-failure empty state shows the clean message (not blank), ATP
+  unaffected. Full suites green: pytest 222 passed, web vitest 95 passed, `npm run lint` +
+  `npm run build` exit 0.
+- **Not "unavailable" — a serialization bug over good data:** WTA profiles are complete
+  (165/200 have style metrics, more than ATP's 152/200), so the fix makes the pages WORK rather
+  than labelling them unavailable per the literal request; the empty state is an honest fallback.
+- **Deploy:** code fix on `research/2026-07-09`; the live site keeps serving the NaN file until
+  master regenerates + redeploys (gated on explicit user go-ahead). `web/public/data` is
+  gitignored, so nothing data-side is committed.
+- Lesson recorded in `tasks/lessons.md` (Python NaN vs browser JSON.parse; validate shipped JSON
+  with a strict parser).

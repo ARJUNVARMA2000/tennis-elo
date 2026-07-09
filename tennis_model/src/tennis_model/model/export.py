@@ -16,6 +16,7 @@ Kept separate from pipeline orchestration so the export surface is easy to scan:
 from __future__ import annotations
 
 import json
+import math
 from collections import defaultdict
 from datetime import UTC, datetime
 
@@ -36,11 +37,26 @@ HISTORY_SINCE = "2016-01"
 SLAM_BEST_OF = {"atp": 5, "wta": 3}
 
 
+def _finite(x):
+    """Replace non-finite floats (NaN/±Inf) with None, recursively. A missing value
+    reaches here as float('nan') (e.g. a scoreless match's `score`); json.dump would
+    emit the bare token `NaN`, which is valid Python-JSON but the browser's strict
+    JSON.parse rejects — the whole file fails to parse and the page renders blank.
+    null is a valid, frontend-handled stand-in, so sanitise at the single write seam."""
+    if isinstance(x, float):
+        return x if math.isfinite(x) else None
+    if isinstance(x, dict):
+        return {k: _finite(v) for k, v in x.items()}
+    if isinstance(x, list):
+        return [_finite(v) for v in x]
+    return x
+
+
 def _write(tour: str, name: str, data) -> None:
     out = output_dir(tour)
     out.mkdir(parents=True, exist_ok=True)
     with open(out / name, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+        json.dump(_finite(data), f, ensure_ascii=False, indent=2)
 
 
 def _active(elo) -> list:

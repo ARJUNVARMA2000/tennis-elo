@@ -105,11 +105,18 @@ _DRAW_STATES = {"real", "partial", "seeded", "final"}
 _REACH_ORDER = ("R128", "R64", "R32", "R16", "QF", "SF", "F", "Champion")
 
 
+def _reject_nonfinite(token: str):
+    """parse_constant hook: json.loads accepts NaN/Infinity by default, but the browser's
+    JSON.parse rejects them — a NaN that slips into a shipped file blanks the page, not
+    errors. Treat such a file as unparseable here so the gate catches what the browser will."""
+    raise ValueError(f"non-finite JSON constant {token!r}")
+
+
 def read_outputs(tour: str) -> dict:
     """Load a tour's produced JSON + forecast log. IO seam (monkeypatched in tests).
 
     Returns {"data": {stem: parsed}, "missing": [required stems absent],
-             "corrupt": [stems present but unparseable],
+             "corrupt": [stems present but unparseable OR carrying NaN/Infinity],
              "forecast": {"lines": int, "max_as_of": str|None} | None}.
     """
     d = output_dir(tour)
@@ -121,7 +128,7 @@ def read_outputs(tour: str) -> dict:
                 missing.append(stem)
             continue
         try:
-            data[stem] = json.loads(f.read_text())
+            data[stem] = json.loads(f.read_text(), parse_constant=_reject_nonfinite)
         except (ValueError, OSError):
             corrupt.append(stem)
     forecast = None
