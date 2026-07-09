@@ -13,7 +13,12 @@ The daily workflow runs this without --strict (always writes health.json, exit 0
 follow-up step reads health.json to open/close a `data-health` GitHub issue and red the
 run. --issue-body prints that issue's Markdown; --strict is kept for local use.
 
-Run:  PYTHONPATH=src python -m tennis_model.data.health [--strict | --issue-body]
+--gate is the PRE-deploy guard the workflow runs before publishing: it fails (exit 1) only
+on produced-output integrity problems (not source freshness), so an internally-inconsistent
+build (e.g. impossible reach odds, a live event naming a champion) can never reach the site;
+a failure keeps the last good deploy live. It never writes health.json.
+
+Run:  PYTHONPATH=src python -m tennis_model.data.health [--strict | --issue-body | --gate]
 """
 
 from __future__ import annotations
@@ -103,6 +108,25 @@ _PLACEHOLDER_NAMES = {"tbd", "tba", "bye", "qualifier"}   # mirror data/live.py
 _STATUSES = {"live", "upcoming", "completed"}
 _DRAW_STATES = {"real", "partial", "seeded", "final"}
 _REACH_ORDER = ("R128", "R64", "R32", "R16", "QF", "SF", "F", "Champion")
+
+# The pre-deploy --gate blocks a deploy only on problems that make the shipped site WRONG
+# (impossible numbers, structural breaks, missing/corrupt required JSON). A thin or quirky
+# schedule/rankings feed is worth flagging but not worth freezing the site over, so these
+# markers stay ADVISORY — reported by the gate but left to the non-blocking post-deploy
+# sentinel. New checks default to blocking (the safe direction).
+_GATE_ADVISORY = (
+    "same event more than once",   # YoY sponsor-rename / dedup split (schedule cosmetic)
+    "one event under two names",
+    "no live/upcoming event",      # a genuine quiet week can leave the board thin
+    "is empty",                    # tournaments.json / upcoming.json empty
+    "liveRank",                    # rankings source drifted (site still correct on model odds)
+    "outputs last built",          # build-age; can't legitimately fire right after a build
+)
+
+
+def _gate_blocks(problem: str) -> bool:
+    """True if this output problem should BLOCK the deploy (vs. warn-but-ship)."""
+    return not any(marker in problem for marker in _GATE_ADVISORY)
 
 
 def _reject_nonfinite(token: str):
@@ -402,6 +426,10 @@ def main() -> int:
     ap.add_argument("--strict", action="store_true", help="exit non-zero on any problem")
     ap.add_argument("--issue-body", action="store_true",
                     help="print a GitHub-issue body from the existing health.json (empty if ok)")
+    ap.add_argument("--gate", action="store_true",
+                    help="pre-deploy gate: exit non-zero on any produced-OUTPUT integrity "
+                         "problem (not source freshness / run-over-run deltas); does not write "
+                         "health.json — run BEFORE deploy so a wrong build can't ship")
     args = ap.parse_args()
 
     health_path = OUTPUT_DIR / "health.json"
@@ -412,6 +440,31 @@ def main() -> int:
         report = json.loads(health_path.read_text())
         if not report.get("ok", True):
             print(format_issue_body(report, run_url=os.environ.get("GITHUB_RUN_URL")))
+        return 0
+
+    if args.gate:
+        # Pre-deploy integrity gate. Fails ONLY on internally-inconsistent produced output —
+        # impossible odds, aliveCount>drawSize, a non-power-of-two "real" draw, a live event
+        # already naming a champion, placeholder-name leaks, missing/corrupt required JSON, a
+        # broken win matrix, upset-flag disagreements, ... Deliberately absolute (prev=None):
+        # source freshness and run-over-run deltas are NOT gated here — those stay best-effort
+        # and are reported by the post-deploy sentinel. Never writes health.json (leaves the
+        # sentinel's prev-snapshot/issue flow untouched). A failure keeps the last good deploy
+        # live rather than shipping a wrong one; a stale-but-correct site beats a fresh-wrong one.
+        now = pd.Timestamp(datetime.now(UTC).date())
+        blocking: list[str] = []
+        for tour in TOURS:
+            for pr in output_problems(tour, read_outputs(tour), now, prev=None):
+                if _gate_blocks(pr):
+                    blocking.append(pr)
+                    print(f"  GATE/{tour}: BLOCK {pr}")
+                else:
+                    print(f"  GATE/{tour}: warn  {pr}  (advisory — post-deploy sentinel handles it)")
+        if blocking:
+            print(f"::error::pre-deploy integrity gate failed — {len(blocking)} blocking problem(s); "
+                  f"deploy blocked, last good deploy stays live")
+            return 1
+        print("pre-deploy integrity gate passed (no deploy-blocking integrity problem)")
         return 0
 
     prev = None

@@ -153,6 +153,47 @@ def test_main_surfaces_output_problems():
     print("ok test_main_surfaces_output_problems")
 
 
+def test_gate_blocks_bad_output_without_writing_healthjson():
+    """--gate reds the deploy on an integrity problem but must NOT clobber the sentinel's
+    health.json, and must pass on internally-consistent output (fresh lastUpdated so the
+    build-age check stays clean whatever the real date this runs)."""
+    from datetime import UTC, datetime
+    fresh_iso = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    clean = _healthy_data(); clean["meta"]["lastUpdated"] = fresh_iso
+    orig = (health.read_outputs, health.OUTPUT_DIR, health.TOURS, sys.argv)
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            health.OUTPUT_DIR = Path(d)
+            health.TOURS = ("atp",)
+            health.read_outputs = lambda tour: _oc(missing=["tournaments"])   # required JSON gone
+            sys.argv = ["health", "--gate"]
+            rc_bad = health.main()
+            wrote_healthjson = (Path(d) / "health.json").exists()
+            health.read_outputs = lambda tour: _oc(data=clean)                # internally consistent
+            sys.argv = ["health", "--gate"]
+            rc_ok = health.main()
+    finally:
+        health.read_outputs, health.OUTPUT_DIR, health.TOURS, sys.argv = orig
+    assert rc_bad == 1                        # a broken build is blocked from deploying
+    assert not wrote_healthjson               # the gate leaves the post-deploy sentinel's file alone
+    assert rc_ok == 0                         # a clean build deploys
+    print("ok test_gate_blocks_bad_output_without_writing_healthjson")
+
+
+def test_gate_classifies_advisory_vs_blocking():
+    """Provably-wrong output blocks the deploy; a thin/quirky schedule/rankings feed only warns
+    (so a cosmetic naming split or a quiet week can't freeze the site)."""
+    assert health._gate_blocks("wta: 'X' 'P0' champion=1.4 out of [0,1]")            # impossible number
+    assert health._gate_blocks("atp: tournaments.json missing")                      # missing required JSON
+    assert health._gate_blocks("wta: tournament 'X' aliveCount 99 > drawSize 32")    # structural break
+    assert not health._gate_blocks(
+        "wta: tournaments.json lists the same event more than once (Bad Homburg) — a naming/dedup split")
+    assert not health._gate_blocks("atp: tournaments.json has no live/upcoming event")
+    assert not health._gate_blocks(
+        "wta: 40% of top players have no liveRank (max 30%) — rankings source may have drifted")
+    print("ok test_gate_classifies_advisory_vs_blocking")
+
+
 # --- produced-output validation (output_problems / read_outputs / format_issue_body) --
 def test_output_healthy_is_clean():
     assert health.output_problems("atp", _oc(), NOW) == []
@@ -381,6 +422,8 @@ if __name__ == "__main__":
     test_tour_health_empty_frame_reports_none()
     test_main_strict_exit_code_and_report()
     test_main_surfaces_output_problems()
+    test_gate_blocks_bad_output_without_writing_healthjson()
+    test_gate_classifies_advisory_vs_blocking()
     test_output_healthy_is_clean()
     test_output_missing_and_corrupt_files()
     test_output_feature_schema_drift()

@@ -101,7 +101,10 @@ def _parse_dates(s: pd.Series) -> pd.Series:
     d = pd.to_datetime(s, format="%Y%m%d", errors="coerce")
     miss = d.isna() & s.notna()
     if miss.any():
-        d.loc[miss] = pd.to_datetime(s[miss].str.replace("/", "-", regex=False), errors="coerce")
+        # format="mixed" infers per element (same result as no format) but WITHOUT the
+        # "Could not infer format" UserWarning that otherwise prints on every pipeline run.
+        d.loc[miss] = pd.to_datetime(s[miss].str.replace("/", "-", regex=False),
+                                     format="mixed", errors="coerce")
     return d
 
 

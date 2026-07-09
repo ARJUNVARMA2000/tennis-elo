@@ -230,3 +230,26 @@
   with Python's lenient `json.load` — use a browser-equivalent STRICT parser, since the
   two disagree exactly on NaN/Infinity. Extends the health-gate "catch the shipped-wrong
   class, not just the bug" rule. See [[future-proof-no-quick-fixes]].
+
+- **A correctness check that runs AFTER deploy can't stop a wrong deploy — gate before, on
+  every mode.** (2026-07-09, cross-session retrospective) `data/health.py` already encoded the
+  right invariants (reach-odds monotonic, `aliveCount<=drawSize`, real draw a power of two, a
+  live event can't name a champion, placeholder leaks, matrix antisymmetry), but `refresh.yml`
+  ran it `if mode==full` and LAST — after `deploy-pages`, without `--strict`. So a wrong build
+  (e.g. the live-draw pairing bug: two same-half survivors both ~100% to reach the final)
+  shipped, and every quick/push deploy skipped the check entirely; the USER was the gate. Fix: a
+  `--gate` mode (produced-output integrity ONLY, `prev=None` so source freshness / run-over-run
+  deltas stay best-effort; never writes health.json) wired BEFORE build/deploy on BOTH full and
+  quick, with `_gate_blocks()` splitting provably-wrong (block) from thin/quirky-feed (advisory,
+  e.g. a naming split or a quiet week) so the gate can't freeze the site over cosmetics. A
+  failure keeps the last good deploy live — stale-but-correct beats fresh-wrong. Rule: when the
+  user catches a "shipped-wrong" class, the durable fix is a new `output_problems()` invariant +
+  `test_health.py` case, not just patching the one bug. See [[future-proof-no-quick-fixes]].
+
+- **`cancel-in-progress: true` on the deploy concurrency group silently drops changes.**
+  (2026-07-09) The `pages` group cancelled any in-flight deploy when a scheduled refresh or a
+  concurrent push arrived, so the run carrying a change was killed mid-flight and never shipped —
+  repeatedly misread as a "transient Pages hiccup" and worked around with manual re-dispatch
+  (~100 turns burned across sessions). Set `cancel-in-progress: false` (GitHub's own Pages-deploy
+  default): the in-progress run finishes; GitHub queues only the latest superseding run and skips
+  intermediate ones. Rule: a deploy job's concurrency group must never cancel in-progress.

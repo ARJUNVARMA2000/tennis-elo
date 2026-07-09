@@ -994,3 +994,34 @@ threw `Unexpected token 'N' ... "score": NaN`.
   gitignored, so nothing data-side is committed.
 - Lesson recorded in `tasks/lessons.md` (Python NaN vs browser JSON.parse; validate shipped JSON
   with a strict parser).
+
+## Cross-session retrospective + pre-deploy integrity gate (2026-07-09)
+
+Analyzed all 35 project work sessions (5 parallel agents over distilled transcript digests) for
+recurring failure modes. Top finding: the dominant class is "shipped a data bug that silently
+half-worked until the user caught it" — and `data/health.py` already encoded the right invariants
+but ran only post-deploy / full-mode, so it never gated a bad deploy.
+
+Changes (verified, then reconciled onto master — see deviation):
+- [x] `health.py`: new `--gate` mode + `_gate_blocks()` — pre-deploy integrity gate over produced
+      JSON. Blocks only provably-wrong output (impossible odds, `aliveCount>drawSize`, non-pow2 real
+      draw, live event naming a champion, missing/corrupt required JSON); feed-thin/quirky signals
+      stay advisory. `prev=None`; never writes health.json. Composes with the sibling session's new
+      NaN-strict `read_outputs` (a NaN file → corrupt → blocked).
+- [x] `refresh.yml`: `cancel-in-progress: true -> false`; `--gate` step before build/deploy on BOTH
+      full and quick.
+- [x] `results.py` `_parse_dates`: `format="mixed"` — silences the per-run "Could not infer format"
+      warning (behaviour identical).
+- [x] `test_health.py`: +2 gate tests. Full suite 225 passed, ruff clean.
+- [x] `CLAUDE.md`: pre-deploy-gate hard rule. `lessons.md`: +2 entries (gate-before-not-after;
+      cancel-in-progress).
+- [x] `.claude/settings.json`: read-only + test/lint/build permission allowlist. `~/.claude/settings.json`
+      (device-wide): UTF-8 env.
+
+Deviation (important): a concurrent session sharing this working tree auto-stashed my uncommitted
+changes ("pre-switch" stash) and merged its own work (NaN-strict JSON, Bad Homburg dedup) to master
+mid-task. My first recovery (`git checkout <stash> -- health.py`) silently CLOBBERED the sibling's
+committed `parse_constant` change — caught only because the "check first" pass compared master's
+committed health.py against the restore. Correct recovery: ff to master, reset all my target files
+to master, re-apply ONLY my hunks from context on top. Lesson: after a shared-tree disruption, never
+restore whole files from a pre-disruption stash — diff every target against committed master first.

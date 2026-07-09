@@ -27,9 +27,14 @@ permissions:
   id-token: write
   issues: write        # open/comment/close the data-health issue on a failed daily check
 
+# Serialize Pages deploys but NEVER cancel one mid-flight: a scheduled refresh or a
+# concurrent push used to cancel the in-progress deploy carrying a change (cancel-in-progress:
+# true), so the change silently never shipped and the run had to be re-dispatched by hand.
+# false = the in-progress run finishes; GitHub queues only the latest superseding run and
+# skips the intermediate ones (matches GitHub's own Pages-deploy starter workflow).
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   refresh:
@@ -99,6 +104,19 @@ jobs:
         env:
           PYTHONPATH: src
         run: python -m tennis_model.pipeline --tour all --quick
+
+      # Pre-deploy integrity gate (BOTH modes). Blocks the deploy on any internally-
+      # inconsistent produced JSON — impossible reach odds, aliveCount>drawSize, a live event
+      # already naming a champion, a non-power-of-two "real" draw, placeholder-name leaks,
+      # missing/corrupt required JSON. Source-freshness problems are NOT gated here (those
+      # still deploy best-effort and are reported by the post-deploy sentinel). On failure the
+      # job stops before build/deploy, so the last good deploy stays live rather than shipping
+      # a wrong one. This is why quick runs (live-draw pairings) are covered too, not just full.
+      - name: Pre-deploy integrity gate
+        working-directory: tennis_model
+        env:
+          PYTHONPATH: src
+        run: python -m tennis_model.data.health --gate
 
       # Durably persist the append-only forecast log (the data cache is evictable, so
       # commit it back). Once daily on the full run keeps history to one commit/day; the
