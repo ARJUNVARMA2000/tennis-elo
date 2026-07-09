@@ -199,3 +199,23 @@
   constant across draw sizes; (3) any keyword round map needs its fallback proven
   against the SOURCE's real vocabulary (ESPN sends "Round 4", not the
   documented-looking "Round of 16"/"4th Round").
+
+- **Python `json.dump` emits a bare `NaN`, which the browser's strict `JSON.parse`
+  REJECTS — one non-finite float blanks a whole page, and every Python-side check
+  passes it.** (2026-07-09, WTA /player + /style) A scoreless WTA match left
+  `"score": NaN` in `profiles.json`. Python's `json.load` accepts `NaN`/`Infinity` by
+  default, so a local `python -c json.load` AND the health gate (reading with plain
+  `json.loads`) both saw a valid file — but the frontend `useData` → `r.json()` threw
+  on the invalid token, leaving `data` null so the page rendered a blank body between
+  header and footer (looks "not loading", not errored). ATP was clean only by luck (no
+  scoreless top-200 recent match). Three-part durable fix: (1) sanitise at the single
+  write seam `export._write` — `_finite()` recursively maps non-finite floats → `None`
+  (`null`), so no field/file/builder can ship the token (`build_fixtures` carried the
+  same latent `"score": r.score`); (2) the gate now parses web JSON with
+  `json.loads(..., parse_constant=<raise>)` in `health.py:read_outputs`, so a NaN file
+  lands in `corrupt` → "present but unparseable", mirroring the browser; (3) both pages
+  degrade to an explicit empty state on `!data`, never a blank body. Rules: emit web
+  JSON only through a seam that strips non-finite floats; NEVER validate shipped JSON
+  with Python's lenient `json.load` — use a browser-equivalent STRICT parser, since the
+  two disagree exactly on NaN/Infinity. Extends the health-gate "catch the shipped-wrong
+  class, not just the bug" rule. See [[future-proof-no-quick-fixes]].

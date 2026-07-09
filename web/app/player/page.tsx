@@ -41,7 +41,13 @@ export default function Players() {
 
       {loading && <Loading />}
 
-      {data && (
+      {!loading && (!data || names.length === 0) && (
+        <div className="mono mt-10 text-sm text-[var(--color-faint)]">
+          No {tour.toUpperCase()} player profiles available right now — the data may be refreshing, so check back shortly.
+        </div>
+      )}
+
+      {data && names.length > 0 && (
         <>
           <Reveal>
             <Dropdown

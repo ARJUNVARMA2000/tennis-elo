@@ -336,6 +336,30 @@ def test_read_outputs_detects_missing_and_corrupt(tmp_path=None):
     print("ok test_read_outputs_detects_missing_and_corrupt")
 
 
+def test_read_outputs_flags_nan_as_corrupt():
+    """json.loads accepts the bare NaN token but the browser's JSON.parse rejects it — a
+    NaN that ships blanks the page (the WTA /player,/style regression: a scoreless match
+    left "score": NaN in profiles.json). The gate must treat such a file as unparseable."""
+    orig = (health.output_dir, health.DATA_DIR)
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            (root / "atp").mkdir()
+            (root / "atp" / "meta.json").write_text('{"matches": 1}')
+            # a real scoreless-match row, exactly as json.dump would have emitted it
+            (root / "atp" / "profiles.json").write_text('{"P": {"recent": [{"score": NaN}]}}')
+            health.output_dir = lambda tour: root / tour
+            health.DATA_DIR = root
+            oc = health.read_outputs("atp")
+    finally:
+        health.output_dir, health.DATA_DIR = orig
+    assert "profiles" in oc["corrupt"] and "profiles" not in oc["data"]
+    # and output_problems surfaces it through the existing unparseable channel
+    assert any("profiles.json is present but unparseable" in p
+               for p in health.output_problems("atp", oc, NOW))
+    print("ok test_read_outputs_flags_nan_as_corrupt")
+
+
 def test_format_issue_body_has_problems_and_fix_prompt():
     report = {"generated": "2026-07-09", "ok": False,
               "tours": {"wta": {"problems": ["wta: newest completed match is 9d old"],
@@ -375,5 +399,6 @@ if __name__ == "__main__":
     test_output_emptiness_is_season_gated()
     test_output_liverank_drift_is_season_gated()
     test_read_outputs_detects_missing_and_corrupt()
+    test_read_outputs_flags_nan_as_corrupt()
     test_format_issue_body_has_problems_and_fix_prompt()
     print("\nALL PASSED")
