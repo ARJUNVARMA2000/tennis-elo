@@ -27,7 +27,7 @@ type Track = {
 };
 type Market = {
   years: [number, number]; matched: number;
-  stack?: { val?: { model: Metrics; market: Metrics; stack: Metrics } };
+  stack?: { fit?: { valStart: number; nVal: number }; val?: { model: Metrics; market: Metrics; stack: Metrics } };
 };
 type Block = { n: number; acc: number; logloss: number; brier: number };
 type Paired = {
@@ -338,8 +338,8 @@ export default function ScorecardPage() {
             sub={live ? `${live.graded} graded pre-match calls` : undefined} />
           <StatCard label="Vs Kalshi (Δ log-loss)" value={kHead ? signed(kHead.d_ll) : "—"}
             sub={kHead ? `±${num(kHead.d_ll_se)} · ${kv === "even" ? "at parity" : kv}` : undefined} />
-          <StatCard label="Vs Pinnacle (Δ log-loss)" value={val ? signed(val.model.logloss - val.market.logloss, 4) : "—"}
-            sub={val && market ? `${market.matched.toLocaleString()} matches · closing odds` : undefined} />
+          <StatCard label="Vs Pinnacle (Δ log-loss)" value={val ? signed(val.market.logloss - val.model.logloss, 4) : "—"}
+            sub={val && market ? `${val.model.n.toLocaleString()} matches (${market.stack?.fit?.valStart ?? market.years[0]}+ validation) · closing odds` : undefined} />
         </div>
         {freshness && (
           <div className="mono mt-2 flex items-center gap-1.5 text-[11px] text-[var(--color-faint)]">
@@ -404,7 +404,7 @@ export default function ScorecardPage() {
               </div>
             </div>
             <div className="panel p-5">
-              <Eyebrow>Ten years vs Pinnacle closing{val && market ? ` · ${market.years[0]}–${market.years[1]}` : ""}</Eyebrow>
+              <Eyebrow>Vs Pinnacle closing{val && market ? ` · validation ${market.stack?.fit?.valStart ?? market.years[0]}–${market.years[1]}` : ""}</Eyebrow>
               {val ? (
                 <table className="w-full text-[13px]">
                   <thead className="mono text-[10px] uppercase tracking-wider text-[var(--color-faint)]">
@@ -488,7 +488,7 @@ export default function ScorecardPage() {
             <div className="panel p-5 text-[13px] leading-relaxed text-[var(--color-muted)]">
               <p><span className="text-[var(--color-text)]">Read as direction, not destiny.</span> Two months of exchange data is a small sample; most segment intervals cross parity. The Kalshi comparison is against the <span className="text-[var(--color-text)]">morning</span> line, a weaker bar than the Pinnacle close.</p>
               <p className="mt-2.5">Most rows are back-filled with walk-forward probabilities (today’s model, leak-free walk). The <span className="text-[var(--color-text)]">live-frozen</span> slice — forecasts logged days before the match — is the honest real-time number, broken out first in the forest plot. As it accumulates across surfaces it becomes the series that matters most.</p>
-              <p className="mt-2.5 mono text-[11px] text-[var(--color-faint)]">Sources: accuracy.json · track.json · market.json · kalshi.json — refreshed hourly by CI.</p>
+              <p className="mt-2.5 mono text-[11px] text-[var(--color-faint)]">Sources: track.json &amp; kalshi.json refreshed hourly by CI; accuracy.json &amp; market.json rebuilt by the daily full retrain.</p>
             </div>
           </div>
         </section>

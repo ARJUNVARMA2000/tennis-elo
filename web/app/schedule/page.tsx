@@ -10,8 +10,9 @@ export default function Schedule() {
   const { data, loading } = useData<Upcoming[]>("upcoming.json");
   const total = (data || []).length;
   // Order the board by tier prestige — Grand Slam → 1000 → 500 → 250. Each event's `level` is
-  // resolved server-side (archive → Wikipedia category → curated fallback) and carried on the
-  // upcoming rows, so there's no fragile cross-join. Stable sort keeps soonest-first within a tier.
+  // resolved server-side (Wikipedia category → curated fallback; the archive tier is deliberately
+  // skipped for upcoming rows so a stale historical tier can't win) and carried on the upcoming
+  // rows, so there's no fragile cross-join. Stable sort keeps soonest-first within a tier.
   const ordered = groupByEvent(data || [])
     .map((g) => ({ g, tier: tournamentTier(g.level, g.event) }))
     .sort((a, b) => a.tier.rank - b.tier.rank);

@@ -83,7 +83,7 @@ export default function Tournaments() {
         <PageHead
           eyebrow={`${tour.toUpperCase()} · championship forecast`}
           title={slam.name}
-          sub="The model's live title odds — every contender's chance of reaching each round, from the favourites on down. Updated as the draw thins."
+          sub="The model's live title odds — the leading contenders' chances of reaching each round, from the favourites on down. Updated as the draw thins."
         />
         <LiveTicker />
         <Reveal>
@@ -285,7 +285,7 @@ function SlamHero({ t }: { t: Tournament }) {
       </div>
       {t.projection.length > 16 && (
         <button onClick={() => setOpen(!open)} className="mono mt-3 text-[11px] text-[var(--color-accent)] hover:underline">
-          {open ? "show less" : `show full field (${t.projection.length})`}
+          {open ? "show less" : `show all projected (${t.projection.length})`}
         </button>
       )}
     </div>
@@ -434,7 +434,7 @@ function Card({ t }: { t: Tournament }) {
         </div>
         {t.projection.length > 5 && (
           <button onClick={() => setOpen(!open)} className="mono mt-3 text-[11px] text-[var(--color-accent)] hover:underline">
-            {open ? "show less" : `show full field (${t.projection.length})`}
+            {open ? "show less" : `show all projected (${t.projection.length})`}
           </button>
         )}
       </div>
