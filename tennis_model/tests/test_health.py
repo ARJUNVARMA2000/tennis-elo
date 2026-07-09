@@ -232,6 +232,52 @@ def test_output_placeholder_name_leak():
     print("ok test_output_placeholder_name_leak")
 
 
+def _tourn(name, start, end, players):
+    return {"name": name, "status": "completed", "drawStatus": "final", "drawSize": 32,
+            "aliveCount": 1, "champion": "X", "start": start, "end": end,
+            "projection": [{"name": p} for p in players]}
+
+
+def test_output_duplicate_tournament_name():
+    """A YoY sponsor rename the pipeline doesn't reconcile splits one event into two rows."""
+    out = []
+    health._tournament_name_problems(out, "wta", [
+        _tourn("Bad Homburg", "2026-06-21", "2026-06-27", ["A", "B", "C"]),
+        _tourn("Bad Homburg", "2026-06-22", "2026-06-27", ["A", "B", "D"]),
+    ])
+    assert any("same event more than once" in p for p in out), out
+    print("ok test_output_duplicate_tournament_name")
+
+
+def test_output_split_event_under_two_names():
+    # different names, overlapping dates, >=3 shared players -> one event, two names
+    out = []
+    health._tournament_name_problems(out, "atp", [
+        _tourn("Halle", "2026-06-15", "2026-06-21", ["A", "B", "C", "D"]),
+        _tourn("Terra Wortmann Open", "2026-06-16", "2026-06-21", ["A", "B", "C", "E"]),
+    ])
+    assert any("one event under two names" in p for p in out), out
+    print("ok test_output_split_event_under_two_names")
+
+
+def test_output_distinct_events_are_clean():
+    # concurrent DISTINCT events share no players (a player plays one event per week)
+    out = []
+    health._tournament_name_problems(out, "atp", [
+        _tourn("Eastbourne", "2026-06-22", "2026-06-28", ["A", "B", "C"]),
+        _tourn("Mallorca", "2026-06-22", "2026-06-27", ["D", "E", "F"]),
+    ])
+    assert out == [], out
+    # consecutive events touch at ONE boundary day and share players (played both weeks) -> clean
+    out2 = []
+    health._tournament_name_problems(out2, "wta", [
+        _tourn("Berlin", "2026-06-15", "2026-06-21", ["A", "B", "C", "D"]),
+        _tourn("Bad Homburg", "2026-06-21", "2026-06-27", ["A", "B", "C", "D"]),
+    ])
+    assert out2 == [], out2
+    print("ok test_output_distinct_events_are_clean")
+
+
 def test_output_upcoming_and_fixtures_consistency():
     d = _healthy_data()
     d["upcoming"][0]["playerB"] = "P0"                             # identical players
@@ -321,6 +367,9 @@ if __name__ == "__main__":
     test_output_probability_and_monotonicity()
     test_output_matrix_antisymmetry()
     test_output_placeholder_name_leak()
+    test_output_duplicate_tournament_name()
+    test_output_split_event_under_two_names()
+    test_output_distinct_events_are_clean()
     test_output_upcoming_and_fixtures_consistency()
     test_output_track_and_forecast_monotonicity()
     test_output_emptiness_is_season_gated()

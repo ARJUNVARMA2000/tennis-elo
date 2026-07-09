@@ -18,8 +18,10 @@ Run:  PYTHONPATH=src python -m tennis_model.data.health [--strict | --issue-body
 
 from __future__ import annotations
 
+import itertools
 import json
 import os
+from collections import Counter
 from datetime import UTC, datetime
 
 import pandas as pd
@@ -225,6 +227,46 @@ def _check_tournament(out: list, tour: str, t: dict) -> None:
     _flag_placeholders(out, tour, f"tournament {name!r}", (p.get("name") for p in proj))
 
 
+def _norm_name(name: str) -> str:
+    return " ".join(str(name).split()).casefold()
+
+
+def _overlap_days(a: dict, b: dict) -> int:
+    """Days two tournaments' [start,end] ranges overlap (ISO dates sort lexically).
+    <=0 means they only touch at a boundary or are disjoint."""
+    sa, ea, sb, eb = a.get("start"), a.get("end"), b.get("start"), b.get("end")
+    if not (sa and ea and sb and eb):
+        return 0
+    lo, hi = max(sa, sb), min(ea, eb)
+    if hi < lo:
+        return 0
+    return (pd.Timestamp(hi) - pd.Timestamp(lo)).days
+
+
+def _tournament_name_problems(out: list, tour: str, ts: list) -> None:
+    """Tournament names churn year-over-year (sponsor renames, new events); a rename the
+    pipeline doesn't reconcile splits one event into two rows. Two symptoms, both bugs:
+      A) the exact same name twice in one snapshot (a dedup/naming split), and
+      B) two DIFFERENTLY-named events that overlap in dates AND share players — impossible
+         for distinct events (a player plays one event per week), so it's one event under
+         two names. Concurrent-but-distinct events (e.g. Eastbourne+Mallorca) share no
+         players, so they don't trip it."""
+    named = [t for t in ts if isinstance(t, dict) and t.get("name")]
+    dup = {k for k, n in Counter(_norm_name(t["name"]) for t in named).items() if n > 1}
+    for key in sorted(dup):
+        names = sorted({t["name"] for t in named if _norm_name(t["name"]) == key})
+        out.append(f"{tour}: tournaments.json lists the same event more than once "
+                   f"({', '.join(names)}) — a naming/dedup split")
+    for a, b in itertools.combinations(named, 2):
+        if _norm_name(a["name"]) == _norm_name(b["name"]) or _overlap_days(a, b) < 2:
+            continue
+        shared = {p.get("name") for p in a.get("projection", [])} & \
+                 {p.get("name") for p in b.get("projection", [])}
+        if len(shared) >= 3:
+            out.append(f"{tour}: {a['name']!r} and {b['name']!r} overlap in dates and share "
+                       f"{len(shared)} players — likely one event under two names (YoY rename?)")
+
+
 def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = None) -> list[str]:
     """Pure given a read_outputs() dict; prev is the previous run's output snapshot
     ({"matches", "forecast_lines"}) for monotonicity, or None on the first run."""
@@ -284,6 +326,7 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
         for t in ts:
             if isinstance(t, dict):
                 _check_tournament(out, tour, t)
+        _tournament_name_problems(out, tour, ts)
 
     up = data.get("upcoming")
     if isinstance(up, list):
