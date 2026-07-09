@@ -17,6 +17,7 @@ import pandas as pd
 
 from ..config import (
     DEFAULT_TIER_K_MULT,
+    MONTH_SURFACE,
     ROUND_ORDER,
     SURFACE_MAP,
     TIER_ANCHORS,
@@ -28,6 +29,7 @@ from ..config import (
     lower_dir,
     stats_dir,
 )
+from .surface import wiki_surface_map
 
 
 def tier_mults(tour: str | None) -> tuple[dict, float]:
@@ -41,10 +43,6 @@ def tier_mults(tour: str | None) -> tuple[dict, float]:
     scale = lambda v: ch + (v - lo) / (hi - lo) * (gs - ch)
     return {k: scale(v) for k, v in TIER_K_MULT.items()}, scale(DEFAULT_TIER_K_MULT)
 
-# Surface by calendar month — the tennis season's surface swings — used only as a
-# fallback for live (ESPN) rows whose sponsor-named event isn't in the archive.
-_MONTH_SURFACE = {1: "Hard", 2: "Hard", 3: "Hard", 4: "Clay", 5: "Clay", 6: "Grass",
-                  7: "Grass", 8: "Hard", 9: "Hard", 10: "Hard", 11: "Hard", 12: "Hard"}
 from .scores import parse_score
 
 # Canonical column set every loaded frame is reindexed to, so downstream code never
@@ -233,8 +231,12 @@ def clean(df: pd.DataFrame, tour: str | None = None) -> pd.DataFrame:
     df = df[df["date"].notna() & df["winner_name"].notna() & df["loser_name"].notna()]
 
     df = _backfill_event_attrs(df)
-    # surface: prefer the (now backfilled) value; else fall back to the season's surface
-    surf = df["surface"].where(df["surface"].notna(), df["date"].dt.month.map(_MONTH_SURFACE))
+    # surface: archive-backfilled value -> Wikipedia main-article surface (live/new events whose
+    # sponsor name misses the archive) -> season-by-month fallback.
+    surf = df["surface"]
+    if tour and surf.isna().any():
+        surf = surf.where(surf.notna(), df["tourney_name"].map(wiki_surface_map(tour)))
+    surf = surf.where(surf.notna(), df["date"].dt.month.map(MONTH_SURFACE))
     df["surface_b"] = surf.map(SURFACE_MAP).fillna(surf).fillna("Hard")
     df["tier"] = df["tourney_level"].map(_tier_name)
     mults, default_mult = tier_mults(tour)

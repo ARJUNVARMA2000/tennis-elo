@@ -26,7 +26,8 @@ import pandas as pd
 
 from ..config import live_dir
 from ..data.results import _name_key
-from .draws import live_draw, standard_seed_draw
+from ..data.surface import resolve_surface
+from .draws import advance_slots, draw_status, live_draw, standard_seed_draw
 from .simulate import simulate_tournament
 
 _KO_ROUNDS = {"R128", "R64", "R32", "R16", "QF", "SF", "F"}
@@ -56,6 +57,53 @@ def _load_upcoming(tour: str) -> dict:
     return out
 
 
+def _load_wiki_draws(tour: str) -> dict:
+    """Wikipedia ORDERED draws {event: {slots, seeds, bestOf, drawSize, start, end, ...}}
+    written by data.draws_wiki.download_wiki_draws — the authoritative full bracket at
+    release. Missing/corrupt file simply means no wiki draw is available (ESPN fallback)."""
+    p = live_dir(tour) / "wiki_draws.json"
+    if not p.exists():
+        return {}
+    try:
+        return json.loads(p.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001 — a missing/corrupt draw cache is a no-op, never fatal
+        return {}
+
+
+def _archive_attrs(df: pd.DataFrame, name: str) -> tuple:
+    """(surface, tourney_level, best_of) for an event from PRIOR rows of the same
+    tournament name (loose containment match) — lets a not-yet-started event inherit its
+    real surface/tier/format from history. (None, None, None) if unseen in the archive."""
+    if "tourney_name" not in df.columns:
+        return None, None, None
+    ek = str(name).lower()
+    names = df["tourney_name"].astype(str)
+    sub = df[names.str.lower().apply(lambda t: bool(t) and (t in ek or ek in t))]
+    if sub.empty:
+        return None, None, None
+    surf = sub["surface_b"].mode() if "surface_b" in sub.columns else pd.Series([], dtype=object)
+    bo = pd.to_numeric(sub["best_of"], errors="coerce").max() if "best_of" in sub.columns else None
+    return (surf.iloc[0] if not surf.empty else None,
+            _main_level_code(sub),
+            int(bo) if pd.notna(bo) else None)
+
+
+def _main_level_code(g: pd.DataFrame):
+    """Modal tourney_level over MAIN-DRAW rows only. Qualifying rows (results.py stamps
+    tourney_level='Q') can outnumber the main draw early in a Slam and would otherwise win the
+    mode, mislabeling e.g. Wimbledon as 'Q'. Falls back to all rows when draw_level is absent
+    (test frames) or has no main-draw rows; returns None when nothing is available."""
+    if "tourney_level" not in g.columns:
+        return None
+    rows = g
+    if "draw_level" in g.columns:
+        main = g[g["draw_level"] == "main"]
+        if not main.empty:
+            rows = main
+    m = rows["tourney_level"].mode()
+    return m.iloc[0] if not m.empty else None
+
+
 def _level_label(lv: object, tour: str) -> str:
     s = str(lv)
     t = tour.upper()
@@ -70,7 +118,7 @@ def _level_label(lv: object, tour: str) -> str:
     for n in ("1000", "500", "250", "125"):
         if s.endswith(n):
             return f"{t} {n}"
-    return {"D": "Davis/BJK Cup", "O": "Olympics", "A": f"{t} Tour"}.get(s, s)
+    return {"D": "Davis/BJK Cup", "O": "Olympics", "A": f"{t} Tour", "Q": f"{t} Tour"}.get(s, s)
 
 
 def _known_names(df: pd.DataFrame) -> set:
@@ -110,15 +158,33 @@ def recent_tournaments(df: pd.DataFrame, within_days: int = 40,
     return [(n, g) for n, g, _ in events[:max_events]]
 
 
+def _simulate_projection(predictor, slots: list, surface: str, best_of: int,
+                         name: str, n_sims: int, seed: int) -> tuple[list, str | None]:
+    """Simulate a bracket -> (projection rows, model favourite). The odds-formatting shared
+    by the live/completed and the pre-start (Wikipedia) paths, so it lives in one place."""
+    sim = simulate_tournament(predictor, slots, surface=surface, best_of=best_of,
+                              n_sims=n_sims, seed=seed, event=name)
+    cols = set(sim.columns)
+    proj = [{
+        "name": r.player,
+        "champion": round(float(r.Champion), 4),
+        "final": round(float(r.F), 4) if "F" in cols else None,
+        "sf": round(float(r.SF), 4) if "SF" in cols else None,
+        # per-round reach odds (entry -> title) for the round-by-round forecast table
+        "reach": {c: round(float(getattr(r, c)), 4) for c in ROUND_COLS if c in cols},
+    } for r in sim.head(TOP_PROJECTION).itertuples(index=False)]
+    return proj, (proj[0]["name"] if proj else None)
+
+
 def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
                        known: set | None = None, top_set: set | None = None,
                        espn_fields: dict | None = None, resolve=None,
-                       matchups: list | None = None,
+                       matchups: list | None = None, wiki_draw: dict | None = None,
                        n_sims: int = 8000, seed: int = 11) -> dict | None:
     surface = g["surface_b"].mode().iloc[0]
     bo = pd.to_numeric(g["best_of"], errors="coerce").max()
     best_of = int(bo) if pd.notna(bo) else 3
-    level = _level_label(g["tourney_level"].mode().iloc[0] if g["tourney_level"].notna().any() else "", tour)
+    level = _level_label(_main_level_code(g), tour)
 
     eliminated = set(g["loser_name"])
     final_rows = g[g["round"] == "F"]
@@ -139,10 +205,19 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
         else:
             field_pool = set(g["winner_name"]) | set(g["loser_name"])
 
+    # A released Wikipedia draw is the authoritative ORDERED bracket: it fixes the real
+    # entrants (and the event's best-of — Tennis5 for slams) so the live board runs on the
+    # actual draw, not a rating seed. Byes/qualifiers ride along in `slots` (None / distinct).
+    resolved_wslots = None
+    if wiki_draw and not completed and wiki_draw.get("slots") and resolve:
+        resolved_wslots = [resolve(s) if s else None for s in wiki_draw["slots"]]
+        field_pool = {s for s in resolved_wslots if s is not None}
+        best_of = int(wiki_draw.get("bestOf") or best_of)
+
     if len(field_pool) < 8:              # dedup-leftover fragment, not a real draw
         return None
-    if top_set is not None and len(field_pool & top_set) < 2:
-        return None                      # sub-tour / ITF event (no tour-strength field)
+    if top_set is not None and wiki_draw is None and len(field_pool & top_set) < 2:
+        return None                      # sub-tour / ITF event; a wiki draw IS tour-level
 
     alive = field_pool - eliminated
     field = list(field_pool if completed else alive)
@@ -152,25 +227,20 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
     rank = lambda p: predictor.elo.blended(p, surface)
     if completed:              # retrospective: pre-tournament title odds over the full field
         slots = standard_seed_draw(sorted(field, key=rank, reverse=True))
-    else:                      # live: seat survivors by the ACTUAL current-round draw
-        slots = live_draw(field, matchups or [], rank)
-    sim = simulate_tournament(predictor, slots, surface=surface, best_of=best_of,
-                              n_sims=n_sims, seed=seed, event=name)
-    cols = set(sim.columns)
-    proj = [{
-        "name": r.player,
-        "champion": round(float(r.Champion), 4),
-        "final": round(float(r.F), 4) if "F" in cols else None,
-        "sf": round(float(r.SF), 4) if "SF" in cols else None,
-        # per-round reach odds (entry -> title) for the round-by-round forecast table
-        "reach": {c: round(float(getattr(r, c)), 4) for c in ROUND_COLS if c in cols},
-    } for r in sim.head(TOP_PROJECTION).itertuples(index=False)]
-    favorite = proj[0]["name"] if proj else None
+        draw_state = "final"
+    elif resolved_wslots is not None:    # live on the REAL ordered draw (exact all rounds)
+        slots = advance_slots(resolved_wslots, eliminated)
+        draw_state = "real"
+    else:                      # live from ESPN's partial matchups (seed the unknown frontier)
+        mus = matchups or []
+        slots = live_draw(field, mus, rank)
+        draw_state = draw_status(field, mus, rank)
+    proj, favorite = _simulate_projection(predictor, slots, surface, best_of, name, n_sims, seed)
 
     return {
         "name": _display_name(name, known or set()), "surface": surface, "level": level, "bestOf": best_of,
         "start": str(g["date"].min().date()), "end": str(g["date"].max().date()),
-        "status": "completed" if completed else "live",
+        "status": "completed" if completed else "live", "drawStatus": draw_state,
         "drawSize": len(field_pool), "aliveCount": len(alive),
         "champion": champ, "runnerUp": runner,
         "modelFavorite": favorite,
@@ -179,11 +249,41 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
     }
 
 
+def project_upcoming(predictor, name: str, wd: dict, tour: str, df: pd.DataFrame,
+                     known: set | None, resolve, n_sims: int = 8000, seed: int = 11) -> dict | None:
+    """Pre-start projection for an event whose Wikipedia draw is out but which hasn't
+    played a match yet (so it's absent from the results-driven event list). The full real
+    bracket, no eliminations -> honest 'real' pre-tournament title odds from release."""
+    wslots = [resolve(s) if s else None for s in (wd.get("slots") or [])]
+    field_pool = {s for s in wslots if s is not None}
+    if len(field_pool) < 8:
+        return None
+    surface, lvl, bo = _archive_attrs(df, name)
+    surface = resolve_surface(tour, name, wd.get("start") or "", archive_surface=surface)
+    best_of = int(wd.get("bestOf") or bo or 3)
+    level = _level_label(lvl if lvl is not None else "", tour)
+    slots = advance_slots(wslots, set())
+    proj, favorite = _simulate_projection(predictor, slots, surface, best_of, name, n_sims, seed)
+    return {
+        "name": _display_name(name, known or set()), "surface": surface, "level": level, "bestOf": best_of,
+        "start": str(wd.get("start") or ""), "end": str(wd.get("end") or wd.get("start") or ""),
+        "status": "upcoming", "drawStatus": "real",
+        "drawSize": len(field_pool), "aliveCount": len(field_pool),
+        "champion": None, "runnerUp": None,
+        "modelFavorite": favorite, "favoritePicked": False,
+        "projection": proj,
+    }
+
+
+_STATUS_ORDER = {"live": 0, "upcoming": 1, "completed": 2}
+
+
 def build_tournaments(predictor, df: pd.DataFrame, tour: str, **kw) -> list:
     known = _known_names(df)
     top_set = set(sorted(predictor.elo.overall, key=predictor.elo.elo, reverse=True)[:100])
     espn_fields = _load_fields(tour)
     upcoming = _load_upcoming(tour)
+    wiki = _load_wiki_draws(tour)
     # map ESPN player names onto the predictor's canonical spellings (accent/punct-insensitive)
     canon: dict = {}
     for k in predictor.elo.overall:
@@ -193,10 +293,26 @@ def build_tournaments(predictor, df: pd.DataFrame, tour: str, **kw) -> list:
     for name, g in recent_tournaments(df):
         matchups = [(resolve(a), resolve(b)) for a, b in upcoming.get(name, [])]
         t = project_tournament(predictor, name, g, tour, known=known, top_set=top_set,
-                               espn_fields=espn_fields, resolve=resolve, matchups=matchups, **kw)
+                               espn_fields=espn_fields, resolve=resolve, matchups=matchups,
+                               wiki_draw=wiki.get(name), **kw)
         if t:
             out.append(t)
-    # Live (in-progress) events lead the board; within each group, most recent first.
+    # Pre-start events: the Wikipedia draw is out but no match has been played yet, so the
+    # results-driven list above hasn't surfaced them. Project the real bracket now — but
+    # only for events that are actually upcoming: dedup by DISPLAY name (a completed event's
+    # results-feed name differs from ESPN's sponsor name) and skip anything already over.
+    seen = {t["name"] for t in out}
+    dmax = df["date"].max() if not df.empty else None
+    for name, wd in wiki.items():
+        if _display_name(name, known) in seen or not wd.get("slots"):
+            continue
+        end = pd.to_datetime(wd.get("end") or wd.get("start"), errors="coerce")
+        if dmax is not None and pd.notna(end) and end < dmax - pd.Timedelta(days=2):
+            continue                         # already finished (its card is a completed one)
+        t = project_upcoming(predictor, name, wd, tour, df, known, resolve, **kw)
+        if t:
+            out.append(t)
+    # Live, then upcoming, then completed; within each group, most recent first.
     out.sort(key=lambda t: t["end"], reverse=True)
-    out.sort(key=lambda t: t["status"] != "live")
+    out.sort(key=lambda t: _STATUS_ORDER.get(t["status"], 3))
     return out

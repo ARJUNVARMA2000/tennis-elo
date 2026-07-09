@@ -105,7 +105,7 @@ def log_forecasts(tour: str, predictor, df: pd.DataFrame,
     # match forecasts: one locked P(playerA wins) per scheduled matchup (first sighting).
     # Name-resolution / surface inference / pricing live in model.upcoming.enrich_upcoming,
     # shared with the web schedule board so the two can never disagree on a matchup.
-    for row in enrich_upcoming(predictor, df, upcoming):
+    for row in enrich_upcoming(predictor, df, upcoming, tour):
         rec = {
             "type": "match", "as_of": as_of, "tour": tour,
             "event": row["event"], "round": row["round"],

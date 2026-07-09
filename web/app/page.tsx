@@ -3,16 +3,19 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
-import { pct, surfaceColor, heat, eloKey, blendedElo } from "@/lib/ui";
-import { PageHead, Loading, Reveal } from "@/components/bits";
+import { pct, surfaceColor, heat, eloKey, blendedElo, tournamentTier, drawCaveat } from "@/lib/ui";
+import { PageHead, Loading, Reveal, CallCard } from "@/components/bits";
 import { SPRING_SOFT } from "@/lib/motion";
 import { nameKey, type PlayerRow } from "@/lib/live";
 import LiveTicker from "@/components/LiveTicker";
+import Link from "next/link";
+import { upcomingCard, type Upcoming } from "@/lib/upcoming";
 
 type Proj = { name: string; champion: number; final: number | null; sf: number | null; reach?: Record<string, number> };
 type Tournament = {
   name: string; surface: string; level: string; bestOf: number;
-  start: string; end: string; status: "completed" | "live";
+  start: string; end: string; status: "completed" | "live" | "upcoming";
+  drawStatus?: "real" | "partial" | "seeded" | "final";
   drawSize: number; aliveCount: number;
   champion: string | null; runnerUp: string | null;
   modelFavorite: string | null; favoritePicked: boolean;
@@ -49,13 +52,29 @@ function heatBg(v: number, strong = false): string {
   return `${heat(v)}${a.toString(16).padStart(2, "0")}`;
 }
 
+/** Honest flag shown only when a live/upcoming card's odds aren't running on the real
+    released draw ("seeded"/"partial") — so a projected bracket never masquerades as the
+    official one. Absent (returns nothing) for real-draw and completed events. */
+function DrawCaveat({ t, compact = false }: { t: Tournament; compact?: boolean }) {
+  const c = drawCaveat(t);
+  if (!c) return null;
+  if (compact)
+    return <div className="mono mt-2 text-[10px] uppercase tracking-wider text-[var(--color-accent)]" title={c.note}>⚠ {c.label}</div>;
+  return (
+    <div className="mt-4 rounded-lg border px-3 py-2" style={{ borderColor: "color-mix(in srgb, var(--color-accent) 40%, transparent)", background: "color-mix(in srgb, var(--color-accent) 8%, transparent)" }}>
+      <div className="mono text-[10px] uppercase tracking-wider text-[var(--color-accent)]">⚠ {c.label}</div>
+      <div className="mt-0.5 text-[12px] text-[var(--color-muted)]">{c.note}</div>
+    </div>
+  );
+}
+
 export default function Tournaments() {
   const { tour } = useTour();
   const { data, loading } = useData<Tournament[]>("tournaments.json");
 
   // When a Grand Slam is in progress, the home page focuses on it: a prominent
   // round-by-round forecast, with the week's other events tucked behind a toggle.
-  const slam = (data || []).find((t) => t.status === "live" && t.level === "Grand Slam");
+  const slam = (data || []).find((t) => t.status !== "completed" && tournamentTier(t.level, t.name).rank === 0);
   const others = (data || []).filter((t) => t !== slam);
 
   if (slam) {
@@ -70,6 +89,7 @@ export default function Tournaments() {
         <Reveal>
           <SlamHero t={slam} />
         </Reveal>
+        <UpNext />
         {others.length > 0 && <OtherEvents events={others} />}
       </div>
     );
@@ -83,6 +103,7 @@ export default function Tournaments() {
         sub="Every recent event with the model's title odds for the field. Live events show who's favoured from here; finished events show whether the model called the champion."
       />
       <LiveTicker />
+      <UpNext />
 
       {loading && <Loading />}
       {data && data.length === 0 && (
@@ -90,11 +111,13 @@ export default function Tournaments() {
       )}
 
       <div className="mt-8 grid gap-4 lg:grid-cols-2">
-        {(data || []).map((t, i) => (
-          <Reveal key={t.name + t.start} delay={Math.min(i * 0.04, 0.3)}>
-            <Card t={t} />
-          </Reveal>
-        ))}
+        {[...(data || [])]
+          .sort((a, b) => tournamentTier(a.level, a.name).rank - tournamentTier(b.level, b.name).rank)
+          .map((t, i) => (
+            <Reveal key={t.name + t.start} delay={Math.min(i * 0.04, 0.3)}>
+              <Card t={t} />
+            </Reveal>
+          ))}
       </div>
     </div>
   );
@@ -156,18 +179,24 @@ function SlamHero({ t }: { t: Tournament }) {
         <div>
           <div className="flex items-center gap-2">
             <span className="chip" style={{ color: sc, borderColor: sc }}>{t.surface}</span>
-            <span className="mono text-[11px] text-[var(--color-faint)]">{t.level} · Bo{t.bestOf}</span>
+            <span className="mono text-[11px] text-[var(--color-faint)]">{tournamentTier(t.level, t.name).full} · Bo{t.bestOf}</span>
           </div>
           <h2 className="display mt-2 text-3xl leading-tight sm:text-4xl">{t.name}</h2>
           <div className="mono mt-1 text-[11px] text-[var(--color-faint)]">
             {dateRange(t.start, t.end)} · {t.drawSize} draw
           </div>
         </div>
-        <span className="mono flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-[var(--color-accent)]">
-          <span className="live-dot inline-block h-2 w-2 rounded-full bg-[var(--color-accent)]" />
-          Live · {t.aliveCount} left
-        </span>
+        {t.status === "upcoming" ? (
+          <span className="mono text-[11px] uppercase tracking-wider text-[var(--color-accent)]">Draw released</span>
+        ) : (
+          <span className="mono flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-[var(--color-accent)]">
+            <span className="live-dot inline-block h-2 w-2 rounded-full bg-[var(--color-accent)]" />
+            Live · {t.aliveCount} left
+          </span>
+        )}
       </div>
+
+      <DrawCaveat t={t} />
 
       {/* round-by-round forecast table */}
       <div className="mono mt-5 mb-2 text-[10px] uppercase tracking-wider text-[var(--color-faint)]">
@@ -266,6 +295,7 @@ function SlamHero({ t }: { t: Tournament }) {
 /** The week's non-Slam events, collapsed by default so the Slam stays front-and-centre. */
 function OtherEvents({ events }: { events: Tournament[] }) {
   const [open, setOpen] = useState(false);
+  const ordered = [...events].sort((a, b) => tournamentTier(a.level, a.name).rank - tournamentTier(b.level, b.name).rank);
   return (
     <div className="mt-10 border-t border-[var(--color-line)] pt-6">
       <button onClick={() => setOpen(!open)} className="mono text-[12px] text-[var(--color-accent)] hover:underline">
@@ -273,7 +303,7 @@ function OtherEvents({ events }: { events: Tournament[] }) {
       </button>
       {open && (
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
-          {events.map((t, i) => (
+          {ordered.map((t, i) => (
             <Reveal key={t.name + t.start} delay={Math.min(i * 0.04, 0.3)}>
               <Card t={t} />
             </Reveal>
@@ -284,10 +314,42 @@ function OtherEvents({ events }: { events: Tournament[] }) {
   );
 }
 
+/** "Up next" — the soonest scheduled matches with the model's current win probability,
+    reusing the same upcoming.json + projection cards the /schedule board uses (so the two
+    surfaces can't drift). Self-hides when nothing is scheduled. Lives on the Overview page
+    so the latest model calls are always one glance away, in both the Slam and no-Slam
+    layouts; upcoming.json is regenerated every refresh, so these stay current for free. */
+const UP_NEXT_COUNT = 6;
+function UpNext() {
+  const { data } = useData<Upcoming[]>("upcoming.json");
+  const rows = (data || []).slice(0, UP_NEXT_COUNT);
+  if (rows.length === 0) return null;
+  return (
+    <section aria-label="Upcoming matches" className="mt-10">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex items-baseline gap-2">
+          <span className="eyebrow !text-[var(--color-text)]">Up next</span>
+          <span className="hidden text-[11px] text-[var(--color-faint)] sm:inline">model win odds · latest predictions</span>
+        </div>
+        <Link href="/schedule" className="mono whitespace-nowrap text-[11px] text-[var(--color-accent)] hover:underline">
+          full schedule →
+        </Link>
+      </div>
+      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+        {rows.map((m, i) => (
+          <Reveal key={`${m.playerA}-${m.playerB}-${i}`} delay={Math.min(i * 0.03, 0.2)}>
+            <CallCard tone="projection" {...upcomingCard(m)} />
+          </Reveal>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function Card({ t }: { t: Tournament }) {
   const [open, setOpen] = useState(false);
   const sc = surfaceColor(t.surface);
-  const live = t.status === "live";
+  const live = t.status !== "completed";     // live or upcoming: show the forward projection
   const shown = open ? t.projection : t.projection.slice(0, 5);
   const maxP = Math.max(0.01, ...t.projection.map((p) => p.champion));
 
@@ -298,22 +360,26 @@ function Card({ t }: { t: Tournament }) {
         <div>
           <div className="flex items-center gap-2">
             <span className="chip" style={{ color: sc, borderColor: sc }}>{t.surface}</span>
-            <span className="mono text-[11px] text-[var(--color-faint)]">{t.level} · Bo{t.bestOf}</span>
+            <span className="mono text-[11px] text-[var(--color-faint)]">{tournamentTier(t.level, t.name).full} · Bo{t.bestOf}</span>
           </div>
           <h3 className="display mt-2 text-2xl leading-tight">{t.name}</h3>
           <div className="mono mt-1 text-[11px] text-[var(--color-faint)]">
             {dateRange(t.start, t.end)} · {t.drawSize} draw
           </div>
         </div>
-        {live ? (
+        {t.status === "completed" ? (
+          <span className="mono text-[11px] uppercase tracking-wider text-[var(--color-faint)]">Final</span>
+        ) : t.status === "upcoming" ? (
+          <span className="mono text-[11px] uppercase tracking-wider text-[var(--color-accent)]">Draw released</span>
+        ) : (
           <span className="mono flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-[var(--color-accent)]">
             <span className="live-dot inline-block h-2 w-2 rounded-full bg-[var(--color-accent)]" />
             Live · {t.aliveCount} left
           </span>
-        ) : (
-          <span className="mono text-[11px] uppercase tracking-wider text-[var(--color-faint)]">Final</span>
         )}
       </div>
+
+      <DrawCaveat t={t} compact />
 
       {/* champion banner (completed) */}
       {t.champion && (
@@ -334,7 +400,7 @@ function Card({ t }: { t: Tournament }) {
       {/* projection */}
       <div className="mt-4 flex-1">
         <div className="mono mb-2 text-[10px] uppercase tracking-wider text-[var(--color-faint)]">
-          {live ? "Title odds from here" : "Pre-event title odds"}
+          {t.status === "live" ? "Title odds from here" : "Pre-event title odds"}
         </div>
         <div className="space-y-1.5">
           {shown.map((p, i) => {

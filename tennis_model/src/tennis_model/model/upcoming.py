@@ -18,22 +18,38 @@ from __future__ import annotations
 import pandas as pd
 
 from ..config import live_dir
-from ..data.results import _MONTH_SURFACE as MONTH_SURFACE  # month -> default surface fallback
 from ..data.results import _name_key as nkey
+from ..data.surface import resolve_surface
 
 UPCOMING_COLS = ["tourney_name", "tourney_date", "round", "playerA", "playerB"]
 
 
 def load_upcoming(tour: str) -> pd.DataFrame:
-    """The tour's scheduled / in-progress matchups, or an empty frame if the feed hasn't
-    been captured yet. A missing or corrupt file is a no-op, never a build failure."""
+    """The tour's scheduled / in-progress matchups: ESPN's day-by-day feed unioned with the
+    full first round from any released Wikipedia draw (so the board shows every opening-round
+    match at release, not just the handful ESPN has named). Deduped by event + unordered
+    player pair (ESPN wins ties). A missing or corrupt source is a no-op, never fatal."""
+    frames = []
     path = live_dir(tour) / "upcoming.csv"
     if path.exists():
         try:
-            return pd.read_csv(path, encoding="utf-8")
+            frames.append(pd.read_csv(path, encoding="utf-8"))
         except Exception:  # noqa: BLE001 — a corrupt upcoming file must not break anything
             pass
-    return pd.DataFrame(columns=UPCOMING_COLS)
+    try:
+        from ..data.draws_wiki import wiki_upcoming_rows
+        rows = wiki_upcoming_rows(tour)
+        if rows:
+            frames.append(pd.DataFrame(rows))
+    except Exception:  # noqa: BLE001 — the wiki overlay is a bonus, never a build failure
+        pass
+    if not frames:
+        return pd.DataFrame(columns=UPCOMING_COLS)
+    df = pd.concat(frames, ignore_index=True).reindex(columns=UPCOMING_COLS)
+    pair = [frozenset((str(a), str(b))) for a, b in zip(df["playerA"], df["playerB"])]
+    df = df.assign(_ev=df["tourney_name"].astype(str), _pair=pair)
+    return (df[~df.duplicated(subset=["_ev", "_pair"])]
+            .drop(columns=["_ev", "_pair"]).reset_index(drop=True))
 
 
 def event_attrs(df: pd.DataFrame, event: str) -> tuple:
@@ -53,17 +69,16 @@ def event_attrs(df: pd.DataFrame, event: str) -> tuple:
             int(bo) if pd.notna(bo) else None)
 
 
-def _surface_best_of(df: pd.DataFrame, event: str, date: str) -> tuple:
-    """Event surface / best-of, with a season-by-month surface fallback + best-of-3 default
-    when the event isn't in the match frame yet (a brand-new week's first matches)."""
+def _surface_best_of(df: pd.DataFrame, event: str, date: str, tour: str) -> tuple:
+    """Event surface / best-of. Surface: the archive value for a known event, else the
+    Wikipedia main-article surface (data.surface), else a season-by-month fallback. Best-of
+    defaults to 3 for a brand-new week's first matches not yet in the frame."""
     surface, bo = event_attrs(df, event)
-    if surface is None:
-        mm = str(date)[5:7]
-        surface = MONTH_SURFACE.get(int(mm) if mm.isdigit() else 1, "Hard")
+    surface = resolve_surface(tour, event, date, archive_surface=surface)
     return surface, int(bo) if bo else 3
 
 
-def enrich_upcoming(predictor, df: pd.DataFrame, up_df: pd.DataFrame | None) -> list:
+def enrich_upcoming(predictor, df: pd.DataFrame, up_df: pd.DataFrame | None, tour: str) -> list:
     """Resolve, attribute, and price each scheduled matchup.
 
     Returns one dict per predictable matchup::
@@ -83,7 +98,7 @@ def enrich_upcoming(predictor, df: pd.DataFrame, up_df: pd.DataFrame | None) -> 
         a, b = key2name.get(nkey(r.playerA)), key2name.get(nkey(r.playerB))
         if not a or not b or nkey(a) == nkey(b):
             continue
-        surface, bo = _surface_best_of(df, r.tourney_name, r.tourney_date)
+        surface, bo = _surface_best_of(df, r.tourney_name, r.tourney_date, tour)
         p = float(predictor.win_prob(a, b, surface=surface, best_of=bo, event=str(r.tourney_name)))
         out.append({
             "event": str(r.tourney_name), "date": str(r.tourney_date), "round": r.round,

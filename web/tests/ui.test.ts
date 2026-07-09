@@ -1,7 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { heat, pct, percentileScaler, scoreDist } from "@/lib/ui";
+import { drawCaveat, heat, pct, percentileScaler, scoreDist } from "@/lib/ui";
 
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
+
+describe("drawCaveat", () => {
+  it("flags a seeded (unreleased) or partial live draw, but not a real one", () => {
+    expect(drawCaveat({ status: "live", drawStatus: "real" })).toBeNull();
+    expect(drawCaveat({ status: "upcoming", drawStatus: "real" })).toBeNull();
+    expect(drawCaveat({ status: "live", drawStatus: "seeded" })?.label).toBe("Projected draw");
+    expect(drawCaveat({ status: "live", drawStatus: "partial" })?.label).toBe("Draw incomplete");
+  });
+
+  it("never caveats a completed event or legacy JSON without drawStatus", () => {
+    expect(drawCaveat({ status: "completed", drawStatus: "final" })).toBeNull();
+    expect(drawCaveat({ status: "completed", drawStatus: "seeded" })).toBeNull(); // completed wins
+    expect(drawCaveat({ status: "live" })).toBeNull(); // stale JSON -> unchanged UI
+  });
+});
 
 describe("scoreDist", () => {
   it.each([

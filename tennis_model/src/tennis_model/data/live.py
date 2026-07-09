@@ -221,6 +221,25 @@ def parse_upcoming(events: list, gender: str) -> pd.DataFrame:
     return df
 
 
+def parse_event_meta(events: list) -> dict:
+    """Per event: {name: {espnId, start, end}} from the scoreboard event objects.
+
+    Event-level (gender-agnostic) — dates come straight from ESPN's `date`/`endDate`
+    even for not-yet-started, all-TBD events, which is what lets draws_wiki discover an
+    upcoming tournament and stamp its projection before any match is played."""
+    out: dict = {}
+    for ev in events:
+        name = ev.get("shortName") or ev.get("name")
+        if not name or name in out:
+            continue
+        out[str(name)] = {
+            "espnId": ev.get("id"),
+            "start": (ev.get("date") or "")[:10],
+            "end": (ev.get("endDate") or ev.get("date") or "")[:10],
+        }
+    return out
+
+
 def download_live(tours=TOURS) -> None:
     for tour in tours:
         try:

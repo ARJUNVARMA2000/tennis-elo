@@ -74,7 +74,7 @@ disappearing, is in the [root README](../README.md). Module map: `data/download.
 `data/names.py` (cross-source name canonicalisation, contract-tested against the
 site's TypeScript copy), `data/wta_stats.py` (wtatennis.com API scraper),
 `data/rankings.py` (official live rankings), `data/geo.py` (host-country resolution),
-`data/health.py` (freshness sentinel), `data/charting.py` (MCP style),
+`data/health.py` (source + produced-output health sentinel), `data/charting.py` (MCP style),
 `data/odds.py` (odds benchmark).
 
 ## Layout
@@ -115,9 +115,18 @@ PYTHONPATH=src python -m tennis_model.cli field "Jannik Sinner" "Carlos Alcaraz"
 PYTHONPATH=src python -m tennis_model.eval.tune --tour wta --group xgb --trials 200
 PYTHONPATH=src python -m tennis_model.eval.tune --tour wta --group xgb --validate
 
-# data freshness sentinel (non-zero exit on stalled sources with --strict)
+# data-health sentinel — checks BOTH source freshness (stalled scrapers) AND the
+# produced JSON the web reads (counts, tournaments, matches, predictions make sense).
+# Writes data/output/health.json; --strict exits non-zero on any problem.
 PYTHONPATH=src python -m tennis_model.data.health --strict
 ```
+
+The daily CI full run invokes this without `--strict`, then reads `health.json` and, on
+any problem, opens (or comments on, and later auto-closes) a single **`data-health`
+GitHub issue** listing the exact problems plus a ready-to-paste prompt for a fresh
+session — and reds the run so GitHub also emails the owner. `output_problems()` in
+`data/health.py` holds the produced-output invariants; thresholds are the `HEALTH_*`
+constants in `config.py`.
 
 Outputs land in `data/output/<tour>/`: `predictor.pkl`, `players.json` (current
 ratings + official live ranks), `meta.json`, `accuracy.json` (rolling-window metrics

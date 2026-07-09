@@ -2,14 +2,26 @@
 
 import { useData, useTour } from "@/lib/tour";
 import { PageHead, Loading, Reveal, CallCard } from "@/components/bits";
-import { surfaceColor } from "@/lib/ui";
-import { groupByEvent, type Upcoming } from "@/lib/upcoming";
+import { surfaceColor, tournamentTier } from "@/lib/ui";
+import { type TournamentInfo } from "@/lib/live";
+import { groupByEvent, upcomingCard, type Upcoming } from "@/lib/upcoming";
 
 export default function Schedule() {
   const { tour } = useTour();
   const { data, loading } = useData<Upcoming[]>("upcoming.json");
+  const { data: tournaments } = useData<TournamentInfo[]>("tournaments.json");
   const total = (data || []).length;
-  const groups = groupByEvent(data || []);
+  // Join each group to its tournament tier (tournaments.json `level`), then order the board by
+  // prestige — Grand Slam → 1000 → 500 → 250. Stable sort keeps the soonest-first order within a tier.
+  const levelFor = (event: string) => {
+    const ts = tournaments || [];
+    const t = ts.find((x) => x.name === event)
+      ?? ts.find((x) => x.name.length >= 5 && event.toLowerCase().includes(x.name.toLowerCase()));
+    return t?.level;
+  };
+  const ordered = groupByEvent(data || [])
+    .map((g) => ({ g, tier: tournamentTier(levelFor(g.event), g.event) }))
+    .sort((a, b) => a.tier.rank - b.tier.rank);
 
   return (
     <div className="pb-16">
@@ -29,11 +41,20 @@ export default function Schedule() {
 
       {total > 0 && (
         <div className="mt-8 space-y-9">
-          {groups.map((g, gi) => (
+          {ordered.map(({ g, tier }, gi) => (
             <section key={g.event}>
               <div className="mb-3 flex items-center gap-3">
                 <span className="chip" style={{ color: surfaceColor(g.surface), borderColor: surfaceColor(g.surface) }}>
                   {g.surface}
+                </span>
+                <span
+                  className="chip"
+                  style={{
+                    color: tier.rank === 0 ? "var(--color-champ)" : "var(--color-muted)",
+                    borderColor: tier.rank === 0 ? "var(--color-champ)" : "var(--color-line2)",
+                  }}
+                >
+                  {tier.short}
                 </span>
                 <h2 className="display text-lg">{g.event}</h2>
                 <span className="mono text-xs text-[var(--color-faint)]">
@@ -41,22 +62,11 @@ export default function Schedule() {
                 </span>
               </div>
               <div className="grid gap-2.5 sm:grid-cols-2">
-                {g.matches.map((m, i) => {
-                  const aFav = m.pA >= 0.5;
-                  const fav = { name: aFav ? m.playerA : m.playerB, prob: aFav ? m.pA : 1 - m.pA, won: true };
-                  const dog = { name: aFav ? m.playerB : m.playerA, prob: aFav ? 1 - m.pA : m.pA, won: false };
-                  return (
-                    <Reveal key={`${m.playerA}-${m.playerB}-${i}`} delay={Math.min(gi * 0.02 + i * 0.01, 0.2)}>
-                      <CallCard
-                        tone="projection"
-                        surface={m.surface}
-                        meta={`${m.round} · ${m.date}`}
-                        top={fav}
-                        bottom={dog}
-                      />
-                    </Reveal>
-                  );
-                })}
+                {g.matches.map((m, i) => (
+                  <Reveal key={`${m.playerA}-${m.playerB}-${i}`} delay={Math.min(gi * 0.02 + i * 0.01, 0.2)}>
+                    <CallCard tone="projection" {...upcomingCard(m)} />
+                  </Reveal>
+                ))}
               </div>
             </section>
           ))}

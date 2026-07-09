@@ -312,6 +312,11 @@ N_BAG = 5
 # ---------------------------------------------------------------------------
 SURFACES = ("Hard", "Clay", "Grass")
 SURFACE_MAP = {"Hard": "Hard", "Clay": "Clay", "Grass": "Grass", "Carpet": "Hard"}
+# Surface by calendar month — the tennis season's surface swings — the LAST-resort fallback
+# for a live/new event whose sponsor-named tournament misses the archive AND has no Wikipedia
+# surface cached (data/surface.resolve_surface consults it after the archive + wiki tiers).
+MONTH_SURFACE = {1: "Hard", 2: "Hard", 3: "Hard", 4: "Clay", 5: "Clay", 6: "Grass",
+                 7: "Grass", 8: "Hard", 9: "Hard", 10: "Hard", 11: "Hard", 12: "Hard"}
 
 # Round progression order (for chronological sorting within a tournament).
 # Qualifying rounds share the main draw's tourney_id and start date, so they must
@@ -361,6 +366,12 @@ HEALTH_OFFSEASON_RELAX_DAYS = 45      # December: tours are dark, staleness is e
 # ATP because 125-level results carry no stats by design).
 HEALTH_MIN_STATS_FRACTION = {"atp": 0.60, "wta": 0.55}
 
+# Produced-output validation (data/health.py::output_problems) — the daily build also
+# checks that the JSON the web reads is sane, not just that the sources are fresh.
+HEALTH_MIN_MATCHES = {"atp": 250_000, "wta": 100_000}   # match-count floor (now ~283k / ~129k)
+HEALTH_MAX_BUILD_AGE_DAYS = 3        # meta.lastUpdated staleness — the full build runs daily year-round
+HEALTH_MAX_LIVERANK_NULL_FRAC = 0.30  # top-200 without a live rank -> rankings source drifted (normal ~3-9%)
+
 # ---------------------------------------------------------------------------
 # Simulation
 # ---------------------------------------------------------------------------
@@ -378,6 +389,23 @@ ODDS_SOURCE = {
 
 def odds_dir(tour: str) -> Path:
     return ODDS_DIR / tour       # per-tour subdirs: mixing would corrupt the benchmark
+
+
+# ---------------------------------------------------------------------------
+# Tournament draws (Wikipedia / MediaWiki API) — the authoritative full draw.
+# ESPN's scoreboard fills a pre-created bracket with real names only via the daily
+# order of play, so it never carries a complete draw at release; Wikipedia posts the
+# ORDERED bracket the day the official draw is released (verified down to ATP-250).
+# data/draws_wiki.py fetches each current/upcoming event's draw article and parses it.
+# ---------------------------------------------------------------------------
+WIKI_API = "https://en.wikipedia.org/w/api.php"
+# Wikimedia etiquette REQUIRES a descriptive User-Agent with contact info (generic UAs
+# get blocked) and asks for sequential (not parallel) requests — we make a few/day.
+WIKI_UA = "TennisEloModel/1.0 (https://github.com/; av3342@columbia.edu)"
+# ESPN sponsor name -> exact Wikipedia article base (year is prefixed, "– Singles"/
+# "– Men's singles"/"– Women's singles" is appended at resolve time). Only needed when
+# the search API can't disambiguate; keep small, extend when draws_wiki logs a miss.
+WIKI_TITLE_OVERRIDES: dict[str, str] = {}
 
 
 BACKTEST_START_YEAR = 2010    # walk-forward evaluation window start

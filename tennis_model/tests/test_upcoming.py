@@ -17,6 +17,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from tennis_model.model.upcoming import enrich_upcoming, event_attrs
 
+# The events below resolve surface without any on-disk Wikipedia cache: "Wimbledon" via the
+# archive tier (surface_b in _df()), and the absent "Mystery Cup" via the season-by-month
+# fallback — so these stay hermetic; the wiki tier has dedicated coverage in test_surface.py.
 _ELO = {"Carlos Alcaraz": 2100.0, "Jannik Sinner": 2080.0, "Novak Djokovic": 1990.0}
 
 
@@ -43,7 +46,7 @@ def _up(rows):
 
 def test_enrich_resolves_infers_and_prices():
     out = enrich_upcoming(_Pred(), _df(),
-                          _up([("Wimbledon", "2026-07-10", "SF", "Carlos Alcaraz", "Novak Djokovic")]))
+                          _up([("Wimbledon", "2026-07-10", "SF", "Carlos Alcaraz", "Novak Djokovic")]), "atp")
     assert len(out) == 1
     r = out[0]
     assert (r["playerA"], r["playerB"], r["round"]) == ("Carlos Alcaraz", "Novak Djokovic", "SF")
@@ -55,7 +58,7 @@ def test_name_resolution_and_month_fallback():
     # lower-case names resolve (accent/case-insensitive); an event absent from the frame
     # falls back to the season-by-month surface (July -> Grass) and best-of-3.
     out = enrich_upcoming(_Pred(), _df(),
-                          _up([("Mystery Cup", "2026-07-10", "F", "carlos alcaraz", "jannik sinner")]))
+                          _up([("Mystery Cup", "2026-07-10", "F", "carlos alcaraz", "jannik sinner")]), "atp")
     assert len(out) == 1 and out[0]["surface"] == "Grass" and out[0]["best_of"] == 3
 
 
@@ -63,21 +66,21 @@ def test_drops_unknown_and_self_pairs():
     out = enrich_upcoming(_Pred(), _df(), _up([
         ("Wimbledon", "2026-07-10", "SF", "Carlos Alcaraz", "Nobody McUnknown"),  # unknown B
         ("Wimbledon", "2026-07-10", "SF", "Carlos Alcaraz", "Carlos Alcaraz"),     # self-pair
-    ]))
+    ]), "atp")
     assert out == []
 
 
 def test_empty_and_none_upcoming():
-    assert enrich_upcoming(_Pred(), _df(), None) == []
-    assert enrich_upcoming(_Pred(), _df(), _up([])) == []
+    assert enrich_upcoming(_Pred(), _df(), None, "atp") == []
+    assert enrich_upcoming(_Pred(), _df(), _up([]), "atp") == []
 
 
 def test_pa_is_orientation_correct():
     # flipping A/B flips pA to (1 - pA): the two sides are a consistent single number
     fwd = enrich_upcoming(_Pred(), _df(),
-                          _up([("Wimbledon", "2026-07-10", "SF", "Carlos Alcaraz", "Novak Djokovic")]))[0]["pA"]
+                          _up([("Wimbledon", "2026-07-10", "SF", "Carlos Alcaraz", "Novak Djokovic")]), "atp")[0]["pA"]
     rev = enrich_upcoming(_Pred(), _df(),
-                          _up([("Wimbledon", "2026-07-10", "SF", "Novak Djokovic", "Carlos Alcaraz")]))[0]["pA"]
+                          _up([("Wimbledon", "2026-07-10", "SF", "Novak Djokovic", "Carlos Alcaraz")]), "atp")[0]["pA"]
     assert abs(fwd + rev - 1.0) < 1e-9
 
 

@@ -1,8 +1,8 @@
-"""Unit checks for the data-freshness sentinel (data/health.py) — fully synthetic.
+"""Unit checks for the data-health sentinel (data/health.py) — fully synthetic.
 
-Runnable directly (`python tests/test_health.py`) or under pytest. problems() is pure
-given a health dict; tour_health()/main() are exercised with load_matches redirected
-(same save/restore pattern as test_track).
+Runnable directly (`python tests/test_health.py`) or under pytest. problems() and
+output_problems() are pure given their input dicts; tour_health()/read_outputs()/main()
+are exercised with their IO seams redirected (same save/restore pattern as test_track).
 """
 
 from __future__ import annotations
@@ -17,6 +17,35 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import tennis_model.data.health as health
+from tennis_model.model.features import FEATURES
+
+NOW = pd.Timestamp("2026-07-09")   # mid-season, deterministic (July)
+
+
+# --- synthetic healthy produced-output builders --------------------------------------
+def _healthy_data() -> dict:
+    m = [[0.5 if i == j else (0.6 if i < j else 0.4) for j in range(3)] for i in range(3)]
+    return {
+        "meta": {"matches": 300_000, "activePlayers": 3, "features": ["f"] * len(FEATURES),
+                 "lastUpdated": "2026-07-09T00:00:00Z"},
+        "players": [{"name": f"P{i}", "elo": 2000 - i, "eloRank": i + 1, "liveRank": i + 1}
+                    for i in range(3)],
+        "matrix": {"players": ["P0", "P1", "P2"], "formats": [3], "surfaces": {"Hard": {"3": m}}},
+        "tournaments": [{"name": "Test Open", "surface": "Grass", "status": "live",
+                         "drawStatus": "real", "drawSize": 128, "aliveCount": 7, "champion": None,
+                         "projection": [{"name": "P0", "champion": 0.5, "final": 0.6, "sf": 0.8,
+                                         "reach": {"R32": 1.0, "R16": 1.0, "QF": 0.95,
+                                                   "SF": 0.8, "F": 0.6, "Champion": 0.5}}]}],
+        "upcoming": [{"event": "Test Open", "playerA": "P0", "playerB": "P1", "pA": 0.7}],
+        "fixtures": [{"modelProb": 0.6, "upset": False}, {"modelProb": 0.4, "upset": True}],
+        "track": {"matchForecasts": {"logged": 10, "graded": 6, "pending": 4}},
+    }
+
+
+def _oc(data=None, missing=None, corrupt=None, forecast=("keep",)) -> dict:
+    return {"data": _healthy_data() if data is None else data,
+            "missing": missing or [], "corrupt": corrupt or [],
+            "forecast": {"lines": 200, "max_as_of": "2026-07-09"} if forecast == ("keep",) else forecast}
 
 
 def _h(result_age=1, stats_age=2, frac=0.9, n=500) -> dict:
@@ -81,10 +110,11 @@ def test_tour_health_empty_frame_reports_none():
 def test_main_strict_exit_code_and_report():
     stale = pd.DataFrame({"date": pd.to_datetime(["2026-01-01"]),
                           "completed": [True], "has_stats": [True]})
-    orig = (health.load_matches, health.OUTPUT_DIR, health.TOURS, sys.argv)
+    orig = (health.load_matches, health.read_outputs, health.OUTPUT_DIR, health.TOURS, sys.argv)
     try:
         with tempfile.TemporaryDirectory() as d:
             health.load_matches = lambda tour: stale
+            health.read_outputs = lambda tour: _oc()          # outputs clean; failure is source-side
             health.OUTPUT_DIR = Path(d)
             health.TOURS = ("atp",)
             sys.argv = ["health", "--strict"]
@@ -93,10 +123,183 @@ def test_main_strict_exit_code_and_report():
             sys.argv = ["health"]
             rc_soft = health.main()
     finally:
-        health.load_matches, health.OUTPUT_DIR, health.TOURS, sys.argv = orig
+        health.load_matches, health.read_outputs, health.OUTPUT_DIR, health.TOURS, sys.argv = orig
     assert rc_strict == 1 and report["ok"] is False and report["tours"]["atp"]["problems"]
+    assert report["tours"]["atp"]["output"]["matches"] == 300_000   # output snapshot persisted
     assert rc_soft == 0                      # same problems, but only --strict reds the build
     print("ok test_main_strict_exit_code_and_report")
+
+
+def test_main_surfaces_output_problems():
+    """A clean source but a broken produced artifact must still red the build."""
+    from datetime import UTC, datetime
+    fresh = pd.DataFrame({"date": pd.to_datetime([datetime.now(UTC).date()]),
+                          "completed": [True], "has_stats": [True]})
+    orig = (health.load_matches, health.read_outputs, health.OUTPUT_DIR, health.TOURS, sys.argv)
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            health.load_matches = lambda tour: fresh
+            health.read_outputs = lambda tour: _oc(missing=["tournaments"])
+            health.OUTPUT_DIR = Path(d)
+            health.TOURS = ("atp",)
+            sys.argv = ["health", "--strict"]
+            rc = health.main()
+            report = json.loads((Path(d) / "health.json").read_text())
+    finally:
+        health.load_matches, health.read_outputs, health.OUTPUT_DIR, health.TOURS, sys.argv = orig
+    assert rc == 1 and report["ok"] is False
+    assert report["tours"]["atp"]["problems"] == []              # source was fine
+    assert any("tournaments.json missing" in p for p in report["tours"]["atp"]["output"]["problems"])
+    print("ok test_main_surfaces_output_problems")
+
+
+# --- produced-output validation (output_problems / read_outputs / format_issue_body) --
+def test_output_healthy_is_clean():
+    assert health.output_problems("atp", _oc(), NOW) == []
+    print("ok test_output_healthy_is_clean")
+
+
+def test_output_missing_and_corrupt_files():
+    out = health.output_problems("atp", _oc(missing=["meta"], corrupt=["matrix"]), NOW)
+    assert any("meta.json missing" in p for p in out)
+    assert any("matrix.json is present but unparseable" in p for p in out)
+    print("ok test_output_missing_and_corrupt_files")
+
+
+def test_output_feature_schema_drift():
+    d = _healthy_data()
+    d["meta"]["features"] = ["only", "three", "features"]
+    out = health.output_problems("atp", _oc(data=d), NOW)
+    assert any("meta.features has 3 entries" in p for p in out)
+    print("ok test_output_feature_schema_drift")
+
+
+def test_output_match_floor_and_drop():
+    low = _healthy_data(); low["meta"]["matches"] = 1000
+    assert any("below floor" in p for p in health.output_problems("atp", _oc(data=low), NOW))
+    # a silent source drop vs the prior run's snapshot
+    dropped = health.output_problems("atp", _oc(), NOW, prev={"matches": 400_000})
+    assert any("dropped 400000 -> 300000" in p for p in dropped)
+    print("ok test_output_match_floor_and_drop")
+
+
+def test_output_real_draw_must_be_power_of_two():
+    d = _healthy_data(); d["tournaments"][0]["drawSize"] = 130       # 128 + a leaked 'TBD'
+    assert any("not a power of two" in p for p in health.output_problems("atp", _oc(data=d), NOW))
+    print("ok test_output_real_draw_must_be_power_of_two")
+
+
+def test_output_completed_nonpower_of_two_is_fine():
+    """A completed event's drawSize is len(field_pool) — 41 (main draw + qualifiers) is normal."""
+    d = _healthy_data()
+    d["tournaments"] = [{"name": "Halle", "status": "completed", "drawStatus": "final",
+                         "drawSize": 41, "aliveCount": 1, "champion": "Someone", "projection": []}]
+    assert not any("power of two" in p for p in health.output_problems("atp", _oc(data=d), NOW))
+    print("ok test_output_completed_nonpower_of_two_is_fine")
+
+
+def test_output_alive_gt_draw_and_missing_champion():
+    d = _healthy_data()
+    d["tournaments"] = [{"name": "X", "status": "completed", "drawStatus": "final",
+                         "drawSize": 32, "aliveCount": 99, "champion": None, "projection": []}]
+    out = health.output_problems("atp", _oc(data=d), NOW)
+    assert any("aliveCount 99 > drawSize 32" in p for p in out)
+    assert any("has no champion" in p for p in out)
+    print("ok test_output_alive_gt_draw_and_missing_champion")
+
+
+def test_output_probability_and_monotonicity():
+    d = _healthy_data()
+    d["tournaments"][0]["projection"][0]["champion"] = 1.4          # out of [0,1]
+    assert any("out of [0,1]" in p for p in health.output_problems("atp", _oc(data=d), NOW))
+    d2 = _healthy_data()
+    d2["tournaments"][0]["projection"][0]["reach"]["F"] = 0.9       # F(0.9) > SF(0.8): rises
+    assert any("not monotonically" in p for p in health.output_problems("atp", _oc(data=d2), NOW))
+    print("ok test_output_probability_and_monotonicity")
+
+
+def test_output_matrix_antisymmetry():
+    d = _healthy_data()
+    d["matrix"]["surfaces"]["Hard"]["3"][1][0] = 0.6               # now 0.6 + 0.6 != 1
+    assert any("antisymmetric" in p for p in health.output_problems("atp", _oc(data=d), NOW))
+    print("ok test_output_matrix_antisymmetry")
+
+
+def test_output_placeholder_name_leak():
+    d = _healthy_data()
+    d["tournaments"][0]["projection"][0]["name"] = "TBD"
+    assert any("placeholder name" in p for p in health.output_problems("atp", _oc(data=d), NOW))
+    print("ok test_output_placeholder_name_leak")
+
+
+def test_output_upcoming_and_fixtures_consistency():
+    d = _healthy_data()
+    d["upcoming"][0]["playerB"] = "P0"                             # identical players
+    d["fixtures"][0]["upset"] = True                               # but modelProb 0.6 >= 0.5
+    out = health.output_problems("atp", _oc(data=d), NOW)
+    assert any("identical players" in p for p in out)
+    assert any("upset flag disagrees" in p for p in out)
+    print("ok test_output_upcoming_and_fixtures_consistency")
+
+
+def test_output_track_and_forecast_monotonicity():
+    d = _healthy_data(); d["track"]["matchForecasts"]["graded"] = 99
+    assert any("graded+pending" in p for p in health.output_problems("atp", _oc(data=d), NOW))
+    shrank = health.output_problems("atp", _oc(forecast={"lines": 100, "max_as_of": "x"}),
+                                    NOW, prev={"forecast_lines": 200})
+    assert any("forecast log shrank 200 -> 100" in p for p in shrank)
+    print("ok test_output_track_and_forecast_monotonicity")
+
+
+def test_output_emptiness_is_season_gated():
+    d = _healthy_data(); d["upcoming"] = []; d["tournaments"] = []
+    assert any("upcoming.json is empty" in p for p in health.output_problems("atp", _oc(data=d), NOW))
+    # in the Nov/Dec off-season the tours are dark — empty schedules must NOT red the build
+    dec = pd.Timestamp("2026-12-15")
+    assert not any("empty" in p for p in health.output_problems("atp", _oc(data=d), dec))
+    print("ok test_output_emptiness_is_season_gated")
+
+
+def test_output_liverank_drift_is_season_gated():
+    d = _healthy_data()
+    for p in d["players"]:
+        p["liveRank"] = None                                       # rankings source vanished
+    assert any("liveRank" in x for x in health.output_problems("atp", _oc(data=d), NOW))
+    dec = pd.Timestamp("2026-12-15")
+    assert not any("liveRank" in x for x in health.output_problems("atp", _oc(data=d), dec))
+    print("ok test_output_liverank_drift_is_season_gated")
+
+
+def test_read_outputs_detects_missing_and_corrupt(tmp_path=None):
+    orig = (health.output_dir, health.DATA_DIR)
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            (root / "atp").mkdir()
+            (root / "atp" / "meta.json").write_text('{"matches": 1}')
+            (root / "atp" / "tournaments.json").write_text("{ not json")
+            health.output_dir = lambda tour: root / tour
+            health.DATA_DIR = root
+            oc = health.read_outputs("atp")
+    finally:
+        health.output_dir, health.DATA_DIR = orig
+    assert "meta" in oc["data"] and oc["data"]["meta"]["matches"] == 1
+    assert "tournaments" in oc["corrupt"]
+    assert "players" in oc["missing"] and "upcoming" in oc["missing"]
+    assert oc["forecast"] is None                                  # no forecast_log in the temp root
+    print("ok test_read_outputs_detects_missing_and_corrupt")
+
+
+def test_format_issue_body_has_problems_and_fix_prompt():
+    report = {"generated": "2026-07-09", "ok": False,
+              "tours": {"wta": {"problems": ["wta: newest completed match is 9d old"],
+                                "output": {"problems": ["wta: tournaments.json is empty"]}}}}
+    body = health.format_issue_body(report, run_url="https://example/run/1")
+    assert "newest completed match is 9d old" in body
+    assert "tournaments.json is empty" in body
+    assert "https://example/run/1" in body
+    assert "new Claude Code session" in body and "data-health" in body
+    print("ok test_format_issue_body_has_problems_and_fix_prompt")
 
 
 if __name__ == "__main__":
@@ -107,4 +310,21 @@ if __name__ == "__main__":
     test_problems_coverage_gate_needs_volume()
     test_tour_health_empty_frame_reports_none()
     test_main_strict_exit_code_and_report()
+    test_main_surfaces_output_problems()
+    test_output_healthy_is_clean()
+    test_output_missing_and_corrupt_files()
+    test_output_feature_schema_drift()
+    test_output_match_floor_and_drop()
+    test_output_real_draw_must_be_power_of_two()
+    test_output_completed_nonpower_of_two_is_fine()
+    test_output_alive_gt_draw_and_missing_champion()
+    test_output_probability_and_monotonicity()
+    test_output_matrix_antisymmetry()
+    test_output_placeholder_name_leak()
+    test_output_upcoming_and_fixtures_consistency()
+    test_output_track_and_forecast_monotonicity()
+    test_output_emptiness_is_season_gated()
+    test_output_liverank_drift_is_season_gated()
+    test_read_outputs_detects_missing_and_corrupt()
+    test_format_issue_body_has_problems_and_fix_prompt()
     print("\nALL PASSED")
