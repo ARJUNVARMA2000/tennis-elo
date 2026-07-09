@@ -361,6 +361,12 @@ HEALTH_OFFSEASON_RELAX_DAYS = 45      # December: tours are dark, staleness is e
 # ATP because 125-level results carry no stats by design).
 HEALTH_MIN_STATS_FRACTION = {"atp": 0.60, "wta": 0.55}
 
+# Produced-output validation (data/health.py::output_problems) — the daily build also
+# checks that the JSON the web reads is sane, not just that the sources are fresh.
+HEALTH_MIN_MATCHES = {"atp": 250_000, "wta": 100_000}   # match-count floor (now ~283k / ~129k)
+HEALTH_MAX_BUILD_AGE_DAYS = 3        # meta.lastUpdated staleness — the full build runs daily year-round
+HEALTH_MAX_LIVERANK_NULL_FRAC = 0.30  # top-200 without a live rank -> rankings source drifted (normal ~3-9%)
+
 # ---------------------------------------------------------------------------
 # Simulation
 # ---------------------------------------------------------------------------

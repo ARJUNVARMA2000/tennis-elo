@@ -1,3 +1,73 @@
+# Task: Daily output health-check + actionable GitHub-issue alert (2026-07-08)
+
+Plan: C:\Users\varma\.claude\plans\can-we-run-a-greedy-pudding.md
+Goal: the daily build already checks source freshness (`data/health.py`); extend it to
+also validate the produced JSON the web reads (counts/tournaments/matches/predictions),
+and on any problem auto-file/comment/close a single `data-health` GitHub issue with the
+exact problems + a ready-to-paste fix prompt, so it can be picked up in a new session.
+
+## Checklist
+- [x] config.py: `HEALTH_MIN_MATCHES`, `HEALTH_MAX_BUILD_AGE_DAYS`, `HEALTH_MAX_LIVERANK_NULL_FRAC`
+- [x] data/health.py: `read_outputs()` IO seam + pure `output_problems()` (missing/corrupt files,
+      feature-schema drift, match floor+monotonic drop, activePlayers, build freshness, eloRank
+      contiguity, placeholder-name leak, matrix antisymmetry, tournament status/drawStatus/
+      aliveCount≤drawSize, real-draw power-of-two, projection prob-bounds+monotonicity, upcoming
+      identical-players, fixtures upset-flag, forecast-log monotonicity, track graded+pending==logged);
+      `format_issue_body()` + `--issue-body`; aggregated into `main()`/health.json; `_offseason` shared
+- [x] tests/test_health.py: 17 new synthetic cases (healthy-clean, each corruption fires its flag,
+      season-gated emptiness/liveRank, read_outputs missing/corrupt, issue-body render) — 24/24 pass
+- [x] .github/workflows/refresh.yml: `issues: write`; health runs without `--strict`; new
+      "Report data health" step opens/comments/closes the `data-health` issue and reds the run
+- [x] tennis_model/README.md: documented the two-layer sentinel + the data-health issue flow
+
+## Review
+- **Outcome:** ATP output validates clean; WTA (locally stale, built Jul 6 pre-`drawStatus`) is
+  correctly flagged (missing drawStatus + newest-match age) — proving both the happy path and
+  detection. `--issue-body` renders the actionable Markdown. ruff clean; test_health 24/24.
+- **Deviation 1 (important):** the planned unconditional "drawSize is a power of two" hard-fail was
+  WRONG — `drawSize = len(field_pool)`, so completed events are legitimately non-power-of-two
+  (34/37/41/43 = main draw + qualifiers). Gated it to `drawStatus == "real"` (a true bracket),
+  which is where a leaked TBD (128→129) actually shows. Added a "missing drawStatus" schema check.
+- **Deviation 2:** `FEATURES` import lifted to module top (ruff I001; no import cycle); issue body
+  capped at 50 problems.
+- **Scope note:** runs on the daily FULL run only (matches the existing health step); extending to
+  the hourly quick refresh is a deliberate future option. Only takes effect on `master` (daily cron).
+- **Unrelated, pre-existing:** this branch's WIP (the MONTH_SURFACE / `enrich_upcoming(tour)` surface
+  refactor below) currently breaks `test_upcoming.py`/`test_track.py`/`test_tournament_*` at import
+  time — confirmed independent of this task (fails identically with my 3 files stashed). test.yml is
+  red until that refactor lands.
+
+---
+
+# Task: Fix clay tournaments mislabeled as GRASS — Wikipedia surface backfill (2026-07-08)
+
+Plan: C:\Users\varma\.claude\plans\indexed-leaping-petal.md
+Bug: /schedule showed clay events (Grand Est Open 88, Nordea Open) as GRASS. Surface for
+live/new events resolved as archive-name-match -> July="Grass" month fallback; both miss the
+archive (Nordea archived under city "Bastad"; Grand Est brand-new). Root-cause fix: Wikipedia
+main-article `surface` infobox (both = Clay) as a new tier between archive and month, corrected
+at the SOURCE (results.clean) so ratings + every board agree; no hardcoded surface table.
+
+## Checklist
+- [ ] config.py: MONTH_SURFACE (moved from results._MONTH_SURFACE, next to SURFACE_MAP)
+- [ ] data/surface.py (new, offline leaf): wiki_surface / wiki_surface_map / resolve_surface
+      (archive -> wiki cache -> MONTH_SURFACE)
+- [ ] data/draws_wiki.py: _parse_surface (pure regex, SURFACE_MAP-canonical) + event_surface
+      (main-article resolve; year+infobox+body-anchor bounds) + surface pass in
+      download_wiki_draws -> wiki_surface.json (separate cache, outside draw gate, no None)
+- [ ] data/results.py: clean wiki-cache fill between _backfill_event_attrs and month; use
+      config.MONTH_SURFACE; drop _MONTH_SURFACE literal
+- [ ] model/upcoming.py: _surface_best_of + enrich_upcoming take tour, use resolve_surface;
+      thread tour from export.build_upcoming + eval/track.log_forecasts
+- [ ] sim/tournaments.py: project_upcoming uses resolve_surface (leave project_tournament —
+      it inherits the corrected surface_b)
+- [ ] tests/test_surface.py (offline): _parse_surface fixtures, wiki_surface(_map) tmp cache,
+      resolve_surface priority, loader "Nordea Open"+cache -> surface_b == Clay
+- [ ] Verify: pytest + ruff; loader-with-cache; live smoke (draws_wiki -> Clay; --quick ->
+      upcoming.json/tournaments.json Clay); regression guard (no cache -> month, offline)
+
+---
+
 # Task: "Up next" upcoming-matches grid on the Overview page (2026-07-08)
 
 Plan: C:\Users\varma\.claude\plans\foamy-hugging-castle.md

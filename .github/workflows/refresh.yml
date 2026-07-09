@@ -25,6 +25,7 @@ permissions:
   contents: write      # commit the append-only forecast log back to the repo
   pages: write
   id-token: write
+  issues: write        # open/comment/close the data-health issue on a failed daily check
 
 concurrency:
   group: pages
@@ -164,11 +165,49 @@ jobs:
             echo "not Monday - skipping snapshot"
           fi
 
-      # Freshness sentinel LAST: the site has already deployed with the best data we
-      # have; a stale source still turns the run red so GitHub emails the owner.
+      # Health sentinel LAST: the site has already deployed with the best data we have.
+      # Runs WITHOUT --strict so it always writes health.json (exit 0); the next step reads
+      # that file to open/close the data-health issue and red the run on any problem. It
+      # checks both source freshness and the produced JSON (counts/tournaments/predictions).
       - name: Data health check
         if: steps.mode.outputs.mode == 'full'
         working-directory: tennis_model
         env:
           PYTHONPATH: src
-        run: python -m tennis_model.data.health --strict
+        run: python -m tennis_model.data.health
+
+      # Turn health.json into an actionable alert: file (or comment on) a single
+      # `data-health` GitHub issue carrying the specific problems + a ready-to-paste fix
+      # prompt, auto-close it on recovery, and red the run so GitHub also emails the owner.
+      # A GITHUB_TOKEN-authenticated issue write can't re-trigger this workflow, so no loop.
+      - name: Report data health
+        if: steps.mode.outputs.mode == 'full'
+        working-directory: tennis_model
+        env:
+          PYTHONPATH: src
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          OK=$(python -c "import json; print(json.load(open('data/output/health.json'))['ok'])")
+          gh label create data-health --color B60205 \
+            --description "Daily pipeline data-health failures" 2>/dev/null || true
+          EXISTING=$(gh issue list --label data-health --state open --json number --jq '.[0].number // empty')
+          if [ "$OK" = "True" ]; then
+            if [ -n "$EXISTING" ]; then
+              gh issue comment "$EXISTING" \
+                --body "✅ Recovered: the daily data-health check passed on $(date -u +%F). Closing." || true
+              gh issue close "$EXISTING" || true
+            fi
+            echo "data health OK"
+            exit 0
+          fi
+          python -m tennis_model.data.health --issue-body > /tmp/health-body.md
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body-file /tmp/health-body.md
+            echo "commented on existing data-health issue #$EXISTING"
+          else
+            gh issue create --label data-health \
+              --title "Daily data-health check failed" --body-file /tmp/health-body.md
+          fi
+          echo "::error::data-health check failed — see the data-health issue"
+          exit 1
