@@ -41,13 +41,19 @@ def _track(tour: str, predictor, df) -> None:
         print(f"  track/{tour}: skipped ({e})")
 
 
-def _kalshi(tour: str, df, oos) -> None:
+QUICK_KALSHI_DAYS = 4   # hourly run only backfills candles for the last few days; the
+                        # committed ledger carries older history, the daily run the rest
+
+
+def _kalshi(tour: str, df, oos, recent_days=None) -> None:
     """Kalshi eval ledger: capture market snapshots, upsert the CSV. Best-effort:
-    Kalshi is a benchmark, never a build dependency (report runs after both tours)."""
+    Kalshi is a benchmark, never a build dependency (report runs after both tours).
+    `recent_days` bounds the candlestick backfill so a cold cache on the hourly quick
+    run can't stall on the full historical sweep."""
     try:
         from .data.kalshi import refresh_snapshots
         from .eval.kalshi_ledger import refresh_ledger
-        refresh_snapshots(tour)
+        refresh_snapshots(tour, recent_days=recent_days)
         refresh_ledger(tour, df, oos=oos)
     except Exception as e:                                   # noqa: BLE001 — never fatal
         print(f"  kalshi/{tour}: skipped ({e})")
@@ -132,9 +138,9 @@ def build_tour_quick(tour: str) -> None:
         build_tour(tour, do_backtest=False)
         return
     export_all(tour, df, predictor.elo, predictor.srv, predictor.meta, predictor, oos=None)
-    _track(tour, predictor, df)                  # refreshes the forecast log first, so
-    _kalshi(tour, df, oos=None)                  # the ledger prices live matches (cheap:
-    _mirror(tour)                                # settled sweep early-stops on frozen tickers)
+    _track(tour, predictor, df)                  # refreshes the forecast log first, so the
+    _kalshi(tour, df, oos=None, recent_days=QUICK_KALSHI_DAYS)   # ledger prices live matches
+    _mirror(tour)                                # (bounded backfill keeps the hourly run fast)
 
 
 def main():

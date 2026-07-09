@@ -290,9 +290,16 @@ def _provisional_quote(ma: dict, mb: dict) -> dict:
     return {**quote, "mid_a": mids[0], "mid_b": mids[1], "spread_max": max(spreads)}
 
 
-def refresh_snapshots(tour: str, backfill_since: str | None = None) -> dict:
+def refresh_snapshots(tour: str, backfill_since: str | None = None,
+                      recent_days: int | None = None) -> dict:
     """Fetch settled + open markets, pair them, finalize pre-match prices from
-    candles for events past their scheduled start. Returns the updated cache."""
+    candles for events past their scheduled start. Returns the updated cache.
+
+    `recent_days` caps the candlestick backfill to events that started within that
+    many days — used on the hourly quick run so a cold snapshot cache does NOT
+    trigger the full ~15-min historical backfill inline (the committed ledger CSVs
+    already carry that history; the daily full run does the unbounded backfill).
+    """
     snaps = load_snapshots(tour)
     events, skipped = snaps["events"], snaps.setdefault("skipped", {})
     frozen = {ev for ev, e in events.items()
@@ -339,6 +346,9 @@ def refresh_snapshots(tour: str, backfill_since: str | None = None) -> dict:
         if occ_ts > now_ts:                           # upcoming: provisional top-of-book
             entry["price"] = _provisional_quote(ma, mb)
             continue
+        if recent_days is not None and now_ts - occ_ts > recent_days * 86400:
+            continue                                  # deep backfill deferred to the full
+                                                      # run; committed ledger carries these
         qa = fetch_prematch_quotes(tour, ma["ticker"], occ_ts)
         qb = fetch_prematch_quotes(tour, mb["ticker"], occ_ts)
         if qa and qb:
