@@ -73,7 +73,7 @@ are closed questions — re-opening one requires the underlying space to have ch
     tier_k^4 monotonically worse — upweighting slams sharpens accuracy but
     miscalibrates; importance-weighting family 0-for-2 with W1d)`
 
-11. **seedf — seed_rank_diff** (Tier 2, both tours) — `OPEN`
+11. **seedf — seed_rank_diff** (Tier 2, both tours) — `BLOCKED (R3: upcoming feed has no seeds; wiki cache requires a separate data/integration experiment with explicit missingness semantics)`
     winner_seed/loser_seed ingested but unused (entry_q_diff proves the raw pathway
     works). Redundancy risk vs Elo/rankpts. Parity precondition: verify the
     prediction-time upcoming-match feed carries seeds BEFORE building.
