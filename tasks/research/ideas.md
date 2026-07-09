@@ -68,7 +68,7 @@ are closed questions — re-opening one requires the underlying space to have ch
    ones. Parity burden medium: pair-date tracking in the h2h state + prediction
    mirror in the same commit.
 
-9b. **srrp — rate-conditioned serve prior** (Tier 1/2, WTA-only) — `IN-PROGRESS (R3-002)`
+9b. **srrp — rate-conditioned serve prior** (Tier 1/2, WTA-only) — `DONE-REJECT (R3-003: component pass at 0.25, but full WTA arbiter d_val -0.00043+/-0.00010; 8/17 years positive)`
     The rejected E1 block exposed raw ace/DF/first-in differences to the combiner.
     This distinct mechanism stores decayed rate state and uses it only as a shrunk
     prior for the existing opponent-adjusted SPW estimate when direct SPW evidence
