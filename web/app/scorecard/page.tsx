@@ -324,7 +324,7 @@ export default function ScorecardPage() {
       <PageHead
         eyebrow={`${tour.toUpperCase()} · model scorecard${acc?.window ? ` · ${acc.window}` : ""}`}
         title="The Scorecard"
-        sub="Every number here is out-of-sample: a ten-season walk-forward backtest, live forecasts frozen before results, and paired comparisons against the market on identical matches. Lower log-loss and Brier are better; positive Δ means the model was sharper than the market."
+        sub="Every number here is out-of-sample: a full walk-forward backtest, live forecasts frozen before results, and paired comparisons against the market on identical matches. Lower log-loss and Brier are better; positive Δ means the model was sharper than the market."
       />
 
       {loading && !kalshi && <Loading />}
@@ -352,7 +352,7 @@ export default function ScorecardPage() {
       {acc && combiner && (
         <section className="mt-14">
           <SectionHead n="01" kicker="Absolute skill" title="The combiner earns its keep — and stays honest"
-            sub="Ten seasons of walk-forward testing: every prediction trained only on earlier data. The XGBoost combiner adds a point or two over its best component, and a “70%” really wins about 70% of the time." />
+            sub={`Walk-forward testing across ${acc.window}: every prediction trained only on earlier data. The XGBoost combiner adds a point or two over its best component, and a “70%” really wins about 70% of the time.`} />
           <div className="mt-5 grid gap-2.5 lg:grid-cols-2">
             <div className="panel p-5">
               <Eyebrow>Model ladder — accuracy by layer</Eyebrow>
