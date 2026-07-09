@@ -49,7 +49,7 @@ export default function Predict() {
       <PageHead
         eyebrow={`${tour.toUpperCase()} · head to head`}
         title="Match Predictor"
-        sub="Pick any two players, a surface and a format. The XGBoost combiner returns a calibrated win probability; the point model gives the most likely set scores."
+        sub="Pick any two players, a surface and a format. The XGBoost combiner returns a calibrated win probability; the most likely set scores are back-solved from it with the Markov set model."
       />
 
       {loading && <Loading />}

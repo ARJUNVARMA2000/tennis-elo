@@ -1,4 +1,5 @@
 import type { Tour } from "@/lib/tour";
+import { blendedElo } from "@/lib/ui";
 
 /* Client-side ESPN live scores — mirrors the parsing rules of
    tennis_model/src/tennis_model/data/live.py (same endpoint, same
@@ -132,8 +133,8 @@ function keysFor(matrix: Matrix): string[] {
 }
 
 /** Model P(A beats B): the precomputed combiner matrix when both players are
-    in the top-120 grid, else the exact surface-blended Elo formula the model
-    uses (SURFACE_BLEND=0.5, RATING_SCALE=400), else null. */
+    in the top-120 grid, else the model's surface-blended Elo via the canonical
+    per-tour blend (ui.ts SURFACE_BLEND, RATING_SCALE=400), else null. */
 export function winProb(
   a: string,
   b: string,
@@ -141,6 +142,7 @@ export function winProb(
   bestOf: number,
   players: PlayerRow[] | null,
   matrix: Matrix | null,
+  tour: Tour,
 ): { p: number | null; source: "matrix" | "elo" | null } {
   const ka = nameKey(a);
   const kb = nameKey(b);
@@ -168,8 +170,8 @@ export function winProb(
       if (pa && pb) break;
     }
     if (pa && pb) {
-      const ra = 0.5 * pa.elo + 0.5 * (pa[key] ?? pa.elo);
-      const rb = 0.5 * pb.elo + 0.5 * (pb[key] ?? pb.elo);
+      const ra = blendedElo(pa.elo, pa[key] ?? pa.elo, tour);
+      const rb = blendedElo(pb.elo, pb[key] ?? pb.elo, tour);
       return { p: 1 / (1 + Math.pow(10, -(ra - rb) / 400)), source: "elo" };
     }
   }

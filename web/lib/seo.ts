@@ -13,7 +13,7 @@ const PAGE_META: Record<string, { title: string; description: string }> = {
   },
   simulator: {
     title: "Draw Simulator",
-    description: "Monte Carlo tournament projections — title odds for the full field.",
+    description: "Monte Carlo projections for a hypothetical top-32 field — title, final and semifinal odds per surface.",
   },
   upcoming: {
     title: "Latest Results",
@@ -29,7 +29,7 @@ const PAGE_META: Record<string, { title: string; description: string }> = {
   },
   style: {
     title: "Playing Style",
-    description: "13-axis style fingerprints from Match Charting data — compare any two players.",
+    description: "13-axis style radar — eight Match Charting style dimensions plus serve/return and surface-Elo percentiles — compare any two players.",
   },
   strength: {
     title: "Strength Map",

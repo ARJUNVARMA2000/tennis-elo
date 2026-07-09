@@ -28,7 +28,7 @@ export default function Trends() {
       <PageHead
         eyebrow={`${tour.toUpperCase()} · rating trajectories`}
         title="Risers & Fallers"
-        sub="Monthly Elo trajectories. The biggest 12-month movers in either direction — form arriving, and form leaving."
+        sub="Monthly Elo trajectories. The biggest movers over roughly the last year of play, in either direction — form arriving, and form leaving."
       />
 
       {loading && <Loading />}
@@ -64,7 +64,7 @@ function MoverList({
               <div className="flex-1">
                 <div className="text-[13px] text-[var(--color-text)]">{r.name}</div>
                 <div className="mono mt-1 text-xs" style={{ color }}>
-                  <span aria-hidden>{arrow}</span> {r.delta >= 0 ? "+" : ""}{Math.round(r.delta)} Elo / 12mo
+                  <span aria-hidden>{arrow}</span> {r.delta >= 0 ? "+" : ""}{Math.round(r.delta)} Elo / ~1yr
                 </div>
               </div>
               <Spark points={r.series} color={color} />

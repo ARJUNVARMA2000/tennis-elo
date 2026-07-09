@@ -32,12 +32,14 @@ gradient boosting combine and calibrate them. Walk-forward, leakage-free results
 |---|---|---|
 | Surface Elo + cross-surface transfer (tuned per tour) | 0.2006 | 0.2112 |
 | Serve/return point model (tuned) | 0.2055 | 0.2148 |
-| **XGBoost combiner (seed-bagged)** | **0.1947** | **0.2018** |
+| **XGBoost combiner (seed-bagged)** | **0.1947** | **0.2015** |
 | _Bookmaker (literature anchor)_ | _0.196_ | _0.196_ |
 
 The combiner beats every component on both tours, and the ATP model now **clears the
-bookmaker anchor on both accuracy (0.696 vs ~0.690) and Brier (0.1947 vs 0.196)** —
-the single largest jump came from ingesting ~130k Challenger + qualifying matches
+literature bookmaker anchor on both accuracy (0.696 vs ~0.690) and Brier (0.1947 vs
+0.196)** — head-to-head on the repo's own odds-matched subset, Pinnacle's closing line
+still leads (0.201 vs 0.203 Brier; see the Scorecard page). The single largest jump
+came from ingesting ~130k Challenger + qualifying matches
 into the rating walks (ratings-only: the combiner still trains on main draws;
 d_val +0.0076 ± 0.0010, 17/17 years positive). Every constant is tuned offline per
 tour (Optuna, 2010–19 tune window, 2020+ validation — see `eval/tune.py`); feature
@@ -47,7 +49,7 @@ importance confirms the thesis: Elo (overall + surface) carries most of the sign
 trick — must pass a paired-SE gate on a held-out window *and* a full walk-forward
 arbiter before it ships; component-level wins that don't survive the retrained
 combiner are rejected. Failed experiments are documented with their numbers, not
-discarded (~15 written-up rejections, including an event-speed serve baseline that
+discarded (~25 written-up rejections, including an event-speed serve baseline that
 passed its component gate 5/5 and still lost the arbiter), and each round's diff gets
 an adversarial multi-agent review before adoption — one caught a Fed Cup
 host-mislabeling bug that had inflated the WTA home-advantage gain 5× before it could
@@ -55,7 +57,10 @@ ship. Full logs:
 [`tasks/tuning-results-2026-07-02.md`](tasks/tuning-results-2026-07-02.md),
 [`…-core-round.md`](tasks/tuning-results-2026-07-02-core-round.md),
 [`…-autoresearch.md`](tasks/tuning-results-2026-07-02-autoresearch.md),
-[`…-2026-07-05-data-round.md`](tasks/tuning-results-2026-07-05-data-round.md).
+[`…-2026-07-05-data-round.md`](tasks/tuning-results-2026-07-05-data-round.md),
+[`…-2026-07-06-autoresearch.md`](tasks/tuning-results-2026-07-06-autoresearch.md),
+[`…-r2.md`](tasks/tuning-results-2026-07-06-autoresearch-r2.md), plus the
+machine-readable [`tasks/research/ledger.tsv`](tasks/research/ledger.tsv).
 
 ## Architecture
 
@@ -72,7 +77,8 @@ data ─┬─ surface Elo + cross-surface transfer (dynamic K, margin-of-victor
 ## Data — hourly fresh (the hard part)
 
 Jeff Sackmann's canonical repos went private in 2026 and the free mirrors keep freezing,
-so each tour **merges five sources**, deduplicated with stats-bearing rows winning:
+so ATP **merges five sources** (WTA four — no lower-tier overlay exists for it),
+deduplicated with stats-bearing rows winning:
 
 - **Full-schema historical** (serve stats; frozen upstreams, snapshot-backed):
   `Tennismylife/TML-Database` (ATP), a full-schema WTA snapshot.
@@ -106,13 +112,13 @@ can never clobber good data.
 ```
 tennis_model/        Python model + pipeline (see tennis_model/README.md)
   src/tennis_model/  config · data · ratings · points · model · sim · eval
-web/                 Next.js 16 app (12 views, ATP/WTA toggle, static export)
+web/                 Next.js 16 app (14 views, ATP/WTA toggle, static export)
 .github/workflows/   hourly refresh + daily retrain + weekly snapshot; CI on every push
 ```
 
 ## Engineering quality
 
-- **182 tests green on every push** — 101 pytest (model, data, geo, parity) + 81 vitest
+- **318 tests green on every push** — 222 pytest (model, data, geo, parity) + 96 vitest
   (lib math, UI logic), plus ruff + eslint and a type-checked static-export build in CI
   ([`.github/workflows/test.yml`](.github/workflows/test.yml)).
 - **Cross-language contract tests**: player-name canonicalisation (`name_key`) is
@@ -140,12 +146,14 @@ PYTHONPATH=src python -m tennis_model.cli project-slam "Wimbledon" 2025
 cd ../web && npm install && npm run dev
 ```
 
-## The twelve views
+## The fourteen views
 
 Slam-focus home (round-by-round title forecast + **live ESPN score ticker with model
 win odds, polled straight from the browser**) · Rankings (Elo board with **official
-live ranks** and an age filter) · Match Predictor · Draw Simulator · Latest results
-(with model calls) · Player profiles (Elo history, surface splits, serve/return +
-style fingerprint, H2H) · Playing-style radar · Serve/return strength map · Trends &
-movers · Accuracy vs market · Track record · Method — all with an ATP/WTA toggle, a
+live ranks** and an age filter) · Match Predictor · Draw Simulator · Upcoming matches
+(model win probabilities for every scheduled match) · Latest results (with model
+calls) · Player profiles (Elo history, surface splits, serve/return + style
+fingerprint, H2H) · Playing-style radar · Serve/return strength map · Trends &
+movers · Accuracy vs market · Scorecard (the full out-of-sample report, incl. paired
+Kalshi/Pinnacle comparisons) · Track record · Method — all with an ATP/WTA toggle, a
 Linear-style dark UI, and an "updated Xm ago" freshness pill.

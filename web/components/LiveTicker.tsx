@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { useData, useTour } from "@/lib/tour";
+import { useData, useTour, type Tour } from "@/lib/tour";
 import { fadeUp, stagger } from "@/lib/motion";
 import {
   fetchLiveMatches,
@@ -84,7 +84,7 @@ export default function LiveTicker() {
       </div>
       <ul role="list" className="flex gap-3 overflow-x-auto pb-2">
         {matches.map((m) => (
-          <LiveCard key={m.id} m={m} players={players} tournaments={tournaments} matrix={mtx} />
+          <LiveCard key={m.id} m={m} players={players} tournaments={tournaments} matrix={mtx} tour={tour} />
         ))}
       </ul>
     </motion.section>
@@ -96,14 +96,16 @@ function LiveCard({
   players,
   tournaments,
   matrix,
+  tour,
 }: {
   m: RawLiveMatch;
   players: PlayerRow[] | null;
   tournaments: TournamentInfo[] | null;
   matrix: Matrix | null;
+  tour: Tour;
 }) {
   const { surface, bestOf } = matchContext(m.event, tournaments);
-  const { p } = winProb(m.a, m.b, surface, bestOf, players, matrix);
+  const { p } = winProb(m.a, m.b, surface, bestOf, players, matrix, tour);
   const currentSet = m.sets.length - 1;
 
   const row = (name: string, side: 0 | 1, prob: number | null) => {

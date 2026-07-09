@@ -15,17 +15,19 @@ engineer strong Elo- and point-model features, then let gradient boosting *combi
 calibrate* them. So Elo isn't replaced by XGBoost — it's the dominant feature feeding it.
 
 **Walk-forward, leakage-free results** (no future info, no market odds as inputs;
-2010–2026, 45,762 ATP / 42,348 WTA matches):
+2010–2026, 45,762 ATP / 42,513 WTA matches):
 
 | Model | ATP acc | ATP Brier | WTA acc | WTA Brier |
 |---|---|---|---|---|
-| Elo (surface blend + cross-surface transfer) | 0.671 | 0.2062 | 0.662 | 0.2111 |
-| Serve/return point model | 0.649 | 0.2093 | 0.636 | 0.2147 |
-| **XGBoost combiner (seed-bagged)** | **0.690** | **0.1975** | **0.683** | **0.2019** |
+| Elo (surface blend + cross-surface transfer) | 0.683 | 0.2006 | 0.662 | 0.2112 |
+| Serve/return point model | 0.669 | 0.2055 | 0.645 | 0.2148 |
+| **XGBoost combiner (seed-bagged)** | **0.696** | **0.1947** | **0.684** | **0.2015** |
 | _Bookmaker anchor (literature)_ | _0.690_ | _0.196_ | _0.690_ | _0.196_ |
 
-ATP accuracy sits exactly at the bookmaker anchor with a 0.0015 Brier gap (WTA
-0.0059), and calibration is near-perfect after Platt scaling. Every constant below is
+ATP now clears the literature bookmaker anchor on both accuracy (0.696 vs ~0.690) and
+Brier (0.1947 vs 0.196) — though on the repo's own odds-matched subset Pinnacle's
+closing line still leads (see the root README) — WTA's remaining Brier gap is 0.0055,
+and calibration is near-perfect after Platt scaling. Every constant below is
 the survivor of Optuna sweeps gated by paired-SE tests (tune 2010–19, validate 2020+)
 plus a full walk-forward arbiter — the adoption protocol, and the experiments it
 rejected, are documented in [`tasks/tuning-results-*.md`](../tasks/).
@@ -53,7 +55,7 @@ data ─┬─ surface Elo + cross-surface transfer  (per-surface ratings, every
   single fit. Pure variance reduction, ~0.001 log-loss on both tours; 10 bags measured
   no better.
 - **Home advantage**: `data/geo.py` resolves each event's host country (Davis Cup tie
-  parsing, year-keyed events like the Olympics, a ~250-name city→IOC map) into an
+  parsing, year-keyed events like the Olympics, a ~340-name city→IOC map) into an
   antisymmetric `home_flag_diff` feature. Venue is threaded through track/export/sim
   for real matches; hypothetical CLI predictions stay neutral.
 - **The point model** is what yields a full **score distribution** and makes Bo3-vs-Bo5
@@ -65,10 +67,11 @@ data ─┬─ surface Elo + cross-surface transfer  (per-surface ratings, every
 
 ## Data
 
-Each tour merges four sources — full-schema historical, a daily serve-stats overlay,
-fresh weekly results, and hourly ESPN live scores — plus Match-Charting style
-features, official live rankings, and a Tennis-Data.co.uk odds benchmark (never a
-model input). The full sourcing story, including fallbacks for upstreams that keep
+Each tour merges up to five sources — full-schema historical, a daily serve-stats
+overlay, fresh weekly results, hourly ESPN live scores, and (ATP only) a Challenger +
+qualifying overlay (2005+/2007+, feeding the rating walks only) — plus Match-Charting
+style features, official live rankings, and a Tennis-Data.co.uk odds benchmark (never
+a model input). The full sourcing story, including fallbacks for upstreams that keep
 disappearing, is in the [root README](../README.md). Module map: `data/download.py`
 (schema-validated atomic downloads), `data/results.py` (merge + dedup),
 `data/names.py` (cross-source name canonicalisation, contract-tested against the
@@ -85,13 +88,14 @@ src/tennis_model/
   pipeline.py          orchestrator -> predictor.pkl, players.json, meta.json, accuracy.json
   cli.py               ad-hoc predictions / draw projections
   data/                download, results (merge/dedup), names, scores, geo, health,
-                       live, odds, rankings, wta_stats, charting
+                       live, odds, rankings, wta_stats, charting, draws_wiki
+                       (Wikipedia draws), kalshi, surface, altitude, httpcache
   ratings/             elo.py (math incl. xsurf), build.py (chronological Elo walk)
   points/              serve_return.py (opponent-adjusted skill walk), markov.py
   model/               features.py, train.py (bagged XGBoost + Platt + walk-forward),
-                       predict.py, export.py (site JSON)
+                       predict.py, upcoming.py, export.py (site JSON)
   sim/                 draws.py, tournaments.py, simulate.py (Monte Carlo)
-  eval/                metrics.py, backtest.py, compare.py (vs market),
+  eval/                metrics.py, backtest.py, compare.py (vs market), ab_data.py,
                        track.py (graded point-in-time calls), tune.py (Optuna sweeps),
                        kalshi_ledger.py + kalshi_report.py (vs Kalshi, see below)
 ```
@@ -171,8 +175,11 @@ PYTHONPATH=src python -m tennis_model.eval.kalshi_report
 
 ## Limitations / future work
 
-- **Challengers** aren't ingested: no source covers them across the 2010–19 tune
-  window, so their effect can't be gated honestly (see the A5 note in the tuning logs).
+- **WTA 125s / lower-tier WTA events** aren't ingested — no source covers them across
+  the 2010–19 tune window, so their effect can't be gated honestly. ATP Challengers +
+  qualifying (2005+/2007+) were adopted 2026-07-05 in ratings-only form: they feed the
+  Elo/point/context walks, while the combiner still trains, calibrates and scores on
+  main draws only (see the A5 note in the tuning logs).
 - The **draw simulator uses current ratings**, ideal for projecting *upcoming* events;
   a true historical sim backtest would need as-of-date ratings.
 - **Event-speed serve baselines and Elo-level home bonuses** were built, gated, and

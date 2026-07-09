@@ -22,7 +22,7 @@ export default function Upcoming() {
       <PageHead
         eyebrow={`${tour.toUpperCase()} · latest results`}
         title="The Feed"
-        sub="Every recent completed match with the model's pre-match win probability for the actual winner. Low numbers are upsets the model didn't see coming."
+        sub="Every recent completed match with the win probability today's model gives the actual winner — a retrospective read, not a frozen pre-match call (those live on the Track Record page). Low numbers are upsets the model didn't see coming."
       />
 
       {loading && <Loading />}
