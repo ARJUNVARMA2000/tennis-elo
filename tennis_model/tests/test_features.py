@@ -45,7 +45,7 @@ def _joined_frame() -> pd.DataFrame:
         "w_n": 210, "l_n": 145, "winner_age": 24.5, "loser_age": 29.0,
         "winner_ht": 185.0, "loser_ht": 191.0, "winner_hand": "R", "loser_hand": "L",
         "w_days_since": 7.0, "l_days_since": 21.0, "w_fat": 3.0, "l_fat": 1.0,
-        "w_h2h": 4, "l_h2h": 2, "w_h2hr": 2, "l_h2hr": 1, "w_form90": 0.10, "l_form90": -0.05,
+        "w_h2h": 4, "l_h2h": 2, "w_form90": 0.10, "l_form90": -0.05,
         "w_wr10": 0.7, "l_wr10": 0.5, "w_h2h_s": 2, "l_h2h_s": 1,
         "winner_entry": "Q", "loser_entry": None,
         "best_of": 3, "is_indoor": False, "tier_k": 1.05, "round_order": 4,
@@ -59,7 +59,7 @@ def _joined_frame() -> pd.DataFrame:
                  ("winner_rank_points", "loser_rank_points"), ("w_n", "l_n"),
                  ("winner_age", "loser_age"), ("winner_ht", "loser_ht"),
                  ("winner_hand", "loser_hand"), ("w_days_since", "l_days_since"),
-                 ("w_fat", "l_fat"), ("w_h2h", "l_h2h"), ("w_h2hr", "l_h2hr"), ("w_form90", "l_form90"),
+                 ("w_fat", "l_fat"), ("w_h2h", "l_h2h"), ("w_form90", "l_form90"),
                  ("w_wr10", "l_wr10"), ("w_h2h_s", "l_h2h_s"),
                  ("winner_entry", "loser_entry"), ("w_srv_pts", "l_srv_pts"),
                  ("winner_name", "loser_name"), ("winner_ioc", "loser_ioc")):
@@ -133,27 +133,6 @@ def test_run_context_respects_params():
     print("ok test_run_context_respects_params")
 
 
-def test_recent_h2h_is_pre_match_bounded_and_pruned_for_inference():
-    """The 3-year pair history is pre-match, keeps its inclusive boundary, and
-    cannot leak stale pairs into the final saved prediction state."""
-    d0 = pd.Timestamp("2020-01-01")
-    rows = [
-        dict(winner_name="Alfa", loser_name="Bravo", date=d0, surface_b="Hard",
-             completed=False, w_games=6, l_games=0),
-        dict(winner_name="Bravo", loser_name="Alfa", date=d0 + pd.Timedelta(days=1095),
-             surface_b="Hard", completed=True, w_games=6, l_games=0),
-        dict(winner_name="Alfa", loser_name="Bravo", date=d0 + pd.Timedelta(days=1096),
-             surface_b="Hard", completed=True, w_games=6, l_games=0),
-        dict(winner_name="Charlie", loser_name="Delta", date=d0 + pd.Timedelta(days=3000),
-             surface_b="Hard", completed=True, w_games=6, l_games=0),
-    ]
-    state, out = run_context(pd.DataFrame(rows))
-    assert (out.loc[1, "w_h2hr"], out.loc[1, "l_h2hr"]) == (0.0, 1.0)  # 1095d stays
-    assert (out.loc[2, "w_h2hr"], out.loc[2, "l_h2hr"]) == (0.0, 1.0)  # older result expired
-    assert state.record_recent("Alfa", "Bravo") == (0, 0)              # global final prune
-    print("ok test_recent_h2h_is_pre_match_bounded_and_pruned_for_inference")
-
-
 def test_make_oriented_xy_flip_contract():
     rng = np.random.default_rng(11)
     n = 400
@@ -180,6 +159,5 @@ if __name__ == "__main__":
     test_assemble_orientation_contract()
     test_assemble_respects_feature_params()
     test_run_context_respects_params()
-    test_recent_h2h_is_pre_match_bounded_and_pruned_for_inference()
     test_make_oriented_xy_flip_contract()
     print("\nALL PASSED")

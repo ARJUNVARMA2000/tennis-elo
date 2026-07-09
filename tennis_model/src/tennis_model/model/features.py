@@ -33,13 +33,10 @@ class H2HState:
     """Final context store (head-to-head, surface H2H, recent form) for inference."""
 
     def __init__(self, h2h: dict, h2h_surface: dict | None = None,
-                 last10: dict | None = None, h2h_recent: dict | None = None,
-                 as_of=None):
+                 last10: dict | None = None):
         self._h2h = h2h
         self._h2h_surface = h2h_surface or {}
         self._last10 = last10 or {}
-        self._h2h_recent = h2h_recent or {}
-        self._as_of = as_of
 
     def record(self, a: str, b: str) -> tuple[int, int]:
         """(a_wins, b_wins) between a and b."""
@@ -51,17 +48,6 @@ class H2HState:
         """(a_wins, b_wins) between a and b on `surf` only."""
         key = ((a, b) if a < b else (b, a), surf)
         rec = getattr(self, "_h2h_surface", {}).get(key, [0, 0])
-        return (rec[0], rec[1]) if a < b else (rec[1], rec[0])
-
-    def record_recent(self, a: str, b: str, as_of=None) -> tuple[int, int]:
-        """(a_wins, b_wins) between a and b in the rolling recent-H2H window."""
-        key = (a, b) if a < b else (b, a)
-        now = getattr(self, "_as_of", None) if as_of is None else np.datetime64(as_of)
-        rec = [0, 0]
-        for date, winner_idx in getattr(self, "_h2h_recent", {}).get(key, ()):
-            age = (now - date) / _DAY if now is not None else 0.0
-            if now is None or 0 <= age <= _config.H2H_RECENT_DAYS:
-                rec[winner_idx] += 1
         return (rec[0], rec[1]) if a < b else (rec[1], rec[0])
 
     def winrate10(self, name: str) -> float:
@@ -77,7 +63,7 @@ ANTISYM = [
     "logit_p_blend", "logit_p_point",
     "serve_skill_diff", "return_skill_diff",
     "rankpts_diff", "exp_diff", "age_diff", "ht_diff",
-    "hand_matchup", "rest_diff", "fatigue_diff", "h2h_diff", "h2h_recent_diff",
+    "hand_matchup", "rest_diff", "fatigue_diff", "h2h_diff",
     # layoff (rest_diff is clipped at +-60d, so long absences need their own signal)
     "log_days_since_diff", "layoff_flag_diff",
     # short-term form (veterans' small K under-reflects hot/cold streaks)
@@ -142,14 +128,13 @@ def run_context(df: pd.DataFrame,
     n = len(df)
     out = {c: np.zeros(n, dtype=float) for c in
            ["w_days_since", "l_days_since", "w_fat", "l_fat", "w_h2h", "l_h2h",
-            "w_h2h_s", "l_h2h_s", "w_h2hr", "l_h2hr", "w_wr10", "l_wr10"]}
+            "w_h2h_s", "l_h2h_s", "w_wr10", "l_wr10"]}
 
     wr_window = int(params.winrate_window)
     last_date: dict = {}
     recent: dict = defaultdict(deque)          # player -> deque[(date, games_played)]
     h2h: dict = defaultdict(lambda: [0, 0])    # (a,b) sorted -> [wins_a, wins_b]
     h2h_s: dict = defaultdict(lambda: [0, 0])  # ((a,b) sorted, surface) -> [wins]
-    h2hr: dict = defaultdict(deque)             # (a,b) sorted -> deque[(date, winner index)]
     last10: dict = defaultdict(lambda: deque(maxlen=wr_window))  # player -> 1/0 results
 
     winners = df["winner_name"].to_numpy()
@@ -178,19 +163,12 @@ def run_context(df: pd.DataFrame,
         out["w_wr10"][i], out["l_wr10"][i] = wr10(w), wr10(l)
         key = (w, l) if w < l else (l, w)
         rec, rec_s = h2h[key], h2h_s[(key, s)]
-        rec_r = h2hr[key]
-        while rec_r and (t - rec_r[0][0]) / _DAY > _config.H2H_RECENT_DAYS:
-            rec_r.popleft()
-        rec_r0 = sum(idx == 0 for _, idx in rec_r)
-        rec_r1 = len(rec_r) - rec_r0
         if w < l:
             out["w_h2h"][i], out["l_h2h"][i] = rec[0], rec[1]
             out["w_h2h_s"][i], out["l_h2h_s"][i] = rec_s[0], rec_s[1]
-            out["w_h2hr"][i], out["l_h2hr"][i] = rec_r0, rec_r1
         else:
             out["w_h2h"][i], out["l_h2h"][i] = rec[1], rec[0]
             out["w_h2h_s"][i], out["l_h2h_s"][i] = rec_s[1], rec_s[0]
-            out["w_h2hr"][i], out["l_h2hr"][i] = rec_r1, rec_r0
 
         # update
         gp = games[i]
@@ -201,18 +179,8 @@ def run_context(df: pd.DataFrame,
         idx = 0 if w < l else 1
         rec[idx] += 1
         rec_s[idx] += 1
-        rec_r.append((t, idx))
 
-    # Pair-local eviction occurs only when that pair meets again. Prune every pair
-    # against the global as-of date before serializing state for inference.
-    as_of = dates[-1] if n else None
-    recent_state = {
-        key: [(date, idx) for date, idx in dq
-              if (as_of - date) / _DAY <= _config.H2H_RECENT_DAYS]
-        for key, dq in h2hr.items() if as_of is not None
-    }
-    recent_state = {key: rec_r for key, rec_r in recent_state.items() if rec_r}
-    return H2HState(dict(h2h), dict(h2h_s), dict(last10), recent_state, as_of), pd.DataFrame(out, index=df.index)
+    return H2HState(dict(h2h), dict(h2h_s), dict(last10)), pd.DataFrame(out, index=df.index)
 
 
 def _run_all(df: pd.DataFrame):
@@ -305,7 +273,6 @@ def _assemble(d: pd.DataFrame,
     f["rest_diff"] = np.clip(d["w_days_since"] - d["l_days_since"], -60, 60)
     f["fatigue_diff"] = d["w_fat"] - d["l_fat"]
     f["h2h_diff"] = d["w_h2h"] - d["l_h2h"]
-    f["h2h_recent_diff"] = d["w_h2hr"] - d["l_h2hr"]
 
     # layoff: rest_diff's clip destroys long-absence information — restore it
     f["log_days_since_diff"] = np.log1p(d["w_days_since"]) - np.log1p(d["l_days_since"])

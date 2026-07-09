@@ -72,7 +72,7 @@ class TennisPredictor:
     # -- feature construction (must mirror features._assemble, winner-slot = A) ----
     def _feature_dict(self, a: str, b: str, surface: str, best_of: int,
                       indoor: bool, tier_k: float, round_order: int,
-                      event: str | None = None, h2h_as_of=None) -> dict:
+                      event: str | None = None) -> dict:
         elo, srv, ctx, meta = self.elo, self.srv, self.ctx, self.meta
         ma, mb = meta.get(a, {}), meta.get(b, {})
 
@@ -83,7 +83,6 @@ class TennisPredictor:
         rpa, rpb = _num(ma.get("rank_points")), _num(mb.get("rank_points"))
         h2a, h2b = ctx.record(a, b)
         h2sa, h2sb = ctx.record_surface(a, b, surface)
-        h2ra, h2rb = ctx.record_recent(a, b, as_of=h2h_as_of)
 
         # layoff/form relative to the newest match in the data (~today in production)
         asof = elo.last_date
@@ -114,7 +113,6 @@ class TennisPredictor:
             "rest_diff": 0.0,
             "fatigue_diff": 0.0,
             "h2h_diff": h2a - h2b,
-            "h2h_recent_diff": h2ra - h2rb,
             "log_days_since_diff": math.log1p(da) - math.log1p(db),
             "layoff_flag_diff": int(da > fp.layoff_days) - int(db > fp.layoff_days),
             "form90_diff": elo.form_delta(a, asof) - elo.form_delta(b, asof),
@@ -150,9 +148,9 @@ class TennisPredictor:
 
     def features(self, a: str, b: str, surface: str = "Hard", best_of: int = 3,
                  indoor: bool = False, tier_k: float = 1.0, round_order: int = 3,
-                 event: str | None = None, h2h_as_of=None) -> pd.DataFrame:
+                 event: str | None = None) -> pd.DataFrame:
         row = self._feature_dict(a, b, surface, best_of, indoor, tier_k, round_order,
-                                 event=event, h2h_as_of=h2h_as_of)
+                                 event=event)
         return pd.DataFrame([[row[c] for c in FEATURES]], columns=FEATURES)
 
     # -- predictions ---------------------------------------------------------------

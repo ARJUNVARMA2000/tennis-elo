@@ -34,7 +34,7 @@ class _FakePredictor:
         self.elo = _FakeElo(names)
         self._p = p
 
-    def win_prob(self, a, b, surface=None, best_of=None, event=None, h2h_as_of=None):
+    def win_prob(self, a, b, surface=None, best_of=None, event=None):
         return self._p
 
 

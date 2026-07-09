@@ -31,7 +31,7 @@ class _Pred:
     """Logistic-Elo stand-in: P(a beats b) from the rating gap, orientation-aware."""
     elo = _Elo()
 
-    def win_prob(self, a, b, surface="Hard", best_of=3, event=None, h2h_as_of=None):
+    def win_prob(self, a, b, surface="Hard", best_of=3, event=None):
         return 1.0 / (1.0 + 10.0 ** (-(_ELO[a] - _ELO[b]) / 400.0))
 
 
