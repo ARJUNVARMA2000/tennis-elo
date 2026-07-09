@@ -74,6 +74,14 @@ are closed questions — re-opening one requires the underlying space to have ch
     prior for the existing opponent-adjusted SPW estimate when direct SPW evidence
     is thin; it adds no combiner columns and vanishes for well-observed players.
 
+9c. **rankord — ordinal-rank difference** (Tier 2, WTA-first) — `IN-PROGRESS (R3-004; self-generated)`
+    `rank_points` is modeled but the raw ordinal rank is not. Historical main-draw
+    pair coverage is 96.5% WTA / 97.9% ATP; prediction uses the existing official
+    rankings cache with a latest-historical-rank fallback. This is raw new state,
+    not an algebraic recombination.
+
+9d. **mcp-shortwin — charted short-rally win rate** — `DONE-DECLINED (R3 ideation: two-player coverage shifts 22.9% tune -> 68.4% validation; sparse star-biased regime and two-column capacity cost make the result inadmissible this round)`
+
 10. **tierw — per-tier sample weighting in combiner folds** (Tier 2 scratch driver,
     both tours) — `DONE-REJECT (R2-005: tier_k^2 uniformly negative on WTA LL,
     tier_k^4 monotonically worse — upweighting slams sharpens accuracy but
