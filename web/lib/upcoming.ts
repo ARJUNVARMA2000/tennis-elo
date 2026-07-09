@@ -13,6 +13,27 @@ export type Upcoming = {
 
 export type EventGroup = { event: string; surface: string; matches: Upcoming[] };
 
+/** One side of a projection card: a player, their model win probability, and whether
+    they're the highlighted side (the favourite, for an unplayed match). Structurally
+    matches the `CallSide` that `CallCard` consumes. */
+export type CardSide = { name: string; prob: number; won: boolean };
+
+/** The `CallCard tone="projection"` props for one scheduled match: favourite on top
+    (highlighted), underdog below, with the two probabilities summing to 1. Reused by
+    both the standalone /schedule board and the home "Up next" grid so the two surfaces
+    can never drift. */
+export type UpcomingCard = { surface: string; meta: string; top: CardSide; bottom: CardSide };
+
+export function upcomingCard(m: Upcoming): UpcomingCard {
+  const aFav = m.pA >= 0.5;
+  return {
+    surface: m.surface,
+    meta: `${m.round} · ${m.date}`,
+    top: { name: aFav ? m.playerA : m.playerB, prob: aFav ? m.pA : 1 - m.pA, won: true },
+    bottom: { name: aFav ? m.playerB : m.playerA, prob: aFav ? 1 - m.pA : m.pA, won: false },
+  };
+}
+
 /** Group scheduled matches by tournament, preserving input order — the pipeline already
     sorts rows soonest-first, so both the event order and the matches within each event
     come out in playing order. */

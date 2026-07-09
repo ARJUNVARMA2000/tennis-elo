@@ -1,6 +1,27 @@
 export const pct = (x: number, d = 0) =>
   x == null || isNaN(x) ? "—" : `${(x * 100).toFixed(d)}%`;
 
+/** Honest caveat for a tournament card when its odds are NOT running on the real released
+    draw. `drawStatus` comes from the backend (sim/tournaments): "real"/"final" (the actual
+    bracket — no caveat), "partial" (some of the current round posted, the rest projected),
+    "seeded" (draw not released — the field is seeded by rating). Returns null when there is
+    nothing to flag, so a normal real-draw card is unchanged. */
+export function drawCaveat(t: { status: string; drawStatus?: string }):
+  { label: string; note: string } | null {
+  if (t.status === "completed") return null;
+  if (t.drawStatus === "partial")
+    return {
+      label: "Draw incomplete",
+      note: "The full draw isn’t posted yet — later matchups are a model projection, not the official bracket.",
+    };
+  if (t.drawStatus === "seeded")
+    return {
+      label: "Projected draw",
+      note: "The draw hasn’t been released — these odds seed the field by rating, not the actual bracket.",
+    };
+  return null; // "real" / "final" / legacy undefined -> the actual draw, no caveat
+}
+
 export const SURFACES = ["Hard", "Clay", "Grass"] as const;
 export type Surface = (typeof SURFACES)[number];
 
@@ -22,6 +43,26 @@ export const SURFACE_BLEND: Record<string, number> = { atp: 0.63, wta: 0.62 };
     with who the model favours. */
 export const blendedElo = (overall: number, surfaceElo: number, tour: string): number =>
   Math.round((1 - (SURFACE_BLEND[tour] ?? 0.5)) * overall + (SURFACE_BLEND[tour] ?? 0.5) * surfaceElo);
+
+const SLAM_NAMES = ["wimbledon", "roland garros", "french open", "us open", "australian open"];
+
+/** Tournament tier/prestige from the `level` string, with the four majors pinned by name so a
+    mislabeled slam (ATP Wimbledon currently exports level "Q") still ranks first. `rank` sorts
+    ascending (0 = Grand Slam = most prestigious); `short` is a compact category chip
+    (GS / 1000 / 500 / 250); `full` is a display name that repairs the slam mislabel. */
+export function tournamentTier(level: string = "", eventName: string = ""): { rank: number; short: string; full: string } {
+  const l = String(level).toLowerCase();
+  const ev = eventName.toLowerCase();
+  if (l.includes("grand") || SLAM_NAMES.some((s) => ev.includes(s))) return { rank: 0, short: "GS", full: "Grand Slam" };
+  if (l.includes("final")) return { rank: 1, short: "Finals", full: level || "Tour Finals" };
+  if (l.includes("1000")) return { rank: 2, short: "1000", full: level };
+  if (l.includes("olympic")) return { rank: 2, short: "Oly", full: "Olympics" };
+  if (l.endsWith("500")) return { rank: 3, short: "500", full: level };
+  if (l.endsWith("250")) return { rank: 4, short: "250", full: level };
+  if (l.includes("cup")) return { rank: 5, short: "Cup", full: level };
+  if (l.endsWith("125")) return { rank: 6, short: "125", full: level };
+  return { rank: 7, short: "Tour", full: level && l !== "q" ? level : "Tour" };
+}
 
 /** Heat color for a probability 0..1 — single-hue indigo luminance ramp.
     Returns hex so callers can append alpha digits (e.g. `${heat(p)}22`). */
