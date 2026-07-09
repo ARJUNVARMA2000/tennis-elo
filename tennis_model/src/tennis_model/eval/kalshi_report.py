@@ -199,6 +199,41 @@ def _seg_md(rows: list[dict]) -> list[str]:
     return out
 
 
+def _calibration_pair(s: pd.DataFrame) -> dict:
+    """A-oriented reliability tables (predicted vs realized) for model and market
+    on the scored set — outcome-independent, so no randomization needed."""
+    lab = (s["a_won"] == 1).to_numpy().astype(float)
+    return {"model": calibration_table(s["p_model"].to_numpy(), lab).to_dict("records"),
+            "kalshi": calibration_table(s["p_kalshi"].to_numpy(), lab).to_dict("records")}
+
+
+def _receipts(s: pd.DataFrame, k: int = 6) -> dict:
+    """Matches where model and market landed on opposite sides of 0.5: best calls
+    (model right, market wrong) and worst misses (vice-versa), each probability
+    oriented to the eventual winner; plus the big-disagreement head-to-head."""
+    won = s["a_won"] == 1
+    t = s.assign(pm_w=np.where(won, s["p_model"], 1.0 - s["p_model"]),
+                 pk_w=np.where(won, s["p_kalshi"], 1.0 - s["p_kalshi"]))
+
+    def rows(sub: pd.DataFrame) -> list[dict]:
+        return [{
+            "date": r.match_date, "tour": r.tour, "event": r.event, "round": r.round,
+            "winner": r.winner,
+            "loser": r.player_b if r.winner == r.player_a else r.player_a,
+            "pModel": round(float(r.pm_w), 3), "pKalshi": round(float(r.pk_w), 3),
+            "predSource": r.pred_source,
+        } for r in sub.itertuples(index=False)]
+
+    best = t[(t.pm_w > 0.5) & (t.pk_w < 0.5)].sort_values("pk_w")
+    worst = t[(t.pm_w < 0.5) & (t.pk_w > 0.5)].sort_values("pm_w")
+    big = t[(t["p_model"] - t["p_kalshi"]).abs() >= DISAGREE_BIG]
+    return {
+        "bestCalls": rows(best.head(k)),
+        "worstMisses": rows(worst.head(k)),
+        "disagree": {"n": int(len(big)), "modelRight": int((big.pm_w > big.pk_w).sum())},
+    }
+
+
 def build_report(tours=TOURS) -> dict:
     """Write report.md + per-tour kalshi.json; returns the pooled summary dict."""
     now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -303,6 +338,9 @@ def build_report(tours=TOURS) -> dict:
             "headline": paired_block(s["p_model_w"].to_numpy(),
                                      s["p_kalshi_w"].to_numpy()) if len(s) else {"n": 0},
             "segments": segment_table(s) if len(s) else [],
+            "calibration": _calibration_pair(s) if len(s) else {"model": [], "kalshi": []},
+            **(_receipts(s) if len(s)
+               else {"bestCalls": [], "worstMisses": [], "disagree": {"n": 0, "modelRight": 0}}),
         }
         d = output_dir(t)
         d.mkdir(parents=True, exist_ok=True)

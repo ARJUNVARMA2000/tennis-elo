@@ -48,8 +48,8 @@ const PAGE_META: Record<string, { title: string; description: string }> = {
     description: "A graded, point-in-time forecast log — every call the model made, scored.",
   },
   scorecard: {
-    title: "Vs Kalshi",
-    description: "A match-by-match ledger against the Kalshi prediction market — paired log-loss by rank, surface, tier and favourite strength.",
+    title: "Scorecard",
+    description: "The full out-of-sample report: walk-forward skill, calibration, the live record and paired comparisons against Kalshi and Pinnacle.",
   },
   method: {
     title: "Method",

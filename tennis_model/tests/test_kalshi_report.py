@@ -129,3 +129,19 @@ def test_build_report_survives_empty_ledger(env):
 def test_build_report_survives_missing_csv(env):
     out = build_report(tours=("atp",))
     assert out["headline"]["pooled"]["n"] == 0
+
+
+def test_build_report_emits_calibration_and_receipts(env):
+    import json
+    _write(env, [
+        _row(event_ticker="BEST", p_model="0.6000", p_kalshi="0.4000"),   # model right, market wrong
+        _row(event_ticker="MISS", p_model="0.4000", p_kalshi="0.6000"),   # model wrong, market right
+        _row(event_ticker="AGREE"),                                       # both right (0.70/0.65)
+    ])
+    build_report(tours=("atp",))
+    p = json.loads((env / "output" / "atp" / "kalshi.json").read_text(encoding="utf-8"))
+    assert p["calibration"]["model"] and p["calibration"]["kalshi"]
+    assert len(p["bestCalls"]) == 1 and p["bestCalls"][0]["winner"] == "A Player"
+    assert p["bestCalls"][0]["pModel"] == 0.6 and p["bestCalls"][0]["pKalshi"] == 0.4
+    assert len(p["worstMisses"]) == 1 and p["worstMisses"][0]["pModel"] == 0.4
+    assert p["disagree"] == {"n": 2, "modelRight": 1}   # BEST + MISS disagree ≥0.1; model closer only on BEST
