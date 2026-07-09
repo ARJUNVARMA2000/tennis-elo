@@ -312,6 +312,11 @@ N_BAG = 5
 # ---------------------------------------------------------------------------
 SURFACES = ("Hard", "Clay", "Grass")
 SURFACE_MAP = {"Hard": "Hard", "Clay": "Clay", "Grass": "Grass", "Carpet": "Hard"}
+# Surface by calendar month — the tennis season's surface swings — the LAST-resort fallback
+# for a live/new event whose sponsor-named tournament misses the archive AND has no Wikipedia
+# surface cached (data/surface.resolve_surface consults it after the archive + wiki tiers).
+MONTH_SURFACE = {1: "Hard", 2: "Hard", 3: "Hard", 4: "Clay", 5: "Clay", 6: "Grass",
+                 7: "Grass", 8: "Hard", 9: "Hard", 10: "Hard", 11: "Hard", 12: "Hard"}
 
 # Round progression order (for chronological sorting within a tournament).
 # Qualifying rounds share the main draw's tourney_id and start date, so they must

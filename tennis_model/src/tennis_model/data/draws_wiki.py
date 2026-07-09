@@ -28,7 +28,7 @@ import urllib.parse
 import urllib.request
 from datetime import UTC, datetime
 
-from ..config import TOURS, WIKI_API, WIKI_TITLE_OVERRIDES, WIKI_UA, live_dir
+from ..config import SURFACE_MAP, TOURS, WIKI_API, WIKI_TITLE_OVERRIDES, WIKI_UA, live_dir
 
 # `mwparserfromhell` is imported lazily inside _parse_bracket so that merely READING the
 # cached wiki_draws.json (wiki_upcoming_rows, sim loaders) never needs the parser installed.
@@ -222,6 +222,74 @@ def fetch_draw(event: str, year: int, tour: str, meta: dict) -> dict | None:
     }
 
 
+_SURFACE_FIELD_RE = re.compile(r"\bsurface\s*=([^\n|]*)", re.IGNORECASE)
+_SURFACE_WORD_RE = re.compile(r"\b(Hard|Clay|Grass|Carpet)\b", re.IGNORECASE)
+
+
+def _parse_surface(wikitext: str) -> str | None:
+    """Canonical court surface from a main tournament article's infobox, or None.
+
+    The infobox carries e.g. ``| surface=[[Clay court|Clay]] / outdoor``; take the first
+    surface keyword inside the ``surface=`` field value (``[^|]`` stops at the wikilink pipe,
+    but the link TARGET — "Clay court" — already names the surface) and fold via SURFACE_MAP
+    (Carpet -> Hard). Pure regex, no mwparserfromhell, so it's importable without the parser."""
+    for field in _SURFACE_FIELD_RE.finditer(wikitext or ""):
+        m = _SURFACE_WORD_RE.search(field.group(1))
+        if m:
+            return SURFACE_MAP[m.group(1).capitalize()]
+    return None
+
+
+def _main_article_title(singles_title: str) -> str:
+    """The main tournament article for a "… – Singles" draw sub-article title — the surface
+    infobox lives only on the main article. Wikipedia's separator is a spaced en/em/hyphen."""
+    return re.split(r"\s+[–—-]\s+", singles_title)[0].strip()
+
+
+def _surface_of(title: str) -> str | None:
+    """Surface parsed from a resolved MAIN-article title, or None if it carries no surface field.
+
+    A parseable ``surface=[[…court]]`` field is itself the tennis-tournament signal (a
+    non-tournament page won't carry one), so no infobox-name gate is needed — and a name gate
+    wrongly rejects Grand Slams, whose main article uses a differently-named infobox template."""
+    wt = _wikitext(title)
+    return _parse_surface(wt) if wt else None
+
+
+def event_surface(event: str, year: int, tour: str) -> str | None:
+    """Court surface for an ESPN event from its Wikipedia MAIN article infobox, or None.
+
+    Surface lives only on the main tournament article, never the "– Singles" draw sub-article
+    fetch_draw reads — so this is a separate resolution. It is deliberately LOOSER than
+    resolve_title: surface is gender-invariant, and the main article is findable by sponsor name
+    even when the gendered singles draw isn't ("Nordea Open" -> "2026 Swedish Open"). Wrong-event
+    risk is bounded by year-in-title + a parseable surface field + a distinctive body anchor."""
+    ov = WIKI_TITLE_OVERRIDES.get(event)
+    if ov:
+        return _surface_of(ov if str(year) in ov else f"{year} {ov}")
+    singles = resolve_title(event, year, tour)          # fully year+anchor+gender gated
+    if singles:
+        surf = _surface_of(_main_article_title(singles))
+        if surf:
+            return surf
+    # Sponsor-renamed / brand-new: search directly for the main (non-singles) article.
+    clean = " ".join(w for w in event.split() if w.lower() not in _SPONSOR_NOISE)
+    anchor = _anchor(clean)
+    d = _get({"action": "query", "list": "search", "srsearch": f"{year} {clean}", "srlimit": 10})
+    for h in d.get("query", {}).get("search", []) or []:
+        title = h.get("title", "")
+        low = title.lower()
+        if str(year) not in low or any(x in low for x in ("doubles", "qualif", "singles")):
+            continue
+        wt = _wikitext(title)
+        if not wt or (anchor and anchor not in wt.lower()):  # body must name the distinctive token
+            continue
+        surf = _parse_surface(wt)
+        if surf:
+            return surf
+    return None
+
+
 _ROUND_BY_SIZE = {128: "R128", 64: "R64", 32: "R32", 16: "R16", 8: "QF", 4: "SF", 2: "F"}
 
 
@@ -308,6 +376,43 @@ def download_wiki_draws(tours=TOURS) -> None:
                   f"({fetched} new) -> {path}")
         else:
             print(f"  wiki-draws/{tour}: no draws posted yet for {len(meta)} tracked event(s)")
+        _download_wiki_surfaces(tour, d, meta)   # main-article surfaces (separate best-effort cache)
+
+
+def _download_wiki_surfaces(tour: str, d, meta: dict) -> None:
+    """Cache each tracked event's Wikipedia main-article surface -> live/<tour>/wiki_surface.json
+    (read offline by data.surface.wiki_surface_map).
+
+    A SEPARATE cache from wiki_draws.json because surface must be captured even for events with
+    no parseable draw yet — the exact new/sponsor-named events that otherwise fall to the month
+    guess. Idempotent (a surface doesn't change once known), pruned to the current ESPN window,
+    never caches a miss (so it retries once the article appears), best-effort per event."""
+    path = d / "wiki_surface.json"
+    cached: dict = {}
+    if path.exists():
+        try:
+            cached = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:  # noqa: BLE001 — a corrupt cache just means re-fetch
+            cached = {}
+    out: dict = {}
+    fetched = 0
+    for name, m in meta.items():
+        if cached.get(name):                      # already resolved — keep it
+            out[name] = cached[name]
+            continue
+        year = int((m.get("start") or "2026")[:4] or 2026)
+        try:
+            surf = event_surface(name, year, tour)
+        except Exception as e:  # noqa: BLE001 — one bad article must not kill the sweep
+            print(f"  wiki-surface/{tour}: {name} skipped ({e})")
+            surf = None
+        if surf:                                  # never cache a miss -> retry when it posts
+            out[name] = surf
+            fetched += 1
+    if out:
+        d.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(out), encoding="utf-8")
+        print(f"  wiki-surface/{tour}: {len(out)} surface(s) ({fetched} new) -> {path}")
 
 
 if __name__ == "__main__":

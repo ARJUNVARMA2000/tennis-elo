@@ -25,7 +25,8 @@ import json
 import pandas as pd
 
 from ..config import live_dir
-from ..data.results import _MONTH_SURFACE, _name_key
+from ..data.results import _name_key
+from ..data.surface import resolve_surface
 from .draws import advance_slots, draw_status, live_draw, standard_seed_draw
 from .simulate import simulate_tournament
 
@@ -81,11 +82,26 @@ def _archive_attrs(df: pd.DataFrame, name: str) -> tuple:
     if sub.empty:
         return None, None, None
     surf = sub["surface_b"].mode() if "surface_b" in sub.columns else pd.Series([], dtype=object)
-    lvl = sub["tourney_level"].mode() if "tourney_level" in sub.columns else pd.Series([], dtype=object)
     bo = pd.to_numeric(sub["best_of"], errors="coerce").max() if "best_of" in sub.columns else None
     return (surf.iloc[0] if not surf.empty else None,
-            lvl.iloc[0] if not lvl.empty else None,
+            _main_level_code(sub),
             int(bo) if pd.notna(bo) else None)
+
+
+def _main_level_code(g: pd.DataFrame):
+    """Modal tourney_level over MAIN-DRAW rows only. Qualifying rows (results.py stamps
+    tourney_level='Q') can outnumber the main draw early in a Slam and would otherwise win the
+    mode, mislabeling e.g. Wimbledon as 'Q'. Falls back to all rows when draw_level is absent
+    (test frames) or has no main-draw rows; returns None when nothing is available."""
+    if "tourney_level" not in g.columns:
+        return None
+    rows = g
+    if "draw_level" in g.columns:
+        main = g[g["draw_level"] == "main"]
+        if not main.empty:
+            rows = main
+    m = rows["tourney_level"].mode()
+    return m.iloc[0] if not m.empty else None
 
 
 def _level_label(lv: object, tour: str) -> str:
@@ -102,7 +118,7 @@ def _level_label(lv: object, tour: str) -> str:
     for n in ("1000", "500", "250", "125"):
         if s.endswith(n):
             return f"{t} {n}"
-    return {"D": "Davis/BJK Cup", "O": "Olympics", "A": f"{t} Tour"}.get(s, s)
+    return {"D": "Davis/BJK Cup", "O": "Olympics", "A": f"{t} Tour", "Q": f"{t} Tour"}.get(s, s)
 
 
 def _known_names(df: pd.DataFrame) -> set:
@@ -168,7 +184,7 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
     surface = g["surface_b"].mode().iloc[0]
     bo = pd.to_numeric(g["best_of"], errors="coerce").max()
     best_of = int(bo) if pd.notna(bo) else 3
-    level = _level_label(g["tourney_level"].mode().iloc[0] if g["tourney_level"].notna().any() else "", tour)
+    level = _level_label(_main_level_code(g), tour)
 
     eliminated = set(g["loser_name"])
     final_rows = g[g["round"] == "F"]
@@ -243,9 +259,7 @@ def project_upcoming(predictor, name: str, wd: dict, tour: str, df: pd.DataFrame
     if len(field_pool) < 8:
         return None
     surface, lvl, bo = _archive_attrs(df, name)
-    if surface is None:                  # brand-new event: month -> default surface
-        mm = str(wd.get("start") or "")[5:7]
-        surface = _MONTH_SURFACE.get(int(mm) if mm.isdigit() else 1, "Hard")
+    surface = resolve_surface(tour, name, wd.get("start") or "", archive_surface=surface)
     best_of = int(wd.get("bestOf") or bo or 3)
     level = _level_label(lvl if lvl is not None else "", tour)
     slots = advance_slots(wslots, set())

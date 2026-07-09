@@ -1,5 +1,26 @@
 # Lessons
 
+- **Live-event surface has ONE authoritative source (Wikipedia's main article) and must be
+  fixed at the loader source, not the prediction points.** (2026-07-08, surface backfill) ESPN
+  carries no surface, so it's re-derived as archive-by-name -> `_MONTH_SURFACE` (July="Grass").
+  New/sponsor-renamed clay events miss the archive ("Nordea Open" is archived as city "Bastad" —
+  zero shared substring; "Grand Est Open 88" is brand-new) and were mislabeled Grass. Three
+  non-obvious traps fixing it: (1) **The `surface` infobox lives ONLY on the main tournament
+  article ("2026 Swedish Open"), never the "– Singles" draw sub-article `draws_wiki.fetch_draw`
+  reads** — surface capture is a SEPARATE resolution (own `event_surface` + `wiki_surface.json`
+  cache), and it works by sponsor name even when the gendered singles draw doesn't resolve. (2)
+  **Don't gate `event_surface` on the infobox NAME** (`"infobox tennis"`): Grand Slam articles use
+  a differently-named infobox, so that gate returns None for Wimbledon even though `surface=[[Grass
+  court…` parses fine — a parseable `surface=[[…court]]` field IS the tennis-tournament signal;
+  bound wrong-event risk with year-in-title + a distinctive body anchor instead. (3) **Correct
+  `surface_b` at the SOURCE in `results.clean` (wiki tier between the archive backfill and the
+  month fallback), not only in the prediction helpers** — `project_tournament` reads `surface_b`
+  directly, and once an event goes live the ESPN rows carry month-guessed Grass with no provenance,
+  which `event_attrs`/`_archive_attrs` return as if authoritative, so a prediction-only fix silently
+  regresses to Grass mid-tournament. `resolve_surface` (archive -> wiki cache -> month) lives in a
+  leaf `data/surface.py` importing only config, so the offline loader stays network-free. Builds on
+  the [[future-proof-no-quick-fixes]] no-hardcoded-table rule.
+
 - **ESPN can't give a full draw at release — Wikipedia can; three traps when adding it.**
   (2026-07-08, `data/draws_wiki.py`) ESPN's scoreboard AND core API fill a pre-created
   bracket with real names only via the daily order-of-play (R1 slots are `"Bye"`/athlete
