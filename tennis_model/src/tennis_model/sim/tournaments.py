@@ -142,6 +142,34 @@ def _display_name(name: str, known: set) -> str:
     return best or name
 
 
+def _norm_display(name: str) -> str:
+    """Case/whitespace-insensitive event-name key. Mirrors data.health._norm_name so the
+    producer collapses exactly the pairs the health gate would flag as a naming/dedup split."""
+    return " ".join(str(name).split()).casefold()
+
+
+def _dedup_by_display_name(entries: list, tour: str) -> list:
+    """Keep one entry per display name. One real-world event can enter the list twice: the
+    results feed carries it under its archive city name ('Bad Homburg') while the live/ESPN feed
+    carries the SAME event under a sponsor title ('Bad Homburg Open powered by Solarwatt'), and
+    _display_name collapses both to the same shown name. Shipping both is the naming/dedup split
+    the health gate rejects (aliveCount/champion also disagree between the full record and the
+    partial one). The fuller field is the more complete record of the event, so keep the larger
+    drawSize; break ties toward a resolved level over the '<TOUR> Tour' fallback. A genuinely
+    live event is carried by only one feed, so nothing collapses there."""
+    fallback_level = f"{tour.upper()} Tour"
+
+    def authority(t: dict) -> tuple:
+        return (int(t.get("drawSize") or 0), t.get("level") != fallback_level)
+
+    best: dict[str, dict] = {}
+    for t in entries:
+        key = _norm_display(t.get("name", ""))
+        if key not in best or authority(t) > authority(best[key]):
+            best[key] = t            # reassigning an existing key keeps its first-seen position
+    return list(best.values())
+
+
 def recent_tournaments(df: pd.DataFrame, within_days: int = 40,
                        recent_days: int = 18, max_events: int = 14) -> list:
     """(name, sub_df) for single-elim events ending within `recent_days` of the data."""
@@ -366,6 +394,10 @@ def build_tournaments(predictor, df: pd.DataFrame, tour: str, **kw) -> list:
         t = project_upcoming(predictor, name, wd, tour, df, known, resolve, **kw)
         if t:
             out.append(t)
+    # The results loop groups by RAW tourney_name, so an event whose live/ESPN feed uses a
+    # sponsor title ('Bad Homburg Open powered by Solarwatt') and whose archive uses the city
+    # ('Bad Homburg') enters twice, both collapsing to one display name. Keep one per name.
+    out = _dedup_by_display_name(out, tour)
     # Live, then upcoming, then completed; within each group, most recent first.
     out.sort(key=lambda t: t["end"], reverse=True)
     out.sort(key=lambda t: _STATUS_ORDER.get(t["status"], 3))
