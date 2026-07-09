@@ -1,0 +1,61 @@
+{
+  "$comment": "Committed project permissions. Read-only inspection + the test/lint/build gates run without a prompt; anything that writes, pushes, deploys, installs, or deletes still asks. Expand accurately from your own transcripts with the /fewer-permission-prompts skill.",
+  "permissions": {
+    "allow": [
+      "Bash(cd:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(git fetch:*)",
+      "Bash(git remote:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(git stash list:*)",
+      "Bash(git blame:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh run view:*)",
+      "Bash(gh run watch:*)",
+      "Bash(gh issue view:*)",
+      "Bash(gh issue list:*)",
+      "Bash(gh release view:*)",
+      "Bash(ruff check:*)",
+      "Bash(ruff format --check:*)",
+      "Bash(python -m pytest:*)",
+      "Bash(python -m ruff:*)",
+      "Bash(PYTHONPATH=src python -m pytest:*)",
+      "Bash(PYTHONPATH=src python -m ruff:*)",
+      "Bash(npm test:*)",
+      "Bash(npm run lint:*)",
+      "Bash(npm run test:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm ci:*)",
+      "Bash(git push origin research/*)",
+      "Bash(git push -u origin research/*)"
+    ],
+    "deny": [
+      "Bash(git push origin master:*)",
+      "Bash(git push origin master)",
+      "Bash(git push --force origin master:*)",
+      "Bash(git push --force origin master)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(git add *)",
+            "command": "python -c \"import sys,json,re; c=json.load(sys.stdin).get('tool_input',{}).get('command',''); m=re.search(r'git add (--all|-A|-u|\\.)(\\s|;|\\Z)', c); sys.stderr.write('Blocked: blanket git add sweeps concurrent sessions changes into your commit. Stage explicit paths instead.') if m else None; sys.exit(2 if m else 0)\"",
+            "timeout": 15,
+            "statusMessage": "Checking git add scope"
+          }
+        ]
+      }
+    ]
+  }
+}

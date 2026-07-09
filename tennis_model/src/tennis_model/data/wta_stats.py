@@ -38,6 +38,7 @@ from datetime import UTC, datetime, timedelta
 import pandas as pd
 
 from ..config import INCLUDE_WTA_125, fresh_dir, historical_dir, stats_dir
+from .httpcache import ResponseCache
 from .results import CANON, _name_key, _score_key
 
 BASE = "https://api.wtatennis.com/tennis"
@@ -53,21 +54,35 @@ _LEVEL_MAP = {"GrandSlam": "Grand Slam", "BillieJeanKingCup": "DavisCup",
               "FedCup": "DavisCup", "OlympicGames": "Olympics"}
 
 
+# Resume cache for completed-season backfills; set ONLY by download_wta_stats for
+# years strictly before the current one. Current-season and incremental fetches
+# always hit the network (their upstream data still changes).
+_CACHE: ResponseCache | None = None
+
+
 def _get(path: str, params: dict | None = None, retries: int = RETRIES):
     """GET with patient exponential backoff. Returns None only after all retries —
     callers that must not truncate silently should use _get_or_raise."""
     url = f"{BASE}{path}"
     if params:
         url += ("&" if "?" in url else "?") + urllib.parse.urlencode(params)
+    if _CACHE is not None:
+        hit, cached = _CACHE.get(url)
+        if hit:
+            return cached           # no PAUSE_S: a fully-cached rerun takes seconds
     for attempt in range(retries):
         try:
             req = urllib.request.Request(url, headers=HEADERS)
             with urllib.request.urlopen(req, timeout=30) as r:
                 data = json.loads(r.read().decode("utf-8"))
             time.sleep(PAUSE_S)
+            if _CACHE is not None:
+                _CACHE.put(url, data)
             return data
         except urllib.error.HTTPError as e:
             if e.code == 404:
+                if _CACHE is not None:
+                    _CACHE.put(url, None)   # deterministic 404s are cacheable too
                 return None          # deterministic: the record does not exist upstream
             if attempt == retries - 1:
                 return None
@@ -327,12 +342,21 @@ def write_year(year: int, df_new: pd.DataFrame) -> int:
 
 
 def download_wta_stats(years=None, incremental: bool = False) -> None:
+    global _CACHE
     now = datetime.now(UTC)
     if years is None:
         years = [now.year]
     since = now - timedelta(days=INCREMENTAL_DAYS) if incremental else None
     for y in years:
-        n = write_year(y, scrape_year(y, since=since))
+        # Completed seasons are immutable: cache their responses so a crashed or
+        # repeated backfill resumes instead of re-spending the 429 budget.
+        # (data/raw/ is gitignored; delete the _httpcache dir to force a re-fetch.)
+        use_cache = y < now.year and not incremental
+        _CACHE = ResponseCache(stats_dir("wta") / "_httpcache" / str(y)) if use_cache else None
+        try:
+            n = write_year(y, scrape_year(y, since=since))
+        finally:
+            _CACHE = None
         print(f"  wta/stats: {y}.csv now {n} rows")
 
 
