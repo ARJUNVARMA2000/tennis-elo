@@ -1,7 +1,20 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { drawCaveat, heat, pct, percentileScaler, scoreDist } from "@/lib/ui";
+import { drawCaveat, heat, pct, percentileScaler, scoreDist, SURFACE_BLEND } from "@/lib/ui";
 
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
+
+describe("SURFACE_BLEND", () => {
+  // Shared fixture, also run by pytest against config.py ELO_PARAM_OVERRIDES
+  // (tennis_model/tests/test_elo.py) — the cross-language tripwire that keeps this
+  // hardcoded mirror of the tuned per-tour blend from drifting after a retune.
+  it("mirrors the model's tuned per-tour surface_blend (shared fixture)", () => {
+    const pinned = JSON.parse(
+      readFileSync(new URL("../../tennis_model/tests/fixtures/model_constants.json", import.meta.url), "utf-8"),
+    ).surface_blend;
+    expect(SURFACE_BLEND).toEqual(pinned);
+  });
+});
 
 describe("drawCaveat", () => {
   it("flags a seeded (unreleased) or partial live draw, but not a real one", () => {
