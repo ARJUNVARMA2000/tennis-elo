@@ -20,13 +20,14 @@ the semis would otherwise both show >50% to reach the final.
 
 from __future__ import annotations
 
+import difflib
 import json
 
 import pandas as pd
 
 from ..config import live_dir
 from ..data.results import _name_key
-from ..data.surface import resolve_surface
+from ..data.surface import resolve_level, resolve_surface
 from .draws import advance_slots, draw_status, live_draw, standard_seed_draw
 from .simulate import simulate_tournament
 
@@ -176,6 +177,54 @@ def _simulate_projection(predictor, slots: list, surface: str, best_of: int,
     return proj, (proj[0]["name"] if proj else None)
 
 
+def _reconcile_wiki_names(slots: list, pool: list, resolve) -> dict:
+    """Map Wikipedia draw slot names to the model-canonical identity, bridging the few
+    spellings the accent/punct key can't — a transliteration (Alexander/Aleksandr Shevchenko),
+    an extra given name (Daniel/Adolfo Daniel Vallejo), or CJK name order (Kwon Soon-woo /
+    SoonWoo Kwon) — by matching the leftover against this event's OWN participant pool (the
+    ESPN field + results names, which already resolve cleanly). Without it, a player who has
+    really lost keeps a different identity from their ``eliminated`` entry and lingers "alive",
+    freezing ``advance_slots`` at a stale early round while the true SF is already known.
+
+    Returns ``{raw_slot_name: canonical}``. Safe by construction: exact-key hits map as before;
+    only the residue that misses is matched, one-to-one, and only to a pool name that shares a
+    name token (a surname), greedily by token overlap then string similarity. An unmatched slot
+    is left to the caller's plain ``resolve()`` — never worse than before."""
+    def toks(n: str) -> set:
+        return set(_name_key(n).split())
+
+    pool = [p for p in dict.fromkeys(pool) if isinstance(p, str) and p]
+    pool_keys = {_name_key(resolve(p)) for p in pool}
+    canon: dict = {}
+    wiki_left: list = []
+    for s in dict.fromkeys(x for x in slots if x):
+        if _name_key(resolve(s)) in pool_keys:
+            canon[s] = resolve(s)
+        else:
+            wiki_left.append(s)
+    if not wiki_left:
+        return canon
+    matched = {_name_key(resolve(s)) for s in canon}
+    pool_left = [p for p in pool if _name_key(resolve(p)) not in matched]
+    pairs = []
+    for s in wiki_left:
+        for p in pool_left:
+            shared = len(toks(s) & toks(p))
+            if shared:                       # a shared token (surname) is the anchor
+                ratio = difflib.SequenceMatcher(None, _name_key(s), _name_key(p)).ratio()
+                pairs.append((shared, ratio, s, p))
+    pairs.sort(key=lambda t: (t[0], t[1]), reverse=True)
+    used_s: set = set()
+    used_p: set = set()
+    for _shared, _ratio, s, p in pairs:
+        if s in used_s or p in used_p:
+            continue
+        canon[s] = resolve(p)
+        used_s.add(s)
+        used_p.add(p)
+    return canon
+
+
 def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
                        known: set | None = None, top_set: set | None = None,
                        espn_fields: dict | None = None, resolve=None,
@@ -184,7 +233,7 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
     surface = g["surface_b"].mode().iloc[0]
     bo = pd.to_numeric(g["best_of"], errors="coerce").max()
     best_of = int(bo) if pd.notna(bo) else 3
-    level = _level_label(_main_level_code(g), tour)
+    level = resolve_level(tour, name, archive_level=_level_label(_main_level_code(g), tour))
 
     eliminated = set(g["loser_name"])
     final_rows = g[g["round"] == "F"]
@@ -210,7 +259,12 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
     # actual draw, not a rating seed. Byes/qualifiers ride along in `slots` (None / distinct).
     resolved_wslots = None
     if wiki_draw and not completed and wiki_draw.get("slots") and resolve:
-        resolved_wslots = [resolve(s) if s else None for s in wiki_draw["slots"]]
+        # The wiki draw and ESPN's field/results name the SAME players in different spellings;
+        # reconcile the residue the key can't bridge against this event's own field so an
+        # eliminated player can't linger "alive" and freeze the fold at a stale early round.
+        pool = list((ef or {}).get("field", [])) + list(g["loser_name"]) + list(g["winner_name"])
+        wcanon = _reconcile_wiki_names(wiki_draw["slots"], pool, resolve)
+        resolved_wslots = [(wcanon.get(s) or resolve(s)) if s else None for s in wiki_draw["slots"]]
         field_pool = {s for s in resolved_wslots if s is not None}
         best_of = int(wiki_draw.get("bestOf") or best_of)
 
@@ -258,10 +312,10 @@ def project_upcoming(predictor, name: str, wd: dict, tour: str, df: pd.DataFrame
     field_pool = {s for s in wslots if s is not None}
     if len(field_pool) < 8:
         return None
-    surface, lvl, bo = _archive_attrs(df, name)
+    surface, _lvl, bo = _archive_attrs(df, name)
     surface = resolve_surface(tour, name, wd.get("start") or "", archive_surface=surface)
     best_of = int(wd.get("bestOf") or bo or 3)
-    level = _level_label(lvl if lvl is not None else "", tour)
+    level = resolve_level(tour, name)
     slots = advance_slots(wslots, set())
     proj, favorite = _simulate_projection(predictor, slots, surface, best_of, name, n_sims, seed)
     return {

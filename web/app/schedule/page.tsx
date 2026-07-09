@@ -3,24 +3,17 @@
 import { useData, useTour } from "@/lib/tour";
 import { PageHead, Loading, Reveal, CallCard } from "@/components/bits";
 import { surfaceColor, tournamentTier } from "@/lib/ui";
-import { type TournamentInfo } from "@/lib/live";
 import { groupByEvent, upcomingCard, type Upcoming } from "@/lib/upcoming";
 
 export default function Schedule() {
   const { tour } = useTour();
   const { data, loading } = useData<Upcoming[]>("upcoming.json");
-  const { data: tournaments } = useData<TournamentInfo[]>("tournaments.json");
   const total = (data || []).length;
-  // Join each group to its tournament tier (tournaments.json `level`), then order the board by
-  // prestige — Grand Slam → 1000 → 500 → 250. Stable sort keeps the soonest-first order within a tier.
-  const levelFor = (event: string) => {
-    const ts = tournaments || [];
-    const t = ts.find((x) => x.name === event)
-      ?? ts.find((x) => x.name.length >= 5 && event.toLowerCase().includes(x.name.toLowerCase()));
-    return t?.level;
-  };
+  // Order the board by tier prestige — Grand Slam → 1000 → 500 → 250. Each event's `level` is
+  // resolved server-side (archive → Wikipedia category → curated fallback) and carried on the
+  // upcoming rows, so there's no fragile cross-join. Stable sort keeps soonest-first within a tier.
   const ordered = groupByEvent(data || [])
-    .map((g) => ({ g, tier: tournamentTier(levelFor(g.event), g.event) }))
+    .map((g) => ({ g, tier: tournamentTier(g.level, g.event) }))
     .sort((a, b) => a.tier.rank - b.tier.rank);
 
   return (

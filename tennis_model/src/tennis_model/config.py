@@ -213,6 +213,16 @@ TIER_K_MULT = {
 }
 DEFAULT_TIER_K_MULT = 0.90
 
+# Curated tier for current-season sponsor-named events the match archive can't identify AND
+# whose Wikipedia infobox omits `category` (e.g. the Swedish Open = "Nordea Open"). A numeric
+# value ("250"/"500"/"1000") is rendered "{TOUR} 250"; a full string ("Grand Slam") is used
+# as-is. Display-only; add a line when a new sponsor-named event surfaces on the schedule board.
+EVENT_TIER_FALLBACK: dict = {
+    "Nordea Open": "250",         # Swedish Open (Bastad) — its infobox omits `category`
+    "Grand Est Open 88": "125",   # WTA 125 (also wiki-covered; kept correct as a backstop)
+    "Hall of Fame Open": "250",
+}
+
 # ---------------------------------------------------------------------------
 # Per-tour tuned overrides (eval/tune.py sweeps; tune window 2010-2019, validated
 # on 2020+). An empty dict keeps the shared defaults above. TIER_ANCHORS rescales

@@ -19,7 +19,7 @@ import pandas as pd
 
 from ..config import live_dir
 from ..data.results import _name_key as nkey
-from ..data.surface import resolve_surface
+from ..data.surface import resolve_level, resolve_surface
 
 UPCOMING_COLS = ["tourney_name", "tourney_date", "round", "playerA", "playerB"]
 
@@ -83,7 +83,7 @@ def enrich_upcoming(predictor, df: pd.DataFrame, up_df: pd.DataFrame | None, tou
 
     Returns one dict per predictable matchup::
 
-        {event, date, round, surface, best_of, playerA, playerB, pA}
+        {event, date, round, surface, best_of, playerA, playerB, pA, level}
 
     where ``pA`` = P(playerA beats playerB) under the *current* model. Rows with an unknown
     player (not in the rating pool -> ``win_prob`` would be a meaningless ~0.5) or a
@@ -103,5 +103,6 @@ def enrich_upcoming(predictor, df: pd.DataFrame, up_df: pd.DataFrame | None, tou
         out.append({
             "event": str(r.tourney_name), "date": str(r.tourney_date), "round": r.round,
             "surface": surface, "best_of": bo, "playerA": a, "playerB": b, "pA": p,
+            "level": resolve_level(tour, str(r.tourney_name)),
         })
     return out

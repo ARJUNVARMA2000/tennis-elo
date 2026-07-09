@@ -9,9 +9,10 @@ export type Upcoming = {
   playerA: string;
   playerB: string;
   pA: number;
+  level?: string;
 };
 
-export type EventGroup = { event: string; surface: string; matches: Upcoming[] };
+export type EventGroup = { event: string; surface: string; level?: string; matches: Upcoming[] };
 
 /** One side of a projection card: a player, their model win probability, and whether
     they're the highlighted side (the favourite, for an unplayed match). Structurally
@@ -43,7 +44,7 @@ export function groupByEvent(rows: Upcoming[]): EventGroup[] {
   for (const r of rows) {
     let g = byEvent.get(r.event);
     if (!g) {
-      g = { event: r.event, surface: r.surface, matches: [] };
+      g = { event: r.event, surface: r.surface, level: r.level, matches: [] };
       byEvent.set(r.event, g);
       groups.push(g);
     }

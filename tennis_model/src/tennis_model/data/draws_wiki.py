@@ -290,6 +290,75 @@ def event_surface(event: str, year: int, tour: str) -> str | None:
     return None
 
 
+_CATEGORY_FIELD_RE = re.compile(r"\bcategory\s*=([^\n]*)", re.IGNORECASE)
+_CATEGORY_LINK_RE = re.compile(r"\[\[([^\]|]+)(?:\|([^\]]+))?\]\]")
+# Words tagging which link is which tour's in a combined event's `category` value.
+_TOUR_TAG = {"atp": ("atp", "men"), "wta": ("wta", "women")}
+
+
+def _parse_category(wikitext: str, tour: str) -> str | None:
+    """Tournament tier ('WTA 250', 'Grand Slam', ...) from a main article's infobox
+    ``category=`` field, for ``tour``. The value is one or two ``[[Target|Display]]`` wikilinks
+    — combined events carry both (ATP + WTA), split by ``<br/>`` and tagged (ATP)/(men)/(WTA)/
+    (women); a Slam carries a single (ITF) link. Returns the tour's Display, or None if the
+    field is absent (e.g. 2025 Swedish Open). Pure regex, no parser dependency."""
+    m = _CATEGORY_FIELD_RE.search(wikitext or "")
+    if not m:
+        return None
+    tags = _TOUR_TAG.get(tour, ())
+    picks = []
+    for seg in re.split(r"<br\s*/?>", m.group(1), flags=re.IGNORECASE):
+        lm = _CATEGORY_LINK_RE.search(seg)
+        if lm:
+            disp = (lm.group(2) or lm.group(1)).strip()
+            disp = re.sub(r"\s+tournaments$", "", disp, flags=re.IGNORECASE)  # bare link target -> "WTA 125"
+            disp = re.sub(r"\s*\(tennis\)$", "", disp, flags=re.IGNORECASE)   # "Grand Slam (tennis)" -> "Grand Slam"
+            picks.append((disp, seg.lower()))
+    if not picks:
+        return None
+    if len(picks) == 1:
+        return picks[0][0]
+    for display, low in picks:
+        if any(t in low for t in tags):
+            return display
+    return picks[0][0]
+
+
+def _category_of(title: str, tour: str) -> str | None:
+    """Tier parsed from a resolved MAIN-article title, or None if it carries no category field."""
+    wt = _wikitext(title)
+    return _parse_category(wt, tour) if wt else None
+
+
+def event_category(event: str, year: int, tour: str) -> str | None:
+    """Tournament tier for an ESPN event from its Wikipedia MAIN article ``category``, or None.
+    Mirrors event_surface's resolution (category lives on the main article like surface); None
+    when the article omits the field, so the curated EVENT_TIER_FALLBACK then applies."""
+    ov = WIKI_TITLE_OVERRIDES.get(event)
+    if ov:
+        return _category_of(ov if str(year) in ov else f"{year} {ov}", tour)
+    singles = resolve_title(event, year, tour)
+    if singles:
+        cat = _category_of(_main_article_title(singles), tour)
+        if cat:
+            return cat
+    clean = " ".join(w for w in event.split() if w.lower() not in _SPONSOR_NOISE)
+    anchor = _anchor(clean)
+    d = _get({"action": "query", "list": "search", "srsearch": f"{year} {clean}", "srlimit": 10})
+    for h in d.get("query", {}).get("search", []) or []:
+        title = h.get("title", "")
+        low = title.lower()
+        if str(year) not in low or any(x in low for x in ("doubles", "qualif", "singles")):
+            continue
+        wt = _wikitext(title)
+        if not wt or (anchor and anchor not in wt.lower()):
+            continue
+        cat = _parse_category(wt, tour)
+        if cat:
+            return cat
+    return None
+
+
 _ROUND_BY_SIZE = {128: "R128", 64: "R64", 32: "R32", 16: "R16", 8: "QF", 4: "SF", 2: "F"}
 
 
@@ -377,6 +446,7 @@ def download_wiki_draws(tours=TOURS) -> None:
         else:
             print(f"  wiki-draws/{tour}: no draws posted yet for {len(meta)} tracked event(s)")
         _download_wiki_surfaces(tour, d, meta)   # main-article surfaces (separate best-effort cache)
+        _download_wiki_categories(tour, d, meta)  # main-article tier/category (separate best-effort cache)
 
 
 def _download_wiki_surfaces(tour: str, d, meta: dict) -> None:
@@ -413,6 +483,39 @@ def _download_wiki_surfaces(tour: str, d, meta: dict) -> None:
         d.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(out), encoding="utf-8")
         print(f"  wiki-surface/{tour}: {len(out)} surface(s) ({fetched} new) -> {path}")
+
+
+def _download_wiki_categories(tour: str, d, meta: dict) -> None:
+    """Cache each tracked event's Wikipedia main-article tier/category ->
+    live/<tour>/wiki_category.json (read offline by data.surface.wiki_category_map). Parallel to
+    _download_wiki_surfaces (same idempotent / window-pruned / never-cache-a-miss policy) — the
+    tier is needed for the exact new/sponsor-named events the archive can't identify. Best-effort."""
+    path = d / "wiki_category.json"
+    cached: dict = {}
+    if path.exists():
+        try:
+            cached = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:  # noqa: BLE001 — a corrupt cache just means re-fetch
+            cached = {}
+    out: dict = {}
+    fetched = 0
+    for name, m in meta.items():
+        if cached.get(name):                      # already resolved — keep it
+            out[name] = cached[name]
+            continue
+        year = int((m.get("start") or "2026")[:4] or 2026)
+        try:
+            cat = event_category(name, year, tour)
+        except Exception as e:  # noqa: BLE001 — one bad article must not kill the sweep
+            print(f"  wiki-category/{tour}: {name} skipped ({e})")
+            cat = None
+        if cat:                                   # never cache a miss -> retry when it posts
+            out[name] = cat
+            fetched += 1
+    if out:
+        d.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(out), encoding="utf-8")
+        print(f"  wiki-category/{tour}: {len(out)} categor(ies) ({fetched} new) -> {path}")
 
 
 if __name__ == "__main__":

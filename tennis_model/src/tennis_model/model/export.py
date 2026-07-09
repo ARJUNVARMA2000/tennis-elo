@@ -221,7 +221,7 @@ def build_upcoming(predictor, df, tour: str) -> list:
     known = _known_names(df)
     rows = [{
         "event": _display_name(r["event"], known), "date": r["date"], "round": r["round"],
-        "surface": r["surface"], "bestOf": r["best_of"],
+        "surface": r["surface"], "bestOf": r["best_of"], "level": r["level"],
         "playerA": r["playerA"], "playerB": r["playerB"], "pA": round(r["pA"], 4),
     } for r in enrich_upcoming(predictor, df, load_upcoming(tour), tour)]
     rows.sort(key=lambda m: (m["date"], _ROUND_DEPTH.get(m["round"], 9), m["event"]))

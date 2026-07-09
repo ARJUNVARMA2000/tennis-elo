@@ -17,10 +17,11 @@ from __future__ import annotations
 
 import json
 
-from ..config import MONTH_SURFACE, live_dir
+from ..config import EVENT_TIER_FALLBACK, MONTH_SURFACE, live_dir
 
 # Paired with the writer in data/draws_wiki.download_wiki_draws (like wiki_draws.json).
 _WIKI_SURFACE_FILE = "wiki_surface.json"
+_WIKI_CATEGORY_FILE = "wiki_category.json"
 
 
 def wiki_surface_map(tour: str) -> dict:
@@ -57,3 +58,39 @@ def resolve_surface(tour: str, event: str, date, archive_surface: str | None = N
         return cached
     mm = str(date)[5:7]
     return MONTH_SURFACE.get(int(mm) if mm.isdigit() else 1, "Hard")
+
+
+def wiki_category_map(tour: str) -> dict:
+    """{espn_event_name: display_tier} from the cached Wikipedia categories; {} if absent/corrupt.
+    Read offline like wiki_surface_map — never touches the network, import-safe for the loader."""
+    path = live_dir(tour) / _WIKI_CATEGORY_FILE
+    if not path.exists():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001 — a corrupt/partial cache just means no wiki categories
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def wiki_category(tour: str, event: str) -> str | None:
+    """Cached Wikipedia tier/category for one event, or None if not cached."""
+    return wiki_category_map(tour).get(str(event))
+
+
+def resolve_level(tour: str, event: str, archive_level: str | None = None) -> str:
+    """Display tier for a live/upcoming event, mirroring resolve_surface:
+        real archive level -> Wikipedia category -> curated EVENT_TIER_FALLBACK -> '{TOUR} Tour'.
+    The caller passes ``archive_level`` only when the match frame gives a reliable current-edition
+    level (else None, so a stale historical tier can't win). Fallback values that are bare tier
+    numbers ("250") render "{TOUR} 250"; full strings ("Grand Slam") pass through."""
+    generic = f"{tour.upper()} Tour"
+    if archive_level and archive_level != generic:
+        return archive_level
+    cat = wiki_category(tour, event)
+    if cat:
+        return cat
+    fb = EVENT_TIER_FALLBACK.get(str(event))
+    if fb:
+        return f"{tour.upper()} {fb}" if str(fb).isdigit() else str(fb)
+    return generic
