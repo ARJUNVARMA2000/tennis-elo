@@ -223,7 +223,11 @@ def _check_projection(out: list, tour: str, name, proj: list) -> None:
         who = p.get("name")
         c, f, s = p.get("champion"), p.get("final"), p.get("sf")
         for k, v in (("champion", c), ("final", f), ("sf", s)):
-            if not _is_prob(v):
+            # None is deliberate: the live projector (sim/tournaments.py) sets a round field
+            # to None once that round is already DETERMINED ("SF" not in cols -> sf=None for a
+            # finalist who is past the semis). That degrades gracefully in the UI; only a
+            # PRESENT-but-out-of-range value is a real problem.
+            if v is not None and not _is_prob(v):
                 out.append(f"{tour}: {name!r} {who!r} {k}={v!r} out of [0,1]")
         if _is_prob(c) and _is_prob(f) and _is_prob(s) and (c > f + 1e-6 or f > s + 1e-6):
             out.append(f"{tour}: {name!r} {who!r} champion<=final<=sf violated ({c},{f},{s})")

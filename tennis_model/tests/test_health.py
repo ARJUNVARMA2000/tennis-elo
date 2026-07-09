@@ -259,6 +259,18 @@ def test_output_probability_and_monotonicity():
     print("ok test_output_probability_and_monotonicity")
 
 
+def test_output_projection_none_round_is_tolerated():
+    """A finalist is past the semis, so the live projector emits sf=None (round already
+    determined) — that must NOT flag 'out of [0,1]'; only a PRESENT out-of-range value does."""
+    d = _healthy_data()
+    d["tournaments"][0]["projection"][0]["sf"] = None            # already past the SF
+    assert not any("out of [0,1]" in p for p in health.output_problems("atp", _oc(data=d), NOW))
+    d2 = _healthy_data()
+    d2["tournaments"][0]["projection"][0]["sf"] = 1.4            # present + impossible -> still caught
+    assert any("sf=1.4 out of [0,1]" in p for p in health.output_problems("atp", _oc(data=d2), NOW))
+    print("ok test_output_projection_none_round_is_tolerated")
+
+
 def test_output_matrix_antisymmetry():
     d = _healthy_data()
     d["matrix"]["surfaces"]["Hard"]["3"][1][0] = 0.6               # now 0.6 + 0.6 != 1
@@ -432,6 +444,7 @@ if __name__ == "__main__":
     test_output_completed_nonpower_of_two_is_fine()
     test_output_alive_gt_draw_and_missing_champion()
     test_output_probability_and_monotonicity()
+    test_output_projection_none_round_is_tolerated()
     test_output_matrix_antisymmetry()
     test_output_placeholder_name_leak()
     test_output_duplicate_tournament_name()
