@@ -13,6 +13,7 @@ import json
 import math
 import sys
 import tempfile
+from collections import deque
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
@@ -70,8 +71,94 @@ def test_write_output_is_browser_strict_parseable():
     print("ok test_write_output_is_browser_strict_parseable")
 
 
+def _synthetic_states():
+    """Minimal real state objects for build_players: two active players, tuned
+    WTA-style windows (form_days=65, a 23-long results deque) so the test fails
+    if the export ever reads the state's own window instead of the explicit
+    display windows (90d / last-10)."""
+    import numpy as np
+    from tennis_model.model.features import H2HState
+    from tennis_model.points.serve_return import ServeReturnState
+    from tennis_model.ratings.build import RatingState
+    from tennis_model.ratings.elo import EloParams
+
+    last = np.datetime64("2026-01-01")
+    elo = RatingState(
+        params=EloParams(form_days=65.0),
+        overall={"A": 1550.0, "B": 1500.0},
+        n={"A": 100, "B": 50},
+        last_played={"A": last, "B": last},
+        # A: snapshot 95d old (1500) and 70d old (1530). Explicit days=90 must pick
+        # the 95d one (form90 = 50); the state's own 65d window would give 20.
+        _form={"A": [(np.datetime64("2025-09-28"), 1500.0),
+                     (np.datetime64("2025-10-23"), 1530.0)]},
+    )
+    elo.last_date = last
+    srv = ServeReturnState(avg=0.62, base={"Hard": 0.63, "Clay": 0.60, "Grass": 0.65})
+    srv.gsw["A"] = 66.0; srv.gsp["A"] = 100.0          # nonzero global serve skill
+    srv.ssw["Hard"]["A"] = 33.0; srv.ssp["Hard"]["A"] = 50.0   # nonzero Hard serve skill
+    seq = deque([1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1],
+                maxlen=23)                              # WTA winrate_window-sized history
+    ctx = H2HState({}, {}, {"A": seq})
+    meta = {"A": {"rank_points": 1000.0, "age": 25.0, "ht": 185.0, "hand": "R", "ioc": "USA"},
+            "B": {}}
+    return elo, srv, ctx, meta, seq
+
+
+def test_build_players_enrichment_fields():
+    elo, srv, ctx, meta, seq = _synthetic_states()
+    rows = export.build_players(elo, srv, meta, {}, ctx=ctx)
+    a = next(r for r in rows if r["name"] == "A")
+    b = next(r for r in rows if r["name"] == "B")
+
+    # height: int when known, null when not (same nullable pattern as rankPoints)
+    assert a["heightCm"] == 185 and isinstance(a["heightCm"], int)
+    assert b["heightCm"] is None
+
+    # per-surface serve/return use the SURFACE accessors, not the global ones
+    assert a["servePctHard"] == round(srv.base["Hard"] + srv.serve_skill("A", "Hard"), 3)
+    assert a["servePctHard"] != a["servePct"]           # the Hard accumulator moved it
+    assert a["returnPctClay"] == round((1.0 - srv.base["Clay"]) + srv.return_skill("A", "Clay"), 3)
+    # empty accumulators degrade to the surface prior, never null
+    assert b["servePctGrass"] == 0.65 and b["returnPctGrass"] == 0.35
+
+    # form90 uses the EXPLICIT 90d window (95d-old snapshot -> +50), not the
+    # state's tuned form_days=65 (which would see the 70d snapshot -> +20)
+    assert a["form90"] == 50
+    assert b["form90"] == 0                             # no snapshots -> neutral
+
+    # winRate10 is the mean of the LAST 10 of the 23-long deque; untracked -> null
+    assert a["winRate10"] == round(sum(list(seq)[-10:]) / 10, 3)
+    assert b["winRate10"] is None
+
+    # ctx=None (foreign pickle on the quick path) keeps the export alive
+    rows_no_ctx = export.build_players(elo, srv, meta, {}, ctx=None)
+    assert all(r["winRate10"] is None for r in rows_no_ctx)
+    print("ok test_build_players_enrichment_fields")
+
+
+def test_enrichment_propagates_to_profiles_and_parses_strict():
+    import pandas as pd
+    elo, srv, ctx, meta, _ = _synthetic_states()
+    rows = export.build_players(elo, srv, meta, {}, ctx=ctx)
+    df = pd.DataFrame(columns=["winner_name", "loser_name", "date", "surface_b",
+                               "score", "tourney_name"])
+    profiles = export.build_profiles_json(df, elo, srv, meta, {}, rows)
+    # build_profiles_json spreads the player row -> the new fields ride along
+    row_a = next(r for r in rows if r["name"] == "A")
+    assert profiles["A"]["heightCm"] == 185
+    assert profiles["A"]["form90"] == 50
+    assert profiles["A"]["servePctClay"] == row_a["servePctClay"]
+    # both artifacts survive a browser-strict JSON round-trip
+    for payload in (rows, profiles):
+        assert _strict_load(json.dumps(export._finite(payload)))
+    print("ok test_enrichment_propagates_to_profiles_and_parses_strict")
+
+
 if __name__ == "__main__":
     test_finite_replaces_nonfinite_scalars()
     test_finite_recurses_into_nested_containers()
     test_write_output_is_browser_strict_parseable()
+    test_build_players_enrichment_fields()
+    test_enrichment_propagates_to_profiles_and_parses_strict()
     print("\nALL PASSED")

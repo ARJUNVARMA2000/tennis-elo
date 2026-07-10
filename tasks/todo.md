@@ -1,3 +1,28 @@
+# Task: Site IA reorganization + attribute Explorer (2026-07-09)
+
+Plan: C:\Users\varma\.claude\plans\lets-talk-from-first-tingly-pizza.md
+Goal: first-principles IA cleanup (Matches group, /upcoming→/results rename, label/title
+consistency), tour+player state in the URL (shareable deep links + cross-links everywhere),
+a new /explorer tab (scatter of any 2 attributes + sortable stat table over one shared
+attribute registry), and export enrichment (heightCm, per-surface serve/return, form90,
+winRate10) so the explorer has real axes.
+
+## Checklist
+- [x] A: Python export enrichment (export.py ctx param + new fields, H2HState.last_results,
+      health gate invariants, test_export + test_health cases, regenerated data mirror)
+      — 250 pytest + ruff green; quick refresh ran both tours; fields verified in
+      web/public/data (Sinner 191cm / winRate10 0.9; WTA heights null 82/200); gate green
+- [ ] C1-C2: web/lib/url.ts pure helpers + tour-in-URL sync (TourUrlBridge) + url tests
+- [ ] B: route rename /upcoming -> /results + redirect stub + nav restructure (Matches group,
+      Explorer entry) + seo.ts + label/title consistency pass
+- [ ] D1: extract shared components/ScatterChart.tsx from strength page (pixel-identical)
+- [ ] D2-D3: EXPLORER_AXES registry + /explorer page (Scatter | Table views, URL state) + tests
+- [ ] C3-C4: player deep links (/player?p, /style?a&b, /predict?a&b) + cross-links
+      (rankings, trends, CallCard, dots, H2H)
+- [ ] Verify: python pytest + health gate; web test/lint/build; Playwright E2E on :3001
+
+---
+
 # Task: Autonomous WTA-first research round (2026-07-09)
 
 Base: `605ff12b6f588b0b458dea7b37f735b217001000`; branch: `research/2026-07-09-codex`.

@@ -55,6 +55,13 @@ class H2HState:
         dq = getattr(self, "_last10", {}).get(name)
         return float(sum(dq) / len(dq)) if dq else 0.5
 
+    def last_results(self, name: str) -> list[int]:
+        """The tracked recent win/loss sequence (oldest first, [] if none).
+
+        The deque's length is the tour's tuned winrate_window (23 on WTA), so
+        display consumers wanting an honest "last 10" must slice [-10:] themselves."""
+        return list(getattr(self, "_last10", {}).get(name) or [])
+
 # MCP tactical-style diffs (anti-symmetric); 0 when a player lacks a charted profile.
 STYLE_DIFFS = [s + "_diff" for s in STYLE_FEATURES]
 # Features that flip sign when we swap A<->B (A-minus-B differences / logit-probs).

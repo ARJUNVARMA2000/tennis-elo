@@ -95,7 +95,16 @@ def _live_rank_fields(name: str, rankings: dict) -> dict:
             "liveRankDelta": lr.get("delta") if lr else None}
 
 
-def build_players(elo, srv, meta, profiles, rankings=None, top=TOP_PROFILES) -> list:
+def _win_rate10(ctx, name: str) -> float | None:
+    """Win rate over the last <=10 tracked results, or None when nothing is tracked.
+
+    Slices [-10:] explicitly: the underlying deque holds the tour's tuned
+    winrate_window (23 on WTA), which would silently change what "10" means."""
+    res = ctx.last_results(name)[-10:] if ctx is not None else []
+    return round(sum(res) / len(res), 3) if res else None
+
+
+def build_players(elo, srv, meta, profiles, rankings=None, ctx=None, top=TOP_PROFILES) -> list:
     rankings = _with_token_order_keys(rankings or {})
     rows = []
     for name in _active(elo):
@@ -109,6 +118,16 @@ def build_players(elo, srv, meta, profiles, rankings=None, top=TOP_PROFILES) -> 
             "eloGrass": round(elo.surface_elo(name, "Grass")),
             "servePct": round(srv.avg + srv.global_serve_skill(name), 3),
             "returnPct": round(srv.avg_ret + srv.global_return_skill(name), 3),
+            **{f"servePct{s}": round(srv.base.get(s, srv.avg) + srv.serve_skill(name, s), 3)
+               for s in SURFACES},
+            **{f"returnPct{s}": round((1.0 - srv.base.get(s, srv.avg)) + srv.return_skill(name, s), 3)
+               for s in SURFACES},
+            # display windows are EXPLICIT (90d / last-10): the states' own tuned
+            # windows differ per tour (WTA form_days=65, winrate_window=23) and
+            # would silently break what the field names promise
+            "form90": round(elo.form_delta(name, elo.last_date, days=90.0)),
+            "winRate10": _win_rate10(ctx, name),
+            "heightCm": int(m["ht"]) if pd.notna(m.get("ht")) else None,
             "rankPoints": int(m["rank_points"]) if pd.notna(m.get("rank_points")) else None,
             "matches": int(elo.n.get(name, 0)),
             "hand": m.get("hand") if isinstance(m.get("hand"), str) else None,
@@ -285,7 +304,7 @@ def export_all(tour, df, elo, srv, meta, predictor, oos=None) -> None:
     """
     mcp = build_profiles(tour)
     rankings = load_rankings(tour)
-    players = build_players(elo, srv, meta, mcp, rankings)
+    players = build_players(elo, srv, meta, mcp, rankings, ctx=getattr(predictor, "ctx", None))
     if rankings:   # drift tripwire: a sudden drop in CI logs = source name-format change
         matched = sum(1 for p in players if p["liveRank"] is not None)
         print(f"  rankings/{tour}: matched {matched}/{len(players)} exported players")

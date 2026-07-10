@@ -28,7 +28,10 @@ def _healthy_data() -> dict:
     return {
         "meta": {"matches": 300_000, "activePlayers": 3, "features": ["f"] * len(FEATURES),
                  "lastUpdated": "2026-07-09T00:00:00Z"},
-        "players": [{"name": f"P{i}", "elo": 2000 - i, "eloRank": i + 1, "liveRank": i + 1}
+        "players": [{"name": f"P{i}", "elo": 2000 - i, "eloRank": i + 1, "liveRank": i + 1,
+                     "heightCm": 185, "winRate10": 0.6,
+                     "servePctHard": 0.64, "servePctClay": 0.61, "servePctGrass": 0.66,
+                     "returnPctHard": 0.36, "returnPctClay": 0.39, "returnPctGrass": 0.34}
                     for i in range(3)],
         "matrix": {"players": ["P0", "P1", "P2"], "formats": [3], "surfaces": {"Hard": {"3": m}}},
         "tournaments": [{"name": "Test Open", "surface": "Grass", "status": "live",
@@ -403,6 +406,30 @@ def test_output_liverank_drift_is_season_gated():
     print("ok test_output_liverank_drift_is_season_gated")
 
 
+def test_output_player_enrichment_fields_gated():
+    """Present-but-insane enrichment values (junk height, a 64.2 units slip for 0.642)
+    must BLOCK; absent/null fields never flag (old snapshots lack the keys)."""
+    d = _healthy_data()
+    d["players"][0]["heightCm"] = 641                              # junk height
+    d["players"][1]["servePctHard"] = 64.2                         # percent instead of fraction
+    d["players"][2]["winRate10"] = 1.4                             # not a probability
+    out = health.output_problems("atp", _oc(data=d), NOW)
+    height_hits = [p for p in out if "heightCm" in p]
+    pct_hits = [p for p in out if "out of [0,1]" in p and "players.json" in p]
+    assert height_hits and pct_hits, out
+    assert all(health._gate_blocks(p) for p in height_hits + pct_hits)
+    # nulls and absent keys are the nullable-by-design path -> clean
+    d2 = _healthy_data()
+    d2["players"][0]["heightCm"] = None
+    d2["players"][1]["winRate10"] = None
+    for k in ("servePctHard", "servePctClay", "servePctGrass",
+              "returnPctHard", "returnPctClay", "returnPctGrass",
+              "heightCm", "winRate10"):
+        d2["players"][2].pop(k, None)
+    assert health.output_problems("atp", _oc(data=d2), NOW) == []
+    print("ok test_output_player_enrichment_fields_gated")
+
+
 def test_output_kalshi_ledger_clean_and_unscored_ignored():
     """Clean scored rows pass; unscored rows (pending, degraded price, no p_model)
     are outside the scorecard and never flagged even with wild timestamps."""
@@ -541,6 +568,7 @@ if __name__ == "__main__":
     test_output_track_and_forecast_monotonicity()
     test_output_emptiness_is_season_gated()
     test_output_liverank_drift_is_season_gated()
+    test_output_player_enrichment_fields_gated()
     test_output_kalshi_ledger_clean_and_unscored_ignored()
     test_output_kalshi_ledger_post_anchor_quote_blocks()
     test_output_kalshi_ledger_settled_carry_blocks()

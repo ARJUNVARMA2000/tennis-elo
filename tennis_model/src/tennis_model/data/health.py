@@ -190,6 +190,12 @@ def _is_prob(x) -> bool:
     return isinstance(x, (int, float)) and not isinstance(x, bool) and 0.0 <= float(x) <= 1.0
 
 
+# players.json enrichment fields that must be valid probabilities when present
+_PLAYER_PCT_FIELDS = ("winRate10",
+                      "servePctHard", "servePctClay", "servePctGrass",
+                      "returnPctHard", "returnPctClay", "returnPctGrass")
+
+
 def _pow2(n) -> bool:
     return isinstance(n, int) and n >= 2 and (n & (n - 1)) == 0
 
@@ -405,6 +411,21 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
         if any(not p.get("name") or p.get("elo") is None for p in players):
             out.append(f"{tour}: players.json has a null name or elo")
         _flag_placeholders(out, tour, "players.json", (p.get("name") for p in players))
+        # enrichment fields are nullable by design (old snapshots lack the keys), but a
+        # PRESENT value must be sane: a units slip (64.2 for 0.642) or junk height would
+        # ship wrong numbers to every board that renders them
+        bad_h = [(p.get("name"), p.get("heightCm")) for p in players
+                 if p.get("heightCm") is not None
+                 and not (isinstance(p.get("heightCm"), int) and 140 <= p["heightCm"] <= 225)]
+        if bad_h:
+            out.append(f"{tour}: players.json heightCm implausible for {len(bad_h)} player(s), "
+                       f"e.g. {bad_h[0][0]!r}={bad_h[0][1]!r} (expect int in 140..225)")
+        bad_pct = [(p.get("name"), k, p.get(k)) for p in players for k in _PLAYER_PCT_FIELDS
+                   if p.get(k) is not None and not _is_prob(p.get(k))]
+        if bad_pct:
+            n0, k0, v0 = bad_pct[0]
+            out.append(f"{tour}: players.json {k0}={v0!r} for {n0!r} out of [0,1] "
+                       f"({len(bad_pct)} bad value(s))")
         if not offseason:
             frac = sum(1 for p in players if p.get("liveRank") is None) / len(players)
             if frac > HEALTH_MAX_LIVERANK_NULL_FRAC:
