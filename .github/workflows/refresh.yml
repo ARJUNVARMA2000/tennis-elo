@@ -107,7 +107,7 @@ jobs:
 
       # Pre-deploy integrity gate (BOTH modes). Blocks the deploy on any internally-
       # inconsistent produced JSON — impossible reach odds, aliveCount>drawSize, a live event
-      # already naming a champion, a non-power-of-two "real" draw, placeholder-name leaks,
+      # already naming a champion, a non-standard-size "real" draw, placeholder-name leaks,
       # missing/corrupt required JSON. Source-freshness problems are NOT gated here (those
       # still deploy best-effort and are reported by the post-deploy sentinel). On failure the
       # job stops before build/deploy, so the last good deploy stays live rather than shipping

@@ -264,6 +264,17 @@ def _pow2(n) -> bool:
     return isinstance(n, int) and n >= 2 and (n & (n - 1)) == 0
 
 
+# Standard bye-carrying draw sizes: 28 (32-bracket, 4 byes — most ATP/WTA 250/500s),
+# 24 (32-bracket, 8 byes), 48/56 (64-bracket Masters/500s), 96 (128-bracket IW/Miami/
+# Madrid/Rome). The wiki bracket parser guarantees the SLOTS are a power of two
+# (draws_wiki._parse_bracket); drawSize counts entrants, so byes make it one of these.
+_BYE_DRAW_SIZES = frozenset({24, 28, 48, 56, 96})
+
+
+def _real_draw_size_ok(n) -> bool:
+    return _pow2(n) or n in _BYE_DRAW_SIZES
+
+
 def _age_days(iso, now: pd.Timestamp):
     ts = pd.to_datetime(iso, utc=True, errors="coerce") if iso else pd.NaT
     if pd.isna(ts):
@@ -332,10 +343,14 @@ def _check_tournament(out: list, tour: str, t: dict) -> None:
         out.append(f"{tour}: tournament {name!r} has bad drawStatus {ds!r}")
     if isinstance(size, int) and isinstance(alive, int) and alive > size:
         out.append(f"{tour}: tournament {name!r} aliveCount {alive} > drawSize {size}")
-    # a real bracket is a true power-of-two draw; a leaked 'TBD' turns 128 into 129.
-    # completed/partial/seeded sizes are len(field_pool) and legitimately non-power-of-two.
-    if ds == "real" and isinstance(size, int) and not _pow2(size):
-        out.append(f"{tour}: tournament {name!r} real draw size {size} is not a power of two")
+    # a real bracket seats a STANDARD draw size — a power of two, or a sanctioned
+    # bye-draw (28/48/56/96...; Gstaad's 28-draw blocked a deploy on 2026-07-10 when this
+    # demanded strict powers of two). A leaked 'TBD' (128 -> 129, 28 -> 29) or a name-
+    # resolution loss (28 -> 27) still lands outside the set and blocks. completed/
+    # partial/seeded sizes are len(field_pool) and legitimately unconstrained.
+    if ds == "real" and isinstance(size, int) and not _real_draw_size_ok(size):
+        out.append(f"{tour}: tournament {name!r} real draw size {size} is not a standard "
+                   f"bracket size (power of two or bye-draw {sorted(_BYE_DRAW_SIZES)})")
     if status == "completed" and not champ:
         out.append(f"{tour}: completed tournament {name!r} has no champion")
     if status in ("live", "upcoming") and champ:
@@ -635,7 +650,7 @@ def main() -> int:
 
     if args.gate:
         # Pre-deploy integrity gate. Fails ONLY on internally-inconsistent produced output —
-        # impossible odds, aliveCount>drawSize, a non-power-of-two "real" draw, a live event
+        # impossible odds, aliveCount>drawSize, a non-standard-size "real" draw, a live event
         # already naming a champion, placeholder-name leaks, missing/corrupt required JSON, a
         # broken win matrix, upset-flag disagreements, ... Deliberately absolute (prev=None):
         # source freshness and run-over-run deltas are NOT gated here — those stay best-effort

@@ -1,5 +1,16 @@
 # Lessons
 
+- **Validate a gate invariant against the full tour CALENDAR, not the events in flight
+  the week it ships.** (2026-07-10) The "real draw must be a power of two" gate check
+  shipped 2026-07-08 during Wimbledon (128 — passes) and blocked the first deploy that
+  saw a standard ATP-250 bye-draw (Gstaad, 28 entrants in a 32-bracket) two days later.
+  **Why:** tour draws are 28/48/56/96 as often as they are powers of two — byes are the
+  norm outside slams; an invariant tested only against this week's data is overfit to
+  this week. **How to apply:** before landing a blocking invariant on event structure,
+  enumerate the legitimate value set across the whole season (slams, Masters, 500s,
+  250s, both tours) and encode that set, keeping the failure signature (129, 29, 27)
+  outside it; a gate false-positive silently freezes deploys until someone reads CI.
+
 - **A URL↔state bridge must apply URL→state only on NAVIGATION, and a client
   "redirect page" must hard-navigate.** (2026-07-09, tour-in-URL + /upcoming→/results;
   both caught by Playwright E2E, invisible to unit tests/build.) (1) An effect that

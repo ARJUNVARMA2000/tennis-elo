@@ -289,10 +289,19 @@ def test_output_match_floor_and_drop():
     print("ok test_output_match_floor_and_drop")
 
 
-def test_output_real_draw_must_be_power_of_two():
-    d = _healthy_data(); d["tournaments"][0]["drawSize"] = 130       # 128 + a leaked 'TBD'
-    assert any("not a power of two" in p for p in health.output_problems("atp", _oc(data=d), NOW))
-    print("ok test_output_real_draw_must_be_power_of_two")
+def test_output_real_draw_must_be_standard_size():
+    """A leaked 'TBD' (128->129, 28->29) or a name-resolution loss (28->27) lands outside
+    the standard sizes and blocks; sanctioned bye-draws (Gstaad's 28, Masters 56/96...)
+    are REAL tour draws and must pass (28 blocked a deploy on 2026-07-10)."""
+    for bad in (130, 129, 29, 27):
+        d = _healthy_data(); d["tournaments"][0]["drawSize"] = bad
+        assert any("not a standard bracket size" in p
+                   for p in health.output_problems("atp", _oc(data=d), NOW)), bad
+    for ok in (28, 32, 48, 56, 96, 128):
+        d = _healthy_data(); d["tournaments"][0]["drawSize"] = ok
+        assert not any("bracket size" in p
+                       for p in health.output_problems("atp", _oc(data=d), NOW)), ok
+    print("ok test_output_real_draw_must_be_standard_size")
 
 
 def test_output_completed_nonpower_of_two_is_fine():
@@ -300,7 +309,7 @@ def test_output_completed_nonpower_of_two_is_fine():
     d = _healthy_data()
     d["tournaments"] = [{"name": "Halle", "status": "completed", "drawStatus": "final",
                          "drawSize": 41, "aliveCount": 1, "champion": "Someone", "projection": []}]
-    assert not any("power of two" in p for p in health.output_problems("atp", _oc(data=d), NOW))
+    assert not any("bracket size" in p for p in health.output_problems("atp", _oc(data=d), NOW))
     print("ok test_output_completed_nonpower_of_two_is_fine")
 
 
@@ -684,7 +693,7 @@ if __name__ == "__main__":
     test_output_missing_and_corrupt_files()
     test_output_feature_schema_drift()
     test_output_match_floor_and_drop()
-    test_output_real_draw_must_be_power_of_two()
+    test_output_real_draw_must_be_standard_size()
     test_output_completed_nonpower_of_two_is_fine()
     test_output_alive_gt_draw_and_missing_champion()
     test_output_probability_and_monotonicity()
