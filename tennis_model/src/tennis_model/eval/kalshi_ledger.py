@@ -35,7 +35,13 @@ import pandas as pd
 
 from .. import __version__
 from ..config import KALSHI_LEDGER_DIR, TOURS
-from ..data.kalshi import KALSHI_ALIASES, load_snapshots
+from ..data.kalshi import (
+    CANDLE_LOOKBACK_S,
+    EXTREME_CARRY_MID,
+    KALSHI_ALIASES,
+    _epoch,
+    load_snapshots,
+)
 from ..data.names import name_key
 from ..data.rankings import load_rankings
 from .track import FORECAST_DIR, _norm_event, _read_log
@@ -48,6 +54,13 @@ JOIN_MIN_D, JOIN_MAX_D = -8, 21     # occurrence minus result date, asymmetric b
                                     # a placeholder start — actual play runs up to
                                     # ~7 days after occurrence (verified backfill
                                     # gap cluster at -5..-7)
+JOIN_SUSPECT_D = 3                  # a result more than this many days before occurrence
+                                    # is legit ONLY as a tournament-start-dated archive
+                                    # row, so it must agree with the market's parsed
+                                    # tournament rule (audit 2026-07-09: a Wimbledon-QF
+                                    # market froze the same pair's 18-day-old Halle
+                                    # result — the market listed before its match was
+                                    # played and the old result was the only candidate)
 PENDING_GRACE_D = 3                 # no result this soon after start = pending, not unmatched
 FORECAST_MIN_D, FORECAST_MAX_D = -1, 21   # occurrence minus forecast as_of (track.py)
 
@@ -150,9 +163,28 @@ def _oos_index(oos: pd.DataFrame | None) -> dict:
 # ---------------------------------------------------------------------------
 # Join pieces
 # ---------------------------------------------------------------------------
-def _match_result(cands: list[dict], occ: date, rules: dict) -> tuple[dict | None, bool]:
-    """Pick the result row for one Kalshi event -> (row | None, ambiguous)."""
+def _match_result(cands: list[dict], occ: date, rules: dict,
+                  claimed: dict | None = None, ticker: str = "") -> tuple[dict | None, bool]:
+    """Pick the result row for one Kalshi event -> (row | None, ambiguous).
+
+    claimed maps result_date iso -> the ticker already holding that result in the
+    ledger: one result row, one ticker — a candidate claimed elsewhere is invisible
+    here (rematch relists / stale captures can otherwise double-score one match).
+    Far-forward candidates (result more than JOIN_SUSPECT_D days before occurrence)
+    are legit only as tournament-start-dated archive rows, so when the market names
+    a tournament they must agree with it — the tiebreaker becomes a validator."""
     valid = [c for c in cands if JOIN_MIN_D <= (occ - c["date"].date()).days <= JOIN_MAX_D]
+    if claimed:
+        valid = [c for c in valid
+                 if claimed.get(c["date"].strftime("%Y-%m-%d")) in (None, ticker)]
+    rk = _norm_event(rules["tournament"]) if rules.get("tournament") else ""
+    if rk:
+        def _stale_capture(c: dict) -> bool:
+            if (occ - c["date"].date()).days <= JOIN_SUSPECT_D:
+                return False
+            ck = _norm_event(c["event"])
+            return not (ck and (ck in rk or rk in ck))
+        valid = [c for c in valid if not _stale_capture(c)]
     if not valid:
         return None, False
     if len(valid) > 1 and rules.get("tournament"):
@@ -197,38 +229,131 @@ def _rank_for(res: dict | None, key: str, live_ranks: dict) -> tuple[str, str]:
 # ---------------------------------------------------------------------------
 # Row assembly
 # ---------------------------------------------------------------------------
+def _occ_date(e: dict) -> date | None:
+    try:
+        return datetime.fromisoformat(
+            str(e.get("occurrence") or "").replace("Z", "+00:00")).date()
+    except ValueError:
+        return None
+
+
+def _oriented(e: dict) -> tuple:
+    """Sorted-side view of one snapshot event: (a, b, ka, kb, price, mids, t30s)."""
+    a, b = e["a"], e["b"]
+    ka, kb = _alias(name_key(a["name"])), _alias(name_key(b["name"]))
+    price = e.get("price") or {}
+    mid_a, mid_b = price.get("mid_a"), price.get("mid_b")
+    t30_a, t30_b = price.get("mid_a_t30"), price.get("mid_b_t30")
+    if ka > kb:          # unsorted snapshot / aliasing flipped the order: swap sides,
+        a, b, ka, kb = b, a, kb, ka                  # prices travel with their player
+        mid_a, mid_b, t30_a, t30_b = mid_b, mid_a, t30_b, t30_a
+    return a, b, ka, kb, price, mid_a, mid_b, t30_a, t30_b
+
+
+def _healed_tickers(prior: dict) -> set[str]:
+    """Previously-frozen matched rows whose join is PROVABLY wrong, released from the
+    frozen-field policy for one run so they can re-match and re-quote under current
+    rules: (a) Kalshi's own settlement contradicts the joined completed result, or
+    (b) two tickers hold the same (pair, result_date) — a rematch relist / stale
+    capture; the one farther from the result (then the later occurrence) loses.
+    Deliberately narrow: only objective wrongness heals — window/rule heuristics never
+    unfreeze a row on their own, so archive-dated joins stay stable."""
+    healed: set[str] = set()
+    by_claim: dict[tuple, list] = defaultdict(list)
+    for tick, r in prior.items():
+        if r.get("match_status") != "matched" or not r.get("result_date"):
+            continue
+        ka_res, a_won = r.get("kalshi_result_a"), r.get("a_won")
+        if (r.get("result_type") == "completed" and ka_res in ("yes", "no")
+                and a_won in ("0", "1") and (ka_res == "yes") != (a_won == "1")):
+            healed.add(tick)
+            continue
+        pk = frozenset((_alias(name_key(r.get("player_a") or "")),
+                        _alias(name_key(r.get("player_b") or ""))))
+        if len(pk) != 2:
+            continue
+        try:
+            occ = datetime.fromisoformat(
+                str(r.get("occurrence_utc") or "").replace("Z", "+00:00")).date()
+            gap = abs((occ - date.fromisoformat(r["result_date"])).days)
+        except ValueError:
+            gap = 9999
+        by_claim[(pk, r["result_date"])].append(
+            (gap, str(r.get("occurrence_utc") or ""), tick))
+    for lst in by_claim.values():
+        if len(lst) > 1:
+            lst.sort()
+            healed.update(t for _, _, t in lst[1:])
+    return healed
+
+
 def build_rows(tour: str, snaps: dict, df: pd.DataFrame,
-               oos: pd.DataFrame | None = None) -> list[dict]:
-    """One ledger row dict (all-string values, pinned columns) per snapshot event."""
+               oos: pd.DataFrame | None = None,
+               prior: dict | None = None) -> list[dict]:
+    """One ledger row dict (all-string values, pinned columns) per snapshot event.
+
+    prior (the existing ledger, ticker -> row dict) contributes result CLAIMS: a
+    result row already matched by one ticker is invisible to every other ticker, so
+    a market listed for a future rematch can never bind (and double-score) the
+    pair's previous result. Healed tickers' claims are ignored."""
     res_idx = _result_index(df)
     fc_idx = _forecast_index(tour)
     oos_idx = _oos_index(oos)
     live_ranks = load_rankings(tour)
     today = datetime.now(UTC).date()
 
-    rows = []
+    prior = prior or {}
+    healed = _healed_tickers(prior)
+    claims_by_pair: dict[frozenset, dict[str, str]] = defaultdict(dict)
+    for tick, r in prior.items():
+        if tick in healed or r.get("match_status") != "matched" or not r.get("result_date"):
+            continue
+        pk = frozenset((_alias(name_key(r.get("player_a") or "")),
+                        _alias(name_key(r.get("player_b") or ""))))
+        if len(pk) == 2:
+            claims_by_pair[pk][r["result_date"]] = tick
+
+    # pass 1: propose a result join per event (prior claims + settlement consistency)
+    prepared: list[tuple] = []
     for ev, e in sorted(snaps.get("events", {}).items()):
-        occurrence = str(e.get("occurrence") or "")
-        occ = None
-        if occurrence:
-            try:
-                occ = datetime.fromisoformat(occurrence.replace("Z", "+00:00")).date()
-            except ValueError:
-                pass
+        occ = _occ_date(e)
         if occ is None:
             continue                                 # no scheduled time: not usable
-
-        a, b = e["a"], e["b"]
-        ka, kb = _alias(name_key(a["name"])), _alias(name_key(b["name"]))
-        price = e.get("price") or {}
-        mid_a, mid_b = price.get("mid_a"), price.get("mid_b")
-        t30_a, t30_b = price.get("mid_a_t30"), price.get("mid_b_t30")
-        if ka > kb:      # unsorted snapshot / aliasing flipped the order: swap sides,
-            a, b, ka, kb = b, a, kb, ka              # prices travel with their player
-            mid_a, mid_b, t30_a, t30_b = mid_b, mid_a, t30_b, t30_a
-
+        a, _b, ka, kb, *_ = _oriented(e)
         res, ambiguous = _match_result(res_idx.get(frozenset((ka, kb)), []), occ,
-                                       e.get("rules") or {})
+                                       e.get("rules") or {},
+                                       claimed=claims_by_pair.get(frozenset((ka, kb))),
+                                       ticker=ev)
+        if res is not None and res["completed"] and not res["walkover"]:
+            ka_res = str(a.get("result") or "")
+            if ka_res in ("yes", "no") and \
+                    (ka_res == "yes") != (name_key(res["winner"]) == ka):
+                # Kalshi's own settlement contradicts the joined result: a provably
+                # wrong join (stale-rematch capture / alias collision) — never freeze
+                res, ambiguous = None, True
+        prepared.append([ev, e, occ, res, ambiguous])
+
+    # pass 1b: intra-run dedupe — one result row, one ticker (closest occurrence wins)
+    contenders: dict[tuple, list] = defaultdict(list)
+    for i, (ev, e, occ, res, _amb) in enumerate(prepared):
+        if res is None:
+            continue
+        _a, _b, ka, kb, *_ = _oriented(e)
+        key = (frozenset((ka, kb)), res["date"].strftime("%Y-%m-%d"))
+        contenders[key].append(
+            (abs((occ - res["date"].date()).days), str(e.get("occurrence") or ""), ev, i))
+    for lst in contenders.values():
+        if len(lst) > 1:
+            lst.sort()
+            for *_, i in lst[1:]:
+                prepared[i][3], prepared[i][4] = None, True
+
+    # pass 2: assemble rows
+    rows = []
+    for ev, e, occ, res, ambiguous in prepared:
+        occurrence = str(e.get("occurrence") or "")
+        a, b, ka, kb, price, mid_a, mid_b, t30_a, t30_b = _oriented(e)
+
         if res is not None:
             status = "matched"
             a_name = res["winner"] if name_key(res["winner"]) == ka else res["loser"]
@@ -305,18 +430,24 @@ def _read_ledger(path) -> dict:
         return {r["event_ticker"]: dict(r) for r in csv.DictReader(f)}
 
 
-def upsert(tour: str, rows: list[dict]) -> dict:
-    """Merge fresh rows into the ledger CSV under the frozen-field policy."""
+def upsert(tour: str, rows: list[dict], healed: set[str] | None = None) -> dict:
+    """Merge fresh rows into the ledger CSV under the frozen-field policy.
+
+    Two sanctioned overrides of that policy: a `healed` ticker (provably-wrong prior
+    join, see _healed_tickers) loses ALL freeze protection so the fresh row is
+    authoritative; and a row marked _requoted by the 08:00 anchor requoter replaces a
+    frozen price — the requoter is the only writer allowed to do that."""
     path = KALSHI_LEDGER_DIR / f"{tour}.csv"
     old = _read_ledger(path)
     merged = dict(old)
+    healed = healed or set()
     n_new = 0
     for row in rows:
         prev = old.get(row["event_ticker"])
         if prev is None:
             n_new += 1
-        else:
-            if prev.get("price_kind") == "candle":
+        elif row["event_ticker"] not in healed:
+            if prev.get("price_kind") == "candle" and not row.get("_requoted"):
                 row = {**row, **{c: prev[c] for c in _FROZEN_PRICE if c in prev}}
             if prev.get("match_status") == "matched":
                 row = {**row, **{c: prev[c] for c in _FROZEN_MATCH if c in prev}}
@@ -357,23 +488,70 @@ PREMATCH_UTC_HOUR = 8   # scoring quote = mid at 08:00 UTC on the result row's d
 # archive rows it is simply earlier still — stale-safe, never post-start.
 
 
-def _requote_matched(tour: str, rows: list[dict]) -> int:
-    """Fetch the scoring quote (morning-of mid) for every newly matched row.
+def _scoring_quote_ok(prev: dict) -> bool:
+    """True if a ledger row's frozen candle price is already a valid SCORING quote:
+    matched, timestamped inside the morning fetch window of its own result_date, and
+    not a settled-extreme carry print. Rows frozen while pending carry the snapshot's
+    occurrence-anchored quote (the pending-race escape: possibly in-play), and a
+    price_ts after the anchor means exactly that — both fail, so the requoter
+    re-fetches them at 08:00 once the row is matched."""
+    if prev.get("price_kind") != "candle" or prev.get("match_status") != "matched":
+        return False
+    rd = prev.get("result_date")
+    ts = _epoch(prev.get("price_ts"))
+    if not rd or ts is None:
+        return False
+    try:
+        anchor = int(datetime.fromisoformat(
+            f"{rd}T{PREMATCH_UTC_HOUR:02d}:00:00+00:00").timestamp())
+    except ValueError:
+        return False
+    if ts > anchor:
+        return False
+    if ts <= anchor - CANDLE_LOOKBACK_S:
+        for c in ("mid_a", "mid_b"):
+            try:
+                m = float(prev.get(c) or "")
+            except ValueError:
+                continue
+            if not (1 - EXTREME_CARRY_MID < m < EXTREME_CARRY_MID):
+                return False
+    return True
 
-    Only rows not already candle-frozen in the ledger are touched, keeping daily
-    runs incremental and the upsert idempotent."""
+
+def _requote_matched(tour: str, rows: list[dict], prior: dict | None = None,
+                     healed: set[str] | None = None) -> int:
+    """Fetch the 08:00 scoring quote for every matched row not already carrying one.
+
+    The skip set is anchor-validated (_scoring_quote_ok), not merely candle-frozen:
+    a pending-race occurrence-anchored freeze, a post-anchor print or a settled
+    carry gets re-fetched at the true morning anchor. The match identity used is
+    the one that will SURVIVE the merge — the frozen prior match when there is one
+    (a transient results-source gap must not strand a bad quote behind a fresh
+    unmatched row), else the fresh match. Touched rows are marked _requoted so
+    upsert lets the fresh price supersede the frozen one; valid morning quotes are
+    never refetched, keeping daily runs incremental."""
     from ..data.kalshi import fetch_prematch_quotes
-    frozen = {t for t, r in _read_ledger(KALSHI_LEDGER_DIR / f"{tour}.csv").items()
-              if r.get("price_kind") == "candle"}
+    if prior is None:
+        prior = _read_ledger(KALSHI_LEDGER_DIR / f"{tour}.csv")
+    healed = healed or set()
+    ok = {t for t, r in prior.items() if _scoring_quote_ok(r)}
     n = 0
     for row in rows:
-        if (row["match_status"] != "matched" or row["price_kind"] != "candle"
-                or not row["result_date"] or row["event_ticker"] in frozen):
+        prev = prior.get(row["event_ticker"]) or {}
+        prev_kept = row["event_ticker"] not in healed
+        eff = (prev if prev_kept and prev.get("match_status") == "matched"
+               else row if row["match_status"] == "matched" else None)
+        has_candle = (row["price_kind"] == "candle"
+                      or (prev_kept and prev.get("price_kind") == "candle"))
+        if (eff is None or not has_candle or not eff.get("result_date")
+                or (prev_kept and row["event_ticker"] in ok)):
             continue
         cutoff = int(datetime.fromisoformat(
-            f"{row['result_date']}T{PREMATCH_UTC_HOUR:02d}:00:00+00:00").timestamp())
+            f"{eff['result_date']}T{PREMATCH_UTC_HOUR:02d}:00:00+00:00").timestamp())
         qa = fetch_prematch_quotes(tour, row["ticker_a"], cutoff)
         qb = fetch_prematch_quotes(tour, row["ticker_b"], cutoff)
+        row["_requoted"] = "1"
         if not (qa and qb):
             # never score the occurrence-anchored quote (possibly in-play): degrade
             # the row; snapshots re-supply a candle next run, so this retries daily
@@ -397,12 +575,18 @@ def _requote_matched(tour: str, rows: list[dict]) -> int:
 def refresh_ledger(tour: str, df: pd.DataFrame, oos: pd.DataFrame | None = None,
                    requote: bool = True) -> dict:
     """Pipeline entry point: snapshot cache -> rows -> CSV. Returns upsert counts."""
-    rows = build_rows(tour, load_snapshots(tour), df, oos=oos)
+    prior = _read_ledger(KALSHI_LEDGER_DIR / f"{tour}.csv")
+    healed = _healed_tickers(prior)
+    if healed:
+        print(f"  kalshi-ledger/{tour}: unfreezing {len(healed)} provably-wrong "
+              f"match(es): {', '.join(sorted(healed)[:4])}"
+              f"{', ...' if len(healed) > 4 else ''}")
+    rows = build_rows(tour, load_snapshots(tour), df, oos=oos, prior=prior)
     if requote:
-        n = _requote_matched(tour, rows)
+        n = _requote_matched(tour, rows, prior=prior, healed=healed)
         if n:
             print(f"  kalshi-ledger/{tour}: fetched {n} morning-of scoring quotes")
-    stats = upsert(tour, rows)
+    stats = upsert(tour, rows, healed=healed)
     print(f"  kalshi-ledger/{tour}: {stats['total']} rows (+{stats['new']} new), "
           f"{stats['matched']} matched / {stats['unmatched']} unmatched / "
           f"{stats['pending']} pending; {stats['scoreable']} scoreable")
