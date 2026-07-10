@@ -1,3 +1,27 @@
+# Task: Autonomous WTA-first research round (2026-07-09)
+
+Base: `605ff12b6f588b0b458dea7b37f735b217001000`; branch: `research/2026-07-09-codex`.
+Measured start: 2026-07-09 18:44 EDT. Budget: default 8h. Scope: open raw-signal
+ideas only; never modify `eval/` or push.
+
+## Checklist
+
+- [x] Read PROGRAM, backlog, ledger, lessons, architecture docs, and config; incumbent pytest green (226).
+- [x] Cut isolated research branch and perform round-zero read-only idea fan-out.
+- [x] R3-001: 3-year recent H2H feature rejected: WTA passed narrowly, ATP failed both windows.
+- [x] Triage retirement-depth and rate-channel ideas; declare the next parity-feasible experiment.
+- [x] Run only the required Tier 1/Tier 2 gates; retain or revert each arm honestly.
+- [ ] Run final test + ruff verification; no rebuild is needed because no adoption survived.
+- [x] Append the narrative result and final ledger diff; leave the branch green.
+
+## Review
+
+- No adoption. R3 stopped under PROGRAM condition 3: the backlog is exhausted and two
+  self-generated candidates closed consecutively (MCP coverage decline, ordinal-rank arbiter reject).
+  See `tasks/tuning-results-2026-07-09-codex.md`.
+
+---
+
 # Task: Daily output health-check + actionable GitHub-issue alert (2026-07-08)
 
 Plan: C:\Users\varma\.claude\plans\can-we-run-a-greedy-pudding.md

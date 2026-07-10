@@ -63,22 +63,36 @@ are closed questions — re-opening one requires the underlying space to have ch
    lose the most and 2024-26 gains a little — drift exists but truncation overpays
    for it, and the graded version is the already-rejected W1d recency weighting)`
 
-9. **h2hr — recent-h2h (3-year) diff** (Tier 2, both tours) — `OPEN`
+9. **h2hr — recent-h2h (3-year) diff** (Tier 2, both tours) — `DONE-REJECT (R3-001: WTA passed narrowly, but ATP d_tune -0.00004 / d_val -0.00014; 6/17 years positive)`
    h2h dicts are career-flat; recent meetings should predict better than 2010-era
    ones. Parity burden medium: pair-date tracking in the h2h state + prediction
    mirror in the same commit.
+
+9b. **srrp — rate-conditioned serve prior** (Tier 1/2, WTA-only) — `DONE-REJECT (R3-003: component pass at 0.25, but full WTA arbiter d_val -0.00043+/-0.00010; 8/17 years positive)`
+    The rejected E1 block exposed raw ace/DF/first-in differences to the combiner.
+    This distinct mechanism stores decayed rate state and uses it only as a shrunk
+    prior for the existing opponent-adjusted SPW estimate when direct SPW evidence
+    is thin; it adds no combiner columns and vanishes for well-observed players.
+
+9c. **rankord — ordinal-rank difference** (Tier 2, WTA-first) — `DONE-REJECT (R3-004: WTA d_tune +0.00017 but d_val -0.00024+/-0.00014; 2024/25 losses -2.9/-3.0 SE)`
+    `rank_points` is modeled but the raw ordinal rank is not. Historical main-draw
+    pair coverage is 96.5% WTA / 97.9% ATP; prediction uses the existing official
+    rankings cache with a latest-historical-rank fallback. This is raw new state,
+    not an algebraic recombination.
+
+9d. **mcp-shortwin — charted short-rally win rate** — `DONE-DECLINED (R3 ideation: two-player coverage shifts 22.9% tune -> 68.4% validation; sparse star-biased regime and two-column capacity cost make the result inadmissible this round)`
 
 10. **tierw — per-tier sample weighting in combiner folds** (Tier 2 scratch driver,
     both tours) — `DONE-REJECT (R2-005: tier_k^2 uniformly negative on WTA LL,
     tier_k^4 monotonically worse — upweighting slams sharpens accuracy but
     miscalibrates; importance-weighting family 0-for-2 with W1d)`
 
-11. **seedf — seed_rank_diff** (Tier 2, both tours) — `OPEN`
+11. **seedf — seed_rank_diff** (Tier 2, both tours) — `BLOCKED (R3: upcoming feed has no seeds; wiki cache requires a separate data/integration experiment with explicit missingness semantics)`
     winner_seed/loser_seed ingested but unused (entry_q_diff proves the raw pathway
     works). Redundancy risk vs Elo/rankpts. Parity precondition: verify the
     prediction-time upcoming-match feed carries seeds BEFORE building.
 
-12. **retd — retirement-depth injury signal** (Tier 2, both tours) — `OPEN`
+12. **retd — retirement-depth injury signal** (Tier 2, both tours) — `DONE-DECLINED (R3 Tier 0: 2010+ next-match win rate rises rather than falls for late retirements: WTA 53.4% early vs 54.0% late; ATP 50.6% vs 53.1%; no evidence to justify reopening the rejected ret_recent family)`
     parse_score discards where in the match a retirement happened; a late-match
     retirement is a stronger injury prior for the player's NEXT matches. Needs
     last-retirement state + mirror. Sparse-row risk; WTA fp1 layoff≈off is mild
