@@ -39,6 +39,8 @@ def _healthy_data() -> dict:
         "upcoming": [{"event": "Test Open", "playerA": "P0", "playerB": "P1", "pA": 0.7}],
         "fixtures": [{"modelProb": 0.6, "upset": False}, {"modelProb": 0.4, "upset": True}],
         "track": {"matchForecasts": {"logged": 10, "graded": 6, "pending": 4}},
+        "market": {"years": [2012, 2026], "matched": 20_000,
+                   "oosEnd": "2026-07-06", "lastMatchedDate": "2026-07-04"},
     }
 
 
@@ -341,6 +343,24 @@ def test_output_upcoming_and_fixtures_consistency():
     print("ok test_output_upcoming_and_fixtures_consistency")
 
 
+def test_output_market_benchmark_freeze_is_flagged_advisory():
+    """tennis-data dropped Pinnacle mid-Jan 2026 and the market benchmark silently
+    stopped gaining rows while still claiming a current window. A matched-odds date
+    trailing the scored matches by > HEALTH_MAX_MARKET_LAG_DAYS must flag — but stay
+    ADVISORY (odds are a benchmark, never a deploy dependency)."""
+    d = _healthy_data()
+    d["market"] = {"oosEnd": "2026-07-06", "lastMatchedDate": "2026-01-13"}
+    out = health.output_problems("atp", _oc(data=d), NOW)
+    hits = [p for p in out if "market.json odds coverage" in p]
+    assert hits, out
+    assert all(not health._gate_blocks(p) for p in hits)
+    # pre-census payloads (or a benchmark-less tour) lack the fields — never flag/crash
+    d2 = _healthy_data()
+    d2["market"] = {"years": [2012, 2026], "matched": 5}
+    assert not any("market.json" in p for p in health.output_problems("atp", _oc(data=d2), NOW))
+    print("ok test_output_market_benchmark_freeze_is_flagged_advisory")
+
+
 def test_output_track_and_forecast_monotonicity():
     d = _healthy_data(); d["track"]["matchForecasts"]["graded"] = 99
     assert any("graded+pending" in p for p in health.output_problems("atp", _oc(data=d), NOW))
@@ -451,6 +471,7 @@ if __name__ == "__main__":
     test_output_split_event_under_two_names()
     test_output_distinct_events_are_clean()
     test_output_upcoming_and_fixtures_consistency()
+    test_output_market_benchmark_freeze_is_flagged_advisory()
     test_output_track_and_forecast_monotonicity()
     test_output_emptiness_is_season_gated()
     test_output_liverank_drift_is_season_gated()

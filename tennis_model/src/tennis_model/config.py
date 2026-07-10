@@ -381,6 +381,10 @@ HEALTH_MIN_STATS_FRACTION = {"atp": 0.60, "wta": 0.55}
 HEALTH_MIN_MATCHES = {"atp": 250_000, "wta": 100_000}   # match-count floor (now ~283k / ~129k)
 HEALTH_MAX_BUILD_AGE_DAYS = 3        # meta.lastUpdated staleness — the full build runs daily year-round
 HEALTH_MAX_LIVERANK_NULL_FRAC = 0.30  # top-200 without a live rank -> rankings source drifted (normal ~3-9%)
+# market.json: matched odds may trail the newest scored match by at most this — a larger
+# gap means the odds feed dropped a book and the benchmark window silently froze
+# (Pinnacle left tennis-data mid-January 2026 and the card sat frozen for months).
+HEALTH_MAX_MARKET_LAG_DAYS = 60
 
 # ---------------------------------------------------------------------------
 # Simulation

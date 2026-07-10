@@ -11,7 +11,7 @@ d_i = loss_kalshi_i - loss_model_i, d ± SE with SE = std(ddof=1)/sqrt(n) —
 POSITIVE d = model better than Kalshi.
 
 Coverage caveat baked into the report: Kalshi lists a favorite-heavy subset of
-matches, so these numbers are not comparable to the Pinnacle market.json scorecard;
+matches, so these numbers are not comparable to the closing-line market.json scorecard;
 and with months of data, narrow segments are noise — every row carries n and SE,
 rows under N_FLAG are flagged.
 
@@ -247,7 +247,7 @@ def build_report(tours=TOURS) -> dict:
         f"08:00 UTC on match day (morning-of line — always pre-match; Kalshi's own "
         f"start timestamps mutate on settled markets and cannot be trusted), from "
         f"1-min candlesticks; markets with spread > {MAX_SPREAD:.2f} excluded. Do "
-        "not compare these numbers to the Pinnacle closing-odds scorecard "
+        "not compare these numbers to the closing-line scorecard "
         "(market.json): different price time, different match mix._", "",
         "## Coverage", "",
         "| tour | events | matched | pending | unmatched | cancelled | ambiguous "

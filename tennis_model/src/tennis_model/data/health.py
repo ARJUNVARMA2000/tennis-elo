@@ -35,6 +35,7 @@ from ..config import (
     DATA_DIR,
     HEALTH_MAX_BUILD_AGE_DAYS,
     HEALTH_MAX_LIVERANK_NULL_FRAC,
+    HEALTH_MAX_MARKET_LAG_DAYS,
     HEALTH_MAX_RESULT_AGE_DAYS,
     HEALTH_MAX_STATS_AGE_DAYS,
     HEALTH_MIN_MATCHES,
@@ -103,7 +104,7 @@ def problems(tour: str, h: dict, now: pd.Timestamp) -> list[str]:
 # is best-effort (accuracy is backtest-only, track needs graded forecasts).
 _REQUIRED_OUTPUTS = ("meta", "players", "tournaments", "upcoming", "matrix",
                      "ratings_history", "profiles", "draws", "fixtures")
-_OPTIONAL_OUTPUTS = ("accuracy", "track")
+_OPTIONAL_OUTPUTS = ("accuracy", "track", "market")
 _PLACEHOLDER_NAMES = {"tbd", "tba", "bye", "qualifier"}   # mirror data/live.py
 _STATUSES = {"live", "upcoming", "completed"}
 _DRAW_STATES = {"real", "partial", "seeded", "final"}
@@ -121,6 +122,7 @@ _GATE_ADVISORY = (
     "is empty",                    # tournaments.json / upcoming.json empty
     "liveRank",                    # rankings source drifted (site still correct on model odds)
     "outputs last built",          # build-age; can't legitimately fire right after a build
+    "market.json odds coverage",   # benchmark-card staleness; odds are never a build dependency
 )
 
 
@@ -394,6 +396,21 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
         g, p, lg = mf.get("graded"), mf.get("pending"), mf.get("logged")
         if all(isinstance(x, int) for x in (g, p, lg)) and g + p != lg:
             out.append(f"{tour}: track.json graded+pending ({g}+{p}) != logged ({lg})")
+
+    mk = data.get("market")
+    if isinstance(mk, dict):
+        # matched-odds window trailing the scored matches by months = a book left the
+        # odds feed and the benchmark silently froze mid-window (Pinnacle, Jan 2026).
+        # Advisory, not deploy-blocking: odds are a benchmark, never a build dependency.
+        # Both dates come from the same build, so this needs no off-season relaxation.
+        oos_end = pd.to_datetime(mk.get("oosEnd"), errors="coerce")
+        last = pd.to_datetime(mk.get("lastMatchedDate"), errors="coerce")
+        if pd.notna(oos_end) and pd.notna(last):
+            lag = int((oos_end - last).days)
+            if lag > HEALTH_MAX_MARKET_LAG_DAYS:
+                out.append(f"{tour}: market.json odds coverage ends {mk['lastMatchedDate']} but "
+                           f"scored matches run to {mk['oosEnd']} ({lag}d gap, max "
+                           f"{HEALTH_MAX_MARKET_LAG_DAYS}) — did the odds feed drop a book?")
 
     return out
 

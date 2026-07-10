@@ -25,8 +25,9 @@ calibrate* them. So Elo isn't replaced by XGBoost — it's the dominant feature 
 | _Bookmaker anchor (literature)_ | _0.690_ | _0.196_ | _0.690_ | _0.196_ |
 
 ATP now clears the literature bookmaker anchor on both accuracy (0.696 vs ~0.690) and
-Brier (0.1947 vs 0.196) — though on the repo's own odds-matched subset Pinnacle's
-closing line still leads (see the root README) — WTA's remaining Brier gap is 0.0055,
+Brier (0.1947 vs 0.196) — though on the repo's own odds-matched subset the bookmaker
+closing line still leads (Pinnacle through 2025, Bet365/average close after; see the
+root README) — WTA's remaining Brier gap is 0.0055,
 and calibration is near-perfect after Platt scaling. Every constant below is
 the survivor of Optuna sweeps gated by paired-SE tests (tune 2010–19, validate 2020+)
 plus a full walk-forward arbiter — the adoption protocol, and the experiments it

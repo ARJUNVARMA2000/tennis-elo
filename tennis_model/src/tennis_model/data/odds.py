@@ -79,7 +79,9 @@ def load_odds(tour: str = "atp", years=None) -> pd.DataFrame:
     out["best_of"] = pd.to_numeric(raw.get("Best of"), errors="coerce").fillna(3).astype(int)
     out["w_key"] = raw.get("Winner").map(normalize_name)
     out["l_key"] = raw.get("Loser").map(normalize_name)
-    # prefer Pinnacle, fall back to Bet365, then market average
+    # extract every book's columns; the per-row preference (ps -> b365 -> avg) is
+    # applied at eval time (eval/compare._coalesce_odds) — Pinnacle left the feed
+    # in Jan 2026, so a load-time pick would strand every later row
     for w, l, tag in [("PSW", "PSL", "ps"), ("B365W", "B365L", "b365"), ("AvgW", "AvgL", "avg")]:
         if w in raw and l in raw:
             out[f"odds_w_{tag}"] = pd.to_numeric(raw[w], errors="coerce")
