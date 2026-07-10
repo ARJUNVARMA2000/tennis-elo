@@ -17,7 +17,10 @@ SRC = Path(__file__).resolve().parents[1] / "src" / "tennis_model"
 
 # dirs whose modules must never touch kalshi (eval/ is the sanctioned consumer)
 _GUARDED = ("model", "ratings", "points", "sim", "data")
-_ALLOWED = {SRC / "data" / "kalshi.py"}
+_ALLOWED = {SRC / "data" / "kalshi.py",
+            # the integrity sentinel VALIDATES the ledger (anchor/carry thresholds +
+            # a CSV read in read_outputs) — output-side only, feeds nothing forward
+            SRC / "data" / "health.py"}
 
 _IMPORT_RE = re.compile(r"^\s*(from|import)\s+[\w.]*kalshi", re.MULTILINE)
 

@@ -23,6 +23,7 @@ Run:  PYTHONPATH=src python -m tennis_model.data.health [--strict | --issue-body
 
 from __future__ import annotations
 
+import csv
 import itertools
 import json
 import os
@@ -141,7 +142,8 @@ def read_outputs(tour: str) -> dict:
 
     Returns {"data": {stem: parsed}, "missing": [required stems absent],
              "corrupt": [stems present but unparseable OR carrying NaN/Infinity],
-             "forecast": {"lines": int, "max_as_of": str|None} | None}.
+             "forecast": {"lines": int, "max_as_of": str|None} | None,
+             "kalshi_ledger": [row dicts] | None}.
     """
     d = output_dir(tour)
     data, missing, corrupt = {}, [], []
@@ -170,7 +172,16 @@ def read_outputs(tour: str) -> dict:
                         "max_as_of": max([a for a in as_ofs if a], default=None)}
         except OSError:
             forecast = None
-    return {"data": data, "missing": missing, "corrupt": corrupt, "forecast": forecast}
+    ledger = None
+    lf = DATA_DIR / "kalshi_ledger" / f"{tour}.csv"
+    if lf.exists():
+        try:
+            with open(lf, newline="", encoding="utf-8") as f:
+                ledger = [dict(r) for r in csv.DictReader(f)]
+        except OSError:
+            ledger = None
+    return {"data": data, "missing": missing, "corrupt": corrupt,
+            "forecast": forecast, "kalshi_ledger": ledger}
 
 
 def _is_prob(x) -> bool:
@@ -260,6 +271,56 @@ def _check_tournament(out: list, tour: str, t: dict) -> None:
     proj = t.get("projection") or []
     _check_projection(out, tour, name, proj)
     _flag_placeholders(out, tour, f"tournament {name!r}", (p.get("name") for p in proj))
+
+
+def _check_kalshi_ledger(out: list, tour: str, rows: list[dict]) -> None:
+    """The Kalshi scorecard's scored rows must be morning-anchored PRE-match quotes of
+    correctly-joined results (audit 2026-07-09: in-play occurrence-anchored prints, a
+    settled-book carry scored as a 0.995 'favorite', and a rematch mis-join double-
+    scoring one result all reached the deployed scorecard). One invariant per class."""
+    from ..eval.kalshi_ledger import PREMATCH_UTC_HOUR
+    from .kalshi import CANDLE_LOOKBACK_S, EXTREME_CARRY_MID
+    seen: dict[tuple, str] = {}
+    for r in rows:
+        if not (r.get("match_status") == "matched"
+                and r.get("result_type") == "completed"
+                and r.get("price_kind") == "candle"
+                and r.get("p_model") and r.get("p_kalshi")):
+            continue
+        tick, rd = r.get("event_ticker", "?"), r.get("result_date", "")
+        ts = pd.to_datetime(r.get("price_ts"), utc=True, errors="coerce")
+        anchor = pd.to_datetime(rd, utc=True, errors="coerce")
+        if pd.isna(ts) or pd.isna(anchor):
+            out.append(f"{tour}: kalshi ledger scored row {tick} lacks a parseable "
+                       f"price_ts/result_date ({r.get('price_ts')!r}, {rd!r})")
+        else:
+            anchor += pd.Timedelta(hours=PREMATCH_UTC_HOUR)
+            if ts > anchor:
+                out.append(f"{tour}: kalshi ledger scored row {tick} quoted after its "
+                           f"08:00 anchor ({r.get('price_ts')} > {rd} 08:00Z) — "
+                           f"occurrence-anchored/in-play print")
+            elif ts <= anchor - pd.Timedelta(seconds=CANDLE_LOOKBACK_S):
+                mids = []
+                for c in ("mid_a", "mid_b"):
+                    try:
+                        mids.append(float(r.get(c) or ""))
+                    except ValueError:
+                        pass
+                if any(not (1 - EXTREME_CARRY_MID < m < EXTREME_CARRY_MID) for m in mids):
+                    out.append(f"{tour}: kalshi ledger scored row {tick} carries a "
+                               f"settled-extreme window-edge quote (mids {mids}) — "
+                               f"post-result carry print")
+        ka_res, a_won = r.get("kalshi_result_a"), r.get("a_won")
+        if (ka_res in ("yes", "no") and a_won in ("0", "1")
+                and (ka_res == "yes") != (a_won == "1")):
+            out.append(f"{tour}: kalshi ledger scored row {tick} settlement "
+                       f"contradicts its joined result — mis-joined match")
+        key = (frozenset((r.get("player_a", ""), r.get("player_b", ""))), rd)
+        if key in seen:
+            out.append(f"{tour}: kalshi ledger scores one result twice "
+                       f"({seen[key]} and {tick}, {rd})")
+        else:
+            seen[key] = tick
 
 
 def _norm_name(name: str) -> str:
@@ -387,6 +448,10 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
     fc = oc.get("forecast")
     if fc is not None and isinstance(prev.get("forecast_lines"), int) and fc["lines"] < prev["forecast_lines"]:
         out.append(f"{tour}: forecast log shrank {prev['forecast_lines']} -> {fc['lines']} lines")
+
+    kl = oc.get("kalshi_ledger")
+    if isinstance(kl, list):
+        _check_kalshi_ledger(out, tour, kl)
 
     tr = data.get("track")
     if isinstance(tr, dict):

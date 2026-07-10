@@ -255,3 +255,193 @@ def test_refresh_ledger_counts(env, monkeypatch):
     _write_log(env, [{"type": "match", "as_of": "2026-07-06", "playerA": "Flavio Cobolli",
                       "playerB": "Arthur Fery", "p": 0.68, "model_version": "0.1.0"}])
     assert refresh_ledger(TOUR, _df(WIMBLEDON), requote=False)["scoreable"] == 1
+
+
+# ---------------------------------------------------------------------------
+# Quote-timing + join-capture leaks (audit 2026-07-09)
+# ---------------------------------------------------------------------------
+def _no_results():
+    return _df(WIMBLEDON).iloc[0:0]
+
+
+def test_pending_race_occurrence_freeze_is_requoted_when_matched(env, monkeypatch):
+    """A row candle-frozen while PENDING carries the snapshot's occurrence-anchored
+    quote (T-5 before scheduled start — in-play whenever play starts early). Once
+    the result joins, the requoter must re-anchor it to 08:00 UTC on the result
+    date; the frozen-price policy must not shield the stale print."""
+    import tennis_model.data.kalshi as kal
+    monkeypatch.setattr(kl, "load_snapshots", lambda tour: _snaps(_snap_event()))
+
+    refresh_ledger(TOUR, _no_results(), requote=True)     # no result yet: not matched
+    row = kl._read_ledger(kl.KALSHI_LEDGER_DIR / f"{TOUR}.csv")["KXATPMATCH-26JUL08COBFER"]
+    assert row["match_status"] != "matched"
+    assert (row["price_kind"], row["price_ts"]) == ("candle", "2026-07-08T12:55:00Z")
+
+    calls = []
+    def fake_quotes(tour, ticker, cutoff):
+        calls.append(cutoff)
+        return {"mid": 0.55, "mid_t30": 0.54, "spread": 0.02, "ts": cutoff - 300}
+    monkeypatch.setattr(kal, "fetch_prematch_quotes", fake_quotes)
+    refresh_ledger(TOUR, _df([{**WIMBLEDON[0], "date": "2026-07-08"}]))
+    row = kl._read_ledger(kl.KALSHI_LEDGER_DIR / f"{TOUR}.csv")["KXATPMATCH-26JUL08COBFER"]
+    assert row["match_status"] == "matched"
+    assert calls[0] == int(pd.Timestamp("2026-07-08 08:00", tz="UTC").timestamp())
+    assert row["mid_a"] == "0.5500" and row["price_ts"] == "2026-07-08T07:55:00Z"
+
+
+def test_pending_race_requote_failure_degrades_over_frozen_print(env, monkeypatch):
+    """If the anchor re-quote returns no valid book (thin morning, or the settled
+    extreme-carry veto), the row degrades to price_kind=none — the previously
+    frozen occurrence quote must not survive the upsert and get scored."""
+    import tennis_model.data.kalshi as kal
+    monkeypatch.setattr(kl, "load_snapshots", lambda tour: _snaps(_snap_event()))
+    refresh_ledger(TOUR, _no_results(), requote=True)
+    monkeypatch.setattr(kal, "fetch_prematch_quotes", lambda *a: None)
+    refresh_ledger(TOUR, _df([{**WIMBLEDON[0], "date": "2026-07-08"}]))
+    row = kl._read_ledger(kl.KALSHI_LEDGER_DIR / f"{TOUR}.csv")["KXATPMATCH-26JUL08COBFER"]
+    assert row["match_status"] == "matched"
+    assert (row["price_kind"], row["p_kalshi"], row["price_ts"]) == ("none", "", "")
+
+
+def test_requote_falls_back_to_frozen_match_when_results_source_gaps(env, monkeypatch):
+    """A transient results-source gap must not strand an occurrence-anchored quote:
+    when the fresh run cannot re-match the row but the frozen prior match survives
+    the merge, the requoter re-anchors using the FROZEN identity's result_date."""
+    import tennis_model.data.kalshi as kal
+    monkeypatch.setattr(kl, "load_snapshots", lambda tour: _snaps(_snap_event()))
+    refresh_ledger(TOUR, _no_results(), requote=True)          # pending, 12:55Z frozen
+    refresh_ledger(TOUR, _df([{**WIMBLEDON[0], "date": "2026-07-08"}]),
+                   requote=False)                              # matched, quote stranded
+    row = kl._read_ledger(kl.KALSHI_LEDGER_DIR / f"{TOUR}.csv")["KXATPMATCH-26JUL08COBFER"]
+    assert (row["match_status"], row["price_ts"]) == ("matched", "2026-07-08T12:55:00Z")
+
+    calls = []
+    def fake_quotes(tour, ticker, cutoff):
+        calls.append(cutoff)
+        return {"mid": 0.55, "mid_t30": None, "spread": 0.02, "ts": cutoff - 300}
+    monkeypatch.setattr(kal, "fetch_prematch_quotes", fake_quotes)
+    refresh_ledger(TOUR, _no_results(), requote=True)          # results source gapped
+    row = kl._read_ledger(kl.KALSHI_LEDGER_DIR / f"{TOUR}.csv")["KXATPMATCH-26JUL08COBFER"]
+    assert calls[0] == int(pd.Timestamp("2026-07-08 08:00", tz="UTC").timestamp())
+    assert (row["match_status"], row["result_date"]) == ("matched", "2026-07-08")
+    assert row["price_ts"] == "2026-07-08T07:55:00Z" and row["mid_a"] == "0.5500"
+
+
+def test_market_cannot_bind_result_claimed_by_another_ticker(env, monkeypatch):
+    """One result row, one ticker: a market listed for a future rematch must not
+    match (and double-score) the pair's previous result already in the ledger."""
+    halle = _snap_event(ticker="KXATPMATCH-26JUN20COBFER", occ="2026-06-20T13:00:00Z",
+                        rules={"tournament": "Halle", "round": "SF"})
+    df_halle = _df([{**WIMBLEDON[0], "date": "2026-06-20", "tourney_name": "Halle",
+                     "round": "SF", "tier": "atp500"}])
+    monkeypatch.setattr(kl, "load_snapshots", lambda tour: _snaps(halle))
+    refresh_ledger(TOUR, df_halle, requote=False)         # Halle result now claimed
+
+    wimbledon = _snap_event(occ="2026-07-08T16:10:00Z")   # rematch market lists
+    monkeypatch.setattr(kl, "load_snapshots", lambda tour: _snaps(halle, wimbledon))
+    refresh_ledger(TOUR, df_halle, requote=False)         # its own result not ingested yet
+    led = kl._read_ledger(kl.KALSHI_LEDGER_DIR / f"{TOUR}.csv")
+    assert led["KXATPMATCH-26JUN20COBFER"]["result_date"] == "2026-06-20"
+    assert led["KXATPMATCH-26JUL08COBFER"]["match_status"] != "matched"
+
+    # the real rematch result lands -> the new ticker binds IT, the old row untouched
+    df_both = _df([{**WIMBLEDON[0], "date": "2026-06-20", "tourney_name": "Halle",
+                    "round": "SF", "tier": "atp500"},
+                   {**WIMBLEDON[0], "date": "2026-07-08"}])
+    refresh_ledger(TOUR, df_both, requote=False)
+    led = kl._read_ledger(kl.KALSHI_LEDGER_DIR / f"{TOUR}.csv")
+    assert led["KXATPMATCH-26JUL08COBFER"]["match_status"] == "matched"
+    assert led["KXATPMATCH-26JUL08COBFER"]["result_date"] == "2026-07-08"
+    assert led["KXATPMATCH-26JUN20COBFER"]["result_date"] == "2026-06-20"
+
+
+def test_stale_capture_vetoed_by_tournament_rule(env):
+    """A market whose sole in-window candidate is a weeks-old result of the same
+    pair at a DIFFERENT event must not match: far-forward joins are legit only for
+    tournament-start-dated archive rows, which agree with the parsed tournament."""
+    halle_only = _df([{**WIMBLEDON[0], "date": "2026-06-20", "tourney_name": "Halle",
+                       "round": "SF", "tier": "atp500"}])
+    row = build_rows(TOUR, _snaps(_snap_event(occ="2026-07-08T16:10:00Z")), halle_only)[0]
+    assert row["match_status"] != "matched"
+
+
+def test_settlement_disagreement_never_freezes(env):
+    """If Kalshi settled the market for the OTHER player, the joined result is
+    provably wrong (stale capture / alias collision): ambiguous, never matched."""
+    snaps = _snaps(_snap_event(result_a="no", result_b="yes"))    # Kalshi: Fery won
+    row = build_rows(TOUR, snaps, _df(WIMBLEDON))[0]              # frame: Cobolli won
+    assert (row["match_status"], row["result_type"]) == ("ambiguous", "pending")
+    assert row["winner"] == "" and row["a_won"] == ""
+
+
+def test_frozen_stale_capture_heals_and_rebinds(env, monkeypatch):
+    """A previously-FROZEN wrong join (Kalshi settlement contradicts the joined
+    result — the Wimbledon-market-frozen-to-Halle-result chimera) is unfrozen on
+    the next run and re-binds to the real result once it exists."""
+    import tennis_model.data.kalshi as kal
+    bad = {c: "" for c in kl.LEDGER_COLUMNS}
+    bad.update({
+        "event_ticker": "KXATPMATCH-26JUL08COBFER", "tour": TOUR, "season": "2026",
+        "occurrence_utc": "2026-07-08T16:10:00Z", "match_date": "2026-07-08",
+        "event": "Halle", "round": "SF",
+        "player_a": "Arthur Fery", "player_b": "Flavio Cobolli",
+        "ticker_a": "KXATPMATCH-26JUL08COBFER-FER",
+        "ticker_b": "KXATPMATCH-26JUL08COBFER-COB",
+        "mid_a": "0.3100", "mid_b": "0.7000", "p_kalshi": "0.3069",
+        "price_ts": "2026-07-08T07:55:00Z", "price_kind": "candle",
+        "p_model": "0.3200", "pred_source": "live", "model_version": "0.1.0",
+        "model_as_of": "2026-07-07",
+        "match_status": "matched", "result_type": "completed",
+        "winner": "Flavio Cobolli", "a_won": "0", "result_date": "2026-06-20",
+        "kalshi_result_a": "yes",           # settled for Fery, joined result says Cobolli
+    })
+    upsert(TOUR, [bad])
+
+    monkeypatch.setattr(kl, "load_snapshots", lambda tour: _snaps(
+        _snap_event(occ="2026-07-08T16:10:00Z", result_a="no", result_b="yes")))
+    monkeypatch.setattr(kal, "fetch_prematch_quotes",
+                        lambda tour, ticker, cutoff: {"mid": 0.45, "mid_t30": None,
+                                                      "spread": 0.02, "ts": cutoff - 300})
+    qf = _df([{**WIMBLEDON[0], "date": "2026-07-08",
+               "winner_name": "Arthur Fery", "loser_name": "Flavio Cobolli"}])
+    refresh_ledger(TOUR, qf)
+    row = kl._read_ledger(kl.KALSHI_LEDGER_DIR / f"{TOUR}.csv")["KXATPMATCH-26JUL08COBFER"]
+    assert (row["match_status"], row["result_date"]) == ("matched", "2026-07-08")
+    assert (row["winner"], row["a_won"], row["event"]) == ("Arthur Fery", "1", "Wimbledon")
+    assert row["price_ts"] == "2026-07-08T07:55:00Z" and row["p_kalshi"] == "0.5000"
+
+
+def test_duplicate_claim_heals_farther_ticker(env, monkeypatch):
+    """Two frozen tickers holding the same (pair, result_date) — a relist duplicate
+    or stale capture that predates the claim guard — keep only the closest-
+    occurrence one; the loser re-resolves without the claim and stays unmatched."""
+    rows = []
+    for tick, occ in [("KXATPMATCH-26JUN20COBFER", "2026-06-20T13:00:00Z"),
+                      ("KXATPMATCH-26JUL08COBFER", "2026-07-08T16:10:00Z")]:
+        r = {c: "" for c in kl.LEDGER_COLUMNS}
+        r.update({
+            "event_ticker": tick, "tour": TOUR, "season": "2026",
+            "occurrence_utc": occ, "match_date": occ[:10],
+            "event": "Halle", "round": "SF",
+            "player_a": "Arthur Fery", "player_b": "Flavio Cobolli",
+            "ticker_a": f"{tick}-FER", "ticker_b": f"{tick}-COB",
+            "mid_a": "0.4500", "mid_b": "0.5500", "p_kalshi": "0.4500",
+            "price_ts": "2026-06-20T07:55:00Z", "price_kind": "candle",
+            "match_status": "matched", "result_type": "completed",
+            "winner": "Flavio Cobolli", "a_won": "0", "result_date": "2026-06-20",
+            "kalshi_result_a": "no",
+        })
+        rows.append(r)
+    upsert(TOUR, rows)
+
+    halle = _snap_event(ticker="KXATPMATCH-26JUN20COBFER", occ="2026-06-20T13:00:00Z",
+                        rules={"tournament": "Halle", "round": "SF"})
+    wim = _snap_event(occ="2026-07-08T16:10:00Z")
+    monkeypatch.setattr(kl, "load_snapshots", lambda tour: _snaps(halle, wim))
+    df_halle = _df([{**WIMBLEDON[0], "date": "2026-06-20", "tourney_name": "Halle",
+                     "round": "SF", "tier": "atp500"}])
+    refresh_ledger(TOUR, df_halle, requote=False)
+    led = kl._read_ledger(kl.KALSHI_LEDGER_DIR / f"{TOUR}.csv")
+    assert led["KXATPMATCH-26JUN20COBFER"]["match_status"] == "matched"
+    assert led["KXATPMATCH-26JUN20COBFER"]["result_date"] == "2026-06-20"
+    assert led["KXATPMATCH-26JUL08COBFER"]["match_status"] != "matched"

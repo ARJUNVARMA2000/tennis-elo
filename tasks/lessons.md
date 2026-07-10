@@ -1,5 +1,33 @@
 # Lessons
 
+- **A frozen-field policy needs a VALIDITY predicate, not a kind check — and every
+  "who quotes when" race is a leak vector.** (2026-07-09, Kalshi ledger audit: 25
+  rows/tour scored in-play Wimbledon prints, 6 ATP rows scored the SETTLED book, one
+  market scored an 18-day-old result of the same pair; net effect: ATP headline
+  −0.0015→+0.0064, WTA −0.0260→−0.0226, and the whole ATP fav-0.9+ "anomaly" was the
+  leak.) The traps, each now pinned by a test + a blocking health invariant:
+  (1) *Pending-race freeze*: hourly snapshots freeze an occurrence-anchored (T-5)
+  candle; a row written pending then matched later skipped the 08:00 re-anchor because
+  the skip set asked "is a candle frozen?" not "is the frozen quote valid for THIS
+  row's result_date?" (`_scoring_quote_ok`). The requoter is the only writer allowed to
+  override a frozen price (`_requoted` mark) — and it must use the match identity that
+  SURVIVES the merge (frozen prior first), else a transient results-source gap strands
+  the bad quote. (2) *`include_latest_before_start` is a leak vector*: when a result
+  source dates a match day+1, the 08:00 window is empty and the API's synthetic carry
+  imports the settled book (0.995 on the winner, "confirmed" 6/6). A carry candle at/
+  before the window start with an extreme mid is a settled print, never a line — reject
+  at selection (`EXTREME_CARRY_MID`). (3) *A wide join window admits stale rematches*:
+  a market listed before its match binds the pair's previous result if it's the only
+  in-window candidate, and `_FROZEN_MATCH` locks it forever. Durable fix is layered:
+  one result row = one ticker (claims), far-forward candidates must agree with the
+  market's parsed tournament (the tiebreaker becomes a validator), Kalshi's own
+  settlement contradicting the join is an auto-veto, and healing unfreezes only
+  OBJECTIVELY wrong rows (settlement disagreement, double-claim) so archive-dated
+  joins stay stable. (4) *Pooled QA hides month-local leaks*: the t30 sentinel's
+  pooled p95 (0.010) looked clean while July-only p95 was 0.208 — slice sentinels by
+  month/anchor-class; and a sensitivity line that can never fire (retirements: all
+  such rows lack p_model by construction) must say so itself.
+
 - **A Δ-metric card must compute the sign its own caption promises — and match its
   neighbours' convention.** (2026-07-09, /scorecard) The "Vs Pinnacle (Δ log-loss)" hero
   computed `model − market` while the page header promised "positive Δ means the model was
