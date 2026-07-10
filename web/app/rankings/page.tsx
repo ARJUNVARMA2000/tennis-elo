@@ -1,9 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
 import { eloKey, surfaceColor, SURFACES, pct, blendedElo, passesAgeFilter, parseAgeFilter, AGE_MIN, AGE_MAX } from "@/lib/ui";
+import { playerHref } from "@/lib/url";
 import { PageHead, Loading, SurfacePill, Reveal, StatCard } from "@/components/bits";
 import Dropdown from "@/components/Dropdown";
 
@@ -149,7 +151,11 @@ export default function Rankings() {
                 className="row-glow border-t border-[var(--color-line)]"
               >
                 <td className="mono px-3 py-2.5 text-right text-[11px] text-[var(--color-faint)]">{i + 1}</td>
-                <td className="px-3 py-2.5 whitespace-nowrap text-[var(--color-text)]">{p.name}</td>
+                <td className="px-3 py-2.5 whitespace-nowrap text-[var(--color-text)]">
+                  <Link href={playerHref(p.name, tour)} className="transition-colors hover:text-[var(--color-accent)] hover:underline">
+                    {p.name}
+                  </Link>
+                </td>
                 <td className="mono px-3 py-2.5 text-[11px] text-[var(--color-muted)]">{p.country ?? "—"}</td>
                 <td className="mono px-3 py-2.5 text-right text-[var(--color-muted)]">{p.age ?? "—"}</td>
                 <td className="mono px-3 py-2.5 text-right font-semibold text-[var(--color-text)]">

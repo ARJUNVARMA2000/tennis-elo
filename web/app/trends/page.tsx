@@ -1,7 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
+import Link from "next/link";
 import { useData, useTour } from "@/lib/tour";
+import { playerHref } from "@/lib/url";
 import { PageHead, Loading, Reveal, Spark } from "@/components/bits";
 
 type History = Record<string, [string, number][]>;
@@ -54,13 +56,14 @@ function MoverList({
   arrow: string;
   rows: { name: string; delta: number; series: number[] }[];
 }) {
+  const { tour } = useTour();
   return (
     <div>
       <div className="eyebrow mb-3" style={{ color }}>{title}</div>
       <div className="panel divide-y divide-[var(--color-line)]">
         {rows.map((r, i) => (
           <Reveal key={r.name} delay={Math.min(i * 0.04, 0.3)}>
-            <div className="row-glow flex items-center gap-4 p-4">
+            <Link href={playerHref(r.name, tour)} className="row-glow flex items-center gap-4 p-4">
               <div className="flex-1">
                 <div className="text-[13px] text-[var(--color-text)]">{r.name}</div>
                 <div className="mono mt-1 text-xs" style={{ color }}>
@@ -68,7 +71,7 @@ function MoverList({
                 </div>
               </div>
               <Spark points={r.series} color={color} />
-            </div>
+            </Link>
           </Reveal>
         ))}
       </div>

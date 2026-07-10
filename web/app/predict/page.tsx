@@ -1,9 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
 import { SURFACES, pct, scoreDist } from "@/lib/ui";
+import { setSearchParam } from "@/lib/url";
 import { PageHead, Loading, SurfacePill, Reveal, ProbBar, AnimatedNumber } from "@/components/bits";
 import Dropdown, { type DropdownOption } from "@/components/Dropdown";
 import { SPRING, stagger, pop } from "@/lib/motion";
@@ -16,8 +18,30 @@ type Matrix = {
 
 export default function Predict() {
   const { tour } = useTour();
+  return (
+    <div className="pb-16">
+      <PageHead
+        eyebrow={`${tour.toUpperCase()} · head to head`}
+        title="Match Predictor"
+        sub="Pick any two players, a surface and a format. The XGBoost combiner returns a calibrated win probability; the most likely set scores are back-solved from it with the Markov set model."
+      />
+      {/* useSearchParams (shareable ?a=&b= matchup links) needs a Suspense boundary under static export */}
+      <Suspense fallback={<Loading />}>
+        <PredictInner />
+      </Suspense>
+    </div>
+  );
+}
+
+function PredictInner() {
+  const { tour } = useTour();
   const { data, loading } = useData<Matrix>("matrix.json");
   const { data: roster } = useData<{ name: string; eloRank: number }[]>("players.json");
+  const router = useRouter();
+  const pathname = usePathname();
+  const sp = useSearchParams();
+  const urlA = sp.get("a");
+  const urlB = sp.get("b");
   const [a, setA] = useState(0);
   const [b, setB] = useState(1);
   const [surface, setSurface] = useState("Hard");
@@ -25,6 +49,36 @@ export default function Predict() {
 
   const players = useMemo(() => data?.players || [], [data]);
   const formats = useMemo(() => data?.formats || [3], [data]);
+
+  // Deep links carry NAMES (matrix indices are unstable across data refreshes);
+  // resolve them against the loaded matrix, ignore unknowns and degenerate pairs,
+  // and strip params that don't resolve (e.g. an ATP pair after switching to WTA).
+  useEffect(() => {
+    if (!players.length) return;
+    const ia = urlA ? players.indexOf(urlA) : -1;
+    const ib = urlB ? players.indexOf(urlB) : -1;
+    if (ia >= 0 && ib >= 0 && ia !== ib) { setA(ia); setB(ib); }
+    else {
+      if (ia >= 0 && ia !== b) setA(ia);
+      if (ib >= 0 && ib !== a) setB(ib);
+    }
+    if ((urlA && ia < 0) || (urlB && ib < 0)) {
+      let q = window.location.search;
+      if (urlA && ia < 0) q = setSearchParam(q, "a", null);
+      if (urlB && ib < 0) q = setSearchParam(q, "b", null);
+      router.replace(`${pathname}${q}`, { scroll: false });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [players, urlA, urlB]);
+
+  const pickA = (i: number) => {
+    setA(i);
+    if (players[i]) router.replace(`${pathname}${setSearchParam(window.location.search, "a", players[i])}`, { scroll: false });
+  };
+  const pickB = (i: number) => {
+    setB(i);
+    if (players[i]) router.replace(`${pathname}${setSearchParam(window.location.search, "b", players[i])}`, { scroll: false });
+  };
 
   // Elo rank sublabels for the pickers, where the roster has the player.
   const options: DropdownOption[] = useMemo(() => {
@@ -45,21 +99,15 @@ export default function Predict() {
   const dist = p != null ? scoreDist(p, formats.includes(bo) ? bo : formats[0]) : [];
 
   return (
-    <div className="pb-16">
-      <PageHead
-        eyebrow={`${tour.toUpperCase()} · head to head`}
-        title="Match Predictor"
-        sub="Pick any two players, a surface and a format. The XGBoost combiner returns a calibrated win probability; the most likely set scores are back-solved from it with the Markov set model."
-      />
-
+    <>
       {loading && <Loading />}
 
       {data && (
         <>
           <Reveal>
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
-              <Picker label="Player A" value={a} onChange={setA} options={options} accent="var(--color-accent)" />
-              <Picker label="Player B" value={b} onChange={setB} options={options} accent="var(--color-cmp)" />
+              <Picker label="Player A" value={a} onChange={pickA} options={options} accent="var(--color-accent)" />
+              <Picker label="Player B" value={b} onChange={pickB} options={options} accent="var(--color-cmp)" />
             </div>
           </Reveal>
 
@@ -149,7 +197,7 @@ export default function Predict() {
           {a === b && <p className="mono mt-6 text-sm text-[var(--color-loss)]">Pick two different players.</p>}
         </>
       )}
-    </div>
+    </>
   );
 }
 

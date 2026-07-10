@@ -1,7 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "framer-motion";
+import { useTour } from "@/lib/tour";
 import { surfaceColor, heat } from "@/lib/ui";
+import { playerHref } from "@/lib/url";
 import { EASE, SPRING_SOFT, stagger, fadeUp, hoverLift, useCountUp } from "@/lib/motion";
 
 export function Reveal({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
@@ -116,6 +119,8 @@ export function CallCard({
   glow?: boolean;
   tone?: "result" | "projection";
 }) {
+  // The tour makes every player name a working profile link with zero call-site changes.
+  const { tour } = useTour();
   // Show complementary integers so the two labels always sum to 100 (bar widths still
   // use the true probabilities). Round the top/authoritative side; complement the other.
   const topPct = Math.round(top.prob * 100);
@@ -134,7 +139,9 @@ export function CallCard({
             <div className="flex items-center justify-between gap-3">
               <span className="flex items-center gap-2 text-[15px]" style={{ color: r.won ? "var(--color-text)" : "var(--color-muted)" }}>
                 <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: r.won ? hi : "transparent" }} />
-                {r.name}
+                <Link href={playerHref(r.name, tour)} className="transition-colors hover:text-[var(--color-accent)] hover:underline">
+                  {r.name}
+                </Link>
               </span>
               <span className="mono text-sm" style={{ color: r.won ? "var(--color-text)" : "var(--color-muted)" }}>{pcts[i]}%</span>
             </div>

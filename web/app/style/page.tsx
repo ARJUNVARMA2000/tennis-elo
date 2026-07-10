@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
 import { RADAR_AXES, percentileScaler } from "@/lib/ui";
+import { setSearchParam } from "@/lib/url";
 import { PageHead, Loading, Reveal, Radar } from "@/components/bits";
 import Dropdown, { type DropdownOption } from "@/components/Dropdown";
 import { stagger, fadeUp } from "@/lib/motion";
@@ -29,7 +31,29 @@ function readAxis(p: Profile, key: string, source: "style" | "top"): number | nu
 
 export default function Style() {
   const { tour } = useTour();
+  return (
+    <div className="pb-16">
+      <PageHead
+        eyebrow={`${tour.toUpperCase()} · playing style`}
+        title="Playing Style"
+        sub="Two players across 13 serve, rally, return and surface metrics. Each axis is a percentile vs the field — further out means higher than more of the tour. Raw values are listed alongside."
+      />
+      {/* useSearchParams (shareable ?a=&b= pair links) needs a Suspense boundary under static export */}
+      <Suspense fallback={<Loading />}>
+        <StyleInner />
+      </Suspense>
+    </div>
+  );
+}
+
+function StyleInner() {
+  const { tour } = useTour();
   const { data, loading } = useData<Record<string, Profile>>("profiles.json");
+  const router = useRouter();
+  const pathname = usePathname();
+  const sp = useSearchParams();
+  const urlA = sp.get("a");
+  const urlB = sp.get("b");
   const names = useMemo(() => (data ? Object.keys(data) : []), [data]);
   const options: DropdownOption[] = useMemo(
     () =>
@@ -43,12 +67,35 @@ export default function Style() {
   const [a, setA] = useState("");
   const [b, setB] = useState("");
 
-  // Resolve defaults whenever the roster changes (ATP↔WTA): Sinner vs Djokovic on ATP, else top two.
+  // Resolve the pair whenever the roster changes (ATP↔WTA): a valid ?a=/?b= wins
+  // (shared links open the exact comparison), else Sinner vs Djokovic on ATP, else top two.
+  // Defaults are NOT written into the URL — only explicit picks are.
   useEffect(() => {
     if (!names.length) return;
-    if (!names.includes(a)) setA(names.includes(DEFAULTS[0]) ? DEFAULTS[0] : names[0]);
-    if (!names.includes(b)) setB(names.includes(DEFAULTS[1]) ? DEFAULTS[1] : (names[1] ?? names[0]));
-  }, [names, a, b]);
+    const wantA = urlA && names.includes(urlA) ? urlA : null;
+    const wantB = urlB && names.includes(urlB) ? urlB : null;
+    if (wantA && wantA !== a) setA(wantA);
+    else if (!wantA && !names.includes(a)) setA(names.includes(DEFAULTS[0]) ? DEFAULTS[0] : names[0]);
+    if (wantB && wantB !== b) setB(wantB);
+    else if (!wantB && !names.includes(b)) setB(names.includes(DEFAULTS[1]) ? DEFAULTS[1] : (names[1] ?? names[0]));
+    // stale params (e.g. an ATP pair after switching to WTA) are stripped, not kept broken
+    if ((urlA && !names.includes(urlA)) || (urlB && !names.includes(urlB))) {
+      let q = window.location.search;
+      if (urlA && !names.includes(urlA)) q = setSearchParam(q, "a", null);
+      if (urlB && !names.includes(urlB)) q = setSearchParam(q, "b", null);
+      router.replace(`${pathname}${q}`, { scroll: false });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [names, urlA, urlB, a, b]);
+
+  const pickA = (n: string) => {
+    setA(n);
+    router.replace(`${pathname}${setSearchParam(window.location.search, "a", n)}`, { scroll: false });
+  };
+  const pickB = (n: string) => {
+    setB(n);
+    router.replace(`${pathname}${setSearchParam(window.location.search, "b", n)}`, { scroll: false });
+  };
 
   // One percentile scaler per axis, built from the whole field for the active tour.
   const scalers = useMemo(() => {
@@ -78,13 +125,7 @@ export default function Style() {
   }, [pa, pb, a, b, scalers]);
 
   return (
-    <div className="pb-16">
-      <PageHead
-        eyebrow={`${tour.toUpperCase()} · playing style`}
-        title="Playing Style"
-        sub="Two players across 13 serve, rally, return and surface metrics. Each axis is a percentile vs the field — further out means higher than more of the tour. Raw values are listed alongside."
-      />
-
+    <>
       {loading && <Loading />}
 
       {!loading && (!data || names.length === 0) && (
@@ -97,8 +138,8 @@ export default function Style() {
         <>
           <Reveal>
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
-              <Picker label="Player A" value={a} onChange={setA} options={options} accent={A_COLOR} />
-              <Picker label="Player B" value={b} onChange={setB} options={options} accent={B_COLOR} />
+              <Picker label="Player A" value={a} onChange={pickA} options={options} accent={A_COLOR} />
+              <Picker label="Player B" value={b} onChange={pickB} options={options} accent={B_COLOR} />
             </div>
           </Reveal>
 
@@ -148,7 +189,7 @@ export default function Style() {
           )}
         </>
       )}
-    </div>
+    </>
   );
 }
 

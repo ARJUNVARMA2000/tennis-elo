@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
 import { pct, surfaceColor, SURFACES, STYLE_LABEL } from "@/lib/ui";
+import { playerHref, setSearchParam } from "@/lib/url";
 import { PageHead, Loading, Reveal, Spark, AnimatedNumber } from "@/components/bits";
 import Dropdown, { type DropdownOption } from "@/components/Dropdown";
 import { stagger, fadeUp } from "@/lib/motion";
@@ -19,7 +22,23 @@ type Profile = {
 
 export default function Players() {
   const { tour } = useTour();
+  return (
+    <div className="pb-16">
+      <PageHead eyebrow={`${tour.toUpperCase()} · player dossier`} title="Profiles" />
+      {/* useSearchParams (deep links) requires its own Suspense boundary under static export */}
+      <Suspense fallback={<Loading />}>
+        <PlayersInner />
+      </Suspense>
+    </div>
+  );
+}
+
+function PlayersInner() {
+  const { tour } = useTour();
   const { data, loading } = useData<Record<string, Profile>>("profiles.json");
+  const router = useRouter();
+  const pathname = usePathname();
+  const urlName = useSearchParams().get("p");
   const names = useMemo(() => (data ? Object.keys(data) : []), [data]);
   const options: DropdownOption[] = useMemo(
     () =>
@@ -32,13 +51,31 @@ export default function Players() {
   );
   const [sel, setSel] = useState("");
 
-  useEffect(() => { if (names.length && !names.includes(sel)) setSel(names[0]); }, [names, sel]);
+  // URL is the source of truth for the selection: ?p= wins when it names a known
+  // player (cross-links, back/forward); otherwise fall back to the top player.
+  useEffect(() => {
+    if (!names.length) return;
+    if (urlName && names.includes(urlName)) {
+      if (urlName !== sel) setSel(urlName);
+    } else if (!names.includes(sel)) {
+      setSel(names[0]);
+    }
+  }, [names, urlName, sel]);
+  const notFound = !!urlName && names.length > 0 && !names.includes(urlName);
   const p = data?.[sel];
 
-  return (
-    <div className="pb-16">
-      <PageHead eyebrow={`${tour.toUpperCase()} · player dossier`} title="Players" />
+  const pick = (n: string) => {
+    setSel(n);
+    router.replace(`${pathname}${setSearchParam(window.location.search, "p", n)}`, { scroll: false });
+  };
+  const opp = (name: string) => (
+    <Link href={playerHref(name, tour)} className="transition-colors hover:text-[var(--color-accent)] hover:underline">
+      {name}
+    </Link>
+  );
 
+  return (
+    <>
       {loading && <Loading />}
 
       {!loading && (!data || names.length === 0) && (
@@ -55,11 +92,17 @@ export default function Players() {
               label="Search a player"
               placeholder="Search a player…"
               value={sel}
-              onChange={setSel}
+              onChange={pick}
               options={options}
               className="mt-8 w-full max-w-md"
             />
           </Reveal>
+
+          {notFound && (
+            <div className="mono mt-3 text-xs text-[var(--color-faint)]">
+              No {tour.toUpperCase()} profile for “{urlName}” — showing {sel || "the top player"} instead.
+            </div>
+          )}
 
           {p && (
             <motion.div
@@ -115,7 +158,7 @@ export default function Players() {
                   {p.recent.slice(0, 10).map((m, i) => (
                     <div key={i} className="flex items-center gap-3 py-2 text-sm">
                       <span className="mono w-5 text-center" style={{ color: m.won ? "var(--color-win)" : "var(--color-loss)" }}>{m.won ? "W" : "L"}</span>
-                      <span className="flex-1 truncate">{m.won ? "d. " : "lost to "}{m.opp}</span>
+                      <span className="flex-1 truncate">{m.won ? "d. " : "lost to "}{opp(m.opp)}</span>
                       <span className="chip" style={{ color: surfaceColor(m.surface), borderColor: surfaceColor(m.surface) }}>{m.surface[0]}</span>
                       <span className="mono w-28 text-right text-xs text-[var(--color-muted)]">{m.score}</span>
                     </div>
@@ -128,7 +171,7 @@ export default function Players() {
                 <div className="eyebrow mb-3">Head-to-head</div>
                 {p.h2h.slice(0, 8).map((h) => (
                   <div key={h.opp} className="flex items-center justify-between py-1.5 text-sm">
-                    <span className="truncate text-[var(--color-muted)]">{h.opp}</span>
+                    <span className="truncate text-[var(--color-muted)]">{opp(h.opp)}</span>
                     <span className="mono"><b className="text-[var(--color-win)]">{h.w}</b>–<b className="text-[var(--color-loss)]">{h.l}</b></span>
                   </div>
                 ))}
@@ -137,6 +180,6 @@ export default function Players() {
           )}
         </>
       )}
-    </div>
+    </>
   );
 }
