@@ -1,3 +1,46 @@
+# Task: Hidden /health status page (2026-07-10)
+
+Plan: C:\Users\varma\.claude\plans\do-we-have-something-refactored-music.md
+Goal: a professional status page at /health (unlinked, URL-only) rendering every
+source/check verdict from structured health.json data — one source of truth in health.py,
+no client-side threshold logic. NOTE: built on ea1e678 (fresh-overlay alarm shadowed
+while stats overlay current) — the shadow state renders as amber "covered", not red.
+
+## Checklist
+- [x] config.py: WEB_DATA_DIR moves here from pipeline.py (pipeline imports it)
+- [x] health.py: source_checks(tour, h, now) structured rows (incl. shadow note);
+      problems() derives from it; main() adds checks + generatedAt + output
+      forecast_max_as_of; mirrors health.json to WEB_DATA_DIR after write
+- [x] refresh.yml: move "Data health check" (write step) before the site build so the
+      deploy ships a current health.json; "Report data health" stays last
+- [x] web: useRootData in lib/tour.tsx; PAGE_META health entry; app/health/layout.tsx
+      (noindex); app/health/page.tsx (banner, per-tour check grids, output integrity,
+      forecast log, drift, build stamps, GitHub-runs strip, outbound links); NO nav link
+- [x] tests: test_health.py source_checks structure + problems() consistency + report
+      fields + web mirror; web/tests/health.test.ts pure helpers
+- [x] Verify: pytest+ruff; local sentinel run mirrors health.json; npm test/lint/tsc;
+      Playwright /health on :3001 (both tours, shadowed amber fresh row, screenshot);
+      no internal link to /health; CI green -> master -> deployed page fresh
+
+## Review (2026-07-10)
+- **Shipped**: /health — an unlisted (URL-only, noindex/nofollow, absent from Nav)
+  operations page rendering the sentinel's verdicts verbatim: per-tour source-check
+  grids (value vs limit + ok/covered/fail), output-integrity state, forecast-log
+  liveness, drift chips from track.json, build stamps, a last-30 pipeline-runs strip
+  from the public GitHub API, and outbound links to Actions/issues. One source of
+  truth: health.py's new `source_checks()` emits structured rows that problems() now
+  DERIVES from (strings unchanged), so page and alerts can never drift; the shadowed
+  fresh-overlay state (ea1e678) renders amber "covered". health.json now carries
+  checks/generatedAt/forecast_max_as_of and is mirrored to web/public/data on every
+  sentinel run; the CI write step moved pre-build so each deploy ships its own report.
+- **Proof**: 261 pytest + ruff, 138 vitest (+11 new) + eslint + tsc green; `next build`
+  exports /health with noindex; live sentinel run mirrored health.json (ATP fresh 19d
+  amber-covered, all else green); Playwright screenshot of :3001/health shows both
+  tours, gold covered row (#d9a854 computed), zero internal links to /health.
+- **Deviations from plan**: rebased onto ea1e678 mid-task (concurrent session shipped
+  the fresh-overlay shadow) — source_checks carries the shadow as an amber note row;
+  test helper `row()` needed Partial<CheckRow> typing for tsc.
+
 # Task: Close the input-freshness monitoring gaps (2026-07-10)
 
 Plan: C:\Users\varma\.claude\plans\do-we-have-something-refactored-music.md

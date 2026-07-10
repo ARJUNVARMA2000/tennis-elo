@@ -74,10 +74,7 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
 
 export const useTour = () => useContext(Ctx);
 
-/** Fetch a JSON artifact for the active tour from /data/<tour>/<file>.
-    `error` flips on HTTP failure or a rejected fetch (pages may ignore it). */
-export function useData<T>(file: string): { data: T | null; loading: boolean; error: boolean } {
-  const { tour } = useTour();
+function useJson<T>(url: string): { data: T | null; loading: boolean; error: boolean } {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -85,7 +82,7 @@ export function useData<T>(file: string): { data: T | null; loading: boolean; er
     let live = true;
     setLoading(true);
     setError(false);
-    fetch(`${BASE}/data/${tour}/${file}`)
+    fetch(url)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
       .then((j) => {
         if (live) {
@@ -103,6 +100,20 @@ export function useData<T>(file: string): { data: T | null; loading: boolean; er
     return () => {
       live = false;
     };
-  }, [tour, file]);
+  }, [url]);
   return { data, loading, error };
+}
+
+/** Fetch a JSON artifact for the active tour from /data/<tour>/<file>.
+    `error` flips on HTTP failure or a rejected fetch (pages may ignore it). */
+export function useData<T>(file: string): { data: T | null; loading: boolean; error: boolean } {
+  const { tour } = useTour();
+  return useJson<T>(`${BASE}/data/${tour}/${file}`);
+}
+
+/** Fetch a JSON artifact by path under /data/, tour-agnostic — "health.json" for the
+    root report or an explicit "atp/track.json". Used by the (hidden) /health page,
+    which shows both tours at once regardless of the site's tour toggle. */
+export function useRootData<T>(file: string): { data: T | null; loading: boolean; error: boolean } {
+  return useJson<T>(`${BASE}/data/${file}`);
 }

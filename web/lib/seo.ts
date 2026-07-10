@@ -59,6 +59,11 @@ const PAGE_META: Record<string, { title: string; description: string }> = {
     title: "Method",
     description: "How the engine works: surface-blended Elo, a serve/return Markov model and an XGBoost combiner.",
   },
+  // internal operations page — deliberately unlinked (URL-only) and noindexed
+  health: {
+    title: "Health",
+    description: "Pipeline status: source freshness, output integrity and model drift, straight from the data-health sentinel.",
+  },
 };
 
 export function pageMetadata(slug: keyof typeof PAGE_META | string): Metadata {

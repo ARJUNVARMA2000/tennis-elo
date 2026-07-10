@@ -152,6 +152,36 @@ def test_problems_charting_freeze_flagged():
     print("ok test_problems_charting_freeze_flagged")
 
 
+def test_source_checks_structure_and_consistency():
+    """source_checks() is the single source of truth the /health page renders and
+    problems() derives from — rows must be structurally complete, and the derived
+    problem list must equal the failing rows' problems in every scenario."""
+    july = pd.Timestamp("2026-07-01")
+    scenarios = [
+        _h(),                                             # healthy
+        _h(result_age=10),                                # stale results
+        _h(fresh_age=20),                                 # fresh over limit, shadowed
+        _h(fresh_age=20, stats_age=17),                   # fresh over limit, gate live
+        _h(charting_age=None),                            # charting missing
+        _h(result_age=None, stats_age=None, frac=None),   # empty tour
+    ]
+    for h in scenarios:
+        for now in (july, pd.Timestamp("2026-12-15"), pd.Timestamp("2026-01-10")):
+            rows = health.source_checks("atp", h, now)
+            assert [r["key"] for r in rows] == ["results", "stats", "coverage", "fresh", "charting"]
+            for r in rows:
+                assert set(r) == {"key", "label", "value", "limit", "unit", "date",
+                                  "ok", "note", "problem"}
+                assert r["ok"] == (r["problem"] is None)
+            assert health.problems("atp", h, now) == [r["problem"] for r in rows if r["problem"]]
+    # the shadowed fresh overlay renders as a NOTE (page shows amber), never a problem
+    rows = {r["key"]: r for r in health.source_checks("atp", _h(fresh_age=20), july)}
+    assert rows["fresh"]["ok"] and "shadowed" in rows["fresh"]["note"]
+    live = {r["key"]: r for r in health.source_checks("atp", _h(fresh_age=20, stats_age=17), july)}
+    assert not live["fresh"]["ok"] and live["fresh"]["note"] is None
+    print("ok test_source_checks_structure_and_consistency")
+
+
 def test_tour_health_empty_frame_reports_none():
     """An empty tour must report None ages (flagged downstream), not crash on NaT."""
     orig = (health.load_matches, health.fresh_date_max, health.charting_date_max)
@@ -179,7 +209,8 @@ def test_main_strict_exit_code_and_report():
     stale = pd.DataFrame({"date": pd.to_datetime(["2026-01-01"]),
                           "completed": [True], "has_stats": [True]})
     orig = (health.load_matches, health.read_outputs, health.fresh_date_max,
-            health.charting_date_max, health.OUTPUT_DIR, health.TOURS, sys.argv)
+            health.charting_date_max, health.OUTPUT_DIR, health.WEB_DATA_DIR,
+            health.TOURS, sys.argv)
     try:
         with tempfile.TemporaryDirectory() as d:
             health.load_matches = lambda tour: stale
@@ -187,6 +218,7 @@ def test_main_strict_exit_code_and_report():
             health.fresh_date_max = lambda tour: today        # hermetic: no real data/raw reads
             health.charting_date_max = lambda tour: today
             health.OUTPUT_DIR = Path(d)
+            health.WEB_DATA_DIR = Path(d) / "web"             # hermetic: no real web/ mirror
             health.TOURS = ("atp",)
             sys.argv = ["health", "--strict"]
             rc_strict = health.main()
@@ -195,10 +227,16 @@ def test_main_strict_exit_code_and_report():
             rc_soft = health.main()
     finally:
         (health.load_matches, health.read_outputs, health.fresh_date_max,
-         health.charting_date_max, health.OUTPUT_DIR, health.TOURS, sys.argv) = orig
+         health.charting_date_max, health.OUTPUT_DIR, health.WEB_DATA_DIR,
+         health.TOURS, sys.argv) = orig
     assert rc_strict == 1 and report["ok"] is False and report["tours"]["atp"]["problems"]
     assert report["tours"]["atp"]["output"]["matches"] == 300_000   # output snapshot persisted
     assert rc_soft == 0                      # same problems, but only --strict reds the build
+    # /health page contract: structured rows + precise stamp + forecast liveness detail
+    assert [r["key"] for r in report["tours"]["atp"]["checks"]] == \
+        ["results", "stats", "coverage", "fresh", "charting"]
+    assert report["generatedAt"].endswith("Z") and "T" in report["generatedAt"]
+    assert report["tours"]["atp"]["output"]["forecast_max_as_of"] == "2026-07-09"
     print("ok test_main_strict_exit_code_and_report")
 
 
@@ -209,7 +247,8 @@ def test_main_surfaces_output_problems():
     fresh = pd.DataFrame({"date": pd.to_datetime([datetime.now(UTC).date()]),
                           "completed": [True], "has_stats": [True]})
     orig = (health.load_matches, health.read_outputs, health.fresh_date_max,
-            health.charting_date_max, health.OUTPUT_DIR, health.TOURS, sys.argv)
+            health.charting_date_max, health.OUTPUT_DIR, health.WEB_DATA_DIR,
+            health.TOURS, sys.argv)
     try:
         with tempfile.TemporaryDirectory() as d:
             health.load_matches = lambda tour: fresh
@@ -217,13 +256,15 @@ def test_main_surfaces_output_problems():
             health.fresh_date_max = lambda tour: today        # hermetic: no real data/raw reads
             health.charting_date_max = lambda tour: today
             health.OUTPUT_DIR = Path(d)
+            health.WEB_DATA_DIR = Path(d) / "web"             # hermetic: no real web/ mirror
             health.TOURS = ("atp",)
             sys.argv = ["health", "--strict"]
             rc = health.main()
             report = json.loads((Path(d) / "health.json").read_text())
     finally:
         (health.load_matches, health.read_outputs, health.fresh_date_max,
-         health.charting_date_max, health.OUTPUT_DIR, health.TOURS, sys.argv) = orig
+         health.charting_date_max, health.OUTPUT_DIR, health.WEB_DATA_DIR,
+         health.TOURS, sys.argv) = orig
     assert rc == 1 and report["ok"] is False
     assert report["tours"]["atp"]["problems"] == []              # source was fine
     assert any("tournaments.json missing" in p for p in report["tours"]["atp"]["output"]["problems"])
@@ -501,13 +542,15 @@ def test_main_reports_problems_changed():
     staler = pd.DataFrame({"date": pd.to_datetime(["2025-06-01"]),
                            "completed": [True], "has_stats": [True]})
     orig = (health.load_matches, health.read_outputs, health.fresh_date_max,
-            health.charting_date_max, health.OUTPUT_DIR, health.TOURS, sys.argv)
+            health.charting_date_max, health.OUTPUT_DIR, health.WEB_DATA_DIR,
+            health.TOURS, sys.argv)
     try:
         with tempfile.TemporaryDirectory() as d:
             health.read_outputs = lambda tour: _oc()
             health.fresh_date_max = lambda tour: today
             health.charting_date_max = lambda tour: today
             health.OUTPUT_DIR = Path(d)
+            health.WEB_DATA_DIR = Path(d) / "web"
             health.TOURS = ("atp",)
             sys.argv = ["health"]
             health.load_matches = lambda tour: stale
@@ -518,12 +561,16 @@ def test_main_reports_problems_changed():
             health.load_matches = lambda tour: staler         # problem strings shift
             health.main()
             third = json.loads((Path(d) / "health.json").read_text())
+            mirrored = json.loads((Path(d) / "web" / "health.json").read_text())
     finally:
         (health.load_matches, health.read_outputs, health.fresh_date_max,
-         health.charting_date_max, health.OUTPUT_DIR, health.TOURS, sys.argv) = orig
+         health.charting_date_max, health.OUTPUT_DIR, health.WEB_DATA_DIR,
+         health.TOURS, sys.argv) = orig
     assert first["ok"] is False and first["problems_changed"] is True
     assert second["problems_changed"] is False
     assert third["problems_changed"] is True
+    # the /health page's copy is the same report, mirrored on every sentinel run
+    assert mirrored == third
     print("ok test_main_reports_problems_changed")
 
 
@@ -695,6 +742,7 @@ if __name__ == "__main__":
     test_problems_coverage_gate_needs_volume()
     test_problems_fresh_overlay_freeze_flagged()
     test_problems_charting_freeze_flagged()
+    test_source_checks_structure_and_consistency()
     test_tour_health_empty_frame_reports_none()
     test_main_strict_exit_code_and_report()
     test_main_surfaces_output_problems()

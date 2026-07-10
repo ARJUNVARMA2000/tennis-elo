@@ -13,14 +13,12 @@ import argparse
 import shutil
 from datetime import UTC
 
-from .config import MODEL_DIR, TOURS, output_dir
+from .config import TOURS, WEB_DATA_DIR, output_dir
 from .data.results import load_matches
 from .model.export import export_all
 from .model.features import FEATURES, build_predictor_inputs, feat_params_for, main_rows
 from .model.predict import TennisPredictor
 from .model.train import train_final, walk_forward, xgb_params_for
-
-WEB_DATA_DIR = MODEL_DIR.parent / "web" / "public" / "data"
 
 
 def _mirror(tour: str) -> None:

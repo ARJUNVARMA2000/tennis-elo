@@ -150,6 +150,19 @@ jobs:
           echo "::error::forecast-log push failed after 4 attempts — eval history exists only in the evictable cache"
           exit 1
 
+      # Health sentinel WRITE pass, before the site build: reads the finalized pipeline
+      # outputs (nothing below changes them), always exits 0, writes health.json and
+      # mirrors it to web/public/data/ so THIS deploy ships its own current report — the
+      # (hidden) /health page renders it. Runs on EVERY mode (a source that dies right
+      # after the daily full run used to feed ~23 stale hourly deploys before the next
+      # check noticed). The ALERTING on this report stays post-deploy ("Report data
+      # health", last) so it can never cost a deploy.
+      - name: Data health check
+        working-directory: tennis_model
+        env:
+          PYTHONPATH: src
+        run: python -m tennis_model.data.health
+
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -195,19 +208,8 @@ jobs:
             echo "not Monday - skipping snapshot"
           fi
 
-      # Health sentinel LAST: the site has already deployed with the best data we have.
-      # Runs on EVERY mode (a source that dies right after the daily full run used to feed
-      # ~23 stale hourly deploys before the next check noticed). Runs WITHOUT --strict so
-      # it always writes health.json (exit 0); the next step reads that file to open/close
-      # the data-health issue and red the run. It checks both source freshness and the
-      # produced JSON (counts/tournaments/predictions).
-      - name: Data health check
-        working-directory: tennis_model
-        env:
-          PYTHONPATH: src
-        run: python -m tennis_model.data.health
-
-      # Turn health.json into an actionable alert: file (or comment on) a single
+      # Turn the health.json written by the pre-build check into an actionable alert
+      # AFTER the deploy (an alert must never cost a deploy): file (or comment on) a single
       # `data-health` GitHub issue carrying the specific problems + a ready-to-paste fix
       # prompt, auto-close it on recovery, and red the run so GitHub also emails the owner.
       # Runs on EVERY mode, dedup'd so a standing failure alerts once, not 24x/day:

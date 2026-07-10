@@ -31,6 +31,7 @@ import glob
 import itertools
 import json
 import os
+import shutil
 from collections import Counter
 from datetime import UTC, datetime
 
@@ -51,6 +52,7 @@ from ..config import (
     HEALTH_OFFSEASON_RELAX_DAYS,
     OUTPUT_DIR,
     TOURS,
+    WEB_DATA_DIR,
     fresh_dir,
     output_dir,
 )
@@ -124,22 +126,43 @@ def tour_health(tour: str, now: pd.Timestamp) -> dict:
     }
 
 
-def problems(tour: str, h: dict, now: pd.Timestamp) -> list[str]:
+def source_checks(tour: str, h: dict, now: pd.Timestamp) -> list[dict]:
+    """Structured verdicts for the raw-source freshness checks — the single source of
+    truth: problems() derives its alert strings from these rows, and the (hidden)
+    /health page renders them, so the two can never drift. Each row:
+      {key, label, value, limit, unit, date, ok, note, problem}
+    `problem` is the alert string (None when ok); `note` carries context for a row that
+    is over its limit but deliberately not alarmed (a shadowed redundancy layer)."""
     offseason = _offseason(now)
     max_result = HEALTH_OFFSEASON_RELAX_DAYS if offseason else HEALTH_MAX_RESULT_AGE_DAYS
     max_stats = HEALTH_OFFSEASON_RELAX_DAYS if offseason else HEALTH_MAX_STATS_AGE_DAYS
     min_frac = HEALTH_MIN_STATS_FRACTION.get(tour, 0.0)
-    out = []
-    if h["result_age_days"] is None:
-        out.append(f"{tour}: no completed matches loaded")
-    elif h["result_age_days"] > max_result:
-        out.append(f"{tour}: newest completed match is {h['result_age_days']}d old (max {max_result})")
+
+    def row(key, label, value, limit, unit="d", date=None, note=None, problem=None):
+        return {"key": key, "label": label, "value": value, "limit": limit, "unit": unit,
+                "date": date, "ok": problem is None, "note": note, "problem": problem}
+
+    rows = []
+    res_age = h["result_age_days"]
+    rows.append(row(
+        "results", "Match results (merged)", res_age, max_result,
+        problem=(f"{tour}: no completed matches loaded" if res_age is None
+                 else f"{tour}: newest completed match is {res_age}d old (max {max_result})"
+                 if res_age > max_result else None)))
     if min_frac > 0:
-        if h["stats_age_days"] is None or h["stats_age_days"] > max_stats:
-            out.append(f"{tour}: newest serve-stats row is {h['stats_age_days']}d old (max {max_stats})")
+        stats_age = h["stats_age_days"]
+        rows.append(row(
+            "stats", "Serve-stats overlay", stats_age, max_stats, date=h.get("stats_date_max"),
+            problem=(f"{tour}: newest serve-stats row is {stats_age}d old (max {max_stats})"
+                     if stats_age is None or stats_age > max_stats else None)))
         frac = h["cur_year_stats_fraction"]
-        if frac is not None and h["cur_year_matches"] >= 100 and frac < min_frac:
-            out.append(f"{tour}: current-season stats coverage {frac:.0%} < {min_frac:.0%}")
+        rows.append(row(
+            "coverage", "Season stats coverage", frac, min_frac, unit="frac",
+            note=("season too young to judge (under 100 matches)"
+                  if frac is not None and h["cur_year_matches"] < 100 else None),
+            problem=(f"{tour}: current-season stats coverage {frac:.0%} < {min_frac:.0%}"
+                     if frac is not None and h["cur_year_matches"] >= 100 and frac < min_frac
+                     else None)))
     # Per-source freshness: the merged result_age above can't see ONE frozen source (the
     # ESPN live overlay keeps the merged max current), so the silent sources get their own
     # age gates. The fresh overlay updates ~weekly, so it legitimately lags the season
@@ -156,17 +179,30 @@ def problems(tour: str, h: dict, now: pd.Timestamp) -> list[str]:
     # exceeds 14d during every slam fortnight. The freeze alarm fires only when the fresh
     # overlay is the freshest non-live source left — i.e. the stats overlay is stale too.
     stats_current = h["stats_age_days"] is not None and h["stats_age_days"] <= max_stats
-    if h["fresh_age_days"] is None:
-        out.append(f"{tour}: fresh overlay has no loadable results")
-    elif h["fresh_age_days"] > max_fresh and not stats_current:
-        out.append(f"{tour}: newest fresh-overlay result is {h['fresh_age_days']}d old "
-                   f"(max {max_fresh}) — the results overlay source may have frozen")
-    if h["charting_age_days"] is None:
-        out.append(f"{tour}: charting files missing/unreadable (style features degraded)")
-    elif h["charting_age_days"] > HEALTH_MAX_CHARTING_AGE_DAYS:
-        out.append(f"{tour}: newest charted match is {h['charting_age_days']}d old "
-                   f"(max {HEALTH_MAX_CHARTING_AGE_DAYS}) — the MCP source may have moved/frozen")
-    return out
+    fresh_age = h["fresh_age_days"]
+    shadowed = fresh_age is not None and fresh_age > max_fresh and stats_current
+    rows.append(row(
+        "fresh", "Results overlay (fresh)", fresh_age, max_fresh, date=h.get("fresh_date_max"),
+        note=("frozen upstream, but shadowed — the serve-stats overlay is current, so "
+              "results/ranks/stats all still flow" if shadowed else None),
+        problem=(f"{tour}: fresh overlay has no loadable results" if fresh_age is None
+                 else f"{tour}: newest fresh-overlay result is {fresh_age}d old "
+                 f"(max {max_fresh}) — the results overlay source may have frozen"
+                 if fresh_age > max_fresh and not stats_current else None)))
+    ch_age = h["charting_age_days"]
+    rows.append(row(
+        "charting", "Match charting (MCP)", ch_age, HEALTH_MAX_CHARTING_AGE_DAYS,
+        date=h.get("charting_date_max"),
+        problem=(f"{tour}: charting files missing/unreadable (style features degraded)"
+                 if ch_age is None
+                 else f"{tour}: newest charted match is {ch_age}d old "
+                 f"(max {HEALTH_MAX_CHARTING_AGE_DAYS}) — the MCP source may have moved/frozen"
+                 if ch_age > HEALTH_MAX_CHARTING_AGE_DAYS else None)))
+    return rows
+
+
+def problems(tour: str, h: dict, now: pd.Timestamp) -> list[str]:
+    return [r["problem"] for r in source_checks(tour, h, now) if r["problem"]]
 
 
 # ---------------------------------------------------------------------------
@@ -690,18 +726,25 @@ def main() -> int:
             prev = None
 
     now = pd.Timestamp(datetime.now(UTC).date())
-    report, all_problems = {"generated": str(now.date()), "tours": {}}, []
+    # `generated` stays day-granular (problem strings key off it for dedup); generatedAt
+    # is the precise stamp the /health page shows and ages client-side.
+    report, all_problems = {"generated": str(now.date()),
+                            "generatedAt": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                            "tours": {}}, []
     for tour in TOURS:
         h = tour_health(tour, now)
-        p = problems(tour, h, now)
+        checks = source_checks(tour, h, now)
+        p = [r["problem"] for r in checks if r["problem"]]
         prev_out = ((prev or {}).get("tours", {}).get(tour, {}) or {}).get("output") or {}
         oc = read_outputs(tour)
         op = output_problems(tour, oc, now, prev_out)
         meta = oc["data"].get("meta") or {}
+        h["checks"] = checks
         h["problems"] = p
         h["output"] = {
             "matches": meta.get("matches"),
             "forecast_lines": (oc["forecast"] or {}).get("lines"),
+            "forecast_max_as_of": (oc["forecast"] or {}).get("max_as_of"),
             "problems": op,
         }
         report["tours"][tour] = h
@@ -718,6 +761,14 @@ def main() -> int:
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     health_path.write_text(json.dumps(report, indent=2))
+    # Mirror for the (hidden) /health page — the CI check step runs before the site
+    # build, so the deploy ships this run's report. Best-effort: a checkout without
+    # web/ (or a read-only mount) must never break the sentinel itself.
+    try:
+        WEB_DATA_DIR.mkdir(parents=True, exist_ok=True)
+        shutil.copy(health_path, WEB_DATA_DIR / "health.json")
+    except OSError as e:
+        print(f"  (health.json web mirror skipped: {e})")
     for pr in all_problems:
         print(f"  HEALTH: {pr}")
     if args.strict and all_problems:

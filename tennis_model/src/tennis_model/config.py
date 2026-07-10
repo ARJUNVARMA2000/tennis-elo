@@ -16,6 +16,7 @@ DATA_DIR = MODEL_DIR / "data"
 RAW_DIR = DATA_DIR / "raw"
 ODDS_DIR = RAW_DIR / "odds"
 OUTPUT_DIR = DATA_DIR / "output"
+WEB_DATA_DIR = MODEL_DIR.parent / "web" / "public" / "data"   # web-app mirror target
 
 TOURS = ("atp", "wta")
 
