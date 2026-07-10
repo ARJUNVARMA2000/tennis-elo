@@ -157,6 +157,97 @@ export const RADAR_AXES: RadarAxis[] = [
   { key: "eloGrass", label: "Grass Elo", source: "top", fmt: eloFmt },
 ];
 
+/** Row shape the explorer reads from players.json. The enrichment fields
+    (heightCm, per-surface pcts, form90, winRate10) are optional — snapshots built
+    before the export enrichment lack the keys entirely. */
+export type ExplorerPlayer = {
+  name: string; eloRank: number; elo: number;
+  eloHard: number; eloClay: number; eloGrass: number;
+  servePct: number; returnPct: number;
+  age: number | null; matches: number; rankPoints: number | null; country: string | null;
+  aggression?: number | null; serveDom?: number | null;
+  heightCm?: number | null; form90?: number | null; winRate10?: number | null;
+  servePctHard?: number | null; servePctClay?: number | null; servePctGrass?: number | null;
+  returnPctHard?: number | null; returnPctClay?: number | null; returnPctGrass?: number | null;
+};
+
+export type ExplorerAxis = {
+  key: string;                                        // stable URL id (?x=/&y=/&sort=)
+  label: string;
+  fmt: (v: number) => string;                         // ticks, tooltip and table cells
+  get: (p: ExplorerPlayer, tour: string) => number | null;   // null-safe accessor
+};
+
+const num = (v: unknown): number | null => (typeof v === "number" && isFinite(v) ? v : null);
+const signedInt = (v: number) => (v >= 0 ? "+" : "") + Math.round(v);
+
+/** Every plottable/sortable per-player attribute. Surface ratings are exposed
+    BLENDED only (via blendedElo) — raw surface Elo is heavily shrunk and would
+    contradict what the rankings board shows. */
+export const EXPLORER_AXES: ExplorerAxis[] = [
+  { key: "elo", label: "Elo rating", fmt: eloFmt, get: (p) => num(p.elo) },
+  { key: "eloHardBlend", label: "Hard rating (blended)", fmt: eloFmt, get: (p, t) => (num(p.elo) == null || num(p.eloHard) == null ? null : blendedElo(p.elo, p.eloHard, t)) },
+  { key: "eloClayBlend", label: "Clay rating (blended)", fmt: eloFmt, get: (p, t) => (num(p.elo) == null || num(p.eloClay) == null ? null : blendedElo(p.elo, p.eloClay, t)) },
+  { key: "eloGrassBlend", label: "Grass rating (blended)", fmt: eloFmt, get: (p, t) => (num(p.elo) == null || num(p.eloGrass) == null ? null : blendedElo(p.elo, p.eloGrass, t)) },
+  { key: "servePct", label: "Serve points won", fmt: (v) => pct(v, 1), get: (p) => num(p.servePct) },
+  { key: "returnPct", label: "Return points won", fmt: (v) => pct(v, 1), get: (p) => num(p.returnPct) },
+  { key: "servePctHard", label: "Serve % · Hard", fmt: (v) => pct(v, 1), get: (p) => num(p.servePctHard) },
+  { key: "servePctClay", label: "Serve % · Clay", fmt: (v) => pct(v, 1), get: (p) => num(p.servePctClay) },
+  { key: "servePctGrass", label: "Serve % · Grass", fmt: (v) => pct(v, 1), get: (p) => num(p.servePctGrass) },
+  { key: "returnPctHard", label: "Return % · Hard", fmt: (v) => pct(v, 1), get: (p) => num(p.returnPctHard) },
+  { key: "returnPctClay", label: "Return % · Clay", fmt: (v) => pct(v, 1), get: (p) => num(p.returnPctClay) },
+  { key: "returnPctGrass", label: "Return % · Grass", fmt: (v) => pct(v, 1), get: (p) => num(p.returnPctGrass) },
+  { key: "form90", label: "Form (90-day Elo Δ)", fmt: signedInt, get: (p) => num(p.form90) },
+  { key: "winRate10", label: "Last-10 win rate", fmt: (v) => pct(v, 0), get: (p) => num(p.winRate10) },
+  { key: "age", label: "Age", fmt: (v) => String(Math.round(v)), get: (p) => num(p.age) },
+  { key: "heightCm", label: "Height (cm)", fmt: (v) => String(Math.round(v)), get: (p) => num(p.heightCm) },
+  { key: "matches", label: "Career matches", fmt: (v) => String(Math.round(v)), get: (p) => num(p.matches) },
+  { key: "rankPoints", label: "Ranking points", fmt: (v) => String(Math.round(v)), get: (p) => num(p.rankPoints) },
+  { key: "aggression", label: "Aggression (style)", fmt: styleFmt, get: (p) => num(p.aggression) },
+  { key: "serveDom", label: "Serve dominance (style)", fmt: styleFmt, get: (p) => num(p.serveDom) },
+];
+
+export const EXPLORER_PRESETS: { label: string; x: string; y: string }[] = [
+  { label: "Serve vs return", x: "servePct", y: "returnPct" },
+  { label: "Age vs rating", x: "age", y: "elo" },
+  { label: "Height vs serve", x: "heightCm", y: "servePct" },
+  { label: "Clay vs grass rating", x: "eloClayBlend", y: "eloGrassBlend" },
+];
+
+/** Axes with enough data to be worth offering (≥3 non-null values in the field) —
+    auto-hides enrichment axes when the served snapshot predates them. */
+export function availableAxes(players: ExplorerPlayer[], tour: string): ExplorerAxis[] {
+  return EXPLORER_AXES.filter(
+    (a) => players.reduce((n, p) => n + (a.get(p, tour) != null ? 1 : 0), 0) >= 3,
+  );
+}
+
+/** Players with BOTH axis values, as scatter points; `missing` counts the dropped. */
+export function plottable<T extends ExplorerPlayer>(
+  players: T[], xAxis: ExplorerAxis, yAxis: ExplorerAxis, tour: string,
+): { points: { p: T; x: number; y: number }[]; missing: number } {
+  const points: { p: T; x: number; y: number }[] = [];
+  for (const p of players) {
+    const x = xAxis.get(p, tour), y = yAxis.get(p, tour);
+    if (x != null && y != null) points.push({ p, x, y });
+  }
+  return { points, missing: players.length - points.length };
+}
+
+/** Sort a field by one axis; players missing the value go LAST in either direction. */
+export function sortByAxis<T extends ExplorerPlayer>(
+  players: T[], axis: ExplorerAxis, dir: "asc" | "desc", tour: string,
+): T[] {
+  const sign = dir === "asc" ? 1 : -1;
+  return [...players].sort((a, b) => {
+    const va = axis.get(a, tour), vb = axis.get(b, tour);
+    if (va == null && vb == null) return 0;
+    if (va == null) return 1;
+    if (vb == null) return -1;
+    return sign * (va - vb);
+  });
+}
+
 /**
  * Build a mid-rank percentile scaler in [0,1] from a population of values.
  * pct(v) = (#below + 0.5·#equal) / n — robust to outliers and ties. Nulls excluded by caller.

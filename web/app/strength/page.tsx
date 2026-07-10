@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
 import { pct } from "@/lib/ui";
+import { playerHref } from "@/lib/url";
 import { PageHead, Loading, Reveal } from "@/components/bits";
-import { SPRING, SPRING_SOFT, EASE } from "@/lib/motion";
+import ScatterChart from "@/components/ScatterChart";
+import { SPRING } from "@/lib/motion";
 
 type Player = {
   name: string; eloRank: number; elo: number;
@@ -33,21 +36,9 @@ function quadColor(p: Player, mean: { s: number; r: number }) {
   return QUADS[3].color;
 }
 
-/** Nice round ticks across [min,max] for fractional (0..1) axes. */
-function ticks(min: number, max: number, n = 4): number[] {
-  const span = max - min || 1;
-  const raw = span / n;
-  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
-  const norm = raw / mag;
-  const step = (norm < 1.5 ? 1 : norm < 3 ? 2 : norm < 7 ? 5 : 10) * mag;
-  const start = Math.ceil(min / step) * step;
-  const out: number[] = [];
-  for (let v = start; v <= max + 1e-9; v += step) out.push(Number(v.toFixed(10)));
-  return out;
-}
-
 export default function Strength() {
   const { tour } = useTour();
+  const router = useRouter();
   const { data, loading } = useData<Player[]>("players.json");
   const [count, setCount] = useState(DEFAULT_N);
   const [picks, setPicks] = useState<string[]>([]);
@@ -281,12 +272,38 @@ export default function Strength() {
             <div className="mt-5 panel p-3 sm:p-5">
               <ScatterChart
                 key={`${tour}-${count}`}
-                players={shown}
-                picks={new Set(picks)}
-                sel={sel}
-                tourAvg={tourAvg}
+                data={shown.map((p) => ({
+                  id: p.name, x: p.servePct, y: p.returnPct,
+                  label: lastName(p.name), color: quadColor(p, sel), ring: picks.includes(p.name), p,
+                }))}
+                xLabel="serve points won →"
+                yLabel="return points won →"
+                xTickFmt={(v) => pct(v, 0)}
+                yTickFmt={(v) => pct(v, 0)}
+                tooltip={(d) => ({
+                  title: d.p.name,
+                  lines: [`serve ${pct(d.p.servePct, 1)} · ret ${pct(d.p.returnPct, 1)}`, `elo rank #${d.p.eloRank}`],
+                })}
+                onDotClick={(d) => router.push(playerHref(d.id, tour))}
                 hover={hover}
-                setHover={setHover}
+                onHover={setHover}
+                extraDomainPoints={[{ x: tourAvg.s, y: tourAvg.r }]}
+                ariaLabel="Serve versus return scatter plot"
+                annotations={({ X, Y, bounds: b }) => (
+                  <>
+                    {/* tour-average reference crosshair (dashed, faint) */}
+                    <line x1={X(tourAvg.s)} y1={b.top} x2={X(tourAvg.s)} y2={b.top + b.ih} stroke="var(--color-faint)" strokeWidth={1} strokeDasharray="3 4" />
+                    <line x1={b.left} y1={Y(tourAvg.r)} x2={b.left + b.iw} y2={Y(tourAvg.r)} stroke="var(--color-faint)" strokeWidth={1} strokeDasharray="3 4" />
+                    {/* selected-group average cross (solid, brighter) */}
+                    <line x1={X(sel.s)} y1={b.top} x2={X(sel.s)} y2={b.top + b.ih} stroke="var(--color-line2)" strokeWidth={1} />
+                    <line x1={b.left} y1={Y(sel.r)} x2={b.left + b.iw} y2={Y(sel.r)} stroke="var(--color-line2)" strokeWidth={1} />
+                    {/* quadrant corner labels (relative to the selected cross) */}
+                    <text x={b.left + b.iw - 8} y={b.top + 16} textAnchor="end" fontSize={10} fill="var(--color-win)" fillOpacity={0.55} className="mono">complete</text>
+                    <text x={b.left + 8} y={b.top + 16} textAnchor="start" fontSize={10} fill="var(--color-champ)" fillOpacity={0.55} className="mono">return-first</text>
+                    <text x={b.left + b.iw - 8} y={b.top + b.ih - 8} textAnchor="end" fontSize={10} fill="var(--color-hard)" fillOpacity={0.55} className="mono">serve-first</text>
+                    <text x={b.left + 8} y={b.top + b.ih - 8} textAnchor="start" fontSize={10} fill="var(--color-loss)" fillOpacity={0.5} className="mono">below avg</text>
+                  </>
+                )}
               />
               {/* legend */}
               <div className="mono mt-2 flex flex-wrap items-center gap-x-5 gap-y-2 px-2 text-[11px] text-[var(--color-muted)]">
@@ -304,181 +321,10 @@ export default function Strength() {
           </Reveal>
 
           <p className="mono mt-4 text-[11px] text-[var(--color-faint)]">
-            {shown.length} players plotted · serve & return are model point-win rates · hover a dot for the full line
+            {shown.length} players plotted · serve & return are model point-win rates · hover a dot for the full line · click through to the profile
           </p>
         </>
       )}
     </div>
-  );
-}
-
-function ScatterChart({
-  players, picks, sel, tourAvg, hover, setHover,
-}: {
-  players: Player[];
-  picks: Set<string>;
-  sel: { s: number; r: number };
-  tourAvg: { s: number; r: number };
-  hover: string | null;
-  setHover: (n: string | null) => void;
-}) {
-  const W = 760, H = 540;
-  const M = { top: 26, right: 30, bottom: 50, left: 62 };
-  const iw = W - M.left - M.right;
-  const ih = H - M.top - M.bottom;
-
-  // Domain spans the plotted players AND the tour-average point so the reference stays in frame.
-  const xs = [...players.map((p) => p.servePct), tourAvg.s];
-  const ys = [...players.map((p) => p.returnPct), tourAvg.r];
-  let xmin = Math.min(...xs), xmax = Math.max(...xs);
-  let ymin = Math.min(...ys), ymax = Math.max(...ys);
-  const xpad = (xmax - xmin || 0.02) * 0.09;
-  const ypad = (ymax - ymin || 0.02) * 0.12;
-  xmin -= xpad; xmax += xpad; ymin -= ypad; ymax += ypad;
-
-  const X = (v: number) => M.left + ((v - xmin) / (xmax - xmin)) * iw;
-  const Y = (v: number) => M.top + (1 - (v - ymin) / (ymax - ymin)) * ih; // invert: higher return = higher up
-
-  const xticks = ticks(xmin, xmax);
-  const yticks = ticks(ymin, ymax);
-
-  const cx = X(sel.s), cy = Y(sel.r);
-  const tx = X(tourAvg.s), ty = Y(tourAvg.r);
-
-  const hovered = hover ? players.find((p) => p.name === hover) : null;
-
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" className="block overflow-visible" role="img" aria-label="Serve versus return scatter plot">
-      {/* plot frame */}
-      <rect x={M.left} y={M.top} width={iw} height={ih} fill="none" stroke="var(--color-line)" strokeWidth={1} rx={8} />
-
-      {/* gridlines + tick labels */}
-      {xticks.map((t) => (
-        <g key={`x${t}`}>
-          <line x1={X(t)} y1={M.top} x2={X(t)} y2={M.top + ih} stroke="var(--color-line)" strokeWidth={1} strokeOpacity={0.5} />
-          <text x={X(t)} y={M.top + ih + 18} textAnchor="middle" fontSize={10} fill="var(--color-faint)" className="mono">{pct(t, 0)}</text>
-        </g>
-      ))}
-      {yticks.map((t) => (
-        <g key={`y${t}`}>
-          <line x1={M.left} y1={Y(t)} x2={M.left + iw} y2={Y(t)} stroke="var(--color-line)" strokeWidth={1} strokeOpacity={0.5} />
-          <text x={M.left - 10} y={Y(t) + 3} textAnchor="end" fontSize={10} fill="var(--color-faint)" className="mono">{pct(t, 0)}</text>
-        </g>
-      ))}
-
-      {/* axis titles */}
-      <text x={M.left + iw / 2} y={H - 8} textAnchor="middle" fontSize={11} fill="var(--color-muted)" className="mono">
-        serve points won →
-      </text>
-      <text x={16} y={M.top + ih / 2} textAnchor="middle" fontSize={11} fill="var(--color-muted)" className="mono" transform={`rotate(-90 16 ${M.top + ih / 2})`}>
-        return points won →
-      </text>
-
-      {/* tour-average reference crosshair (dashed, faint) */}
-      <line x1={tx} y1={M.top} x2={tx} y2={M.top + ih} stroke="var(--color-faint)" strokeWidth={1} strokeDasharray="3 4" />
-      <line x1={M.left} y1={ty} x2={M.left + iw} y2={ty} stroke="var(--color-faint)" strokeWidth={1} strokeDasharray="3 4" />
-
-      {/* selected-group average cross (solid, brighter) */}
-      <line x1={cx} y1={M.top} x2={cx} y2={M.top + ih} stroke="var(--color-line2)" strokeWidth={1} />
-      <line x1={M.left} y1={cy} x2={M.left + iw} y2={cy} stroke="var(--color-line2)" strokeWidth={1} />
-
-      {/* quadrant corner labels (relative to the selected cross) */}
-      <text x={M.left + iw - 8} y={M.top + 16} textAnchor="end" fontSize={10} fill="var(--color-win)" fillOpacity={0.55} className="mono">complete</text>
-      <text x={M.left + 8} y={M.top + 16} textAnchor="start" fontSize={10} fill="var(--color-champ)" fillOpacity={0.55} className="mono">return-first</text>
-      <text x={M.left + iw - 8} y={M.top + ih - 8} textAnchor="end" fontSize={10} fill="var(--color-hard)" fillOpacity={0.55} className="mono">serve-first</text>
-      <text x={M.left + 8} y={M.top + ih - 8} textAnchor="start" fontSize={10} fill="var(--color-loss)" fillOpacity={0.5} className="mono">below avg</text>
-
-      {/* dots + labels (hovered drawn last) */}
-      {players.map((p, i) => {
-        if (hover === p.name) return null;
-        return <Dot key={p.name} p={p} X={X} Y={Y} color={quadColor(p, sel)} isPick={picks.has(p.name)} onHover={setHover} delay={i * 0.015} />;
-      })}
-      {hovered && <Dot p={hovered} X={X} Y={Y} color={quadColor(hovered, sel)} isPick={picks.has(hovered.name)} onHover={setHover} delay={0} />}
-
-      {/* tooltip */}
-      {hovered && <Tooltip p={hovered} x={X(hovered.servePct)} y={Y(hovered.returnPct)} W={W} M={M} iw={iw} />}
-    </svg>
-  );
-}
-
-function Dot({
-  p, X, Y, color, isPick, onHover, delay,
-}: {
-  p: Player; X: (v: number) => number; Y: (v: number) => number; color: string; isPick: boolean; onHover: (n: string | null) => void; delay: number;
-}) {
-  const x = X(p.servePct), y = Y(p.returnPct);
-  return (
-    <g
-      onMouseEnter={() => onHover(p.name)}
-      onMouseLeave={() => onHover(null)}
-      style={{ cursor: "pointer" }}
-    >
-      {/* generous invisible hit area */}
-      <circle cx={x} cy={y} r={11} fill="transparent" />
-      {isPick && (
-        <motion.circle
-          cx={x}
-          cy={y}
-          r={6.5}
-          fill="none"
-          stroke="var(--color-accent)"
-          strokeWidth={1.4}
-          strokeOpacity={0.85}
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ ...SPRING_SOFT, delay }}
-          style={{ transformBox: "fill-box", transformOrigin: "center" }}
-        />
-      )}
-      <motion.circle
-        cx={x}
-        cy={y}
-        r={isPick ? 4.6 : 4}
-        fill={color}
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ ...SPRING_SOFT, delay }}
-        style={{ transformBox: "fill-box", transformOrigin: "center" }}
-      />
-      <motion.text
-        x={x + 7}
-        y={y + 3}
-        fontSize={9}
-        fill="var(--color-muted)"
-        className="mono"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.3, delay: delay + 0.3, ease: EASE }}
-      >
-        {lastName(p.name)}
-      </motion.text>
-    </g>
-  );
-}
-
-function Tooltip({
-  p, x, y, W, M, iw,
-}: {
-  p: Player; x: number; y: number; W: number; M: { top: number; right: number; bottom: number; left: number }; iw: number;
-}) {
-  const bw = 150, bh = 50;
-  // flip horizontally / vertically to stay inside the plot
-  const left = x + bw + 14 > M.left + iw ? x - bw - 12 : x + 12;
-  const top = y - bh - 10 < M.top ? y + 12 : y - bh - 10;
-  return (
-    <motion.g
-      pointerEvents="none"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.14 }}
-      style={{ filter: "drop-shadow(0 8px 32px rgba(0, 0, 0, 0.55))" }}
-    >
-      <rect x={left} y={top} width={bw} height={bh} rx={8} fill="rgba(22, 23, 26, 0.92)" stroke="var(--color-line)" />
-      <text x={left + 10} y={top + 17} fontSize={11} fill="var(--color-text)" className="mono">{p.name}</text>
-      <text x={left + 10} y={top + 32} fontSize={10} fill="var(--color-muted)" className="mono">
-        serve {pct(p.servePct, 1)} · ret {pct(p.returnPct, 1)}
-      </text>
-      <text x={left + 10} y={top + 44} fontSize={10} fill="var(--color-faint)" className="mono">elo rank #{p.eloRank}</text>
-    </motion.g>
   );
 }
