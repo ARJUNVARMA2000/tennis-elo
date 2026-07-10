@@ -370,7 +370,12 @@ WINRATE_WINDOW = 10           # last-N completed matches for the winrate10 featu
 # instead of silently degrading (the Jan-2026 TML freeze went unnoticed for months).
 # ---------------------------------------------------------------------------
 HEALTH_MAX_RESULT_AGE_DAYS = 5        # newest completed match must be this recent
-HEALTH_MAX_STATS_AGE_DAYS = 12        # newest row carrying serve stats
+HEALTH_MAX_STATS_AGE_DAYS = 16        # newest row carrying serve stats. ATP stats rows are
+                                      # anchored on the tournament START date (Sackmann
+                                      # tourney_date), so a slam fortnight legitimately parks
+                                      # the newest date ~15d back (start Monday -> the next
+                                      # events' rows land day 15); 16 clears that while the
+                                      # real failure class (TML site frozen) is still caught.
 HEALTH_OFFSEASON_RELAX_DAYS = 45      # December: tours are dark, staleness is expected
 # Minimum has_stats fraction for the current season, per tour (WTA runs lower than
 # ATP because 125-level results carry no stats by design).
@@ -380,7 +385,11 @@ HEALTH_MIN_STATS_FRACTION = {"atp": 0.60, "wta": 0.55}
 HEALTH_MAX_FRESH_AGE_DAYS = 14      # TennisCourtLog overlay updates ~weekly; 14 = two missed
                                     # cycles. Off-season + early January relax to
                                     # HEALTH_OFFSEASON_RELAX_DAYS (weekly updater lags the
-                                    # season restart) — see health.problems().
+                                    # season restart). Enforced only while the stats overlay
+                                    # is ALSO stale: the fresh overlay is a redundancy layer,
+                                    # and a frozen-but-shadowed source (TennisCourtLog's ATP
+                                    # file, 2026-06-22) is a standing red no local action
+                                    # can clear — see health.problems().
 HEALTH_MAX_CHARTING_AGE_DAYS = 90   # MCP is volunteer batch-updated (a 50d mid-season lag is
                                     # normal); 90 targets the real failure class — repo
                                     # moved/renamed/frozen. Exceeds the longest seasonal gap

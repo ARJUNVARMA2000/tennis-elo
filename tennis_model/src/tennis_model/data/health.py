@@ -148,9 +148,17 @@ def problems(tour: str, h: dict, now: pd.Timestamp) -> list[str]:
     # January swing).
     jan_grace = now.month == 1 and now.day < 15
     max_fresh = HEALTH_OFFSEASON_RELAX_DAYS if (offseason or jan_grace) else HEALTH_MAX_FRESH_AGE_DAYS
+    # The fresh overlay is a redundancy layer for RESULTS: while the full-schema stats
+    # overlay is current (gated above), results/ranks/stats all still flow, so a frozen
+    # fresh overlay starves nothing and its gate stays quiet. TennisCourtLog froze its ATP
+    # file on 2026-06-22 with the TML site daily-fresh — an unactionable standing red (no
+    # replacement mirror exists); and a completed-events-only weekly updater legitimately
+    # exceeds 14d during every slam fortnight. The freeze alarm fires only when the fresh
+    # overlay is the freshest non-live source left — i.e. the stats overlay is stale too.
+    stats_current = h["stats_age_days"] is not None and h["stats_age_days"] <= max_stats
     if h["fresh_age_days"] is None:
         out.append(f"{tour}: fresh overlay has no loadable results")
-    elif h["fresh_age_days"] > max_fresh:
+    elif h["fresh_age_days"] > max_fresh and not stats_current:
         out.append(f"{tour}: newest fresh-overlay result is {h['fresh_age_days']}d old "
                    f"(max {max_fresh}) — the results overlay source may have frozen")
     if h["charting_age_days"] is None:

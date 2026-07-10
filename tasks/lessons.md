@@ -1,5 +1,24 @@
 # Lessons
 
+- **A freshness gate on a REDUNDANT source needs a load-bearing predicate — an
+  unfixable upstream freeze otherwise stands red forever.** (2026-07-10, fresh overlay)
+  TennisCourtLog froze its ATP results file on 2026-06-22 (repo still auto-commits
+  draws/WTA; the file didn't move; no maintained replacement mirror exists on GitHub)
+  while the TML stats overlay covered every missed event with full stats+ranks — the
+  merged frame lost NOTHING, yet the 14d fresh gate opened a data-health issue no local
+  action could clear, and a standing red masks the next real problem. Two latent
+  calendar false-trips in the same family: a completed-events-only weekly source
+  legitimately exceeds 14d during every slam fortnight (WTA fresh would have tripped
+  ~Jul 12 mid-Wimbledon), and ATP stats rows are anchored on tournament START dates so
+  a slam parks stats_age at ~15d (the 12d gate would have tripped the same Sunday —
+  raised to 16). Fix shape: enforce the fresh gate only when the stats overlay is ALSO
+  stale (`stats_current` shadow predicate in health.problems()) — data-driven, no
+  per-tour hardcoding; both-frozen still alarms twice, and if the primary source ever
+  dies the shadow evaporates automatically. Rule: before adding a per-source age gate,
+  ask "what would we DO if it fired alone?" — if the answer is nothing (redundant
+  layer, healthy siblings), gate the conjunction that is actionable. Extends the
+  calendar-validation lesson below.
+
 - **CI dedup/state must not live in an artifact that only persists on success when the
   mechanism itself reds the job.** (2026-07-10) The hourly sentinel dedup'd on
   `problems_changed`, computed against the prev `health.json` carried in the Actions

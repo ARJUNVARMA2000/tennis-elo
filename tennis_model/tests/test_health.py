@@ -115,15 +115,27 @@ def test_problems_coverage_gate_needs_volume():
 def test_problems_fresh_overlay_freeze_flagged():
     """The merged result_age can't see a fresh-overlay freeze (the ESPN live overlay
     keeps the merged max current) — the overlay's own age gate must catch it, with
-    off-season + early-January grace (the ~weekly updater lags the season restart)."""
+    off-season + early-January grace (the ~weekly updater lags the season restart).
+    The gate is enforced only while the stats overlay is ALSO stale: fresh is a
+    redundancy layer, and a shadowed freeze (TennisCourtLog's ATP file frozen
+    2026-06-22 while the TML site stayed daily-fresh) is a standing red no local
+    action can clear."""
     july, dec = pd.Timestamp("2026-07-01"), pd.Timestamp("2026-12-15")
-    assert any("fresh-overlay" in p for p in health.problems("atp", _h(fresh_age=20), july))
+    stale = {"fresh_age": 20, "stats_age": 17}     # stats stale too -> fresh gate is live
+    assert any("fresh-overlay" in p for p in health.problems("atp", _h(**stale), july))
+    # shadowed: the full-schema stats overlay is current, so results/ranks/stats all
+    # still flow — a frozen fresh overlay starves nothing and must not stand red
+    assert not any("fresh-overlay" in p
+                   for p in health.problems("atp", _h(fresh_age=20), july))
     assert health.problems("atp", _h(fresh_age=20), dec) == []                     # off-season
-    assert health.problems("atp", _h(fresh_age=20), pd.Timestamp("2026-01-10")) == []   # Jan grace
+    assert not any("fresh-overlay" in p                                            # Jan grace
+                   for p in health.problems("atp", _h(**stale), pd.Timestamp("2026-01-10")))
     assert any("fresh-overlay" in p                                                # grace caps at 45
-               for p in health.problems("atp", _h(fresh_age=50), pd.Timestamp("2026-01-10")))
+               for p in health.problems("atp", _h(fresh_age=50, stats_age=50),
+                                        pd.Timestamp("2026-01-10")))
     assert any("fresh-overlay" in p                                                # grace ends Jan 15
-               for p in health.problems("atp", _h(fresh_age=20), pd.Timestamp("2026-01-20")))
+               for p in health.problems("atp", _h(**stale), pd.Timestamp("2026-01-20")))
+    # a wholly-unloadable overlay is a setup/bootstrap break, never shadowed
     assert any("no loadable results" in p
                for p in health.problems("atp", _h(fresh_age=None), july))
     print("ok test_problems_fresh_overlay_freeze_flagged")
