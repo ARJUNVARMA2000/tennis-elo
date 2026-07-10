@@ -36,8 +36,22 @@ Input freshness stays ADVISORY — the pre-deploy --gate remains output-integrit
   advisory); second sentinel run flipped problems_changed True->False; all workflow run
   blocks pass bash -n; Playwright screenshots confirmed gold/red/green pill states with
   computed colors matching --color-champ/--color-loss/--color-win.
-- **Deviations from plan**: none material. Ruff re-sorted the health.py import line its
-  own way; the report-step issue title dropped "Daily" since quick runs can now open it.
+- **Deviations from plan + two follow-on fixes shipped the same day**:
+  (1) d67cb62 — the FIRST post-merge deploy was blocked by the pre-existing
+  power-of-two real-draw gate check (shipped 7/8 during Wimbledon) tripping on Gstaad's
+  standard ATP-250 28-draw (32-bracket, 4 byes). Fixed by sanctioning standard bye-draw
+  sizes {24,28,48,56,96}; leak signatures (129/29/27) still block. Lesson added.
+  (2) 422bd00 — the quick-run dedup design was flawed: `problems_changed` keys off the
+  cache-carried prev health.json, but a red job never saves the cache, so every hourly
+  run re-redded as "new" (the storm the dedup was meant to prevent). Re-keyed the
+  quick-run red on "did this run OPEN the issue" (GitHub state, cache-immune); standing
+  failures comment-on-change + exit 0. Lesson added.
+- **Live proof in CI**: onset run created data-health issue #3 + red; next quick run
+  commented once (stale prev) + green; the one after was fully quiet + green. Watchdog:
+  green path, forced-failure path (red + issue #4), recovery (closed #4) all exercised
+  via workflow_dispatch. And the new fresh-overlay invariant caught a REAL freeze on
+  day one: TennisCourtLog's ATP overlay has published nothing since 2026-06-21 (19d,
+  through Wimbledon) — previously invisible because ESPN kept merged result-age fresh.
 
 # Task: Forecast drift monitor — event-driven "re-tune recommended" signal (2026-07-10)
 

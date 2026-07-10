@@ -1,5 +1,16 @@
 # Lessons
 
+- **CI dedup/state must not live in an artifact that only persists on success when the
+  mechanism itself reds the job.** (2026-07-10) The hourly sentinel dedup'd on
+  `problems_changed`, computed against the prev `health.json` carried in the Actions
+  data cache — but `actions/cache` saves only when the job SUCCEEDS, and the dedup's
+  own `exit 1` made the job fail, so the "already reported" state never persisted and
+  every hourly run re-redded as "new" (runs 29116327911/29116722923). **Why:** the
+  post-step cache save is skipped on failure; any alert-once design whose alert reds
+  the run cannot key off cache-carried state. **How to apply:** key alert-once behavior
+  off state that survives a red run (an open GitHub issue, a committed file), and let
+  the standing-failure path exit 0 so the cache resumes carrying run-over-run state.
+
 - **Validate a gate invariant against the full tour CALENDAR, not the events in flight
   the week it ships.** (2026-07-10) The "real draw must be a power of two" gate check
   shipped 2026-07-08 during Wimbledon (128 — passes) and blocked the first deploy that
