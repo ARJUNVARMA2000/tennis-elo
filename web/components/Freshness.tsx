@@ -16,7 +16,25 @@ export function rel(iso: string, now: number): string | null {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-/** "updated Xm ago" pill — driven by the pipeline's meta.json build stamp. */
+export const AGING_H = 6; // several consecutive hourly quick runs missed
+export const STALE_H = 26; // the daily full run has been missed
+
+export function staleness(iso: string, now: number): "fresh" | "aging" | "stale" | null {
+  const t = Date.parse(iso);
+  if (isNaN(t)) return null;
+  const h = (now - t) / 3_600_000;
+  return h >= STALE_H ? "stale" : h >= AGING_H ? "aging" : "fresh";
+}
+
+const DOT: Record<string, string> = {
+  fresh: "bg-[var(--color-win)]",
+  aging: "bg-[var(--color-champ)]",
+  stale: "bg-[var(--color-loss)]",
+};
+
+/** "updated Xm ago" pill — driven by the pipeline's meta.json build stamp. The dot goes
+ *  gold once several hourly refreshes are missed and red past a missed daily full run,
+ *  so a silently-dead pipeline is visible to any viewer, not just the CI watchdog. */
 export default function Freshness() {
   const { data } = useData<Meta>("meta.json");
   const [now, setNow] = useState<number | null>(null);
@@ -27,10 +45,16 @@ export default function Freshness() {
   }, []);
   if (!data?.lastUpdated || now === null) return null;
   const r = rel(data.lastUpdated, now);
-  if (!r) return null;
+  const s = staleness(data.lastUpdated, now);
+  if (!r || !s) return null;
   return (
-    <span className="chip inline-flex items-center gap-1.5 whitespace-nowrap text-[var(--color-muted)]">
-      <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-[var(--color-win)]" />
+    <span
+      className={`chip inline-flex items-center gap-1.5 whitespace-nowrap ${
+        s === "stale" ? "text-[var(--color-loss)]" : "text-[var(--color-muted)]"
+      }`}
+      title={s === "stale" ? "data may be stale" : undefined}
+    >
+      <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${DOT[s]}`} />
       <span className="hidden sm:inline">updated</span>
       {r}
     </span>

@@ -9,9 +9,11 @@ build under --strict:
     (counts, tournaments, matches, predictions) is missing, stale, or internally
     inconsistent even though the sources looked fine.
 
-The daily workflow runs this without --strict (always writes health.json, exit 0) and a
-follow-up step reads health.json to open/close a `data-health` GitHub issue and red the
-run. --issue-body prints that issue's Markdown; --strict is kept for local use.
+The workflow runs this without --strict on EVERY run — daily full and hourly quick —
+(always writes health.json, exit 0) and a follow-up step reads health.json to open/close
+a `data-health` GitHub issue and red the run; quick runs stay green and quiet while the
+problem set is unchanged (problems_changed) so a standing failure alerts once, not
+hourly. --issue-body prints that issue's Markdown; --strict is kept for local use.
 
 --gate is the PRE-deploy guard the workflow runs before publishing: it fails (exit 1) only
 on produced-output integrity problems (not source freshness), so an internally-inconsistent
@@ -24,6 +26,7 @@ Run:  PYTHONPATH=src python -m tennis_model.data.health [--strict | --issue-body
 from __future__ import annotations
 
 import csv
+import glob
 import itertools
 import json
 import os
@@ -35,6 +38,9 @@ import pandas as pd
 from ..config import (
     DATA_DIR,
     HEALTH_MAX_BUILD_AGE_DAYS,
+    HEALTH_MAX_CHARTING_AGE_DAYS,
+    HEALTH_MAX_FORECAST_AGE_DAYS,
+    HEALTH_MAX_FRESH_AGE_DAYS,
     HEALTH_MAX_LIVERANK_NULL_FRAC,
     HEALTH_MAX_MARKET_LAG_DAYS,
     HEALTH_MAX_RESULT_AGE_DAYS,
@@ -44,9 +50,11 @@ from ..config import (
     HEALTH_OFFSEASON_RELAX_DAYS,
     OUTPUT_DIR,
     TOURS,
+    fresh_dir,
     output_dir,
 )
 from ..model.features import FEATURES
+from .charting import _GENDER, CHARTING_DIR
 from .results import load_matches
 
 
@@ -59,6 +67,37 @@ def _offseason(now: pd.Timestamp) -> bool:
 # ---------------------------------------------------------------------------
 # Source freshness (are the scrapers still advancing?)
 # ---------------------------------------------------------------------------
+def charting_date_max(tour: str):
+    """Newest charted match date from the MCP stats-Overview file (the file
+    build_profiles() anchors on — an empty Overview means no style profiles at all).
+    match_id encodes the date as a YYYYMMDD prefix. IO seam (patched in tests)."""
+    f = CHARTING_DIR / f"charting-{_GENDER[tour]}-stats-Overview.csv"
+    if not f.exists():
+        return None
+    try:
+        ids = pd.read_csv(f, usecols=["match_id"], encoding="utf-8-sig")["match_id"]
+    except (ValueError, OSError):
+        return None
+    m = pd.to_datetime(ids.astype(str).str[:8], format="%Y%m%d", errors="coerce").max()
+    return m if pd.notna(m) else None
+
+
+def fresh_date_max(tour: str):
+    """Newest tourney_date in the fresh overlay's newest year file. Checked directly
+    because the merged result_age_days can't see this source freeze — the ESPN live
+    overlay keeps the merged maximum current. IO seam (patched in tests)."""
+    files = sorted(glob.glob(str(fresh_dir(tour) / "*.csv")))   # per-year names sort lexically
+    if not files:
+        return None
+    from .results import _parse_dates  # handles the overlay's YYYY/M/D format
+    try:
+        s = pd.read_csv(files[-1], usecols=["tourney_date"], encoding="utf-8-sig")["tourney_date"]
+    except (ValueError, OSError):
+        return None
+    m = _parse_dates(s).max()
+    return m if pd.notna(m) else None
+
+
 def tour_health(tour: str, now: pd.Timestamp) -> dict:
     df = load_matches(tour)
     completed = df[df["completed"]]
@@ -68,6 +107,7 @@ def tour_health(tour: str, now: pd.Timestamp) -> dict:
     date_max = df["date"].max() if len(df) else pd.NaT
     res_max = completed["date"].max() if len(completed) else pd.NaT
     stat_max = stats_rows["date"].max() if len(stats_rows) else pd.NaT
+    fr_max, ch_max = fresh_date_max(tour), charting_date_max(tour)
     return {
         "matches": int(len(df)),
         "date_max": str(date_max.date()) if pd.notna(date_max) else None,
@@ -76,6 +116,10 @@ def tour_health(tour: str, now: pd.Timestamp) -> dict:
         "stats_age_days": int((now - stat_max).days) if pd.notna(stat_max) else None,
         "cur_year_matches": int(len(cur)),
         "cur_year_stats_fraction": round(float(cur["has_stats"].mean()), 4) if len(cur) else None,
+        "fresh_date_max": str(fr_max.date()) if fr_max is not None else None,
+        "fresh_age_days": int((now - fr_max).days) if fr_max is not None else None,
+        "charting_date_max": str(ch_max.date()) if ch_max is not None else None,
+        "charting_age_days": int((now - ch_max).days) if ch_max is not None else None,
     }
 
 
@@ -95,6 +139,24 @@ def problems(tour: str, h: dict, now: pd.Timestamp) -> list[str]:
         frac = h["cur_year_stats_fraction"]
         if frac is not None and h["cur_year_matches"] >= 100 and frac < min_frac:
             out.append(f"{tour}: current-season stats coverage {frac:.0%} < {min_frac:.0%}")
+    # Per-source freshness: the merged result_age above can't see ONE frozen source (the
+    # ESPN live overlay keeps the merged max current), so the silent sources get their own
+    # age gates. The fresh overlay updates ~weekly, so it legitimately lags the season
+    # restart — extend ITS relaxation through mid-January (not _offseason itself, which
+    # would wrongly relax the result-age/liveRank/emptiness checks during the live
+    # January swing).
+    jan_grace = now.month == 1 and now.day < 15
+    max_fresh = HEALTH_OFFSEASON_RELAX_DAYS if (offseason or jan_grace) else HEALTH_MAX_FRESH_AGE_DAYS
+    if h["fresh_age_days"] is None:
+        out.append(f"{tour}: fresh overlay has no loadable results")
+    elif h["fresh_age_days"] > max_fresh:
+        out.append(f"{tour}: newest fresh-overlay result is {h['fresh_age_days']}d old "
+                   f"(max {max_fresh}) — the results overlay source may have frozen")
+    if h["charting_age_days"] is None:
+        out.append(f"{tour}: charting files missing/unreadable (style features degraded)")
+    elif h["charting_age_days"] > HEALTH_MAX_CHARTING_AGE_DAYS:
+        out.append(f"{tour}: newest charted match is {h['charting_age_days']}d old "
+                   f"(max {HEALTH_MAX_CHARTING_AGE_DAYS}) — the MCP source may have moved/frozen")
     return out
 
 
@@ -125,6 +187,7 @@ _GATE_ADVISORY = (
     "outputs last built",          # build-age; can't legitimately fire right after a build
     "market.json odds coverage",   # benchmark-card staleness; odds are never a build dependency
     "forecast drift",              # model-decay advisory; a re-tune recommendation must never block a deploy
+    "forecast log last advanced",  # eval-artifact liveness; never a build dependency
 )
 
 
@@ -472,6 +535,16 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
     fc = oc.get("forecast")
     if fc is not None and isinstance(prev.get("forecast_lines"), int) and fc["lines"] < prev["forecast_lines"]:
         out.append(f"{tour}: forecast log shrank {prev['forecast_lines']} -> {fc['lines']} lines")
+    if fc is not None:
+        # liveness: the log appends on every run while any upcoming match exists, so a
+        # present-but-frozen max(as_of) means the track step is silently failing (or the
+        # daily persist push keeps losing). An absent log / empty max stays silent — a
+        # fresh clone is legitimate. Gate-ADVISORY: eval history is never a build dependency.
+        fc_age = _age_days(fc.get("max_as_of"), now)
+        max_fc = HEALTH_OFFSEASON_RELAX_DAYS if offseason else HEALTH_MAX_FORECAST_AGE_DAYS
+        if fc_age is not None and fc_age > max_fc:
+            out.append(f"{tour}: forecast log last advanced {fc_age}d ago (max {max_fc}) "
+                       f"— the track step may be silently failing")
 
     kl = oc.get("kalshi_ledger")
     if isinstance(kl, list):
@@ -518,7 +591,7 @@ def format_issue_body(report: dict, run_url: str | None = None) -> str:
     for h in report.get("tours", {}).values():
         probs += h.get("problems", [])
         probs += (h.get("output") or {}).get("problems", [])
-    lines = [f"The daily pipeline **data health check failed** on {report.get('generated', '?')}.",
+    lines = [f"The pipeline **data health check failed** on {report.get('generated', '?')}.",
              "", "### Problems"]
     shown, extra = probs[:50], max(0, len(probs) - 50)   # cap: a systemic break can flag many
     lines += [f"- {p}" for p in shown] or ["- (no detail — see run logs)"]
@@ -530,7 +603,7 @@ def format_issue_body(report: dict, run_url: str | None = None) -> str:
     lines += [
         "", "### Fix it in a new session",
         "Open a new Claude Code session and paste:", "",
-        f"> Investigate and resolve the `data-health` issue. The daily pipeline health check "
+        f"> Investigate and resolve the `data-health` issue. The pipeline health check "
         f"flagged: {summary}. Reproduce locally with `cd tennis_model && PYTHONPATH=src "
         f"python -m tennis_model.data.health`, then read `src/tennis_model/data/health.py` "
         f"(`problems()` / `output_problems()`) and the failing tour's `data/output/<tour>/*.json`.",
@@ -612,6 +685,12 @@ def main() -> int:
         print(f"  health/{tour}: results to {h['date_max']}, stats to {h['stats_date_max']}, "
               f"season stats {h['cur_year_stats_fraction']}; {len(op)} output problem(s)")
     report["ok"] = not all_problems
+    # Issue-traffic dedup for the hourly sentinel: the report step only comments/reds a
+    # quick run when the problem set CHANGED (day-granular `now` keeps age strings stable
+    # within a UTC day, so this flaps at most once per day, not hourly).
+    prev_problems = sorted(p for t in ((prev or {}).get("tours") or {}).values()
+                           for p in (t.get("problems") or []) + ((t.get("output") or {}).get("problems") or []))
+    report["problems_changed"] = sorted(all_problems) != prev_problems
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     health_path.write_text(json.dumps(report, indent=2))

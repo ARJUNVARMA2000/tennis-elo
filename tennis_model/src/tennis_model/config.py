@@ -375,6 +375,21 @@ HEALTH_OFFSEASON_RELAX_DAYS = 45      # December: tours are dark, staleness is e
 # Minimum has_stats fraction for the current season, per tour (WTA runs lower than
 # ATP because 125-level results carry no stats by design).
 HEALTH_MIN_STATS_FRACTION = {"atp": 0.60, "wta": 0.55}
+# Per-source freshness: the merged result_age can't see ONE source freeze (the ESPN live
+# overlay keeps the merged maximum current), so the silent sources get their own age gates.
+HEALTH_MAX_FRESH_AGE_DAYS = 14      # TennisCourtLog overlay updates ~weekly; 14 = two missed
+                                    # cycles. Off-season + early January relax to
+                                    # HEALTH_OFFSEASON_RELAX_DAYS (weekly updater lags the
+                                    # season restart) — see health.problems().
+HEALTH_MAX_CHARTING_AGE_DAYS = 90   # MCP is volunteer batch-updated (a 50d mid-season lag is
+                                    # normal); 90 targets the real failure class — repo
+                                    # moved/renamed/frozen. Exceeds the longest seasonal gap
+                                    # (mid-Nov Finals -> AO chartings landing ~Feb), so no
+                                    # off-season term needed.
+HEALTH_MAX_FORECAST_AGE_DAYS = 5    # forecast_log max(as_of) — the log appends on every run
+                                    # while any upcoming match exists (in-season gaps run
+                                    # 2-3d); catches a silently-failing track step within a
+                                    # week. Matches HEALTH_MAX_RESULT_AGE_DAYS cadence.
 
 # Produced-output validation (data/health.py::output_problems) — the daily build also
 # checks that the JSON the web reads is sane, not just that the sources are fresh.

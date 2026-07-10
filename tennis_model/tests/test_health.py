@@ -70,9 +70,10 @@ def _ledger_row(**over) -> dict:
     return row
 
 
-def _h(result_age=1, stats_age=2, frac=0.9, n=500) -> dict:
+def _h(result_age=1, stats_age=2, frac=0.9, n=500, fresh_age=3, charting_age=30) -> dict:
     return {"result_age_days": result_age, "stats_age_days": stats_age,
-            "cur_year_stats_fraction": frac, "cur_year_matches": n}
+            "cur_year_stats_fraction": frac, "cur_year_matches": n,
+            "fresh_age_days": fresh_age, "charting_age_days": charting_age}
 
 
 def test_problems_fresh_is_clean():
@@ -111,32 +112,68 @@ def test_problems_coverage_gate_needs_volume():
     print("ok test_problems_coverage_gate_needs_volume")
 
 
+def test_problems_fresh_overlay_freeze_flagged():
+    """The merged result_age can't see a fresh-overlay freeze (the ESPN live overlay
+    keeps the merged max current) — the overlay's own age gate must catch it, with
+    off-season + early-January grace (the ~weekly updater lags the season restart)."""
+    july, dec = pd.Timestamp("2026-07-01"), pd.Timestamp("2026-12-15")
+    assert any("fresh-overlay" in p for p in health.problems("atp", _h(fresh_age=20), july))
+    assert health.problems("atp", _h(fresh_age=20), dec) == []                     # off-season
+    assert health.problems("atp", _h(fresh_age=20), pd.Timestamp("2026-01-10")) == []   # Jan grace
+    assert any("fresh-overlay" in p                                                # grace caps at 45
+               for p in health.problems("atp", _h(fresh_age=50), pd.Timestamp("2026-01-10")))
+    assert any("fresh-overlay" in p                                                # grace ends Jan 15
+               for p in health.problems("atp", _h(fresh_age=20), pd.Timestamp("2026-01-20")))
+    assert any("no loadable results" in p
+               for p in health.problems("atp", _h(fresh_age=None), july))
+    print("ok test_problems_fresh_overlay_freeze_flagged")
+
+
+def test_problems_charting_freeze_flagged():
+    """MCP is batch-updated — a 80d lag is normal, 120d means the source moved/froze;
+    a missing file means style features are silently gone."""
+    now = pd.Timestamp("2026-07-01")
+    assert any("charted match" in p for p in health.problems("atp", _h(charting_age=120), now))
+    assert health.problems("atp", _h(charting_age=80), now) == []
+    assert any("charting files missing" in p
+               for p in health.problems("atp", _h(charting_age=None), now))
+    print("ok test_problems_charting_freeze_flagged")
+
+
 def test_tour_health_empty_frame_reports_none():
     """An empty tour must report None ages (flagged downstream), not crash on NaT."""
-    orig = health.load_matches
+    orig = (health.load_matches, health.fresh_date_max, health.charting_date_max)
     try:
         health.load_matches = lambda tour: pd.DataFrame(
             {"date": pd.to_datetime(pd.Series([], dtype="object")),
              "completed": pd.Series([], dtype=bool),
              "has_stats": pd.Series([], dtype=bool)})
+        health.fresh_date_max = lambda tour: None
+        health.charting_date_max = lambda tour: None
         h = health.tour_health("atp", pd.Timestamp("2026-07-01"))
     finally:
-        health.load_matches = orig
+        health.load_matches, health.fresh_date_max, health.charting_date_max = orig
     assert h["matches"] == 0
     assert h["date_max"] is None and h["result_age_days"] is None
+    assert h["fresh_age_days"] is None and h["charting_age_days"] is None
     assert any("no completed matches" in p
                for p in health.problems("atp", h, pd.Timestamp("2026-07-01")))
     print("ok test_tour_health_empty_frame_reports_none")
 
 
 def test_main_strict_exit_code_and_report():
+    from datetime import UTC, datetime
+    today = pd.Timestamp(datetime.now(UTC).date())
     stale = pd.DataFrame({"date": pd.to_datetime(["2026-01-01"]),
                           "completed": [True], "has_stats": [True]})
-    orig = (health.load_matches, health.read_outputs, health.OUTPUT_DIR, health.TOURS, sys.argv)
+    orig = (health.load_matches, health.read_outputs, health.fresh_date_max,
+            health.charting_date_max, health.OUTPUT_DIR, health.TOURS, sys.argv)
     try:
         with tempfile.TemporaryDirectory() as d:
             health.load_matches = lambda tour: stale
             health.read_outputs = lambda tour: _oc()          # outputs clean; failure is source-side
+            health.fresh_date_max = lambda tour: today        # hermetic: no real data/raw reads
+            health.charting_date_max = lambda tour: today
             health.OUTPUT_DIR = Path(d)
             health.TOURS = ("atp",)
             sys.argv = ["health", "--strict"]
@@ -145,7 +182,8 @@ def test_main_strict_exit_code_and_report():
             sys.argv = ["health"]
             rc_soft = health.main()
     finally:
-        health.load_matches, health.read_outputs, health.OUTPUT_DIR, health.TOURS, sys.argv = orig
+        (health.load_matches, health.read_outputs, health.fresh_date_max,
+         health.charting_date_max, health.OUTPUT_DIR, health.TOURS, sys.argv) = orig
     assert rc_strict == 1 and report["ok"] is False and report["tours"]["atp"]["problems"]
     assert report["tours"]["atp"]["output"]["matches"] == 300_000   # output snapshot persisted
     assert rc_soft == 0                      # same problems, but only --strict reds the build
@@ -155,20 +193,25 @@ def test_main_strict_exit_code_and_report():
 def test_main_surfaces_output_problems():
     """A clean source but a broken produced artifact must still red the build."""
     from datetime import UTC, datetime
+    today = pd.Timestamp(datetime.now(UTC).date())
     fresh = pd.DataFrame({"date": pd.to_datetime([datetime.now(UTC).date()]),
                           "completed": [True], "has_stats": [True]})
-    orig = (health.load_matches, health.read_outputs, health.OUTPUT_DIR, health.TOURS, sys.argv)
+    orig = (health.load_matches, health.read_outputs, health.fresh_date_max,
+            health.charting_date_max, health.OUTPUT_DIR, health.TOURS, sys.argv)
     try:
         with tempfile.TemporaryDirectory() as d:
             health.load_matches = lambda tour: fresh
             health.read_outputs = lambda tour: _oc(missing=["tournaments"])
+            health.fresh_date_max = lambda tour: today        # hermetic: no real data/raw reads
+            health.charting_date_max = lambda tour: today
             health.OUTPUT_DIR = Path(d)
             health.TOURS = ("atp",)
             sys.argv = ["health", "--strict"]
             rc = health.main()
             report = json.loads((Path(d) / "health.json").read_text())
     finally:
-        health.load_matches, health.read_outputs, health.OUTPUT_DIR, health.TOURS, sys.argv = orig
+        (health.load_matches, health.read_outputs, health.fresh_date_max,
+         health.charting_date_max, health.OUTPUT_DIR, health.TOURS, sys.argv) = orig
     assert rc == 1 and report["ok"] is False
     assert report["tours"]["atp"]["problems"] == []              # source was fine
     assert any("tournaments.json missing" in p for p in report["tours"]["atp"]["output"]["problems"])
@@ -406,6 +449,63 @@ def test_output_forecast_drift_flagged_advisory():
     print("ok test_output_forecast_drift_flagged_advisory")
 
 
+def test_output_forecast_log_stale_flagged_advisory():
+    """A present-but-frozen forecast log means the track step is silently failing (or the
+    daily persist push keeps losing) — flag it, but ADVISORY (eval history is never a
+    build dependency). Absent/young logs stay silent: a fresh clone is legitimate."""
+    stale = health.output_problems(
+        "atp", _oc(forecast={"lines": 200, "max_as_of": "2026-06-20"}), NOW)
+    hits = [p for p in stale if "forecast log last advanced" in p]
+    assert hits, stale
+    assert all(not health._gate_blocks(p) for p in hits)
+    # off-season: no upcoming matches -> no appends -> relaxed
+    assert not any("last advanced" in p for p in health.output_problems(
+        "atp", _oc(forecast={"lines": 200, "max_as_of": "2026-11-25"}),
+        pd.Timestamp("2026-12-15")))
+    # absent log / unparseable max_as_of: silent, no crash
+    assert not any("last advanced" in p
+                   for p in health.output_problems("atp", _oc(forecast=None), NOW))
+    assert not any("last advanced" in p for p in health.output_problems(
+        "atp", _oc(forecast={"lines": 0, "max_as_of": None}), NOW))
+    print("ok test_output_forecast_log_stale_flagged_advisory")
+
+
+def test_main_reports_problems_changed():
+    """The hourly report step dedups on problems_changed: True on the first failure (no
+    prev health.json), False while the problem set is identical, True when it shifts."""
+    from datetime import UTC, datetime
+    today = pd.Timestamp(datetime.now(UTC).date())
+    stale = pd.DataFrame({"date": pd.to_datetime(["2026-01-01"]),
+                          "completed": [True], "has_stats": [True]})
+    staler = pd.DataFrame({"date": pd.to_datetime(["2025-06-01"]),
+                           "completed": [True], "has_stats": [True]})
+    orig = (health.load_matches, health.read_outputs, health.fresh_date_max,
+            health.charting_date_max, health.OUTPUT_DIR, health.TOURS, sys.argv)
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            health.read_outputs = lambda tour: _oc()
+            health.fresh_date_max = lambda tour: today
+            health.charting_date_max = lambda tour: today
+            health.OUTPUT_DIR = Path(d)
+            health.TOURS = ("atp",)
+            sys.argv = ["health"]
+            health.load_matches = lambda tour: stale
+            health.main()
+            first = json.loads((Path(d) / "health.json").read_text())
+            health.main()
+            second = json.loads((Path(d) / "health.json").read_text())
+            health.load_matches = lambda tour: staler         # problem strings shift
+            health.main()
+            third = json.loads((Path(d) / "health.json").read_text())
+    finally:
+        (health.load_matches, health.read_outputs, health.fresh_date_max,
+         health.charting_date_max, health.OUTPUT_DIR, health.TOURS, sys.argv) = orig
+    assert first["ok"] is False and first["problems_changed"] is True
+    assert second["problems_changed"] is False
+    assert third["problems_changed"] is True
+    print("ok test_main_reports_problems_changed")
+
+
 def test_output_track_and_forecast_monotonicity():
     d = _healthy_data(); d["track"]["matchForecasts"]["graded"] = 99
     assert any("graded+pending" in p for p in health.output_problems("atp", _oc(data=d), NOW))
@@ -572,9 +672,12 @@ if __name__ == "__main__":
     test_problems_offseason_relax_window()
     test_problems_missing_results_is_a_problem()
     test_problems_coverage_gate_needs_volume()
+    test_problems_fresh_overlay_freeze_flagged()
+    test_problems_charting_freeze_flagged()
     test_tour_health_empty_frame_reports_none()
     test_main_strict_exit_code_and_report()
     test_main_surfaces_output_problems()
+    test_main_reports_problems_changed()
     test_gate_blocks_bad_output_without_writing_healthjson()
     test_gate_classifies_advisory_vs_blocking()
     test_output_healthy_is_clean()
@@ -594,6 +697,7 @@ if __name__ == "__main__":
     test_output_upcoming_and_fixtures_consistency()
     test_output_market_benchmark_freeze_is_flagged_advisory()
     test_output_forecast_drift_flagged_advisory()
+    test_output_forecast_log_stale_flagged_advisory()
     test_output_track_and_forecast_monotonicity()
     test_output_emptiness_is_season_gated()
     test_output_liverank_drift_is_season_gated()

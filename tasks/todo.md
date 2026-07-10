@@ -1,3 +1,44 @@
+# Task: Close the input-freshness monitoring gaps (2026-07-10)
+
+Plan: C:\Users\varma\.claude\plans\do-we-have-something-refactored-music.md
+Goal: the freshness sentinel becomes hourly (spam-controlled), every silent input source
+gets an age invariant, and the pipeline's own liveness is watched from outside it.
+Input freshness stays ADVISORY — the pre-deploy --gate remains output-integrity-only.
+
+## Checklist
+- [x] config.py: HEALTH_MAX_FORECAST_AGE_DAYS=5 / HEALTH_MAX_CHARTING_AGE_DAYS=90 /
+      HEALTH_MAX_FRESH_AGE_DAYS=14
+- [x] health.py: charting_date_max()/fresh_date_max() IO seams; tour_health() new fields;
+      problems() fresh-overlay (+Jan 1-14 grace) + charting checks; output_problems()
+      forecast-log age (gate-ADVISORY marker); main() problems_changed flag
+- [x] tests/test_health.py: _h() new defaults; fresh/charting/forecast-age/problems_changed
+      cases; hermeticity patches for the 3 tests that hit the new IO seams
+- [x] refresh.yml: sentinel + report on ALL modes; mode-aware issue dedup (quick+unchanged
+      = quiet green); persist step continue-on-error + retry + trailing red step
+- [x] watchdog.yml (new): daily refresh.yml-liveness check -> watchdog issue + red
+- [x] web: Freshness.tsx staleness() helper (aging>=6h gold, stale>=26h red) + vitest cases
+- [x] README (tennis_model): sentinel paragraph now says hourly
+- [x] Verify: pytest + health/--gate live-fixture run + yaml parse + npm test/lint
+
+## Review (2026-07-10)
+- **Shipped**: input-freshness monitoring now covers every silent source and runs hourly.
+  New sentinel invariants: fresh-overlay age (14d, off-season + Jan 1-14 grace), charting
+  age (90d), forecast-log liveness (5d, gate-ADVISORY). The sentinel + data-health issue
+  flow runs on quick runs too, dedup'd via health.json `problems_changed` (quick+unchanged
+  = warn + stay green, so a standing failure alerts once, not 24x/day; recovery now closes
+  the issue within the hour). Persist step hardened: continue-on-error + 4-attempt
+  rebase-retry push + trailing step that reds the run after deploy/sentinel. New
+  watchdog.yml guards refresh.yml's own liveness (no success in 26h -> watchdog issue +
+  red). Web Freshness pill gains aging (>=6h gold) / stale (>=26h red + title) states.
+- **Proof**: 260 pytest (+4 new) + ruff green; 127 vitest (+4 new) + eslint + tsc green;
+  live-fixture sentinel run flagged the genuinely-stale local ATP fresh overlay (19d>14)
+  and stayed quiet on WTA (13d) + charting (50d/47d<90); --gate exit 0 (freshness stays
+  advisory); second sentinel run flipped problems_changed True->False; all workflow run
+  blocks pass bash -n; Playwright screenshots confirmed gold/red/green pill states with
+  computed colors matching --color-champ/--color-loss/--color-win.
+- **Deviations from plan**: none material. Ruff re-sorted the health.py import line its
+  own way; the report-step issue title dropped "Daily" since quick runs can now open it.
+
 # Task: Forecast drift monitor — event-driven "re-tune recommended" signal (2026-07-10)
 
 Plan: C:\Users\varma\.claude\plans\one-refinement-i-d-suggest-prancy-hellman.md

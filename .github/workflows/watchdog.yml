@@ -1,0 +1,62 @@
+name: watchdog
+
+# Liveness for refresh.yml ITSELF: the in-pipeline health sentinel can't fire if the
+# pipeline never runs (workflow auto-disabled, every run crashing before the health
+# steps, or the cron silently dropped). Once a day, check that refresh.yml had at least
+# one successful run — quick or full — inside the window; otherwise open/update a
+# `watchdog` issue and red this run so GitHub emails the owner.
+#
+# Known residual: this watchdog is itself a scheduled workflow subject to GitHub's
+# 60-day-inactivity auto-disable. refresh.yml's daily forecast-log commit keeps the repo
+# active; if refresh dies entirely, the watchdog still has ~60 days of alerting runway.
+on:
+  schedule:
+    - cron: "40 9 * * *"          # after the 06:00 full run + a few hourly quick slots
+  workflow_dispatch:
+    inputs:
+      window_hours:               # dispatch with 0 to dry-run the failure path
+        description: "Max age (hours) of the newest successful refresh run"
+        default: "26"
+
+permissions:
+  actions: read
+  issues: write
+
+jobs:
+  watchdog:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      WINDOW_H: ${{ inputs.window_hours || '26' }}
+    steps:
+      - name: Check refresh.yml had a successful run in the window
+        run: |
+          LAST=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/refresh.yml/runs?status=success&per_page=1" \
+                 --jq '.workflow_runs[0].run_started_at // empty')
+          NOW=$(date -u +%s)
+          AGE_H=999999
+          [ -n "$LAST" ] && AGE_H=$(( (NOW - $(date -u -d "$LAST" +%s)) / 3600 ))
+          echo "last successful refresh run: ${LAST:-never} (${AGE_H}h ago, window ${WINDOW_H}h)"
+          EXISTING=$(gh issue list -R "$GITHUB_REPOSITORY" --label watchdog --state open \
+                     --json number --jq '.[0].number // empty')
+          if [ "$AGE_H" -le "$WINDOW_H" ]; then
+            if [ -n "$EXISTING" ]; then
+              gh issue comment "$EXISTING" -R "$GITHUB_REPOSITORY" \
+                --body "✅ Recovered: refresh succeeded ${AGE_H}h ago. Closing." || true
+              gh issue close "$EXISTING" -R "$GITHUB_REPOSITORY" || true
+            fi
+            exit 0
+          fi
+          gh label create watchdog --color B60205 -R "$GITHUB_REPOSITORY" \
+            --description "refresh.yml liveness failures" 2>/dev/null || true
+          printf 'refresh.yml has had **no successful run in %sh** (max %sh). Last success: %s.\n\nCheck the workflow page: https://github.com/%s/actions/workflows/refresh.yml — it may be disabled (60-day inactivity), failing before the health steps, or its cron dropped.\n' \
+            "$AGE_H" "$WINDOW_H" "${LAST:-never}" "$GITHUB_REPOSITORY" > /tmp/watchdog-body.md
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" -R "$GITHUB_REPOSITORY" --body-file /tmp/watchdog-body.md
+          else
+            gh issue create -R "$GITHUB_REPOSITORY" --label watchdog \
+              --title "Pipeline liveness: refresh.yml has not succeeded in ${AGE_H}h" \
+              --body-file /tmp/watchdog-body.md
+          fi
+          echo "::error::refresh.yml liveness check failed"
+          exit 1
