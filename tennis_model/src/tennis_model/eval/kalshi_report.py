@@ -11,7 +11,7 @@ d_i = loss_kalshi_i - loss_model_i, d ± SE with SE = std(ddof=1)/sqrt(n) —
 POSITIVE d = model better than Kalshi.
 
 Coverage caveat baked into the report: Kalshi lists a favorite-heavy subset of
-matches, so these numbers are not comparable to the Pinnacle market.json scorecard;
+matches, so these numbers are not comparable to the closing-line market.json scorecard;
 and with months of data, narrow segments are noise — every row carries n and SE,
 rows under N_FLAG are flagged.
 
@@ -159,6 +159,24 @@ def _coverage(df: pd.DataFrame) -> dict:
 def _qa(df: pd.DataFrame, s: pd.DataFrame) -> dict:
     both = s[s["p_kalshi_t30"].notna()]
     dv = (both["p_kalshi"] - both["p_kalshi_t30"]).abs()
+    # month-sliced sentinel: the pooled stats once hid 25 in-play July prints behind
+    # two quiet months (~70% of rows have byte-identical T-30 carries) — a month-local
+    # p95 spike is the leak signature the pooled p95 averages away
+    t30_by_month: dict[str, dict] = {}
+    if len(both):
+        mo = both["match_date"].astype(str).str[:7]
+        for m in sorted(mo.unique()):
+            d = dv[mo == m]
+            t30_by_month[m] = {"n": int(len(d)), "p95": round(float(d.quantile(0.95)), 4),
+                               "over_05": int((d > 0.05).sum())}
+    # scored quotes must precede the 08:00 anchor on their own result_date; the
+    # ledger requoter + health gate enforce this, the count here is the tripwire
+    post_anchor = 0
+    if len(s):
+        ts = pd.to_datetime(s["price_ts"], utc=True, errors="coerce")
+        anchor = (pd.to_datetime(s["result_date"], errors="coerce")
+                  .dt.tz_localize("UTC") + pd.Timedelta(hours=8))
+        post_anchor = int((ts > anchor).sum())
     unmatched = df[df["match_status"] == "unmatched"]
     # qualifying markets can be unmatchable for structural reasons (no WTA quali
     # results source) — keep them out of the alias-hunting name list. NB: Kalshi
@@ -177,6 +195,8 @@ def _qa(df: pd.DataFrame, s: pd.DataFrame) -> dict:
         "t30_mean_abs": float(dv.mean()) if len(both) else None,
         "t30_p95_abs": float(dv.quantile(0.95)) if len(both) else None,
         "t30_over_05": int((dv > 0.05).sum()),
+        "t30_by_month": t30_by_month,
+        "scored_post_anchor": post_anchor,
         "unmatched_quali": n_quali,
         "unmatched_by_event": {str(k): int(v) for k, v in by_event.head(8).items()},
         "unmatched_names": names[:40],
@@ -247,7 +267,7 @@ def build_report(tours=TOURS) -> dict:
         f"08:00 UTC on match day (morning-of line — always pre-match; Kalshi's own "
         f"start timestamps mutate on settled markets and cannot be trusted), from "
         f"1-min candlesticks; markets with spread > {MAX_SPREAD:.2f} excluded. Do "
-        "not compare these numbers to the Pinnacle closing-odds scorecard "
+        "not compare these numbers to the closing-line scorecard "
         "(market.json): different price time, different match mix._", "",
         "## Coverage", "",
         "| tour | events | matched | pending | unmatched | cancelled | ambiguous "
@@ -312,15 +332,28 @@ def build_report(tours=TOURS) -> dict:
             ret = paired_block(s_ret["p_model_w"].to_numpy(), s_ret["p_kalshi_w"].to_numpy())
     md += ["", "## QA / leak sentinel", ""]
     if qa:
+        by_month = " | ".join(
+            f"{m} p95={v['p95']:.4f} (n={v['n']}, >0.05: {v['over_05']})"
+            for m, v in qa.get("t30_by_month", {}).items())
         md += [f"- T-5 vs T-30 price divergence: n={qa['t30_n']}, "
                f"mean |Δ|={qa['t30_mean_abs']:.4f}, p95={qa['t30_p95_abs']:.4f}, "
                f">0.05 in {qa['t30_over_05']} rows (systemic divergence ⇒ early starts "
                "leaking in-play info ⇒ flip LEAD_MIN to 30)."
                if qa["t30_n"] else "- T-5 vs T-30 divergence: no rows with both quotes.",
+               f"- T-5 vs T-30 by month (a month-local p95 spike = in-play prints the "
+               f"pooled stats hide): {by_month or 'n/a'}",
+               f"- Scored quotes stamped after their 08:00 anchor: "
+               f"{qa['scored_post_anchor']} (must be 0 — requoter + health gate "
+               "enforce; >0 means the pending-race freeze escaped again).",
                f"- Our winner vs Kalshi settlement disagreements: "
-               f"{qa['settlement_disagreements']} (join bugs surface here).",
+               f"{qa['settlement_disagreements']} (join bugs surface here; these rows "
+               "are auto-healed, so a persistent nonzero means healing failed).",
                f"- Sensitivity incl. retirements: n={ret['n']}"
-               + (f", d_ll {_fmt_d(ret['d_ll'], ret['d_ll_se'])}" if ret["n"] else ""),
+               + (f", d_ll {_fmt_d(ret['d_ll'], ret['d_ll_se'])}" if ret["n"] else "")
+               + (" — vacuous by construction: matched retired rows never carry "
+                  "p_model (the backtest OOS frame is completed-only), so this can "
+                  "equal the headline; it detects nothing until a live-forecast "
+                  "retirement lands." if ret["n"] == len(s_all) else ""),
                f"- Unmatched qualifying markets: {qa['unmatched_quali']} "
                "(structural — no qualifying results source for that tour/era).",
                "- Unmatched by event (clusters = structural gaps, singletons = "

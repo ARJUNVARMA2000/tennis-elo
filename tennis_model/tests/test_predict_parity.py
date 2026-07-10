@@ -139,6 +139,37 @@ def test_feature_params_thread_to_inference():
     print("ok test_feature_params_thread_to_inference")
 
 
+def test_constructor_derives_tour_params():
+    """Constructing WITHOUT fp= must derive the TOUR's tuned FeatureParams —
+    regression: pipeline.build_tour omitted fp=, so production WTA pickles ran
+    inference on config defaults (peak_age_dev_diff would be 2.0 below) while
+    the combiner was trained on tuned frames."""
+    from tennis_model.model.features import DEFAULT_FEAT_PARAMS, feat_params_for
+    meta = {"Alfa One": {"age": 24.0, "ht": 185.0, "hand": "R", "rank_points": 3000},
+            "Bravo Two": {"age": 27.0, "ht": 190.0, "hand": "L", "rank_points": 1500}}
+    wta = TennisPredictor(clf=None, iso=None, elo=_Elo(), srv=_Srv(), ctx=_Ctx(),
+                          meta=meta, tour="wta")
+    assert wta.fp == feat_params_for("wta")
+    assert wta.fp != DEFAULT_FEAT_PARAMS               # WTA overrides genuinely diverge
+    row = _with_no_profiles(lambda: wta._feature_dict(
+        "Alfa One", "Bravo Two", "Hard", 3, False, 1.0, 3))
+    assert np.isclose(row["peak_age_dev_diff"], -3.0)  # |24-24| - |27-24| (tuned peak 24.0)
+    assert row["layoff_flag_diff"] == 0                # 6d/3d idle, under the tuned 360d
+    assert _predictor(meta).fp == DEFAULT_FEAT_PARAMS  # ATP: no overrides -> defaults
+    print("ok test_constructor_derives_tour_params")
+
+
+def test_fp_survives_pickle_roundtrip():
+    """save()/load() are thin pickle wrappers — the derived fp must ride along."""
+    import pickle
+
+    from tennis_model.model.features import feat_params_for
+    wta = TennisPredictor(clf=None, iso=None, elo=_Elo(), srv=_Srv(), ctx=_Ctx(),
+                          meta={}, tour="wta")
+    assert pickle.loads(pickle.dumps(wta))._fp == feat_params_for("wta")
+    print("ok test_fp_survives_pickle_roundtrip")
+
+
 def test_home_flag_threads_event():
     """Real matches pass event=; the venue's host country sets home_flag_diff.
     Hypotheticals (no event) and unmapped events stay neutral."""
@@ -160,5 +191,7 @@ if __name__ == "__main__":
     test_feature_dict_keys_match_FEATURES()
     test_missing_bio_matches_training_semantics()
     test_feature_params_thread_to_inference()
+    test_constructor_derives_tour_params()
+    test_fp_survives_pickle_roundtrip()
     test_home_flag_threads_event()
     print("\nALL PASSED")

@@ -90,6 +90,30 @@ def test_prematch_quote_none_when_no_two_sided_book():
     assert select_prematch_quotes([], OCC) is None
 
 
+def _carry(ts, bid, ask):
+    return {"end_period_ts": ts,
+            "yes_bid": {"close_dollars": f"{bid:.4f}"},
+            "yes_ask": {"close_dollars": f"{ask:.4f}"}}
+
+
+def test_settled_extreme_carry_at_window_edge_is_rejected():
+    """The include_latest_before_start synthetic carry (candle at/before the window
+    start) can smuggle a SETTLED book into an empty window when the anchor day
+    postdates the match — mid pinned ~0.995 on the actual winner. Reject it; a quiet
+    overnight carry with a live two-sided mid stays scorable."""
+    window_start = OCC - 4 * 3600
+    assert select_prematch_quotes([_carry(window_start, 0.99, 1.00)], OCC) is None
+    q = select_prematch_quotes([_carry(window_start, 0.60, 0.62)], OCC)
+    assert q is not None and abs(q["mid"] - 0.61) < 1e-9
+
+
+def test_extreme_mid_inside_window_still_quotes():
+    """Extremity alone is not a leak — a genuine morning book can sit at 0.99+.
+    Only the pre-window carry + settled-extreme combination is rejected."""
+    q = select_prematch_quotes([_carry(OCC - 3600, 0.99, 1.00)], OCC)
+    assert q is not None and abs(q["mid"] - 0.995) < 1e-9
+
+
 def test_dollars_and_epoch():
     assert _dollars("0.7000") == 0.7
     assert _dollars("") is None and _dollars(None) is None

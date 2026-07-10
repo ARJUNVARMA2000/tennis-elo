@@ -16,7 +16,7 @@ from datetime import UTC
 from .config import MODEL_DIR, TOURS, output_dir
 from .data.results import load_matches
 from .model.export import export_all
-from .model.features import FEATURES, build_predictor_inputs, main_rows
+from .model.features import FEATURES, build_predictor_inputs, feat_params_for, main_rows
 from .model.predict import TennisPredictor
 from .model.train import train_final, walk_forward, xgb_params_for
 
@@ -101,7 +101,7 @@ def build_tour(tour: str, do_backtest: bool) -> None:
 
 
 def _market_scorecard(tour: str, oos) -> None:
-    """Model-vs-Pinnacle scorecard from the just-computed OOS predictions (writes
+    """Model-vs-closing-line scorecard from the just-computed OOS predictions (writes
     market.json). Best-effort: odds are a benchmark, never a build dependency."""
     try:
         import json
@@ -110,20 +110,29 @@ def _market_scorecard(tour: str, oos) -> None:
         sc = scorecard_from_oos(tour, oos)
         (output_dir(tour) / "market.json").write_text(json.dumps(sc, indent=2))
         print(f"  market/{tour}: matched={sc.get('matched')} "
-              f"model={sc.get('model', {}).get('brier')} market={sc.get('market', {}).get('brier')}")
+              f"model={sc.get('model', {}).get('brier')} market={sc.get('market', {}).get('brier')} "
+              f"lastMatched={sc.get('lastMatchedDate')}")
     except Exception as e:                                   # noqa: BLE001 — never fatal
         print(f"  market/{tour}: skipped ({e})")
 
 
-def _predictor_current(predictor) -> bool:
-    """True unless the saved combiner was trained on a different feature schema
-    (e.g. a cached predictor.pkl predating a feature addition — scoring it against
-    freshly assembled frames would crash inside XGBoost)."""
+def _predictor_current(predictor, tour: str) -> bool:
+    """True unless the saved predictor is stale: trained on a different feature
+    schema (e.g. a cached predictor.pkl predating a feature addition — scoring it
+    against freshly assembled frames would crash inside XGBoost), or carrying
+    FeatureParams that differ from the tour's current config — its combiner was
+    trained on frames built with other thresholds (e.g. a pickle that shipped with
+    fp=None, or one predating a FEAT_PARAM_OVERRIDES adoption)."""
     try:
         trained = list(predictor.clf.get_booster().feature_names or [])
-    except Exception:                                        # noqa: BLE001 — can't introspect: assume current
-        return True
-    return trained == list(FEATURES)
+        if trained != list(FEATURES):
+            return False
+    except Exception:                                        # noqa: BLE001 — can't introspect: assume schema-current
+        pass
+    try:
+        return predictor._fp == feat_params_for(tour)
+    except Exception:                                        # noqa: BLE001 — foreign fp shape (cross-version pickle): rebuild
+        return False
 
 
 def build_tour_quick(tour: str) -> None:
@@ -133,8 +142,8 @@ def build_tour_quick(tour: str) -> None:
     print(f"\n=== {tour.upper()} [quick] === live refresh from saved model...")
     df = load_matches(tour)
     predictor = TennisPredictor.load(tour)
-    if not _predictor_current(predictor):
-        print("  quick: saved predictor has a stale feature schema -> full rebuild")
+    if not _predictor_current(predictor, tour):
+        print("  quick: saved predictor is stale (feature schema or FeatureParams) -> full rebuild")
         build_tour(tour, do_backtest=False)
         return
     export_all(tour, df, predictor.elo, predictor.srv, predictor.meta, predictor, oos=None)

@@ -45,6 +45,9 @@ LEAD_S = 5 * 60         # primary pre-match quote: last candle <= T-5 min
 LEAD_T30_S = 30 * 60    # sentinel quote at T-30 min (early-start leak detector)
 CANDLE_LOOKBACK_S = 4 * 3600   # how far before scheduled start to request candles
 GIVE_UP_DAYS = 14       # no usable candle this long after start -> freeze kind="none"
+EXTREME_CARRY_MID = 0.99   # a pre-window carry candle at/beyond this mid is a settled
+                           # print, not a tradable line (audit 2026-07-09: six post-result
+                           # 04:00 carries scored 0.995 "favorites" the close had at 0.32-0.72)
 
 # Kalshi spelling -> our canonical spelling, keyed and valued via name_key(). Additive
 # (rankings.py ALIASES pattern): grow it from the report's unmatched-names table.
@@ -173,8 +176,15 @@ def pair_events(markets: list[dict]) -> tuple[dict, dict]:
     return events, skipped
 
 
-def _quote_at(candles: list[dict], cutoff_ts: int) -> dict | None:
-    """Last candle at/before cutoff carrying a two-sided book -> {'mid','spread','ts'}."""
+def _quote_at(candles: list[dict], cutoff_ts: int,
+              window_start_ts: int | None = None) -> dict | None:
+    """Last candle at/before cutoff carrying a two-sided book -> {'mid','spread','ts'}.
+
+    A candle at/before window_start_ts is the include_latest_before_start synthetic
+    carry — the last book state BEFORE the whole fetch window. When the anchor day
+    postdates the match (a result-source date shift), that carry is the SETTLED book:
+    mid pinned ~0.995 on the actual winner. A real morning line is never both
+    window-stale and settled-extreme, so such a carry is rejected (caller degrades)."""
     best = None
     for c in candles:
         ts = c.get("end_period_ts")
@@ -186,16 +196,22 @@ def _quote_at(candles: list[dict], cutoff_ts: int) -> dict | None:
             continue
         if best is None or ts > best["ts"]:
             best = {"mid": (bid + ask) / 2.0, "spread": ask - bid, "ts": int(ts)}
+    if (best is not None and window_start_ts is not None
+            and best["ts"] <= window_start_ts
+            and not (1 - EXTREME_CARRY_MID < best["mid"] < EXTREME_CARRY_MID)):
+        return None
     return best
 
 
 def select_prematch_quotes(candles: list[dict], occurrence_ts: int) -> dict | None:
     """Primary (T-5) + sentinel (T-30) quotes from one market's candles; None if the
-    primary cutoff has no two-sided candle (thin market or bad window)."""
-    main = _quote_at(candles, occurrence_ts - LEAD_S)
+    primary cutoff has no two-sided candle (thin market, bad window, or a settled
+    extreme-carry print — see _quote_at)."""
+    window_start = occurrence_ts - CANDLE_LOOKBACK_S
+    main = _quote_at(candles, occurrence_ts - LEAD_S, window_start_ts=window_start)
     if main is None:
         return None
-    t30 = _quote_at(candles, occurrence_ts - LEAD_T30_S)
+    t30 = _quote_at(candles, occurrence_ts - LEAD_T30_S, window_start_ts=window_start)
     return {"mid": main["mid"], "spread": main["spread"], "ts": main["ts"],
             "mid_t30": t30["mid"] if t30 else None}
 

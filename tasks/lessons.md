@@ -1,5 +1,48 @@
 # Lessons
 
+- **A frozen-field policy needs a VALIDITY predicate, not a kind check — and every
+  "who quotes when" race is a leak vector.** (2026-07-09, Kalshi ledger audit: 25
+  rows/tour scored in-play Wimbledon prints, 6 ATP rows scored the SETTLED book, one
+  market scored an 18-day-old result of the same pair; net effect: ATP headline
+  −0.0015→+0.0064, WTA −0.0260→−0.0226, and the whole ATP fav-0.9+ "anomaly" was the
+  leak.) The traps, each now pinned by a test + a blocking health invariant:
+  (1) *Pending-race freeze*: hourly snapshots freeze an occurrence-anchored (T-5)
+  candle; a row written pending then matched later skipped the 08:00 re-anchor because
+  the skip set asked "is a candle frozen?" not "is the frozen quote valid for THIS
+  row's result_date?" (`_scoring_quote_ok`). The requoter is the only writer allowed to
+  override a frozen price (`_requoted` mark) — and it must use the match identity that
+  SURVIVES the merge (frozen prior first), else a transient results-source gap strands
+  the bad quote. (2) *`include_latest_before_start` is a leak vector*: when a result
+  source dates a match day+1, the 08:00 window is empty and the API's synthetic carry
+  imports the settled book (0.995 on the winner, "confirmed" 6/6). A carry candle at/
+  before the window start with an extreme mid is a settled print, never a line — reject
+  at selection (`EXTREME_CARRY_MID`). (3) *A wide join window admits stale rematches*:
+  a market listed before its match binds the pair's previous result if it's the only
+  in-window candidate, and `_FROZEN_MATCH` locks it forever. Durable fix is layered:
+  one result row = one ticker (claims), far-forward candidates must agree with the
+  market's parsed tournament (the tiebreaker becomes a validator), Kalshi's own
+  settlement contradicting the join is an auto-veto, and healing unfreezes only
+  OBJECTIVELY wrong rows (settlement disagreement, double-claim) so archive-dated
+  joins stay stable. (4) *Pooled QA hides month-local leaks*: the t30 sentinel's
+  pooled p95 (0.010) looked clean while July-only p95 was 0.208 — slice sentinels by
+  month/anchor-class; and a sensitivity line that can never fire (retirements: all
+  such rows lack p_model by construction) must say so itself.
+
+- **Odds-source coverage can silently truncate an eval window — census the books per era,
+  don't trust the frame.** (2026-07-09, market.json) tennis-data stopped carrying Pinnacle
+  (PSW/PSL) after 2026-01-13 (ATP 71/1466 rows in 2026, WTA 101/1422, none later), and
+  `eval/compare.py` picked ONE book frame-wide ("ps" if the column exists anywhere) then
+  `dropna` — so the "2020+ validation" closing-line card gained its last row mid-January and
+  sat frozen for ~6 months while rendering next to a May–July Kalshi card. Fix shape: (1)
+  coalesce the line PER ROW (ps→b365→avg, same de-vig) and export a per-year `sources.byYear`
+  census + derived honest `label` that the UI renders verbatim; (2) export `oosEnd` vs
+  `lastMatchedDate` and flag a >60d gap in `health.py` (ADVISORY, not gate-blocking — odds
+  are a benchmark, never a deploy dependency); (3) an era-matched `recent` block (trailing
+  90d paired Δ±SE) so a 2-month market window is never eyeballed against a 6.5-year average.
+  Rules: an eval joined to an external source must state IN ITS PAYLOAD which source backed
+  each era — a benchmark labeled "Pinnacle" must fail loudly the day Pinnacle vanishes; and
+  benchmark labels in page copy derive from that payload, never hardcoded.
+
 - **A Δ-metric card must compute the sign its own caption promises — and match its
   neighbours' convention.** (2026-07-09, /scorecard) The "Vs Pinnacle (Δ log-loss)" hero
   computed `model − market` while the page header promised "positive Δ means the model was
@@ -253,3 +296,17 @@
   (~100 turns burned across sessions). Set `cancel-in-progress: false` (GitHub's own Pages-deploy
   default): the in-progress run finishes; GitHub queues only the latest superseding run and skips
   intermediate ones. Rule: a deploy job's concurrency group must never cancel in-progress.
+
+- **Duplicated construction sites drift: production shipped WTA pickles with fp=None.**
+  (2026-07-09) `fit_predictor()` passed `fp=feat_params_for(tour)` to `TennisPredictor`, but
+  `pipeline.build_tour` reimplemented the same construction inline and omitted it — so every
+  shipped `predictor.pkl` carried `fp=None` and inference fell back to config defaults (WTA:
+  layoff 360→120d, peak age 24→26.5) while the combiner was trained on tuned frames. Invisible
+  to the walk-forward arbiter (it scores frames, never a `TennisPredictor`) and to the health
+  gate (the JSON stays self-consistent — just built from the wrong thresholds). Fix: derive the
+  invariant IN the constructor (`fp = fp if fp is not None else feat_params_for(tour)`) so no
+  call site can forget it, and drop the redundant explicit arg — leaving it would re-signal that
+  callers must remember. `_predictor_current` (quick-path guard) now also compares the pickle's
+  `_fp` to the tour's current config and rebuilds on drift, healing shipped-bad pickles within
+  an hour. Rules: derive invariants in the constructor, not at call sites; a staleness guard
+  must check every config a pickle bakes in (schema AND params), not just the crash-prone part.

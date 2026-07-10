@@ -49,7 +49,7 @@ const PAGE_META: Record<string, { title: string; description: string }> = {
   },
   scorecard: {
     title: "Scorecard",
-    description: "The full out-of-sample report: walk-forward skill, calibration, the live record and paired comparisons against Kalshi and Pinnacle.",
+    description: "The full out-of-sample report: walk-forward skill, calibration, the live record and paired comparisons against Kalshi and the bookmaker closing line.",
   },
   method: {
     title: "Method",

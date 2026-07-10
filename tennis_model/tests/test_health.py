@@ -39,13 +39,29 @@ def _healthy_data() -> dict:
         "upcoming": [{"event": "Test Open", "playerA": "P0", "playerB": "P1", "pA": 0.7}],
         "fixtures": [{"modelProb": 0.6, "upset": False}, {"modelProb": 0.4, "upset": True}],
         "track": {"matchForecasts": {"logged": 10, "graded": 6, "pending": 4}},
+        "market": {"years": [2012, 2026], "matched": 20_000,
+                   "oosEnd": "2026-07-06", "lastMatchedDate": "2026-07-04"},
     }
 
 
-def _oc(data=None, missing=None, corrupt=None, forecast=("keep",)) -> dict:
+def _oc(data=None, missing=None, corrupt=None, forecast=("keep",), kalshi_ledger=None) -> dict:
     return {"data": _healthy_data() if data is None else data,
             "missing": missing or [], "corrupt": corrupt or [],
-            "forecast": {"lines": 200, "max_as_of": "2026-07-09"} if forecast == ("keep",) else forecast}
+            "forecast": {"lines": 200, "max_as_of": "2026-07-09"} if forecast == ("keep",) else forecast,
+            "kalshi_ledger": kalshi_ledger}
+
+
+def _ledger_row(**over) -> dict:
+    """A clean SCORED kalshi-ledger row (morning-anchored quote, consistent join)."""
+    row = {"event_ticker": "KXATPMATCH-26JUL08AAABBB", "match_status": "matched",
+           "result_type": "completed", "price_kind": "candle",
+           "p_model": "0.6100", "p_kalshi": "0.5500",
+           "mid_a": "0.5500", "mid_b": "0.4500",
+           "price_ts": "2026-07-08T07:55:00Z", "result_date": "2026-07-08",
+           "player_a": "Arthur Fery", "player_b": "Flavio Cobolli",
+           "kalshi_result_a": "no", "a_won": "0"}
+    row.update(over)
+    return row
 
 
 def _h(result_age=1, stats_age=2, frac=0.9, n=500) -> dict:
@@ -341,6 +357,24 @@ def test_output_upcoming_and_fixtures_consistency():
     print("ok test_output_upcoming_and_fixtures_consistency")
 
 
+def test_output_market_benchmark_freeze_is_flagged_advisory():
+    """tennis-data dropped Pinnacle mid-Jan 2026 and the market benchmark silently
+    stopped gaining rows while still claiming a current window. A matched-odds date
+    trailing the scored matches by > HEALTH_MAX_MARKET_LAG_DAYS must flag — but stay
+    ADVISORY (odds are a benchmark, never a deploy dependency)."""
+    d = _healthy_data()
+    d["market"] = {"oosEnd": "2026-07-06", "lastMatchedDate": "2026-01-13"}
+    out = health.output_problems("atp", _oc(data=d), NOW)
+    hits = [p for p in out if "market.json odds coverage" in p]
+    assert hits, out
+    assert all(not health._gate_blocks(p) for p in hits)
+    # pre-census payloads (or a benchmark-less tour) lack the fields — never flag/crash
+    d2 = _healthy_data()
+    d2["market"] = {"years": [2012, 2026], "matched": 5}
+    assert not any("market.json" in p for p in health.output_problems("atp", _oc(data=d2), NOW))
+    print("ok test_output_market_benchmark_freeze_is_flagged_advisory")
+
+
 def test_output_track_and_forecast_monotonicity():
     d = _healthy_data(); d["track"]["matchForecasts"]["graded"] = 99
     assert any("graded+pending" in p for p in health.output_problems("atp", _oc(data=d), NOW))
@@ -367,6 +401,58 @@ def test_output_liverank_drift_is_season_gated():
     dec = pd.Timestamp("2026-12-15")
     assert not any("liveRank" in x for x in health.output_problems("atp", _oc(data=d), dec))
     print("ok test_output_liverank_drift_is_season_gated")
+
+
+def test_output_kalshi_ledger_clean_and_unscored_ignored():
+    """Clean scored rows pass; unscored rows (pending, degraded price, no p_model)
+    are outside the scorecard and never flagged even with wild timestamps."""
+    rows = [_ledger_row(),
+            _ledger_row(event_ticker="K2", match_status="pending",
+                        price_ts="2026-07-08T12:55:00Z", result_date="", a_won=""),
+            _ledger_row(event_ticker="K3", price_kind="none", p_kalshi="",
+                        price_ts="2026-07-08T16:00:00Z")]
+    assert health.output_problems("atp", _oc(kalshi_ledger=rows), NOW) == []
+    print("ok test_output_kalshi_ledger_clean_and_unscored_ignored")
+
+
+def test_output_kalshi_ledger_post_anchor_quote_blocks():
+    """A scored quote stamped after 08:00 on its result date is the pending-race
+    occurrence-anchor escape (possibly in-play) — must block the deploy."""
+    rows = [_ledger_row(price_ts="2026-07-08T12:55:00Z")]
+    out = health.output_problems("atp", _oc(kalshi_ledger=rows), NOW)
+    assert any("quoted after its 08:00 anchor" in p for p in out)
+    assert all(health._gate_blocks(p) for p in out)
+    print("ok test_output_kalshi_ledger_post_anchor_quote_blocks")
+
+
+def test_output_kalshi_ledger_settled_carry_blocks():
+    """A window-edge carry candle with a settled-extreme mid is a post-result print;
+    the same carry with a live two-sided mid is a quiet overnight book (fine)."""
+    bad = [_ledger_row(price_ts="2026-07-08T04:00:00Z",
+                       mid_a="0.9950", mid_b="0.0050", p_kalshi="0.9950")]
+    out = health.output_problems("atp", _oc(kalshi_ledger=bad), NOW)
+    assert any("settled-extreme window-edge quote" in p for p in out)
+    ok = [_ledger_row(price_ts="2026-07-08T04:00:00Z")]
+    assert health.output_problems("atp", _oc(kalshi_ledger=ok), NOW) == []
+    print("ok test_output_kalshi_ledger_settled_carry_blocks")
+
+
+def test_output_kalshi_ledger_settlement_disagreement_blocks():
+    """Kalshi settling the market for the OTHER player than the joined result is a
+    provably mis-joined row (the FRIZVE/Halle chimera signature)."""
+    rows = [_ledger_row(kalshi_result_a="yes")]                    # a lost, settled yes
+    out = health.output_problems("atp", _oc(kalshi_ledger=rows), NOW)
+    assert any("settlement contradicts" in p for p in out)
+    print("ok test_output_kalshi_ledger_settlement_disagreement_blocks")
+
+
+def test_output_kalshi_ledger_double_scored_result_blocks():
+    """One (pair, result_date) scored under two tickers = one match counted twice."""
+    rows = [_ledger_row(),
+            _ledger_row(event_ticker="KXATPMATCH-26JUL09AAABBB")]
+    out = health.output_problems("atp", _oc(kalshi_ledger=rows), NOW)
+    assert any("scores one result twice" in p for p in out)
+    print("ok test_output_kalshi_ledger_double_scored_result_blocks")
 
 
 def test_read_outputs_detects_missing_and_corrupt(tmp_path=None):
@@ -451,9 +537,15 @@ if __name__ == "__main__":
     test_output_split_event_under_two_names()
     test_output_distinct_events_are_clean()
     test_output_upcoming_and_fixtures_consistency()
+    test_output_market_benchmark_freeze_is_flagged_advisory()
     test_output_track_and_forecast_monotonicity()
     test_output_emptiness_is_season_gated()
     test_output_liverank_drift_is_season_gated()
+    test_output_kalshi_ledger_clean_and_unscored_ignored()
+    test_output_kalshi_ledger_post_anchor_quote_blocks()
+    test_output_kalshi_ledger_settled_carry_blocks()
+    test_output_kalshi_ledger_settlement_disagreement_blocks()
+    test_output_kalshi_ledger_double_scored_result_blocks()
     test_read_outputs_detects_missing_and_corrupt()
     test_read_outputs_flags_nan_as_corrupt()
     test_format_issue_body_has_problems_and_fix_prompt()

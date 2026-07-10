@@ -37,8 +37,9 @@ gradient boosting combine and calibrate them. Walk-forward, leakage-free results
 
 The combiner beats every component on both tours, and the ATP model now **clears the
 literature bookmaker anchor on both accuracy (0.696 vs ~0.690) and Brier (0.1947 vs
-0.196)** — head-to-head on the repo's own odds-matched subset, Pinnacle's closing line
-still leads (0.201 vs 0.203 Brier; see the Scorecard page). The single largest jump
+0.196)** — head-to-head on the repo's own odds-matched subset, the bookmaker closing
+line (Pinnacle through 2025; Bet365/average close after Pinnacle left tennis-data in
+Jan 2026) still leads (0.201 vs 0.203 Brier; see the Scorecard page). The single largest jump
 came from ingesting ~130k Challenger + qualifying matches
 into the rating walks (ratings-only: the combiner still trains on main draws;
 d_val +0.0076 ± 0.0010, 17/17 years positive). Every constant is tuned offline per

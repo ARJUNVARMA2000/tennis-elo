@@ -27,6 +27,9 @@ type Track = {
 };
 type Market = {
   years: [number, number]; matched: number;
+  lastMatchedDate?: string;
+  sources?: { label: string; byYear: Record<string, Record<string, number>> };
+  recent?: { windowDays: number; n: number; from: string; to: string; model: Metrics; market: Metrics; dLl: number; dLlSe: number };
   stack?: { fit?: { valStart: number; nVal: number }; val?: { model: Metrics; market: Metrics; stack: Metrics } };
 };
 type Block = { n: number; acc: number; logloss: number; brier: number };
@@ -310,6 +313,10 @@ export default function ScorecardPage() {
   const combiner = acc?.models?.combiner;
   const live = track?.matchForecasts;
   const val = market?.stack?.val;
+  // honest benchmark label, computed pipeline-side from a per-year census of which
+  // book actually priced each matched row (tennis-data dropped Pinnacle in Jan 2026)
+  const marketLabel = market?.sources?.label ?? "Pinnacle closing odds";
+  const recent = market?.recent;
 
   const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
@@ -324,7 +331,7 @@ export default function ScorecardPage() {
       <PageHead
         eyebrow={`${tour.toUpperCase()} · model scorecard${acc?.window ? ` · ${acc.window}` : ""}`}
         title="The Scorecard"
-        sub="Every number here is out-of-sample: a ten-season walk-forward backtest, live forecasts frozen before results, and paired comparisons against the market on identical matches. Lower log-loss and Brier are better; positive Δ means the model was sharper than the market."
+        sub="Every number here is out-of-sample: a full walk-forward backtest, live forecasts frozen before results, and paired comparisons against the market on identical matches. Lower log-loss and Brier are better; positive Δ means the model was sharper than the market."
       />
 
       {loading && !kalshi && <Loading />}
@@ -338,8 +345,8 @@ export default function ScorecardPage() {
             sub={live ? `${live.graded} graded pre-match calls` : undefined} />
           <StatCard label="Vs Kalshi (Δ log-loss)" value={kHead ? signed(kHead.d_ll) : "—"}
             sub={kHead ? `±${num(kHead.d_ll_se)} · ${kv === "even" ? "at parity" : kv}` : undefined} />
-          <StatCard label="Vs Pinnacle (Δ log-loss)" value={val ? signed(val.market.logloss - val.model.logloss, 4) : "—"}
-            sub={val && market ? `${val.model.n.toLocaleString()} matches (${market.stack?.fit?.valStart ?? market.years[0]}+ validation) · closing odds` : undefined} />
+          <StatCard label="Vs closing line (Δ log-loss)" value={val ? signed(val.market.logloss - val.model.logloss, 4) : "—"}
+            sub={val && market ? `${val.model.n.toLocaleString()} matches (${market.stack?.fit?.valStart ?? market.years[0]}+ validation) · ${marketLabel}` : undefined} />
         </div>
         {freshness && (
           <div className="mono mt-2 flex items-center gap-1.5 text-[11px] text-[var(--color-faint)]">
@@ -352,7 +359,7 @@ export default function ScorecardPage() {
       {acc && combiner && (
         <section className="mt-14">
           <SectionHead n="01" kicker="Absolute skill" title="The combiner earns its keep — and stays honest"
-            sub="Ten seasons of walk-forward testing: every prediction trained only on earlier data. The XGBoost combiner adds a point or two over its best component, and a “70%” really wins about 70% of the time." />
+            sub={`Walk-forward testing across ${acc.window}: every prediction trained only on earlier data. The XGBoost combiner adds a point or two over its best component, and a “70%” really wins about 70% of the time.`} />
           <div className="mt-5 grid gap-2.5 lg:grid-cols-2">
             <div className="panel p-5">
               <Eyebrow>Model ladder — accuracy by layer</Eyebrow>
@@ -404,7 +411,7 @@ export default function ScorecardPage() {
               </div>
             </div>
             <div className="panel p-5">
-              <Eyebrow>Vs Pinnacle closing{val && market ? ` · validation ${market.stack?.fit?.valStart ?? market.years[0]}–${market.years[1]}` : ""}</Eyebrow>
+              <Eyebrow>Vs the closing line{val && market ? ` · validation ${market.stack?.fit?.valStart ?? market.years[0]}–${market.years[1]}` : ""}</Eyebrow>
               {val ? (
                 <table className="w-full text-[13px]">
                   <thead className="mono text-[10px] uppercase tracking-wider text-[var(--color-faint)]">
@@ -422,8 +429,17 @@ export default function ScorecardPage() {
                   </tbody>
                 </table>
               ) : <p className="text-[13px] text-[var(--color-faint)]">Odds benchmark not available for this tour yet.</p>}
+              {recent && (
+                <p className="mt-3 border-t border-[var(--color-line)] pt-3 text-[13px] text-[var(--color-muted)]">
+                  Era-matched with the Kalshi card — last {recent.windowDays} days ({recent.n} matches):{" "}
+                  <span className="mono" style={{ color: VCOLOR[verdictOf(recent.dLl, recent.dLlSe)] }}>
+                    {signed(recent.dLl)} ±{num(recent.dLlSe)}
+                  </span>{" "}
+                  Δ log-loss vs the close.
+                </p>
+              )}
               <p className="mono mt-3 text-[11px] leading-relaxed text-[var(--color-faint)]">
-                Pinnacle’s closing line is the sharpest in tennis. The Kalshi numbers are its <span className="text-[var(--color-muted)]">morning</span> line — a weaker bar, on a favorite-heavy subset. Not directly comparable.
+                The “market” here is {marketLabel} — Pinnacle, the sharpest book in tennis, left the odds feed in Jan 2026. The Kalshi numbers are a <span className="text-[var(--color-muted)]">morning</span> line on a favorite-heavy subset — a weaker bar than any close.{recent ? " The era-matched row above is the like-for-like comparison." : ""}
               </p>
             </div>
           </div>
@@ -486,7 +502,7 @@ export default function ScorecardPage() {
               </table>
             </div>
             <div className="panel p-5 text-[13px] leading-relaxed text-[var(--color-muted)]">
-              <p><span className="text-[var(--color-text)]">Read as direction, not destiny.</span> Two months of exchange data is a small sample; most segment intervals cross parity. The Kalshi comparison is against the <span className="text-[var(--color-text)]">morning</span> line, a weaker bar than the Pinnacle close.</p>
+              <p><span className="text-[var(--color-text)]">Read as direction, not destiny.</span> Two months of exchange data is a small sample; most segment intervals cross parity. The Kalshi comparison is against the <span className="text-[var(--color-text)]">morning</span> line, a weaker bar than the closing line ({marketLabel}).</p>
               <p className="mt-2.5">Most rows are back-filled with walk-forward probabilities (today’s model, leak-free walk). The <span className="text-[var(--color-text)]">live-frozen</span> slice — forecasts logged days before the match — is the honest real-time number, broken out first in the forest plot. As it accumulates across surfaces it becomes the series that matters most.</p>
               <p className="mt-2.5 mono text-[11px] text-[var(--color-faint)]">Sources: track.json &amp; kalshi.json refreshed hourly by CI; accuracy.json &amp; market.json rebuilt by the daily full retrain.</p>
             </div>
