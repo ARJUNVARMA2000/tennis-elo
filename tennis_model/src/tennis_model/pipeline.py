@@ -101,7 +101,7 @@ def build_tour(tour: str, do_backtest: bool) -> None:
 
 
 def _market_scorecard(tour: str, oos) -> None:
-    """Model-vs-Pinnacle scorecard from the just-computed OOS predictions (writes
+    """Model-vs-closing-line scorecard from the just-computed OOS predictions (writes
     market.json). Best-effort: odds are a benchmark, never a build dependency."""
     try:
         import json
@@ -110,7 +110,8 @@ def _market_scorecard(tour: str, oos) -> None:
         sc = scorecard_from_oos(tour, oos)
         (output_dir(tour) / "market.json").write_text(json.dumps(sc, indent=2))
         print(f"  market/{tour}: matched={sc.get('matched')} "
-              f"model={sc.get('model', {}).get('brier')} market={sc.get('market', {}).get('brier')}")
+              f"model={sc.get('model', {}).get('brier')} market={sc.get('market', {}).get('brier')} "
+              f"lastMatched={sc.get('lastMatchedDate')}")
     except Exception as e:                                   # noqa: BLE001 — never fatal
         print(f"  market/{tour}: skipped ({e})")
 

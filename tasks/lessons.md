@@ -28,6 +28,21 @@
   month/anchor-class; and a sensitivity line that can never fire (retirements: all
   such rows lack p_model by construction) must say so itself.
 
+- **Odds-source coverage can silently truncate an eval window — census the books per era,
+  don't trust the frame.** (2026-07-09, market.json) tennis-data stopped carrying Pinnacle
+  (PSW/PSL) after 2026-01-13 (ATP 71/1466 rows in 2026, WTA 101/1422, none later), and
+  `eval/compare.py` picked ONE book frame-wide ("ps" if the column exists anywhere) then
+  `dropna` — so the "2020+ validation" closing-line card gained its last row mid-January and
+  sat frozen for ~6 months while rendering next to a May–July Kalshi card. Fix shape: (1)
+  coalesce the line PER ROW (ps→b365→avg, same de-vig) and export a per-year `sources.byYear`
+  census + derived honest `label` that the UI renders verbatim; (2) export `oosEnd` vs
+  `lastMatchedDate` and flag a >60d gap in `health.py` (ADVISORY, not gate-blocking — odds
+  are a benchmark, never a deploy dependency); (3) an era-matched `recent` block (trailing
+  90d paired Δ±SE) so a 2-month market window is never eyeballed against a 6.5-year average.
+  Rules: an eval joined to an external source must state IN ITS PAYLOAD which source backed
+  each era — a benchmark labeled "Pinnacle" must fail loudly the day Pinnacle vanishes; and
+  benchmark labels in page copy derive from that payload, never hardcoded.
+
 - **A Δ-metric card must compute the sign its own caption promises — and match its
   neighbours' convention.** (2026-07-09, /scorecard) The "Vs Pinnacle (Δ log-loss)" hero
   computed `model − market` while the page header promised "positive Δ means the model was

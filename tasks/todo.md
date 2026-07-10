@@ -1025,3 +1025,28 @@ committed `parse_constant` change — caught only because the "check first" pass
 committed health.py against the restore. Correct recovery: ff to master, reset all my target files
 to master, re-apply ONLY my hunks from context on top. Lesson: after a shared-tree disruption, never
 restore whole files from a pre-disruption stash — diff every target against committed master first.
+
+## Market benchmark un-freeze: per-row odds fallback + honest labels (2026-07-09)
+
+Verified audit finding: tennis-data dropped Pinnacle after 2026-01-13; `compare.py`'s
+frame-wide "ps" pick + dropna froze market.json's "2020+" sample at mid-January (last PS row:
+ATP 2026-01-13, WTA 2026-01-14) while the scorecard showed it beside a May–July Kalshi card.
+
+- [x] `eval/compare.py`: per-row odds coalesce ps→b365→avg (`_coalesce_odds`), per-year book
+      census + derived honest label (`sources`), `oosEnd`/`lastMatchedDate`, era-matched
+      `recent` block (trailing 90d paired Δ log-loss ± SE, kalshi_report convention).
+- [x] `data/health.py` + `config.py`: staleness invariant — matched odds trailing the newest
+      scored match by > `HEALTH_MAX_MARKET_LAG_DAYS` (60) flags; ADVISORY, not gate-blocking
+      (odds are never a build dependency). market.json now read NaN-strict as optional output.
+- [x] `web/app/scorecard/page.tsx`: hero "Vs closing line" + census label; panel "Vs the
+      closing line" + era-matched row; §05 caveat. Pre-census payloads degrade gracefully
+      (label falls back to "Pinnacle closing odds", era row hidden, no dangling copy).
+- [x] Stale attributions: READMEs, `web/lib/seo.ts`, `kalshi_report.py`, `odds.py` comment.
+- [x] Tests: fallback survival + census/label + exact era math (`test_compare.py`), advisory
+      staleness (`test_health.py`). 229 Python + 97 web tests pass; ruff + eslint clean.
+- [x] Real-data check: coalesced sample now ends 2026-06-28 (ATP) / 2026-06-27 (WTA) vs the
+      frozen 2026-01-13/14; ATP 2026 census ps 71 / b365 1386 / avg 9 — matches the audit.
+      Both payload shapes rendered and screenshotted via Playwright on :3002.
+- **Review:** eval/reporting only — no model change, so no walk-forward arbiter. New payload
+  fields ship with the next daily FULL retrain; until then the page renders honest fallbacks.
+  Work done in an isolated worktree off origin/master (Codex loop held the shared tree).
