@@ -12,14 +12,40 @@ winRate10) so the explorer has real axes.
       health gate invariants, test_export + test_health cases, regenerated data mirror)
       — 250 pytest + ruff green; quick refresh ran both tours; fields verified in
       web/public/data (Sinner 191cm / winRate10 0.9; WTA heights null 82/200); gate green
-- [ ] C1-C2: web/lib/url.ts pure helpers + tour-in-URL sync (TourUrlBridge) + url tests
-- [ ] B: route rename /upcoming -> /results + redirect stub + nav restructure (Matches group,
+- [x] C1-C2: web/lib/url.ts pure helpers + tour-in-URL sync (TourUrlBridge) + url tests
+- [x] B: route rename /upcoming -> /results + redirect stub + nav restructure (Matches group,
       Explorer entry) + seo.ts + label/title consistency pass
-- [ ] D1: extract shared components/ScatterChart.tsx from strength page (pixel-identical)
-- [ ] D2-D3: EXPLORER_AXES registry + /explorer page (Scatter | Table views, URL state) + tests
-- [ ] C3-C4: player deep links (/player?p, /style?a&b, /predict?a&b) + cross-links
+- [x] D1: extract shared components/ScatterChart.tsx from strength page (pixel-identical)
+- [x] D2-D3: EXPLORER_AXES registry + /explorer page (Scatter | Table views, URL state) + tests
+- [x] C3-C4: player deep links (/player?p, /style?a&b, /predict?a&b) + cross-links
       (rankings, trends, CallCard, dots, H2H)
-- [ ] Verify: python pytest + health gate; web test/lint/build; Playwright E2E on :3001
+- [x] Verify: python pytest + health gate; web test/lint/build; Playwright E2E on :3001
+
+## Review (2026-07-09)
+- **Shipped**: the full IA reorg — nav is now Overview | Matches (Schedule, Results) |
+  Players (…, Explorer) | Forecasts | Model; /upcoming renamed /results with a client
+  redirect (query forwarded); nav labels == page titles (old nicknames moved to eyebrows).
+  Tour state lives in the URL (?tour=wta, atp elided; URL > localStorage > default) and
+  players are deep-linkable everywhere: /player?p=, /style?a=&b=, /predict?a=&b= (names,
+  not indices), with cross-links from rankings rows, trends rows, CallCards (home/
+  schedule/results/track), strength+explorer dots, and profile H2H/recent opponents.
+  New /explorer: Scatter (any 2 of 20 registry axes, presets, group-mean cross) + Table
+  (all axes as sortable columns, nulls last, sticky name column) — both URL-addressable
+  (?view/&x/&y/&sort/&dir). Python export now ships heightCm, per-surface serve/return,
+  form90, winRate10 (explicit 90d/last-10 windows — NOT the tours' tuned windows).
+- **E2E-caught bugs (fixed during verification)**: (1) TourUrlBridge reverted toggles —
+  it applied the stale URL param before router.replace landed; fixed by only applying
+  URL→state when the search string actually changed (ref-tracked navigation detection).
+  (2) The /upcoming redirect's router.replace lost the race against the tour bridge's
+  own replace; fixed with a hard window.location.replace (base-path aware).
+- **Proof**: Python 250 tests + ruff + health gate green; quick refresh regenerated both
+  tours (Sinner 191cm/winRate10 0.9; WTA heights null 82/200 as expected). Web 118 tests
+  + lint 0 errors + build 19 routes; scripts/verify.mjs 10/10 routes, 0 console errors;
+  Playwright walked every flow above on :3001 (toggle URL round-trip incl. scroll
+  preservation, deep-link precedence, diacritic names, redirect with ?tour=wta,
+  15-chip mobile strip, table sort desc/asc with URL restore).
+- **Deviation from plan**: none of substance; the two race fixes above were within-plan
+  contingencies (the plan flagged replace-mechanism fallbacks).
 
 ---
 

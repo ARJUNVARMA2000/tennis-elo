@@ -15,17 +15,21 @@ const PAGE_META: Record<string, { title: string; description: string }> = {
     title: "Draw Simulator",
     description: "Monte Carlo projections for a hypothetical top-32 field — title, final and semifinal odds per surface.",
   },
-  upcoming: {
-    title: "Latest Results",
+  results: {
+    title: "Results",
     description: "Recent results with the model's pre-match calls, upset flags included.",
   },
   schedule: {
-    title: "Upcoming Matches",
+    title: "Schedule",
     description: "Model win probabilities for every scheduled ATP & WTA match, by surface and round.",
   },
   player: {
-    title: "Player Profiles",
+    title: "Profiles",
     description: "Elo history, surface splits, serve/return stats and head-to-heads for every ranked player.",
+  },
+  explorer: {
+    title: "Explorer",
+    description: "Plot any two attributes for the tour's best — or rank the field by any stat in a sortable table.",
   },
   style: {
     title: "Playing Style",

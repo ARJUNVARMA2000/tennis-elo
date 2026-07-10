@@ -1,5 +1,18 @@
 # Lessons
 
+- **A URL↔state bridge must apply URL→state only on NAVIGATION, and a client
+  "redirect page" must hard-navigate.** (2026-07-09, tour-in-URL + /upcoming→/results;
+  both caught by Playwright E2E, invisible to unit tests/build.) (1) An effect that
+  reconciles `useSearchParams` with context state fires on BOTH kinds of change; on a
+  toggle it runs with the state updated but the params still stale (router.replace
+  hasn't landed), and "param ≠ state ⇒ apply param" silently reverts the user's click.
+  Fix shape: ref-track the previous search string and apply URL→state only when it
+  actually changed (`lib/tour.tsx` TourUrlBridge); state→URL canonicalization can stay
+  unconditional. (2) A moved-route stub using `router.replace` races any other
+  mount-time `router.replace` (here: the tour bridge) and the last one wins — the
+  redirect just doesn't happen. A legacy URL is semantically a 301: use base-path-aware
+  `window.location.replace` and no soft-nav can clobber it.
+
 - **A frozen-field policy needs a VALIDITY predicate, not a kind check — and every
   "who quotes when" race is a leak vector.** (2026-07-09, Kalshi ledger audit: 25
   rows/tour scored in-play Wimbledon prints, 6 ATP rows scored the SETTLED book, one

@@ -20,8 +20,8 @@ export default function Schedule() {
   return (
     <div className="pb-16">
       <PageHead
-        eyebrow={`${tour.toUpperCase()} · upcoming`}
-        title="On Deck"
+        eyebrow={`${tour.toUpperCase()} · on deck`}
+        title="Schedule"
         sub="Every scheduled and in-progress match with the model's current win probability. The favourite is highlighted; the two sides sum to 100%."
       />
 

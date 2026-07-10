@@ -1,6 +1,9 @@
-import { pageMetadata } from "@/lib/seo";
+import type { Metadata } from "next";
 
-export const metadata = pageMetadata("upcoming");
+export const metadata: Metadata = {
+  title: "Results (moved)",
+  robots: { index: false },
+};
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return children;

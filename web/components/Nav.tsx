@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTour } from "@/lib/tour";
+import { withTour } from "@/lib/url";
 import { SPRING } from "@/lib/motion";
 import { GitHubIcon } from "@/components/bits";
 import Freshness from "@/components/Freshness";
@@ -17,12 +18,20 @@ type Group = { label: string; href?: string; items?: Item[] };
 const GROUPS: Group[] = [
   { label: "Overview", href: "/" },
   {
+    label: "Matches",
+    items: [
+      { href: "/schedule", label: "Schedule", desc: "Win odds for scheduled matches" },
+      { href: "/results", label: "Results", desc: "Model calls on recent results" },
+    ],
+  },
+  {
     label: "Players",
     items: [
       { href: "/rankings", label: "Rankings", desc: "Live Elo top 100" },
       { href: "/player", label: "Profiles", desc: "History, splits & H2H" },
       { href: "/style", label: "Playing style", desc: "13-axis fingerprints" },
       { href: "/strength", label: "Strength map", desc: "Serve vs return" },
+      { href: "/explorer", label: "Explorer", desc: "Any stat vs any stat" },
       { href: "/trends", label: "Risers & fallers", desc: "Recent Elo movers" },
     ],
   },
@@ -31,8 +40,6 @@ const GROUPS: Group[] = [
     items: [
       { href: "/predict", label: "Predictor", desc: "Any matchup, any surface" },
       { href: "/simulator", label: "Draw simulator", desc: "Monte Carlo title odds" },
-      { href: "/schedule", label: "Upcoming matches", desc: "Win probability for scheduled matches" },
-      { href: "/upcoming", label: "Latest results", desc: "Model calls on results" },
     ],
   },
   {
@@ -124,7 +131,7 @@ export default function Nav() {
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--color-line)] bg-[rgba(8,9,10,0.72)] backdrop-blur-[20px]">
       <div className="mx-auto flex h-14 w-full max-w-[1240px] items-center gap-4 px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2 text-[15px] font-semibold tracking-tight">
+        <Link href={withTour("/", tour)} className="flex items-center gap-2 text-[15px] font-semibold tracking-tight">
           <span className="inline-block h-2 w-2 rounded-[2px] bg-[var(--color-accent)]" />
           Deuce
         </Link>
@@ -156,7 +163,7 @@ export default function Nav() {
 
             if (g.href) {
               return (
-                <Link key={g.label} href={g.href} className="relative rounded-md px-3 py-1.5 hover:text-[var(--color-text)]">
+                <Link key={g.label} href={withTour(g.href, tour)} className="relative rounded-md px-3 py-1.5 hover:text-[var(--color-text)]">
                   {label}
                 </Link>
               );
@@ -207,7 +214,7 @@ export default function Nav() {
                           return (
                             <Link
                               key={it.href}
-                              href={it.href}
+                              href={withTour(it.href, tour)}
                               role="menuitem"
                               className="flex items-start gap-2.5 rounded-md px-2.5 py-2 transition-colors hover:bg-white/[0.05] focus-visible:bg-white/[0.05] focus-visible:outline-none"
                               style={{ background: a ? "var(--color-accent-dim)" : undefined }}
@@ -282,7 +289,7 @@ export default function Nav() {
         {FLAT.map(({ href, label }) => {
           const a = isActive(path, href);
           return (
-            <Link key={href} href={href} className="relative whitespace-nowrap rounded-md px-2.5 py-1">
+            <Link key={href} href={withTour(href, tour)} className="relative whitespace-nowrap rounded-md px-2.5 py-1">
               {a && (
                 <motion.span
                   layoutId="nav-pill-mobile"
