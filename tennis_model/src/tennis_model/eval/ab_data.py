@@ -21,12 +21,11 @@ import numpy as np
 import pandas as pd
 
 from .. import config
+from ..config import TUNE_YEARS, VAL_START
 from ..model.features import build_feature_frame, main_rows
 from ..model.train import walk_forward, xgb_params_for
 from .metrics import score
 
-TUNE_YEARS = (2010, 2019)
-VAL_START = 2020
 AB_DIR = config.OUTPUT_DIR / "tuning"
 
 

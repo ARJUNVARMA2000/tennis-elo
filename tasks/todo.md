@@ -137,6 +137,65 @@ Input freshness stays ADVISORY — the pre-deploy --gate remains output-integrit
   day one: TennisCourtLog's ATP overlay has published nothing since 2026-06-21 (19d,
   through Wimbledon) — previously invisible because ESPN kept merged result-age fresh.
 
+---
+
+# Task: /method full methodology, driven by exported method.json (2026-07-10)
+
+Plan: C:\Users\varma\.claude\plans\yes-plan-it-out-hashed-starfish.md
+Goal: add a "Full methodology" block to /method (exact Elo equations, per-tour tuned
+constants, point model, combiner+calibration, adoption protocol) with ZERO hardcoded
+tuned constants — a new pipeline-exported per-tour method.json carries the effective
+production parameters (from the *_params_for accessors); prose in TSX, numbers from JSON.
+Branch: method-page-detail. Daily-log dirty files (forecast_log, kalshi_ledger) belong to
+the scheduled actors — never commit them here.
+
+## Checklist
+- [x] 1. config.py: hoist TUNE_YEARS/VAL_START; eval/tune.py + eval/ab_data.py +
+      eval/compare.py import from config
+- [x] 2. train.py: XGB_DEFAULTS + EARLY_STOPPING_ROUNDS hoists (zero behavior change),
+      effective_xgb_params(tour)
+- [x] 3. export.py: _camel, build_method(tour) (config-pure), _write line in export_all
+- [x] 4. test_export.py: matches-accessors / shape+strict-JSON / atp-xgb-defaults tests
+- [x] 5. health.py: "method" required stem + _check_method (sanity ranges,
+      featureCount cross-check vs meta)
+- [x] 6. test_health.py: _healthy_data() gains method key; missing-blocks /
+      feature-count-drift / out-of-range tests
+- [x] 7. generate method.json locally for both tours + mirror to web/public/data
+- [x] 8. web/lib/method.ts: MethodDoc type, fmt, kAt (+ web/tests/method.test.ts)
+- [x] 9. web/app/method/page.tsx: six detailed sections, Formula component,
+      collapsible 42-feature list, explicit empty state
+- [x] Verify: pytest + ruff; health --gate; npm test + lint + build; browser visual
+      pass on :3001 (tour toggle flips constants; empty state on missing JSON)
+
+## Review (2026-07-10)
+- **Shipped**: /method now carries a six-section "Full methodology" block below the
+  overview — exact Elo equations (expected score, update rule, dynamic-K curves with a
+  K-at-n table, tier multipliers), surface blend + cross-surface transfer, margin of
+  victory, the serve/return Markov model, the XGBoost+Platt combiner (hyperparameter
+  table + collapsible 42-feature list), and the adoption protocol with leakage
+  guarantees + links to the tuning logs/ledger. Every number renders from a new
+  pipeline-exported `method.json` (per tour, written by `export.build_method` — pure
+  config via the `*_params_for` accessors, so full AND quick paths always publish
+  current production intent). Zero hardcoded tuned constants in page copy — the exact
+  failure the 2026-07-09 lessons entry recorded is now structurally impossible for the
+  detail sections. `method.json` is a REQUIRED health-gate stem with sanity +
+  featureCount-vs-meta drift checks.
+- **Proof**: 262 pytest (+6) + ruff green; `health --gate` green with the new stem;
+  130 vitest (+7) + lint 0 errors + typed static build green; 20 browser checks on
+  :3001 via a playwright-core script (ATP constants 145/0.63/0.27/1.28, WTA
+  320/0.62/0.72/no-Bo5/xgb-override table, 42 chips, float noise cleaned, explicit
+  empty state with method.json renamed away, overview intact, no orphaned sections).
+  Screenshots in web/.verify/shots/.
+- **Deviations from plan**: (1) the Plan agent's "force-add the mirrored JSON" step was
+  dropped — `git ls-files web/public/data` proved NOTHING under it is tracked; CI
+  regenerates all JSON pre-build, local dev regenerates via the one-liner. (2) Next
+  16/Turbopack drops SOME same-line spaces after JSX interpolations (rendered
+  "ATPtour", "400days", "0.27of the" — while identical patterns elsewhere survived);
+  fixed with explicit {" "} after every expression/element followed by prose and a
+  rendered-DOM glue scan; recorded in lessons.md.
+
+---
+
 # Task: Forecast drift monitor — event-driven "re-tune recommended" signal (2026-07-10)
 
 Plan: C:\Users\varma\.claude\plans\one-refinement-i-d-suggest-prancy-hellman.md

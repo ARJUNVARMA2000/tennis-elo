@@ -26,10 +26,10 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+from ..config import TUNE_YEARS, VAL_START
 from ..data.odds import load_odds, market_prob, normalize_name
 from ..eval.metrics import score
 from ..model.train import load_or_build_features, walk_forward
-from .tune import TUNE_YEARS, VAL_START
 
 _ODDS_TAGS = ("ps", "b365", "avg")               # per-row preference order
 _BOOK = {"ps": "Pinnacle", "b365": "Bet365", "avg": "book-average"}

@@ -39,13 +39,11 @@ from dataclasses import replace
 
 import numpy as np
 
-from ..config import OUTPUT_DIR, TIER_K_MULT
+from ..config import OUTPUT_DIR, TIER_K_MULT, TUNE_YEARS, VAL_START
 from ..data.results import load_matches
 from ..points.serve_return import run_serve_return
 from ..ratings.build import run_elo
 
-TUNE_YEARS = (2010, 2019)
-VAL_START = 2020
 MIN_SRV_PTS = 100          # point objective: both players need a real serve sample
 
 TUNE_DIR = OUTPUT_DIR / "tuning"

@@ -52,6 +52,19 @@
   250s, both tours) and encode that set, keeping the failure signature (129, 29, 27)
   outside it; a gate false-positive silently freezes deploys until someone reads CI.
 
+- **Next 16/Turbopack drops SOME same-line spaces after JSX interpolations — put {" "}
+  between any expression/element and following prose, and verify the RENDERED text.**
+  (2026-07-10, /method detail sections) `value for the {tour.toUpperCase()} tour` rendered
+  "ATPtour", `<Num v={e.inactDays} /> days` rendered "400days", `×<Num v={e.xsurf} /> of the`
+  rendered "0.27of the" — while byte-identical patterns in the SAME file (`{fmt(x)} rounds`,
+  `<Num v={c.nBag} /> seed-varied`) kept their space, so the compiler behavior is not
+  predictable per-pattern and source inspection proves nothing. Two rules: (1) after any
+  `{expr}`/`<El />` followed by a space + word, write the space as explicit {" "} (an
+  expression the compiler can't collapse); (2) screenshots and substring checks both miss
+  this ("40rounds against" contains "rounds against") — scan the rendered DOM for glue,
+  e.g. innerHTML `/[A-Za-z0-9)]<!-- -->[a-z]{2}/` (React's SSR comment markers sit exactly
+  at interpolation boundaries) plus an innerText `\d(days|rounds|…)` word-glue regex.
+
 - **A URL↔state bridge must apply URL→state only on NAVIGATION, and a client
   "redirect page" must hard-navigate.** (2026-07-09, tour-in-URL + /upcoming→/results;
   both caught by Playwright E2E, invisible to unit tests/build.) (1) An effect that

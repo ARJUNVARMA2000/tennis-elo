@@ -53,14 +53,34 @@ def xgb_params_for(tour: str) -> dict:
     return dict(XGB_PARAM_OVERRIDES.get(tour, {}))
 
 
+# Combiner defaults (per-tour adopted overrides in config.XGB_PARAM_OVERRIDES layer on
+# top). reg_alpha/gamma are the xgboost library defaults, spelled out so the published
+# method.json can state them.
+XGB_DEFAULTS = dict(
+    n_estimators=600, max_depth=4, learning_rate=0.03,
+    subsample=0.85, colsample_bytree=0.85, min_child_weight=5.0,
+    reg_alpha=0.0, reg_lambda=1.0, gamma=0.0,
+    objective="binary:logistic", eval_metric="logloss",
+    tree_method="hist", n_jobs=0, random_state=0,  # explicit: sweeps A/B paired fits
+)
+EARLY_STOPPING_ROUNDS = 40   # on the calibration season; n_estimators is only a cap
+
+# the knobs sweeps tune (published in method.json) — not the plumbing args above
+_XGB_DISPLAY_KEYS = ("n_estimators", "max_depth", "learning_rate", "subsample",
+                     "colsample_bytree", "min_child_weight", "reg_alpha", "reg_lambda",
+                     "gamma")
+
+
+def effective_xgb_params(tour: str) -> dict:
+    """The hyperparameters the tour's combiner actually trains with (defaults layered
+    with the adopted overrides), restricted to the display-relevant keys."""
+    merged = {**XGB_DEFAULTS, **xgb_params_for(tour)}
+    return {k: merged[k] for k in _XGB_DISPLAY_KEYS}
+
+
 def _xgb(**overrides):
     import xgboost as xgb
-    params = dict(
-        n_estimators=600, max_depth=4, learning_rate=0.03,
-        subsample=0.85, colsample_bytree=0.85, min_child_weight=5.0,
-        reg_lambda=1.0, objective="binary:logistic", eval_metric="logloss",
-        tree_method="hist", n_jobs=0, random_state=0,  # explicit: sweeps A/B paired fits
-    )
+    params = dict(XGB_DEFAULTS)
     params.update(overrides)
     return xgb.XGBClassifier(**params)
 
@@ -188,7 +208,7 @@ def _fit_fold(core: pd.DataFrame, cal: pd.DataFrame, seed: int,
     clfs = []
     for k in range(n_bag):
         Xtr, ytr = make_oriented_xy(core, seed=seed + 100_000 * k)
-        clf = _xgb(early_stopping_rounds=40, random_state=base_rs + k, **xo)
+        clf = _xgb(early_stopping_rounds=EARLY_STOPPING_ROUNDS, random_state=base_rs + k, **xo)
         clf.fit(Xtr, ytr, sample_weight=sample_weight,
                 eval_set=[(Xcal, ycal)], verbose=False)
         clfs.append(clf)

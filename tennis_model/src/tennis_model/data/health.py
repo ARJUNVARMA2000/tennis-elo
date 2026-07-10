@@ -211,7 +211,7 @@ def problems(tour: str, h: dict, now: pd.Timestamp) -> list[str]:
 # The web reads these per tour; the first group must always exist and parse, the second
 # is best-effort (accuracy is backtest-only, track needs graded forecasts).
 _REQUIRED_OUTPUTS = ("meta", "players", "tournaments", "upcoming", "matrix",
-                     "ratings_history", "profiles", "draws", "fixtures")
+                     "ratings_history", "profiles", "draws", "fixtures", "method")
 _OPTIONAL_OUTPUTS = ("accuracy", "track", "market")
 _PLACEHOLDER_NAMES = {"tbd", "tba", "bye", "qualifier"}   # mirror data/live.py
 _STATUSES = {"live", "upcoming", "completed"}
@@ -498,6 +498,38 @@ def _tournament_name_problems(out: list, tour: str, ts: list) -> None:
                        f"{len(shared)} players — likely one event under two names (YoY rename?)")
 
 
+def _check_method(out: list, tour: str, method: dict, meta: dict | None) -> None:
+    """method.json publishes the effective production parameters to the /method page.
+    Sanity only — never pin tuned values here (those live in test_export.py); the gate
+    catches a build that would render impossible constants or drift from meta.json."""
+    missing = [k for k in ("elo", "serveReturn", "context", "tiers", "combiner", "protocol")
+               if not isinstance(method.get(k), dict)]
+    if missing:
+        out.append(f"{tour}: method.json missing section(s) {', '.join(missing)}")
+        return
+    if method.get("tour") != tour:
+        out.append(f"{tour}: method.json says tour={method.get('tour')!r}")
+    elo = method["elo"]
+    for key, ok in (("ratingScale", lambda v: v > 0), ("kScale", lambda v: v > 0),
+                    ("surfaceBlend", lambda v: 0 <= v <= 1), ("movCap", lambda v: v >= 1)):
+        v = elo.get(key)
+        if not isinstance(v, (int, float)) or not ok(v):
+            out.append(f"{tour}: method.json elo.{key}={v!r} out of range")
+    mults = method["tiers"].get("kMult")
+    if not isinstance(mults, dict) or not mults or \
+            any(not isinstance(v, (int, float)) or not 0.3 < v < 2.0 for v in mults.values()):
+        out.append(f"{tour}: method.json tiers.kMult implausible ({mults!r})")
+    comb = method["combiner"]
+    nfeat = comb.get("featureCount")
+    if nfeat != len(FEATURES):
+        out.append(f"{tour}: method.json featureCount {nfeat} != {len(FEATURES)} (schema drift)")
+    feats = (meta or {}).get("features")
+    if isinstance(feats, list) and nfeat != len(feats):
+        out.append(f"{tour}: method.json featureCount {nfeat} != meta.features {len(feats)}")
+    if not isinstance(comb.get("nBag"), int) or comb["nBag"] < 1:
+        out.append(f"{tour}: method.json combiner.nBag={comb.get('nBag')!r} invalid")
+
+
 def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = None) -> list[str]:
     """Pure given a read_outputs() dict; prev is the previous run's output snapshot
     ({"matches", "forecast_lines"}) for monotonicity, or None on the first run."""
@@ -530,6 +562,10 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
             out.append(f"{tour}: meta.lastUpdated missing/unparseable ({meta.get('lastUpdated')!r})")
         elif age > HEALTH_MAX_BUILD_AGE_DAYS:
             out.append(f"{tour}: outputs last built {age}d ago (max {HEALTH_MAX_BUILD_AGE_DAYS})")
+
+    method = data.get("method")
+    if isinstance(method, dict):
+        _check_method(out, tour, method, meta if isinstance(meta, dict) else None)
 
     players = data.get("players")
     if isinstance(players, list) and players:

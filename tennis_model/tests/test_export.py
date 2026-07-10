@@ -155,10 +155,72 @@ def test_enrichment_propagates_to_profiles_and_parses_strict():
     print("ok test_enrichment_propagates_to_profiles_and_parses_strict")
 
 
+def test_build_method_matches_accessors():
+    """method.json states the EFFECTIVE production params — always equal to the
+    *_params_for accessors (never literals), so a retune can't break this test."""
+    from tennis_model.data.results import tier_mults
+    from tennis_model.model.features import feat_params_for
+    from tennis_model.model.train import effective_xgb_params
+    from tennis_model.points.serve_return import sr_params_for
+    from tennis_model.ratings.elo import params_for
+
+    for tour in ("atp", "wta"):
+        m = export.build_method(tour)
+        assert m["tour"] == tour
+        assert m["elo"]["surfaceBlend"] == params_for(tour).surface_blend
+        assert m["elo"]["kScale"] == params_for(tour).k_scale
+        assert m["elo"]["xsurf"] == params_for(tour).xsurf
+        assert m["serveReturn"]["formHalflifeDays"] == sr_params_for(tour).form_halflife_days
+        assert m["context"]["winrateWindow"] == feat_params_for(tour).winrate_window
+        assert m["combiner"]["xgb"] == export._camel(effective_xgb_params(tour))
+        mults, default = tier_mults(tour)
+        assert m["tiers"]["kMult"] == mults and m["tiers"]["default"] == default
+    print("ok test_build_method_matches_accessors")
+
+
+def test_build_method_shape_and_strict_json():
+    """Schema-level keys are camelCase, tuples arrive as lists, counts are coherent,
+    and the payload survives a browser-strict round-trip through _finite."""
+    from tennis_model.model.features import FEATURES
+
+    def _assert_camel(d, path=""):
+        for k, v in d.items():
+            if path != "tiers.kMult":   # tier names are data values (grand_slam, ...)
+                assert "_" not in k, f"snake_case key {k!r} at {path or 'root'}"
+            if isinstance(v, dict):
+                _assert_camel(v, f"{path}.{k}".lstrip("."))
+
+    for tour in ("atp", "wta"):
+        m = export.build_method(tour)
+        _assert_camel(m)
+        groups = m["combiner"]["featureGroups"]
+        assert sum(groups.values()) == m["combiner"]["featureCount"] == len(FEATURES)
+        for field in (m["tiers"]["anchors"], m["serveReturn"]["pClip"],
+                      m["protocol"]["tuneYears"], m["surfaces"]):
+            assert isinstance(field, list)
+        parsed = _strict_load(json.dumps(export._finite(m)))
+        assert parsed["elo"]["skipWalkovers"] in (True, False)   # bools survive
+    print("ok test_build_method_shape_and_strict_json")
+
+
+def test_build_method_atp_uses_xgb_defaults():
+    """ATP carries no XGB override (its sweeps kept overfitting the tune window) —
+    the exported dict must be the _xgb defaults, not a stale override."""
+    from tennis_model.model.train import XGB_DEFAULTS
+
+    m = export.build_method("atp")
+    assert m["combiner"]["xgb"]["nEstimators"] == XGB_DEFAULTS["n_estimators"]
+    assert m["combiner"]["xgb"]["regLambda"] == XGB_DEFAULTS["reg_lambda"]
+    print("ok test_build_method_atp_uses_xgb_defaults")
+
+
 if __name__ == "__main__":
     test_finite_replaces_nonfinite_scalars()
     test_finite_recurses_into_nested_containers()
     test_write_output_is_browser_strict_parseable()
     test_build_players_enrichment_fields()
     test_enrichment_propagates_to_profiles_and_parses_strict()
+    test_build_method_matches_accessors()
+    test_build_method_shape_and_strict_json()
+    test_build_method_atp_uses_xgb_defaults()
     print("\nALL PASSED")

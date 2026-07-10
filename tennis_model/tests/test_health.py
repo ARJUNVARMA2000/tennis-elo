@@ -47,6 +47,14 @@ def _healthy_data() -> dict:
                                                "d": 0.005, "se": 0.019, "t": 0.26}}},
         "market": {"years": [2012, 2026], "matched": 20_000,
                    "oosEnd": "2026-07-06", "lastMatchedDate": "2026-07-04"},
+        "method": {"tour": "atp",
+                   "elo": {"ratingScale": 400.0, "kScale": 145.0,
+                           "surfaceBlend": 0.63, "movCap": 2.0},
+                   "serveReturn": {"formHalflifeDays": 200.0},
+                   "context": {"peakAge": 26.5},
+                   "tiers": {"kMult": {"grand_slam": 0.91, "atp250": 0.9}, "default": 0.9},
+                   "combiner": {"featureCount": len(FEATURES), "nBag": 5},
+                   "protocol": {"tuneYears": [2010, 2019], "valStartYear": 2020}},
     }
 
 
@@ -334,6 +342,37 @@ def test_output_feature_schema_drift():
     out = health.output_problems("atp", _oc(data=d), NOW)
     assert any("meta.features has 3 entries" in p for p in out)
     print("ok test_output_feature_schema_drift")
+
+
+def test_output_method_missing_blocks():
+    """method.json powers the /method detail sections; its absence must block the gate."""
+    out = health.output_problems("atp", _oc(missing=["method"]), NOW)
+    assert any("method.json missing" in p for p in out)
+    assert all(health._gate_blocks(p) for p in out if "method.json" in p)
+    print("ok test_output_method_missing_blocks")
+
+
+def test_output_method_feature_count_drift():
+    d = _healthy_data()
+    d["method"]["combiner"]["featureCount"] = len(FEATURES) - 1
+    out = health.output_problems("atp", _oc(data=d), NOW)
+    assert any(f"featureCount {len(FEATURES) - 1} != {len(FEATURES)}" in p for p in out)
+    assert any("!= meta.features" in p for p in out)
+    print("ok test_output_method_feature_count_drift")
+
+
+def test_output_method_out_of_range():
+    d = _healthy_data()
+    d["method"]["elo"]["surfaceBlend"] = 1.4          # a blend weight can't exceed 1
+    d["method"]["tiers"]["kMult"]["atp250"] = 9.0     # a 9x tier K is nonsense
+    out = health.output_problems("atp", _oc(data=d), NOW)
+    assert any("elo.surfaceBlend=1.4 out of range" in p for p in out)
+    assert any("tiers.kMult implausible" in p for p in out)
+    # a section vanishing entirely is a build bug, not a rendering choice
+    d2 = _healthy_data(); del d2["method"]["combiner"]
+    out2 = health.output_problems("atp", _oc(data=d2), NOW)
+    assert any("missing section(s) combiner" in p for p in out2)
+    print("ok test_output_method_out_of_range")
 
 
 def test_output_match_floor_and_drop():
@@ -771,6 +810,9 @@ if __name__ == "__main__":
     test_output_healthy_is_clean()
     test_output_missing_and_corrupt_files()
     test_output_feature_schema_drift()
+    test_output_method_missing_blocks()
+    test_output_method_feature_count_drift()
+    test_output_method_out_of_range()
     test_output_match_floor_and_drop()
     test_output_real_draw_must_be_standard_size()
     test_output_completed_nonpower_of_two_is_fine()

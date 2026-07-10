@@ -11,12 +11,14 @@ Kept separate from pipeline orchestration so the export surface is easy to scan:
   fixtures.json         latest results with the model's pre-match call + upset flags
   accuracy.json         walk-forward metrics, calibration, per-surface breakdown
   meta.json             metadata + headline backtest
+  method.json           effective production parameters (powers /method's detail sections)
 """
 
 from __future__ import annotations
 
 import json
 import math
+import re
 from collections import defaultdict
 from datetime import UTC, datetime
 
@@ -295,6 +297,73 @@ def build_meta(df, players, accuracy) -> dict:
     }
 
 
+def _camel(d: dict) -> dict:
+    """snake_case keys -> camelCase (dataclass asdict() output -> export convention)."""
+    return {re.sub(r"_(\w)", lambda m: m.group(1).upper(), k): v for k, v in d.items()}
+
+
+def build_method(tour: str) -> dict:
+    """Effective production parameters for the /method page's detail sections.
+
+    Pure config: sources only the *_params_for accessors + config constants, so both
+    the full and quick paths always publish the CURRENT production intent — never
+    hardcode these numbers in page copy (see the 2026-07-09 lessons.md entry). A
+    just-retuned config can briefly lead a stale predictor.pkl on the quick path;
+    the daily full retrain (and the FeatureParams drift guard) closes that window.
+    """
+    from dataclasses import asdict
+
+    from ..config import (
+        BACKTEST_START_YEAR,
+        DEFAULT_RATING,
+        N_BAG,
+        TIER_ANCHORS,
+        TUNE_YEARS,
+        VAL_START,
+    )
+    from ..data.results import tier_mults
+    from ..points.markov import P_CLIP
+    from ..points.serve_return import sr_params_for
+    from ..ratings.elo import params_for
+    from .features import ANTISYM, STYLE_DIFFS, SYMMETRIC, feat_params_for
+    from .train import EARLY_STOPPING_ROUNDS, effective_xgb_params
+
+    anchors = TIER_ANCHORS.get(tour)
+    mults, default_mult = tier_mults(tour)
+    return {
+        "tour": tour,
+        "modelVersion": __version__,
+        "defaultRating": DEFAULT_RATING,
+        "surfaces": list(SURFACES),
+        "elo": _camel(asdict(params_for(tour))),
+        "tiers": {
+            "anchors": list(anchors) if anchors else None,
+            "kMult": mults,
+            "default": default_mult,
+        },
+        "serveReturn": {**_camel(asdict(sr_params_for(tour))), "pClip": list(P_CLIP)},
+        "context": _camel(asdict(feat_params_for(tour))),
+        "combiner": {
+            "algorithm": "xgboost",
+            "nBag": N_BAG,
+            "calibration": "platt",
+            "earlyStoppingRounds": EARLY_STOPPING_ROUNDS,
+            "xgb": _camel(effective_xgb_params(tour)),
+            "featureCount": len(FEATURES),
+            "featureGroups": {
+                "antisymmetric": len(ANTISYM) - len(STYLE_DIFFS),
+                "style": len(STYLE_DIFFS),
+                "symmetric": len(SYMMETRIC),
+            },
+        },
+        "protocol": {
+            "backtestStartYear": BACKTEST_START_YEAR,
+            "tuneYears": list(TUNE_YEARS),
+            "valStartYear": VAL_START,
+        },
+    }
+
+
 def export_all(tour, df, elo, srv, meta, predictor, oos=None) -> None:
     """Write every frontend JSON for one tour.
 
@@ -322,4 +391,5 @@ def export_all(tour, df, elo, srv, meta, predictor, oos=None) -> None:
     if accuracy:
         _write(tour, "accuracy.json", accuracy)
     _write(tour, "meta.json", build_meta(df, players, accuracy))
+    _write(tour, "method.json", build_method(tour))
     print(f"  exported JSON for {tour} ({len(players)} players){'' if accuracy else ' [quick]'}")
