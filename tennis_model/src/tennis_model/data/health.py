@@ -11,9 +11,10 @@ build under --strict:
 
 The workflow runs this without --strict on EVERY run — daily full and hourly quick —
 (always writes health.json, exit 0) and a follow-up step reads health.json to open/close
-a `data-health` GitHub issue and red the run; quick runs stay green and quiet while the
-problem set is unchanged (problems_changed) so a standing failure alerts once, not
-hourly. --issue-body prints that issue's Markdown; --strict is kept for local use.
+a `data-health` GitHub issue and red the run. Quick runs red only when they OPEN the
+issue; while it stands they stay green, commenting only when the problem set changed
+(problems_changed), so a standing failure alerts once, not hourly. --issue-body prints
+that issue's Markdown; --strict is kept for local use.
 
 --gate is the PRE-deploy guard the workflow runs before publishing: it fails (exit 1) only
 on produced-output integrity problems (not source freshness), so an internally-inconsistent

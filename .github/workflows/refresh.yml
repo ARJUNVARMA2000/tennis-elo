@@ -211,10 +211,15 @@ jobs:
       # `data-health` GitHub issue carrying the specific problems + a ready-to-paste fix
       # prompt, auto-close it on recovery, and red the run so GitHub also emails the owner.
       # Runs on EVERY mode, dedup'd so a standing failure alerts once, not 24x/day:
-      #   * recovery       -> close the issue (any mode; now within the hour)
-      #   * new failure    -> create/comment + red (any mode; one email at onset)
-      #   * unchanged fail -> full run: comment + red (the daily heartbeat, as before);
-      #                       quick run: warn + stay green (the open issue IS the alert)
+      #   * recovery        -> close the issue (any mode; now within the hour)
+      #   * no open issue   -> create + red (any mode; one email at onset)
+      #   * issue standing  -> full run: comment + red (the daily heartbeat, as before);
+      #                        quick run: comment only if the problem set changed, then
+      #                        stay GREEN (the open issue IS the alert)
+      # Quick runs must exit 0 while the issue stands: a red job never saves the data
+      # cache, so the prev health.json feeding problems_changed would stay stale and
+      # every hourly run would re-red — the storm this dedup exists to prevent. The
+      # "does an issue exist" bit lives in GitHub, immune to cache loss.
       # A GITHUB_TOKEN-authenticated issue write can't re-trigger this workflow, so no loop.
       - name: Report data health
         working-directory: tennis_model
@@ -242,15 +247,19 @@ jobs:
           if [ -z "$EXISTING" ]; then
             gh issue create --label data-health \
               --title "Data-health check failed" --body-file /tmp/health-body.md
-          elif [ "$MODE" = "full" ] || [ "$CHANGED" = "True" ]; then
+            echo "::error::data-health check failed — see the data-health issue"
+            exit 1
+          fi
+          if [ "$MODE" = "full" ] || [ "$CHANGED" = "True" ]; then
             gh issue comment "$EXISTING" --body-file /tmp/health-body.md
             echo "commented on existing data-health issue #$EXISTING"
-          else
-            echo "::warning::data-health still failing (problem set unchanged — see the open data-health issue)"
-            exit 0
           fi
-          echo "::error::data-health check failed — see the data-health issue"
-          exit 1
+          if [ "$MODE" = "full" ]; then
+            echo "::error::data-health check failed — see the data-health issue"
+            exit 1
+          fi
+          echo "::warning::data-health still failing — see the open data-health issue #$EXISTING"
+          exit 0
 
       # Escalation for the best-effort persist step above: red the run only AFTER
       # deploy + sentinel have had their chance, so a failing push alerts without

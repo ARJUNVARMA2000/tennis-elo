@@ -129,9 +129,9 @@ PYTHONPATH=src python -m tennis_model.data.health --strict
 Every CI run — daily full and hourly quick — invokes this without `--strict`, then reads
 `health.json` and, on any problem, opens (or comments on, and later auto-closes) a single
 **`data-health` GitHub issue** listing the exact problems plus a ready-to-paste prompt
-for a fresh session — and reds the run so GitHub also emails the owner. Quick runs stay
-green and quiet while the problem set is unchanged (`problems_changed`), so a standing
-failure alerts once, not hourly. `output_problems()` in `data/health.py` holds the
+for a fresh session — and reds the run so GitHub also emails the owner. Quick runs red
+only when they open the issue; while it stands they stay green, commenting only when the
+problem set changes (`problems_changed`), so a standing failure alerts once, not hourly. `output_problems()` in `data/health.py` holds the
 produced-output invariants; thresholds are the `HEALTH_*` constants in `config.py`.
 A separate daily `watchdog.yml` workflow guards the pipeline's own liveness: if
 `refresh.yml` has no successful run in 26h, it opens a `watchdog` issue and reds itself.
