@@ -63,10 +63,21 @@ def _write_log(records):
             f.write(json.dumps(r) + "\n")
 
 
-def _match(a, b, p, as_of="2026-06-01", surface="Hard", event="TestOpen", rnd="QF"):
+def _match(a, b, p, as_of="2026-06-01", surface="Hard", event="TestOpen", rnd="QF",
+           version="test"):
     return {"type": "match", "as_of": as_of, "tour": "atp", "event": event,
             "round": rnd, "surface": surface, "best_of": 3, "season": 2026,
-            "playerA": a, "playerB": b, "p": p, "model_version": "test"}
+            "playerA": a, "playerB": b, "p": p, "model_version": version}
+
+
+def _graded(p, won, date="2026-06-15", version="0.1.0"):
+    """A _grade_matches-shaped record, as _drift_block consumes them."""
+    return {"model_version": version, "date": date, "p_a": p, "a_won": won,
+            "p_winner": p if won else 1.0 - p}
+
+
+def _graded_batch(n, p, wins, **kw):
+    return [_graded(p, i < wins, **kw) for i in range(n)]
 
 
 # ---------------------------------------------------------------------------
@@ -157,10 +168,96 @@ def test_tournament_grading():
         print("ok test_tournament_grading")
 
 
+def test_drift_calibrated_is_ok():
+    # 200 forecasts at p=0.7, exactly 140 hit: realized logloss == forecast entropy
+    # by construction, so d == 0 -> "ok" with |t| ~ 0.
+    dr = track._drift_block(_graded_batch(200, 0.7, 140), None, current_version="0.1.0")
+    assert dr["status"] == "ok", dr
+    assert dr["n"] == 200 and abs(dr["d"]) < 1e-9, dr
+    assert abs(dr["t"]) < 1.0, dr
+    assert abs(dr["logloss"] - dr["expectedLogloss"]) < 1e-9, dr
+    assert dr["baseline"] is None, dr
+    print("ok test_drift_calibrated_is_ok")
+
+
+def test_drift_overconfident_flags():
+    # says 75%, hits 55% -> d ~ +0.22 nats, t ~ 5.7: the re-tune signal must fire,
+    # and the sign convention is positive-when-overconfident.
+    dr = track._drift_block(_graded_batch(200, 0.75, 110), None, current_version="0.1.0")
+    assert dr["status"] == "drift", dr
+    assert dr["d"] > 0.2 and dr["t"] >= 5, dr
+    # symmetric luck (underconfident window) must NEVER fire — one-sided by design
+    lucky = track._drift_block(_graded_batch(200, 0.75, 180), None, current_version="0.1.0")
+    assert lucky["status"] == "ok" and lucky["d"] < 0, lucky
+    print("ok test_drift_overconfident_flags")
+
+
+def test_drift_below_min_n_insufficient():
+    dr = track._drift_block(_graded_batch(30, 0.9, 3), None, current_version="0.1.0")
+    assert dr["status"] == "insufficient" and dr["n"] == 30, dr
+    assert dr["d"] is None and dr["se"] is None and dr["t"] is None, dr
+    assert dr["logloss"] is None and dr["worstBin"] is None, dr
+    assert track._drift_block([], None, current_version="0.1.0")["status"] == "insufficient"
+    print("ok test_drift_below_min_n_insufficient")
+
+
+def test_drift_window_and_version_filter():
+    recs = (_graded_batch(160, 0.7, 112, date="2026-06-15")            # in window
+            + _graded_batch(100, 0.6, 20, date="2026-02-15")           # 120d stale -> out
+            + _graded_batch(100, 0.6, 20, date="2026-06-15", version="0.0.9"))  # old model
+    dr = track._drift_block(recs, None, current_version="0.1.0")
+    assert dr["n"] == 160, dr                       # both stale + old-version excluded
+    assert dr["status"] == "ok", dr                 # the excluded overconfident junk can't latch it
+    assert dr["modelVersion"] == "0.1.0", dr
+    print("ok test_drift_window_and_version_filter")
+
+
+def test_drift_grade_end_to_end_json_safe():
+    def _no_nan(tok):
+        raise ValueError(f"non-finite {tok} in shipped track.json")
+
+    with tempfile.TemporaryDirectory() as d:
+        out = _setup(Path(d))
+        # empty log + no accuracy.json: insufficient, baseline null, file NaN-free
+        _write_log([])
+        track.grade("atp", _results_df([]))
+        shipped = json.loads((out / "track.json").read_text(encoding="utf-8"),
+                             parse_constant=_no_nan)
+        dr = shipped["matchForecasts"]["drift"]
+        assert dr["status"] == "insufficient" and dr["baseline"] is None, dr
+
+        # 200 graded current-version forecasts at p=0.7 (140 hit) + a synthetic baseline
+        (out / "accuracy.json").write_text(json.dumps({
+            "window": "2016-2026",
+            "models": {"combiner": {"n": 28648, "acc": 0.68,
+                                    "logloss": 0.5826, "brier": 0.2001}},
+        }), encoding="utf-8")
+        _write_log([_match(f"A{i}", f"B{i}", 0.7, version=track.__version__)
+                    for i in range(200)])
+        df = _results_df([(f"A{i}", f"B{i}", "2026-06-02", "Hard") if i < 140
+                          else (f"B{i}", f"A{i}", "2026-06-02", "Hard")
+                          for i in range(200)])
+        track.grade("atp", df)
+        shipped = json.loads((out / "track.json").read_text(encoding="utf-8"),
+                             parse_constant=_no_nan)
+        dr = shipped["matchForecasts"]["drift"]
+        assert dr["status"] == "ok" and dr["n"] == 200, dr
+        assert dr["baseline"]["logloss"] == 0.5826, dr
+        # dLogloss = live (== entropy(0.7) = 0.6109) - backtest baseline, +ve = live worse
+        assert abs(dr["baseline"]["dLogloss"] - (0.6109 - 0.5826)) < 1e-3, dr
+        assert dr["baseline"]["window"] == "2016-2026", dr
+        print("ok test_drift_grade_end_to_end_json_safe")
+
+
 if __name__ == "__main__":
     test_match_grading_and_brier()
     test_pending_outside_window()
     test_calibration_shape()
     test_dedup_idempotent()
     test_tournament_grading()
+    test_drift_calibrated_is_ok()
+    test_drift_overconfident_flags()
+    test_drift_below_min_n_insufficient()
+    test_drift_window_and_version_filter()
+    test_drift_grade_end_to_end_json_safe()
     print("\nALL PASSED")

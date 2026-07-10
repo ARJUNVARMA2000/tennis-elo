@@ -386,6 +386,17 @@ HEALTH_MAX_LIVERANK_NULL_FRAC = 0.30  # top-200 without a live rank -> rankings 
 # (Pinnacle left tennis-data mid-January 2026 and the card sat frozen for months).
 HEALTH_MAX_MARKET_LAG_DAYS = 60
 
+# Forecast drift monitor (eval/track.py::_drift_block → track.json matchForecasts.drift,
+# surfaced ADVISORY by data/health.py). d = mean(realized logloss − forecast entropy) over
+# the trailing window of graded live forecasts; d > 0 = the model scores WORSE than its own
+# stated confidence (overconfident = decayed) → an off-cycle re-tune is worth considering.
+# The window is filtered to model_version == __version__ — BUMP __version__ WHEN RE-TUNING
+# so the monitor resets to the new model instead of latching on the old one's forecasts.
+DRIFT_WINDOW_DAYS = 90     # trailing window, anchored to the newest graded result date
+DRIFT_MIN_N = 150          # below this the t-stat is noise -> status "insufficient"
+DRIFT_TRIGGER_K = 2.5      # fire when d > K*SE (one-sided; daily correlated looks)
+DRIFT_MIN_EXCESS = 0.02    # ...AND d > this floor (nats) — practical significance
+
 # ---------------------------------------------------------------------------
 # Simulation
 # ---------------------------------------------------------------------------

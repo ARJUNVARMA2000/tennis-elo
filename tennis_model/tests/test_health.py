@@ -41,7 +41,10 @@ def _healthy_data() -> dict:
                                                    "SF": 0.8, "F": 0.6, "Champion": 0.5}}]}],
         "upcoming": [{"event": "Test Open", "playerA": "P0", "playerB": "P1", "pA": 0.7}],
         "fixtures": [{"modelProb": 0.6, "upset": False}, {"modelProb": 0.4, "upset": True}],
-        "track": {"matchForecasts": {"logged": 10, "graded": 6, "pending": 4}},
+        "track": {"matchForecasts": {"logged": 10, "graded": 6, "pending": 4,
+                                     "drift": {"status": "ok", "windowDays": 90, "n": 400,
+                                               "logloss": 0.58, "expectedLogloss": 0.575,
+                                               "d": 0.005, "se": 0.019, "t": 0.26}}},
         "market": {"years": [2012, 2026], "matched": 20_000,
                    "oosEnd": "2026-07-06", "lastMatchedDate": "2026-07-04"},
     }
@@ -378,6 +381,31 @@ def test_output_market_benchmark_freeze_is_flagged_advisory():
     print("ok test_output_market_benchmark_freeze_is_flagged_advisory")
 
 
+def test_output_forecast_drift_flagged_advisory():
+    """track.json's drift monitor says the model scores worse than its own stated
+    confidence -> surface a "re-tune recommended" problem, but ADVISORY only (a
+    re-tune recommendation must never block a deploy, same as the market benchmark)."""
+    d = _healthy_data()
+    d["track"]["matchForecasts"]["drift"] = {
+        "status": "drift", "windowDays": 90, "n": 412,
+        "logloss": 0.642, "expectedLogloss": 0.581, "d": 0.061, "se": 0.019, "t": 3.2}
+    out = health.output_problems("atp", _oc(data=d), NOW)
+    hits = [p for p in out if "forecast drift" in p]
+    assert hits and "re-tune recommended" in hits[0], out
+    assert all(not health._gate_blocks(p) for p in hits)
+    # a young log ("insufficient"), a healthy window ("ok"), or an old cached
+    # track.json with no drift block at all must never flag or crash
+    for drift in ({"status": "insufficient", "n": 30}, {"status": "ok", "n": 400}, None):
+        d2 = _healthy_data()
+        if drift is None:
+            del d2["track"]["matchForecasts"]["drift"]
+        else:
+            d2["track"]["matchForecasts"]["drift"] = drift
+        assert not any("forecast drift" in p
+                       for p in health.output_problems("atp", _oc(data=d2), NOW)), drift
+    print("ok test_output_forecast_drift_flagged_advisory")
+
+
 def test_output_track_and_forecast_monotonicity():
     d = _healthy_data(); d["track"]["matchForecasts"]["graded"] = 99
     assert any("graded+pending" in p for p in health.output_problems("atp", _oc(data=d), NOW))
@@ -565,6 +593,7 @@ if __name__ == "__main__":
     test_output_distinct_events_are_clean()
     test_output_upcoming_and_fixtures_consistency()
     test_output_market_benchmark_freeze_is_flagged_advisory()
+    test_output_forecast_drift_flagged_advisory()
     test_output_track_and_forecast_monotonicity()
     test_output_emptiness_is_season_gated()
     test_output_liverank_drift_is_season_gated()

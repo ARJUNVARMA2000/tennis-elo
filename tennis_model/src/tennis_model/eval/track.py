@@ -33,10 +33,18 @@ import numpy as np
 import pandas as pd
 
 from .. import __version__
-from ..config import DATA_DIR, SURFACES, output_dir
+from ..config import (
+    DATA_DIR,
+    DRIFT_MIN_EXCESS,
+    DRIFT_MIN_N,
+    DRIFT_TRIGGER_K,
+    DRIFT_WINDOW_DAYS,
+    SURFACES,
+    output_dir,
+)
 from ..data.results import _name_key as nkey
 from ..model.upcoming import enrich_upcoming, load_upcoming
-from .metrics import calibration_table, score
+from .metrics import EPS, calibration_table, score
 
 FORECAST_DIR = DATA_DIR / "forecast_log"
 JOIN_WINDOW_DAYS = 21          # max gap between forecast and the result it grades
@@ -223,6 +231,75 @@ def _score_or_empty(probs: list) -> dict:
                                                                  "logloss": None, "brier": None}
 
 
+def _drift_block(graded: list, baseline: dict | None,
+                 current_version: str = __version__) -> dict:
+    """Calibration-drift monitor: is the model scoring worse than its own confidence?
+
+    Per graded match, d_i = realized logloss − forecast entropy (the forecast's expected
+    logloss under perfect calibration). E[d] = 0 for a calibrated model regardless of slate
+    composition, so d > 0 = overconfident/decayed — the "re-tune recommended" signal that
+    data/health.py surfaces as an advisory. One-sided: a lucky window (d < 0) never fires.
+    Window: trailing DRIFT_WINDOW_DAYS anchored to the newest graded RESULT date (not wall
+    clock, so the off-season doesn't drain the sample), filtered to the current model
+    version so a re-tune + __version__ bump resets the monitor. `baseline` (accuracy.json)
+    is context only — an unpaired live-vs-backtest logloss gap is composition-confounded,
+    which is exactly why it is not the trigger.
+    """
+    recs = [g for g in graded if g.get("model_version") == current_version]
+    if recs:
+        newest = max(pd.Timestamp(g["date"]) for g in recs)
+        cutoff = newest - pd.Timedelta(days=DRIFT_WINDOW_DAYS)
+        recs = [g for g in recs if pd.Timestamp(g["date"]) >= cutoff]
+
+    out: dict = {
+        "status": "insufficient", "windowDays": DRIFT_WINDOW_DAYS,
+        "modelVersion": current_version, "n": len(recs),
+        "logloss": None, "expectedLogloss": None, "d": None, "se": None, "t": None,
+        "baseline": None, "worstBin": None,
+    }
+
+    live_ll = None
+    if len(recs) >= DRIFT_MIN_N:
+        p_w = np.clip(np.array([g["p_winner"] for g in recs], dtype=float), EPS, 1 - EPS)
+        p_a = np.clip(np.array([g["p_a"] for g in recs], dtype=float), EPS, 1 - EPS)
+        ll = -np.log(p_w)
+        ent = -(p_a * np.log(p_a) + (1 - p_a) * np.log(1 - p_a))
+        d_i = ll - ent
+        d = float(d_i.mean())
+        se = float(d_i.std(ddof=1) / np.sqrt(len(d_i)))
+        live_ll = float(ll.mean())
+        out.update({
+            "status": "drift" if (se > 0 and d > DRIFT_TRIGGER_K * se and d > DRIFT_MIN_EXCESS)
+                      else "ok",
+            "logloss": round(live_ll, 4), "expectedLogloss": round(float(ent.mean()), 4),
+            "d": round(d, 4), "se": round(se, 4),
+            "t": round(d / se, 2) if se > 0 else 0.0,
+        })
+
+        cal = calibration_table(np.array([g["p_a"] for g in recs]),
+                                np.array([1.0 if g["a_won"] else 0.0 for g in recs]))
+        big = cal[cal["n"] >= 25]
+        if not big.empty:
+            worst = big.loc[(big["pred"] - big["actual"]).abs().idxmax()]
+            out["worstBin"] = {
+                "bin": worst["bin"], "n": int(worst["n"]),
+                "pred": round(float(worst["pred"]), 4),
+                "actual": round(float(worst["actual"]), 4),
+                "gap": round(abs(float(worst["pred"]) - float(worst["actual"])), 4),
+            }
+
+    comb = (baseline or {}).get("models", {}).get("combiner")
+    if isinstance(comb, dict) and isinstance(comb.get("logloss"), (int, float)) \
+            and np.isfinite(comb["logloss"]):
+        out["baseline"] = {
+            "logloss": round(float(comb["logloss"]), 4), "n": comb.get("n"),
+            "window": (baseline or {}).get("window"),
+            # dLogloss > 0 = live scoring worse than backtest (composition-confounded, context only)
+            "dLogloss": round(live_ll - float(comb["logloss"]), 4) if live_ll is not None else None,
+        }
+    return out
+
+
 def grade(tour: str, df: pd.DataFrame) -> dict:
     """Read the log, score it against `df`'s results, write + return track.json."""
     log = _read_log(FORECAST_DIR / f"{tour}.jsonl")
@@ -262,6 +339,7 @@ def grade(tour: str, df: pd.DataFrame) -> dict:
             "overall": _score_or_empty([g["p_winner"] for g in graded]),
             "calibration": cal, "byMonth": by_month_out, "bySurface": by_surface,
             "recent": recent,
+            "drift": _drift_block(graded, _read_json(output_dir(tour) / "accuracy.json")),
         },
         "tournamentOdds": _grade_tournaments(tourns, tour),
     }

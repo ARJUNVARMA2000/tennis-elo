@@ -124,6 +124,7 @@ _GATE_ADVISORY = (
     "liveRank",                    # rankings source drifted (site still correct on model odds)
     "outputs last built",          # build-age; can't legitimately fire right after a build
     "market.json odds coverage",   # benchmark-card staleness; odds are never a build dependency
+    "forecast drift",              # model-decay advisory; a re-tune recommendation must never block a deploy
 )
 
 
@@ -482,6 +483,16 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
         g, p, lg = mf.get("graded"), mf.get("pending"), mf.get("logged")
         if all(isinstance(x, int) for x in (g, p, lg)) and g + p != lg:
             out.append(f"{tour}: track.json graded+pending ({g}+{p}) != logged ({lg})")
+        # Model-decay advisory: track.py owns the thresholds (config DRIFT_*) and ships the
+        # verdict; we only surface it. Advisory, never deploy-blocking — like market lag,
+        # a re-tune recommendation is a benchmark signal, not a build dependency.
+        dr = mf.get("drift")
+        if isinstance(dr, dict) and dr.get("status") == "drift":
+            out.append(f"{tour}: forecast drift over last {dr.get('n')} graded "
+                       f"({dr.get('windowDays')}d): live logloss {dr.get('logloss')} vs "
+                       f"self-expected {dr.get('expectedLogloss')} (d=+{dr.get('d')}, "
+                       f"t={dr.get('t')}) — model scoring worse than its stated confidence; "
+                       f"re-tune recommended")
 
     mk = data.get("market")
     if isinstance(mk, dict):

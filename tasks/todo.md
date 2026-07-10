@@ -1,3 +1,48 @@
+# Task: Forecast drift monitor — event-driven "re-tune recommended" signal (2026-07-10)
+
+Plan: C:\Users\varma\.claude\plans\one-refinement-i-d-suggest-prancy-hellman.md
+Goal: semiannual re-tune cadence becomes a ceiling, not a bet — watch the live forecast log
+daily and raise an ADVISORY health signal (daily data-health issue) when the model scores
+measurably worse than its own stated confidence. Composition-safe statistic: paired per-match
+d = realized logloss − forecast entropy (d > 0 = overconfident/decayed), trailing 90d window
+anchored to newest graded date, filtered to current model_version.
+
+## Checklist
+- [x] config.py: DRIFT_WINDOW_DAYS / DRIFT_MIN_N / DRIFT_TRIGGER_K / DRIFT_MIN_EXCESS
+      (+ "bump __version__ when re-tuning" comment)
+- [x] eval/track.py: pure _drift_block(graded, baseline, current_version) → status
+      ok|drift|insufficient + d/se/t + baseline (accuracy.json combiner, context-only)
+      + worstBin; wired into grade()'s matchForecasts as "drift" (NaN-free by construction)
+- [x] data/health.py: "forecast drift" _GATE_ADVISORY marker + advisory check on
+      track.json drift.status == "drift" ("re-tune recommended" problem string)
+- [x] tests/test_track.py: calibrated-ok, overconfident-flags (+ one-sided: lucky window
+      never fires), below-min-n, window+version filter, grade() end-to-end JSON-safe
+- [x] tests/test_health.py: healthy fixture gets drift block; drift flagged advisory
+      (never gate-blocking); insufficient/ok/missing-key silent
+- [x] Verify: pytest 256 + ruff green; health + --gate exit 0 both before regeneration
+      (missing drift key → silent) and after; quick refresh regenerated track.json
+
+## Review (2026-07-10)
+- **Shipped**: the forecast drift monitor. `eval/track.py::_drift_block` computes the
+  composition-safe calibration-drift statistic (paired per-match d = realized logloss −
+  forecast entropy; d > 0 = overconfident/decayed; one-sided) over a trailing 90d window
+  anchored to the newest graded result date, filtered to the current `__version__`, and
+  ships it in `track.json.matchForecasts.drift` (auto-mirrored to the web). Trigger:
+  n ≥ 150 AND d > 2.5·SE AND d > 0.02 nats → status "drift", which `data/health.py`
+  surfaces as an ADVISORY "re-tune recommended" problem — lands in the daily data-health
+  GitHub issue, never blocks a deploy. accuracy.json combiner logloss rides along as
+  context (`baseline.dLogloss`), never as the trigger (composition-confounded).
+- **Proof**: 256 pytest (+6 new) + ruff green. Real-data run: gate exit 0 pre- and
+  post-regeneration; quick refresh produced ATP drift `"insufficient"` (n=114 < 150,
+  arms in ~1 week) and WTA `"ok"` (n=181, d=+0.0076±0.0282, t=0.27 — calibrated), both
+  parsed NaN-free by the gate's strict reader.
+- **Deviation from plan**: none. WTA arming immediately (181 graded ≥ 150) was a
+  pleasant surprise vs the plan's ATP-only n=113 estimate.
+- **Ritual (user-facing)**: the monitor resets on re-tune only if `__version__` is
+  bumped — encoded in the config comment; make the bump part of the semiannual re-tune.
+
+---
+
 # Task: Site IA reorganization + attribute Explorer (2026-07-09)
 
 Plan: C:\Users\varma\.claude\plans\lets-talk-from-first-tingly-pizza.md
