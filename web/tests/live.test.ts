@@ -4,6 +4,7 @@ import {
   fetchLiveMatches,
   matchContext,
   nameKey,
+  rosterName,
   winProb,
   type Matrix,
   type PlayerRow,
@@ -28,6 +29,31 @@ describe("nameKey", () => {
 
   it("joins accented and plain spellings to the same key", () => {
     expect(nameKey("Félix Auger-Aliassime")).toBe(nameKey("Felix Auger Aliassime"));
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* rosterName                                                          */
+/* ------------------------------------------------------------------ */
+
+describe("rosterName", () => {
+  const roster: PlayerRow[] = [
+    { name: "Félix Auger-Aliassime", elo: 2000 },
+    { name: "Alexander Zverev", elo: 2100 },
+  ];
+
+  it("returns the CANONICAL roster spelling for an ESPN variant", () => {
+    // deep links need the exact profiles.json key, not ESPN's plain-ASCII form
+    expect(rosterName("Felix Auger Aliassime", roster)).toBe("Félix Auger-Aliassime");
+    expect(rosterName("Alexander Zverev", roster)).toBe("Alexander Zverev");
+  });
+
+  it("returns null for a player outside the rated roster (gates the drill-in)", () => {
+    expect(rosterName("Arthur Fery", roster)).toBeNull();
+  });
+
+  it("returns null while players.json is still loading", () => {
+    expect(rosterName("Alexander Zverev", null)).toBeNull();
   });
 });
 

@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { useData, useTour, type Tour } from "@/lib/tour";
 import { fadeUp, stagger } from "@/lib/motion";
+import { pairHref, playerHref } from "@/lib/url";
 import {
   fetchLiveMatches,
   matchContext,
+  rosterName,
   winProb,
   type Matrix,
   type PlayerRow,
@@ -108,7 +111,13 @@ function LiveCard({
   const { p } = winProb(m.a, m.b, surface, bestOf, players, matrix, tour);
   const currentSet = m.sets.length - 1;
 
-  const row = (name: string, side: 0 | 1, prob: number | null) => {
+  // ESPN names resolved to canonical roster names — the /player and /style deep
+  // links need the exact profiles.json keys, and gate off for unrated players.
+  const canonA = rosterName(m.a, players);
+  const canonB = rosterName(m.b, players);
+  const matchupHref = canonA && canonB ? pairHref("/style/", canonA, canonB, tour) : null;
+
+  const row = (name: string, side: 0 | 1, prob: number | null, canonical: string | null) => {
     const leading = prob !== null && prob >= 0.5;
     return (
       <div className="flex items-baseline gap-2">
@@ -116,7 +125,18 @@ function LiveCard({
           className={`w-36 truncate text-[12.5px]${leading ? " font-semibold" : ""}`}
           style={{ color: leading || prob === null ? "var(--color-text)" : "var(--color-muted)" }}
         >
-          {name}
+          {/* relative z-10 keeps the profile link clickable above the card's
+              stretched matchup link (same pattern as CallCard) */}
+          {canonical ? (
+            <Link
+              href={playerHref(canonical, tour)}
+              className="relative z-10 transition-colors hover:text-[var(--color-accent)] hover:underline"
+            >
+              {name}
+            </Link>
+          ) : (
+            name
+          )}
         </span>
         <span className="mono flex gap-1.5 text-[12px] text-[var(--color-muted)]">
           {m.sets.map((s, i) => (
@@ -146,7 +166,7 @@ function LiveCard({
     <motion.li
       variants={fadeUp}
       aria-label={`${m.a} vs ${m.b} — ${m.event}, ${m.round || m.detail}, live`}
-      className="panel min-w-[280px] shrink-0 p-3"
+      className={`panel relative min-w-[280px] shrink-0 p-3 ${matchupHref ? "panel-link" : ""}`}
     >
       <div className="flex items-center justify-between gap-2">
         <span className="truncate text-[11px] text-[var(--color-faint)]">
@@ -157,8 +177,8 @@ function LiveCard({
         </span>
       </div>
       <div className="mt-2.5 space-y-1.5">
-        {row(m.a, 0, p)}
-        {row(m.b, 1, p === null ? null : 1 - p)}
+        {row(m.a, 0, p, canonA)}
+        {row(m.b, 1, p === null ? null : 1 - p, canonB)}
       </div>
       {p !== null && (
         <div aria-hidden="true" className="bartrack relative mt-2.5 h-1">
@@ -170,6 +190,13 @@ function LiveCard({
             style={{ background: "var(--color-accent)", transformOrigin: "left", width: "100%" }}
           />
         </div>
+      )}
+      {matchupHref && (
+        <Link
+          href={matchupHref}
+          aria-label={`Style matchup: ${canonA} vs ${canonB}`}
+          className="absolute inset-0 rounded-[inherit]"
+        />
       )}
     </motion.li>
   );

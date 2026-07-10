@@ -114,6 +114,17 @@ export function matchContext(
   return { surface: monthSurface(), bestOf: 3 };
 }
 
+/** Resolve an ESPN display name to the model's canonical roster name via the
+    shared nameKey join (players.json and profiles.json ship the same top-N
+    names, so a resolved name is guaranteed to work in /player and /style
+    deep links). Null when the player isn't in the rated roster. */
+export function rosterName(espnName: string, players: PlayerRow[] | null): string | null {
+  if (!players) return null;
+  const k = nameKey(espnName);
+  for (const p of players) if (nameKey(p.name) === k) return p.name;
+  return null;
+}
+
 const SURF_KEY: Record<string, "eloHard" | "eloClay" | "eloGrass"> = {
   Hard: "eloHard",
   Clay: "eloClay",
