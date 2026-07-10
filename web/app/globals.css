@@ -78,6 +78,10 @@ body {
 .eyebrow { font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; font-size: 11px; font-weight: 500; color: var(--color-muted); }
 
 .panel { background: var(--color-panel); border: 1px solid var(--color-line); border-radius: var(--radius-lg); box-shadow: var(--shadow-panel); }
+/* A .panel that is one big link (the projection cards' style-matchup drill-in):
+   accent-tinted border on hover so the whole card reads as clickable. */
+.panel-link { transition: border-color 0.15s ease; }
+.panel-link:hover { border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-line)); }
 .panel-glow {
   border: 1px solid transparent;
   border-radius: var(--radius-lg);

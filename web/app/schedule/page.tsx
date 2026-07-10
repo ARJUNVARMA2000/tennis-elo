@@ -3,11 +3,16 @@
 import { useData, useTour } from "@/lib/tour";
 import { PageHead, Loading, Reveal, CallCard } from "@/components/bits";
 import { surfaceColor, tournamentTier } from "@/lib/ui";
-import { groupByEvent, upcomingCard, type Upcoming } from "@/lib/upcoming";
+import { groupByEvent, hasMatchupProfiles, upcomingCard, type Upcoming } from "@/lib/upcoming";
+import { useMemo } from "react";
 
 export default function Schedule() {
   const { tour } = useTour();
   const { data, loading } = useData<Upcoming[]>("upcoming.json");
+  // The rated roster gates each card's style-matchup drill-in (players without a
+  // profile — e.g. qualifiers outside the top N — keep a plain, unlinked card).
+  const { data: roster } = useData<{ name: string }[]>("players.json");
+  const rated = useMemo(() => new Set((roster ?? []).map((p) => p.name)), [roster]);
   const total = (data || []).length;
   // Order the board by tier prestige — Grand Slam → 1000 → 500 → 250. Each event's `level` is
   // resolved server-side (Wikipedia category → curated fallback; the archive tier is deliberately
@@ -58,7 +63,7 @@ export default function Schedule() {
               <div className="grid gap-2.5 sm:grid-cols-2">
                 {g.matches.map((m, i) => (
                   <Reveal key={`${m.playerA}-${m.playerB}-${i}`} delay={Math.min(gi * 0.02 + i * 0.01, 0.2)}>
-                    <CallCard tone="projection" {...upcomingCard(m)} />
+                    <CallCard tone="projection" {...upcomingCard(m)} matchup={hasMatchupProfiles(m, rated)} />
                   </Reveal>
                 ))}
               </div>

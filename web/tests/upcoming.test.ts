@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { byTournamentTier, groupByEvent, upcomingCard, type Upcoming } from "@/lib/upcoming";
+import { byTournamentTier, groupByEvent, hasMatchupProfiles, upcomingCard, type Upcoming } from "@/lib/upcoming";
 
 const mk = (event: string, round: string, a: string, b: string, pA: number, surface = "Hard"): Upcoming => ({
   event,
@@ -124,5 +124,20 @@ describe("upcomingCard", () => {
     expect(upcomingCard(m).meta).toBe("SF · 2026-07-10");
     // home "Up next" (flat, cross-tournament grid): event · round · date.
     expect(upcomingCard(m, { showEvent: true }).meta).toBe("Wimbledon · SF · 2026-07-10");
+  });
+});
+
+describe("hasMatchupProfiles", () => {
+  const roster = new Set(["Alexander Zverev", "Jannik Sinner"]);
+
+  it("true only when BOTH players are in the rated roster", () => {
+    expect(hasMatchupProfiles(mk("Wimbledon", "SF", "Alexander Zverev", "Jannik Sinner", 0.6), roster)).toBe(true);
+    // one unrated qualifier disables the drill-in — /style can't resolve them
+    expect(hasMatchupProfiles(mk("Wimbledon", "SF", "Alexander Zverev", "Arthur Fery", 0.86), roster)).toBe(false);
+    expect(hasMatchupProfiles(mk("Wimbledon", "Q", "Mary Stoiana", "Alice Tubello", 0.5), roster)).toBe(false);
+  });
+
+  it("false against an empty roster (players.json still loading)", () => {
+    expect(hasMatchupProfiles(mk("X", "F", "Alexander Zverev", "Jannik Sinner", 0.5), new Set())).toBe(false);
   });
 });

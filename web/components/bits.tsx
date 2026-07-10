@@ -4,7 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { useTour } from "@/lib/tour";
 import { surfaceColor, heat } from "@/lib/ui";
-import { playerHref } from "@/lib/url";
+import { pairHref, playerHref } from "@/lib/url";
 import { EASE, SPRING_SOFT, stagger, fadeUp, hoverLift, useCountUp } from "@/lib/motion";
 
 export function Reveal({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
@@ -109,6 +109,7 @@ export function CallCard({
   verdict,
   glow = false,
   tone = "result",
+  matchup = false,
 }: {
   surface: string;
   meta: string;
@@ -118,6 +119,10 @@ export function CallCard({
   verdict?: { label: string; good: boolean };
   glow?: boolean;
   tone?: "result" | "projection";
+  /** Make the whole card a drill-in to the two players' /style matchup. Callers gate
+      this on both names being in the rated roster (lib/upcoming hasMatchupProfiles) —
+      /style silently falls back to its default pair for names it can't resolve. */
+  matchup?: boolean;
 }) {
   // The tour makes every player name a working profile link with zero call-site changes.
   const { tour } = useTour();
@@ -128,7 +133,7 @@ export function CallCard({
   // green = the side that actually won; accent = the side we favour in an unplayed match.
   const hi = tone === "projection" ? "var(--color-accent)" : "var(--color-win)";
   return (
-    <div className={`panel h-full p-4 ${glow ? "row-glow" : ""}`}>
+    <div className={`panel relative h-full p-4 ${glow ? "row-glow" : ""} ${matchup ? "group panel-link" : ""}`}>
       <div className="flex items-center justify-between gap-2">
         <span className="chip" style={{ color: surfaceColor(surface), borderColor: surfaceColor(surface) }}>{surface}</span>
         <span className="mono text-[11px] text-[var(--color-faint)]">{meta}</span>
@@ -139,7 +144,9 @@ export function CallCard({
             <div className="flex items-center justify-between gap-3">
               <span className="flex items-center gap-2 text-[15px]" style={{ color: r.won ? "var(--color-text)" : "var(--color-muted)" }}>
                 <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: r.won ? hi : "transparent" }} />
-                <Link href={playerHref(r.name, tour)} className="transition-colors hover:text-[var(--color-accent)] hover:underline">
+                {/* relative z-10 keeps the profile links clickable above the card's
+                    stretched matchup link (a plain wrapper would nest anchors) */}
+                <Link href={playerHref(r.name, tour)} className="relative z-10 transition-colors hover:text-[var(--color-accent)] hover:underline">
                   {r.name}
                 </Link>
               </span>
@@ -163,6 +170,17 @@ export function CallCard({
           <span className="text-[var(--color-faint)]">{note}</span>
           {verdict && <span style={{ color: verdict.good ? "var(--color-win)" : "var(--color-loss)" }}>{verdict.label}</span>}
         </div>
+      )}
+      {matchup && (
+        <Link
+          href={pairHref("/style/", top.name, bottom.name, tour)}
+          aria-label={`Style matchup: ${top.name} vs ${bottom.name}`}
+          className="absolute inset-0 rounded-[inherit]"
+        >
+          <span className="mono absolute bottom-2.5 right-4 text-[11px] text-[var(--color-accent)] opacity-0 transition-opacity group-hover:opacity-100">
+            style matchup →
+          </span>
+        </Link>
       )}
     </div>
   );

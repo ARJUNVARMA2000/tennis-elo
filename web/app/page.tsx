@@ -9,7 +9,7 @@ import { SPRING_SOFT } from "@/lib/motion";
 import { nameKey, type PlayerRow } from "@/lib/live";
 import LiveTicker from "@/components/LiveTicker";
 import Link from "next/link";
-import { upcomingCard, byTournamentTier, type Upcoming } from "@/lib/upcoming";
+import { upcomingCard, byTournamentTier, hasMatchupProfiles, type Upcoming } from "@/lib/upcoming";
 
 type Proj = { name: string; champion: number; final: number | null; sf: number | null; reach?: Record<string, number> };
 type Tournament = {
@@ -322,6 +322,10 @@ function OtherEvents({ events }: { events: Tournament[] }) {
 const UP_NEXT_COUNT = 6;
 function UpNext() {
   const { data } = useData<Upcoming[]>("upcoming.json");
+  // The rated roster gates each card's style-matchup drill-in (players without a
+  // profile — e.g. qualifiers outside the top N — keep a plain, unlinked card).
+  const { data: roster } = useData<{ name: string }[]>("players.json");
+  const rated = useMemo(() => new Set((roster ?? []).map((p) => p.name)), [roster]);
   // Lead with the marquee events: byTournamentTier orders by prestige (Grand Slam → 1000 → …),
   // keeping soonest-first within a tier — so during Wimbledon the SF cards surface here instead
   // of a concurrent 125's opening round that merely happens to be scheduled a day sooner.
@@ -343,7 +347,7 @@ function UpNext() {
           <Reveal key={`${m.playerA}-${m.playerB}-${i}`} delay={Math.min(i * 0.03, 0.2)}>
             {/* showEvent: this grid mixes tournaments, so each card names its event (the
                 /schedule board omits it — there the event is a section header). */}
-            <CallCard tone="projection" {...upcomingCard(m, { showEvent: true })} />
+            <CallCard tone="projection" {...upcomingCard(m, { showEvent: true })} matchup={hasMatchupProfiles(m, rated)} />
           </Reveal>
         ))}
       </div>

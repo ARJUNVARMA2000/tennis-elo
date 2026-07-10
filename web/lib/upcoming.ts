@@ -53,6 +53,14 @@ export function upcomingCard(m: Upcoming, opts?: { showEvent?: boolean }): Upcom
   };
 }
 
+/** Whether BOTH players of a scheduled match are in the rated roster (players.json —
+    built from the same top-N list as profiles.json, so membership here guarantees the
+    /style page can resolve them). Gates the card's style-matchup drill-in: a link for a
+    qualifier without a profile would silently fall back to /style's default pair. */
+export function hasMatchupProfiles(m: Upcoming, roster: ReadonlySet<string>): boolean {
+  return roster.has(m.playerA) && roster.has(m.playerB);
+}
+
 /** Group scheduled matches by tournament, preserving input order — the pipeline already
     sorts rows soonest-first, so both the event order and the matches within each event
     come out in playing order. */
