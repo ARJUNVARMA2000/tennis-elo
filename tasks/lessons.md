@@ -296,3 +296,17 @@
   (~100 turns burned across sessions). Set `cancel-in-progress: false` (GitHub's own Pages-deploy
   default): the in-progress run finishes; GitHub queues only the latest superseding run and skips
   intermediate ones. Rule: a deploy job's concurrency group must never cancel in-progress.
+
+- **Duplicated construction sites drift: production shipped WTA pickles with fp=None.**
+  (2026-07-09) `fit_predictor()` passed `fp=feat_params_for(tour)` to `TennisPredictor`, but
+  `pipeline.build_tour` reimplemented the same construction inline and omitted it — so every
+  shipped `predictor.pkl` carried `fp=None` and inference fell back to config defaults (WTA:
+  layoff 360→120d, peak age 24→26.5) while the combiner was trained on tuned frames. Invisible
+  to the walk-forward arbiter (it scores frames, never a `TennisPredictor`) and to the health
+  gate (the JSON stays self-consistent — just built from the wrong thresholds). Fix: derive the
+  invariant IN the constructor (`fp = fp if fp is not None else feat_params_for(tour)`) so no
+  call site can forget it, and drop the redundant explicit arg — leaving it would re-signal that
+  callers must remember. `_predictor_current` (quick-path guard) now also compares the pickle's
+  `_fp` to the tour's current config and rebuilds on drift, healing shipped-bad pickles within
+  an hour. Rules: derive invariants in the constructor, not at call sites; a staleness guard
+  must check every config a pickle bakes in (schema AND params), not just the crash-prone part.

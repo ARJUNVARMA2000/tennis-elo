@@ -16,7 +16,7 @@ from datetime import UTC
 from .config import MODEL_DIR, TOURS, output_dir
 from .data.results import load_matches
 from .model.export import export_all
-from .model.features import FEATURES, build_predictor_inputs, main_rows
+from .model.features import FEATURES, build_predictor_inputs, feat_params_for, main_rows
 from .model.predict import TennisPredictor
 from .model.train import train_final, walk_forward, xgb_params_for
 
@@ -116,15 +116,23 @@ def _market_scorecard(tour: str, oos) -> None:
         print(f"  market/{tour}: skipped ({e})")
 
 
-def _predictor_current(predictor) -> bool:
-    """True unless the saved combiner was trained on a different feature schema
-    (e.g. a cached predictor.pkl predating a feature addition — scoring it against
-    freshly assembled frames would crash inside XGBoost)."""
+def _predictor_current(predictor, tour: str) -> bool:
+    """True unless the saved predictor is stale: trained on a different feature
+    schema (e.g. a cached predictor.pkl predating a feature addition — scoring it
+    against freshly assembled frames would crash inside XGBoost), or carrying
+    FeatureParams that differ from the tour's current config — its combiner was
+    trained on frames built with other thresholds (e.g. a pickle that shipped with
+    fp=None, or one predating a FEAT_PARAM_OVERRIDES adoption)."""
     try:
         trained = list(predictor.clf.get_booster().feature_names or [])
-    except Exception:                                        # noqa: BLE001 — can't introspect: assume current
-        return True
-    return trained == list(FEATURES)
+        if trained != list(FEATURES):
+            return False
+    except Exception:                                        # noqa: BLE001 — can't introspect: assume schema-current
+        pass
+    try:
+        return predictor._fp == feat_params_for(tour)
+    except Exception:                                        # noqa: BLE001 — foreign fp shape (cross-version pickle): rebuild
+        return False
 
 
 def build_tour_quick(tour: str) -> None:
@@ -134,8 +142,8 @@ def build_tour_quick(tour: str) -> None:
     print(f"\n=== {tour.upper()} [quick] === live refresh from saved model...")
     df = load_matches(tour)
     predictor = TennisPredictor.load(tour)
-    if not _predictor_current(predictor):
-        print("  quick: saved predictor has a stale feature schema -> full rebuild")
+    if not _predictor_current(predictor, tour):
+        print("  quick: saved predictor is stale (feature schema or FeatureParams) -> full rebuild")
         build_tour(tour, do_backtest=False)
         return
     export_all(tour, df, predictor.elo, predictor.srv, predictor.meta, predictor, oos=None)

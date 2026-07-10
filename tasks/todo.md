@@ -1050,3 +1050,25 @@ ATP 2026-01-13, WTA 2026-01-14) while the scorecard showed it beside a May–Jul
 - **Review:** eval/reporting only — no model change, so no walk-forward arbiter. New payload
   fields ship with the next daily FULL retrain; until then the page renders honest fallbacks.
   Work done in an isolated worktree off origin/master (Codex loop held the shared tree).
+
+## WTA FeatureParams parity fix (2026-07-09)
+
+`pipeline.build_tour` built `TennisPredictor` without `fp=` → shipped pickles carried `fp=None`
+and WTA inference used default FeatureParams (layoff 120d, peak 26.5) against a combiner trained
+on tuned frames (360d, 24.0). ATP unaffected (no overrides).
+
+- [x] `model/predict.py`: constructor derives `feat_params_for(tour)` when `fp` is omitted
+      (explicit `fp=` still wins; legacy-pickle `_fp` fallback untouched); `fit_predictor`
+      drops the now-redundant explicit arg.
+- [x] `pipeline.py`: `_predictor_current(predictor, tour)` also flags FeatureParams drift
+      (fp=None pickles, future `FEAT_PARAM_OVERRIDES` changes, cross-tour mixups) → hourly
+      quick run self-heals via full rebuild.
+- [x] Tests: `test_constructor_derives_tour_params` (exact magnitudes: peak_age_dev_diff −3.0
+      tuned vs 2.0 default), `test_fp_survives_pickle_roundtrip`, `test_predictor_feat_param_guard`.
+      Full suite 247 passed, ruff clean.
+- [x] Proof on the shipped artifact: `data/output/wta/predictor.pkl` → `fp=None`, `_fp` ==
+      defaults; new guard flags it stale; fixed constructor derives the tuned params.
+- **Review:** parity bug fix, not a model change → no arbiter gate (walk_forward never touches
+  the predictor path; this restores what the WTA `_fp1` arbiter adopted 2026-07-06). Built in a
+  worktree off origin/master (Codex loop held the shared tree); merged → master → deploy;
+  production heals on the next hourly quick run, daily retrain re-pickles regardless.

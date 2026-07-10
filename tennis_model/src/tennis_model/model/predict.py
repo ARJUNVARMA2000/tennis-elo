@@ -18,7 +18,7 @@ from ..config import output_dir
 from ..data.charting import STYLE_FEATURES, build_profiles, name_key
 from ..points.markov import match_win_prob, score_distribution
 from ..ratings.elo import expected_score
-from .features import DEFAULT_FEAT_PARAMS, FEATURES, build_predictor_inputs
+from .features import DEFAULT_FEAT_PARAMS, FEATURES, build_predictor_inputs, feat_params_for
 from .train import train_final
 
 
@@ -44,7 +44,10 @@ class TennisPredictor:
         self.clf, self.iso = clf, iso
         self.elo, self.srv, self.ctx, self.meta = elo, srv, ctx, meta
         self.tour = tour
-        self.fp = fp                       # FeatureParams the training frame was built with
+        # FeatureParams the training frame was built with; derived from the tour when
+        # omitted so no construction site can silently fall back to config defaults
+        # (pipeline.build_tour once shipped WTA pickles with fp=None)
+        self.fp = fp if fp is not None else feat_params_for(tour)
 
     @property
     def _fp(self):
@@ -209,12 +212,10 @@ class TennisPredictor:
 
 def fit_predictor(tour: str = "atp", save: bool = True) -> TennisPredictor:
     """Build states + train the production combiner, returning a ready predictor."""
-    from .features import feat_params_for
     from .train import xgb_params_for
     feat, elo, srv, ctx, meta = build_predictor_inputs(tour=tour)
     clf, iso, _ = train_final(feat, xgb_overrides=xgb_params_for(tour))
-    pred = TennisPredictor(clf, iso, elo, srv, ctx, meta, tour=tour,
-                           fp=feat_params_for(tour))
+    pred = TennisPredictor(clf, iso, elo, srv, ctx, meta, tour=tour)
     if save:
         pred.save()
     return pred
