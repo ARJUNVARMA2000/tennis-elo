@@ -726,11 +726,16 @@ def test_format_issue_body_has_problems_and_fix_prompt():
     report = {"generated": "2026-07-09", "ok": False,
               "tours": {"wta": {"problems": ["wta: newest completed match is 9d old"],
                                 "output": {"problems": ["wta: tournaments.json is empty"]}}}}
-    body = health.format_issue_body(report, run_url="https://example/run/1")
+    body = health.format_issue_body(report, run_url="https://example/run/1",
+                                    health_url="https://example.github.io/site/health/")
     assert "newest completed match is 9d old" in body
     assert "tournaments.json is empty" in body
     assert "https://example/run/1" in body
+    assert "Live status page: https://example.github.io/site/health/" in body
     assert "new Claude Code session" in body and "data-health" in body
+    # both links are optional (local runs / a deploy-less context) — never rendered empty
+    bare = health.format_issue_body(report)
+    assert "Live status page" not in bare and "Failing run" not in bare
     print("ok test_format_issue_body_has_problems_and_fix_prompt")
 
 

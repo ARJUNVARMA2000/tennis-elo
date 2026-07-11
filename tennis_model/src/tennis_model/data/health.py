@@ -645,7 +645,8 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
     return out
 
 
-def format_issue_body(report: dict, run_url: str | None = None) -> str:
+def format_issue_body(report: dict, run_url: str | None = None,
+                      health_url: str | None = None) -> str:
     """Markdown for the `data-health` GitHub issue — includes a ready-to-paste fix prompt."""
     probs: list[str] = []
     for h in report.get("tours", {}).values():
@@ -659,6 +660,8 @@ def format_issue_body(report: dict, run_url: str | None = None) -> str:
         lines.append(f"- …and {extra} more")
     if run_url:
         lines += ["", f"Failing run: {run_url}"]
+    if health_url:
+        lines += ["", f"Live status page: {health_url}"]
     summary = "; ".join(probs) if probs else "see run logs"
     lines += [
         "", "### Fix it in a new session",
@@ -690,7 +693,8 @@ def main() -> int:
             return 0
         report = json.loads(health_path.read_text())
         if not report.get("ok", True):
-            print(format_issue_body(report, run_url=os.environ.get("GITHUB_RUN_URL")))
+            print(format_issue_body(report, run_url=os.environ.get("GITHUB_RUN_URL"),
+                                    health_url=os.environ.get("HEALTH_PAGE_URL")))
         return 0
 
     if args.gate:

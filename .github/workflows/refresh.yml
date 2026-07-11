@@ -229,6 +229,8 @@ jobs:
           PYTHONPATH: src
           GH_TOKEN: ${{ github.token }}
           GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          # deploy ran earlier in this job, so page_url is set (e.g. https://<owner>.github.io/<repo>/)
+          HEALTH_PAGE_URL: ${{ steps.deploy.outputs.page_url }}health/
           MODE: ${{ steps.mode.outputs.mode }}
         run: |
           OK=$(python -c "import json; print(json.load(open('data/output/health.json'))['ok'])")

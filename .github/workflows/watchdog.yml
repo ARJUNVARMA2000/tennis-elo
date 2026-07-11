@@ -49,8 +49,12 @@ jobs:
           fi
           gh label create watchdog --color B60205 -R "$GITHUB_REPOSITORY" \
             --description "refresh.yml liveness failures" 2>/dev/null || true
-          printf 'refresh.yml has had **no successful run in %sh** (max %sh). Last success: %s.\n\nCheck the workflow page: https://github.com/%s/actions/workflows/refresh.yml — it may be disabled (60-day inactivity), failing before the health steps, or its cron dropped.\n' \
-            "$AGE_H" "$WINDOW_H" "${LAST:-never}" "$GITHUB_REPOSITORY" > /tmp/watchdog-body.md
+          # GitHub Pages URL for the (hidden) /health status page: lowercase owner + repo name.
+          # Shows the LAST report the dead pipeline shipped — its own stale stamp is the evidence.
+          OWNER=$(echo "${GITHUB_REPOSITORY%%/*}" | tr '[:upper:]' '[:lower:]')
+          HEALTH_URL="https://${OWNER}.github.io/${GITHUB_REPOSITORY##*/}/health/"
+          printf 'refresh.yml has had **no successful run in %sh** (max %sh). Last success: %s.\n\nCheck the workflow page: https://github.com/%s/actions/workflows/refresh.yml — it may be disabled (60-day inactivity), failing before the health steps, or its cron dropped.\n\nLive status page (last shipped report): %s\n' \
+            "$AGE_H" "$WINDOW_H" "${LAST:-never}" "$GITHUB_REPOSITORY" "$HEALTH_URL" > /tmp/watchdog-body.md
           if [ -n "$EXISTING" ]; then
             gh issue comment "$EXISTING" -R "$GITHUB_REPOSITORY" --body-file /tmp/watchdog-body.md
           else
