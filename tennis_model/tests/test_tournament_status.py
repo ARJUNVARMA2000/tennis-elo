@@ -97,7 +97,8 @@ def test_completed_projection_excludes_qualifying_field():
     for i in range(20):
         rows.append(dict(tourney_name="Test Slam", date=pd.Timestamp("2026-06-25"),
                          round="Q1", winner_name=f"Q{i}", loser_name=f"Q{20 + i}",
-                         surface_b="Grass", best_of=3, tourney_level="Q", draw_level="qual"))
+                         surface_b="Grass", best_of=3, tourney_level="Q",
+                         draw_level="main"))  # legacy/source default: provenance is unreliable
 
     t = project_tournament(_PRED, "Test Slam", pd.DataFrame(rows), "wta", known=set(),
                            top_set=None, n_sims=10, seed=1)

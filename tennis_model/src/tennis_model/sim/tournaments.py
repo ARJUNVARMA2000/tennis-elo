@@ -259,14 +259,18 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
                        matchups: list | None = None, wiki_draw: dict | None = None,
                        n_sims: int = 8000, seed: int = 11) -> dict | None:
     # The ratings frame can include qualifying matches for state updates. Tournament
-    # projections, however, describe the main draw only. In particular, once a Slam final
-    # appears the completed path must not union qualifiers into a >128-player field and pad
-    # it to an impossible 256-slot bracket.
+    # projections, however, describe the main draw only. ``draw_level`` filters modern lower-
+    # ingestion rows, while the round filter also catches legacy/source rows whose Q1/Q2
+    # matches were default-labelled "main". Once a Slam final appears, neither class may leak
+    # into a >128-player completed field and pad it to an impossible 256-slot bracket.
     main = g
     if "draw_level" in g.columns:
         main_rows = g[g["draw_level"] == "main"]
         if not main_rows.empty:
             main = main_rows
+    knockout = main[main["round"].isin(_KO_ROUNDS)]
+    if not knockout.empty:
+        main = knockout
 
     surface = main["surface_b"].mode().iloc[0]
     bo = pd.to_numeric(main["best_of"], errors="coerce").max()

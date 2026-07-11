@@ -17,9 +17,13 @@ impossible 256-slot bracket.
   completed path unioned main + qualifying participants, `standard_seed_draw` padded
   the >128-player set to 256, and `simulate_tournament` failed on unsupported round 256.
 - Fix is population-scoped, not a simulator expansion: completed projections now use
-  main-draw rows only. A blocking health invariant rejects any future `drawSize > 128`.
+  main-draw knockout rounds only. A blocking health invariant rejects any future
+  `drawSize > 128`.
 - Local proof: focused tournament/health suites 51 passed; full suite 263 passed; ruff clean.
-- Production deployment confirmation pending.
+- First production retry (`2651a95`) exposed that source/legacy Q1/Q2 rows can be
+  default-labelled `draw_level=main`; the same KeyError survived the provenance-only filter.
+  Follow-up regression uses that production shape and filters recognized knockout rounds too.
+- Production deployment confirmation pending for the follow-up.
 
 ---
 
