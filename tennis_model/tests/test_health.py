@@ -142,11 +142,14 @@ def test_problems_fresh_overlay_freeze_flagged():
 
 
 def test_problems_charting_freeze_flagged():
-    """MCP is batch-updated — a 80d lag is normal, 120d means the source moved/froze;
-    a missing file means style features are silently gone."""
+    """A charting lag past the configured limit means the source moved/froze; a missing
+    file means style features are silently gone. Threshold-relative so re-tuning the
+    limit (or a temporary drill) never breaks the test."""
     now = pd.Timestamp("2026-07-01")
-    assert any("charted match" in p for p in health.problems("atp", _h(charting_age=120), now))
-    assert health.problems("atp", _h(charting_age=80), now) == []
+    lim = health.HEALTH_MAX_CHARTING_AGE_DAYS
+    assert any("charted match" in p
+               for p in health.problems("atp", _h(charting_age=lim + 30), now))
+    assert health.problems("atp", _h(charting_age=max(0, lim - 10)), now) == []
     assert any("charting files missing" in p
                for p in health.problems("atp", _h(charting_age=None), now))
     print("ok test_problems_charting_freeze_flagged")

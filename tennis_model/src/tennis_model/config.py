@@ -391,7 +391,11 @@ HEALTH_MAX_FRESH_AGE_DAYS = 14      # TennisCourtLog overlay updates ~weekly; 14
                                     # and a frozen-but-shadowed source (TennisCourtLog's ATP
                                     # file, 2026-06-22) is a standing red no local action
                                     # can clear — see health.problems().
-HEALTH_MAX_CHARTING_AGE_DAYS = 90   # MCP is volunteer batch-updated (a 50d mid-season lag is
+HEALTH_MAX_CHARTING_AGE_DAYS = 40   # TEMPORARY DRILL (2026-07-10): forces the sentinel to
+                                    # flag CI's ~50d charting age so the data-health issue
+                                    # flow (incl. the /health link) is exercised end-to-end.
+                                    # REVERT TO 90 immediately after — see the next commit.
+                                    # Real value: MCP is volunteer batch-updated (a 50d mid-season lag is
                                     # normal); 90 targets the real failure class — repo
                                     # moved/renamed/frozen. Exceeds the longest seasonal gap
                                     # (mid-Nov Finals -> AO chartings landing ~Feb), so no
