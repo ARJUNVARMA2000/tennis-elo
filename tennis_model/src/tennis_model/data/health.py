@@ -388,11 +388,14 @@ def _check_tournament(out: list, tour: str, t: dict) -> None:
         out.append(f"{tour}: tournament {name!r} has bad drawStatus {ds!r}")
     if isinstance(size, int) and isinstance(alive, int) and alive > size:
         out.append(f"{tour}: tournament {name!r} aliveCount {alive} > drawSize {size}")
+    if isinstance(size, int) and size > 128:
+        out.append(f"{tour}: tournament {name!r} drawSize {size} exceeds the maximum 128-player draw")
     # a real bracket seats a STANDARD draw size — a power of two, or a sanctioned
     # bye-draw (28/48/56/96...; Gstaad's 28-draw blocked a deploy on 2026-07-10 when this
     # demanded strict powers of two). A leaked 'TBD' (128 -> 129, 28 -> 29) or a name-
     # resolution loss (28 -> 27) still lands outside the set and blocks. completed/
-    # partial/seeded sizes are len(field_pool) and legitimately unconstrained.
+    # partial/seeded/completed sizes can be non-standard because drawSize counts entrants,
+    # but no tour-level singles draw can exceed 128.
     if ds == "real" and isinstance(size, int) and not _real_draw_size_ok(size):
         out.append(f"{tour}: tournament {name!r} real draw size {size} is not a standard "
                    f"bracket size (power of two or bye-draw {sorted(_BYE_DRAW_SIZES)})")

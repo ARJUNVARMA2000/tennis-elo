@@ -84,6 +84,28 @@ def test_status_real_partial_seeded_final_from_espn():
     print("ok test_status_real_partial_seeded_final_from_espn")
 
 
+def test_completed_projection_excludes_qualifying_field():
+    """A completed Slam still projects its 128-player main draw, not qualifying rows."""
+    rows = []
+    for i in range(64):
+        rows.append(dict(tourney_name="Test Slam", date=pd.Timestamp("2026-07-01"),
+                         round="R128", winner_name=f"M{i}", loser_name=f"M{64 + i}",
+                         surface_b="Grass", best_of=3, tourney_level="G", draw_level="main"))
+    rows.append(dict(tourney_name="Test Slam", date=pd.Timestamp("2026-07-11"),
+                     round="F", winner_name="M0", loser_name="M1", surface_b="Grass",
+                     best_of=3, tourney_level="G", draw_level="main"))
+    for i in range(20):
+        rows.append(dict(tourney_name="Test Slam", date=pd.Timestamp("2026-06-25"),
+                         round="Q1", winner_name=f"Q{i}", loser_name=f"Q{20 + i}",
+                         surface_b="Grass", best_of=3, tourney_level="Q", draw_level="qual"))
+
+    t = project_tournament(_PRED, "Test Slam", pd.DataFrame(rows), "wta", known=set(),
+                           top_set=None, n_sims=10, seed=1)
+    assert t["status"] == "completed" and t["drawSize"] == 128
+    assert t["champion"] == "M0" and all(p["name"].startswith("M") for p in t["projection"])
+    print("ok test_completed_projection_excludes_qualifying_field")
+
+
 def test_wiki_draw_makes_a_seeded_board_real():
     """Same event, no ESPN matchups (-> would be 'seeded'), but a Wikipedia ordered draw is
     available: the board runs on the real bracket and reports 'real'."""
@@ -169,6 +191,7 @@ def test_build_tournaments_collapses_archive_and_sponsor_feed():
 
 if __name__ == "__main__":
     test_status_real_partial_seeded_final_from_espn()
+    test_completed_projection_excludes_qualifying_field()
     test_wiki_draw_makes_a_seeded_board_real()
     test_prestart_upcoming_projection_from_wiki()
     test_dedup_by_display_name_keeps_fuller_draw()

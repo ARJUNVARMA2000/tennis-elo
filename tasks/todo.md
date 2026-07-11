@@ -1,3 +1,28 @@
+# Task: Fix Wimbledon-final deployment failure (2026-07-11)
+
+Goal: restore hourly Pages deploys after the WTA Wimbledon final switched tournament
+projection into a completed-event path that included qualifying players and built an
+impossible 256-slot bracket.
+
+## Checklist
+- [x] Inspect the two failed refresh runs and isolate `KeyError: 256` to WTA projection.
+- [x] Reproduce the transition with a completed 128-player main draw plus qualifying rows.
+- [x] Filter completed projections to `draw_level == "main"` when that provenance exists.
+- [x] Add an output-health invariant blocking any singles draw above 128 players.
+- [x] Run targeted and full Python verification.
+- [ ] Push the production fix and confirm a successful refresh + Pages deployment.
+
+## Review
+- Root cause confirmed from two Actions traces: after the WTA final arrived, the
+  completed path unioned main + qualifying participants, `standard_seed_draw` padded
+  the >128-player set to 256, and `simulate_tournament` failed on unsupported round 256.
+- Fix is population-scoped, not a simulator expansion: completed projections now use
+  main-draw rows only. A blocking health invariant rejects any future `drawSize > 128`.
+- Local proof: focused tournament/health suites 51 passed; full suite 263 passed; ruff clean.
+- Production deployment confirmation pending.
+
+---
+
 # Task: Hidden /health status page (2026-07-10)
 
 Plan: C:\Users\varma\.claude\plans\do-we-have-something-refactored-music.md

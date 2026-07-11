@@ -379,6 +379,17 @@ def test_output_alive_gt_draw_and_missing_champion():
     print("ok test_output_alive_gt_draw_and_missing_champion")
 
 
+def test_output_draw_cannot_exceed_128():
+    """A >128 field means qualifying players leaked into a Slam's main draw."""
+    d = _healthy_data()
+    d["tournaments"] = [{"name": "Wimbledon", "status": "completed", "drawStatus": "final",
+                         "drawSize": 168, "aliveCount": 1, "champion": "Someone", "projection": []}]
+    out = health.output_problems("wta", _oc(data=d), NOW)
+    problem = next(p for p in out if "maximum 128-player draw" in p)
+    assert health._gate_blocks(problem)
+    print("ok test_output_draw_cannot_exceed_128")
+
+
 def test_output_probability_and_monotonicity():
     d = _healthy_data()
     d["tournaments"][0]["projection"][0]["champion"] = 1.4          # out of [0,1]
@@ -764,6 +775,7 @@ if __name__ == "__main__":
     test_output_real_draw_must_be_standard_size()
     test_output_completed_nonpower_of_two_is_fine()
     test_output_alive_gt_draw_and_missing_champion()
+    test_output_draw_cannot_exceed_128()
     test_output_probability_and_monotonicity()
     test_output_projection_none_round_is_tolerated()
     test_output_matrix_antisymmetry()

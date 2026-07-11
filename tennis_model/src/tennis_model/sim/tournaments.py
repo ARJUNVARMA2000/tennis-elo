@@ -258,20 +258,30 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
                        espn_fields: dict | None = None, resolve=None,
                        matchups: list | None = None, wiki_draw: dict | None = None,
                        n_sims: int = 8000, seed: int = 11) -> dict | None:
-    surface = g["surface_b"].mode().iloc[0]
-    bo = pd.to_numeric(g["best_of"], errors="coerce").max()
+    # The ratings frame can include qualifying matches for state updates. Tournament
+    # projections, however, describe the main draw only. In particular, once a Slam final
+    # appears the completed path must not union qualifiers into a >128-player field and pad
+    # it to an impossible 256-slot bracket.
+    main = g
+    if "draw_level" in g.columns:
+        main_rows = g[g["draw_level"] == "main"]
+        if not main_rows.empty:
+            main = main_rows
+
+    surface = main["surface_b"].mode().iloc[0]
+    bo = pd.to_numeric(main["best_of"], errors="coerce").max()
     best_of = int(bo) if pd.notna(bo) else 3
     level = resolve_level(tour, name, archive_level=_level_label(_main_level_code(g), tour))
 
-    eliminated = set(g["loser_name"])
-    final_rows = g[g["round"] == "F"]
+    eliminated = set(main["loser_name"])
+    final_rows = main[main["round"] == "F"]
     completed = len(final_rows) > 0
 
     champ = runner = None
     if completed:
         fr = final_rows.sort_values("date").iloc[-1]
         champ, runner = fr["winner_name"], fr["loser_name"]
-        field_pool = set(g["winner_name"]) | set(g["loser_name"])     # full field (all played)
+        field_pool = set(main["winner_name"]) | set(main["loser_name"])  # full main draw
     else:
         # Live: prefer ESPN's FULL main-draw field (incl. scheduled) so the Day-1
         # favourite reflects everyone still in the draw, not just those who've finished.

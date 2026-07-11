@@ -1,5 +1,13 @@
 # Lessons
 
+- **A completed-event projection must filter the ratings frame to the main draw before
+  constructing its field.** (2026-07-11, Wimbledon final deployment failure) The live path
+  used Wikipedia's 128-slot bracket and worked all fortnight; the instant the final appeared,
+  the completed path unioned every player in the event group, including ratings-only qualifying
+  rows. More than 128 names padded to an impossible 256-slot bracket and crashed before the
+  pre-deploy gate. Rule: event completion may change the projection source, never the population;
+  filter `draw_level == "main"` at that boundary and gate any shipped `drawSize > 128`.
+
 - **A freshness gate on a REDUNDANT source needs a load-bearing predicate — an
   unfixable upstream freeze otherwise stands red forever.** (2026-07-10, fresh overlay)
   TennisCourtLog froze its ATP results file on 2026-06-22 (repo still auto-commits
