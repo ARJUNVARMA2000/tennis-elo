@@ -10,7 +10,7 @@ impossible 256-slot bracket.
 - [x] Filter completed projections to `draw_level == "main"` when that provenance exists.
 - [x] Add an output-health invariant blocking any singles draw above 128 players.
 - [x] Run targeted and full Python verification.
-- [ ] Push the production fix and confirm a successful refresh + Pages deployment.
+- [x] Push the production fix and confirm a successful refresh + Pages deployment.
 
 ## Review
 - Root cause confirmed from two Actions traces: after the WTA final arrived, the
@@ -32,7 +32,10 @@ impossible 256-slot bracket.
   applying the cached authoritative Wikipedia draw, reverting to a noisy results union.
   Final fix retains the Wikipedia field after completion while still running the completed
   (rating-seeded retrospective) simulation mode.
-- Production deployment confirmation pending.
+- **Production proof:** final commit `ab0bc18`; refresh run 29170578353 passed WTA export,
+  pre-deploy integrity gate, data-health check, static build, artifact upload, and Pages deploy.
+  Live cache-busted `data/wta/tournaments.json` reports Wimbledon completed with drawSize=128,
+  aliveCount=1, champion Linda Noskova; homepage Last-Modified is 2026-07-11 22:35:38 UTC.
 
 ---
 
