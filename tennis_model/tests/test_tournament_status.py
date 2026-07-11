@@ -108,6 +108,29 @@ def test_completed_projection_excludes_qualifying_field():
     print("ok test_completed_projection_excludes_qualifying_field")
 
 
+def test_completed_projection_keeps_authoritative_wiki_field():
+    """Completion must not discard a known 128-player draw for a dirty 133-name frame."""
+    rows = [dict(tourney_name="Test Slam", date=pd.Timestamp("2026-07-01"),
+                 round="R128", winner_name=f"M{i}", loser_name=f"M{65 + i}",
+                 surface_b="Grass", best_of=3, tourney_level="G", draw_level="main")
+            for i in range(65)]
+    rows += [
+        dict(tourney_name="Test Slam", date=pd.Timestamp("2026-07-02"), round="R128",
+             winner_name="Extra A", loser_name="Extra B", surface_b="Grass", best_of=3,
+             tourney_level="G", draw_level="main"),
+        dict(tourney_name="Test Slam", date=pd.Timestamp("2026-07-11"), round="F",
+             winner_name="M0", loser_name="M1", surface_b="Grass", best_of=3,
+             tourney_level="G", draw_level="main"),
+    ]
+    wiki = {"slots": [f"M{i}" for i in range(128)], "bestOf": 3}
+    t = project_tournament(_PRED, "Test Slam", pd.DataFrame(rows), "wta", known=set(),
+                           top_set=None, resolve=lambda n: n, wiki_draw=wiki,
+                           n_sims=10, seed=1)
+    assert t["status"] == "completed" and t["drawSize"] == 128
+    assert t["champion"] == "M0" and all(p["name"].startswith("M") for p in t["projection"])
+    print("ok test_completed_projection_keeps_authoritative_wiki_field")
+
+
 def test_oversized_projection_error_names_event_and_source_state():
     """An invalid source grouping must fail with actionable context, not KeyError: 256."""
     rows = [dict(tourney_name="Merged Event", date=pd.Timestamp("2026-07-01"),
@@ -211,6 +234,7 @@ def test_build_tournaments_collapses_archive_and_sponsor_feed():
 if __name__ == "__main__":
     test_status_real_partial_seeded_final_from_espn()
     test_completed_projection_excludes_qualifying_field()
+    test_completed_projection_keeps_authoritative_wiki_field()
     test_oversized_projection_error_names_event_and_source_state()
     test_wiki_draw_makes_a_seeded_board_real()
     test_prestart_upcoming_projection_from_wiki()

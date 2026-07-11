@@ -7,8 +7,9 @@
   rows. More than 128 names padded to an impossible 256-slot bracket and crashed before the
   pre-deploy gate. The first fix filtered `draw_level == "main"`, but production still failed:
   legacy/source Q1/Q2 rows can be default-labelled `main`. Rule: event completion may change the
-  projection source, never the population; filter both provenance AND recognized knockout rounds
-  (`R128`..`F`) at that boundary, and gate any shipped `drawSize > 128`.
+  projection mode, never the population; filter both provenance AND recognized knockout rounds
+  (`R128`..`F`), and when the authoritative Wikipedia draw exists, retain its population after
+  completion instead of reverting to the noisier results union. Gate any shipped `drawSize > 128`.
 
 - **A freshness gate on a REDUNDANT source needs a load-bearing predicate — an
   unfixable upstream freeze otherwise stands red forever.** (2026-07-10, fresh overlay)

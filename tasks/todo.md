@@ -27,6 +27,11 @@ impossible 256-slot bracket.
   the offending bracket is not identified by those assumptions. Added a fail-fast diagnostic
   carrying tour/event/field/alive/completed/draw-state/wiki-slot context; next production trace
   will identify the exact construction path without weakening the deployment gate.
+- Diagnostic run `36bc49a` identified the exact state: `Wimbledon`, field=133,
+  completed=True, draw_state=final, wiki_slots=0. The completed path deliberately stopped
+  applying the cached authoritative Wikipedia draw, reverting to a noisy results union.
+  Final fix retains the Wikipedia field after completion while still running the completed
+  (rating-seeded retrospective) simulation mode.
 - Production deployment confirmation pending.
 
 ---

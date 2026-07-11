@@ -282,6 +282,7 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
     completed = len(final_rows) > 0
 
     champ = runner = None
+    ef = (espn_fields or {}).get(name)
     if completed:
         fr = final_rows.sort_values("date").iloc[-1]
         champ, runner = fr["winner_name"], fr["loser_name"]
@@ -289,7 +290,6 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
     else:
         # Live: prefer ESPN's FULL main-draw field (incl. scheduled) so the Day-1
         # favourite reflects everyone still in the draw, not just those who've finished.
-        ef = (espn_fields or {}).get(name)
         if ef and resolve and len(ef["field"]) >= 8:
             field_pool = {resolve(n) for n in ef["field"]}
             eliminated = {resolve(n) for n in ef["eliminated"]} | eliminated
@@ -300,13 +300,17 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
     # entrants (and the event's best-of — Tennis5 for slams) so the live board runs on the
     # actual draw, not a rating seed. Byes/qualifiers ride along in `slots` (None / distinct).
     resolved_wslots = None
-    if wiki_draw and not completed and wiki_draw.get("slots") and resolve:
+    if wiki_draw and wiki_draw.get("slots") and resolve:
         # The wiki draw and ESPN's field/results name the SAME players in different spellings;
         # reconcile the residue the key can't bridge against this event's own field so an
         # eliminated player can't linger "alive" and freeze the fold at a stale early round.
         pool = list((ef or {}).get("field", [])) + list(g["loser_name"]) + list(g["winner_name"])
         wcanon = _reconcile_wiki_names(wiki_draw["slots"], pool, resolve)
         resolved_wslots = [(wcanon.get(s) or resolve(s)) if s else None for s in wiki_draw["slots"]]
+        # Wikipedia remains the authoritative main-draw population after completion too.
+        # The results frame can retain a handful of qualifier/alternate spellings in rows
+        # labelled as knockout rounds; discarding the known draw at the final recreated a
+        # 133-player Wimbledon field and padded it to an impossible 256-slot bracket.
         field_pool = {s for s in resolved_wslots if s is not None}
         best_of = int(wiki_draw.get("bestOf") or best_of)
 
