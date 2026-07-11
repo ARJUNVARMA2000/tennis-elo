@@ -13,6 +13,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
@@ -107,6 +108,23 @@ def test_completed_projection_excludes_qualifying_field():
     print("ok test_completed_projection_excludes_qualifying_field")
 
 
+def test_oversized_projection_error_names_event_and_source_state():
+    """An invalid source grouping must fail with actionable context, not KeyError: 256."""
+    rows = [dict(tourney_name="Merged Event", date=pd.Timestamp("2026-07-01"),
+                 round="R128", winner_name=f"P{i}", loser_name=f"P{65 + i}",
+                 surface_b="Hard", best_of=3, tourney_level="250", draw_level="main")
+            for i in range(65)]
+    rows.append(dict(tourney_name="Merged Event", date=pd.Timestamp("2026-07-11"),
+                     round="F", winner_name="P0", loser_name="P1", surface_b="Hard",
+                     best_of=3, tourney_level="250", draw_level="main"))
+    with pytest.raises(ValueError, match=(
+            r"wta tournament 'Merged Event': invalid 256-slot bracket .*"
+            r"field=130.*completed=True.*draw_state=final.*wiki_slots=0")):
+        project_tournament(_PRED, "Merged Event", pd.DataFrame(rows), "wta", known=set(),
+                           top_set=None, n_sims=10, seed=1)
+    print("ok test_oversized_projection_error_names_event_and_source_state")
+
+
 def test_wiki_draw_makes_a_seeded_board_real():
     """Same event, no ESPN matchups (-> would be 'seeded'), but a Wikipedia ordered draw is
     available: the board runs on the real bracket and reports 'real'."""
@@ -193,6 +211,7 @@ def test_build_tournaments_collapses_archive_and_sponsor_feed():
 if __name__ == "__main__":
     test_status_real_partial_seeded_final_from_espn()
     test_completed_projection_excludes_qualifying_field()
+    test_oversized_projection_error_names_event_and_source_state()
     test_wiki_draw_makes_a_seeded_board_real()
     test_prestart_upcoming_projection_from_wiki()
     test_dedup_by_display_name_keeps_fuller_draw()

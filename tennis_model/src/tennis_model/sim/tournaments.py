@@ -331,6 +331,12 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
         mus = matchups or []
         slots = live_draw(field, mus, rank)
         draw_state = draw_status(field, mus, rank)
+    if len(slots) > 128:
+        raise ValueError(
+            f"{tour} tournament {name!r}: invalid {len(slots)}-slot bracket "
+            f"(field={len(field_pool)}, alive={len(alive)}, completed={completed}, "
+            f"draw_state={draw_state}, wiki_slots={len(resolved_wslots or [])})"
+        )
     proj, favorite = _simulate_projection(predictor, slots, surface, best_of, name, n_sims, seed)
 
     return {

@@ -23,7 +23,11 @@ impossible 256-slot bracket.
 - First production retry (`2651a95`) exposed that source/legacy Q1/Q2 rows can be
   default-labelled `draw_level=main`; the same KeyError survived the provenance-only filter.
   Follow-up regression uses that production shape and filters recognized knockout rounds too.
-- Production deployment confirmation pending for the follow-up.
+- Second production retry (`e7e189e`) still produced the generic `KeyError: 256`, proving
+  the offending bracket is not identified by those assumptions. Added a fail-fast diagnostic
+  carrying tour/event/field/alive/completed/draw-state/wiki-slot context; next production trace
+  will identify the exact construction path without weakening the deployment gate.
+- Production deployment confirmation pending.
 
 ---
 
