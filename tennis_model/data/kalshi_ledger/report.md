@@ -1,13 +1,13 @@
 # Model vs Kalshi — match-by-match scorecard
 
-_Generated 2026-07-11T07:45:51Z. Positive d = model better than Kalshi (paired per-match; SE = std/√n, tune.py convention). Kalshi price = de-vigged bid/ask mid at 08:00 UTC on match day (morning-of line — always pre-match; Kalshi's own start timestamps mutate on settled markets and cannot be trusted), from 1-min candlesticks; markets with spread > 0.10 excluded. Do not compare these numbers to the closing-line scorecard (market.json): different price time, different match mix._
+_Generated 2026-07-12T08:09:21Z. Positive d = model better than Kalshi (paired per-match; SE = std/√n, tune.py convention). Kalshi price = de-vigged bid/ask mid at 08:00 UTC on match day (morning-of line — always pre-match; Kalshi's own start timestamps mutate on settled markets and cannot be trusted), from 1-min candlesticks; markets with spread > 0.10 excluded. Do not compare these numbers to the closing-line scorecard (market.json): different price time, different match mix._
 
 ## Coverage
 
 | tour | events | matched | pending | unmatched | cancelled | ambiguous | walkovers | retirements | no price | range |
 |---|---|---|---|---|---|---|---|---|---|---|
-| atp | 972 | 917 | 16 | 6 | 33 | 0 | 6 | 9 | 171 | 2026-05-03..2026-07-11 |
-| wta | 985 | 571 | 9 | 380 | 25 | 0 | 2 | 15 | 22 | 2026-05-02..2026-07-11 |
+| atp | 1012 | 917 | 56 | 6 | 33 | 0 | 6 | 9 | 195 | 2026-05-03..2026-07-12 |
+| wta | 1013 | 571 | 37 | 380 | 25 | 0 | 2 | 15 | 41 | 2026-05-02..2026-07-13 |
 
 ## Headline (scored set)
 
