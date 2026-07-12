@@ -64,6 +64,26 @@ export function tournamentTier(level: string = "", eventName: string = ""): { ra
   return { rank: 7, short: "Tour", full: level && l !== "q" ? level : "Tour" };
 }
 
+/** How long a finished Grand Slam keeps the home-page hero after its final before the page
+    falls back to the tournament grid. ~48h so the championship result stays front-and-centre
+    through the days around the final (when interest peaks) instead of vanishing the instant
+    the match ends and the last hourly refresh flips the event to "completed". */
+export const SLAM_HERO_LINGER_MS = 48 * 60 * 60 * 1000;
+
+/** The tournament that should own the home-page hero, or undefined for the grid layout.
+    A Grand Slam that is live or upcoming always wins; a just-finished Slam keeps the hero for
+    SLAM_HERO_LINGER_MS past its end date so the champion lingers. `now` is injected for tests. */
+export function heroSlam<T extends { level: string; name: string; status: string; end: string }>(
+  tournaments: T[], now: number = Date.now(),
+): T | undefined {
+  return tournaments.find((t) => {
+    if (tournamentTier(t.level, t.name).rank !== 0) return false;        // not a Grand Slam
+    if (t.status !== "completed") return true;                          // still live/upcoming
+    const end = new Date(t.end + "T00:00").getTime();                   // finished — still within the linger window?
+    return Number.isFinite(end) && now - end <= SLAM_HERO_LINGER_MS;
+  });
+}
+
 /** Heat color for a probability 0..1 — single-hue indigo luminance ramp.
     Returns hex so callers can append alpha digits (e.g. `${heat(p)}22`). */
 export function heat(p: number): string {

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
-import { pct, surfaceColor, heat, eloKey, blendedElo, tournamentTier, drawCaveat } from "@/lib/ui";
+import { pct, surfaceColor, heat, eloKey, blendedElo, tournamentTier, drawCaveat, heroSlam } from "@/lib/ui";
 import { PageHead, Loading, Reveal, CallCard } from "@/components/bits";
 import { SPRING_SOFT } from "@/lib/motion";
 import { nameKey, type PlayerRow } from "@/lib/live";
@@ -72,18 +72,22 @@ export default function Tournaments() {
   const { tour } = useTour();
   const { data, loading } = useData<Tournament[]>("tournaments.json");
 
-  // When a Grand Slam is in progress, the home page focuses on it: a prominent
-  // round-by-round forecast, with the week's other events tucked behind a toggle.
-  const slam = (data || []).find((t) => t.status !== "completed" && tournamentTier(t.level, t.name).rank === 0);
+  // When a Grand Slam is in progress — or finished within the last ~48h — the home page
+  // focuses on it: a prominent round-by-round forecast, with the week's other events tucked
+  // behind a toggle. heroSlam keeps a just-crowned champion front-and-centre for two days.
+  const slam = heroSlam(data || []);
   const others = (data || []).filter((t) => t !== slam);
 
   if (slam) {
+    const done = slam.status === "completed";
     return (
       <div className="pb-16">
         <PageHead
-          eyebrow={`${tour.toUpperCase()} · championship forecast`}
+          eyebrow={`${tour.toUpperCase()} · ${done ? "championship result" : "championship forecast"}`}
           title={slam.name}
-          sub="The model's live title odds — the leading contenders' chances of reaching each round, from the favourites on down. Updated as the draw thins."
+          sub={done
+            ? "How the model saw the title race before a ball was struck — the leading contenders' pre-tournament chances of reaching each round, now set against the player who actually lifted the trophy."
+            : "The model's live title odds — the leading contenders' chances of reaching each round, from the favourites on down. Updated as the draw thins."}
         />
         <LiveTicker />
         <Reveal>
@@ -186,7 +190,9 @@ function SlamHero({ t }: { t: Tournament }) {
             {dateRange(t.start, t.end)} · {t.drawSize} draw
           </div>
         </div>
-        {t.status === "upcoming" ? (
+        {t.status === "completed" ? (
+          <span className="mono text-[11px] uppercase tracking-wider text-[var(--color-faint)]">Final</span>
+        ) : t.status === "upcoming" ? (
           <span className="mono text-[11px] uppercase tracking-wider text-[var(--color-accent)]">Draw released</span>
         ) : (
           <span className="mono flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-[var(--color-accent)]">
@@ -198,9 +204,25 @@ function SlamHero({ t }: { t: Tournament }) {
 
       <DrawCaveat t={t} />
 
+      {/* champion banner (completed) — who lifted the trophy, and whether the model favoured them */}
+      {t.champion && (
+        <div className="mt-4 flex items-center justify-between rounded-lg border border-[var(--color-line)] bg-[var(--color-panel2)]/40 px-3 py-2">
+          <div>
+            <div className="text-[10px] uppercase tracking-wider text-[var(--color-faint)]">Champion</div>
+            <div className="text-[15px] font-medium text-[var(--color-champ)]">{t.champion}</div>
+          </div>
+          <div className="text-right">
+            <div className="text-[10px] uppercase tracking-wider text-[var(--color-faint)]">Model favoured</div>
+            <div className="mono text-[13px]" style={{ color: t.favoritePicked ? "var(--color-win)" : "var(--color-muted)" }}>
+              {t.modelFavorite} {t.favoritePicked ? "✓" : "✗"}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* round-by-round forecast table */}
       <div className="mono mt-5 mb-2 text-[10px] uppercase tracking-wider text-[var(--color-faint)]">
-        Title race · chance of reaching each round · <span className="text-[var(--color-muted)]">tap a round to sort</span>
+        {t.status === "completed" ? "Pre-tournament title race" : "Title race"} · chance of reaching each round · <span className="text-[var(--color-muted)]">tap a round to sort</span>
       </div>
       <div className="-mx-1 overflow-x-auto">
         <table className="w-full min-w-[620px] border-collapse">
@@ -238,7 +260,7 @@ function SlamHero({ t }: { t: Tournament }) {
               return (
                 <tr key={p.name} className="row-glow border-t border-[var(--color-line)]">
                   <td className="mono px-1 py-1.5 text-right text-[11px] text-[var(--color-faint)]">{i + 1}</td>
-                  <td className="px-1 py-1.5 text-[13px] whitespace-nowrap">{p.name}</td>
+                  <td className="px-1 py-1.5 text-[13px] whitespace-nowrap" style={p.name === t.champion ? { color: "var(--color-champ)" } : undefined}>{p.name}</td>
                   <td className="mono px-1 py-1.5 text-center text-[11px] whitespace-nowrap">
                     {e ? (
                       <>

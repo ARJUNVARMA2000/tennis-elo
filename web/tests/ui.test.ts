@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { drawCaveat, heat, pct, percentileScaler, scoreDist, SURFACE_BLEND } from "@/lib/ui";
+import { drawCaveat, heat, heroSlam, pct, percentileScaler, scoreDist, SLAM_HERO_LINGER_MS, SURFACE_BLEND } from "@/lib/ui";
 
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
 
@@ -28,6 +28,34 @@ describe("drawCaveat", () => {
     expect(drawCaveat({ status: "completed", drawStatus: "final" })).toBeNull();
     expect(drawCaveat({ status: "completed", drawStatus: "seeded" })).toBeNull(); // completed wins
     expect(drawCaveat({ status: "live" })).toBeNull(); // stale JSON -> unchanged UI
+  });
+});
+
+describe("heroSlam", () => {
+  const slam = (status: string, end: string, name = "Wimbledon") =>
+    ({ level: "Grand Slam", name, status, end });
+  const NOW = new Date("2026-07-12T12:00").getTime(); // day after a 2026-07-11 final
+
+  it("picks a live or upcoming Grand Slam over lesser events", () => {
+    const grid = [
+      { level: "WTA 125", name: "Grand Est Open 88", status: "live", end: "2026-07-11" },
+      slam("live", "2026-07-13"),
+    ];
+    expect(heroSlam(grid, NOW)?.name).toBe("Wimbledon");
+  });
+
+  it("keeps a just-finished Slam within the ~48h linger, then drops it", () => {
+    expect(heroSlam([slam("completed", "2026-07-11")], NOW)).toBeDefined();        // ~1 day out
+    const stale = new Date("2026-07-14T12:00").getTime();                          // ~3 days out
+    expect(heroSlam([slam("completed", "2026-07-11")], stale)).toBeUndefined();
+  });
+
+  it("honours the exact linger boundary and ignores completed non-Slams", () => {
+    const end = new Date("2026-07-11T00:00").getTime();
+    expect(heroSlam([slam("completed", "2026-07-11")], end + SLAM_HERO_LINGER_MS)).toBeDefined();
+    expect(heroSlam([slam("completed", "2026-07-11")], end + SLAM_HERO_LINGER_MS + 1)).toBeUndefined();
+    const notSlam = { level: "WTA 500", name: "Bad Homburg", status: "completed", end: "2026-07-11" };
+    expect(heroSlam([notSlam], NOW)).toBeUndefined();
   });
 });
 
