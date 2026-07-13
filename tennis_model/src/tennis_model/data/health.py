@@ -414,6 +414,7 @@ def _check_brackets(out: list, tour: str, brackets: list, tournaments) -> None:
     forward and joining results (sim/bracket.py); the failure classes are a fold that
     doesn't halve, a winner not fed to the next round, a live event whose final is already
     decided, a prob out of range, or a champion that disagrees with tournaments.json."""
+    from ..data.results import _name_key
     from ..sim.draws import SIZE_NAME
     tmap = ({_norm_name(t.get("name")): t for t in tournaments
              if isinstance(t, dict) and t.get("name")} if isinstance(tournaments, list) else {})
@@ -500,12 +501,15 @@ def _check_brackets(out: list, tour: str, brackets: list, tournaments) -> None:
                     if side is not None and won is not None and _norm_name(side) != _norm_name(won):
                         out.append(f"{tour}: bracket {name!r} round {k} winner {won!r} not fed to next round (found {side!r})")
 
-        # champion agrees with this payload AND tournaments.json
+        # champion agrees with this payload AND tournaments.json. Compare on the
+        # accent/punct-insensitive name key, not casefold: the bracket slot carries the
+        # elo-canonical spelling while `champion` comes from the results winner_name, so a
+        # champion with a diacritic (Nosková vs Noskova) is the SAME player, not a mismatch.
         if status == "completed" and fw in ("a", "b"):
             champ = final_m.get(fw)
-            if ev.get("champion") and champ and _norm_name(champ) != _norm_name(ev.get("champion")):
+            if ev.get("champion") and champ and _name_key(champ) != _name_key(ev.get("champion")):
                 out.append(f"{tour}: bracket {name!r} final winner {champ!r} != champion {ev.get('champion')!r}")
-            if t and t.get("champion") and champ and _norm_name(champ) != _norm_name(t.get("champion")):
+            if t and t.get("champion") and champ and _name_key(champ) != _name_key(t.get("champion")):
                 out.append(f"{tour}: bracket {name!r} champion {champ!r} != tournaments.json {t.get('champion')!r}")
 
         _flag_placeholders(out, tour, f"bracket {name!r}",

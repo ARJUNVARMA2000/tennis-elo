@@ -487,6 +487,21 @@ def test_output_bracket_champion_must_agree():
     print("ok test_output_bracket_champion_must_agree")
 
 
+def test_output_bracket_champion_accent_is_not_a_mismatch():
+    """The bracket slot carries the elo-canonical spelling; `champion` comes from the
+    results winner_name. A diacritic-only difference (Nosková vs Noskova) is the same
+    player and must NOT trip the cross-check (it would have blocked the deploy)."""
+    d = _healthy_data()
+    br = d["brackets"][0]
+    br["rounds"][0]["matches"][0]["a"] = "Linda Nosková"   # bracket slot (canonical, accented)
+    br["rounds"][1]["matches"][0]["a"] = "Linda Nosková"
+    br["champion"] = "Linda Noskova"                        # results spelling (no accent)
+    d["tournaments"][1]["champion"] = "Linda Noskova"
+    assert not any("champion" in p and "!=" in p
+                   for p in health.output_problems("atp", _oc(data=d), NOW))
+    print("ok test_output_bracket_champion_accent_is_not_a_mismatch")
+
+
 def test_output_bracket_drawsize_must_match_slots():
     d = _healthy_data()
     d["brackets"][0]["drawSize"] = 3                          # 4 real round-0 players, not 3
