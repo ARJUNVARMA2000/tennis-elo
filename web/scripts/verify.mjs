@@ -10,7 +10,7 @@ import { mkdirSync } from "node:fs";
 
 const BASE = process.env.VERIFY_BASE_URL || "http://localhost:3001";
 // /upcoming/ stays listed: it must render the client redirect that lands on Results.
-const ROUTES = ["/", "/rankings/", "/results/", "/upcoming/", "/schedule/", "/scorecard/",
+const ROUTES = ["/", "/rankings/", "/results/", "/upcoming/", "/schedule/", "/bracket/", "/scorecard/",
                 "/predict/", "/accuracy/", "/trends/", "/explorer/"];
 const OUT = new URL("../.verify/", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 mkdirSync(OUT, { recursive: true });

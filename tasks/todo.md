@@ -21,19 +21,32 @@ ingests, round by round, with the model's pre-match win prob on every match.
 - [x] Prune: 4 local branches (freshness-monitoring, health-page, codex/fix-completed-main-draw,
       method-page-detail) + 3 remote + 2 worktrees (Tennis Elo-deploy-fix, heuristic-euclid).
 
-## Part 2 checklist — IN PROGRESS
-- [ ] sim/bracket.py: bracket_rounds (slots-forward fold, results-joined; NOT advance_slots'
-      frontier fold) + price_bracket; test_sim_bracket.py.
-- [ ] Wire sim/tournaments.py (attach bracket in project_tournament/project_upcoming, price in
+## Part 2 checklist — DONE
+- [x] sim/bracket.py: bracket_rounds (slots-forward fold, results-joined; NOT advance_slots'
+      frontier fold) + price_bracket + oriented_logged; test_sim_bracket.py (13, incl. the trap).
+- [x] Wire sim/tournaments.py (attach bracket in project_tournament/project_upcoming, price in
       build_tournaments via forecast-log join for honest completed-match probs).
-- [ ] model/export.py split → brackets.json (+ hasBracket on tournaments); data/health.py
-      _check_brackets invariants; extend test_export.py / test_health.py.
-- [ ] web: /bracket route (BracketTree.tsx, lib/bracket.ts, page + layout, seo.ts, Nav Matches
-      group), reach-odds join, deep-link ?e=, empty states; bracket.test.ts; verify.mjs route.
+- [x] model/export.py split → brackets.json (+ hasBracket on tournaments); data/health.py
+      _check_brackets invariants; extend test_export.py (+1) / test_health.py (+12).
+- [x] web: /bracket route (BracketTree.tsx, lib/bracket.ts, page + layout, seo.ts, Nav Matches
+      group), reach-odds join, deep-link ?e=, empty states; bracket.test.ts (10); verify.mjs route.
 
 ## Review
 - Part 1 shipped 2026-07-13; production /method live with full methodology for both tours.
-- Part 2: pending.
+- Part 2 shipped 2026-07-13. New /bracket tab renders the authoritative Wikipedia draws the
+  pipeline already ingests, round by round. Completed matches carry the honest pre-match prob
+  locked in the forecast log (a post-hoc recompute leaks post-match ratings — flagged "retro"
+  when unlogged); pending matches use the current model so the bracket and /schedule agree.
+- The frontier-fold trap (sim.draws.advance_slots mis-credits a player who won R1 then lost R2)
+  is routed around by a results-joined forward fold, pinned by test_sim_bracket.
+- Proof: 296 pytest + ruff clean; health --gate green with the new bracket invariants on REAL
+  data (ATP Wimbledon 128, WTA 32+128); 158 vitest + lint + typed build (21 routes); Playwright
+  walkthrough on :3000 — ATP 128-draw feeders correctly centred, upsets/seeds/scores/logged-vs-
+  retro all render, section chips swap the sub-draw, WTA Bo3/2-section cross-tour, mobile scrolls
+  the tree inside its box (page body does not), no console errors.
+- Deviations: removed the per-card whileInView fade (kept below-the-fold cards invisible until
+  scrolled — wrong for a static bracket); pinned round labels above the justify-around cards so
+  feeders align. No refresh.yml change (overwrite-only artifact; mirror glob + both run modes cover it).
 
 ---
 

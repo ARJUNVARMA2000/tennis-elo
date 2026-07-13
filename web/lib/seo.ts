@@ -19,6 +19,10 @@ const PAGE_META: Record<string, { title: string; description: string }> = {
     title: "Results",
     description: "Recent results with the model's pre-match calls, upset flags included.",
   },
+  bracket: {
+    title: "Brackets",
+    description: "The actual ATP & WTA tournament draws, round by round, with the model's pre-match win probability on every match.",
+  },
   schedule: {
     title: "Schedule",
     description: "Model win probabilities for every scheduled ATP & WTA match, by surface and round.",
