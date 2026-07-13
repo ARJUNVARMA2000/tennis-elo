@@ -214,6 +214,34 @@ def test_build_method_atp_uses_xgb_defaults():
     print("ok test_build_method_atp_uses_xgb_defaults")
 
 
+def test_build_brackets_payload_splits_and_stamps():
+    """The bracket is popped OUT of tournaments.json (kept small for the home page) into
+    brackets.json, and every tournaments entry gets an explicit hasBracket flag."""
+    rounds = [{"round": "F", "matches": [{"a": "A", "b": "B", "winner": "a"}]}]
+    tournaments = [
+        {"name": "With Draw", "surface": "Hard", "status": "completed", "drawSize": 2,
+         "champion": "A", "runnerUp": "B", "bestOf": 3, "start": "2026-07-01",
+         "end": "2026-07-02", "bracket": rounds, "bracketSize": 2, "wikiUrl": "http://x"},
+        {"name": "No Draw", "status": "live", "bracket": None, "bracketSize": None,
+         "wikiUrl": None},
+    ]
+    payload = export.build_brackets_payload(tournaments)
+
+    # tournaments.json is stripped of the heavy bracket + stamped hasBracket
+    assert "bracket" not in tournaments[0] and "bracketSize" not in tournaments[0]
+    assert "wikiUrl" not in tournaments[0]
+    assert tournaments[0]["hasBracket"] is True
+    assert tournaments[1]["hasBracket"] is False
+
+    # brackets.json carries exactly the one real draw, with header + rounds preserved
+    assert len(payload) == 1
+    b = payload[0]
+    assert b["name"] == "With Draw" and b["rounds"] == rounds
+    assert b["bracketSize"] == 2 and b["champion"] == "A" and b["wikiUrl"] == "http://x"
+    _strict_load(json.dumps(export._finite(payload)))     # browser-strict round-trip
+    print("ok test_build_brackets_payload_splits_and_stamps")
+
+
 if __name__ == "__main__":
     test_finite_replaces_nonfinite_scalars()
     test_finite_recurses_into_nested_containers()
@@ -223,4 +251,5 @@ if __name__ == "__main__":
     test_build_method_matches_accessors()
     test_build_method_shape_and_strict_json()
     test_build_method_atp_uses_xgb_defaults()
+    test_build_brackets_payload_splits_and_stamps()
     print("\nALL PASSED")

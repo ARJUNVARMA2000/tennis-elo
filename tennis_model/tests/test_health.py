@@ -23,6 +23,28 @@ NOW = pd.Timestamp("2026-07-09")   # mid-season, deterministic (July)
 
 
 # --- synthetic healthy produced-output builders --------------------------------------
+def _healthy_bracket() -> dict:
+    """A clean 4-player completed bracket (SF -> F) consistent with the 'Mini Open'
+    tournaments entry: rounds halve, winners feed forward, champion agrees, probs in range."""
+    return {
+        "name": "Mini Open", "surface": "Hard", "level": "ATP 250", "bestOf": 3,
+        "start": "2026-07-01", "end": "2026-07-06", "status": "completed",
+        "drawSize": 4, "bracketSize": 4, "champion": "A", "runnerUp": "C", "wikiUrl": None,
+        "rounds": [
+            {"round": "SF", "matches": [
+                {"a": "A", "b": "B", "seedA": 1, "seedB": None, "winner": "a",
+                 "score": "6-3 6-4", "p": 0.8, "probSource": "logged", "upset": False},
+                {"a": "C", "b": "D", "seedA": 2, "seedB": None, "winner": "a",
+                 "score": "7-5 6-4", "p": 0.6, "probSource": "model", "upset": False},
+            ]},
+            {"round": "F", "matches": [
+                {"a": "A", "b": "C", "seedA": 1, "seedB": 2, "winner": "a",
+                 "score": "6-4 6-4", "p": 0.55, "probSource": "logged", "upset": False},
+            ]},
+        ],
+    }
+
+
 def _healthy_data() -> dict:
     m = [[0.5 if i == j else (0.6 if i < j else 0.4) for j in range(3)] for i in range(3)]
     return {
@@ -36,9 +58,14 @@ def _healthy_data() -> dict:
         "matrix": {"players": ["P0", "P1", "P2"], "formats": [3], "surfaces": {"Hard": {"3": m}}},
         "tournaments": [{"name": "Test Open", "surface": "Grass", "status": "live",
                          "drawStatus": "real", "drawSize": 128, "aliveCount": 7, "champion": None,
+                         "hasBracket": False,
                          "projection": [{"name": "P0", "champion": 0.5, "final": 0.6, "sf": 0.8,
                                          "reach": {"R32": 1.0, "R16": 1.0, "QF": 0.95,
-                                                   "SF": 0.8, "F": 0.6, "Champion": 0.5}}]}],
+                                                   "SF": 0.8, "F": 0.6, "Champion": 0.5}}]},
+                        {"name": "Mini Open", "surface": "Hard", "status": "completed",
+                         "drawStatus": "real", "drawSize": 4, "aliveCount": 1, "champion": "A",
+                         "hasBracket": True, "projection": []}],
+        "brackets": [_healthy_bracket()],
         "upcoming": [{"event": "Test Open", "playerA": "P0", "playerB": "P1", "pA": 0.7}],
         "fixtures": [{"modelProb": 0.6, "upset": False}, {"modelProb": 0.4, "upset": True}],
         "track": {"matchForecasts": {"logged": 10, "graded": 6, "pending": 4,
@@ -404,7 +431,97 @@ def test_output_completed_nonpower_of_two_is_fine():
     d = _healthy_data()
     d["tournaments"] = [{"name": "Halle", "status": "completed", "drawStatus": "final",
                          "drawSize": 41, "aliveCount": 1, "champion": "Someone", "projection": []}]
+    d["brackets"] = []           # Halle-only scenario ships no ordered draw
     assert not any("bracket size" in p for p in health.output_problems("atp", _oc(data=d), NOW))
+
+
+# --- /bracket payload invariants (sim/bracket.py -> brackets.json) --------------
+def test_output_healthy_bracket_is_clean():
+    assert health.output_problems("atp", _oc(), NOW) == []
+    print("ok test_output_healthy_bracket_is_clean")
+
+
+def test_output_bracket_rounds_must_halve():
+    d = _healthy_data()
+    d["brackets"][0]["rounds"][0]["matches"].append(          # SF now 3 matches -> doesn't halve
+        {"a": "E", "b": "F", "seedA": None, "seedB": None, "winner": "a",
+         "score": "6-0 6-0", "p": 0.7, "probSource": "model", "upset": False})
+    assert any("must halve" in p or "not a power of two" in p or "round 0 has" in p
+               for p in health.output_problems("atp", _oc(data=d), NOW))
+    print("ok test_output_bracket_rounds_must_halve")
+
+
+def test_output_bracket_live_final_cannot_be_decided():
+    d = _healthy_data()
+    d["brackets"][0]["status"] = "live"
+    d["tournaments"][1]["status"] = "live"; d["tournaments"][1]["champion"] = None
+    assert any("final match already decided" in p
+               for p in health.output_problems("atp", _oc(data=d), NOW))
+    print("ok test_output_bracket_live_final_cannot_be_decided")
+
+
+def test_output_bracket_feeder_mismatch_blocks():
+    d = _healthy_data()
+    d["brackets"][0]["rounds"][1]["matches"][0]["a"] = "Z"    # SF winner A must feed the final
+    assert any("not fed to next round" in p
+               for p in health.output_problems("atp", _oc(data=d), NOW))
+    print("ok test_output_bracket_feeder_mismatch_blocks")
+
+
+def test_output_bracket_upset_flag_must_agree():
+    d = _healthy_data()
+    d["brackets"][0]["rounds"][0]["matches"][0]["upset"] = True   # p=0.8, winner a -> not an upset
+    assert any("upset flag disagrees" in p
+               for p in health.output_problems("atp", _oc(data=d), NOW))
+    print("ok test_output_bracket_upset_flag_must_agree")
+
+
+def test_output_bracket_champion_must_agree():
+    d = _healthy_data()
+    d["brackets"][0]["champion"] = "C"                        # final winner is A, not C
+    assert any("!= champion" in p for p in health.output_problems("atp", _oc(data=d), NOW))
+    d2 = _healthy_data()
+    d2["tournaments"][1]["champion"] = "C"                    # disagree with tournaments.json
+    assert any("!= tournaments.json" in p
+               for p in health.output_problems("atp", _oc(data=d2), NOW))
+    print("ok test_output_bracket_champion_must_agree")
+
+
+def test_output_bracket_drawsize_must_match_slots():
+    d = _healthy_data()
+    d["brackets"][0]["drawSize"] = 3                          # 4 real round-0 players, not 3
+    assert any("round-0 players but drawSize" in p
+               for p in health.output_problems("atp", _oc(data=d), NOW))
+    print("ok test_output_bracket_drawsize_must_match_slots")
+
+
+def test_output_bracket_prob_out_of_range_blocks():
+    d = _healthy_data()
+    d["brackets"][0]["rounds"][1]["matches"][0]["p"] = 1.2
+    assert any("out of [0,1]" in p for p in health.output_problems("atp", _oc(data=d), NOW))
+    print("ok test_output_bracket_prob_out_of_range_blocks")
+
+
+def test_output_bracket_prob_source_presence_coupled():
+    d = _healthy_data()
+    d["brackets"][0]["rounds"][1]["matches"][0]["probSource"] = None   # p set but source null
+    assert any("presence mismatch" in p for p in health.output_problems("atp", _oc(data=d), NOW))
+    print("ok test_output_bracket_prob_source_presence_coupled")
+
+
+def test_output_bracket_hasBracket_needs_entry():
+    d = _healthy_data()
+    d["brackets"] = []                                        # tournaments still claims hasBracket
+    assert any("hasBracket but no brackets.json entry" in p
+               for p in health.output_problems("atp", _oc(data=d), NOW))
+    print("ok test_output_bracket_hasBracket_needs_entry")
+
+
+def test_output_bracket_placeholder_token_leaks():
+    d = _healthy_data()
+    d["brackets"][0]["rounds"][0]["matches"][0]["b"] = "Qualifier"   # bare token = leak; "Qualifier 3" is fine
+    assert any("placeholder" in p.lower() for p in health.output_problems("atp", _oc(data=d), NOW))
+    print("ok test_output_bracket_placeholder_token_leaks")
     print("ok test_output_completed_nonpower_of_two_is_fine")
 
 

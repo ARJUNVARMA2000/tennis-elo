@@ -210,7 +210,7 @@ def problems(tour: str, h: dict, now: pd.Timestamp) -> list[str]:
 # ---------------------------------------------------------------------------
 # The web reads these per tour; the first group must always exist and parse, the second
 # is best-effort (accuracy is backtest-only, track needs graded forecasts).
-_REQUIRED_OUTPUTS = ("meta", "players", "tournaments", "upcoming", "matrix",
+_REQUIRED_OUTPUTS = ("meta", "players", "tournaments", "brackets", "upcoming", "matrix",
                      "ratings_history", "profiles", "draws", "fixtures", "method")
 _OPTIONAL_OUTPUTS = ("accuracy", "track", "market")
 _PLACEHOLDER_NAMES = {"tbd", "tba", "bye", "qualifier"}   # mirror data/live.py
@@ -406,6 +406,121 @@ def _check_tournament(out: list, tour: str, t: dict) -> None:
     proj = t.get("projection") or []
     _check_projection(out, tour, name, proj)
     _flag_placeholders(out, tour, f"tournament {name!r}", (p.get("name") for p in proj))
+
+
+def _check_brackets(out: list, tour: str, brackets: list, tournaments) -> None:
+    """The /bracket payload must be a structurally-sound single-elim draw consistent with
+    tournaments.json. A displayed bracket is reconstructed by folding an ordered draw
+    forward and joining results (sim/bracket.py); the failure classes are a fold that
+    doesn't halve, a winner not fed to the next round, a live event whose final is already
+    decided, a prob out of range, or a champion that disagrees with tournaments.json."""
+    from ..sim.draws import SIZE_NAME
+    tmap = ({_norm_name(t.get("name")): t for t in tournaments
+             if isinstance(t, dict) and t.get("name")} if isinstance(tournaments, list) else {})
+    seen: set = set()
+    for ev in brackets:
+        if not isinstance(ev, dict):
+            out.append(f"{tour}: brackets.json has a non-object entry")
+            continue
+        name = ev.get("name")
+        seen.add(_norm_name(name))
+        rounds = ev.get("rounds")
+        size = ev.get("bracketSize")
+        status = ev.get("status")
+        if not isinstance(rounds, list) or not rounds:
+            out.append(f"{tour}: bracket {name!r} has no rounds")
+            continue
+        if status not in _STATUSES:
+            out.append(f"{tour}: bracket {name!r} has bad status {status!r}")
+
+        # structure: power-of-two size, rounds halve to a single final, labels match width
+        if not _pow2(size):
+            out.append(f"{tour}: bracket {name!r} bracketSize {size!r} is not a power of two")
+        r0 = rounds[0].get("matches") or []
+        if isinstance(size, int) and 2 * len(r0) != size:
+            out.append(f"{tour}: bracket {name!r} round 0 has {len(r0)} matches (expected {size // 2})")
+        for k in range(len(rounds) - 1):
+            a, b = len(rounds[k].get("matches") or []), len(rounds[k + 1].get("matches") or [])
+            if b * 2 != a:
+                out.append(f"{tour}: bracket {name!r} round {k} has {a} matches, next has {b} (must halve)")
+        if len(rounds[-1].get("matches") or []) != 1:
+            out.append(f"{tour}: bracket {name!r} final round is not a single match")
+        for rnd in rounds:
+            ms = rnd.get("matches") or []
+            want = SIZE_NAME.get(2 * len(ms))
+            if want and rnd.get("round") != want:
+                out.append(f"{tour}: bracket {name!r} round {rnd.get('round')!r} mislabelled "
+                           f"(expected {want!r} for {len(ms)} matches)")
+
+        # drawSize: non-null round-0 participants == this drawSize == tournaments.json drawSize
+        real0 = [p for m in r0 for p in (m.get("a"), m.get("b")) if isinstance(p, str) and p.strip()]
+        real0 = [p for p in real0 if not p.strip().lower().startswith(("qualifier", "lucky loser"))]
+        ds = ev.get("drawSize")
+        if isinstance(ds, int) and len(real0) != ds:
+            out.append(f"{tour}: bracket {name!r} has {len(real0)} round-0 players but drawSize {ds}")
+        t = tmap.get(_norm_name(name))
+        if t and isinstance(t.get("drawSize"), int) and ds != t.get("drawSize"):
+            out.append(f"{tour}: bracket {name!r} drawSize {ds} != tournaments.json {t.get('drawSize')}")
+
+        # final decidedness mirrors the tournament rule (no live event names a champion)
+        final_m = (rounds[-1].get("matches") or [{}])[0]
+        fw = final_m.get("winner")
+        if status == "completed" and fw is None:
+            out.append(f"{tour}: completed bracket {name!r} final match is undecided")
+        if status in ("live", "upcoming") and fw is not None:
+            out.append(f"{tour}: {status} bracket {name!r} final match already decided")
+
+        # per-match: winner validity, prob range, prob/source presence, upset orientation,
+        # and feeder consistency (a decided winner must seat in the right next-round slot)
+        for k, rnd in enumerate(rounds):
+            ms = rnd.get("matches") or []
+            for j, m in enumerate(ms):
+                w = m.get("winner")
+                if w not in ("a", "b", None):
+                    out.append(f"{tour}: bracket {name!r} winner {w!r} not in a/b/null")
+                elif w in ("a", "b") and not m.get(w):
+                    out.append(f"{tour}: bracket {name!r} decided match has null winning side {w!r}")
+                p, src = m.get("p"), m.get("probSource")
+                if p is not None and not _is_prob(p):
+                    out.append(f"{tour}: bracket {name!r} match p={p!r} out of [0,1]")
+                if src not in ("logged", "model", None):
+                    out.append(f"{tour}: bracket {name!r} probSource {src!r} invalid")
+                if (p is None) != (src is None):
+                    out.append(f"{tour}: bracket {name!r} p/probSource presence mismatch (p={p!r}, src={src!r})")
+                up = m.get("upset")
+                if up is not None and p is not None and w in ("a", "b"):
+                    won_p = p if w == "a" else 1.0 - p
+                    if bool(up) != (won_p < 0.5):
+                        out.append(f"{tour}: bracket {name!r} upset flag disagrees with p ({p})")
+                if w in ("a", "b") and k + 1 < len(rounds):
+                    won = m.get(w)
+                    nxt_ms = rounds[k + 1].get("matches") or []
+                    nxt = nxt_ms[j // 2] if j // 2 < len(nxt_ms) else None
+                    side = (nxt.get("a") if j % 2 == 0 else nxt.get("b")) if nxt else None
+                    if side is not None and won is not None and _norm_name(side) != _norm_name(won):
+                        out.append(f"{tour}: bracket {name!r} round {k} winner {won!r} not fed to next round (found {side!r})")
+
+        # champion agrees with this payload AND tournaments.json
+        if status == "completed" and fw in ("a", "b"):
+            champ = final_m.get(fw)
+            if ev.get("champion") and champ and _norm_name(champ) != _norm_name(ev.get("champion")):
+                out.append(f"{tour}: bracket {name!r} final winner {champ!r} != champion {ev.get('champion')!r}")
+            if t and t.get("champion") and champ and _norm_name(champ) != _norm_name(t.get("champion")):
+                out.append(f"{tour}: bracket {name!r} champion {champ!r} != tournaments.json {t.get('champion')!r}")
+
+        _flag_placeholders(out, tour, f"bracket {name!r}",
+                           (p for rnd in rounds for m in (rnd.get("matches") or [])
+                            for p in (m.get("a"), m.get("b"))))
+
+    # cross-presence: hasBracket <=> a brackets.json entry (both directions)
+    if isinstance(tournaments, list):
+        for t in tournaments:
+            if isinstance(t, dict) and t.get("hasBracket") and _norm_name(t.get("name")) not in seen:
+                out.append(f"{tour}: tournaments.json {t.get('name')!r} hasBracket but no brackets.json entry")
+    if tmap:
+        for nm in seen:
+            if nm not in tmap:
+                out.append(f"{tour}: brackets.json entry {nm!r} has no tournaments.json event")
 
 
 def _check_kalshi_ledger(out: list, tour: str, rows: list[dict]) -> None:
@@ -609,6 +724,10 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
             if isinstance(t, dict):
                 _check_tournament(out, tour, t)
         _tournament_name_problems(out, tour, ts)
+
+    br = data.get("brackets")
+    if isinstance(br, list):
+        _check_brackets(out, tour, br, ts if isinstance(ts, list) else None)
 
     up = data.get("upcoming")
     if isinstance(up, list):

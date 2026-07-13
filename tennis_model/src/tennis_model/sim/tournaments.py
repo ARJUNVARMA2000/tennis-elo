@@ -28,6 +28,7 @@ import pandas as pd
 from ..config import live_dir
 from ..data.results import _name_key
 from ..data.surface import resolve_level, resolve_surface
+from .bracket import bracket_rounds, oriented_logged, price_bracket
 from .draws import advance_slots, draw_status, live_draw, standard_seed_draw
 from .simulate import simulate_tournament
 
@@ -300,6 +301,7 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
     # entrants (and the event's best-of — Tennis5 for slams) so the live board runs on the
     # actual draw, not a rating seed. Byes/qualifiers ride along in `slots` (None / distinct).
     resolved_wslots = None
+    resolved_seeds: dict = {}
     if wiki_draw and wiki_draw.get("slots") and resolve:
         # The wiki draw and ESPN's field/results name the SAME players in different spellings;
         # reconcile the residue the key can't bridge against this event's own field so an
@@ -307,6 +309,9 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
         pool = list((ef or {}).get("field", [])) + list(g["loser_name"]) + list(g["winner_name"])
         wcanon = _reconcile_wiki_names(wiki_draw["slots"], pool, resolve)
         resolved_wslots = [(wcanon.get(s) or resolve(s)) if s else None for s in wiki_draw["slots"]]
+        # seeds are keyed by raw wiki name -> canonical, so the bracket cards match the draw
+        resolved_seeds = {(wcanon.get(k) or resolve(k)): v
+                          for k, v in (wiki_draw.get("seeds") or {}).items()}
         # Wikipedia remains the authoritative main-draw population after completion too.
         # The results frame can retain a handful of qualifier/alternate spellings in rows
         # labelled as knockout rounds; discarding the known draw at the final recreated a
@@ -343,6 +348,14 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
         )
     proj, favorite = _simulate_projection(predictor, slots, surface, best_of, name, n_sims, seed)
 
+    # The ACTUAL ordered bracket (real draw only): rounds joined to results, unpriced here —
+    # build_tournaments prices it once the forecast log is loaded. Frontier-fold-free.
+    bracket = None
+    if resolved_wslots is not None:
+        rcols = [c for c in ("winner_name", "loser_name", "score", "round") if c in main.columns]
+        recs = main[rcols].to_dict("records") if not main.empty else []
+        bracket = bracket_rounds(resolved_wslots, recs, resolved_seeds)
+
     return {
         "name": _display_name(name, known or set()), "surface": surface, "level": level, "bestOf": best_of,
         "start": str(g["date"].min().date()), "end": str(g["date"].max().date()),
@@ -352,6 +365,8 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
         "modelFavorite": favorite,
         "favoritePicked": bool(completed and favorite == champ),
         "projection": proj,
+        "bracket": bracket, "bracketSize": len(resolved_wslots) if resolved_wslots else None,
+        "wikiUrl": (wiki_draw or {}).get("url"),
     }
 
 
@@ -370,6 +385,8 @@ def project_upcoming(predictor, name: str, wd: dict, tour: str, df: pd.DataFrame
     level = resolve_level(tour, name)
     slots = advance_slots(wslots, set())
     proj, favorite = _simulate_projection(predictor, slots, surface, best_of, name, n_sims, seed)
+    rseeds = {resolve(k): v for k, v in (wd.get("seeds") or {}).items()}
+    bracket = bracket_rounds(wslots, [], rseeds)     # released draw, no results yet -> all pending
     return {
         "name": _display_name(name, known or set()), "surface": surface, "level": level, "bestOf": best_of,
         "start": str(wd.get("start") or ""), "end": str(wd.get("end") or wd.get("start") or ""),
@@ -378,10 +395,44 @@ def project_upcoming(predictor, name: str, wd: dict, tour: str, df: pd.DataFrame
         "champion": None, "runnerUp": None,
         "modelFavorite": favorite, "favoritePicked": False,
         "projection": proj,
+        "bracket": bracket, "bracketSize": len(wslots),
+        "wikiUrl": wd.get("url"),
     }
 
 
 _STATUS_ORDER = {"live": 0, "upcoming": 1, "completed": 2}
+
+
+def _price_event_bracket(predictor, t: dict, match_lines: list) -> None:
+    """Fill p/probSource/upset on ``t['bracket']``: the logged pre-match forecast for a
+    completed match (leakage-free — a recompute would use post-match ratings), the current
+    model for a pending match (so the bracket and the schedule board agree)."""
+    br = t.get("bracket")
+    if not br:
+        return
+    start = pd.to_datetime(t.get("start"), errors="coerce")
+    end = pd.to_datetime(t.get("end"), errors="coerce")
+    lo = start - pd.Timedelta(days=2) if pd.notna(start) else None
+    hi = end + pd.Timedelta(days=1) if pd.notna(end) else None
+    index: dict = {}
+    for r in match_lines:
+        pa, pb, p = r.get("playerA"), r.get("playerB"), r.get("p")
+        if not pa or not pb or p is None:
+            continue
+        as_of = pd.to_datetime(r.get("as_of"), errors="coerce")
+        if lo is not None and pd.notna(as_of) and (as_of < lo or as_of > hi):
+            continue                                     # a rematch in another window can't collide
+        index.setdefault(frozenset((_name_key(pa), _name_key(pb))), (pa, p))
+
+    rated = predictor.elo.overall
+    surface, best_of, name = t.get("surface"), t.get("bestOf"), t.get("name")
+
+    def price_fn(a, b):
+        if a in rated and b in rated:
+            return predictor.win_prob(a, b, surface=surface, best_of=best_of, event=name)
+        return None
+
+    price_bracket(br, price_fn, lambda a, b: oriented_logged(index, a, b))
 
 
 def build_tournaments(predictor, df: pd.DataFrame, tour: str, **kw) -> list:
@@ -425,4 +476,9 @@ def build_tournaments(predictor, df: pd.DataFrame, tour: str, **kw) -> list:
     # Live, then upcoming, then completed; within each group, most recent first.
     out.sort(key=lambda t: t["end"], reverse=True)
     out.sort(key=lambda t: _STATUS_ORDER.get(t["status"], 3))
+    # Price each real bracket once, off the append-only forecast log (canonical reader).
+    from ..eval.track import FORECAST_DIR, _read_log
+    match_lines = [r for r in _read_log(FORECAST_DIR / f"{tour}.jsonl") if r.get("type") == "match"]
+    for t in out:
+        _price_event_bracket(predictor, t, match_lines)
     return out

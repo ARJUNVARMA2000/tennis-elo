@@ -7,6 +7,7 @@ Kept separate from pipeline orchestration so the export surface is easy to scan:
   profiles.json         per-player detail: splits, style, recent form, H2H, Elo line
   draws.json            current-top-field tournament projections per surface
   tournaments.json      latest real events: title odds + actual result (powers home)
+  brackets.json         the actual ordered draw round-by-round, priced (powers /bracket)
   upcoming.json         scheduled matches + the model's current win prob (powers /schedule)
   fixtures.json         latest results with the model's pre-match call + upset flags
   accuracy.json         walk-forward metrics, calibration, per-surface breakdown
@@ -364,6 +365,33 @@ def build_method(tour: str) -> dict:
     }
 
 
+def build_brackets_payload(tournaments: list) -> list:
+    """Split each event's ordered bracket into its own payload and stamp ``hasBracket`` on
+    the tournaments entry (mutates ``tournaments`` in place). Keeps tournaments.json small —
+    the home page fetches it every visit — while /bracket loads brackets.json on demand.
+
+    A tournaments entry has a bracket iff a released ordered draw exists (the Wikipedia
+    path). ``drawStatus == "real"`` is overloaded (the ESPN-frontier path returns "real"
+    with no ordered draw), so presence can't be inferred from it — ``hasBracket`` is explicit.
+    """
+    brackets = []
+    for t in tournaments:
+        rounds = t.pop("bracket", None)
+        size = t.pop("bracketSize", None)
+        url = t.pop("wikiUrl", None)
+        t["hasBracket"] = bool(rounds)
+        if not rounds:
+            continue
+        brackets.append({
+            "name": t.get("name"), "surface": t.get("surface"), "level": t.get("level"),
+            "bestOf": t.get("bestOf"), "start": t.get("start"), "end": t.get("end"),
+            "status": t.get("status"), "drawSize": t.get("drawSize"), "bracketSize": size,
+            "champion": t.get("champion"), "runnerUp": t.get("runnerUp"), "wikiUrl": url,
+            "rounds": rounds,
+        })
+    return brackets
+
+
 def export_all(tour, df, elo, srv, meta, predictor, oos=None) -> None:
     """Write every frontend JSON for one tour.
 
@@ -385,7 +413,9 @@ def export_all(tour, df, elo, srv, meta, predictor, oos=None) -> None:
     _write(tour, "profiles.json", build_profiles_json(df, elo, srv, meta, mcp, players))
     _write(tour, "draws.json", build_draws(predictor, players, tour))
     from ..sim.tournaments import build_tournaments
-    _write(tour, "tournaments.json", build_tournaments(predictor, df, tour))
+    ts = build_tournaments(predictor, df, tour)
+    _write(tour, "brackets.json", build_brackets_payload(ts))   # pops bracket/size/url, stamps hasBracket
+    _write(tour, "tournaments.json", ts)
     _write(tour, "upcoming.json", build_upcoming(predictor, df, tour))
     _write(tour, "fixtures.json", build_fixtures(df, predictor))
     if accuracy:
