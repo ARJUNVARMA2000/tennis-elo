@@ -1,3 +1,42 @@
+# Task: Improvements round — ship /method + repo consolidation, then Bracket explorer (2026-07-13)
+
+Goal: a broad "any improvements" round. Part 1 (shipped): merge the stranded
+method-page-detail branch (the method.json-driven full-methodology /method page) which had
+fallen 17 commits behind master, and consolidate repo hygiene. Part 2 (in progress): a new
+Bracket/Draw explorer tab rendering the authoritative Wikipedia draws the pipeline already
+ingests, round by round, with the model's pre-match win prob on every match.
+
+## Part 1 checklist — DONE
+- [x] Pre-flight: no concurrent pipeline/arbiter; origin/master at daily eval-log commit.
+- [x] Clean working tree: discard stale todo.md hunk + scheduled-actor data-log churn.
+- [x] Rebase method-page-detail (1 commit) onto origin/master (17 ahead). Conflicts only in
+      the two append-logs (lessons.md, todo.md) — kept both sides in date order. health.py /
+      config.py / test_health.py auto-merged cleanly (my method.json checks grafted onto
+      master's rewritten monitoring structure); verified semantically, not just textually.
+- [x] Verify: 271 pytest + ruff clean; 148 vitest + eslint clean; static build (18 routes);
+      /method rendered both tours on :3001 via Playwright (constants flip ATP 0.63/1.28/145
+      ↔ WTA 0.62/320, featureCount 42, no JSX word-glue, no console errors); health --gate green.
+- [x] Merge --ff-only to master, push (deploy run 29223604453 green through integrity gate +
+      Pages deploy); live method.json serves the new structure (protocol tuneYears/valStart).
+- [x] Prune: 4 local branches (freshness-monitoring, health-page, codex/fix-completed-main-draw,
+      method-page-detail) + 3 remote + 2 worktrees (Tennis Elo-deploy-fix, heuristic-euclid).
+
+## Part 2 checklist — IN PROGRESS
+- [ ] sim/bracket.py: bracket_rounds (slots-forward fold, results-joined; NOT advance_slots'
+      frontier fold) + price_bracket; test_sim_bracket.py.
+- [ ] Wire sim/tournaments.py (attach bracket in project_tournament/project_upcoming, price in
+      build_tournaments via forecast-log join for honest completed-match probs).
+- [ ] model/export.py split → brackets.json (+ hasBracket on tournaments); data/health.py
+      _check_brackets invariants; extend test_export.py / test_health.py.
+- [ ] web: /bracket route (BracketTree.tsx, lib/bracket.ts, page + layout, seo.ts, Nav Matches
+      group), reach-odds join, deep-link ?e=, empty states; bracket.test.ts; verify.mjs route.
+
+## Review
+- Part 1 shipped 2026-07-13; production /method live with full methodology for both tours.
+- Part 2: pending.
+
+---
+
 # Task: Fix Wimbledon-final deployment failure (2026-07-11)
 
 Goal: restore hourly Pages deploys after the WTA Wimbledon final switched tournament
