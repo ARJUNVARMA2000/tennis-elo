@@ -453,12 +453,15 @@ def _check_brackets(out: list, tour: str, brackets: list, tournaments) -> None:
                 out.append(f"{tour}: bracket {name!r} round {rnd.get('round')!r} mislabelled "
                            f"(expected {want!r} for {len(ms)} matches)")
 
-        # drawSize: non-null round-0 participants == this drawSize == tournaments.json drawSize
-        real0 = [p for m in r0 for p in (m.get("a"), m.get("b")) if isinstance(p, str) and p.strip()]
-        real0 = [p for p in real0 if not p.strip().lower().startswith(("qualifier", "lucky loser"))]
+        # drawSize: count round-0 slots the way tournaments.json drawSize does — field_pool is
+        # the non-null wiki slots, which INCLUDES unresolved "Qualifier N" placeholders (an
+        # early-captured draw legitimately carries them; the frozen-wiki capture never backfills
+        # the names). Only byes (null) are excluded on both sides. Excluding placeholders here
+        # would false-positive against drawSize (Gstaad's early draw, 2026-07-13).
+        nonbye0 = [p for m in r0 for p in (m.get("a"), m.get("b")) if p is not None]
         ds = ev.get("drawSize")
-        if isinstance(ds, int) and len(real0) != ds:
-            out.append(f"{tour}: bracket {name!r} has {len(real0)} round-0 players but drawSize {ds}")
+        if isinstance(ds, int) and len(nonbye0) != ds:
+            out.append(f"{tour}: bracket {name!r} has {len(nonbye0)} round-0 slots but drawSize {ds}")
         t = tmap.get(_norm_name(name))
         if t and isinstance(t.get("drawSize"), int) and ds != t.get("drawSize"):
             out.append(f"{tour}: bracket {name!r} drawSize {ds} != tournaments.json {t.get('drawSize')}")

@@ -504,10 +504,35 @@ def test_output_bracket_champion_accent_is_not_a_mismatch():
 
 def test_output_bracket_drawsize_must_match_slots():
     d = _healthy_data()
-    d["brackets"][0]["drawSize"] = 3                          # 4 real round-0 players, not 3
-    assert any("round-0 players but drawSize" in p
+    d["brackets"][0]["drawSize"] = 3                          # 4 non-bye round-0 slots, not 3
+    assert any("round-0 slots but drawSize" in p
                for p in health.output_problems("atp", _oc(data=d), NOW))
     print("ok test_output_bracket_drawsize_must_match_slots")
+
+
+def test_output_bracket_early_draw_with_qualifiers_is_clean():
+    """An early-captured draw carries unresolved 'Qualifier N' placeholders. tournaments.json
+    drawSize counts them (field_pool = non-null slots), so the bracket check must too — else
+    it false-positives (Gstaad blocked the 2026-07-13 deploy: 2 named + 26 qualifiers = 28)."""
+    pend = lambda a=None, b=None: {"a": a, "b": b, "seedA": None, "seedB": None, "p": None,
+                                   "probSource": None, "winner": None, "score": None, "upset": None}
+    # real Gstaad shape: a 32-slot draw with 2 named + 26 qualifiers + 4 byes -> drawSize 28
+    slots = (["Named One", "Named Two"] + [f"Qualifier {i}" for i in range(1, 27)] + [None] * 4)
+    rounds = [{"round": "R32", "matches": [pend(slots[i], slots[i + 1]) for i in range(0, 32, 2)]}]
+    for lab, n in (("R16", 8), ("QF", 4), ("SF", 2), ("F", 1)):
+        rounds.append({"round": lab, "matches": [pend() for _ in range(n)]})
+    d = _healthy_data()
+    d["brackets"] = [{
+        "name": "Gstaad", "surface": "Clay", "level": "ATP 250", "bestOf": 3,
+        "start": "2026-07-14", "end": "2026-07-20", "status": "upcoming",
+        "drawSize": 28, "bracketSize": 32, "champion": None, "runnerUp": None, "wikiUrl": None,
+        "rounds": rounds,
+    }]
+    d["tournaments"] = [{"name": "Gstaad", "surface": "Clay", "status": "upcoming",
+                         "drawStatus": "real", "drawSize": 28, "aliveCount": 28, "champion": None,
+                         "hasBracket": True, "projection": []}]
+    assert health.output_problems("atp", _oc(data=d), NOW) == []     # fully clean, no false-positive
+    print("ok test_output_bracket_early_draw_with_qualifiers_is_clean")
 
 
 def test_output_bracket_prob_out_of_range_blocks():
