@@ -1,5 +1,25 @@
 # Lessons
 
+- **A gate invariant that compares two DERIVED quantities must derive both sides exactly as
+  the code that produced them — and be validated against messy real draw states, not one clean
+  snapshot.** (2026-07-13, /bracket export) Two blocking false-positives shipped because the
+  bracket invariants were only exercised against a fully-resolved live Wimbledon: (1) the
+  champion cross-check compared on casefold, but `champion` is the results `winner_name` while
+  the bracket slot is the elo-canonical spelling — a diacritic (Nosková vs Noskova) is the SAME
+  player; compare on `_name_key` (accent/punct-insensitive), the exact key `bracket_rounds`
+  used to assign the winner. (2) the drawSize check counted only non-placeholder players, but
+  tournaments.json `drawSize` = `len(field_pool)` counts every non-null slot INCLUDING
+  unresolved `Qualifier N` placeholders — an early-captured draw frozen by the first-capture
+  wiki cache (Gstaad: 2 named + 26 qualifiers = 28) then reads "2 round-0 players but drawSize
+  28" and blocks the whole deploy. **Why:** synthetic tests and a single in-flight event never
+  exercise the frozen/placeholder/bye/accent/sponsor-name states real draws pass through; the
+  same Gstaad 28-draw that broke the power-of-two check on 2026-07-10 broke this one too.
+  **How to apply:** before landing a blocking invariant that compares counts or names, (a)
+  compute BOTH sides with the identical predicate/key as their source, and (b) enumerate the
+  draw states across the calendar — early-frozen placeholder draws, byes, qualifiers, accented
+  names, sponsor vs archive event names — and confirm each is legal. Extends the "validate a
+  gate invariant against the full tour CALENDAR" lesson below.
+
 - **A completed-event projection must filter the ratings frame to main-draw ROUNDS before
   constructing its field.** (2026-07-11, Wimbledon final deployment failure) The live path
   used Wikipedia's 128-slot bracket and worked all fortnight; the instant the final appeared,

@@ -163,6 +163,22 @@ def bracket_rounds(slots: list, results, seeds: dict | None = None) -> list[dict
     return rounds
 
 
+def bracket_is_meaningful(rounds: list[dict], draw_size: int) -> bool:
+    """Whether a bracket is worth showing, or is mostly unresolved placeholders.
+
+    An early wiki capture (frozen by the first-capture cache) can name only a couple of
+    direct entrants with the rest still "Qualifier N"; when those unresolved slots also face
+    each other there's no named anchor for :func:`_resolve_placeholders`, so the draw stays a
+    wall of "Qualifier" cards. Require a real majority of the entrants to be named — an
+    all-qualifier bracket is noise, not a draw. A resolved draw (Wimbledon 128/128, or a
+    normal event with a handful of qualifiers) clears it comfortably.
+    """
+    if not rounds or not isinstance(draw_size, int) or draw_size <= 0:
+        return False
+    real = sum(1 for m in rounds[0]["matches"] for x in (m.get("a"), m.get("b")) if is_real(x))
+    return real * 2 >= draw_size
+
+
 def oriented_logged(index: dict, a: str, b: str) -> float | None:
     """Look a match up in a forecast-log ``index`` and orient its locked prob to slot ``a``.
 

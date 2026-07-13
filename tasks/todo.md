@@ -47,6 +47,18 @@ ingests, round by round, with the model's pre-match win prob on every match.
 - Deviations: removed the per-card whileInView fade (kept below-the-fold cards invisible until
   scrolled — wrong for a static bracket); pinned round labels above the justify-around cards so
   feeders align. No refresh.yml change (overwrite-only artifact; mirror glob + both run modes cover it).
+- **Production hardening (same day).** The first two /bracket deploys were BLOCKED by the
+  pre-deploy gate on real data the clean local snapshot never exercised — both were bugs in my
+  own invariants, not the data (last good deploy stayed live throughout): (1) the champion
+  cross-check compared on casefold, flagging a diacritic-only spelling (results winner_name vs
+  elo-canonical) — fixed to compare on _name_key. (2) the drawSize check excluded "Qualifier N"
+  placeholders while tournaments.json drawSize counts them, so Gstaad's early-frozen draw (2
+  named + 26 qualifiers = 28) read "2 round-0 players but drawSize 28" — fixed to count non-null
+  slots. Both reproduced + pinned by tests; lesson recorded. Third deploy went green (Wimbledon
+  completed with a champion + Gstaad both pass). (3) Follow-up quality guard: an early-frozen
+  draw that's mostly unresolved placeholders shipped a wall of "Qualifier" cards; skip attaching
+  a bracket unless a real majority of entrants are named (bracket_is_meaningful) — resolved draws
+  (Wimbledon 128/128, a normal event with a few qualifiers) clear it, the 2/28 Gstaad doesn't.
 
 ---
 

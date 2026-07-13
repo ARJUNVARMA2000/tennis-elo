@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from tennis_model.data.results import _name_key
 from tennis_model.sim.bracket import (
+    bracket_is_meaningful,
     bracket_rounds,
     is_real,
     oriented_logged,
@@ -168,6 +169,20 @@ def test_upset_is_winner_oriented():
     rounds2 = bracket_rounds(["A", "B"], [_res("A", "B", rnd="F")])
     price_bracket(rounds2, price_fn=lambda a, b: 0.7, logged_fn=lambda a, b: None)
     assert rounds2[0]["matches"][0]["upset"] is False
+
+
+def test_bracket_meaningful_rejects_mostly_placeholder_draw():
+    # Gstaad's frozen early capture: 2 named + 26 "Qualifier N" in a 32-slot draw -> noise
+    slots = ["Named One", "Named Two"] + [f"Qualifier {i}" for i in range(1, 27)] + [None] * 4
+    rounds = bracket_rounds(slots, [], {})
+    assert not bracket_is_meaningful(rounds, 28)          # only 2 of 28 are real
+    # a fully-resolved bye-draw (28 named + 4 byes) is worth showing
+    resolved = [f"Player {i}" for i in range(28)] + [None] * 4
+    assert bracket_is_meaningful(bracket_rounds(resolved, [], {}), 28)
+    # empty / degenerate inputs are not meaningful
+    assert not bracket_is_meaningful([], 28)
+    assert not bracket_is_meaningful(rounds, 0)
+    print("ok test_bracket_meaningful_rejects_mostly_placeholder_draw")
 
 
 def test_is_real_classifies_slots():

@@ -28,7 +28,7 @@ import pandas as pd
 from ..config import live_dir
 from ..data.results import _name_key
 from ..data.surface import resolve_level, resolve_surface
-from .bracket import bracket_rounds, oriented_logged, price_bracket
+from .bracket import bracket_is_meaningful, bracket_rounds, oriented_logged, price_bracket
 from .draws import advance_slots, draw_status, live_draw, standard_seed_draw
 from .simulate import simulate_tournament
 
@@ -355,6 +355,8 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
         rcols = [c for c in ("winner_name", "loser_name", "score", "round") if c in main.columns]
         recs = main[rcols].to_dict("records") if not main.empty else []
         bracket = bracket_rounds(resolved_wslots, recs, resolved_seeds)
+        if not bracket_is_meaningful(bracket, len(field_pool)):
+            bracket = None                       # mostly-placeholder early draw -> not worth showing
 
     return {
         "name": _display_name(name, known or set()), "surface": surface, "level": level, "bestOf": best_of,
@@ -387,6 +389,8 @@ def project_upcoming(predictor, name: str, wd: dict, tour: str, df: pd.DataFrame
     proj, favorite = _simulate_projection(predictor, slots, surface, best_of, name, n_sims, seed)
     rseeds = {resolve(k): v for k, v in (wd.get("seeds") or {}).items()}
     bracket = bracket_rounds(wslots, [], rseeds)     # released draw, no results yet -> all pending
+    if not bracket_is_meaningful(bracket, len(field_pool)):
+        bracket = None                               # mostly-placeholder early draw -> not worth showing
     return {
         "name": _display_name(name, known or set()), "surface": surface, "level": level, "bestOf": best_of,
         "start": str(wd.get("start") or ""), "end": str(wd.get("end") or wd.get("start") or ""),
