@@ -1509,4 +1509,10 @@ no standalone monitor).
 - [x] Docs: CLAUDE.md hard-rule (serving-side gate analogue), lessons.md entry.
 - [x] Proof: web 173/173 tests + lint clean; live suite 7/7 PASS (exit 0); negative controls
       bite — wrong stamp → freshness FAIL (exit 1), bad base URL → routes FAIL (exit 1).
-- [ ] Push → confirm the new post-deploy step runs green on the real deploy.
+- [x] Push → confirmed: run 29611813087 green, `Verify live Firebase deploy` 7/7 in CI with the
+      freshness check matching a fresh in-run stamp (2026-07-17T20:41:54Z), `Report deploy health` OK.
+
+**Review:** Detect+alert post-deploy suite, no dual-deploy (user kept the redirect). The suite is the
+serving-side analogue of the data gate — it catches what the pre-deploy gate structurally can't. Two
+things earned their keep: the freshness retry (else it flakes on CDN propagation) and the negative
+controls (proved it fails when it should). No deviations from the approved Phase-2 plan.
