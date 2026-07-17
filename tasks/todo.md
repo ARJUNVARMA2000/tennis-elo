@@ -1454,3 +1454,33 @@ on tuned frames (360d, 24.0). ATP unaffected (no overrides).
   the predictor path; this restores what the WTA `_fp1` arbiter adopted 2026-07-06). Built in a
   worktree off origin/master (Codex loop held the shared tree); merged → master → deploy;
   production heals on the next hourly quick run, daily retrain re-pickles regardless.
+
+## Move the site off github.io → Firebase Hosting (2026-07-16)
+
+Goal: a public URL without the GitHub username in it (ref: `gaffer-wc26.web.app`).
+Target: **https://deuce-forecast.web.app/**. GitHub footer/nav links intentionally kept.
+
+- [x] `firebase.json` (new, repo root): `public: web/out`, `trailingSlash: true` matching the
+      Next export, no `cleanUrls`. Cache headers are load-bearing — Firebase defaults to a
+      1-hour browser cache, which would serve this hourly-refreshed site's odds stale.
+- [x] `refresh.yml`: workflow-level `env.SITE_URL` as the single source of truth (build,
+      environment link, health-issue link all derive); `configure/upload/deploy-pages` →
+      `FirebaseExtended/action-hosting-deploy@v0` (`channelId: live`); dropped
+      `NEXT_PUBLIC_BASE_PATH` (root domain now); `HEALTH_PAGE_URL` off `env.SITE_URL` rather
+      than the deploy output; pruned `pages:`/`id-token:` perms; concurrency `pages`→`deploy`.
+- [x] `layout.tsx`: `SITE_URL` = `NEXT_PUBLIC_SITE_URL || firebase URL` (was hardcoded github.io).
+- [x] `test.yml`: dropped `NEXT_PUBLIC_BASE_PATH` so CI exports the root-path build that ships.
+- [x] `watchdog.yml`: status link → job-level `HEALTH_URL` (was derived from `${OWNER}.github.io`).
+- [x] `pages-redirect.yml` + `.github/pages-redirect/{index,404}.html` (new): one-shot,
+      dispatch-only. Pages keeps serving its LAST build forever, so stopping the deploy would
+      strand a frozen forecast site on the old URL. The 404.html is what preserves deep links.
+- [x] READMEs: live-site badge + URLs. `next.config.ts`: basePath plumbing kept (portability),
+      comment corrected.
+- [x] Zero Python changes — `HEALTH_PAGE_URL` was already just an env var (`health.py:862`).
+- [x] Local proof: 4 workflows + firebase.json parse (strict `json.load`); `npm run build` green
+      with og:image = `https://deuce-forecast.web.app/og.png`, zero `github.io` and zero
+      `/tennis-elo/` refs in `web/out`, assets root-relative; web 158/158, lint 0 errors
+      (13 pre-existing warnings, none in touched files); pytest 299/299.
+- [ ] Blocked on user: Firebase project + `FIREBASE_SERVICE_ACCOUNT` secret → then push.
+- [ ] Post-deploy: `VERIFY_BASE_URL=https://deuce-forecast.web.app npm run verify`; `curl -I`
+      the cache headers; only then dispatch `pages-redirect.yml` once.

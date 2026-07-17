@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DEUCE has moved</title>
+  <link rel="canonical" href="https://deuce-forecast.web.app/">
+  <meta name="robots" content="noindex">
+  <script>
+    // GitHub Pages serves this file for ANY unmatched path under the project site, which
+    // is what lets old deep links survive the move: /tennis-elo/method/ -> /method/ on the
+    // new host. No meta-refresh here — it cannot carry the path, and it would race this.
+    (function () {
+      var NEW_ORIGIN = "https://deuce-forecast.web.app";
+      var OLD_BASE = "/tennis-elo";
+      var path = window.location.pathname;
+      if (path.indexOf(OLD_BASE) === 0) path = path.slice(OLD_BASE.length);
+      if (path.charAt(0) !== "/") path = "/" + path;
+      // replace() so the dead URL does not linger in history behind the new page.
+      window.location.replace(NEW_ORIGIN + path + window.location.search + window.location.hash);
+    })();
+  </script>
+  <style>
+    body { background: #08090a; color: #e8e8ea; font: 16px/1.6 system-ui, sans-serif;
+           display: grid; place-items: center; min-height: 100vh; margin: 0; padding: 1.5rem; }
+    a { color: #828fff; }
+  </style>
+</head>
+<body>
+  <main>
+    <p><strong>DEUCE</strong> has moved to
+      <a href="https://deuce-forecast.web.app/">deuce-forecast.web.app</a>.</p>
+    <noscript><p>Please follow the link above.</p></noscript>
+  </main>
+</body>
+</html>

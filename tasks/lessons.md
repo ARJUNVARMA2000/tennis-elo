@@ -1,5 +1,40 @@
 # Lessons
 
+- **A static host's DEFAULT cache is a staleness bug for an hourly-refreshed site — and
+  `firebase.json` cannot document its own reasoning, because it must stay strict JSON.**
+  (2026-07-16, github.io → Firebase Hosting) Firebase Hosting caches static content in the
+  browser for **1 hour by default**. This site redeploys hourly with fresh live scores, so
+  shipping `firebase.json` without explicit headers would have served hour-stale odds as live
+  — the exact failure class the pre-deploy gate exists to prevent, arriving through the host
+  rather than the pipeline. Hence `**` → `max-age=0, must-revalidate` and only the
+  content-hashed `/_next/static/**` → `immutable`. Two traps behind this: (1) Firebase's
+  header `source` globs match the **request URL path, not the resolved file**, so with
+  `trailingSlash: true` a `**/*.html` rule matches NOTHING (routes are `/method/`, and the
+  Next 16 RSC payloads `__next.*.txt` carry data too); (2) Firebase documents first-match-wins
+  for `redirects`/`rewrites` but leaves `headers` precedence **unspecified** — so the rules are
+  ordered specific-first such that the site is correct under *either* reading (worst case:
+  redundant 304s on hashed chunks, never stale). **Why:** the docs show `//` comments inside
+  `firebase.json`, but firebase-tools `JSON.parse`s it and the evidence that comments survive
+  is ambiguous — a deploy-gating file is not the place to gamble, so the config is strict JSON
+  and the "why" lives here. **How to apply:** when moving hosts, treat the new host's default
+  `Cache-Control` as a first-class correctness input, not a perf knob — assert the shipped
+  headers with `curl -I` post-deploy rather than trusting the config; and when a config format
+  can't hold a comment, put the reasoning in this file and point at it from the caller
+  (`refresh.yml`'s deploy step), never nowhere.
+
+- **Retiring a host is not the same as taking it down: GitHub Pages serves its LAST build
+  forever.** (2026-07-16, same migration) Simply pointing `refresh.yml` at Firebase would have
+  left `arjunvarma2000.github.io/tennis-elo/` serving a frozen, permanently-stale forecast site
+  with no pipeline behind it and nothing to alert on it — worse than a 404, because it still
+  looks live. Fix: a one-shot dispatch-only `pages-redirect.yml` that replaces the build with a
+  redirect stub, where **`404.html` does the real work** — Pages serves it for every unmatched
+  path, so it rewrites `/tennis-elo/<route>/` onto the new origin in JS and old deep links
+  survive; `index.html` alone would only have caught the bare root. Ordering is load-bearing:
+  the new host must be verified live BEFORE the redirect ships, or the old URL forwards to a
+  dead site. **How to apply:** when decommissioning any deploy target, ask "what does the old
+  URL serve tomorrow if I do nothing?" — for a CDN/static host the answer is usually "the last
+  good build, indefinitely", which for a data site means stale-as-live.
+
 - **A gate invariant that compares two DERIVED quantities must derive both sides exactly as
   the code that produced them — and be validated against messy real draw states, not one clean
   snapshot.** (2026-07-13, /bracket export) Two blocking false-positives shipped because the

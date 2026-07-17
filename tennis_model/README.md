@@ -190,4 +190,4 @@ PYTHONPATH=src python -m tennis_model.eval.kalshi_report
   rejected by the arbiter (the code remains behind default-off flags for future
   rounds).
 - The **web frontend** (Python → JSON → Next.js, `web/`) is live at
-  https://arjunvarma2000.github.io/tennis-elo/ — see the root README.
+  https://deuce-forecast.web.app/ — see the root README.

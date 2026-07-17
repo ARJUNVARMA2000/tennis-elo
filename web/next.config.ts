@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
-// Static export (out/). For a project GitHub Pages deploy, set NEXT_PUBLIC_BASE_PATH
-// (e.g. "/tennis-elo") so asset + data URLs resolve under the repo subpath.
+// Static export (out/). Production serves from the Firebase domain ROOT, so
+// NEXT_PUBLIC_BASE_PATH is left unset and this resolves to "". It stays wired up so a
+// subpath deploy (e.g. project GitHub Pages at "/tennis-elo") keeps working unchanged.
 const base = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
 const nextConfig: NextConfig = {

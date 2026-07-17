@@ -1,0 +1,37 @@
+name: pages-redirect
+
+# ONE-SHOT, dispatch-only. Run once, and ONLY AFTER the Firebase site is verified live —
+# otherwise the old URL forwards visitors to a dead site.
+#
+# Why this exists: refresh.yml deploys to Firebase now and no longer touches Pages. But
+# GitHub Pages does not go away when you stop deploying to it — it keeps serving the LAST
+# build it received, forever. For a forecast site that means a frozen page presenting
+# hour-stale odds as if they were live. This replaces that build with a 2-file redirect
+# stub, which cannot go stale.
+#
+# Kept in the repo rather than deleted after use: it documents that the old URL redirects,
+# and it is re-runnable if the Pages deployment is ever clobbered.
+on:
+  workflow_dispatch:
+
+permissions:
+  pages: write
+  id-token: write
+
+jobs:
+  redirect:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # index.html covers the bare old root; 404.html covers every deep link (Pages serves
+      # it for unmatched paths, and it rewrites the path onto the new origin in JS).
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .github/pages-redirect
+      - id: deploy
+        uses: actions/deploy-pages@v4

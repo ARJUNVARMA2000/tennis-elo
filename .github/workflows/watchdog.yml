@@ -28,6 +28,8 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       WINDOW_H: ${{ inputs.window_hours || '26' }}
+      # Keep in sync with SITE_URL in refresh.yml (separate workflows can't share env).
+      HEALTH_URL: https://deuce-forecast.web.app/health/
     steps:
       - name: Check refresh.yml had a successful run in the window
         run: |
@@ -49,10 +51,8 @@ jobs:
           fi
           gh label create watchdog --color B60205 -R "$GITHUB_REPOSITORY" \
             --description "refresh.yml liveness failures" 2>/dev/null || true
-          # GitHub Pages URL for the (hidden) /health status page: lowercase owner + repo name.
-          # Shows the LAST report the dead pipeline shipped — its own stale stamp is the evidence.
-          OWNER=$(echo "${GITHUB_REPOSITORY%%/*}" | tr '[:upper:]' '[:lower:]')
-          HEALTH_URL="https://${OWNER}.github.io/${GITHUB_REPOSITORY##*/}/health/"
+          # HEALTH_URL (job env) points at the (hidden) /health status page, which shows the
+          # LAST report the dead pipeline shipped — its own stale stamp is the evidence.
           printf 'refresh.yml has had **no successful run in %sh** (max %sh). Last success: %s.\n\nCheck the workflow page: https://github.com/%s/actions/workflows/refresh.yml — it may be disabled (60-day inactivity), failing before the health steps, or its cron dropped.\n\nLive status page (last shipped report): %s\n' \
             "$AGE_H" "$WINDOW_H" "${LAST:-never}" "$GITHUB_REPOSITORY" "$HEALTH_URL" > /tmp/watchdog-body.md
           if [ -n "$EXISTING" ]; then

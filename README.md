@@ -2,7 +2,7 @@
 
 [![refresh](https://github.com/ARJUNVARMA2000/tennis-elo/actions/workflows/refresh.yml/badge.svg)](https://github.com/ARJUNVARMA2000/tennis-elo/actions/workflows/refresh.yml)
 [![tests](https://github.com/ARJUNVARMA2000/tennis-elo/actions/workflows/test.yml/badge.svg)](https://github.com/ARJUNVARMA2000/tennis-elo/actions/workflows/test.yml)
-[![live site](https://img.shields.io/badge/live-arjunvarma2000.github.io%2Ftennis--elo-828fff)](https://arjunvarma2000.github.io/tennis-elo/)
+[![live site](https://img.shields.io/badge/live-deuce--forecast.web.app-828fff)](https://deuce-forecast.web.app/)
 
 A hybrid forecasting system for men's and women's professional tennis. It pairs
 **surface Elo with cross-surface transfer**, an **opponent-adjusted serve/return
@@ -12,7 +12,7 @@ Outputs calibrated match win probabilities, full set-score distributions, Monte 
 draw projections, and a live web app — data refreshed **hourly**, retrained daily, for
 **both tours**, with a real-time ESPN live-score ticker on the site.
 
-🌐 Live site: **https://arjunvarma2000.github.io/tennis-elo/**
+🌐 Live site: **https://deuce-forecast.web.app/**
 
 ## Screenshots
 

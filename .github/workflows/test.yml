@@ -48,8 +48,7 @@ jobs:
         run: npm test
 
       # catches type errors and export breakage on PRs before the deploy
-      # workflow hits them (Next 16 no longer lints during build)
+      # workflow hits them (Next 16 no longer lints during build). No basePath, matching
+      # the root-domain Firebase build that refresh.yml ships.
       - name: Build (type-check + static export)
-        env:
-          NEXT_PUBLIC_BASE_PATH: /${{ github.event.repository.name }}
         run: npm run build

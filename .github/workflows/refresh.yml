@@ -23,25 +23,29 @@ on:
 
 permissions:
   contents: write      # commit the append-only forecast log back to the repo
-  pages: write
-  id-token: write
   issues: write        # open/comment/close the data-health issue on a failed health check
 
-# Serialize Pages deploys but NEVER cancel one mid-flight: a scheduled refresh or a
+# The public site URL, in one place: the build (metadataBase -> og:image), the
+# deployment environment link, and the health issue's status-page link all derive from
+# it. Moving hosts again means changing this line, not hunting hardcoded URLs.
+env:
+  SITE_URL: https://deuce-forecast.web.app
+
+# Serialize deploys but NEVER cancel one mid-flight: a scheduled refresh or a
 # concurrent push used to cancel the in-progress deploy carrying a change (cancel-in-progress:
 # true), so the change silently never shipped and the run had to be re-dispatched by hand.
 # false = the in-progress run finishes; GitHub queues only the latest superseding run and
-# skips the intermediate ones (matches GitHub's own Pages-deploy starter workflow).
+# skips the intermediate ones.
 concurrency:
-  group: pages
+  group: deploy
   cancel-in-progress: false
 
 jobs:
   refresh:
     runs-on: ubuntu-latest
     environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
+      name: production
+      url: ${{ env.SITE_URL }}
     steps:
       - uses: actions/checkout@v4
 
@@ -166,20 +170,31 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      # No NEXT_PUBLIC_BASE_PATH: Firebase serves the site at the domain ROOT, so the
+      # basePath stays unset (the plumbing in next.config.ts defaults to "" and is kept
+      # for portability). NEXT_PUBLIC_SITE_URL feeds metadataBase -> absolute og:image.
       - name: Build static site
         working-directory: web
         env:
-          NEXT_PUBLIC_BASE_PATH: /${{ github.event.repository.name }}
+          NEXT_PUBLIC_SITE_URL: ${{ env.SITE_URL }}
         run: |
           npm ci
           npm run build
 
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      # Deploys web/out per the repo-root firebase.json. channelId: live = the production
+      # channel (omitting it would create a throwaway preview channel instead).
+      # firebase.json's cache headers are load-bearing, not tuning: Firebase defaults to a
+      # 1-hour browser cache, which would serve this hourly-refreshed site's odds stale.
+      # It is strict JSON (firebase-tools JSON.parse's it) so the why lives in
+      # tasks/lessons.md — read that before touching the headers block.
+      - name: Deploy to Firebase Hosting
+        id: deploy
+        uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          path: web/out
-      - id: deploy
-        uses: actions/deploy-pages@v4
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: deuce-forecast
+          channelId: live
 
       # Weekly (Mondays, or whenever the release is missing) snapshot of the raw data
       # to a rolling release asset — upstream disappearance can then never break a
@@ -229,8 +244,10 @@ jobs:
           PYTHONPATH: src
           GH_TOKEN: ${{ github.token }}
           GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          # deploy ran earlier in this job, so page_url is set (e.g. https://<owner>.github.io/<repo>/)
-          HEALTH_PAGE_URL: ${{ steps.deploy.outputs.page_url }}health/
+          # Read straight from SITE_URL rather than the deploy step's output: this step
+          # must still produce a working status link on the paths where the deploy was
+          # skipped or failed — which is exactly when the health report matters most.
+          HEALTH_PAGE_URL: ${{ env.SITE_URL }}/health/
           MODE: ${{ steps.mode.outputs.mode }}
         run: |
           OK=$(python -c "import json; print(json.load(open('data/output/health.json'))['ok'])")

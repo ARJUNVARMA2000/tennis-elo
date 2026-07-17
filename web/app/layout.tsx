@@ -12,7 +12,9 @@ const DESC =
   "A tennis forecast engine for the ATP & WTA tours: surface-blended Elo, an opponent-adjusted serve/return point model and an XGBoost combiner. Live ratings, match win probabilities and Monte Carlo draw simulations.";
 
 const TITLE = "DEUCE — Tennis Forecast Engine";
-const SITE_URL = "https://arjunvarma2000.github.io" + (process.env.NEXT_PUBLIC_BASE_PATH || "");
+// Set by the deploy workflow; the fallback keeps `next build` standalone (local, CI)
+// producing absolute og:image URLs rather than throwing on an empty metadataBase.
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://deuce-forecast.web.app";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
