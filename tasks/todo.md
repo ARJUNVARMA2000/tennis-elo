@@ -1484,3 +1484,29 @@ Target: **https://deuce-forecast.web.app/**. GitHub footer/nav links intentional
 - [ ] Blocked on user: Firebase project + `FIREBASE_SERVICE_ACCOUNT` secret → then push.
 - [ ] Post-deploy: `VERIFY_BASE_URL=https://deuce-forecast.web.app npm run verify`; `curl -I`
       the cache headers; only then dispatch `pages-redirect.yml` once.
+
+## Firebase deploy test suite (2026-07-17)
+
+Goal: a detailed, standing suite that catches Firebase *serving* failures the pre-deploy
+data gate can't see (stale CDN content after a green deploy, cache/MIME/trailingSlash/404/
+basePath regressions). Decision: detect+alert, post-deploy only (no preview-channel gate,
+no standalone monitor).
+
+- [x] `web/scripts/routes.mjs` — canonical ROUTES factored out of verify.mjs; both import it.
+- [x] `web/scripts/verify-deploy-lib.mjs` — pure helpers (parseCacheControl, expectedMimeFor,
+      contentTypeOk, extractHashedAsset, isAbsoluteOnOrigin, freshnessOk, extractOgImage),
+      side-effect-free so the unit test imports them without firing network checks.
+- [x] `web/scripts/verify-deploy.mjs` — fetch-based suite vs a live base URL: routes 200+html,
+      /method→301→/method/, unknown→404, cache split (data/HTML must-revalidate, /_next/static
+      immutable), MIME (js/css/json not html), freshness (live generatedAt == built, with
+      retry/backoff; `FRESH_TRIES` env-tunable), og:image absolute+on-origin. Exit 1 on any fail.
+- [x] `web/tests/verify-deploy.test.ts` — 15 vitest cases over the pure helpers (incl. the
+      html-fall-through and SITE_URL-regression negatives). `npm run verify:deploy` script added.
+- [x] `refresh.yml` — post-deploy `Verify live Firebase deploy` (id verifydeploy,
+      continue-on-error, EXPECT_GENERATED_AT from out/data/health.json, FRESH_TRIES=18) +
+      `Report deploy health` (if: always()) mirroring `Report data health`: deploy-health issue,
+      open+red at onset, full-run comment+red heartbeat, quick-run stay-green, close on recovery.
+- [x] Docs: CLAUDE.md hard-rule (serving-side gate analogue), lessons.md entry.
+- [x] Proof: web 173/173 tests + lint clean; live suite 7/7 PASS (exit 0); negative controls
+      bite — wrong stamp → freshness FAIL (exit 1), bad base URL → routes FAIL (exit 1).
+- [ ] Push → confirm the new post-deploy step runs green on the real deploy.

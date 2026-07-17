@@ -40,6 +40,25 @@
   URL serve tomorrow if I do nothing?" — for a CDN/static host the answer is usually "the last
   good build, indefinitely", which for a data site means stale-as-live.
 
+- **A "successful" static-hosting deploy proves the upload returned 200, NOT that the live URL
+  serves correct/fresh content — verify the live artifact post-deploy, with propagation-lag
+  tolerance built in.** (2026-07-17, Firebase deploy test suite) The pre-deploy `health.py --gate`
+  structurally can't see Firebase-serving failures (stale CDN content after a green deploy,
+  cache-header/MIME/trailingSlash/404/basePath regressions) because it validates local JSON
+  before upload — the exact class the reference project hits "consistently." Answer:
+  `web/scripts/verify-deploy.mjs`, a fetch-based suite run post-deploy against the live URL,
+  asserting routes + the cache-header split + MIME (not falling through to `text/html`) +
+  `/method`→301→`/method/` + real 404 + og:image-on-origin + **the live `health.json`
+  `generatedAt` == the just-built one** (the load-bearing "deploy green but CDN serving old
+  content" catch), alerted via a dedup'd `deploy-health` issue mirroring the data-health step.
+  Two design rules learned: (1) **the freshness check MUST retry/backoff (~60-90s)** — Firebase
+  edge propagation lags the deploy by seconds, so a single-shot freshness assert flakes on every
+  run; make the window env-tunable (`FRESH_TRIES`) so CI can widen and tests can shorten it.
+  (2) **Prove a test suite BITES, not just passes** — before trusting it, run negative controls
+  (wrong `EXPECT_GENERATED_AT` → freshness FAIL; bad `--base` → routes FAIL). A suite only ever
+  seen passing on a good deploy might be asserting nothing. Split pure helpers into a
+  side-effect-free module so unit tests import them without firing network checks.
+
 - **A gate invariant that compares two DERIVED quantities must derive both sides exactly as
   the code that produced them — and be validated against messy real draw states, not one clean
   snapshot.** (2026-07-13, /bracket export) Two blocking false-positives shipped because the

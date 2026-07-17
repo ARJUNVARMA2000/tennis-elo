@@ -7,11 +7,11 @@
 // (gitignored). Exits non-zero if any route fails, so it can gate a "done" claim.
 import { chromium } from "playwright-core";
 import { mkdirSync } from "node:fs";
+import { ROUTES } from "./routes.mjs";
 
 const BASE = process.env.VERIFY_BASE_URL || "http://localhost:3001";
-// /upcoming/ stays listed: it must render the client redirect that lands on Results.
-const ROUTES = ["/", "/rankings/", "/results/", "/upcoming/", "/schedule/", "/bracket/", "/scorecard/",
-                "/predict/", "/accuracy/", "/trends/", "/explorer/"];
+// ROUTES is shared with verify-deploy.mjs. /upcoming/ stays listed: it must render the
+// client redirect that lands on Results.
 const OUT = new URL("../.verify/", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 mkdirSync(OUT, { recursive: true });
 

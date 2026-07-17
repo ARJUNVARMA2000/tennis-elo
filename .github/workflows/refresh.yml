@@ -196,6 +196,26 @@ jobs:
           projectId: deuce-forecast
           channelId: live
 
+      # Post-deploy verification of the LIVE site — the serving-side analogue of the
+      # pre-deploy data-health gate, which only sees local JSON and never Firebase's CDN.
+      # Asserts routes / cache headers / MIME / trailingSlash / 404 and, crucially, that the
+      # live health.json carries the generatedAt we just built (catches "deploy reported
+      # success but the CDN is still serving old content"). continue-on-error: a failure
+      # must still flow to "Report deploy health" below, never abort the job before the
+      # cache saves. FRESH_TRIES is widened to absorb CDN propagation lag before calling a
+      # freshly-shipped deploy stale (the one detail that would otherwise flake every run).
+      - name: Verify live Firebase deploy
+        id: verifydeploy
+        continue-on-error: true
+        working-directory: web
+        env:
+          VERIFY_BASE_URL: ${{ env.SITE_URL }}
+          FRESH_TRIES: "18"
+        run: |
+          EXPECT=$(python -c "import json; print(json.load(open('out/data/health.json'))['generatedAt'])")
+          echo "expecting live generatedAt=$EXPECT"
+          EXPECT_GENERATED_AT="$EXPECT" node scripts/verify-deploy.mjs 2>&1 | tee /tmp/verify-deploy.log
+
       # Weekly (Mondays, or whenever the release is missing) snapshot of the raw data
       # to a rolling release asset — upstream disappearance can then never break a
       # bootstrap. Runs after deploy: a snapshot hiccup must not block the site.
@@ -280,6 +300,62 @@ jobs:
             exit 1
           fi
           echo "::warning::data-health still failing — see the open data-health issue #$EXISTING"
+          exit 0
+
+      # Turn the post-deploy verification into an actionable alert, mirroring "Report data
+      # health": a single `deploy-health` issue, dedup'd so a standing failure alerts once
+      # (not 24x/day), auto-closed on recovery. if: always() so it runs even when an earlier
+      # alert step redded. Dedup rules (no problems_changed to key on, so throttle by mode):
+      #   * pass + open issue  -> close it (recovery, any mode)
+      #   * fail + no issue    -> create + red (one email at onset, any mode)
+      #   * fail + open issue  -> full run: comment + red (daily heartbeat);
+      #                           quick run: stay GREEN, no comment (the open issue IS the
+      #                           alert — a red quick job would skip the cache save and a
+      #                           silent comment every hour would spam the thread).
+      - name: Report deploy health
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OUTCOME: ${{ steps.verifydeploy.outcome }}
+          MODE: ${{ steps.mode.outputs.mode }}
+          SITE_URL: ${{ env.SITE_URL }}
+          GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh label create deploy-health --color B60205 \
+            --description "Live Firebase deploy verification failures" 2>/dev/null || true
+          EXISTING=$(gh issue list --label deploy-health --state open --json number --jq '.[0].number // empty')
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -n "$EXISTING" ]; then
+              gh issue comment "$EXISTING" \
+                --body "✅ Recovered: live deploy verification passed on $(date -u +%F). Closing." || true
+              gh issue close "$EXISTING" || true
+            fi
+            echo "deploy verification OK"
+            exit 0
+          fi
+          {
+            echo "The post-deploy verification of the live site **failed** — the deploy may be"
+            echo "serving stale/broken content. Checks and details:"
+            echo
+            echo "Live site: $SITE_URL"
+            echo "Failing run: $GITHUB_RUN_URL"
+            echo
+            echo '```'
+            tail -c 6000 /tmp/verify-deploy.log 2>/dev/null || echo "(no verify-deploy.log captured)"
+            echo '```'
+          } > /tmp/deploy-health-body.md
+          if [ -z "$EXISTING" ]; then
+            gh issue create --label deploy-health \
+              --title "Live deploy verification failed" --body-file /tmp/deploy-health-body.md
+            echo "::error::live deploy verification failed — see the deploy-health issue"
+            exit 1
+          fi
+          if [ "$MODE" = "full" ]; then
+            gh issue comment "$EXISTING" --body-file /tmp/deploy-health-body.md
+            echo "::error::live deploy verification still failing — see deploy-health issue #$EXISTING"
+            exit 1
+          fi
+          echo "::warning::live deploy verification still failing — see open deploy-health issue #$EXISTING"
           exit 0
 
       # Escalation for the best-effort persist step above: red the run only AFTER
