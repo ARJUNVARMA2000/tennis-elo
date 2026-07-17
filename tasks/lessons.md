@@ -10,10 +10,15 @@
   content-hashed `/_next/static/**` → `immutable`. Two traps behind this: (1) Firebase's
   header `source` globs match the **request URL path, not the resolved file**, so with
   `trailingSlash: true` a `**/*.html` rule matches NOTHING (routes are `/method/`, and the
-  Next 16 RSC payloads `__next.*.txt` carry data too); (2) Firebase documents first-match-wins
-  for `redirects`/`rewrites` but leaves `headers` precedence **unspecified** — so the rules are
-  ordered specific-first such that the site is correct under *either* reading (worst case:
-  redundant 304s on hashed chunks, never stale). **Why:** the docs show `//` comments inside
+  Next 16 RSC payloads `__next.*.txt` carry data too); (2) **header precedence is
+  last-match-wins in practice, even though the docs say first-match** — a known discrepancy
+  (firebase-tools#9467). Verified live on 2026-07-16: with the specific `/_next/static/**` rule
+  listed FIRST and the `**` catch-all second, the hashed chunks came back `must-revalidate`
+  (the catch-all's value) — the second rule won. Fix: order **catch-all first, most-specific
+  last**, so `**` blankets everything must-revalidate and `/_next/static/**` then overrides the
+  hashed assets to `immutable`. Confirm with `curl -I` on a real `/_next/static/...` asset after
+  every deploy — a bad order is silent (safe/stale-free either way, so tests never catch it) and
+  only shows up as lost cache headroom, which for a free-tier host is lost bandwidth budget. **Why:** the docs show `//` comments inside
   `firebase.json`, but firebase-tools `JSON.parse`s it and the evidence that comments survive
   is ambiguous — a deploy-gating file is not the place to gamble, so the config is strict JSON
   and the "why" lives here. **How to apply:** when moving hosts, treat the new host's default
