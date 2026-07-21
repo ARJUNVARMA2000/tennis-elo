@@ -312,6 +312,7 @@ jobs:
       #                           quick run: stay GREEN, no comment (the open issue IS the
       #                           alert — a red quick job would skip the cache save and a
       #                           silent comment every hour would spam the thread).
+      #   * never ran          -> no-op (see the guard below).
       - name: Report deploy health
         if: always()
         env:
@@ -321,6 +322,21 @@ jobs:
           SITE_URL: ${{ env.SITE_URL }}
           GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
+          # `if: always()` also fires when the verification never RAN — an earlier step
+          # (refresh / gate / build / deploy) failed, or the run was cancelled, so the step
+          # outcome is `skipped`/`cancelled` rather than `failure`. That says nothing about
+          # what the live site is serving: the previous deploy is still up and healthy.
+          # Alerting here would file a "the deploy may be serving stale/broken content"
+          # issue — with an empty log block, since verify-deploy.log was never written —
+          # for what is really an upstream pipeline failure, misdirecting the diagnosis
+          # away from the step that actually broke (repro: run 29812819613, where the
+          # `--strict` data download failed and this step blamed the live site). Only a
+          # real `failure` implicates the site; anything else bows out, leaving any open
+          # issue standing (we cannot claim recovery we never verified).
+          if [ "$OUTCOME" != "success" ] && [ "$OUTCOME" != "failure" ]; then
+            echo "deploy verification did not run (outcome: ${OUTCOME:-none}) — no deploy-health signal"
+            exit 0
+          fi
           gh label create deploy-health --color B60205 \
             --description "Live Firebase deploy verification failures" 2>/dev/null || true
           EXISTING=$(gh issue list --label deploy-health --state open --json number --jq '.[0].number // empty')

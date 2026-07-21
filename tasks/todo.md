@@ -1516,3 +1516,29 @@ no standalone monitor).
 serving-side analogue of the data gate — it catches what the pre-deploy gate structurally can't. Two
 things earned their keep: the freshness retry (else it flakes on CDN propagation) and the negative
 controls (proved it fails when it should). No deviations from the approved Phase-2 plan.
+
+## Deploy-health alert misfired on a skipped verification (2026-07-21)
+
+Health check of the repo turned up one real defect. Refresh run 29812819613 (08:03Z) went red
+because the `--strict` download failed both tours' fresh 2025/26 files (upstream hiccup;
+09:41Z onward recovered on their own). Everything downstream was skipped — including
+`Verify live Firebase deploy` — but `Report deploy health` (`if: always()`) read
+`outcome != success` as "the live site is broken" and opened deploy-health issue #8 blaming
+Firebase, with an empty log block. The site was healthy throughout.
+
+- [x] `refresh.yml` — guard in `Report deploy health`: only `success` (recovery) and `failure`
+      (alert) touch the issue; `skipped`/`cancelled`/empty exit 0 without querying `gh`, leaving
+      any open issue standing (recovery we never verified can't be claimed).
+- [x] Proof: extracted the step's `run:` block from the YAML and ran it against a stubbed `gh`
+      over 9 scenarios — 4 never-ran + 5 real-outcome. Post-fix 9/9 PASS; the same harness on
+      the pre-fix script fails exactly the 4 never-ran cases (reproducing #8's spurious
+      `issue create`) and passes all 5 real-outcome cases, so behaviour is unchanged where it
+      mattered.
+- [x] Repo health otherwise green: 299/299 pytest, 173/173 vitest, lint 0 errors, live suite
+      7/7 vs deuce-forecast.web.app, no open issues, master clean and in sync.
+- [x] lessons.md entry.
+
+**Review:** Fixed the alerting, not the transient download — the download failure was upstream and
+self-healed, while the misfiring alert would recur on every such hiccup and misdirect diagnosis each
+time. The workflow shell has no permanent test harness (the scratchpad one was throwaway); worth
+adding if these alert steps grow further.

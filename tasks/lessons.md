@@ -467,3 +467,17 @@
   `_fp` to the tour's current config and rebuilds on drift, healing shipped-bad pickles within
   an hour. Rules: derive invariants in the constructor, not at call sites; a staleness guard
   must check every config a pickle bakes in (schema AND params), not just the crash-prone part.
+
+- **An `if: always()` alert step must distinguish `skipped` from `failure`.**
+  (2026-07-21) `Report deploy health` branched on `if [ "$OUTCOME" = "success" ]` and treated
+  everything else as a live-serving failure. But a step outcome is `skipped`/`cancelled`, not
+  `failure`, whenever an upstream step dies — so when the `--strict` data download failed in run
+  29812819613, the deploy never happened, `verifydeploy` was skipped, and the alert filed a
+  "the deploy may be serving stale/broken content" issue (#8) against a site that was serving
+  fine. Worse, it pointed diagnosis at Firebase instead of the download step that actually broke,
+  and shipped an empty log block ("no verify-deploy.log captured") because the verifier never ran
+  to write one. Fix: an explicit guard — only `success` (recovery) and `failure` (alert) touch the
+  issue; anything else exits 0 without even querying `gh`, leaving an open issue standing since
+  recovery we never verified can't be claimed. Rules: with `if: always()`, enumerate the outcomes
+  you handle and no-op the rest — never let `!= success` mean "broken"; and an alert must name the
+  thing it actually observed, or it costs more diagnosis time than it saves.
