@@ -481,3 +481,29 @@
   recovery we never verified can't be claimed. Rules: with `if: always()`, enumerate the outcomes
   you handle and no-op the rest — never let `!= success` mean "broken"; and an alert must name the
   thing it actually observed, or it costs more diagnosis time than it saves.
+
+- **Both tours' `fresh` files live in ONE repo, so one bad minute reds the daily retrain.**
+  (2026-07-21) `download_year` fetched with `_via_https(retries=1)` — which is *zero* retries,
+  the loop runs once and never sleeps — leaning entirely on the `_via_gh` fallback. When both
+  transports missed in the same instant (run 29812819613), `atp/fresh` and `wta/fresh` both
+  failed [2025, 2026] and `--strict` killed the full retrain, while `historical` (47 files, a
+  *different* repo) sailed through. The simultaneity was the tell: FRESH_SOURCE points both
+  tours at `LuckyLoser91/TennisCourtLog`, so that repo blipping fails everything at once —
+  it reads like a network outage but is one upstream. Fix: retry the failed years at the
+  `download()` level with exponential backoff, bounded by BOTH a round count and a wall-clock
+  budget — the budget is what stops a genuinely dead 47-year archive from costing three full
+  passes of 30s timeouts. Rules: a retry with no time budget is a hang waiting to happen; and
+  `retries=1` reads like "retry once" but means "don't retry" — count attempts, not retries.
+
+- **Inline workflow `run:` shell is untestable, and that is where the false alarm hid.**
+  (2026-07-21) The deploy-health branch logic (dedup, mode throttling, skipped-vs-failed) lived
+  as a 30-line `run: |` block in refresh.yml, reachable by nothing. Fix: move it to
+  `.github/scripts/report-deploy-health.sh` and call it with `run: bash .github/scripts/...`,
+  then drive the real script from pytest with a stubbed `gh` on PATH, asserting exit code AND
+  the exact `gh` subcommands (`test_workflow_alerts.py`). Extracting beat the alternative of
+  parsing the YAML at test time, which needed a PyYAML dep CI does not install and would test a
+  copy rather than the artifact CI runs. Two things earn their keep: a test asserting the
+  workflow still *calls* the script (else it drifts out of use while the suite stays green),
+  and `.gitattributes` pinning `*.sh` to LF (this repo is developed on Windows with autocrlf on;
+  a CRLF shebang fails on the Linux runner). Rule: if shell decides whether a human gets paged,
+  it belongs in a file with tests. See [[future-proof-no-quick-fixes]].

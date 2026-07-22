@@ -1542,3 +1542,49 @@ Firebase, with an empty log block. The site was healthy throughout.
 self-healed, while the misfiring alert would recur on every such hiccup and misdirect diagnosis each
 time. The workflow shell has no permanent test harness (the scratchpad one was throwaway); worth
 adding if these alert steps grow further.
+
+## Download retry + testable CI alert shell (2026-07-21)
+
+Follow-ups to the deploy-health fix, both requested after the health check.
+
+**1. Download retry.** `download_year` used `_via_https(retries=1)` — zero actual retries — with
+`_via_gh` as the only fallback. One instant where both transports missed killed the daily full
+retrain (run 29812819613: `atp/fresh` AND `wta/fresh` both FAILED [2025, 2026], because
+FRESH_SOURCE points both tours at the same repo).
+
+- [x] `download()` retries failed years with exponential backoff, bounded by a round count
+      (`retry_rounds=2`) AND a wall-clock budget (`retry_budget_s=90`). The budget is what keeps
+      a genuinely dead 47-year archive from costing three full passes of 30s timeouts; the
+      happy path costs nothing (no extra fetch, no sleep).
+- [x] `test_download.py` +4 cases: happy path never sleeps, transient blip recovers, permanent
+      failure stays bounded (3 attempts, backoff [1,2]), dead archive stops on budget with every
+      year still reported failed.
+- [x] Negative control: same flaky source with `retry_rounds=0` reproduces the exact production
+      log line (`atp/fresh: downloaded 0 year file(s), FAILED 2: [2025, 2026]`); with retries it
+      recovers. The retry is load-bearing, not decorative.
+
+**2. Testable CI alert shell.** The alert branch logic was a 30-line inline `run:` block that no
+test could reach — which is exactly why the skipped-vs-failed bug shipped.
+
+- [x] Extracted to `.github/scripts/report-deploy-health.sh`; refresh.yml now calls
+      `run: bash .github/scripts/report-deploy-health.sh` (19 steps before and after).
+      Chosen over parsing the YAML at test time, which would need a PyYAML dep CI does not
+      install and would test a copy rather than the artifact CI runs.
+- [x] `tennis_model/tests/test_workflow_alerts.py` — 9 cases running the real script under bash
+      with a stubbed `gh`, asserting exit code + exact `gh` subcommands: 4 never-ran (no page, no
+      red, no call at all), success quiet / success closes, failure opens+reds, full-run comment
+      heartbeat, quick-run stays green and silent, verifier log reaches the issue body, plus a
+      guard that refresh.yml still invokes the script (else it drifts out of use while green).
+- [x] `.gitattributes` pins `*.sh` to LF — repo is developed on Windows with autocrlf on and a
+      CRLF shebang fails the Linux runner. Verified the staged blob is LF.
+- [x] Negative control: deleting the guard from the script fails exactly the 2 never-ran tests
+      and passes the other 7 — the harness bites the real regression without over-constraining.
+- [x] Proof: 312/312 pytest (was 299), ruff clean, 173/173 vitest, web lint 0 errors. Simulated
+      the exact CI invocation (relative path from repo root) across success/failure/skipped/
+      failure-with-open-issue — all four behave correctly.
+- [x] CLAUDE.md hard rule + lessons.md entries.
+
+**Review:** The retry fixes a real robustness gap but the *alerting* fix was the higher-value half
+— a bad alert costs diagnosis time on every future incident. Deliberately did not extract the
+`Report data health` step too: same pattern, but it is working and untouched by this bug, so it
+stays a follow-up rather than scope creep in a fix commit.

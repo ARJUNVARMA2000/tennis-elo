@@ -62,8 +62,104 @@ def test_download_clamps_to_source_last_year():
     print("ok test_download_clamps_to_source_last_year")
 
 
+class _FakeClock:
+    """Stand-in for download.py's `time` module: sleeps advance a virtual clock instead
+    of blocking, so the backoff/budget paths run at full speed and are assertable."""
+
+    def __init__(self):
+        self.now = 0.0
+        self.slept: list[float] = []
+
+    def sleep(self, s):
+        self.slept.append(s)
+        self.now += s
+
+    def monotonic(self):
+        return self.now
+
+
+def _run_download(fake_year, *, clock=None, **kw):
+    """Call dl.download with download_year and the clock stubbed out."""
+    clock = clock or _FakeClock()
+    orig_dy, orig_time = dl.download_year, dl.time
+    try:
+        dl.download_year, dl.time = fake_year, clock
+        return (*dl.download(**kw), clock)
+    finally:
+        dl.download_year, dl.time = orig_dy, orig_time
+
+
+def test_download_success_path_never_sleeps():
+    """The common case must cost nothing: one fetch per year, zero backoff."""
+    calls = []
+    done, failed, clock = _run_download(
+        lambda tour, kind, y: calls.append(y) or True,
+        tour="atp", kind="fresh", years=[2025, 2026],
+    )
+    assert done == [2025, 2026] and failed == []
+    assert calls == [2025, 2026]          # no redundant refetch
+    assert clock.slept == []              # no backoff on the happy path
+    print("ok test_download_success_path_never_sleeps")
+
+
+def test_download_recovers_transient_failure():
+    """A blip that fails every year in one instant (both tours' `fresh` files live in
+    ONE repo — run 29812819613) must be retried, not allowed to red the daily retrain."""
+    calls = []
+
+    def flaky(tour, kind, y):
+        calls.append(y)
+        return calls.count(y) > 1          # first attempt fails, retry succeeds
+
+    done, failed, clock = _run_download(
+        flaky, tour="atp", kind="fresh", years=[2025, 2026],
+    )
+    assert failed == [] and sorted(done) == [2025, 2026]
+    assert clock.slept == [1]              # exactly one backoff round was needed
+    print("ok test_download_recovers_transient_failure")
+
+
+def test_download_retry_is_bounded_by_rounds():
+    """A source that is genuinely down still fails — with a capped number of attempts
+    and exponential backoff, so `failed` stays truthful for the strict gate."""
+    calls = []
+    done, failed, clock = _run_download(
+        lambda tour, kind, y: calls.append(y) and False,
+        tour="atp", kind="fresh", years=[2026], retry_rounds=2,
+    )
+    assert done == [] and failed == [2026]
+    assert len(calls) == 3                 # initial pass + 2 retry rounds, no more
+    assert clock.slept == [1, 2]           # exponential, not a busy loop
+    print("ok test_download_retry_is_bounded_by_rounds")
+
+
+def test_download_retry_budget_bounds_a_dead_archive():
+    """The wall-clock budget is what keeps a dead 47-year archive from costing three
+    full passes: retries stop when the budget is spent, and every year stays failed."""
+    years = list(range(1980, 2027))        # 47-year historical archive
+    clock = _FakeClock()
+    calls = []
+
+    def dead(tour, kind, y):
+        calls.append(y)
+        clock.now += 30.0                  # each attempt burns real time upstream
+        return False
+
+    done, failed, _ = _run_download(
+        dead, clock=clock, tour="wta", kind="historical",
+        years=years, retry_rounds=2, retry_budget_s=90.0,
+    )
+    assert done == [] and sorted(failed) == years        # nothing silently dropped
+    assert len(calls) < 2 * len(years)                   # budget cut the retry short
+    print("ok test_download_retry_budget_bounds_a_dead_archive")
+
+
 if __name__ == "__main__":
     test_strict_fatal_rules()
     test_valid_csv_schema_gate()
     test_download_clamps_to_source_last_year()
+    test_download_success_path_never_sleeps()
+    test_download_recovers_transient_failure()
+    test_download_retry_is_bounded_by_rounds()
+    test_download_retry_budget_bounds_a_dead_archive()
     print("\nALL PASSED")

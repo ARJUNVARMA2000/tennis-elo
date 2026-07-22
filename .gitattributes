@@ -1,0 +1,6 @@
+# Shell scripts are executed by the Linux CI runner (.github/scripts/*.sh, invoked from
+# refresh.yml). A CRLF line ending there breaks the interpreter — `bash` reports a cryptic
+# syntax error, or the shebang resolves to "/usr/bin/env bash\r: no such file". This repo is
+# developed on Windows with autocrlf on, so pin the checkout encoding rather than rely on
+# every future edit happening to preserve LF.
+*.sh text eol=lf

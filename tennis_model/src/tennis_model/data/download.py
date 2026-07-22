@@ -107,9 +107,19 @@ def download_year(tour: str, kind: str, year: int) -> bool:
     return True
 
 
-def download(tour: str, kind: str = "fresh", years=None) -> tuple[list[int], list[int]]:
+def download(tour: str, kind: str = "fresh", years=None,
+             retry_rounds: int = 2, retry_budget_s: float = 90.0) -> tuple[list[int], list[int]]:
     """Fetch the given years (default: recent two for fresh, full archive for historical).
-    Returns (done, failed) so callers can escalate failures (see --strict)."""
+    Returns (done, failed) so callers can escalate failures (see --strict).
+
+    Failed years get `retry_rounds` extra passes with exponential backoff. A brief
+    upstream outage fails every year requested in the same instant — and BOTH tours'
+    `fresh` files live in one repo, so a single bad minute reds the whole daily retrain
+    (run 29812819613, which self-healed an hour later untouched). One transport miss
+    should cost a backoff, not the day's model. Bounded by a wall-clock budget as well
+    as a round count: a genuinely dead source must cost one slow pass, not `rounds` full
+    passes over a 47-year archive that is never going to answer.
+    """
     this_year = datetime.now(UTC).year
     if years is None:
         if kind == "fresh":
@@ -122,6 +132,21 @@ def download(tour: str, kind: str = "fresh", years=None) -> tuple[list[int], lis
     done, failed = [], []
     for y in years:
         (done if download_year(tour, kind, y) else failed).append(y)
+    deadline = time.monotonic() + retry_budget_s
+    for r in range(retry_rounds):
+        if not failed or time.monotonic() >= deadline:
+            break
+        time.sleep(min(2 ** r, max(0.0, deadline - time.monotonic())))
+        retrying, failed = failed, []
+        for y in retrying:
+            if time.monotonic() >= deadline:   # out of budget: leave the rest failed
+                failed.append(y)
+                continue
+            if download_year(tour, kind, y):
+                done.append(y)
+                print(f"  {tour}/{kind}: {y} recovered on retry {r + 1}")
+            else:
+                failed.append(y)
     msg = f"  {tour}/{kind}: downloaded {len(done)} year file(s)"
     if failed:
         msg += f", FAILED {len(failed)}: {failed}"
