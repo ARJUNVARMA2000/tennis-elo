@@ -167,7 +167,7 @@ jobs:
           PYTHONPATH: src
         run: python -m tennis_model.data.health
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
       # No NEXT_PUBLIC_BASE_PATH: Firebase serves the site at the domain ROOT, so the
