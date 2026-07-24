@@ -47,9 +47,9 @@ jobs:
       name: production
       url: ${{ env.SITE_URL }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Install Python deps
@@ -59,7 +59,7 @@ jobs:
       # JSON) across runs so quick runs have a model to refresh from. A new cache is saved
       # each run (unique key) and the most recent is restored (restore-keys prefix).
       - name: Restore data cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: tennis_model/data
           key: tennis-data-${{ github.run_id }}

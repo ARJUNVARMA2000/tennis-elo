@@ -25,7 +25,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # index.html covers the bare old root; 404.html covers every deep link (Pages serves
       # it for unmatched paths, and it rewrites the path onto the new origin in JS).
