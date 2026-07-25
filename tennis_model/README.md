@@ -15,19 +15,21 @@ engineer strong Elo- and point-model features, then let gradient boosting *combi
 calibrate* them. So Elo isn't replaced by XGBoost — it's the dominant feature feeding it.
 
 **Walk-forward, leakage-free results** (no future info, no market odds as inputs;
-2010–2026, 45,762 ATP / 42,513 WTA matches):
+2010–2026, 45,831 ATP / 42,126 WTA scored matches; measured 2026-07-25 on data through
+07-24 — reproduce with `walk_forward(main_rows(build_feature_frame(tour)), start_test=2010)`
+on a **snapshot-bootstrapped** checkout, see [Usage](#usage)):
 
 | Model | ATP acc | ATP Brier | WTA acc | WTA Brier |
 |---|---|---|---|---|
-| Elo (surface blend + cross-surface transfer) | 0.683 | 0.2006 | 0.662 | 0.2112 |
-| Serve/return point model | 0.669 | 0.2055 | 0.645 | 0.2148 |
-| **XGBoost combiner (seed-bagged)** | **0.696** | **0.1947** | **0.684** | **0.2015** |
+| Elo (surface blend + cross-surface transfer) | 0.682 | 0.2006 | 0.662 | 0.2114 |
+| Serve/return point model | 0.669 | 0.2055 | 0.644 | 0.2152 |
+| **XGBoost combiner (seed-bagged)** | **0.696** | **0.1950** | **0.685** | **0.2017** |
 | _Bookmaker anchor (literature)_ | _0.690_ | _0.196_ | _0.690_ | _0.196_ |
 
 ATP now clears the literature bookmaker anchor on both accuracy (0.696 vs ~0.690) and
-Brier (0.1947 vs 0.196) — though on the repo's own odds-matched subset the bookmaker
+Brier (0.1950 vs 0.196) — though on the repo's own odds-matched subset the bookmaker
 closing line still leads (Pinnacle through 2025, Bet365/average close after; see the
-root README) — WTA's remaining Brier gap is 0.0055,
+root README) — WTA's remaining Brier gap is 0.0057,
 and calibration is near-perfect after Platt scaling. Every constant below is
 the survivor of Optuna sweeps gated by paired-SE tests (tune 2010–19, validate 2020+)
 plus a full walk-forward arbiter — the adoption protocol, and the experiments it
@@ -107,7 +109,15 @@ src/tennis_model/
 pip install -r requirements.txt
 cd tennis_model
 
-# download all sources, then build both tours (predictor, site JSON, backtest)
+# FIRST: bootstrap from the release snapshot. `download` alone is NOT enough — the
+# scraped WTA serve-stats backfill (stats/2024+) exists ONLY in this asset, because no
+# free bulk source carries it. Skipping this leaves WTA 2024 at ~1,200 matches instead
+# of ~2,600, and every local metric you then measure is quietly on less data than
+# production has (this cost a round of wrong README numbers on 2026-07-25).
+gh release download data-archive --pattern 'raw-archive.tar.gz' -O /tmp/raw-archive.tar.gz
+tar -xzf /tmp/raw-archive.tar.gz -C data
+
+# THEN download all sources on top, and build both tours (predictor, site JSON, backtest)
 PYTHONPATH=src python -m tennis_model.data.download --kind all
 PYTHONPATH=src python -m tennis_model.pipeline --tour all --backtest
 

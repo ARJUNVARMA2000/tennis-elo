@@ -26,17 +26,17 @@ Across the literature, sophisticated ML doesn't beat a good Elo on its own — i
 *matches* it, while the betting market is the ceiling (~69% acc / 0.196 Brier). The
 winning recipe is a **hybrid**: engineer strong Elo + point-model features, then let
 gradient boosting combine and calibrate them. Walk-forward, leakage-free results
-(45,762 ATP / 42,513 WTA matches):
+(45,831 ATP / 42,126 WTA scored matches; measured 2026-07-25 on data through 07-24):
 
 | Model (walk-forward 2010–2026) | ATP Brier | WTA Brier |
 |---|---|---|
-| Surface Elo + cross-surface transfer (tuned per tour) | 0.2006 | 0.2112 |
-| Serve/return point model (tuned) | 0.2055 | 0.2148 |
-| **XGBoost combiner (seed-bagged)** | **0.1947** | **0.2015** |
+| Surface Elo + cross-surface transfer (tuned per tour) | 0.2006 | 0.2114 |
+| Serve/return point model (tuned) | 0.2055 | 0.2152 |
+| **XGBoost combiner (seed-bagged)** | **0.1950** | **0.2017** |
 | _Bookmaker (literature anchor)_ | _0.196_ | _0.196_ |
 
 The combiner beats every component on both tours, and the ATP model now **clears the
-literature bookmaker anchor on both accuracy (0.696 vs ~0.690) and Brier (0.1947 vs
+literature bookmaker anchor on both accuracy (0.696 vs ~0.690) and Brier (0.1950 vs
 0.196)** — head-to-head on the repo's own odds-matched subset, the bookmaker closing
 line (Pinnacle through 2025; Bet365/average close after Pinnacle left tennis-data in
 Jan 2026) still leads (0.201 vs 0.203 Brier; see the Scorecard page). The single largest jump

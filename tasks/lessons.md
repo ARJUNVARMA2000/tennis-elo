@@ -660,3 +660,20 @@
   The pattern for "non-fatal but must not be missed" is already in this repo: let the step
   continue, then red the run in a trailing step AFTER the deploy and the alerts have run.
   See [[future-proof-no-quick-fixes]].
+
+- **The release snapshot is load-bearing data that `download` cannot reproduce.**
+  (2026-07-25) Measuring the README's walk-forward locally, I ran `download --kind all` and
+  assumed that was the dataset. It is not: the scraped WTA serve-stats backfill
+  (`stats/2024+`) exists only in the `data-archive` release asset — no free bulk source
+  carries WTA serve stats since mid-2024 — and CI restores it on a cache miss before
+  downloading on top. Without it WTA 2024 holds 1,214 matches instead of 2,119, and every
+  local metric is quietly measured on less data than production has. I nearly committed those
+  numbers to the README. What caught it was the **row count, not the metric**: the README said
+  42,513 WTA and my run said 41,174, and n is the thing you can sanity-check against a prior
+  reference when the metric itself looks plausible. That is the same tell that would have
+  caught the challenger contamination weeks earlier. Rules: when a repo bootstraps from a
+  snapshot in CI, a local run is NOT equivalent to CI unless it bootstraps too — put that in
+  the Usage section, not in tribal memory; and before publishing any measured number, diff the
+  population size against whatever reference you are replacing, because a metric computed on
+  the wrong rows looks exactly like a metric computed on the right ones.
+  See [[future-proof-no-quick-fixes]].

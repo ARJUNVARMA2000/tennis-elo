@@ -1913,3 +1913,55 @@ Three ways it was being lost, one incident each:
 cadences. Measured locally, the walk is 46s ATP / 15s WTA and `train_final` is seconds — the
 refit riding along is nearly free, so splitting them buys complexity, not time. The daily
 cadence was never the problem; losing the run was.
+
+---
+
+# Task: README metrics refresh — closing the last open todo (2026-07-25)
+
+Closes the "README metrics refresh (single pass after the altitude verdict)" item that had
+been open since the 2026-07-05 data round. Measured, not inferred:
+`walk_forward(main_rows(build_feature_frame(tour)), start_test=2010, end_test=2026)` scored
+with `eval.metrics.score` — the same path `build_accuracy` uses, just the README's window.
+
+| 2010-2026 (measured 07-25, data through 07-24) | ATP acc | ATP Brier | WTA acc | WTA Brier |
+|---|---|---|---|---|
+| Elo blend | 0.6823 | 0.2006 | 0.6622 | 0.2114 |
+| Point model | 0.6690 | 0.2055 | 0.6442 | 0.2152 |
+| **Combiner** | **0.6958** | **0.1950** | **0.6848** | **0.2017** |
+
+n = 45,831 ATP / 42,126 WTA. Every prior README row reproduces within rounding, so the docs
+were never stale — the *shipped* `accuracy.json` was, via the challenger contamination fixed
+in 2a32c0a. Updated both READMEs to the measured values + an as-of date + the repro command.
+
+- [x] ATP measured twice, on separate runs, bit-identical (0.6958/0.1950/0.5707, n=45,831).
+
+## The near-miss, and the structural fix
+
+The FIRST attempt at this measured WTA on an **incomplete local dataset** and I nearly
+committed those numbers. `data/raw/wta/stats/{2024,2025}.csv` were absent locally and
+`2026.csv` had 242 rows vs 1,485 — because the scraped WTA serve-stats backfill exists ONLY
+in the `data-archive` release asset, which CI restores on a cache miss and which a plain
+`download --kind all` never fetches. WTA 2024 was 1,214 matches instead of 2,119; the WTA
+point model read 0.6420/0.2165 instead of 0.6442/0.2152.
+
+- [x] Caught by the row count, not the metric: README said 42,513 WTA and the run said 41,174.
+      Comparing `n` is what surfaced it — the same tell that would have caught the challenger
+      contamination in July.
+- [x] Nothing wrong was committed; both READMEs were reverted, the snapshot restored, and both
+      tours re-measured. ATP was unaffected (local >= snapshot in every source dir: historical
+      identical at 151,386 lines, stats local 66,024 vs snapshot 65,445, fresh/lower are
+      download-only) — so the contamination diagnosis and its ATP numbers stand unchanged.
+- [x] **Corrects an earlier claim in this session**: "WTA moved barely, 0.6767 -> 0.6780" was
+      production-complete vs local-incomplete, i.e. not like-for-like and worthless as stated.
+      The conclusion it was offered for — WTA was never contaminated — stands on the
+      `draw_level` analysis instead (WTA has zero chall/qual rows; `main_rows` is a literal
+      no-op there, 127,830 -> 127,830), which does not depend on dataset size.
+- [x] Structural fix: `tennis_model/README.md` Usage now leads with the snapshot bootstrap and
+      says what breaks without it. Docs only — a startup check that warns when `wta/stats/`
+      looks thin would be stronger, and is NOT done here.
+
+## Still open
+- WTA 2024 is 2,119 matches even WITH the backfill, vs ~2,600 in neighbouring years:
+  `wta/historical/2024.csv` is genuinely truncated upstream at May (months 1-5 only, byte
+  identical in local and snapshot) and the stats overlay only partly fills June-December.
+  That is the pre-existing "2024 top-up" item, now quantified: ~500 matches short.
