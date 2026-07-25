@@ -26,6 +26,7 @@ import pytest
 REPO = Path(__file__).resolve().parents[2]
 SCRIPT = REPO / ".github" / "scripts" / "report-deploy-health.sh"
 DATA_SCRIPT = REPO / ".github" / "scripts" / "report-data-health.sh"
+MODE_SCRIPT = REPO / ".github" / "scripts" / "decide-mode.sh"
 WORKFLOW = REPO / ".github" / "workflows" / "refresh.yml"
 
 # Windows dev boxes may lack bash; CI (ubuntu-latest) never does, which is where it counts.
@@ -248,6 +249,80 @@ def test_data_health_standing_failure_comments_once_when_the_problem_set_changes
 
 # --- the scripts must actually be the ones CI runs ---------------------------------------
 
+# --- mode selection (decide-mode.sh) -----------------------------------------------------
+#
+# The second inline-shell regression, found 2026-07-25. `Decide mode` compared
+# github.event.schedule to "0 6 * * *"; GitHub attributed the run occupying the daily slot
+# to the HOURLY cron string instead, so the FULL branch never fired on 07-21..07-25 and the
+# only successful full retrain in that window was a hand-dispatched one. Same lesson as the
+# alert scripts: shell that decides something this important needs a test.
+
+def _run_mode(event: str, hour: str = "06", dispatch: str = "auto", predictor: bool = True):
+    """Run the real decide-mode.sh; returns (exit_code, selected_mode)."""
+    with tempfile.TemporaryDirectory() as td:
+        out = Path(td) / "gh_out"
+        out.write_text("", encoding="utf-8")
+        pkl = Path(td) / "predictor.pkl"
+        if predictor:
+            pkl.write_text("x", encoding="utf-8")
+        env = {**os.environ, "EVENT_NAME": event, "DISPATCH_MODE": dispatch,
+               "NOW_HOUR": hour, "PREDICTOR": str(pkl), "GITHUB_OUTPUT": str(out)}
+        p = subprocess.run([_BASH, str(MODE_SCRIPT)], env=env, capture_output=True,
+                           text=True, timeout=60)
+        modes = [ln.split("=", 1)[1] for ln in out.read_text(encoding="utf-8").splitlines()
+                 if ln.startswith("mode=")]
+        return p.returncode, (modes[-1] if modes else None)
+
+
+def test_scheduled_run_in_the_daily_slot_retrains():
+    """The production regression: every scheduled run that landed in hour 6 on 07-21..07-25
+    chose quick. It must choose full — and stay full across the delivery delay that actually
+    occurred (runs fired 06:30-06:43, i.e. still hour 6, just not at :00)."""
+    code, mode = _run_mode("schedule", hour="06")
+    assert code == 0 and mode == "full", (code, mode)
+
+
+def test_scheduled_run_outside_the_slot_stays_quick():
+    """Every other hourly run must stay cheap — a full retrain per hour would both cost 30
+    minutes a pop and, when it fails, block the deploy the quick path would have shipped."""
+    for hour in ("00", "05", "07", "17", "23"):
+        code, mode = _run_mode("schedule", hour=hour)
+        assert code == 0 and mode == "quick", (hour, code, mode)
+
+
+def test_mode_does_not_depend_on_which_cron_github_blames():
+    """The whole point: the decision reads the clock, so the script has no input for a cron
+    string at all. If someone reintroduces one, this fails."""
+    # comments explain the bug on purpose; only executable lines must be free of it
+    code = [ln for ln in MODE_SCRIPT.read_text(encoding="utf-8").splitlines()
+            if ln.strip() and not ln.lstrip().startswith("#")]
+    assert not any("event.schedule" in ln or "0 6 * * *" in ln for ln in code), \
+        "decide-mode.sh is keying off the cron string again — that is the bug"
+    assert "event.schedule" not in WORKFLOW.read_text(encoding="utf-8")
+
+
+def test_dispatch_input_overrides_the_slot_in_both_directions():
+    for hour, want in (("06", "quick"), ("13", "quick")):
+        assert _run_mode("workflow_dispatch", hour=hour, dispatch="quick") == (0, want)
+    for hour in ("06", "13"):
+        assert _run_mode("workflow_dispatch", hour=hour, dispatch="full") == (0, "full")
+    # "auto" defers to the slot rule; a dispatch is not a scheduled run, so it stays quick
+    assert _run_mode("workflow_dispatch", hour="06", dispatch="auto") == (0, "quick")
+
+
+def test_missing_predictor_forces_a_full_build():
+    """First run, or an evicted cache: there is no model to refresh from."""
+    code, mode = _run_mode("schedule", hour="13", predictor=False)
+    assert code == 0 and mode == "full", (code, mode)
+    # ...but an explicit `quick` dispatch with no model must not be honoured into a crash
+    assert _run_mode("workflow_dispatch", dispatch="quick", predictor=False) == (0, "full")
+
+
+def test_push_runs_stay_quick():
+    """A push deploys code, not a retrain — the daily slot owns that."""
+    assert _run_mode("push", hour="06") == (0, "quick")
+
+
 def test_workflow_invokes_this_script():
     """Guards against the script drifting out of use: if refresh.yml stops calling it,
     every test above would keep passing while testing dead code."""
@@ -256,6 +331,8 @@ def test_workflow_invokes_this_script():
     wf = WORKFLOW.read_text(encoding="utf-8")
     assert ".github/scripts/report-deploy-health.sh" in wf
     assert ".github/scripts/report-data-health.sh" in wf
+    assert MODE_SCRIPT.exists(), f"missing {MODE_SCRIPT}"
+    assert ".github/scripts/decide-mode.sh" in wf
     assert "if: always()" in wf, "the never-ran guard only matters under if: always()"
 
 

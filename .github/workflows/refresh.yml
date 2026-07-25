@@ -83,14 +83,10 @@ jobs:
 
       - name: Decide mode
         id: mode
-        run: |
-          MODE=quick
-          if [ "${{ github.event_name }}" = "schedule" ] && [ "${{ github.event.schedule }}" = "0 6 * * *" ]; then MODE=full; fi
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.mode }}" != "auto" ]; then MODE="${{ github.event.inputs.mode }}"; fi
-          # No saved model to refresh from yet (e.g. first run / evicted cache) -> do a full build.
-          if [ "$MODE" = "quick" ] && [ ! -f tennis_model/data/output/atp/predictor.pkl ]; then MODE=full; fi
-          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
-          echo "Selected mode: $MODE"
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_MODE: ${{ github.event.inputs.mode }}
+        run: bash .github/scripts/decide-mode.sh
 
       - name: Full refresh (download all + retrain both tours)
         if: steps.mode.outputs.mode == 'full'

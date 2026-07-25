@@ -1755,3 +1755,58 @@ that could be any age).
   `web/tests/bracket.test.ts` (a projection-fixture literal narrowing to `SF?: undefined`).
   CI runs eslint + vitest + `next build`, all green; `tsc --noEmit` over the test folder is not
   in the pipeline, which is why it went unnoticed.
+
+---
+
+# Task: The daily retrain was never firing — `github.event.schedule` (2026-07-25)
+
+Found while trying to close the "README metrics refresh" todo: the README's headline numbers
+disagreed with live `accuracy.json`, which led to asking when that artifact was last written,
+which led here. The model-age watchdog shipped an hour earlier was built to DETECT this; this
+is the mechanism that caused it.
+
+**`Decide mode` never selected `full` on a scheduled run.** The inline block compared
+`github.event.schedule` to the literal `"0 6 * * *"`. GitHub attributed the run occupying the
+daily slot to the *hourly* cron string instead. From run 30147619526's own log:
+
+```
+if [ "schedule" = "schedule" ] && [ "17 0-5,7-23 * * *" = "0 6 * * *" ]; then MODE=full; fi
+```
+
+- [x] Blast radius: every scheduled run in the 05:00-07:00 window on 07-21/22/23/24/25 selected
+      `quick` (30072983446, 29985821119, 29897681810, 29807886697, 30147619526 — checked from
+      each run's `Selected mode:` line). The only successful FULL run in that window was
+      30144323370, a hand `workflow_dispatch` at 04:36 on 07-25. The daily retrain has not
+      fired on its own in at least five days.
+- [x] Root cause is trusting *which* cron GitHub says fired. Delivery is delayed and
+      re-attributed under load (the affected runs fired 06:30-06:43, never at :00).
+- [x] Fix: read the clock, not the cron string. `.github/scripts/decide-mode.sh` — a scheduled
+      run landing in `FULL_HOUR` (06 UTC) is the daily retrain, however GitHub labelled it.
+- [x] Deliberately NOT "retrain whenever the model is older than N hours": a persistently
+      failing full run would then be retried hourly, and since a red full run blocks the
+      deploy, the site would freeze instead of coasting on quick refreshes. Mechanism here,
+      detection in the model-age watchdog — they are separate on purpose.
+- [x] Extracted to a script per the CLAUDE.md rule that already covers the alert shell. This is
+      the SECOND inline-`run:`-block regression in a week; the rule earns its keep again.
+- [x] 7 new test_workflow_alerts.py cases (26 total): the slot retrains, every other hour stays
+      quick, dispatch overrides both ways, missing predictor forces full, push stays quick, and
+      a guard asserting no executable line references a cron string ever again.
+- [x] Proof: 344 pytest (was 338) + ruff clean; refresh.yml parses; `bash -n`; script is LF;
+      unset-`GITHUB_OUTPUT` path exits 0.
+
+**Residual, accepted:** if GitHub ever delays the 06:00 delivery past 07:00 UTC, that day's
+retrain is missed. The model-age watchdog now pages after 3 days, which is the right backstop —
+a tighter mechanism would trade a rare missed day for a possible hourly full-retrain storm.
+
+**Still open — NOT fixed here.** Live `accuracy.json`, rewritten by today's genuine full run
+(04:36, data through 2026-07-24), reports ATP combiner acc **0.6571** / Brier **0.2127** and WTA
+**0.6767** / **0.2049**. `tasks/tuning-results-2026-07-05-data-round.md:96` records
+**0.6832 / 0.2001** for ATP on the same 2016-26 window at A5 adoption. That is a real ~2.6pt
+accuracy / +0.013 Brier regression on a like-for-like window, and both READMEs still advertise
+the old 0.696 / 0.1947. Candidates: (a) `main_rows` going inert — `features.py:345` defaults a
+missing `draw_level` to `"main"` and `main_rows` early-returns the whole frame if the column is
+absent, which would put the challenger-dominated mix A5 explicitly REJECTED back into training
+and scoring (ATP n=69,099 for 2016-26 is ~2.5x main-tour volume, consistent with this); note
+`main_rows` has NO test. (b) the rewritten LFS mirror degrading recent-year data, already
+flagged untrusted in the 07-25 entry. Needs a local rebuild to separate. The READMEs were left
+untouched — refreshing them would launder whichever of these is real into a documented fact.

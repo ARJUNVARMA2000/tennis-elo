@@ -608,3 +608,21 @@
   output problems fold into `health.json ok`, which is what `report-data-health.sh` reads).
   See [[future-proof-no-quick-fixes]] and the fp=None entry above — the stamp is derived in
   the constructor for the same reason.
+
+- **Never key a decision off *which* cron GitHub says fired.**
+  (2026-07-25) `Decide mode` compared `github.event.schedule` to the literal `"0 6 * * *"` to
+  pick the daily FULL retrain. GitHub attributed the run occupying that slot to the *hourly*
+  cron string instead — `[ "17 0-5,7-23 * * *" = "0 6 * * *" ]` — so the full branch never
+  fired on 07-21..07-25 and the model was retrained only when a human dispatched it by hand.
+  Scheduled delivery is delayed and re-attributed under load (the affected runs landed
+  06:30-06:43, never at :00), so the cron string is not a stable identity. Read the clock
+  instead: a scheduled run landing in the intended hour IS the daily job, however GitHub
+  labelled it. Two further rules fell out. First, the tempting "retrain whenever the model is
+  older than N hours" is worse, not better: a persistently failing full run would be retried
+  every hour, and because a red full run blocks the deploy, the site would freeze instead of
+  coasting on quick refreshes — keep the *mechanism* (which run retrains) separate from the
+  *detection* (has retraining stopped), which is the model-age watchdog's job. Second, this is
+  the second inline-`run:`-block regression in a week; the CLAUDE.md rule about testable shell
+  is not just about alerting — any shell that decides something expensive or load-bearing
+  belongs in `.github/scripts/` with a case in `test_workflow_alerts.py`. See the
+  "Inline workflow `run:` shell is untestable" entry above and [[future-proof-no-quick-fixes]].
