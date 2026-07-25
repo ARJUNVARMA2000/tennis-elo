@@ -1697,3 +1697,61 @@ treated as newly untrusted: it now uses `2026/1/4`-style dates and has at least 
 year error. Every staleness check in health.py is one-sided ("too old"); this one needed the
 other end. Still outstanding from the previous round: a watchdog on MODEL age, not just data
 age — the retrain being down for 5 days was invisible because the quick path kept deploying.
+
+---
+
+# Task: Model-age watchdog — the follow-up left open twice (2026-07-25)
+
+The 07-24 and 07-25 rounds both closed with the same deferred item: *"a watchdog on MODEL age,
+not just data age — the retrain being down for 5 days was invisible because the quick path kept
+deploying."* Confirmed structurally before starting: `export.build_meta` stamps
+`lastUpdated = now()` on EVERY export, quick runs included, so `HEALTH_MAX_BUILD_AGE_DAYS`
+measures "when did we last write JSON", never "when was the model last trained". Live
+`atp/meta.json` carries no model-age field at all (`lastUpdated 2026-07-25T04:57Z` on a model
+that could be any age).
+
+## Checklist
+- [x] `predict.py`: stamp `trained_at` in `__init__` (both construction sites train-then-construct;
+      derive-in-constructor per the fp=None lesson) — travels INSIDE the pickle, so an
+      actions/cache restore can't launder it the way an mtime would
+- [x] `export.py`: `build_meta(..., trained_at)` -> `modelTrainedAt`; `export_all` passes the
+      predictor's stamp (quick runs republish the OLD pickle's stamp — that is the whole point)
+- [x] `config.py`: `HEALTH_MAX_MODEL_AGE_DAYS = 3` (= three consecutive missed retrains)
+- [x] `health.py`: ADVISORY model-age check in `output_problems` (+ `_GATE_ADVISORY` marker —
+      a stale model must never freeze the site) + `model_trained_at` in the output block
+- [x] web: `model_trained_at` on the report type; render it next to "built" on /health
+      (no client-side threshold — the verdict stays in health.py)
+- [x] tests: export (stamp + pickle round-trip + meta field + null degrade), health (over-limit
+      flags, advisory not blocking, missing key silent, exactly-at-ceiling clean, main() alert path)
+- [x] Verify: 338 pytest (was 332) + ruff clean; 173 vitest + lint 0 errors + build 21 routes;
+      end-to-end `--gate` negative control; /health rendered on :3001
+
+## Review
+- **Shipped**: `meta.json` now carries `modelTrainedAt` beside `lastUpdated`, and `health.py`
+  flags a model older than 3 days. The two timestamps answer different questions —
+  `lastUpdated` is "when was this JSON written", `modelTrainedAt` is "when was the predictor
+  behind it trained" — and the whole 5-day outage lived in the gap: the hourly quick refresh
+  rewrote the first while reusing the pickle behind the second, so `HEALTH_MAX_BUILD_AGE_DAYS`
+  was structurally incapable of firing. Confirmed before writing any code: live `atp/meta.json`
+  had no model-age field at all.
+- **The stamp is derived in `TennisPredictor.__init__`**, not at the two call sites — both
+  construct straight out of `train_final`, and the fp=None lesson is that a call site will
+  eventually forget. It rides inside the pickle rather than being read off the file mtime,
+  because CI hands the quick run its predictor via an `actions/cache` restore.
+- **Advisory, never blocking.** A stale model still forecasts; blocking the deploy would strand
+  the site on an even older build. Same policy as forecast drift — the problem reaches a human
+  through `health.json ok` → the existing `report-data-health.sh` issue flow, so no workflow
+  change was needed (pinned by a test that runs `main()` end to end).
+- **Missing stamp is silent, on purpose.** Pickles predating this export `modelTrainedAt: null`;
+  alerting on that would fire on both tours for one cycle and teach the reader to ignore the
+  check. The next daily full retrain fills it in.
+- **Proof**: 338 pytest (+6) + ruff clean; 173 vitest + eslint 0 errors + typed build (21
+  routes). `--gate` negative control on a 6-day-old model: exit 0 with
+  `GATE/atp: warn atp: model last retrained 5d ago ... (advisory)`, and exit 0 clean at 2h.
+  /health on :3001 against the live report doctored to the outage shape renders
+  `ATP ... built 13d ago · trained 1h ago` / `WTA ... built 13d ago · trained 8d ago` with the
+  problem listed under output integrity, 0 console errors.
+- **Not fixed (pre-existing, out of scope)**: `npx tsc --noEmit` has 2 errors in
+  `web/tests/bracket.test.ts` (a projection-fixture literal narrowing to `SF?: undefined`).
+  CI runs eslint + vitest + `next build`, all green; `tsc --noEmit` over the test folder is not
+  in the pipeline, which is why it went unnoticed.

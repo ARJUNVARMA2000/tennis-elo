@@ -284,11 +284,15 @@ def _surface_of(oos):  # oos lacks surface; return empty to skip gracefully
     return pd.DataFrame(index=oos.index)
 
 
-def build_meta(df, players, accuracy) -> dict:
+def build_meta(df, players, accuracy, trained_at: str | None = None) -> dict:
+    """`lastUpdated` is when this JSON was written; `modelTrainedAt` is when the predictor
+    behind it was trained. They diverge on every quick refresh — which republishes the
+    saved pickle — so only the latter can reveal a daily retrain that has been failing."""
     s = summary(df)
     return {
         "tour": df["tour"].iloc[0] if "tour" in df else "atp",
         "lastUpdated": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "modelTrainedAt": trained_at,
         "dataThrough": s["date_max"], "modelVersion": __version__,
         "matches": s["matches"], "players": s["players"], "activePlayers": len(players),
         "features": FEATURES, "surfaces": list(SURFACES),
@@ -420,6 +424,9 @@ def export_all(tour, df, elo, srv, meta, predictor, oos=None) -> None:
     _write(tour, "fixtures.json", build_fixtures(df, predictor))
     if accuracy:
         _write(tour, "accuracy.json", accuracy)
-    _write(tour, "meta.json", build_meta(df, players, accuracy))
+    # getattr, not predictor.trained_at: a pickle cached from before the stamp existed has
+    # no attribute, and a missing stamp must degrade to "unknown", never crash the export
+    _write(tour, "meta.json", build_meta(df, players, accuracy,
+                                         getattr(predictor, "trained_at", None)))
     _write(tour, "method.json", build_method(tour))
     print(f"  exported JSON for {tour} ({len(players)} players){'' if accuracy else ' [quick]'}")

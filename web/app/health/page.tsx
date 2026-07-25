@@ -123,6 +123,9 @@ function TourPanel({ tour, t, now }: { tour: string; t: TourReport; now: number 
         <div className="mono text-[11px] text-[var(--color-faint)]">
           {t.matches.toLocaleString("en-US")} matches · results to {t.date_max ?? "—"}
           {built && <> · built {built}</>}
+          {/* "built" refreshes hourly off the saved model; "trained" only moves on the
+              daily full retrain, so the two diverging is the tell that it is failing. */}
+          <> · trained {t.output.model_trained_at ? rel(t.output.model_trained_at, now) : "—"}</>
         </div>
       </div>
 

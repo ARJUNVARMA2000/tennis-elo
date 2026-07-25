@@ -242,6 +242,45 @@ def test_build_brackets_payload_splits_and_stamps():
     print("ok test_build_brackets_payload_splits_and_stamps")
 
 
+def test_build_meta_separates_build_time_from_model_time():
+    """`lastUpdated` is when this JSON was written; `modelTrainedAt` is when the predictor
+    was trained. The hourly quick refresh rewrites the first while reusing the pickle
+    behind the second — so only their divergence can reveal a dead daily retrain."""
+    import pandas as pd
+
+    df = pd.DataFrame({"tour": ["atp"], "date": [pd.Timestamp("2026-07-24")],
+                       "winner_name": ["A"], "loser_name": ["B"],
+                       "has_stats": [True], "completed": [True], "surface_b": ["Hard"]})
+    trained = "2026-07-04T04:31:07Z"
+    meta = export.build_meta(df, players=[], accuracy=None, trained_at=trained)
+    assert meta["modelTrainedAt"] == trained
+    assert meta["lastUpdated"] != trained and meta["lastUpdated"].endswith("Z")
+    # a pickle predating the stamp must export null, not crash or fake a fresh time
+    assert export.build_meta(df, players=[], accuracy=None)["modelTrainedAt"] is None
+    _strict_load(json.dumps(export._finite(meta)))
+    print("ok test_build_meta_separates_build_time_from_model_time")
+
+
+def test_predictor_stamps_trained_at_and_survives_a_pickle_round_trip():
+    """The stamp is derived in the constructor (not at the two call sites, which have
+    forgotten a constructor arg before) and rides INSIDE the pickle — a file mtime would
+    be laundered by the CI cache restore that hands the quick run its predictor."""
+    import pickle
+
+    from tennis_model.model.predict import TennisPredictor
+
+    p = TennisPredictor(clf=None, iso=None, elo=None, srv=None, ctx=None, meta={}, tour="wta")
+    assert p.trained_at and p.trained_at.endswith("Z")
+    assert pickle.loads(pickle.dumps(p)).trained_at == p.trained_at
+
+    # a pickle from before the stamp existed degrades to None, never raises
+    old = TennisPredictor(clf=None, iso=None, elo=None, srv=None, ctx=None, meta={}, tour="wta")
+    del old.trained_at
+    assert old._trained_at is None
+    assert getattr(old, "trained_at", None) is None      # the accessor export_all uses
+    print("ok test_predictor_stamps_trained_at_and_survives_a_pickle_round_trip")
+
+
 if __name__ == "__main__":
     test_finite_replaces_nonfinite_scalars()
     test_finite_recurses_into_nested_containers()
@@ -252,4 +291,6 @@ if __name__ == "__main__":
     test_build_method_shape_and_strict_json()
     test_build_method_atp_uses_xgb_defaults()
     test_build_brackets_payload_splits_and_stamps()
+    test_build_meta_separates_build_time_from_model_time()
+    test_predictor_stamps_trained_at_and_survives_a_pickle_round_trip()
     print("\nALL PASSED")

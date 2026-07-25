@@ -422,6 +422,13 @@ HEALTH_MAX_FORECAST_AGE_DAYS = 5    # forecast_log max(as_of) — the log append
 # checks that the JSON the web reads is sane, not just that the sources are fresh.
 HEALTH_MIN_MATCHES = {"atp": 250_000, "wta": 100_000}   # match-count floor (now ~283k / ~129k)
 HEALTH_MAX_BUILD_AGE_DAYS = 3        # meta.lastUpdated staleness — the full build runs daily year-round
+HEALTH_MAX_MODEL_AGE_DAYS = 3        # meta.modelTrainedAt staleness. NOT the same thing as the
+                                    # line above: every export stamps lastUpdated, including the
+                                    # hourly quick refresh, which republishes the PREVIOUS
+                                    # predictor.pkl. So a daily retrain that has been red for days
+                                    # leaves the site looking freshly built while the model behind
+                                    # it rots (2026-07-19..24: 5 silent days). Same 3d ceiling as
+                                    # the build age = three consecutive missed retrains.
 HEALTH_MAX_LIVERANK_NULL_FRAC = 0.30  # top-200 without a live rank -> rankings source drifted (normal ~3-9%)
 # market.json: matched odds may trail the newest scored match by at most this — a larger
 # gap means the odds feed dropped a book and the benchmark window silently froze

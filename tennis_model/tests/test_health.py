@@ -49,7 +49,8 @@ def _healthy_data() -> dict:
     m = [[0.5 if i == j else (0.6 if i < j else 0.4) for j in range(3)] for i in range(3)]
     return {
         "meta": {"matches": 300_000, "activePlayers": 3, "features": ["f"] * len(FEATURES),
-                 "lastUpdated": "2026-07-09T00:00:00Z"},
+                 "lastUpdated": "2026-07-09T00:00:00Z",
+                 "modelTrainedAt": "2026-07-08T04:30:00Z"},   # last night's full retrain
         "players": [{"name": f"P{i}", "elo": 2000 - i, "eloRank": i + 1, "liveRank": i + 1,
                      "heightCm": 185, "winRate10": 0.6,
                      "servePctHard": 0.64, "servePctClay": 0.61, "servePctGrass": 0.66,
@@ -326,6 +327,44 @@ def test_main_surfaces_output_problems():
     print("ok test_main_surfaces_output_problems")
 
 
+def test_main_reports_a_stale_model_through_the_alert_path():
+    """The check only earns its keep if it reaches a human. Output problems fold into
+    health.json `ok`, which is exactly what .github/scripts/report-data-health.sh reads to
+    open the data-health issue — so a dead retrain now pages, with no workflow change. The
+    /health page's stamp rides along in output.model_trained_at."""
+    from datetime import UTC, datetime, timedelta
+    today = pd.Timestamp(datetime.now(UTC).date())
+    fresh = pd.DataFrame({"date": pd.to_datetime([datetime.now(UTC).date()]),
+                          "completed": [True], "has_stats": [True]})
+    stale = _healthy_data()
+    stale["meta"]["lastUpdated"] = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    stale["meta"]["modelTrainedAt"] = (datetime.now(UTC) - timedelta(days=8)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    orig = (health.load_matches, health.read_outputs, health.fresh_date_max,
+            health.charting_date_max, health.OUTPUT_DIR, health.WEB_DATA_DIR,
+            health.TOURS, sys.argv)
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            health.load_matches = lambda tour: fresh
+            health.read_outputs = lambda tour: _oc(data=stale)
+            health.fresh_date_max = lambda tour: today
+            health.charting_date_max = lambda tour: today
+            health.OUTPUT_DIR = Path(d)
+            health.WEB_DATA_DIR = Path(d) / "web"
+            health.TOURS = ("atp",)
+            sys.argv = ["health"]
+            health.main()
+            report = json.loads((Path(d) / "health.json").read_text())
+    finally:
+        (health.load_matches, health.read_outputs, health.fresh_date_max,
+         health.charting_date_max, health.OUTPUT_DIR, health.WEB_DATA_DIR,
+         health.TOURS, sys.argv) = orig
+    out = report["tours"]["atp"]["output"]
+    assert report["ok"] is False                                   # -> data-health issue opens
+    assert any("model last retrained" in p for p in out["problems"]), out["problems"]
+    assert out["model_trained_at"] == stale["meta"]["modelTrainedAt"]
+    print("ok test_main_reports_a_stale_model_through_the_alert_path")
+
+
 def test_gate_blocks_bad_output_without_writing_healthjson():
     """--gate reds the deploy on an integrity problem but must NOT clobber the sentinel's
     health.json, and must pass on internally-consistent output (fresh lastUpdated so the
@@ -417,6 +456,44 @@ def test_output_method_out_of_range():
     out2 = health.output_problems("atp", _oc(data=d2), NOW)
     assert any("missing section(s) combiner" in p for p in out2)
     print("ok test_output_method_out_of_range")
+
+
+def test_output_model_age_flags_a_dead_retrain():
+    """The production failure this check exists for: the daily full run is red, but the
+    hourly quick refresh keeps exporting off the saved pickle — so `lastUpdated` stays
+    fresh and every other invariant passes while the model behind the site rots."""
+    d = _healthy_data()
+    d["meta"]["lastUpdated"] = "2026-07-09T00:00:00Z"          # shipped an hour ago...
+    d["meta"]["modelTrainedAt"] = "2026-07-04T00:00:00Z"       # ...off a 5-day-old model
+    out = health.output_problems("atp", _oc(data=d), NOW)
+    assert any("model last retrained 5d ago" in p for p in out), out
+    # the build-age check is structurally blind to this — it is why the outage ran 5 days
+    assert not any("outputs last built" in p for p in out), out
+    print("ok test_output_model_age_flags_a_dead_retrain")
+
+
+def test_output_model_age_is_advisory_never_blocking():
+    """A stale model still forecasts. Blocking the deploy would strand the site on an even
+    older build, so this warns and ships (same policy as forecast drift)."""
+    d = _healthy_data()
+    d["meta"]["modelTrainedAt"] = "2026-06-01T04:30:00Z"
+    out = [p for p in health.output_problems("atp", _oc(data=d), NOW) if "model last retrained" in p]
+    assert out and not any(health._gate_blocks(p) for p in out), out
+    print("ok test_output_model_age_is_advisory_never_blocking")
+
+
+def test_output_model_age_missing_is_silent_and_fresh_is_clean():
+    """A pickle predating the stamp exports modelTrainedAt=null; alerting on that would
+    fire on every tour for one cycle and teach the reader to ignore the check. The next
+    full retrain fills it in."""
+    d = _healthy_data(); d["meta"]["modelTrainedAt"] = None
+    assert health.output_problems("atp", _oc(data=d), NOW) == []
+    d2 = _healthy_data(); del d2["meta"]["modelTrainedAt"]
+    assert health.output_problems("atp", _oc(data=d2), NOW) == []
+    # exactly at the ceiling is still fine — only strictly over alerts
+    d3 = _healthy_data(); d3["meta"]["modelTrainedAt"] = "2026-07-06T00:00:00Z"   # exactly 3d
+    assert not any("model last retrained" in p for p in health.output_problems("atp", _oc(data=d3), NOW))
+    print("ok test_output_model_age_missing_is_silent_and_fresh_is_clean")
 
 
 def test_output_match_floor_and_drop():
@@ -1035,9 +1112,13 @@ if __name__ == "__main__":
     test_main_strict_exit_code_and_report()
     test_main_surfaces_output_problems()
     test_main_reports_problems_changed()
+    test_main_reports_a_stale_model_through_the_alert_path()
     test_gate_blocks_bad_output_without_writing_healthjson()
     test_gate_classifies_advisory_vs_blocking()
     test_output_healthy_is_clean()
+    test_output_model_age_flags_a_dead_retrain()
+    test_output_model_age_is_advisory_never_blocking()
+    test_output_model_age_missing_is_silent_and_fresh_is_clean()
     test_output_missing_and_corrupt_files()
     test_output_feature_schema_drift()
     test_output_method_missing_blocks()

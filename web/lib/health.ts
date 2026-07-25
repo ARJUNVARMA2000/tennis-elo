@@ -22,6 +22,11 @@ export type TourReport = {
   problems: string[];
   output: {
     matches: number | null;
+    /** When the predictor behind this build was trained — NOT when the JSON was written
+        (meta.lastUpdated). The hourly quick refresh rewrites the latter while reusing the
+        saved model, so a dead daily retrain only shows here. Null for a model predating
+        the stamp. Whether it is TOO old is decided in health.py, never here. */
+    model_trained_at: string | null;
     forecast_lines: number | null;
     forecast_max_as_of: string | null;
     problems: string[];

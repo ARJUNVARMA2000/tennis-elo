@@ -590,3 +590,21 @@
   and `.gitattributes` pinning `*.sh` to LF (this repo is developed on Windows with autocrlf on;
   a CRLF shebang fails on the Linux runner). Rule: if shell decides whether a human gets paged,
   it belongs in a file with tests. See [[future-proof-no-quick-fixes]].
+
+- **Two timestamps that look like one: "when was this written" vs "when was this trained".**
+  (2026-07-25) The daily retrain was dead for five days and nothing noticed, because
+  `HEALTH_MAX_BUILD_AGE_DAYS` watches `meta.lastUpdated` — which `build_meta` stamps with
+  `now()` on EVERY export, including the hourly quick refresh that deliberately reuses the
+  saved `predictor.pkl`. So the freshest possible build stamp sat on top of an ever-older
+  model, and the check could not fire even in principle. Only the daily full run's own red
+  revealed it, and only because someone read the log. Fix: export `modelTrainedAt` alongside
+  `lastUpdated`, stamped in `TennisPredictor.__init__` so it rides inside the pickle (a file
+  mtime would be laundered by the `actions/cache` restore that hands the quick run its
+  model), and flag it ADVISORY — a stale model still forecasts, so blocking the deploy would
+  only strand the site on an older build. Rules: when a fast path and a slow path both write
+  the same artifact, a freshness check on that artifact measures the FAST path and tells you
+  nothing about the slow one — give the slow path its own stamp; and a staleness check is
+  only real if a *human* is reached, so verify it lands in the existing alert flow (here:
+  output problems fold into `health.json ok`, which is what `report-data-health.sh` reads).
+  See [[future-proof-no-quick-fixes]] and the fp=None entry above — the stamp is derived in
+  the constructor for the same reason.

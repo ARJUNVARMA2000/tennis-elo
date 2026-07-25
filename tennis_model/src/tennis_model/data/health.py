@@ -46,6 +46,7 @@ from ..config import (
     HEALTH_MAX_FUTURE_DATE_DAYS,
     HEALTH_MAX_LIVERANK_NULL_FRAC,
     HEALTH_MAX_MARKET_LAG_DAYS,
+    HEALTH_MAX_MODEL_AGE_DAYS,
     HEALTH_MAX_RESULT_AGE_DAYS,
     HEALTH_MAX_STATS_AGE_DAYS,
     HEALTH_MIN_MATCHES,
@@ -249,6 +250,8 @@ _GATE_ADVISORY = (
     "is empty",                    # tournaments.json / upcoming.json empty
     "liveRank",                    # rankings source drifted (site still correct on model odds)
     "outputs last built",          # build-age; can't legitimately fire right after a build
+    "model last retrained",        # retrain liveness; a stale model still forecasts — freezing
+                                   # the site would strand it on an even staler deploy
     "market.json odds coverage",   # benchmark-card staleness; odds are never a build dependency
     "forecast drift",              # model-decay advisory; a re-tune recommendation must never block a deploy
     "forecast log last advanced",  # eval-artifact liveness; never a build dependency
@@ -725,6 +728,16 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
             out.append(f"{tour}: meta.lastUpdated missing/unparseable ({meta.get('lastUpdated')!r})")
         elif age > HEALTH_MAX_BUILD_AGE_DAYS:
             out.append(f"{tour}: outputs last built {age}d ago (max {HEALTH_MAX_BUILD_AGE_DAYS})")
+        # Retrain liveness. The check above cannot see this: the hourly quick refresh
+        # rewrites lastUpdated while reusing the saved predictor, so a daily retrain that
+        # has been red for days keeps shipping a freshly-stamped site off a rotting model
+        # (2026-07-19..24). A missing stamp means a pickle predating it — stay silent
+        # rather than alert on every tour until the next full run fills it in.
+        trained = _age_days(meta.get("modelTrainedAt"), now)
+        if trained is not None and trained > HEALTH_MAX_MODEL_AGE_DAYS:
+            out.append(f"{tour}: model last retrained {trained}d ago "
+                       f"(max {HEALTH_MAX_MODEL_AGE_DAYS}) — the daily full run is failing while "
+                       f"the quick refresh keeps deploying")
 
     method = data.get("method")
     if isinstance(method, dict):
@@ -953,6 +966,7 @@ def main() -> int:
         h["problems"] = p
         h["output"] = {
             "matches": meta.get("matches"),
+            "model_trained_at": meta.get("modelTrainedAt"),
             "forecast_lines": (oc["forecast"] or {}).get("lines"),
             "forecast_max_as_of": (oc["forecast"] or {}).get("max_as_of"),
             "problems": op,

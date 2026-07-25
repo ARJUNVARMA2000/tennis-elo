@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import math
 import pickle
+from datetime import UTC, datetime
 
 import numpy as np
 import pandas as pd
@@ -48,11 +49,22 @@ class TennisPredictor:
         # omitted so no construction site can silently fall back to config defaults
         # (pipeline.build_tour once shipped WTA pickles with fp=None)
         self.fp = fp if fp is not None else feat_params_for(tour)
+        # When this model was trained. Derived here rather than at the call sites (both of
+        # them construct straight out of train_final) so no path can ship an unstamped
+        # pickle — same reasoning as `fp` above. It rides INSIDE the pickle on purpose: the
+        # file mtime is laundered by an actions/cache restore, and every JSON export stamps
+        # itself with now(), so this is the only honest record of model age.
+        self.trained_at = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     @property
     def _fp(self):
         # tolerate pickles from before the FeatureParams refactor
         return getattr(self, "fp", None) or DEFAULT_FEAT_PARAMS
+
+    @property
+    def _trained_at(self) -> str | None:
+        """None for pickles predating the stamp — the next full retrain fills it in."""
+        return getattr(self, "trained_at", None)
 
     def _home_flag(self, a: str, b: str, event: str | None) -> float:
         """home_flag_diff for a real match at a known event (0 for hypotheticals)."""

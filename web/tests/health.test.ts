@@ -17,7 +17,7 @@ const report = (over: Partial<HealthReport> = {}): HealthReport => ({
     atp: {
       matches: 283000, date_max: "2026-07-10",
       checks: [row()], problems: [],
-      output: { matches: 283000, forecast_lines: 120, forecast_max_as_of: "2026-07-10", problems: [] },
+      output: { matches: 283000, model_trained_at: "2026-07-10T04:30:00Z", forecast_lines: 120, forecast_max_as_of: "2026-07-10", problems: [] },
     },
   },
   ...over,
