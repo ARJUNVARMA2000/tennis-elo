@@ -116,6 +116,23 @@ def test_problems_fresh_is_clean():
     print("ok test_problems_fresh_is_clean")
 
 
+def test_problems_future_dated_match_flagged():
+    """A future date is corruption, not staleness, and the result-age check structurally
+    cannot see it: result_age_days goes NEGATIVE and sails under its maximum. One mistyped
+    year in the WTA overlay (Iasi as 2029/7/20, 2026-07-25) moved elo.last_date three years
+    out, so the 550d active window kept only the 2 players in that row and the tour exported
+    2 players instead of 200."""
+    now = pd.Timestamp("2026-07-25")
+    out = health.problems("wta", {**_h(result_age=-1095), "date_max": "2029-07-20"}, now)
+    assert any("in the FUTURE" in p for p in out), out
+    # the negative age must NOT be reported as fresh-and-fine
+    assert not any("newest completed match is -" in p for p in out), out
+    # a normal past date is clean, and so is a plausible near-future scheduled row
+    for dmax in ("2026-07-24", "2026-07-30"):
+        assert health.problems("wta", {**_h(), "date_max": dmax}, now) == [], dmax
+    print("ok test_problems_future_dated_match_flagged")
+
+
 def test_problems_stale_results_flagged():
     out = health.problems("atp", _h(result_age=10), pd.Timestamp("2026-07-01"))
     assert len(out) == 1 and "newest completed match" in out[0], out
@@ -206,7 +223,7 @@ def test_source_checks_structure_and_consistency():
     for h in scenarios:
         for now in (july, pd.Timestamp("2026-12-15"), pd.Timestamp("2026-01-10")):
             rows = health.source_checks("atp", h, now)
-            assert [r["key"] for r in rows] == ["results", "stats", "coverage", "fresh", "charting"]
+            assert [r["key"] for r in rows] == ["results", "future_dates", "stats", "coverage", "fresh", "charting"]
             for r in rows:
                 assert set(r) == {"key", "label", "value", "limit", "unit", "date",
                                   "ok", "note", "problem"}
@@ -272,7 +289,7 @@ def test_main_strict_exit_code_and_report():
     assert rc_soft == 0                      # same problems, but only --strict reds the build
     # /health page contract: structured rows + precise stamp + forecast liveness detail
     assert [r["key"] for r in report["tours"]["atp"]["checks"]] == \
-        ["results", "stats", "coverage", "fresh", "charting"]
+        ["results", "future_dates", "stats", "coverage", "fresh", "charting"]
     assert report["generatedAt"].endswith("Z") and "T" in report["generatedAt"]
     assert report["tours"]["atp"]["output"]["forecast_max_as_of"] == "2026-07-09"
     print("ok test_main_strict_exit_code_and_report")
@@ -1006,6 +1023,7 @@ def test_format_issue_body_has_problems_and_fix_prompt():
 
 if __name__ == "__main__":
     test_problems_fresh_is_clean()
+    test_problems_future_dated_match_flagged()
     test_problems_stale_results_flagged()
     test_problems_offseason_relax_window()
     test_problems_missing_results_is_a_problem()

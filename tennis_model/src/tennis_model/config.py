@@ -371,12 +371,29 @@ WINRATE_WINDOW = 10           # last-N completed matches for the winrate10 featu
 # instead of silently degrading (the Jan-2026 TML freeze went unnoticed for months).
 # ---------------------------------------------------------------------------
 HEALTH_MAX_RESULT_AGE_DAYS = 5        # newest completed match must be this recent
+MAX_FUTURE_MATCH_DAYS = 60            # a RESULT dated further ahead than this is corrupt, not
+                                      # scheduled: the live overlay only reaches 12 days forward
+                                      # (live.fetch_events days_fwd), so 60 clears every genuine
+                                      # fixture while still catching the realistic corruption —
+                                      # a year typo (>=365d off). Load-bearing: one upstream row
+                                      # dated 2029/7/20 instead of 2026/7/20 (WTA Iasi final,
+                                      # 2026-07-25) pushed elo.last_date three years out, so the
+                                      # ACTIVE_DAYS=550 window left only the 2 players in that
+                                      # row "active" — the WTA export shipped 2 players instead
+                                      # of 200 and build_draws crashed on the 2-slot bracket.
 HEALTH_MAX_STATS_AGE_DAYS = 16        # newest row carrying serve stats. ATP stats rows are
                                       # anchored on the tournament START date (Sackmann
                                       # tourney_date), so a slam fortnight legitimately parks
                                       # the newest date ~15d back (start Monday -> the next
                                       # events' rows land day 15); 16 clears that while the
                                       # real failure class (TML site frozen) is still caught.
+HEALTH_MAX_FUTURE_DATE_DAYS = 14      # newest match date may not sit further ahead than this.
+                                      # Deliberately TIGHTER than MAX_FUTURE_MATCH_DAYS: dropping
+                                      # rows is destructive so ingest is permissive, while merely
+                                      # REPORTING is cheap. In practice date_max runs a day or two
+                                      # behind (the merged frame carries completed results, not the
+                                      # live overlay's scheduled rows), so 14 clears reality by a
+                                      # wide margin and still catches what ingest let through.
 HEALTH_OFFSEASON_RELAX_DAYS = 45      # December: tours are dark, staleness is expected
 # Minimum has_stats fraction for the current season, per tour (WTA runs lower than
 # ATP because 125-level results carry no stats by design).

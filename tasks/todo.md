@@ -1656,3 +1656,44 @@ recovery path auto-closes it. The 5-day silent model staleness is the finding th
 the site never looked broken because the quick path kept deploying fresh scores from a stale
 model, so only the daily-retrain red revealed it. Worth a watchdog on model age, not just data
 age — logged as a follow-up, deliberately not scoped into this fix.
+
+---
+
+# Task: Future-date guard — the failure the LFS fix uncovered (2026-07-25)
+
+Dispatched a `full` run (30143391810) to prove the LFS fix. The download half worked on the
+first try — `atp/fresh: downloaded 2 year file(s)`, `wta/fresh: downloaded 2`, no STRICT line,
+the first successful fresh pull since 07-19 — and the run then failed 15 minutes later, deeper
+in the pipeline, on a second latent bug the 5-day outage had been hiding.
+
+- [x] Symptom: `AttributeError: 'Pandas' object has no attribute 'SF'` in
+      `export.build_draws`, plus `rankings/wta: matched 2/2 exported players` (ATP: 193/200).
+- [x] Root cause: the WTA fresh file carries the Iasi final as `2029/7/20`. `elo.last_date`
+      → 2029, so `_active()`'s `last_date - ACTIVE_DAYS(550)` cutoff → 2028-01-17, leaving only
+      Mayar Sherif and Paula Badosa (the two players in that row) active. `players[:32]` = 2 →
+      `standard_seed_draw` pads to a 2-slot bracket → round labels are only `F`/`Champion` →
+      `r.SF` raises. Chain confirmed end to end against the real file.
+- [x] `results._drop_impossible_dates`, called from BOTH `merge_sources` (the real path, before
+      dedup) and `clean` (direct callers). Never silent — prints what it dropped.
+- [x] Two thresholds on purpose: `MAX_FUTURE_MATCH_DAYS = 60` at ingest (dropping rows is
+      destructive, and the live overlay legitimately carries scheduled matches ~12 days out, so
+      a strict `> today` cutoff would silently delete real fixtures) vs
+      `HEALTH_MAX_FUTURE_DATE_DAYS = 14` for reporting (cheap, so it can be tighter and still
+      catch whatever ingest let through).
+- [x] New `future_dates` row in `source_checks` — hung off `date_max`, not `result_age_days`:
+      the age check is structurally blind here (a future date makes the age NEGATIVE, which
+      sails under its ceiling), and `res_max` is completed-only while this row was a `RET`.
+- [x] 2 new tests (test_names_merge.py ingest drop + near-future row SURVIVES;
+      test_health.py future-date flagged, negative age not reported as fine, past and
+      plausible-near-future both clean). Updated the two pinned `checks` key lists.
+- [x] Negative control on the real downloaded CSV: active-player count goes 2 → 261, exactly
+      1 of 1611 rows dropped. Reproduces and fixes the production failure.
+- [x] Proof: 332/332 pytest (was 330), ruff clean.
+
+**Review:** The LFS fix was correct but incomplete as shipped — it restored the transport and
+handed the pipeline a file whose contents had also changed. Worth remembering that the mirror's
+"v1.0" commit rewrote the data at the same time it moved to LFS, so this source should be
+treated as newly untrusted: it now uses `2026/1/4`-style dates and has at least one hand-typed
+year error. Every staleness check in health.py is one-sided ("too old"); this one needed the
+other end. Still outstanding from the previous round: a watchdog on MODEL age, not just data
+age — the retrain being down for 5 days was invisible because the quick path kept deploying.

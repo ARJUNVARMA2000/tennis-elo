@@ -43,6 +43,7 @@ from ..config import (
     HEALTH_MAX_CHARTING_AGE_DAYS,
     HEALTH_MAX_FORECAST_AGE_DAYS,
     HEALTH_MAX_FRESH_AGE_DAYS,
+    HEALTH_MAX_FUTURE_DATE_DAYS,
     HEALTH_MAX_LIVERANK_NULL_FRAC,
     HEALTH_MAX_MARKET_LAG_DAYS,
     HEALTH_MAX_RESULT_AGE_DAYS,
@@ -150,6 +151,23 @@ def source_checks(tour: str, h: dict, now: pd.Timestamp) -> list[dict]:
         problem=(f"{tour}: no completed matches loaded" if res_age is None
                  else f"{tour}: newest completed match is {res_age}d old (max {max_result})"
                  if res_age > max_result else None)))
+    # A future-dated row is corruption, not staleness, and the age check above structurally
+    # cannot see it: result_age_days goes NEGATIVE and sails under its maximum. It is also
+    # disproportionately destructive, because the date-relative windows downstream anchor on
+    # the dataset's MAX date rather than on today — one mistyped year in the WTA fresh overlay
+    # (Iasi final as 2029/7/20, seen 2026-07-25) moved elo.last_date three years out, and the
+    # ACTIVE_DAYS window then held only the two players in that single row, so the tour
+    # exported 2 players instead of 200. results.py drops these at ingest; this is the check
+    # from the other side, so corruption arriving by a path that skips that filter still lands.
+    dmax = pd.Timestamp(h["date_max"]) if h.get("date_max") else None
+    future_days = int((dmax - now).days) if dmax is not None else None
+    rows.append(row(
+        "future_dates", "Newest match date", future_days, HEALTH_MAX_FUTURE_DATE_DAYS,
+        date=h.get("date_max"),
+        problem=(f"{tour}: newest match is dated {h['date_max']}, {future_days}d in the FUTURE "
+                 f"(max {HEALTH_MAX_FUTURE_DATE_DAYS}) — upstream date corruption"
+                 if future_days is not None and future_days > HEALTH_MAX_FUTURE_DATE_DAYS
+                 else None)))
     if min_frac > 0:
         stats_age = h["stats_age_days"]
         rows.append(row(

@@ -1,5 +1,28 @@
 # Lessons
 
+- **One mistyped date in an upstream row can empty a whole tour, because the date-relative
+  windows anchor on the dataset's MAX date, not on today.** (2026-07-25, WTA export shipped 2
+  players) Restoring the fresh overlay (below) immediately surfaced the next failure: the WTA
+  file carried the Iasi final as `2029/7/20` instead of `2026/7/20`. `elo.last_date` jumped
+  three years, so `_active()`'s `last_date - ACTIVE_DAYS(550)` cutoff landed in 2028 and left
+  exactly the two players in that one row "active" — `rankings/wta: matched 2/2 exported
+  players` against ATP's 193/200. `build_draws` then padded a 2-player field to a 2-slot
+  bracket, whose only round labels are `F`/`Champion`, and died on `r.SF`
+  (`AttributeError: 'Pandas' object has no attribute 'SF'`). One bad cell, 1 of 1611 rows,
+  killed the retrain. Verified on the real file: dropping that row moves the active-player
+  count from **2 to 261**. Two guards, deliberately with different thresholds — dropping rows
+  is destructive so ingest is permissive (`MAX_FUTURE_MATCH_DAYS = 60`, clearing the live
+  overlay's real 12-day-forward scheduled rows by 5x), while merely reporting is cheap so the
+  health check is tighter (`HEALTH_MAX_FUTURE_DATE_DAYS = 14`). **Why the existing gates were
+  blind:** `result_age_days = (now - res_max).days` goes NEGATIVE for a future date and sails
+  under its `max_result` ceiling — every staleness check in the file was one-sided, testing
+  only "too old". Also note `res_max` is completed-only, and this row was a `RET`, so the
+  check had to hang off `date_max` to see it at all. **How to apply:** for any age/recency
+  gate, ask what happens at the OTHER end of the range — a one-sided bound on a quantity that
+  can go both ways is a silent hole; and when a fix unblocks a path that has been dark for
+  days, expect the next latent failure immediately behind it and re-run to completion rather
+  than declaring the fix good at the layer you changed.
+
 - **A transport that answers 200 with the WRONG BYTES must not end a fallback chain — and a
   retry cannot fix a payload the source is serving on purpose.** (2026-07-24, fresh overlay
   went dark for 5 days) `LuckyLoser91/TennisCourtLog` added `*.csv filter=lfs` on 2026-07-19.

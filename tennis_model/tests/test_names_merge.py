@@ -198,10 +198,57 @@ def test_same_day_rematch_survives_dedup():
     print("ok test_same_day_rematch_survives_dedup")
 
 
+def test_future_dated_row_is_dropped_at_ingest():
+    """One mistyped year is enough to corrupt every date-relative quantity downstream,
+    because they anchor on the dataset's MAX date, not on today. The WTA fresh overlay
+    carried the Iasi final as `2029/7/20` on 2026-07-25; elo.last_date jumped three years,
+    the 550-day active-player window then held only the two players in that row, and the
+    tour exported 2 players instead of 200 (crashing build_draws on a 2-slot bracket).
+
+    A near-future row must SURVIVE — the live overlay legitimately carries scheduled
+    matches ~12 days out, and silently dropping real fixtures would be its own bug.
+    """
+    today = pd.Timestamp.now(tz="UTC").tz_localize(None).normalize()
+    soon = (today + pd.Timedelta(days=5)).strftime("%Y/%m/%d")
+    corrupt = (today + pd.Timedelta(days=3 * 365)).strftime("%Y/%m/%d")
+    orig = (results.historical_dir, results.stats_dir, results.fresh_dir,
+            results.live_dir, results.lower_dir)
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            hist, stats, fresh, live, lower = (base / "historical", base / "stats",
+                                               base / "fresh", base / "live",
+                                               base / "lower")
+            for p in (hist, stats, fresh, live, lower):
+                p.mkdir(parents=True, exist_ok=True)
+            results.historical_dir = lambda tour: hist
+            results.stats_dir = lambda tour: stats
+            results.fresh_dir = lambda tour: fresh
+            results.live_dir = lambda tour: live
+            results.lower_dir = lambda tour: lower
+
+            _write_csv(fresh / "2026.csv",
+                "tourney_name,tourney_date,winner_name,loser_name,score\n"
+                f"Iasi,{soon},Elina Svitolina,Jessica Pegula,6-4 6-4\n"
+                f"Iasi,{corrupt},Mayar Sherif,Paula Badosa,6-4 4-0 RET\n")
+
+            df = results.merge_sources("wta")
+    finally:
+        (results.historical_dir, results.stats_dir,
+         results.fresh_dir, results.live_dir, results.lower_dir) = orig
+
+    names = set(df["winner_name"]) | set(df["loser_name"])
+    assert "Mayar Sherif" not in names and "Paula Badosa" not in names, sorted(names)
+    assert "Elina Svitolina" in names, sorted(names)          # scheduled row survives
+    assert df["date"].max() < today + pd.Timedelta(days=60)
+    print("ok test_future_dated_row_is_dropped_at_ingest")
+
+
 if __name__ == "__main__":
     test_name_key_folds_accents_and_punct()
     test_score_key_ignores_tiebreak_points()
     test_canonicalize_prefers_historical_spelling()
     test_merge_dedup_prefers_stat_bearing_row()
     test_same_day_rematch_survives_dedup()
+    test_future_dated_row_is_dropped_at_ingest()
     print("\nALL PASSED")

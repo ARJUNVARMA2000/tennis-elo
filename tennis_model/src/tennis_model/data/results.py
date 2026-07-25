@@ -17,6 +17,7 @@ import pandas as pd
 
 from ..config import (
     DEFAULT_TIER_K_MULT,
+    MAX_FUTURE_MATCH_DAYS,
     MONTH_SURFACE,
     ROUND_ORDER,
     SURFACE_MAP,
@@ -168,6 +169,7 @@ def merge_sources(tour: str) -> pd.DataFrame:
                         if "draw_level" in df.columns else "main")
     df["date"] = _parse_dates(df["tourney_date"])
     df = df[df["date"].notna() & df["winner_name"].notna() & df["loser_name"].notna()].copy()
+    df = _drop_impossible_dates(df)
     df = _canonicalize_names(df)
 
     has_stats = pd.to_numeric(df["w_svpt"], errors="coerce").notna()
@@ -226,12 +228,47 @@ def _backfill_event_attrs(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def _drop_impossible_dates(df: pd.DataFrame) -> pd.DataFrame:
+    """Drop rows dated implausibly far in the future — a match cannot be played then.
+
+    A single mistyped year in an upstream row is enough to corrupt every date-relative
+    quantity downstream, because most of them are anchored on the dataset's MAX date
+    rather than on today: `elo.last_date`, the ACTIVE_DAYS active-player window, form
+    windows, age advancement. On 2026-07-25 the WTA fresh overlay carried the Iasi final
+    as `2029/7/20`; last_date jumped three years, the 550-day active window then held
+    only the two players in that one row, and the WTA export shipped 2 players instead of
+    200 (crashing build_draws on the resulting 2-slot bracket). One bad cell, whole tour.
+
+    Deliberately a wide horizon, not `> today`: the live overlay legitimately carries
+    scheduled matches up to 12 days out (live.fetch_events days_fwd), so a strict cutoff
+    would silently drop real fixtures. MAX_FUTURE_MATCH_DAYS clears those by 5x while
+    still catching the realistic corruption, which is a year typo (>=365 days off).
+
+    Never silent: the drop is printed, because a source that starts emitting bad dates is
+    a source to go and look at, and health.py's future-date check reports the same class
+    from the other side (it sees the shipped max date, so it also covers any path that
+    bypasses this filter).
+    """
+    if "date" not in df.columns or not len(df):
+        return df
+    horizon = pd.Timestamp.now(tz="UTC").tz_localize(None).normalize() \
+        + pd.Timedelta(days=MAX_FUTURE_MATCH_DAYS)
+    bad = df["date"] > horizon
+    n = int(bad.sum())
+    if n:
+        worst = df.loc[bad, "date"].max().date()
+        print(f"  results: dropped {n} row(s) dated beyond {horizon.date()} "
+              f"(latest {worst}) — upstream date corruption")
+    return df[~bad]
+
+
 def clean(df: pd.DataFrame, tour: str | None = None) -> pd.DataFrame:
     """Add derived/normalised columns (robust to columns absent in the fresh schema)."""
     df = df.copy()
     if "date" not in df:
         df["date"] = _parse_dates(df["tourney_date"])
     df = df[df["date"].notna() & df["winner_name"].notna() & df["loser_name"].notna()]
+    df = _drop_impossible_dates(df)
 
     df = _backfill_event_attrs(df)
     # surface: archive-backfilled value -> Wikipedia main-article surface (live/new events whose
