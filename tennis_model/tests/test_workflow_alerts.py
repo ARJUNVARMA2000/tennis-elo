@@ -25,21 +25,30 @@ import pytest
 
 REPO = Path(__file__).resolve().parents[2]
 SCRIPT = REPO / ".github" / "scripts" / "report-deploy-health.sh"
+DATA_SCRIPT = REPO / ".github" / "scripts" / "report-data-health.sh"
 WORKFLOW = REPO / ".github" / "workflows" / "refresh.yml"
 
 # Windows dev boxes may lack bash; CI (ubuntu-latest) never does, which is where it counts.
 _BASH = shutil.which("bash")
 pytestmark = pytest.mark.skipif(_BASH is None, reason="bash unavailable (non-CI Windows shell)")
 
+# `GH_FAIL_LIST=1` makes only `issue list` fail, standing in for the GitHub API 504 that
+# redded run 30106835566 after a perfectly clean deploy.
 _GH_STUB = """#!/usr/bin/env bash
 echo "$1 $2" >> "$GH_CALLS"
-if [ "$1 $2" = "issue list" ]; then echo "$FAKE_EXISTING"; fi
+if [ "$1 $2" = "issue list" ]; then
+  if [ "${GH_FAIL_LIST:-}" = "1" ]; then
+    echo 'non-200 OK status code: 504 Gateway Timeout' >&2
+    exit 1
+  fi
+  echo "$FAKE_EXISTING"
+fi
 exit 0
 """
 
 
-def _run(outcome: str, existing: str = "", mode: str = "full", verify_log: str | None = None):
-    """Run the alert script with a stubbed `gh`. Returns (exit_code, [gh subcommands])."""
+def _run_script(script: Path, extra_env: dict, existing: str = "", fail_list: bool = False):
+    """Run an alert script with a stubbed `gh`. Returns (exit_code, [gh subcommands])."""
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
         (tmp / "gh").write_text(_GH_STUB, encoding="utf-8", newline="\n")
@@ -51,15 +60,37 @@ def _run(outcome: str, existing: str = "", mode: str = "full", verify_log: str |
             "PATH": f"{tmp}{os.pathsep}{os.environ.get('PATH', '')}",
             "GH_CALLS": str(calls),
             "FAKE_EXISTING": existing,
-            "OUTCOME": outcome,
-            "MODE": mode,
-            "SITE_URL": "https://deuce-forecast.web.app",
+            "GH_FAIL_LIST": "1" if fail_list else "",
+            "GH_RETRY_SLEEP": "0",          # keep the retry path instant under test
             "GITHUB_RUN_URL": "https://example/run",
-            "VERIFY_LOG": verify_log or str(tmp / "missing.log"),
+            **extra_env,
         }
-        p = subprocess.run([_BASH, str(SCRIPT)], env=env, capture_output=True,
+        p = subprocess.run([_BASH, str(script)], env=env, capture_output=True,
                            text=True, timeout=60)
         return p.returncode, [ln for ln in calls.read_text(encoding="utf-8").splitlines() if ln]
+
+
+def _run(outcome: str, existing: str = "", mode: str = "full", verify_log: str | None = None,
+         fail_list: bool = False):
+    return _run_script(SCRIPT, {
+        "OUTCOME": outcome,
+        "MODE": mode,
+        "SITE_URL": "https://deuce-forecast.web.app",
+        "VERIFY_LOG": verify_log or "/nonexistent/missing.log",
+    }, existing=existing, fail_list=fail_list)
+
+
+def _run_data(ok: str, existing: str = "", mode: str = "full", changed: str = "True",
+              fail_list: bool = False):
+    return _run_script(DATA_SCRIPT, {
+        "OK": ok,
+        "CHANGED": changed,
+        "MODE": mode,
+        "HEALTH_PAGE_URL": "https://deuce-forecast.web.app/health/",
+        # the real command needs the package + a built health.json; the body content is
+        # not what this file tests (the branch logic is)
+        "HEALTH_BODY_CMD": "echo fake-health-body",
+    }, existing=existing, fail_list=fail_list)
 
 
 # --- the regression this file exists for -------------------------------------------------
@@ -138,15 +169,102 @@ def test_failure_body_includes_the_verifier_log_when_present():
         os.unlink(log)
 
 
-# --- the script must actually be the one CI runs -----------------------------------------
+# --- a GitHub API outage must not be reported as a broken site / bad data -----------------
+
+def test_api_outage_on_a_passing_deploy_stays_green():
+    """The regression from run 30106835566: gate passed, 0 output problems, deploy verified
+    OK — then `gh issue list` 504'd and, unguarded under `bash -e`, redded the whole run.
+    A transport failure is not a signal about the site."""
+    code, calls = _run("success", fail_list=True)
+    assert code == 0, "an API 504 redded a run whose deploy verified OK"
+    assert calls == ["label create", "issue list", "issue list", "issue list"]   # retried
+
+
+def test_api_outage_on_a_failing_deploy_still_reds_but_files_nothing():
+    """The failure is real, so the run must go red — but with no issue list we cannot tell
+    "none yet" from "already open", and guessing opens a duplicate thread every hour."""
+    code, calls = _run("failure", fail_list=True)
+    assert code == 1
+    assert "issue create" not in calls and "issue comment" not in calls
+
+
+def test_data_api_outage_on_healthy_data_stays_green():
+    code, calls = _run_data("True", fail_list=True)
+    assert code == 0, "an API 504 redded a run whose data health was fine"
+    assert "issue create" not in calls and "issue close" not in calls
+
+
+def test_data_api_outage_on_failing_data_still_reds_but_files_nothing():
+    code, calls = _run_data("False", fail_list=True)
+    assert code == 1
+    assert "issue create" not in calls and "issue comment" not in calls
+
+
+# --- the data-health alert matrix (was inline in refresh.yml, untested) -------------------
+
+def test_data_health_ok_with_no_issue_is_quiet():
+    code, calls = _run_data("True")
+    assert code == 0
+    assert calls == ["label create", "issue list"]
+
+
+def test_data_health_ok_closes_an_open_issue():
+    """Recovery auto-closes within the hour, on any mode."""
+    for mode in ("full", "quick"):
+        code, calls = _run_data("True", existing="9", mode=mode)
+        assert code == 0
+        assert calls == ["label create", "issue list", "issue comment", "issue close"]
+
+
+def test_data_health_failure_opens_an_issue_and_reds_the_run():
+    """Onset: one issue, one email, run goes red — on quick runs too."""
+    for mode in ("full", "quick"):
+        code, calls = _run_data("False", mode=mode)
+        assert code == 1, f"onset on {mode} must red"
+        assert calls == ["label create", "issue list", "issue create"]
+
+
+def test_data_health_standing_failure_comments_and_reds_on_full():
+    """The daily heartbeat."""
+    code, calls = _run_data("False", existing="9", mode="full", changed="False")
+    assert code == 1
+    assert calls == ["label create", "issue list", "issue comment"]
+
+
+def test_data_health_standing_failure_stays_green_on_unchanged_quick():
+    """A red quick job never saves the data cache, so the prev health.json feeding
+    problems_changed would stay stale and every hourly run would re-red."""
+    code, calls = _run_data("False", existing="9", mode="quick", changed="False")
+    assert code == 0
+    assert calls == ["label create", "issue list"]          # no comment, no duplicate issue
+
+
+def test_data_health_standing_failure_comments_once_when_the_problem_set_changes():
+    """A NEW problem on top of a standing one must still be recorded, without redding."""
+    code, calls = _run_data("False", existing="9", mode="quick", changed="True")
+    assert code == 0
+    assert calls == ["label create", "issue list", "issue comment"]
+
+
+# --- the scripts must actually be the ones CI runs ---------------------------------------
 
 def test_workflow_invokes_this_script():
     """Guards against the script drifting out of use: if refresh.yml stops calling it,
     every test above would keep passing while testing dead code."""
     assert SCRIPT.exists(), f"missing {SCRIPT}"
+    assert DATA_SCRIPT.exists(), f"missing {DATA_SCRIPT}"
     wf = WORKFLOW.read_text(encoding="utf-8")
     assert ".github/scripts/report-deploy-health.sh" in wf
+    assert ".github/scripts/report-data-health.sh" in wf
     assert "if: always()" in wf, "the never-ran guard only matters under if: always()"
+
+
+def test_no_alert_logic_is_left_inline_in_the_workflow():
+    """CLAUDE.md: alert branching lives in .github/scripts/ so it is reachable by this
+    file. An inline `gh issue create` is by definition untested branching."""
+    wf = WORKFLOW.read_text(encoding="utf-8")
+    for forbidden in ("gh issue create", "gh issue close", "gh issue comment"):
+        assert forbidden not in wf, f"{forbidden!r} is inline in refresh.yml — move it to a script"
 
 
 if __name__ == "__main__":

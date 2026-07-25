@@ -668,6 +668,61 @@ def test_output_distinct_events_are_clean():
     print("ok test_output_distinct_events_are_clean")
 
 
+def test_output_concurrent_events_with_open_qualifying_are_clean():
+    """Issue #9 (2026-07-24): Washington (WTA 500) and Memphis (WTA 250) run the same week
+    with entirely different fields, but both draws were still mostly unfilled — so they
+    "shared" 20 identical `Qualifier N` strings and zero actual players, and the gate
+    reported them as one event under two names. Placeholders name nobody."""
+    quali = [f"Qualifier {i}" for i in range(3, 23)]
+    out = []
+    health._tournament_name_problems(out, "wta", [
+        _tourn("Mubadala Citi DC Open", "2026-07-25", "2026-08-03",
+               ["Jessica Pegula", "Elina Svitolina", *quali]),
+        _tourn("Memphis", "2026-07-25", "2026-08-03",
+               ["Ekaterina Alexandrova", "Viktorija Golubic", *quali]),
+    ])
+    assert out == [], out
+    # ...and a genuine split is still caught when the shared names are real players
+    out2 = []
+    health._tournament_name_problems(out2, "wta", [
+        _tourn("Cincinnati", "2026-08-10", "2026-08-17",
+               ["Jessica Pegula", "Elina Svitolina", "Iga Swiatek", *quali]),
+        _tourn("Western & Southern Open", "2026-08-10", "2026-08-17",
+               ["Jessica Pegula", "Elina Svitolina", "Iga Swiatek", *quali]),
+    ])
+    assert any("one event under two names" in p for p in out2), out2
+    print("ok test_output_concurrent_events_with_open_qualifying_are_clean")
+
+
+def test_output_split_event_caught_on_a_barely_filled_draw():
+    """Excluding placeholders also drops the shared COUNT, so the >=3 rule alone would let
+    a rename through on the day the draw drops (2 names in, 30 qualifiers). One field being
+    wholly contained in the other is the same impossibility at any size."""
+    quali = [f"Qualifier {i}" for i in range(1, 31)]
+    out = []
+    health._tournament_name_problems(out, "wta", [
+        _tourn("Memphis", "2026-07-25", "2026-08-03", ["A. Player", "B. Player", *quali]),
+        _tourn("Memphis Open", "2026-07-25", "2026-08-03", ["A. Player", "B. Player", *quali]),
+    ])
+    assert any("one event under two names" in p for p in out), out
+    # a single real name in common is NOT enough — a late wildcard/alternate moving between
+    # two concurrent events is legal, and a standing false red masks the next real problem
+    out2 = []
+    health._tournament_name_problems(out2, "wta", [
+        _tourn("Washington", "2026-07-25", "2026-08-03", ["A. Player", "C. Player", *quali]),
+        _tourn("Memphis", "2026-07-25", "2026-08-03", ["A. Player", "D. Player", *quali]),
+    ])
+    assert out2 == [], out2
+    # and an all-placeholder draw must not be "contained" in every other event
+    out3 = []
+    health._tournament_name_problems(out3, "wta", [
+        _tourn("Washington", "2026-07-25", "2026-08-03", quali),
+        _tourn("Memphis", "2026-07-25", "2026-08-03", ["A. Player", "B. Player", *quali]),
+    ])
+    assert out3 == [], out3
+    print("ok test_output_split_event_caught_on_a_barely_filled_draw")
+
+
 def test_output_upcoming_and_fixtures_consistency():
     d = _healthy_data()
     d["upcoming"][0]["playerB"] = "P0"                             # identical players
@@ -982,6 +1037,8 @@ if __name__ == "__main__":
     test_output_duplicate_tournament_name()
     test_output_split_event_under_two_names()
     test_output_distinct_events_are_clean()
+    test_output_concurrent_events_with_open_qualifying_are_clean()
+    test_output_split_event_caught_on_a_barely_filled_draw()
     test_output_upcoming_and_fixtures_consistency()
     test_output_market_benchmark_freeze_is_flagged_advisory()
     test_output_forecast_drift_flagged_advisory()

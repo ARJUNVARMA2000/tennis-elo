@@ -1588,3 +1588,71 @@ test could reach — which is exactly why the skipped-vs-failed bug shipped.
 — a bad alert costs diagnosis time on every future incident. Deliberately did not extract the
 `Report data health` step too: same pattern, but it is working and untouched by this bug, so it
 stays a follow-up rather than scope creep in a fix commit.
+
+---
+
+# Task: Fix the three deployment failures of 2026-07-24 (2026-07-24)
+
+Diagnosis of runs 30077588939 (08:03), 30106835566 (15:48), 30133399444 (23:17) — three reds,
+three unrelated causes, only one of which was a real pipeline defect.
+
+**1. The fresh overlay had been dark for 5 days (the real defect).** `STRICT: 2 critical
+download failure(s): ['atp/fresh:2026','wta/fresh:2026']`, identically on 07-20/21/22/23/24.
+
+- [x] Root cause: `LuckyLoser91/TennisCourtLog` added `*.csv filter=lfs` on 2026-07-19, so
+      `raw.githubusercontent.com` returns 200 with a 131-byte LFS pointer — and the `gh`
+      contents API returns the pointer too. Confirmed by fetching both directly.
+- [x] `download_year` iterates *candidate payloads* (`_candidate_payloads`) and validates each,
+      instead of `_via_https(...) or _via_gh(...)` — that `or` only fell through on a `None`, so
+      any 200-with-garbage (pointer, HTML error page) skipped the fallback transport entirely.
+- [x] LFS resolved via `media.githubusercontent.com/media/{repo}/{ref}/{path}`, derived from the
+      raw URL (`_lfs_media_url`), so every GitHub source is covered without config churn.
+      Verified live: returns the real 164,611-byte CSV with the correct header.
+- [x] Corrected the false premise in `download()`'s docstring: run 29812819613 did NOT self-heal
+      — the "recovery" run was a *quick* refresh, which never downloads year files.
+- [x] 5 new test_download.py cases: pointer recognised (and never valid as CSV), media URL
+      derivation, pointer→media recovery, 200-with-HTML falls through to `gh`, all-transports-bad
+      still reports failed (strict gate stays truthful, nothing clobbers good on-disk data).
+
+**2. A GitHub API 504 redded a run in which everything passed (false alarm).** Gate green, 0
+output problems, deploy + live verification OK — then both report steps died on an unguarded
+`EXISTING=$(gh issue list ...)` under `bash -e`.
+
+- [x] `list_existing()` in both alert scripts: retry 3x, then degrade to UNKNOWN. Healthy +
+      unknown stays GREEN; failing + unknown goes RED but files nothing (cannot distinguish
+      "no issue yet" from "already open" — guessing opens a duplicate thread hourly).
+      `GH_RETRY_SLEEP` env-tunable so tests hit the retry path instantly.
+- [x] Extracted `Report data health` to `.github/scripts/report-data-health.sh` — the follow-up
+      left open by the previous round, and the bug lived in exactly the branch no test reached.
+      Only the health.json read stays in the YAML (data plumbing, not alert logic).
+- [x] 11 new test_workflow_alerts.py cases (20 total): 4 API-outage cases across both scripts,
+      the full data-health matrix (ok quiet / ok closes on both modes / onset reds on both modes /
+      full-run heartbeat / quick stays green when unchanged / quick comments when changed), plus
+      a guard that no `gh issue create|close|comment` is left inline in refresh.yml.
+- [x] Negative control: the old unguarded logic exits 1 on healthy data + a stubbed 504; the new
+      script exits 0 with a warning. The guard bites the exact production regression.
+
+**3. Issue #9 was a false positive.** "'Mubadala Citi DC Open' and 'Memphis' overlap in dates
+and share 20 players" — all 20 shared names were `Qualifier N` placeholders; zero real players.
+
+- [x] Washington (WTA 500) and Memphis (WTA 250) genuinely run the same week with different
+      fields (Pegula/Svitolina vs Alexandrova/Golubic). Confirmed against the live
+      `wta/tournaments.json`: 20/20 shared names matched `^Qualifier \d+$`.
+- [x] `_tournament_name_problems` intersects only slots passing `sim.bracket.is_real` — the same
+      predicate the draw machinery uses to fill them.
+- [x] Caught a second-order gap while verifying: dropping the placeholders also drops the counts,
+      so `>=3 shared` alone let a genuine rename through on a draw with only 2 names in it. Added
+      a containment rule (one real field wholly inside the other, both >=2) — same impossibility
+      at small size. Surfaced by a negative control, not by the test suite.
+- [x] 2 new test_health.py cases incl. the real Washington/Memphis shape, a 1-shared-name
+      legal case (late wildcard between concurrent events), and an all-placeholder draw.
+- [x] Verified against the live shipped JSON: was flagged, now clean; renames still caught.
+
+- [x] Proof: 330/330 pytest (was 312), ruff clean, 173/173 vitest, refresh.yml parses, both
+      scripts pass `bash -n`, new script is LF (pinned by `.gitattributes`).
+
+**Review:** Issue #9 should be closed as a false positive once a green run confirms it — the
+recovery path auto-closes it. The 5-day silent model staleness is the finding that matters most:
+the site never looked broken because the quick path kept deploying fresh scores from a stale
+model, so only the daily-retrain red revealed it. Worth a watchdog on model age, not just data
+age — logged as a follow-up, deliberately not scoped into this fix.

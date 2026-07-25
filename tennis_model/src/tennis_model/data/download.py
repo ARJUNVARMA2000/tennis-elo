@@ -4,11 +4,16 @@
   kind="stats"       full-schema overlay from the TML site (ATP), updated daily
   kind="fresh"       results-only overlay, pulled ~weekly (current + previous year)
 
-Two transports tried in order so the same code works locally, in CI, and behind a
+Transports are tried in order so the same code works locally, in CI, and behind a
 proxy that blocks raw.githubusercontent.com:
   1. plain HTTPS GET of the raw file
-  2. the authenticated GitHub API via the `gh` CLI (`Accept: application/vnd.github.raw`)
+  2. media.githubusercontent.com, but only when (1) came back a Git-LFS pointer
+  3. the authenticated GitHub API via the `gh` CLI (`Accept: application/vnd.github.raw`)
      (GitHub-hosted sources only — the TML site has no gh fallback and instead retries)
+
+Each transport's payload is schema-validated independently and the chain continues until
+one validates: a transport that answers 200 with the WRONG BYTES must not end the chain.
+That is not hypothetical — it is how the fresh overlay broke (see `_is_lfs_pointer`).
 
 Every payload is schema-validated before it replaces an existing file, and the write
 is atomic — a source that starts returning error pages can never clobber good data.
@@ -77,6 +82,53 @@ def _via_gh(repo: str, path: str) -> bytes | None:
         return None
 
 
+_RAW_HOST = "https://raw.githubusercontent.com/"
+_MEDIA_HOST = "https://media.githubusercontent.com/media/"
+_LFS_POINTER_MAGIC = b"version https://git-lfs.github.com/spec/v1"
+
+
+def _is_lfs_pointer(data: bytes | None) -> bool:
+    """True for a Git-LFS pointer stub standing in for the real file.
+
+    When an upstream repo puts its CSVs under LFS, `raw.githubusercontent.com` keeps
+    answering **200** but with a ~130-byte pointer instead of the data — and so does the
+    `gh` contents API, so neither GitHub transport can see the file any more. That is a
+    silent, permanent break dressed as a transient one: `LuckyLoser91/TennisCourtLog`
+    added `*.csv filter=lfs` on 2026-07-19 and every daily full retrain failed from
+    2026-07-20 onward (runs 29728318112 / 29812819613 / 29902577724 / 29990249105 /
+    30077588939) with `STRICT: 2 critical download failure(s)`, because a pointer is
+    truthy and simply failed the schema gate on both transports.
+    """
+    return bool(data) and data[:200].lstrip().startswith(_LFS_POINTER_MAGIC)
+
+
+def _lfs_media_url(raw_url: str) -> str | None:
+    """The media endpoint that RESOLVES an LFS pointer to the real blob, derived from the
+    raw URL (same {repo}/{ref}/{path} tail). Returns None for non-GitHub sources, whose
+    LFS story — if any — is not this one."""
+    if not raw_url.startswith(_RAW_HOST):
+        return None
+    return _MEDIA_HOST + raw_url[len(_RAW_HOST):]
+
+
+def _candidate_payloads(src: dict, year: int):
+    """Yield one payload per transport, cheapest first, so the caller can validate each.
+
+    Deliberately a generator over *payloads* rather than the old
+    `_via_https(...) or _via_gh(...)`: that `or` only fell through on a ``None``, so any
+    200-with-garbage (an LFS pointer, an HTML error page) ended the chain before the
+    fallback transport was ever tried.
+    """
+    raw_url = src["raw"].format(year=year)
+    data = _via_https(raw_url, retries=1)
+    yield data
+    if _is_lfs_pointer(data):
+        media = _lfs_media_url(raw_url)
+        if media:
+            yield _via_https(media, retries=1)
+    yield _via_gh(src["repo"], src["path"].format(year=year))
+
+
 def _valid_csv(data: bytes, required: set[str]) -> bool:
     """A payload only counts as a match CSV if it parses and has the required columns
     (an upstream 200-with-HTML-error-page fails here instead of clobbering data)."""
@@ -99,12 +151,12 @@ def _atomic_write(path: Path, data: bytes) -> None:
 
 def download_year(tour: str, kind: str, year: int) -> bool:
     src = _source(tour, kind)
-    data = _via_https(src["raw"].format(year=year), retries=1) or _via_gh(src["repo"], src["path"].format(year=year))
     required = _REQUIRED_STATS if kind == "historical" else _REQUIRED_BASE
-    if not _valid_csv(data, required):
-        return False
-    _atomic_write(_dir(tour, kind) / f"{year}.csv", data)
-    return True
+    for data in _candidate_payloads(src, year):
+        if _valid_csv(data, required):
+            _atomic_write(_dir(tour, kind) / f"{year}.csv", data)
+            return True
+    return False
 
 
 def download(tour: str, kind: str = "fresh", years=None,
@@ -114,11 +166,18 @@ def download(tour: str, kind: str = "fresh", years=None,
 
     Failed years get `retry_rounds` extra passes with exponential backoff. A brief
     upstream outage fails every year requested in the same instant — and BOTH tours'
-    `fresh` files live in one repo, so a single bad minute reds the whole daily retrain
-    (run 29812819613, which self-healed an hour later untouched). One transport miss
-    should cost a backoff, not the day's model. Bounded by a wall-clock budget as well
-    as a round count: a genuinely dead source must cost one slow pass, not `rounds` full
-    passes over a 47-year archive that is never going to answer.
+    `fresh` files live in one repo, so a single bad minute reds the whole daily retrain.
+    One transport miss should cost a backoff, not the day's model. Bounded by a wall-clock
+    budget as well as a round count: a genuinely dead source must cost one slow pass, not
+    `rounds` full passes over a 47-year archive that is never going to answer.
+
+    Retries are for TRANSPORT misses only, and cannot rescue a payload the source is
+    serving deliberately. Run 29812819613 was originally read here as a transient that
+    "self-healed an hour later untouched" — it had not: the run that looked like the
+    recovery was a *quick* refresh, which never downloads year files at all. The real
+    cause was permanent (see `_is_lfs_pointer`), and no number of rounds would have
+    helped. Before widening a retry, check that the run which "recovered" actually
+    exercised the failing path.
     """
     this_year = datetime.now(UTC).year
     if years is None:

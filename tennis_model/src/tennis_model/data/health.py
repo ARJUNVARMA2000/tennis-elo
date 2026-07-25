@@ -57,6 +57,7 @@ from ..config import (
     output_dir,
 )
 from ..model.features import FEATURES
+from ..sim.bracket import is_real
 from .charting import _GENDER, CHARTING_DIR
 from .results import load_matches
 
@@ -603,19 +604,41 @@ def _tournament_name_problems(out: list, tour: str, ts: list) -> None:
       B) two DIFFERENTLY-named events that overlap in dates AND share players — impossible
          for distinct events (a player plays one event per week), so it's one event under
          two names. Concurrent-but-distinct events (e.g. Eastbourne+Mallorca) share no
-         players, so they don't trip it."""
+         players, so they don't trip it.
+
+    (B) counts only slots naming a REAL player, via the same `is_real` predicate the draw
+    machinery uses to fill them. Unresolved slots are `Qualifier 1..N`, numbered per draw,
+    so every pair of concurrent events with open qualifying "shares" a dozen identical
+    strings that are not players at all. That false-positived on 2026-07-24 (issue #9):
+    Washington ('Mubadala Citi DC Open', WTA 500) and Memphis (WTA 250) run the same week
+    with entirely different fields — Pegula/Svitolina vs Alexandrova/Golubic — and were
+    reported as one event under two names on 20 shared `Qualifier N` placeholders and zero
+    shared players. Same class as the drawSize/placeholder trap above: a name-set invariant
+    must exclude the slots that do not name anyone.
+    """
     named = [t for t in ts if isinstance(t, dict) and t.get("name")]
     dup = {k for k, n in Counter(_norm_name(t["name"]) for t in named).items() if n > 1}
     for key in sorted(dup):
         names = sorted({t["name"] for t in named if _norm_name(t["name"]) == key})
         out.append(f"{tour}: tournaments.json lists the same event more than once "
                    f"({', '.join(names)}) — a naming/dedup split")
+
+    def _real_field(t: dict) -> set:
+        return {p.get("name") for p in t.get("projection", []) if is_real(p.get("name"))}
+
     for a, b in itertools.combinations(named, 2):
         if _norm_name(a["name"]) == _norm_name(b["name"]) or _overlap_days(a, b) < 2:
             continue
-        shared = {p.get("name") for p in a.get("projection", [])} & \
-                 {p.get("name") for p in b.get("projection", [])}
-        if len(shared) >= 3:
+        fa, fb = _real_field(a), _real_field(b)
+        shared = fa & fb
+        # Two rules, because dropping the placeholders also dropped the counts: >=3 shared
+        # is the robust signal once a draw is filled, but a rename caught the day the draw
+        # is released may only have 2 names in it yet — and there, one field being wholly
+        # contained in the other is just as impossible for distinct events. Both need >=2
+        # real names, or an all-qualifier draw would be "contained" in everything.
+        split = len(shared) >= 3 or (
+            min(len(fa), len(fb)) >= 2 and (shared == fa or shared == fb))
+        if split:
             out.append(f"{tour}: {a['name']!r} and {b['name']!r} overlap in dates and share "
                        f"{len(shared)} players — likely one event under two names (YoY rename?)")
 

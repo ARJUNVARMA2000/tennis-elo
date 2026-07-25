@@ -1,5 +1,65 @@
 # Lessons
 
+- **A transport that answers 200 with the WRONG BYTES must not end a fallback chain — and a
+  retry cannot fix a payload the source is serving on purpose.** (2026-07-24, fresh overlay
+  went dark for 5 days) `LuckyLoser91/TennisCourtLog` added `*.csv filter=lfs` on 2026-07-19.
+  `raw.githubusercontent.com` kept returning **200**, but with a ~131-byte Git-LFS *pointer*
+  instead of the CSV — and the `gh` contents API returns the pointer too, so BOTH GitHub
+  transports went blind at once. `download_year` was `_via_https(...) or _via_gh(...)`, and
+  that `or` only falls through on a `None`: a truthy-but-wrong payload silently skipped the
+  fallback. Every daily full retrain failed from 07-20 to 07-24 (runs 29728318112 /
+  29812819613 / 29902577724 / 29990249105 / 30077588939) with `STRICT: 2 critical download
+  failure(s)`, while the site kept looking healthy because the hourly QUICK refresh
+  regenerates from the saved model and never downloads year files — so the model silently
+  went 5 days stale behind a green-looking dashboard. Fixes: iterate transports as
+  *candidate payloads* and schema-validate each independently (a 200-with-HTML-error-page
+  had the same latent bug), and resolve LFS via
+  `media.githubusercontent.com/media/{repo}/{ref}/{path}`. **Why the retry didn't save it:**
+  the backoff added in `6945d07` cited run 29812819613 as a transient that "self-healed an
+  hour later untouched" — it had not. The run that looked like the recovery was a *quick*
+  refresh, which never exercises the download path. The premise was false, so the mitigation
+  was aimed at the wrong failure class. **How to apply:** (1) when a fallback chain exists,
+  branch on *payload validity*, never on the truthiness of the first response; (2) before
+  citing a run as evidence that a failure is transient, confirm that the "recovered" run
+  actually ran the failing step — compare modes, not just conclusions; (3) when only the
+  slow/daily path is broken, ask what the fast path is silently NOT doing (here: retraining).
+
+- **An alert must never report the failure of its own transport as the thing it monitors.**
+  (2026-07-24, run 30106835566) Everything real passed — integrity gate green, 0 output
+  problems on both tours, deploy succeeded, live verification OK — and the run still went
+  red, twice, because `EXISTING=$(gh issue list ...)` ran unguarded under `bash -e` and the
+  GitHub API returned `504 Gateway Timeout`. A GitHub API outage is not a data problem and
+  not a broken site; reported as either, it is the same false-alarm class as the
+  skipped-verification bug `41a3341` fixed, arriving through the transport instead of the
+  outcome. Note the neighbouring `gh issue comment`/`close` calls already had `|| true` — it
+  was only the *read* that was unguarded, which is easy to miss because it looks like plain
+  data plumbing rather than alert logic. Fix shape: retry the read, then degrade it to
+  **UNKNOWN** and let each branch decide — healthy + unknown stays GREEN (worst case a
+  recovered issue closes an hour later); failing + unknown goes RED but files nothing,
+  because we cannot tell "no issue yet" from "already open" and guessing opens a duplicate
+  thread every hour. Keep the backoff env-tunable (`GH_RETRY_SLEEP`, like `FRESH_TRIES`) so
+  tests exercise the retry path instantly. **How to apply:** for any alerting step, ask
+  "what does this do when the *alerting* API is down?" — the answer must never be "declare
+  the monitored thing broken", and it must be pinned by a test that stubs the API failing.
+  This is also why the last inline alert block moved to `.github/scripts/`: the bug lived in
+  the one branch no test could reach.
+
+- **A name-set invariant must exclude the slots that don't name anyone.** (2026-07-24, issue
+  #9) The "one event under two names" check intersected the two events' `projection` name
+  sets, but unresolved draw slots are `Qualifier 1..N`, numbered *per draw* — so any two
+  concurrent events with open qualifying "share" a dozen identical strings that are not
+  players. Washington ('Mubadala Citi DC Open', WTA 500) and Memphis (WTA 250) run the same
+  week with completely different fields (Pegula/Svitolina vs Alexandrova/Golubic) and were
+  reported as one renamed event on **20 shared placeholders and 0 shared players**. Fixed by
+  filtering through `sim.bracket.is_real`, the same predicate the draw machinery uses to fill
+  those slots. Second-order trap worth keeping: removing the placeholders also removed the
+  *counts*, so the `>=3 shared` threshold alone then let a genuine rename through on the day
+  a draw drops with only 2 names in it — hence the added containment rule (one real field
+  wholly inside the other, both >=2 names), which is the same impossibility at small size.
+  Extends the drawSize/placeholder lesson below: this is the third invariant in this file
+  broken by `Qualifier N` slots, so treat "does this comparison count placeholders?" as a
+  standing checklist item for any new draw-shape or field-overlap gate.
+
 - **A static host's DEFAULT cache is a staleness bug for an hourly-refreshed site — and
   `firebase.json` cannot document its own reasoning, because it must stay strict JSON.**
   (2026-07-16, github.io → Firebase Hosting) Firebase Hosting caches static content in the

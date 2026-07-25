@@ -23,9 +23,11 @@
 #                           a red quick job would skip the cache save and a silent comment
 #                           every hour would spam the thread).
 #   * never ran          -> no-op (see the guard below).
+#   * API unreachable    -> pass: stay green; fail: red, but file nothing (see list_existing).
 set -e
 
 VERIFY_LOG="${VERIFY_LOG:-/tmp/verify-deploy.log}"
+GH_RETRY_SLEEP="${GH_RETRY_SLEEP:-3}"
 
 # The calling step is `if: always()`, so it also fires when the verification never RAN —
 # an earlier step (refresh / gate / build / deploy) failed, or the run was cancelled, so
@@ -42,9 +44,34 @@ if [ "${OUTCOME:-}" != "success" ] && [ "${OUTCOME:-}" != "failure" ]; then
   exit 0
 fi
 
+# A 504 from the GitHub API says nothing about the live site. This ran unguarded under
+# `bash -e`, so one API blip redded a run whose deploy had verified OK (run 30106835566,
+# where both report steps died on `504 Gateway Timeout` from `gh issue list` after a clean
+# deploy) — the same false-alarm class as the skipped-verification bug above, arriving
+# through the transport instead of the outcome. Retry, then treat the list as UNKNOWN.
+list_existing() {
+  local out n=0
+  while :; do
+    if out=$(gh issue list --label deploy-health --state open \
+               --json number --jq '.[0].number // empty' 2>/dev/null); then
+      printf '%s' "$out"
+      return 0
+    fi
+    n=$((n + 1))
+    [ "$n" -ge 3 ] && return 1
+    sleep $((n * GH_RETRY_SLEEP))
+  done
+}
+
 gh label create deploy-health --color B60205 \
   --description "Live Firebase deploy verification failures" 2>/dev/null || true
-EXISTING=$(gh issue list --label deploy-health --state open --json number --jq '.[0].number // empty')
+
+if EXISTING=$(list_existing); then
+  LISTED=1
+else
+  EXISTING=""; LISTED=0
+  echo "::warning::could not reach the GitHub issues API after 3 tries"
+fi
 
 if [ "$OUTCOME" = "success" ]; then
   if [ -n "$EXISTING" ]; then
@@ -54,6 +81,14 @@ if [ "$OUTCOME" = "success" ]; then
   fi
   echo "deploy verification OK"
   exit 0
+fi
+
+# Failing for real from here on: the run SHOULD go red even if GitHub is unreachable, but
+# without an issue list we cannot tell "no issue yet" from "issue already open", and
+# guessing creates a duplicate thread every hour. Red the run, skip the write.
+if [ "$LISTED" = "0" ]; then
+  echo "::error::live deploy verification failed — issue not filed (GitHub API unreachable)"
+  exit 1
 fi
 
 {
