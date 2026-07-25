@@ -643,3 +643,20 @@
   numbers had been wrong in the shipped README for weeks and were read as "docs are stale"
   rather than "the model changed". Compare `n`, not just the metric — the row count doubling
   was the tell, and it was visible the whole time. See [[future-proof-no-quick-fixes]].
+
+- **A `run:` block is `bash -e`, so the second command is conditional on the first.**
+  (2026-07-25) `Full refresh` was one block: `download --strict` then `pipeline --backtest`.
+  Nobody wrote "skip the retrain if a download fails", but that is exactly what it meant, and
+  it cost five days of frozen ratings when the fresh mirror moved to LFS. Two general rules
+  fell out of hardening it. First, **put the expensive irreplaceable work in its own step**:
+  anything sharing a block with it can veto it, and anything running before it in the same
+  function can too (`walk_forward` ran before `train_final`, so a crash in a pure-metrics
+  artifact discarded a completed 283k-match walk — best-effort it, like every other reporting
+  artifact). Second, **`actions/cache` does not save on a red job**, so with a single cache
+  step every failure downstream of the model write silently throws the model away and the next
+  run restores the old one — split `cache/restore` + `cache/save` with `if: always()` whenever
+  a job produces expensive state you would rather keep than recompute (and key on
+  `run_attempt`, because "Re-run failed jobs" reuses `run_id` and save errors on a dup key).
+  The pattern for "non-fatal but must not be missed" is already in this repo: let the step
+  continue, then red the run in a trailing step AFTER the deploy and the alerts have run.
+  See [[future-proof-no-quick-fixes]].

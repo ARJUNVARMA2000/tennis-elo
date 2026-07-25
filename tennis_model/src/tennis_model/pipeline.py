@@ -82,8 +82,17 @@ def build_tour(tour: str, do_backtest: bool) -> None:
     if do_backtest:
         from datetime import datetime
         print("  walk-forward backtest...")
-        oos = walk_forward(feat, start_test=2016, end_test=datetime.now(UTC).year,
-                           xgb_overrides=xgb_params_for(tour))
+        # Best-effort, like _market_scorecard and _kalshi below: this produces
+        # accuracy.json (reported metrics) and NOTHING the shipped model depends on — but
+        # it runs before train_final, so an exception here used to abort build_tour before
+        # predictor.save(), throwing away a completed ratings walk over a reporting
+        # artifact. accuracy.json simply persists from the previous full run.
+        try:
+            oos = walk_forward(feat, start_test=2016, end_test=datetime.now(UTC).year,
+                               xgb_overrides=xgb_params_for(tour))
+        except Exception as e:                               # noqa: BLE001 — metrics only
+            print(f"  backtest: SKIPPED ({type(e).__name__}: {e}) — accuracy.json keeps "
+                  f"the previous run's values; the retrain continues")
 
     print("  training production combiner...")
     clf, iso, _ = train_final(feat, xgb_overrides=xgb_params_for(tour))

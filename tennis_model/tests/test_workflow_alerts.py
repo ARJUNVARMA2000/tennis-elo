@@ -323,6 +323,60 @@ def test_push_runs_stay_quick():
     assert _run_mode("push", hour="06") == (0, "quick")
 
 
+# --- the daily ratings walk must be hard to lose (2026-07-25) ----------------------------
+#
+# CI has no PyYAML, so these read the workflow as text — same approach as the two guards
+# below. Each pins a property that a real incident took away.
+
+def _step_blocks() -> dict:
+    """{step name: its YAML block} — split on the `- name:` boundaries, no yaml dep."""
+    import re
+    wf = WORKFLOW.read_text(encoding="utf-8")
+    parts = re.split(r"\n      - name: ", wf)
+    return {p.split("\n", 1)[0].strip(): p for p in parts[1:]}
+
+
+def test_a_failed_download_cannot_skip_the_retrain():
+    """The five-day outage (2026-07-19..24). Downloads and the retrain shared one `run:`
+    block, and a `run:` block is `bash -e`, so a non-zero `--strict` exit aborted it
+    before the pipeline line ever ran. They must be separate steps, and the retrain must
+    not be conditioned on the download succeeding."""
+    steps = _step_blocks()
+    dl = next((b for n, b in steps.items() if n.startswith("Download sources")), None)
+    rt = next((b for n, b in steps.items() if n.startswith("Full retrain")), None)
+    assert dl and rt, f"expected separate download + retrain steps, got {list(steps)}"
+
+    # the exact regression: never both commands in one shell block
+    assert "tennis_model.pipeline" not in dl, "download and retrain are in one run: block again"
+    assert "data.download" not in rt
+
+    # a download failure must not stop the job, and must not gate the retrain
+    assert "continue-on-error: true" in dl, "a failed download aborts the job again"
+    assert "steps.download" not in rt, "the retrain is gated on the download again"
+
+
+def test_a_failed_download_still_reds_the_run():
+    """Non-fatal must not mean unreported: a trailing step escalates after the deploy,
+    the same shape the forecast-log push already uses."""
+    steps = _step_blocks()
+    tail = next((b for n, b in steps.items() if n.startswith("Fail if source downloads")), None)
+    assert tail, "nothing reds the run on an incomplete download"
+    assert "steps.download.outcome == 'failure'" in tail
+    assert "exit 1" in tail
+
+
+def test_the_data_cache_is_saved_even_when_the_run_fails():
+    """`actions/cache` only saves on a green job, so an export crash / blocked gate /
+    deploy hiccup discarded a ratings walk that had already completed and written
+    predictor.pkl — and the next run restored the OLD model, freezing ratings for as long
+    as the late-stage bug lasted. Restore and save are split so save can be if: always()."""
+    wf = WORKFLOW.read_text(encoding="utf-8")
+    assert "actions/cache/restore@" in wf and "actions/cache/save@" in wf, \
+        "cache is a single actions/cache step again — it will not save on a red run"
+    save = next((b for n, b in _step_blocks().items() if n.startswith("Save data cache")), None)
+    assert save and "if: always()" in save, "the cache save is conditional again"
+
+
 def test_workflow_invokes_this_script():
     """Guards against the script drifting out of use: if refresh.yml stops calling it,
     every test above would keep passing while testing dead code."""

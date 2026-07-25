@@ -1869,3 +1869,47 @@ Reproduces the adoption-time number to 4dp. WTA 0.6767->0.6780 acc / 0.2049->0.2
   accuracy.json were written, the run sat in a rate-limit backoff doing a cold Kalshi ledger
   backfill (unbounded, network-bound, and its output must never be committed from here).
   Killed at that point; `kalshi_ledger/atp.csv` reverted.
+
+---
+
+# Task: Harden the daily ratings walk (2026-07-25)
+
+Context from the same session: a "retrain" is TWO things — re-walking the Elo / serve-return /
+context states over the whole history, and refitting the XGBoost combiner + Platt. Only the
+first is time-critical (one day adds ~7 ATP main-draw matches to a 45,831-row frame, so the
+combiner weights barely move). And `build_tour_quick` reuses the pickle's states verbatim
+("No re-walk, no retrain"), so **ratings only ever move on a full run** — an hourly quick run
+ships live scores computed from frozen ratings. That makes the daily walk the thing to protect.
+
+Three ways it was being lost, one incident each:
+
+- [x] **A download failure skipped the retrain entirely.** `download --strict` and the pipeline
+      shared one `run:` block; a `run:` block is `bash -e`, so a non-zero strict exit aborted it
+      before the pipeline line. That is the whole 07-19..24 outage. Split into separate steps;
+      download is `continue-on-error` and no longer gates the retrain. Safe because
+      `download_year` validates and never clobbers good on-disk data, and other sources (live
+      ESPN results) routinely succeed while the mirror is down — so there IS new data to walk.
+      Not swallowed: a trailing step reds the run after the deploy, same shape as the
+      forecast-log escalation.
+- [x] **A red run threw away a completed walk.** `actions/cache` only saves on a green job, so
+      any late-stage failure — the 07-11 `KeyError: 256`, the 07-25 `.SF` AttributeError, a
+      blocked gate, a Firebase hiccup — discarded a predictor.pkl that had already been written,
+      and the next run restored the OLD model. A persistent late-stage bug froze ratings
+      indefinitely. Split into `cache/restore` + `cache/save` with `if: always()`; key carries
+      `run_attempt` because "Re-run failed jobs" reuses run_id and `cache/save` errors on a
+      duplicate key.
+- [x] **The backtest could kill the walk.** `walk_forward` runs BEFORE `train_final`, so an
+      exception in a pure-metrics artifact aborted `build_tour` before `predictor.save()`. Now
+      best-effort (same pattern as `_market_scorecard` / `_kalshi`): accuracy.json keeps the
+      previous run's values and the retrain continues.
+- [x] 4 new tests (350 total): backtest-crash-still-saves (patched `build_tour`, raises the real
+      `KeyError(256)` shape), plus three workflow-text guards — download/retrain never share a
+      `run:` block again, a failed download still reds the run, cache restore/save stays split
+      with `if: always()`. All 4 verified to FAIL without their fix.
+- [x] Proof: 350 pytest (was 346) + ruff clean; refresh.yml parses (22 steps) with the intended
+      `continue-on-error` / `if: always()` / key shape.
+
+**Deliberately not done:** decoupling the combiner refit from the ratings walk onto separate
+cadences. Measured locally, the walk is 46s ATP / 15s WTA and `train_final` is seconds — the
+refit riding along is nearly free, so splitting them buys complexity, not time. The daily
+cadence was never the problem; losing the run was.

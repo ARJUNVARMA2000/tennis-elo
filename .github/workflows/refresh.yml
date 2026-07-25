@@ -59,7 +59,7 @@ jobs:
       # JSON) across runs so quick runs have a model to refresh from. A new cache is saved
       # each run (unique key) and the most recent is restored (restore-keys prefix).
       - name: Restore data cache
-        uses: actions/cache@v6
+        uses: actions/cache/restore@v6
         with:
           path: tennis_model/data
           key: tennis-data-${{ github.run_id }}
@@ -88,15 +88,32 @@ jobs:
           DISPATCH_MODE: ${{ github.event.inputs.mode }}
         run: bash .github/scripts/decide-mode.sh
 
-      - name: Full refresh (download all + retrain both tours)
+      # Downloads and the retrain are SEPARATE steps on purpose. They used to be one
+      # `run:` block, and because a `run:` block is `bash -e`, a non-zero `--strict` exit
+      # aborted it before the pipeline line — so 2026-07-19..24, when the fresh mirror
+      # moved to LFS, the ratings walk simply never happened for five days. A download
+      # that fails leaves the previous good file on disk (download_year validates and
+      # never clobbers), and other sources (live ESPN results) may well have succeeded,
+      # so walking ratings on what we have is strictly better than not walking at all.
+      # The failure is not swallowed: it reds the run in a trailing step, after the
+      # deploy, exactly like the forecast-log push does.
+      - name: Download sources (full)
+        id: download
         if: steps.mode.outputs.mode == 'full'
+        continue-on-error: true
         working-directory: tennis_model
         env:
           PYTHONPATH: src
         run: |
           python -m tennis_model.data.download --kind all --strict
           python -m tennis_model.data.odds --tour all || true
-          python -m tennis_model.pipeline --tour all --backtest
+
+      - name: Full retrain (re-walk ratings + refit combiner, both tours)
+        if: steps.mode.outputs.mode == 'full'
+        working-directory: tennis_model
+        env:
+          PYTHONPATH: src
+        run: python -m tennis_model.pipeline --tour all --backtest
 
       - name: Quick refresh (live results + regenerate from saved model)
         if: steps.mode.outputs.mode == 'quick'
@@ -282,6 +299,24 @@ jobs:
           GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: bash .github/scripts/report-deploy-health.sh
 
+      # Saved with if: always(), which is the whole point of splitting restore/save.
+      # `actions/cache` only saves on a GREEN job, so any downstream failure — an export
+      # crash (KeyError: 256 on 2026-07-11, the `.SF` AttributeError on 07-25), a blocked
+      # gate, a Firebase hiccup — threw away a ratings walk that had already completed and
+      # already written predictor.pkl. The next run then restored the OLD model, so a
+      # persistent late-stage bug froze ratings indefinitely. Saving unconditionally keeps
+      # the completed walk. Nothing unvalidated escapes by doing so: the pre-deploy gate
+      # still decides what SHIPS, and `_predictor_current` re-checks the pickle on load.
+      # run_attempt is in the key because "Re-run failed jobs" reuses run_id, and
+      # cache/save errors on a key that already exists. The restore step's `restore-keys:
+      # tennis-data-` prefix still finds it, so attempt 2 picks up attempt 1's work.
+      - name: Save data cache
+        if: always()
+        uses: actions/cache/save@v6
+        with:
+          path: tennis_model/data
+          key: tennis-data-${{ github.run_id }}-${{ github.run_attempt }}
+
       # Escalation for the best-effort persist step above: red the run only AFTER
       # deploy + sentinel have had their chance, so a failing push alerts without
       # ever costing a deploy or a health report.
@@ -289,4 +324,15 @@ jobs:
         if: steps.mode.outputs.mode == 'full' && steps.persist.outcome == 'failure'
         run: |
           echo "::error::forecast-log push failed after retries (see the Persist forecast log step)"
+          exit 1
+
+      # Same escalation shape for the now-non-fatal source download: the retrain got to
+      # run on the data we had, the site got to deploy, and only then does the run go red
+      # so the incomplete-source failure is still impossible to miss.
+      - name: Fail if source downloads were incomplete
+        if: steps.mode.outputs.mode == 'full' && steps.download.outcome == 'failure'
+        run: |
+          echo "::error::--strict reported failed source download(s) (see the Download sources step)."
+          echo "::error::The retrain still ran on the data already on disk, so ratings are current"
+          echo "::error::as of the last successful download — not frozen — but a source is broken."
           exit 1

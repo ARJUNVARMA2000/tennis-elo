@@ -73,7 +73,56 @@ def test_predictor_feat_param_guard():
     print("ok test_predictor_feat_param_guard")
 
 
+
+
+# --- the ratings walk must survive a failing backtest (2026-07-25) -----------------------
+
+def test_a_failing_backtest_does_not_cost_the_ratings_walk():
+    """`walk_forward` produces accuracy.json — reported metrics, nothing the shipped model
+    depends on — but it runs BEFORE train_final, so an exception in it used to abort
+    build_tour before `predictor.save()`. A completed re-walk of 283k matches was thrown
+    away over a reporting artifact, and (because a red job never saved the data cache) the
+    next run restored the OLD model. Ratings must survive it."""
+    import tennis_model.pipeline as pl
+
+    saved = {}
+
+    class _Pred:
+        def __init__(self, *a, **k):
+            self.elo = self.srv = self.meta = None
+        def save(self):
+            saved["yes"] = True
+
+    orig = (pl.load_matches, pl.build_predictor_inputs, pl.main_rows, pl.walk_forward,
+            pl.train_final, pl.TennisPredictor, pl.export_all, pl._market_scorecard,
+            pl._track, pl._kalshi, pl._mirror)
+    try:
+        pl.load_matches = lambda tour: "df"
+        pl.build_predictor_inputs = lambda df: ("feat", "elo", "srv", "ctx", "meta")
+        pl.main_rows = lambda feat: feat
+        pl.train_final = lambda feat, **k: ("clf", "iso", None)
+        pl.TennisPredictor = _Pred
+        pl.export_all = lambda *a, **k: None
+        pl._market_scorecard = lambda *a, **k: None
+        pl._track = lambda *a, **k: None
+        pl._kalshi = lambda *a, **k: None
+        pl._mirror = lambda *a, **k: None
+
+        def _boom(*a, **k):
+            raise KeyError(256)          # the real 2026-07-11 crash shape
+        pl.walk_forward = _boom
+
+        pl.build_tour("atp", do_backtest=True)      # must NOT raise
+        assert saved.get("yes"), "predictor.save() was skipped after a backtest failure"
+    finally:
+        (pl.load_matches, pl.build_predictor_inputs, pl.main_rows, pl.walk_forward,
+         pl.train_final, pl.TennisPredictor, pl.export_all, pl._market_scorecard,
+         pl._track, pl._kalshi, pl._mirror) = orig
+    print("ok test_a_failing_backtest_does_not_cost_the_ratings_walk")
+
+
 if __name__ == "__main__":
     test_predictor_schema_guard()
     test_predictor_feat_param_guard()
+    test_a_failing_backtest_does_not_cost_the_ratings_walk()
     print("\nALL PASSED")
