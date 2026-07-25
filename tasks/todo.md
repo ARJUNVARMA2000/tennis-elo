@@ -1810,3 +1810,62 @@ and scoring (ATP n=69,099 for 2016-26 is ~2.5x main-tour volume, consistent with
 `main_rows` has NO test. (b) the rewritten LFS mirror degrading recent-year data, already
 flagged untrusted in the 07-25 entry. Needs a local rebuild to separate. The READMEs were left
 untouched — refreshing them would launder whichever of these is real into a documented fact.
+
+---
+
+# Task: Challengers were 59% of the ATP combiner's "main draw" (2026-07-25)
+
+Found by pulling the data locally to settle the metrics discrepancy from the entry above.
+Not the LFS mirror — a labelling gap, and the regression is fully reversed.
+
+## Root cause
+`_read_lower` stamps `chall`/`qual` only on files it reads out of `lower_dir`. The ATP
+serve-stats source ships `<year>_challenger.csv` into `stats_dir`, which nothing labels, so
+those rows inherited `main` from `merge_sources`' `fillna("main")`. Worse, the stats overlay
+OUTRANKS the lower overlay in the dedup preference (`__src` 1 vs 4), so for 2021-26 — where
+both dirs carry the same challenger matches — the UNLABELLED copy won even though `lower_dir`
+had it stamped correctly.
+
+- [x] Measured on real data: 42,135 of the 71,856 ATP rows the combiner treated as main draw
+      for 2016-26 were `tourney_level == "C"`. Provenance pinned by counting `C` per source
+      dir: historical 0/151,340, fresh 0/4,318, lower 101,204 (stamped), **stats 42,359
+      (unstamped)**.
+- [x] Onset visible in the per-year main counts: 2016 2,965 / 2017 2,929 (normal tour volume),
+      then 2018 jumps to 7,826 and stays ~7-9k. That tracks the stats source's coverage, which
+      starts at 2018 — not a model change, a source arriving.
+- [x] WTA never affected (no challenger ingestion; `draw_level` all main, steady ~2,600-2,900
+      per year) — which is why only ATP regressed.
+- [x] Fix: `results._stamp_draw_level` derives draw_level from CONTENT before provenance —
+      `tourney_level` says what a match is regardless of which file carried it — with an
+      explicit reader stamp still winning. Ratings untouched (walks see every row either way;
+      tier K already keys off `tourney_level`); this only decides the combiner's train/eval set.
+- [x] Real-data effect: ATP main 2016-26 71,856 -> 29,721, all tour-level, zero `C`. Total rows
+      unchanged at 283,567 — relabelled, not dropped.
+- [x] 2 new test_lower_ingestion.py cases (6 total): a challenger arriving via stats_dir (incl.
+      the dedup-preference case where lower_dir also has it), and a table-driven check that
+      content classifies but a reader stamp wins. Both verified to FAIL without the fix.
+- [x] 346 pytest (was 344) + ruff clean.
+
+## Review — the measurement
+Local `--tour all --backtest` on freshly downloaded data (through 2026-07-24):
+
+| ATP walk-forward 2016-26 | acc | Brier | logloss | n |
+|---|---|---|---|---|
+| production today (contaminated) | 0.6571 | 0.2127 | 0.6122 | 69,099 |
+| recorded at A5 adoption (tuning-results-2026-07-05:96) | 0.6832 | 0.2001 | 0.5826 | — |
+| **rebuilt with the fix** | **0.6833** | **0.2005** | **0.5837** | **28,717** |
+
+Reproduces the adoption-time number to 4dp. WTA 0.6767->0.6780 acc / 0.2049->0.2045 Brier
+(essentially unchanged, as predicted for an uncontaminated tour).
+
+- **Not an adoption.** This restores the already-arbiter-adopted A5 configuration rather than
+  proposing a new one; the near-exact reproduction of the adoption-time metrics IS the evidence
+  for that. No arbiter gate run, deliberately — there is no new arm to gate.
+- **README left alone.** Its table is the 2010-2026 window, which this run does not produce, so
+  its 0.696/0.1947 is still not directly comparable. Now that the 2016-26 window matches its
+  recorded value again, the README is plausibly fine as-is — but "plausibly" is not "verified",
+  so the metrics-refresh todo stays open pending a 2010-26 run.
+- **Local rebuild was stopped before finishing** — after both tours' models, exports and
+  accuracy.json were written, the run sat in a rate-limit backoff doing a cold Kalshi ledger
+  backfill (unbounded, network-bound, and its output must never be committed from here).
+  Killed at that point; `kalshi_ledger/atp.csv` reverted.

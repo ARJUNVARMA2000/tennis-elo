@@ -626,3 +626,20 @@
   is not just about alerting — any shell that decides something expensive or load-bearing
   belongs in `.github/scripts/` with a case in `test_workflow_alerts.py`. See the
   "Inline workflow `run:` shell is untestable" entry above and [[future-proof-no-quick-fixes]].
+
+- **Label rows by what they ARE, not by which directory they arrived in.**
+  (2026-07-25) A5 adopted "challengers feed the rating walks, never the combiner", implemented
+  as `_read_lower` stamping `draw_level` on the files it reads out of `lower_dir`. That made
+  the invariant a property of the READER, so the moment the same kind of row arrived through a
+  different door it silently became main draw — the ATP serve-stats source ships
+  `<year>_challenger.csv` into `stats_dir`, and because the stats overlay outranks the lower
+  overlay in the dedup preference, its unlabelled copy beat the correctly-stamped one. Result:
+  42k of the 72k rows the ATP combiner scored as main draw for 2016-26 were Challengers, and
+  the walk-forward quietly gave back the entire A5 gain (acc 0.6832 -> 0.6571) with every test
+  green. Fix: derive from content (`tourney_level`) first, let an explicit stamp win, default
+  last. Two rules. First, when a filter encodes an adopted MODEL decision, it needs a test on a
+  production-shaped frame — `main_rows` had none, so nothing noticed the population it filtered
+  had doubled. Second, a headline metric regressing is a symptom worth chasing to a cause: the
+  numbers had been wrong in the shipped README for weeks and were read as "docs are stale"
+  rather than "the model changed". Compare `n`, not just the metric — the row count doubling
+  was the tell, and it was visible the whole time. See [[future-proof-no-quick-fixes]].

@@ -120,6 +120,55 @@ def test_load_matches_gate_off_has_no_draw_level_surprises():
     print("ok test_load_matches_gate_off_has_no_draw_level_surprises")
 
 
+def test_challenger_rows_from_the_stats_dir_are_not_treated_as_main_draw():
+    """The 2026-07-25 production bug. `_read_lower` stamps only what it reads out of
+    `lower_dir`, so a lower-tier row arriving through any other directory inherited
+    "main" — and the ATP serve-stats source ships `<year>_challenger.csv` into
+    `stats_dir`. Worse, the stats overlay OUTRANKS the lower overlay in the dedup
+    preference, so its unlabelled copy won even when lower_dir had the same match
+    stamped correctly. 42k of the 72k rows the ATP combiner scored as main draw for
+    2016-26 were Challengers — the exact mix A5 measured as a REJECT."""
+    def check(base: Path):
+        config.INCLUDE_CHALLENGERS = True
+        # same challenger match as lower_dir carries, but arriving via the stats overlay
+        _write_csv(base / "stats" / "2015_challenger.csv",
+            _HDR_FULL
+            + "2015-7182,Happy Valley,20150111,Blaz Rola,Omar Jasika,R32,C,4-6 6-4 6-1,102,87\n")
+        # ...and a challenger the stats overlay is the ONLY source for
+        _write_csv(base / "stats" / "2016_challenger.csv",
+            _HDR_FULL
+            + "2016-7300,Ostrava,20160118,Jan Satral,Lukas Rosol,R16,C,6-3 6-2,70,64\n")
+        df = results.clean(results.merge_sources("atp"))
+        by_level = dict(df["draw_level"].value_counts())
+        assert by_level.get("chall") == 2, df[["winner_name", "draw_level", "tourney_level"]]
+        # the stats-only challenger must NOT be sitting in the combiner's eval set
+        rosol = df[df["loser_name"] == "Lukas Rosol"].iloc[0]
+        assert rosol["draw_level"] == "chall", dict(rosol)
+        from tennis_model.model.features import main_rows
+        assert "C" not in set(main_rows(df)["tourney_level"]), "Challenger leaked into main_rows"
+        # and the tour-level row is untouched
+        assert set(df[df["draw_level"] == "main"]["winner_name"]) == {"Roger Federer"}
+    _with_dirs(check)
+    print("ok test_challenger_rows_from_the_stats_dir_are_not_treated_as_main_draw")
+
+
+def test_draw_level_derives_from_content_not_the_directory():
+    """Guards the direction of the fix: an explicit stamp from the reader still wins, but
+    an unstamped row is classified by what `tourney_level` says it is."""
+    import pandas as pd
+    df = pd.DataFrame({
+        "tourney_level": ["C", "Q", "250", "G", None],
+        "draw_level": [None, None, None, "chall", None],   # 4th: reader stamp must win
+    })
+    out = results._stamp_draw_level(df.copy())
+    assert list(out["draw_level"]) == ["chall", "qual", "main", "chall", "main"], \
+        list(out["draw_level"])
+    # a frame with no tourney_level column at all degrades to main, never raises
+    bare = results._stamp_draw_level(pd.DataFrame({"winner_name": ["A", "B"]}))
+    assert list(bare["draw_level"]) == ["main", "main"]
+    print("ok test_draw_level_derives_from_content_not_the_directory")
+
+
 def test_download_lower_writes_basenames():
     """atp_quali/{year}_atp_quali.csv must land as its basename inside lower_dir."""
     payload = (_HDR_FULL
@@ -144,5 +193,7 @@ if __name__ == "__main__":
     test_gate_off_excludes_lower_rows()
     test_gate_on_marks_and_tiers_lower_rows()
     test_load_matches_gate_off_has_no_draw_level_surprises()
+    test_challenger_rows_from_the_stats_dir_are_not_treated_as_main_draw()
+    test_draw_level_derives_from_content_not_the_directory()
     test_download_lower_writes_basenames()
     print("\nALL PASSED")

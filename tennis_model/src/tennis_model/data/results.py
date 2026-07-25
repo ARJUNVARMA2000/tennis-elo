@@ -142,6 +142,33 @@ def _canonicalize_names(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def _stamp_draw_level(df: pd.DataFrame) -> pd.DataFrame:
+    """Mark every row main / chall / qual, deriving from CONTENT before provenance.
+
+    `_read_lower` stamps the rows it reads out of `lower_dir`, which used to be the only
+    labelling — so lower-tier rows arriving through any OTHER directory silently inherited
+    "main". They do: the ATP serve-stats source ships `<year>_challenger.csv` into
+    `stats_dir`, and because the stats overlay outranks the lower overlay in the dedup
+    preference, its unlabelled copy WON. 42k of the 72k ATP rows the combiner treated as
+    main draw for 2016-26 were Challengers — the exact challenger-dominated mix the A5
+    experiment measured as a REJECT, reintroduced through a back door (2026-07-25).
+
+    `tourney_level` says what a match is regardless of which file carried it, so trust that
+    first and fall back to "main". Ratings are unaffected either way (the walks see every
+    row, and tier K already keys off `tourney_level`); this only decides what the combiner
+    trains and is scored on.
+    """
+    lvl = (df["tourney_level"].astype("string").str.strip()
+           if "tourney_level" in df.columns else pd.Series(pd.NA, index=df.index, dtype="string"))
+    stamped = (df["draw_level"] if "draw_level" in df.columns
+               else pd.Series(pd.NA, index=df.index, dtype=object))
+    derived = pd.Series(pd.NA, index=df.index, dtype=object)
+    derived[lvl.eq("C")] = "chall"
+    derived[lvl.eq("Q")] = "qual"
+    df["draw_level"] = stamped.combine_first(derived).fillna("main")
+    return df
+
+
 def merge_sources(tour: str) -> pd.DataFrame:
     """Concatenate historical + stats + fresh + live for a tour and de-dup.
 
@@ -165,8 +192,7 @@ def merge_sources(tour: str) -> pd.DataFrame:
             low["__src"] = 4
             frames.append(low)
     df = pd.concat(frames, ignore_index=True)
-    df["draw_level"] = (df["draw_level"].fillna("main")
-                        if "draw_level" in df.columns else "main")
+    df = _stamp_draw_level(df)
     df["date"] = _parse_dates(df["tourney_date"])
     df = df[df["date"].notna() & df["winner_name"].notna() & df["loser_name"].notna()].copy()
     df = _drop_impossible_dates(df)
