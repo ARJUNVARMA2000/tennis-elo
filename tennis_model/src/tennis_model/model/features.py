@@ -217,6 +217,13 @@ def main_rows(feat: pd.DataFrame) -> pd.DataFrame:
     walks but never the combiner — training on the challenger-dominated row mix
     was measured to destabilize fold training/calibration (full-variant REJECT)."""
     if "draw_level" not in feat.columns:
+        # Never silently. Without the column this filter is a NO-OP and the combiner
+        # trains on every tier — no error, no failing test, and a metric that still looks
+        # plausible. `_assemble` is the only thing that carries draw_level into the feature
+        # frame; if that carry-through is ever dropped, this is the one place it shows.
+        print("  WARNING: feature frame carries no draw_level — the main-draw filter is a "
+              "NO-OP, so the combiner is training on EVERY tier (challengers included). "
+              "Check that _assemble still carries draw_level through.")
         return feat
     return feat[feat["draw_level"] == "main"]
 

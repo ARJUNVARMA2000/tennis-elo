@@ -13,6 +13,7 @@ import {
   sectionRoundCount,
   sideLabel,
   titleContenders,
+  type TournamentLite,
 } from "@/lib/bracket";
 
 const RLABEL = { 128: "R128", 64: "R64", 32: "R32", 16: "R16", 8: "QF", 4: "SF", 2: "F" } as Record<number, string>;
@@ -115,7 +116,7 @@ describe("event + reach resolution", () => {
   });
 
   it("joins reach odds + title contenders from tournaments.json by name", () => {
-    const tournaments = [{
+    const tournaments: TournamentLite[] = [{
       name: "Wimbledon",
       projection: [
         { name: "Sinner", reach: { SF: 0.7, F: 0.55, Champion: 0.4 } },

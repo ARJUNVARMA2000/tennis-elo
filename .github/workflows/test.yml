@@ -47,6 +47,11 @@ jobs:
       - name: Test
         run: npm test
 
+      # `next build` type-checks what the app imports, which excludes tests/ — so type
+      # errors could (and did) sit in the test folder indefinitely with CI fully green.
+      - name: Type-check (incl. tests/, which the build does not cover)
+        run: npx tsc --noEmit
+
       # catches type errors and export breakage on PRs before the deploy
       # workflow hits them (Next 16 no longer lints during build). No basePath, matching
       # the root-domain Firebase build that refresh.yml ships.

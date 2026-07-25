@@ -154,10 +154,49 @@ def test_make_oriented_xy_flip_contract():
     print("ok test_make_oriented_xy_flip_contract")
 
 
+def test_assemble_carries_draw_level_so_the_tier_filter_still_bites():
+    """`main_rows` filters on draw_level, and `_assemble` is the ONLY thing that carries
+    that column from the results frame into the feature frame. Drop the carry-through and
+    main_rows returns every row: no error, no failing test, and a metric that still looks
+    plausible — the combiner just quietly trains on every tier. That is the 2026-07-25
+    challenger contamination arriving by a second route, so pin the link itself."""
+    d = _joined_frame()
+    d["draw_level"] = ["main", "chall"]
+    orig = features.build_profiles
+    try:
+        features.build_profiles = lambda tour: {}
+        f = features._assemble(d)
+    finally:
+        features.build_profiles = orig
+    assert list(f["draw_level"]) == ["main", "chall"], "draw_level lost in _assemble"
+    kept = features.main_rows(f)
+    assert len(kept) == 1 and list(kept["draw_level"]) == ["main"], kept
+
+
+def test_main_rows_is_audible_when_it_cannot_filter():
+    """The no-op path must announce itself. It is reachable only if draw_level goes
+    missing, which is precisely the failure nobody would otherwise notice."""
+    import contextlib
+    import io
+    bare = pd.DataFrame({"elo_diff": [1.0, 2.0, 3.0]})
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        out = features.main_rows(bare)
+    assert len(out) == 3, "must not drop rows it cannot classify"
+    assert "NO-OP" in buf.getvalue(), f"silent no-op: {buf.getvalue()!r}"
+    # and the normal path stays quiet
+    ok = pd.DataFrame({"draw_level": ["main", "chall"], "elo_diff": [1.0, 2.0]})
+    buf2 = io.StringIO()
+    with contextlib.redirect_stdout(buf2):
+        kept = features.main_rows(ok)
+    assert len(kept) == 1 and buf2.getvalue() == ""
+
 if __name__ == "__main__":
     test_feature_partition_sane()
     test_assemble_orientation_contract()
     test_assemble_respects_feature_params()
     test_run_context_respects_params()
     test_make_oriented_xy_flip_contract()
+    test_assemble_carries_draw_level_so_the_tier_filter_still_bites()
+    test_main_rows_is_audible_when_it_cannot_filter()
     print("\nALL PASSED")

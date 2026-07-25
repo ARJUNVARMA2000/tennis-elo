@@ -1965,3 +1965,36 @@ point model read 0.6420/0.2165 instead of 0.6442/0.2152.
   `wta/historical/2024.csv` is genuinely truncated upstream at May (months 1-5 only, byte
   identical in local and snapshot) and the stats overlay only partly fills June-December.
   That is the pre-existing "2024 top-up" item, now quantified: ~500 matches short.
+
+---
+
+# Task: Close the last two open items (2026-07-25, cont.)
+
+- [x] **`main_rows` had no direct test** despite encoding an adopted model decision — flagged
+      twice earlier today. Two now pin it in `test_features.py`. The valuable one is the LINK:
+      `_assemble` is the only thing carrying `draw_level` from the results frame into the
+      feature frame, so dropping that one line turns `main_rows` into a no-op and the combiner
+      trains on every tier — no error, no failing test, plausible-looking metric. That is the
+      contamination arriving by a second route. Also made the missing-column branch print a
+      loud WARNING instead of returning silently, and pinned that it stays quiet on the normal
+      path. Negative-controlled: the audibility test fails without the change.
+- [x] **`npx tsc --noEmit` had 2 pre-existing errors** in `web/tests/bracket.test.ts` — a
+      fixture literal whose two `reach` shapes inferred a union with `SF?: undefined`, which
+      an index signature rejects. Fixed by annotating the fixture `TournamentLite[]` so the
+      literal is checked against the target type instead of inferred.
+- [x] **Root cause of the drift, fixed**: `next build` only type-checks what the app imports,
+      which excludes `tests/`, so errors could sit there indefinitely with CI fully green.
+      Added a `tsc --noEmit` step to `test.yml` between Test and Build.
+- [x] Proof: 353 pytest (was 351) + ruff clean; `npx tsc --noEmit` exit 0; 173 vitest; lint 0
+      errors (13 pre-existing warnings, none in touched files); test.yml parses.
+
+## Verified in production today
+- Dispatched full run 30164231601 (`MODE: full (event=workflow_dispatch hour=15Z)`) regenerated
+  `accuracy.json` on the fixed code: ATP 2016-26 combiner **0.6830 / 0.2004, n=28,718** (was
+  0.6571 / 0.2127, n=69,099) — within one row and 0.0003 of the local measurement, so CI and
+  local agree. WTA 0.6777 / 0.2049.
+- First real `modelTrainedAt` stamps are live (ATP 15:59:28Z, WTA 16:09:47Z), `health.json`
+  carries `model_trained_at` for both tours, 0 output problems. The watchdog is armed.
+- First scheduled run since the cron fix logged `quick (event=schedule hour=15Z — default)`,
+  confirming the script runs on real schedule events. The 06:00 full slot is still unproven
+  until tomorrow — that is the last open item from today.
