@@ -189,6 +189,43 @@ def test_download_lower_writes_basenames():
     print("ok test_download_lower_writes_basenames")
 
 
+
+
+# --- incomplete-source detection (2026-07-25) --------------------------------------------
+
+def _seasons(counts: dict):
+    import pandas as pd
+    rows = []
+    for y, n in counts.items():
+        rows += [pd.Timestamp(f"{y}-06-01")] * n
+    return pd.DataFrame({"date": rows})
+
+
+def test_thin_seasons_flags_a_missing_source_but_not_covid():
+    """A source that is present but INCOMPLETE moves nothing except the row count — every
+    metric computed on it stays perfectly plausible, and the health gate only sees shipped
+    JSON. This cost two rounds of wrong numbers on 2026-07-25; both times `n` was the tell.
+
+    The shapes are the real ones: a normal ~2,700-match season, COVID 2020 at 1,276 (a
+    permanent, documented shortfall that must NOT alarm), and WTA 2024 at 1,214 with the
+    release-snapshot backfill missing vs 2,119 with it."""
+    normal = {y: 2700 for y in range(2014, 2026)}
+    partial_current = {2026: 900}                      # current season is always partial
+
+    assert results.thin_seasons(_seasons({**normal, **partial_current})) == []
+    covid = {**normal, 2020: 1276}
+    assert results.thin_seasons(_seasons({**covid, **partial_current})) == [], \
+        "COVID 2020 must not alarm — it is a real, permanent shortfall"
+    missing = {**covid, 2024: 1214}                    # the no-snapshot local checkout
+    assert results.thin_seasons(_seasons({**missing, **partial_current})) == [2024]
+    restored = {**covid, 2024: 2119}                   # with the backfill: short, not broken
+    assert results.thin_seasons(_seasons({**restored, **partial_current})) == []
+    # a thin CURRENT season is just the year in progress, never a finding
+    assert results.thin_seasons(_seasons({**normal, 2026: 120})) == []
+    # and too little history to have an opinion stays silent rather than guessing
+    assert results.thin_seasons(_seasons({2024: 2700, 2025: 40, 2026: 10})) == []
+    print("ok test_thin_seasons_flags_a_missing_source_but_not_covid")
+
 if __name__ == "__main__":
     test_gate_off_excludes_lower_rows()
     test_gate_on_marks_and_tiers_lower_rows()
@@ -196,4 +233,5 @@ if __name__ == "__main__":
     test_challenger_rows_from_the_stats_dir_are_not_treated_as_main_draw()
     test_draw_level_derives_from_content_not_the_directory()
     test_download_lower_writes_basenames()
+    test_thin_seasons_flags_a_missing_source_but_not_covid()
     print("\nALL PASSED")

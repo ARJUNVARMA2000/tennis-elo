@@ -677,3 +677,18 @@
   population size against whatever reference you are replacing, because a metric computed on
   the wrong rows looks exactly like a metric computed on the right ones.
   See [[future-proof-no-quick-fixes]].
+
+- **An incomplete source moves only `n`, and nothing was watching `n`.**
+  (2026-07-25) Two separate wrong-numbers incidents in one day shared a signature: the data
+  was present, parseable and self-consistent, just the wrong ROWS. Challenger matches doubled
+  the ATP combiner's population; a local checkout missing the release-snapshot backfill
+  halved WTA 2024. Every metric stayed plausible, every test stayed green, and the health
+  gate never saw it — the gate validates shipped JSON, not the population the model was fit
+  on. Both times a human caught it by comparing `n` against an older reference. So watch the
+  population: `results.thin_seasons` flags any completed season under 60% of the recent
+  median at load time, which is early enough to stop a measurement before it is published.
+  Two design notes worth keeping. It excludes 2020 explicitly — COVID is a real, permanent
+  shortfall, and a check that cries wolf on a known anomaly trains you to ignore it. And it
+  WARNS rather than raises: a genuinely truncated upstream is sometimes the truth, and
+  refusing to load would take the site down over a data-quality issue the operator may
+  already know about. See [[future-proof-no-quick-fixes]].

@@ -333,12 +333,57 @@ def chronological(df: pd.DataFrame) -> pd.DataFrame:
     ).drop(columns=["_tid", "_mn"]).reset_index(drop=True)
 
 
+# Seasons with a documented, permanent shortfall. Excluded from the thinness check so a
+# real hole is never lost in the noise of a known one.
+_SHORT_SEASONS = {2020}          # COVID: both tours suspended ~March-August
+_THIN_SEASON_FRAC = 0.6          # a completed season under 60% of the recent median
+_THIN_LOOKBACK = 12              # completed seasons considered
+
+
+def thin_seasons(df: pd.DataFrame) -> list[int]:
+    """Completed seasons carrying far fewer matches than their neighbours.
+
+    This is the signature of a source that is present but INCOMPLETE, which nothing else
+    catches: the row count is the only thing that moves, every metric computed on it stays
+    perfectly plausible, and the health gate only ever sees the shipped JSON. It has now
+    cost two rounds of wrong numbers (2026-07-25) — challenger rows doubling the ATP
+    combiner's population, and a local checkout missing the WTA serve-stats backfill that
+    lives only in the `data-archive` release asset, which `download` cannot fetch. Both
+    times the tell was `n`, spotted by hand against an older reference.
+
+    Deliberately a warning, not an error: a genuinely thin season is sometimes the truth
+    (an upstream that really is truncated), and refusing to load would take the site down
+    over a data-quality issue the operator may already know about.
+    """
+    if "date" not in df.columns or df.empty:
+        return []
+    years = df["date"].dt.year
+    current = int(years.max())                    # partial by definition — never judged
+    counts = years[years < current].value_counts()
+    considered = sorted(counts.index)[-_THIN_LOOKBACK:]
+    ref = [int(counts[y]) for y in considered if y not in _SHORT_SEASONS]
+    if len(ref) < 3:                              # too little history to have an opinion
+        return []
+    median = sorted(ref)[len(ref) // 2]
+    return [int(y) for y in considered
+            if y not in _SHORT_SEASONS and counts[y] < _THIN_SEASON_FRAC * median]
+
+
 def load_matches(tour: str = "atp") -> pd.DataFrame:
     """Top-level entry: merge sources, clean, backfill bios, chronologically sort."""
     df = clean(merge_sources(tour), tour=tour)
     df = _backfill_bios(df)
     df["tour"] = tour
-    return chronological(df)
+    df = chronological(df)
+    thin = thin_seasons(df)
+    if thin:
+        counts = df["date"].dt.year.value_counts()
+        detail = ", ".join(f"{y}: {int(counts[y])}" for y in thin)
+        print(f"  WARNING/{tour}: season(s) look incomplete ({detail}) — a source is likely "
+              f"missing. If this is a local checkout, bootstrap the release snapshot first "
+              f"(see tennis_model/README.md Usage); `download` alone does not fetch it. "
+              f"Metrics measured now are on LESS data than production has.")
+    return df
 
 
 def summary(df: pd.DataFrame) -> dict:
