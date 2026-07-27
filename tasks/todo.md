@@ -2067,7 +2067,10 @@ blocks. The gate was right — "50.0%" beside an UPSET badge is a visibly wrong 
 - [x] 2 boundary tests (366 total), both verified to fail against the reverted producers.
       The pre-existing `upset` tests used 0.7/0.3 and would have passed forever.
 - [x] Confirmed `build_fixtures` is the only writer of `fixtures.json`.
-- [ ] Push and confirm the next scheduled run deploys — `modelTrainedAt` should jump to 07-27.
+- [x] Pushed (83d0024). Run 30306780234 green in 7m27s — first passing gate since 04:42Z.
+      Live now: `lastUpdated` 04:43Z -> 21:27Z, `dataThrough` 07-27, and `modelTrainedAt`
+      07-25T15:59Z -> **07-27T08:03Z** — today's cached retrain shipped on this run, exactly
+      as predicted. Only remaining annotation is the pre-existing data-health issue #10.
 
 ## Review
 
