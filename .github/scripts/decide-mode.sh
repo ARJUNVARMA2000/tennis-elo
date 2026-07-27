@@ -30,15 +30,36 @@ EVENT_NAME="${EVENT_NAME:-}"
 DISPATCH_MODE="${DISPATCH_MODE:-auto}"
 FULL_HOUR="${FULL_HOUR:-06}"
 NOW_HOUR="${NOW_HOUR:-$(date -u +%H)}"
+NOW_DATE="${NOW_DATE:-$(date -u +%F)}"
 PREDICTOR="${PREDICTOR:-tennis_model/data/output/atp/predictor.pkl}"
+# Written by the retrain step, carried between runs in the data cache.
+MARKER="${MARKER:-tennis_model/data/output/.last_full_run}"
 
 MODE=quick
 WHY="default"
 
-# The daily retrain slot. Compared on the clock, not on github.event.schedule.
-if [ "$EVENT_NAME" = "schedule" ] && [ "$NOW_HOUR" = "$FULL_HOUR" ]; then
+# The daily retrain: the FIRST scheduled run at or after FULL_HOUR on each UTC day.
+#
+# NOT "the run that lands exactly in hour FULL_HOUR" — that was the previous attempt and it
+# missed on its first day. On 2026-07-26 GitHub delivered scheduled runs at 04:02, 07:05 and
+# 08:03 and NOTHING in hour 06, so an equality test never matched and the model went 35h
+# without a retrain. Scheduled delivery is not merely late, it drops slots entirely, so any
+# rule keyed to a specific hour will keep missing.
+#
+# "At or after, once per day" is delivery-jitter-proof: whenever the first run after 06:00Z
+# arrives, it retrains. The date marker is what stops that from becoming an hourly storm —
+# a full run costs ~30 min and, on failure, takes the deploy with it, so at most one attempt
+# per UTC day. The marker is written when the retrain STARTS (not when it succeeds), and the
+# data cache now saves on red runs, so a crashing pipeline cannot retry all day either;
+# a retrain that stays broken is the model-age watchdog's problem, not this script's.
+LAST_FULL=""
+[ -f "$MARKER" ] && LAST_FULL="$(tr -d '[:space:]' < "$MARKER")"
+# 10# forces base 10 — "08" and "09" are invalid octal and would abort under set -e
+if [ "$EVENT_NAME" = "schedule" ] \
+   && [ "$((10#$NOW_HOUR))" -ge "$((10#$FULL_HOUR))" ] \
+   && [ "$LAST_FULL" != "$NOW_DATE" ]; then
   MODE=full
-  WHY="scheduled daily retrain slot (${FULL_HOUR}:00 UTC)"
+  WHY="first scheduled run at/after ${FULL_HOUR}:00Z today (last full: ${LAST_FULL:-never})"
 fi
 
 # An explicit dispatch choice always wins over the slot.

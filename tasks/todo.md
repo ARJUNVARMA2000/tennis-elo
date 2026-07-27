@@ -1998,3 +1998,42 @@ point model read 0.6420/0.2165 instead of 0.6442/0.2152.
 - First scheduled run since the cron fix logged `quick (event=schedule hour=15Z — default)`,
   confirming the script runs on real schedule events. The 06:00 full slot is still unproven
   until tomorrow — that is the last open item from today.
+
+---
+
+# Task: The clock fix missed on day one — claim the slot, don't match the hour (2026-07-27)
+
+The 2026-07-25 cron fix replaced "which cron did GitHub say fired" with "did this run land in
+hour 06". It missed the very first day. Actual scheduled deliveries on 07-26:
+
+```
+04:02Z schedule -> quick (hour=04)
+07:05Z schedule -> quick (hour=07)   <- the delayed daily slot
+08:03Z schedule -> quick (hour=08)
+```
+
+**Nothing was delivered in hour 06 at all.** Scheduled events are not merely late, GitHub drops
+slots entirely, so any rule keyed to a specific hour keeps missing. Production went 35h without
+a retrain (modelTrainedAt stuck at the 07-25 15:59Z manual dispatch while lastUpdated advanced
+hourly) — exactly the divergence the watchdog was built to show, and it showed it.
+
+I had documented this residual on 07-25 and called the watchdog an adequate backstop. That was
+wrong: detection is not a substitute for a mechanism that works, and I traded a certain failure
+for one I guessed was rare without checking how rare.
+
+- [x] Rule is now **the first scheduled run at or after FULL_HOUR on each UTC day**, not the run
+      that lands inside that hour. Jitter-proof: whenever the first post-06:00Z run arrives, it
+      retrains.
+- [x] A date marker (`data/output/.last_full_run`, carried in the data cache) makes it
+      at-most-once-daily. Without it, every hourly run after 06:00Z would launch a ~30-minute
+      job that can block the deploy. Written when the retrain STARTS, not when it succeeds, so
+      a crashing pipeline cannot retry all day; a persistently broken retrain is the model-age
+      watchdog's job.
+- [x] `10#` base-10 coercion on the hour comparison — `[ 08 -ge 06 ]` is invalid octal and would
+      abort the script under `set -e` precisely in the 08/09 window this fix exists to cover.
+- [x] 4 new/rewritten cases (356 total): the real 07-26 delivery sequence replayed, once-per-day
+      claiming, the octal trap, pre-slot hours stay quick, plus a workflow guard that the retrain
+      step still writes the marker BEFORE the pipeline. 3 verified to fail against the old script.
+- [x] Deliberately did NOT dispatch a manual full run to refresh the stale model: the retrain
+      step writes today's marker, which would suppress the automatic run and destroy the proof.
+      Letting the natural post-06:00Z run do it IS the test.

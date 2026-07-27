@@ -113,7 +113,15 @@ jobs:
         working-directory: tennis_model
         env:
           PYTHONPATH: src
-        run: python -m tennis_model.pipeline --tour all --backtest
+        run: |
+          # Claim today's retrain BEFORE running it, and carry that in the data cache (which
+          # now saves on red runs). decide-mode.sh reads it so the day's slot is used exactly
+          # once however GitHub jitters delivery — and a pipeline that crashes cannot retry
+          # every hour for the rest of the day. A retrain that stays broken is caught by the
+          # model-age watchdog, not by hammering it.
+          mkdir -p data/output
+          date -u +%F > data/output/.last_full_run
+          python -m tennis_model.pipeline --tour all --backtest
 
       - name: Quick refresh (live results + regenerate from saved model)
         if: steps.mode.outputs.mode == 'quick'

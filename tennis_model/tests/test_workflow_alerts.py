@@ -257,16 +257,23 @@ def test_data_health_standing_failure_comments_once_when_the_problem_set_changes
 # only successful full retrain in that window was a hand-dispatched one. Same lesson as the
 # alert scripts: shell that decides something this important needs a test.
 
-def _run_mode(event: str, hour: str = "06", dispatch: str = "auto", predictor: bool = True):
-    """Run the real decide-mode.sh; returns (exit_code, selected_mode)."""
+def _run_mode(event: str, hour: str = "06", dispatch: str = "auto", predictor: bool = True,
+              last_full: str | None = None, today: str = "2026-07-26"):
+    """Run the real decide-mode.sh; returns (exit_code, selected_mode).
+
+    `last_full` is the date in the marker file the retrain step writes (None = no marker)."""
     with tempfile.TemporaryDirectory() as td:
         out = Path(td) / "gh_out"
         out.write_text("", encoding="utf-8")
         pkl = Path(td) / "predictor.pkl"
         if predictor:
             pkl.write_text("x", encoding="utf-8")
+        marker = Path(td) / ".last_full_run"
+        if last_full:
+            marker.write_text(last_full + "\n", encoding="utf-8")
         env = {**os.environ, "EVENT_NAME": event, "DISPATCH_MODE": dispatch,
-               "NOW_HOUR": hour, "PREDICTOR": str(pkl), "GITHUB_OUTPUT": str(out)}
+               "NOW_HOUR": hour, "NOW_DATE": today, "MARKER": str(marker),
+               "PREDICTOR": str(pkl), "GITHUB_OUTPUT": str(out)}
         p = subprocess.run([_BASH, str(MODE_SCRIPT)], env=env, capture_output=True,
                            text=True, timeout=60)
         modes = [ln.split("=", 1)[1] for ln in out.read_text(encoding="utf-8").splitlines()
@@ -274,20 +281,41 @@ def _run_mode(event: str, hour: str = "06", dispatch: str = "auto", predictor: b
         return p.returncode, (modes[-1] if modes else None)
 
 
-def test_scheduled_run_in_the_daily_slot_retrains():
-    """The production regression: every scheduled run that landed in hour 6 on 07-21..07-25
-    chose quick. It must choose full — and stay full across the delivery delay that actually
-    occurred (runs fired 06:30-06:43, i.e. still hour 6, just not at :00)."""
-    code, mode = _run_mode("schedule", hour="06")
-    assert code == 0 and mode == "full", (code, mode)
+def test_the_first_scheduled_run_after_the_slot_retrains():
+    """Delivery jitter must not cost the day's retrain. The previous attempt required a run
+    to land exactly in hour 06 and missed on its very first day: on 2026-07-26 GitHub
+    delivered scheduled runs at 04:02, 07:05 and 08:03 and NOTHING in hour 06, so the model
+    went 35h without retraining. Replay that exact sequence."""
+    assert _run_mode("schedule", hour="04") == (0, "quick")          # before the slot
+    assert _run_mode("schedule", hour="07") == (0, "full")           # first one after it
+    # ...and once claimed, the rest of the day stays cheap
+    assert _run_mode("schedule", hour="08", last_full="2026-07-26") == (0, "quick")
 
 
-def test_scheduled_run_outside_the_slot_stays_quick():
-    """Every other hourly run must stay cheap — a full retrain per hour would both cost 30
-    minutes a pop and, when it fails, block the deploy the quick path would have shipped."""
-    for hour in ("00", "05", "07", "17", "23"):
+def test_the_slot_is_claimed_exactly_once_per_day():
+    """A full run costs ~30 min and takes the deploy with it if it fails, so the marker must
+    make this at-most-once-daily — no hourly storm, whatever GitHub does."""
+    for hour in ("06", "07", "12", "23"):
+        assert _run_mode("schedule", hour=hour, last_full="2026-07-26") == (0, "quick"), hour
+    # yesterday's marker does not satisfy today
+    assert _run_mode("schedule", hour="06", last_full="2026-07-25") == (0, "full")
+    # a fresh cache (no marker at all) retrains at the first opportunity
+    assert _run_mode("schedule", hour="09", last_full=None) == (0, "full")
+
+
+def test_hours_08_and_09_do_not_abort_as_bad_octal():
+    """`[ 08 -ge 06 ]` is a base-10 trap: bash reads a leading zero as octal, 8 and 9 are
+    invalid digits, and under `set -e` the script would die instead of deciding."""
+    for hour in ("08", "09"):
         code, mode = _run_mode("schedule", hour=hour)
-        assert code == 0 and mode == "quick", (hour, code, mode)
+        assert code == 0 and mode == "full", (hour, code, mode)
+
+
+def test_runs_before_the_slot_stay_quick():
+    """The small hours are ordinary hourly refreshes — retraining then would just move the
+    outage, not remove it."""
+    for hour in ("00", "03", "05"):
+        assert _run_mode("schedule", hour=hour) == (0, "quick"), hour
 
 
 def test_mode_does_not_depend_on_which_cron_github_blames():
@@ -353,6 +381,19 @@ def test_a_failed_download_cannot_skip_the_retrain():
     # a download failure must not stop the job, and must not gate the retrain
     assert "continue-on-error: true" in dl, "a failed download aborts the job again"
     assert "steps.download" not in rt, "the retrain is gated on the download again"
+
+
+def test_the_retrain_step_claims_the_day_before_running():
+    """decide-mode.sh reads a date marker to use the daily slot exactly once. If the retrain
+    step stops writing it, every scheduled run after 06:00Z would retrain — a ~30-minute job
+    every hour, each one able to block the deploy. Written BEFORE the pipeline so a crash
+    cannot retry all day either."""
+    rt = next((b for n, b in _step_blocks().items() if n.startswith("Full retrain")), None)
+    assert rt and ".last_full_run" in rt, "the retrain step no longer claims the day"
+    body = rt[rt.index("run:"):]
+    assert body.index(".last_full_run") < body.index("tennis_model.pipeline"), \
+        "the marker must be written BEFORE the pipeline, not after it succeeds"
+    assert ".last_full_run" in MODE_SCRIPT.read_text(encoding="utf-8")
 
 
 def test_a_failed_download_still_reds_the_run():

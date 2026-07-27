@@ -692,3 +692,19 @@
   WARNS rather than raises: a genuinely truncated upstream is sometimes the truth, and
   refusing to load would take the site down over a data-quality issue the operator may
   already know about. See [[future-proof-no-quick-fixes]].
+
+- **GitHub drops scheduled slots; claim the work, don't match the clock.**
+  (2026-07-27) Keying the daily retrain to "did this run land in hour 06" missed on its first
+  day: GitHub delivered scheduled runs at 04:02, 07:05 and 08:03 and nothing at all in hour 06,
+  so the equality never matched and the model went 35h stale. Delayed delivery was the failure
+  I designed for; *dropped* delivery was not, and it is just as common. The durable shape is
+  "the first run at or after T each day, claimed via a marker so it happens once" — it does not
+  care when the trigger actually arrives. Two supporting notes: write the claim BEFORE doing the
+  work, so a crash cannot retry every hour for the rest of the day (the cache must save on red
+  runs for this to hold — see the entry above); and `10#` your hour comparisons, because
+  `[ 08 -ge 06 ]` is invalid octal and dies under `set -e` in exactly the late window such a fix
+  exists to cover. The meta-lesson is worse than the bug: I documented this residual when I
+  shipped the clock version, judged the watchdog an adequate backstop, and moved on. Detection
+  is not a substitute for a mechanism that works — if you can name the case that defeats your
+  fix, fix it or verify it is actually rare, don't file it under "accepted".
+  See [[future-proof-no-quick-fixes]].
