@@ -34,8 +34,8 @@ Read-only during a round:
 - **Network**: no data downloads mid-round (WTA API rate-limits; data is frozen for
   the round). Record the feature-cache build times in the results doc.
 - **Dependencies**: no installs, upgrades, or pins (cross-version pickle
-  compatibility is a hard constraint; see CLAUDE.md).
-- `.github/`, `web/`, this file, `CLAUDE.md`. `tasks/lessons.md` is append-only.
+  compatibility is a hard constraint; see AGENTS.md).
+- `.github/`, `web/`, this file, `AGENTS.md`. `tasks/lessons.md` is append-only.
 
 Git: no `push`, no `git clean` (any flags — the gitignored `data/output/` caches and
 study DBs would be destroyed), no force-operations, no amending commits that predate
@@ -52,7 +52,7 @@ Modifiable:
   feature constants.
 - `ratings/`, `points/`, `model/` code — under the parity rule: every walk-time
   signal ships its prediction-time state mirror + parity test **in the same commit**,
-  or is recorded venue/context-free (CLAUDE.md hard rule).
+  or is recorded venue/context-free (AGENTS.md hard rule).
 - `tasks/research/ledger.tsv` (append-only), `tasks/research/ideas.md` (append +
   status edits), the round results doc, `tasks/todo.md`, `tasks/lessons.md` (append).
 

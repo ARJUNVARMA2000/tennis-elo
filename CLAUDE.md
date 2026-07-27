@@ -1,31 +1,12 @@
-# Tennis Elo — project notes
+@./AGENTS.md
 
-Read `tasks/lessons.md` before any non-trivial work. New lessons about this codebase go there (committed), not auto-memory.
+# Claude Code only
 
-## Map
-- `tennis_model/` — Python pipeline, src-layout (run with `PYTHONPATH=src` from `tennis_model/`). Elo: `src/tennis_model/ratings/`; point model: `points/`; combiner: `model/train.py`; per-tour tuned constants: `src/tennis_model/config.py` (`*_PARAM_OVERRIDES`).
-- `web/` — Next.js app (dev server :3001, config in `.claude/launch.json`); reads JSON mirrored to `web/public/data/`.
-- `tasks/` — `todo.md` (active checklist), `lessons.md`, `tuning-results-*.md` (experiment logs).
-- CI — `test.yml`: pytest + ruff, eslint + vitest + build, every push. `refresh.yml`: daily FULL retrain, hourly QUICK live-score refresh.
-- Architecture and how-to-run: root `README.md` and `tennis_model/README.md` — don't duplicate them here.
+The project rules live in `AGENTS.md` (imported above) so that Codex reads them too — it does not
+read `CLAUDE.md`. Put shared rules there, not here.
 
-## Everyday commands (bash)
-```bash
-cd tennis_model && PYTHONPATH=src python -m pytest -q     # Python tests
-cd tennis_model && PYTHONPATH=src python -m tennis_model.pipeline --tour all --backtest   # full retrain (slow)
-cd web && npm test && npm run lint                        # web tests + lint
-```
-
-## Hard rules
-- The web JSON ships through a pre-deploy integrity gate: `PYTHONPATH=src python -m tennis_model.data.health --gate` (wired into `refresh.yml` before build/deploy, both full and quick). It fails the deploy on internally-inconsistent output — impossible odds, `aliveCount>drawSize`, a live event naming a champion, a non-standard-size "real" draw, placeholder-name leaks, missing/corrupt required JSON. Keep it green. When the user catches a NEW "shipped-wrong" class, the fix isn't just the bug — add the invariant to `health.py`'s `output_problems()` (+ a `test_health.py` case) so the gate catches it next time instead of the user.
-- The health gate sees only the LOCAL JSON before upload; Firebase-serving failures (stale CDN content after a green deploy, cache-header/MIME/trailingSlash/404/basePath regressions) are caught by the serving-side analogue: `web/scripts/verify-deploy.mjs` (`npm run verify:deploy`), run post-deploy against the live URL and alerted via a dedup'd `deploy-health` issue. A NEW live-serving failure class → add a check there (+ a `verify-deploy.test.ts` case for any new pure helper), same discipline as the data gate.
-- CI alert logic (who gets paged, what reds a run) lives in `.github/scripts/*.sh`, never inline in a workflow `run:` block, so it is reachable by `tennis_model/tests/test_workflow_alerts.py` — which runs the real script under `bash` with a stubbed `gh` and asserts exit code + the exact `gh` subcommands. Inline shell is untestable and shipped a false alarm once (a *skipped* verification read as "the live site is broken"). New alert branch → a case there. `.gitattributes` pins `*.sh` to LF; CRLF breaks the Linux runner.
-- Model changes are adopted only via the full walk-forward arbiter gate (paired d±SE; tune 2010–19 / val 2020+). Component-level sweep wins are NOT adoption.
-- Every walk-time feature ships with its prediction-time state mirror + parity test in the same commit, or is recorded venue/context-free.
-- Pin Python deps from the last successful CI run's install log, never local `pip freeze` — cross-version pickle compatibility is the constraint.
-- After changing web deps: `npm install --package-lock-only`, then verify with `npm ci` (Windows-generated lockfiles can miss Linux optional deps).
-- WTA API rate-limits (429s after ~2k calls): backfill one year at a time; CI incremental refresh is safe.
-- Before finalizing any doc/plan that cites repo facts (metrics, features, file lists), re-run `git log` and reconcile with what exploration saw.
-
-## Git & deploy
-- Direct `git push origin master` is allowed and auto-approved (allow-listed in `.claude/settings.json`) — no per-push approval needed. It triggers the production deploy (`refresh.yml`) and bypasses PR review, so push master deliberately: typically after a `research → master` merge with tests passing. Force-push to master (`git push --force origin master`) stays denied as a history-safety backstop.
+- `/code-review` on the working diff before pushing master; `/simplify` for quality-only passes.
+- The `research-round` skill runs an autonomous tuning round against the arbiter gate.
+- `.claude/settings.json` holds the committed permission allow-list (read-only inspection plus the
+  test/lint/build gates run unprompted; `git push origin master` is allow-listed, force-push denied).
+- `.claude/launch.json` defines the `web` dev server on :3001 for the preview tools.

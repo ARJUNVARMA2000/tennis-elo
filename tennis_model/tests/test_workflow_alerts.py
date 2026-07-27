@@ -432,7 +432,7 @@ def test_workflow_invokes_this_script():
 
 
 def test_no_alert_logic_is_left_inline_in_the_workflow():
-    """CLAUDE.md: alert branching lives in .github/scripts/ so it is reachable by this
+    """AGENTS.md: alert branching lives in .github/scripts/ so it is reachable by this
     file. An inline `gh issue create` is by definition untested branching."""
     wf = WORKFLOW.read_text(encoding="utf-8")
     for forbidden in ("gh issue create", "gh issue close", "gh issue comment"):

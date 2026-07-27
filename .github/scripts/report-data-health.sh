@@ -7,7 +7,7 @@
 #
 # Lives as a script rather than an inline `run:` block so it can be exercised directly by
 # tests/test_workflow_alerts.py against a stubbed `gh` — the branch logic here decides
-# whether the owner gets paged and whether the run goes red, and CLAUDE.md requires it be
+# whether the owner gets paged and whether the run goes red, and AGENTS.md requires it be
 # reachable by a test. It was the last inline alert block in refresh.yml.
 #
 # Inputs (env):
