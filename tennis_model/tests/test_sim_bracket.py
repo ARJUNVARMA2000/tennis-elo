@@ -171,6 +171,23 @@ def test_upset_is_winner_oriented():
     assert rounds2[0]["matches"][0]["upset"] is False
 
 
+def test_upset_flag_agrees_with_the_rounded_p_it_ships():
+    """Same trap as fixtures.json: orient the flag off `round(p, 4)`, not raw p.
+
+    The gate re-derives `won_p` from the shipped p only, so a p that rounds across .5
+    makes the file self-contradictory and blocks the deploy.
+    """
+    for p_raw, winner, other in ((0.49996, "A", "B"), (0.50004, "B", "A")):
+        rounds = bracket_rounds(["A", "B"], [_res(winner, other, rnd="F")])
+        price_bracket(rounds, price_fn=lambda a, b, _p=p_raw: _p, logged_fn=lambda a, b: None)
+        m = rounds[0]["matches"][0]
+        # both sides land on the shipped 0.5, so neither is an upset
+        assert m["p"] == 0.5, m["p"]
+        won_p = m["p"] if m["winner"] == "a" else 1.0 - m["p"]   # the gate's exact expression
+        assert m["upset"] == (won_p < 0.5), (p_raw, winner, m["p"], m["upset"])
+        assert m["upset"] is False, (p_raw, winner, m["upset"])
+
+
 def test_bracket_meaningful_rejects_mostly_placeholder_draw():
     # Gstaad's frozen early capture: 2 named + 26 "Qualifier N" in a 32-slot draw -> noise
     slots = ["Named One", "Named Two"] + [f"Qualifier {i}" for i in range(1, 27)] + [None] * 4

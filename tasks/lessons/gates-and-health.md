@@ -68,3 +68,25 @@ Indexed in [`../lessons.md`](../lessons.md).
   See [[future-proof-no-quick-fixes]] and the fp=None entry in
   [`model-research.md`](model-research.md) — the stamp is derived in the constructor for the
   same reason.
+
+- **A flag derived from a value the producer then ROUNDS will eventually contradict the number
+  it ships beside — and the gate, which sees only the file, is right to block.** (2026-07-27,
+  16h of frozen deploys) `build_fixtures` wrote `"modelProb": round(p, 3)` but
+  `"upset": bool(p < 0.5)` off the full-precision `p`. Any winner priced in `[0.4995, 0.5)`
+  ships as `modelProb 0.5` with `upset true`; `output_problems` re-derives the flag as
+  `modelProb < 0.5`, disagrees, and BLOCKS. Every scheduled run from 07:54Z on died there —
+  including one whose 30-minute full retrain had already succeeded, so production served a
+  two-day-old model while a fresh one sat in the cache. The gate was not wrong and needed no
+  tolerance: a card reading "50.0%" next to an UPSET badge is wrong on its face. Note the
+  asymmetry that forces the fix's direction — the producer can see both the raw and the
+  rounded value, the gate can only ever see the rounded one, so the PRODUCER must move.
+  `sim/bracket.py` had the identical latent bug at 4dp (and on the `1.0 - p` orientation for
+  slot b), fixed in the same commit before it could fire. **Why:** this is the rounding case
+  of the existing "derive both sides exactly as the code that produced them" rule in
+  [`draws-and-live-events.md`](draws-and-live-events.md) — there the two sides used different
+  *keys*, here they use different *precisions*, and precision is invisible in a diff.
+  **How to apply:** when a payload carries both a number and a flag about that number, compute
+  the flag from the rounded value being serialised, in the same expression the gate uses — make
+  the invariant true by construction rather than true in practice. Grep for the shape
+  `round(x, n)` and `x <` in one dict literal. Test the boundary explicitly: a unit test on
+  clean 0.7/0.3 inputs passes forever and proves nothing.

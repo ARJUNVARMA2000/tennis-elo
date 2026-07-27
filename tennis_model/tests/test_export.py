@@ -281,6 +281,47 @@ def test_predictor_stamps_trained_at_and_survives_a_pickle_round_trip():
     print("ok test_predictor_stamps_trained_at_and_survives_a_pickle_round_trip")
 
 
+def test_fixtures_upset_flag_agrees_with_the_rounded_prob_it_ships():
+    """The flag must be derived from the prob that ships, not from full-precision p.
+
+    A winner priced .4996 rounds to modelProb .500; a flag taken off the raw p says
+    "upset" while the shipped number says even money. That contradiction blocked every
+    scheduled deploy on 2026-07-27 — the gate can only re-derive the flag from the file.
+    """
+    import pandas as pd
+
+    # probs straddling the rounding boundary, including the exact .4995/.4996 hinge
+    probs = deque([0.4996, 0.49951, 0.4995, 0.4994, 0.5, 0.50049, 0.8, 0.2])
+
+    class _Stub:
+        def win_prob(self, w, l, surface=None, best_of=3, event=None):
+            return probs.popleft()
+
+    n = 8
+    df = pd.DataFrame({
+        "completed": [True] * n,
+        "date": pd.date_range("2026-07-01", periods=n),
+        "tourney_name": ["Umag"] * n,
+        "surface_b": ["Clay"] * n,
+        "round": ["R32"] * n,
+        "winner_name": [f"W{i}" for i in range(n)],
+        "loser_name": [f"L{i}" for i in range(n)],
+        "score": ["6-4 6-4"] * n,
+        "best_of": [3] * n,
+    })
+
+    out = export.build_fixtures(df, _Stub(), n=n)
+    assert len(out) == n
+    for f in out:
+        mp = f["modelProb"]
+        # the exact predicate health.output_problems re-derives the flag with
+        assert f["upset"] == (mp < 0.5), f"flag {f['upset']} contradicts modelProb {mp}"
+    # and specifically: the value that shipped as 0.5 is not badged an upset
+    assert any(f["modelProb"] == 0.5 for f in out)
+    assert all(f["upset"] is False for f in out if f["modelProb"] == 0.5)
+    print("ok test_fixtures_upset_flag_agrees_with_the_rounded_prob_it_ships")
+
+
 if __name__ == "__main__":
     test_finite_replaces_nonfinite_scalars()
     test_finite_recurses_into_nested_containers()
@@ -293,4 +334,5 @@ if __name__ == "__main__":
     test_build_brackets_payload_splits_and_stamps()
     test_build_meta_separates_build_time_from_model_time()
     test_predictor_stamps_trained_at_and_survives_a_pickle_round_trip()
+    test_fixtures_upset_flag_agrees_with_the_rounded_prob_it_ships()
     print("\nALL PASSED")

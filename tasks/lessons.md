@@ -32,6 +32,7 @@ New lesson → append the entry to the matching topic file and add its lead line
 - Python `json.dump` emits a bare `NaN`, which the browser's strict `JSON.parse` REJECTS — one non-finite float blanks a whole page, and every Python-side check passes it. (2026-07-09)
 - A correctness check that runs AFTER deploy can't stop a wrong deploy — gate before, on every mode. (2026-07-09)
 - Two timestamps that look like one: "when was this written" vs "when was this trained". (2026-07-25)
+- A flag derived from a value the producer then ROUNDS will eventually contradict the number it ships beside — the producer must move, because the gate only ever sees the rounded one. (2026-07-27)
 
 ## CI, alerts & deploy — [`lessons/ci-and-deploy.md`](lessons/ci-and-deploy.md)
 

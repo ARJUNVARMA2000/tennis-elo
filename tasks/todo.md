@@ -2037,3 +2037,49 @@ for one I guessed was rare without checking how rare.
 - [x] Deliberately did NOT dispatch a manual full run to refresh the stale model: the retrain
       step writes today's marker, which would suppress the automatic run and destroy the proof.
       Letting the natural post-06:00Z run do it IS the test.
+
+---
+
+# Task: 16 hours of blocked deploys — an upset flag that disagreed with its own number (2026-07-27)
+
+Every scheduled `refresh` from 07:54Z onward failed identically at the pre-deploy gate:
+
+```
+GATE/atp: BLOCK atp: fixtures.json upset flag disagrees with modelProb (0.5)
+```
+
+One row, one tour, and the deploy correctly refused to ship. Consequences by 21:00Z:
+production stuck at `lastUpdated 04:43Z`, and `modelTrainedAt` still on the 07-25 15:59Z
+manual dispatch — even though the 07:54Z run's **full retrain succeeded** (29m45s, step
+green) and saved the fresh model to the data cache. The gate ran after it and blocked, so a
+current model sat in the cache all day while the site served a two-day-old one.
+
+Root cause, `model/export.py:242`: `"modelProb": round(p, 3)` beside `"upset": bool(p < 0.5)`
+taken off full-precision `p`. Any winner priced in `[0.4995, 0.5)` ships `modelProb 0.5` with
+`upset true`. `output_problems` can only re-derive the flag from the file, gets `False`, and
+blocks. The gate was right — "50.0%" beside an UPSET badge is a visibly wrong card.
+
+- [x] Flag derived from the **rounded value that ships** (`mp = round(p, 3)`; `upset = mp < 0.5`),
+      so producer and gate evaluate byte-identical expressions on the same number. True by
+      construction, not by tolerance — no gate change, no epsilon.
+- [x] `sim/bracket.py` carried the same latent bug at 4dp, including on the `1.0 - p`
+      orientation for slot b. Fixed in the same commit, before it fired.
+- [x] 2 boundary tests (366 total), both verified to fail against the reverted producers.
+      The pre-existing `upset` tests used 0.7/0.3 and would have passed forever.
+- [x] Confirmed `build_fixtures` is the only writer of `fixtures.json`.
+- [ ] Push and confirm the next scheduled run deploys — `modelTrainedAt` should jump to 07-27.
+
+## Review
+
+The gate did its job: it caught a real defect and held the last good build rather than
+shipping a contradictory card. The failure was that nothing turned a *blocked deploy* into a
+signal — 10 consecutive red scheduled runs sat unnoticed, and the one alert that did open
+(#10) was for an unrelated advisory. The `deploy-health` sentinel watches the LIVE site, which
+stayed green the whole time precisely because the old build kept serving. **A gate that blocks
+is invisible to a monitor that only checks what's live.** Worth a follow-up: alert on N
+consecutive gate blocks, since that is the state where the site is silently frozen.
+
+Deliberately NOT touched: the three tournament-card advisories still firing (Generali Open /
+Umag / Palermo alive-counts, `Qualifier 18` as modelFavorite) and issue #10 (wta meta.matches
+128794 -> 128724). Both are pre-existing, advisory, and separately tracked — root causes were
+logged as unfixed in 772e5d4. Folding them in here would have delayed unblocking the deploy.

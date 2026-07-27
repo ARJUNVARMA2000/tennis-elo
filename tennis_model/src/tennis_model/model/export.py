@@ -235,11 +235,16 @@ def build_fixtures(df, predictor, n=60) -> list:
         p = predictor.win_prob(r.winner_name, r.loser_name, surface=r.surface_b,
                                best_of=int(r.best_of) if pd.notna(r.best_of) else 3,
                                event=r.tourney_name)
+        # Derive the flag from the ROUNDED prob we actually ship, not from full-precision
+        # `p`: a winner priced .4996 rounds to .500, and a card reading "50.0%" next to an
+        # UPSET badge is wrong on its face — and blocks the gate, which can only re-derive
+        # the flag from the number in the file.
+        mp = round(p, 3)
         out.append({
             "date": pd.Timestamp(r.date).strftime("%Y-%m-%d"),
             "event": r.tourney_name, "surface": r.surface_b, "round": r.round,
             "winner": r.winner_name, "loser": r.loser_name, "score": r.score,
-            "modelProb": round(p, 3), "upset": bool(p < 0.5),
+            "modelProb": mp, "upset": bool(mp < 0.5),
         })
     return out
 

@@ -204,7 +204,9 @@ def price_bracket(rounds: list[dict], price_fn, logged_fn) -> list[dict]:
     pre-match forecast locked in the forecast log, oriented to ``a`` (``None`` when the
     match was never logged). Completed matches prefer the logged value (honest pre-match,
     leakage-free — a recompute would use post-match ratings); pending matches use the
-    current model so the board and the bracket agree. ``upset`` is winner-oriented ``p < 0.5``.
+    current model so the board and the bracket agree. ``upset`` is winner-oriented
+    ``p < 0.5``, computed on the rounded ``p`` that ships so the flag can never contradict
+    the number beside it.
     """
     for rnd in rounds:
         for m in rnd["matches"]:
@@ -224,10 +226,14 @@ def price_bracket(rounds: list[dict], price_fn, logged_fn) -> list[dict]:
                     rp = price_fn(a, b)
                     if rp is not None:
                         p, src = float(rp), "model"
-            m["p"] = round(p, 4) if p is not None else None
+            # Orient off the ROUNDED p, with the same expression the gate re-derives it with
+            # (health._check_brackets): full-precision `p` and the shipped `round(p, 4)` can
+            # land on opposite sides of .5, and the gate only ever sees the latter.
+            pr = round(p, 4) if p is not None else None
+            m["p"] = pr
             m["probSource"] = src
-            if p is not None and m["winner"] is not None:
-                won_p = p if m["winner"] == "a" else 1.0 - p
+            if pr is not None and m["winner"] is not None:
+                won_p = pr if m["winner"] == "a" else 1.0 - pr
                 m["upset"] = bool(won_p < 0.5)
             else:
                 m["upset"] = None
