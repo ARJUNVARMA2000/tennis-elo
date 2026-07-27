@@ -31,7 +31,7 @@ from ..config import (
     lower_dir,
     stats_dir,
 )
-from .surface import wiki_surface_map
+from .surface import wiki_surface_lookup
 
 
 def tier_mults(tour: str | None) -> tuple[dict, float]:
@@ -306,10 +306,23 @@ def clean(df: pd.DataFrame, tour: str | None = None) -> pd.DataFrame:
     df = _backfill_event_attrs(df)
     # surface: archive-backfilled value -> Wikipedia main-article surface (live/new events whose
     # sponsor name misses the archive) -> season-by-month fallback.
+    # `surface_src` records WHICH tier answered. Consumers re-derive an event's surface from
+    # these rows and feed it back as the authoritative "archive" value; without provenance a
+    # month GUESS gets recycled as though it were a fact, which is self-fulfilling — it is
+    # why the DC Open stayed on Grass while its Wikipedia infobox said Hard.
     surf = df["surface"]
+    src = pd.Series(None, index=df.index, dtype=object)
+    src[surf.notna()] = "archive"
     if tour and surf.isna().any():
-        surf = surf.where(surf.notna(), df["tourney_name"].map(wiki_surface_map(tour)))
+        names = df.loc[surf.isna(), "tourney_name"].astype(str).unique()
+        wiki = df["tourney_name"].astype(str).map(wiki_surface_lookup(tour, names))
+        filled = surf.isna() & wiki.notna()
+        surf = surf.where(surf.notna(), wiki)
+        src[filled] = "wiki"
+    guessed = surf.isna()
     surf = surf.where(surf.notna(), df["date"].dt.month.map(MONTH_SURFACE))
+    src[guessed] = "month"
+    df["surface_src"] = src
     df["surface_b"] = surf.map(SURFACE_MAP).fillna(surf).fillna("Hard")
     df["tier"] = df["tourney_level"].map(_tier_name)
     mults, default_mult = tier_mults(tour)

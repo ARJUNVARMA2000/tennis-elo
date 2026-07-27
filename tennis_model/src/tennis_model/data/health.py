@@ -54,6 +54,7 @@ from ..config import (
     HEALTH_MIN_STATS_FRACTION,
     HEALTH_OFFSEASON_RELAX_DAYS,
     OUTPUT_DIR,
+    SURFACE_MAP,
     TOURS,
     WEB_DATA_DIR,
     fresh_dir,
@@ -272,7 +273,19 @@ _GATE_ADVISORY = (
     "is stuck 'live'",             # event whose final never arrived
     "players alive (expected 1)",  # completed event whose eliminations never joined
     "is a draw placeholder",       # 'Qualifier 30' surfaced as a real name
+    # A month-of-year surface is a GUESS, not a contradiction: for a brand-new event with
+    # no archive history and no Wikipedia article yet it is the only answer available, so
+    # blocking would freeze the site on events we simply don't know yet. It stays visible
+    # because the guess is exactly what mispriced the DC Open on grass Elo.
+    "is a month-of-year guess",
+    # Cross-tour surface disagreement: at least one side is wrong, but which one is not
+    # knowable here, and freezing both boards over it helps nobody.
+    "surface split across tours",
 )
+
+# Canonical shipped surfaces — SURFACE_MAP's VALUES (Carpet folds to Hard), so this can
+# never drift from what `results.clean` is able to produce.
+_CANONICAL_SURFACES = frozenset(SURFACE_MAP.values())
 
 
 def _gate_blocks(problem: str) -> bool:
@@ -464,6 +477,17 @@ def _check_tournament(out: list, tour: str, t: dict, now: pd.Timestamp | None = 
     fav = t.get("modelFavorite")
     if fav is not None and not _is_real_name(fav):
         out.append(f"{tour}: tournament {name!r} modelFavorite {fav!r} is a draw placeholder")
+    # Surface. A non-canonical value is a builder bug (the card, the per-surface Elo blend
+    # and the /style page all key off this string), so it blocks. A month-of-year GUESS is
+    # advisory — it is what shipped the DC Open, a hard court, priced on grass Elo, but for
+    # a genuinely new event it is the only answer we have.
+    sfc = t.get("surface")
+    if sfc is not None and sfc not in _CANONICAL_SURFACES:
+        out.append(f"{tour}: tournament {name!r} surface {sfc!r} is not a canonical surface "
+                   f"({'/'.join(sorted(_CANONICAL_SURFACES))})")
+    if status in ("live", "upcoming") and t.get("surfaceSource") == "month":
+        out.append(f"{tour}: {status} tournament {name!r} surface {sfc!r} is a month-of-year "
+                   f"guess — no archive or Wikipedia surface resolved")
 
     proj = t.get("projection") or []
     _check_projection(out, tour, name, proj)
@@ -644,6 +668,39 @@ def _check_kalshi_ledger(out: list, tour: str, rows: list[dict]) -> None:
 
 def _norm_name(name: str) -> str:
     return " ".join(str(name).split()).casefold()
+
+
+def cross_tour_problems(outputs: dict) -> list[str]:
+    """Problems only visible with BOTH tours' boards in hand.
+
+    A combined event is one venue, one week, one court — the DC Open and every Slam ship a
+    card on each tour. When those two cards disagree about the surface, at least one of them
+    is provably wrong, and no per-tour check can ever see it: on 2026-07-27 both tours shipped
+    the DC Open as Grass in the middle of the hard-court swing and every single-tour invariant
+    passed. Advisory, because which side is wrong is not knowable from here.
+
+    ``outputs`` is ``{tour: read_outputs(tour)}``. Events are matched on the normalised
+    display name plus a real date overlap, so two same-named events in different weeks
+    (a tour's spring and autumn editions) are never compared.
+    """
+    per: dict[str, dict] = {}
+    for tour, oc in sorted(outputs.items()):
+        for t in ((oc.get("data") or {}).get("tournaments") or []):
+            if isinstance(t, dict) and t.get("name"):
+                per.setdefault(_norm_name(t["name"]), {})[tour] = t
+    out: list[str] = []
+    for cards in (per[k] for k in sorted(per)):
+        if len(cards) < 2:
+            continue
+        ta, tb = sorted(cards)
+        a, b = cards[ta], cards[tb]
+        if _overlap_days(a, b) < 2:
+            continue
+        sa, sb = a.get("surface"), b.get("surface")
+        if sa and sb and sa != sb:
+            out.append(f"{ta}/{tb}: tournament {a.get('name')!r} surface split across tours "
+                       f"({ta}={sa}, {tb}={sb}) — one board is wrong about the court")
+    return out
 
 
 def _overlap_days(a: dict, b: dict) -> int:
@@ -967,13 +1024,20 @@ def main() -> int:
         # live rather than shipping a wrong one; a stale-but-correct site beats a fresh-wrong one.
         now = pd.Timestamp(datetime.now(UTC).date())
         blocking: list[str] = []
+        outs = {tour: read_outputs(tour) for tour in TOURS}
         for tour in TOURS:
-            for pr in output_problems(tour, read_outputs(tour), now, prev=None):
+            for pr in output_problems(tour, outs[tour], now, prev=None):
                 if _gate_blocks(pr):
                     blocking.append(pr)
                     print(f"  GATE/{tour}: BLOCK {pr}")
                 else:
                     print(f"  GATE/{tour}: warn  {pr}  (advisory — post-deploy sentinel handles it)")
+        for pr in cross_tour_problems(outs):
+            if _gate_blocks(pr):
+                blocking.append(pr)
+                print(f"  GATE/cross: BLOCK {pr}")
+            else:
+                print(f"  GATE/cross: warn  {pr}  (advisory — post-deploy sentinel handles it)")
         if blocking:
             print(f"::error::pre-deploy integrity gate failed — {len(blocking)} blocking problem(s); "
                   f"deploy blocked, last good deploy stays live")
@@ -994,13 +1058,17 @@ def main() -> int:
     report, all_problems = {"generated": str(now.date()),
                             "generatedAt": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
                             "tours": {}}, []
+    outs = {tour: read_outputs(tour) for tour in TOURS}
+    # Cross-tour problems belong to no single tour; attach them to the first so they ride
+    # the existing issue/dedup flow (report-data-health.sh reads health.json `ok`).
+    cross = cross_tour_problems(outs)
     for tour in TOURS:
         h = tour_health(tour, now)
         checks = source_checks(tour, h, now)
         p = [r["problem"] for r in checks if r["problem"]]
         prev_out = ((prev or {}).get("tours", {}).get(tour, {}) or {}).get("output") or {}
-        oc = read_outputs(tour)
-        op = output_problems(tour, oc, now, prev_out)
+        oc = outs[tour]
+        op = output_problems(tour, oc, now, prev_out) + (cross if tour == TOURS[0] else [])
         meta = oc["data"].get("meta") or {}
         h["checks"] = checks
         h["problems"] = p

@@ -63,7 +63,10 @@ def event_attrs(df: pd.DataFrame, event: str) -> tuple:
     sub = df[mask]
     if sub.empty:
         return None, None
-    surf = sub["surface_b"].mode()
+    # Month-guessed rows are excluded: handing one back as `archive_surface` would
+    # short-circuit the Wikipedia tier with a season guess (see sim.tournaments._known_surface).
+    known = sub[sub["surface_src"] != "month"] if "surface_src" in sub.columns else sub
+    surf = known["surface_b"].mode()
     bo = pd.to_numeric(sub["best_of"], errors="coerce").max() if "best_of" in sub.columns else None
     return (surf.iloc[0] if not surf.empty else None,
             int(bo) if pd.notna(bo) else None)

@@ -2173,3 +2173,40 @@ Not done, deliberately: promoting the three advisories to blocking. 772e5d4 says
 the ingestion is clean", but today's 16h outage was a blocking gate meeting live data it had
 never been tested against. Watch a full refresh cycle confirm these are silent, then promote in
 its own commit.
+
+---
+
+# Task: Long-term fix — live schedule/draw correctness + event identity (2026-07-27)
+
+Plan approved (full version: ~/.claude/plans/my-recommendation-in-priority-breezy-bachman.md).
+Evidence: 65 incidents catalogued; ~100% of "site showed wrong content" incidents are in the
+draw/schedule/naming/surface family; root defect is 19 name-string join seams + no stable
+event identity (ESPN's espnId parsed and discarded). Wikipedia-wholesale rejected on
+evidence (can't do discovery/dates/live state/schedule); keep ESPN for discovery+results,
+Wikipedia for structure, fix the join layer.
+
+## Track A — correctness (one commit each, deploy-watched)
+- [x] A1 surface: TWO parse bugs, not one — the field capture stopped at the wikilink pipe
+      (Memphis hides the surface in the DISPLAY text behind a generic target) AND \bHard\b
+      can't match the one-word `[[Hardcourt|...]]`. Between them every hard-court event had
+      NO cached surface. Plus surface_src provenance (a month guess was being read back as
+      "the archive value" — self-fulfilling), resolve_surface_info as the single chain with a
+      tolerant lookup shared by both paths (fixes the Memphis start-day flip), surfaceSource
+      on cards, and 3 gates (canonical BLOCK, month-guess ADV, cross-tour split ADV).
+      Verified against LIVE Wikipedia: DC/Memphis/National Bank now all resolve 'Hard';
+      Gstaad/Palermo still 'Clay'. 374 pytest (+7, all proven failing-first), ruff clean.
+- [ ] A2 placeholders: withhold projection+favorite until real names hold draw majority
+      (user decision); filter published rows via is_real; web empty-table guard; projection
+      name gate BLOCKING; promote modelFavorite placeholder check to blocking
+- [ ] A3 level: tour-gate _parse_category + event_category fallback; normalize_level
+      vocabulary at the resolve_level choke point; gate BLOCKING (vocab + cross-tour)
+- [ ] A4 gates: upcoming-not-ended BLOCK; start-lag ADV (3d); lost-bracket sentinel
+- [ ] A5 wiki hygiene: _get retry/backoff; single wikitext fetch for surface+category;
+      fallback fetch cap; same-day miss suppression
+
+## Track B — event identity (after A)
+- [ ] B1 events.py registry (per-tour, names history = alias table) written by both
+      downloaders; B2 espn_id through live.csv/upcoming.csv/fields.json + results CANON;
+      B3 id-first joins + group coalescing in build_tournaments; B4 cache re-key + in-place
+      migration (never deletes) + end-based retention; B5 calendar completion
+      (finalRecorded) + gate extensions; B6 docs/lessons

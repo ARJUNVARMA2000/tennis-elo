@@ -147,3 +147,30 @@ Indexed in [`../lessons.md`](../lessons.md).
   it exists; borrow the predicate from whatever already judges that (`sim.bracket.is_real`,
   which `health.py` uses for the same purpose) so ingestion and gate cannot drift; and keep the
   stale copy when the re-fetch fails, so a refresh attempt can't lose data you already had.
+
+- **Three separate bugs kept every HARD-COURT event surface-less, and a guessed value with
+  no provenance recycled itself as fact.** (2026-07-27, DC Open priced on grass Elo) The
+  2026-07-08 fix made Wikipedia's main-article infobox the authoritative live surface. It
+  worked for clay and grass and silently failed for hard courts, for two independent parsing
+  reasons: (1) `_SURFACE_FIELD_RE` captured `[^\n|]*`, stopping at the wikilink pipe, so only
+  the link TARGET was ever read — fine for `[[Clay court|Clay]]`, useless for Memphis's
+  `[[Tennis court#outdoor courts|Hard]]` where the surface is in the DISPLAY text; (2) even
+  reading the target, `\b(Hard|Clay|Grass)\b` cannot match inside the ONE-word `[[Hardcourt|
+  Hard (outdoor)]]`. So the cache had every clay/grass event and no hard-court event, and
+  `MONTH_SURFACE[July]="Grass"` answered instead — for a hard-court swing. The third bug made
+  it permanent: `clean()` stamped the month guess into `surface_b` with no provenance, and
+  `_archive_attrs`/`event_attrs` read that column back as "the archive value", which
+  short-circuits the Wikipedia tier in `resolve_surface`. A guess proving itself.
+  **Why:** the unit tests only ever exercised `[[Clay court|Clay]]`-shaped input, so two of
+  the three real-world spellings were never seen; and the failure is silent by construction —
+  `_download_wiki_surfaces` deliberately never caches a miss, so a parse bug looks exactly
+  like "not published yet" forever. **How to apply:** when parsing a wikilink, never assume
+  which side of the pipe holds the value — read the whole field to end of line (as
+  `_parse_category` already did) and search it; verify a parser against the REAL articles for
+  each value it must return, not one representative sample (three fetches would have caught
+  all of this); and when a resolution chain has a guessing tier, stamp WHICH tier answered,
+  because any consumer that feeds the result back in as authoritative turns the guess into a
+  fixed point. Also note the two chains had drifted apart — the pre-start path matched the
+  cache by containment, the live path exactly — so one event could legitimately change
+  surface the day it started (Memphis: Hard while upcoming, Grass on day one). Two code paths
+  answering the same question must share one function.

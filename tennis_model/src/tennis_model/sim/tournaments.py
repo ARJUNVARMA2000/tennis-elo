@@ -27,7 +27,7 @@ import pandas as pd
 
 from ..config import live_dir
 from ..data.results import _name_key
-from ..data.surface import resolve_level, resolve_surface
+from ..data.surface import resolve_level, resolve_surface_info
 from .bracket import bracket_is_meaningful, bracket_rounds, oriented_logged, price_bracket
 from .draws import advance_slots, draw_status, live_draw, standard_seed_draw
 from .simulate import simulate_tournament
@@ -83,11 +83,25 @@ def _archive_attrs(df: pd.DataFrame, name: str) -> tuple:
     sub = df[names.str.lower().apply(lambda t: bool(t) and (t in ek or ek in t))]
     if sub.empty:
         return None, None, None
-    surf = sub["surface_b"].mode() if "surface_b" in sub.columns else pd.Series([], dtype=object)
+    surf = _known_surface(sub)
     bo = pd.to_numeric(sub["best_of"], errors="coerce").max() if "best_of" in sub.columns else None
-    return (surf.iloc[0] if not surf.empty else None,
+    return (surf,
             _main_level_code(sub),
             int(bo) if pd.notna(bo) else None)
+
+
+def _known_surface(rows: pd.DataFrame) -> str | None:
+    """Modal surface over rows whose surface is KNOWN — never a month-of-year guess.
+
+    `results.clean` stamps `surface_src`; a "month" row carries a season guess, not a fact.
+    Returning one here would hand it back to `resolve_surface_info` as the authoritative
+    archive value, short-circuiting the Wikipedia tier that actually knows the answer. Frames
+    without the column (unit-test fixtures, pre-upgrade caches) keep the old behaviour."""
+    if "surface_b" not in rows.columns:
+        return None
+    known = rows[rows["surface_src"] != "month"] if "surface_src" in rows.columns else rows
+    m = known["surface_b"].mode()
+    return m.iloc[0] if not m.empty else None
 
 
 def _main_level_code(g: pd.DataFrame):
@@ -258,6 +272,7 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
                        known: set | None = None, top_set: set | None = None,
                        espn_fields: dict | None = None, resolve=None,
                        matchups: list | None = None, wiki_draw: dict | None = None,
+                       archive_hint: str | None = None,
                        n_sims: int = 8000, seed: int = 11) -> dict | None:
     # The ratings frame can include qualifying matches for state updates. Tournament
     # projections, however, describe the main draw only. ``draw_level`` filters modern lower-
@@ -273,7 +288,13 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
     if not knockout.empty:
         main = knockout
 
-    surface = main["surface_b"].mode().iloc[0]
+    # One chain, shared with the pre-start path: this event's KNOWN rows -> prior editions
+    # (archive_hint) -> Wikipedia infobox -> month guess. Taking `surface_b.mode()` outright
+    # was the live half of the split that let an event change surface the day it started.
+    surface = _known_surface(main)
+    surface, surface_src = resolve_surface_info(
+        tour, name, str(g["date"].min().date()),
+        archive_surface=surface if surface is not None else archive_hint)
     bo = pd.to_numeric(main["best_of"], errors="coerce").max()
     best_of = int(bo) if pd.notna(bo) else 3
     level = resolve_level(tour, name, archive_level=_level_label(_main_level_code(g), tour))
@@ -371,6 +392,7 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
         "name": _display_name(name, known or set()), "surface": surface, "level": level, "bestOf": best_of,
         "start": str(g["date"].min().date()), "end": str(g["date"].max().date()),
         "status": "completed" if completed else "live", "drawStatus": draw_state,
+        "surfaceSource": surface_src,
         "drawSize": len(field_pool), "aliveCount": len(alive),
         "champion": champ, "runnerUp": runner,
         "modelFavorite": favorite,
@@ -391,7 +413,8 @@ def project_upcoming(predictor, name: str, wd: dict, tour: str, df: pd.DataFrame
     if len(field_pool) < 8:
         return None
     surface, _lvl, bo = _archive_attrs(df, name)
-    surface = resolve_surface(tour, name, wd.get("start") or "", archive_surface=surface)
+    surface, surface_src = resolve_surface_info(tour, name, wd.get("start") or "",
+                                                archive_surface=surface)
     best_of = int(wd.get("bestOf") or bo or 3)
     level = resolve_level(tour, name)
     slots = advance_slots(wslots, set())
@@ -404,6 +427,7 @@ def project_upcoming(predictor, name: str, wd: dict, tour: str, df: pd.DataFrame
         "name": _display_name(name, known or set()), "surface": surface, "level": level, "bestOf": best_of,
         "start": str(wd.get("start") or ""), "end": str(wd.get("end") or wd.get("start") or ""),
         "status": "upcoming", "drawStatus": "real",
+        "surfaceSource": surface_src,
         "drawSize": len(field_pool), "aliveCount": len(field_pool),
         "champion": None, "runnerUp": None,
         "modelFavorite": favorite, "favoritePicked": False,
@@ -465,7 +489,8 @@ def build_tournaments(predictor, df: pd.DataFrame, tour: str, **kw) -> list:
         try:
             t = project_tournament(predictor, name, g, tour, known=known, top_set=top_set,
                                    espn_fields=espn_fields, resolve=resolve, matchups=matchups,
-                                   wiki_draw=wiki.get(name), **kw)
+                                   wiki_draw=wiki.get(name),
+                                   archive_hint=_archive_attrs(df, name)[0], **kw)
         except ValueError as e:
             # One unprojectable event must not cost the whole board. The >128-slot guard
             # inside project_tournament is a real signal — a leaked qualifier padding a

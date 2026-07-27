@@ -85,6 +85,26 @@ def test_status_real_partial_seeded_final_from_espn():
     print("ok test_status_real_partial_seeded_final_from_espn")
 
 
+def test_month_guessed_rows_never_pose_as_an_archive_surface():
+    """A month-of-year guess must not be recycled as the authoritative archive value.
+
+    `results.clean` stamps `surface_src`, but the live path took `surface_b.mode()` outright,
+    so July's Grass guess became "the archive says Grass" and short-circuited the Wikipedia
+    tier that knew the DC Open is a hard court — self-fulfilling, and it never healed."""
+    from tennis_model.sim.tournaments import _known_surface
+
+    guessed = pd.DataFrame({"surface_b": ["Grass", "Grass"], "surface_src": ["month", "month"]})
+    assert _known_surface(guessed) is None            # nothing KNOWN -> defer to the chain
+    mixed = pd.DataFrame({"surface_b": ["Grass", "Hard"], "surface_src": ["month", "wiki"]})
+    assert _known_surface(mixed) == "Hard"            # the known row wins over the guess
+    real = pd.DataFrame({"surface_b": ["Clay"], "surface_src": ["archive"]})
+    assert _known_surface(real) == "Clay"
+    # frames with no provenance column (fixtures, pre-upgrade caches) keep the old behaviour
+    assert _known_surface(pd.DataFrame({"surface_b": ["Clay"]})) == "Clay"
+    assert _known_surface(pd.DataFrame({"other": [1]})) is None
+    print("ok test_month_guessed_rows_never_pose_as_an_archive_surface")
+
+
 def test_completed_event_reports_exactly_one_player_alive():
     """A finished knockout has one player standing. Deriving that by `field_pool -
     eliminated` depends on every entrant's two identities cancelling, which real data breaks:

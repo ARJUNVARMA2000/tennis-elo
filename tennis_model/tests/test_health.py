@@ -827,6 +827,61 @@ def test_output_upcoming_and_fixtures_consistency():
     print("ok test_output_upcoming_and_fixtures_consistency")
 
 
+def test_output_surface_must_be_canonical_and_month_guess_is_advisory():
+    """A non-canonical surface is a builder bug (the card, the per-surface Elo blend and
+    /style all key off this exact string) -> blocking. A month-of-year GUESS is advisory:
+    it is what shipped the DC Open, a hard court, priced on grass Elo — but for a genuinely
+    new event with no archive row and no Wikipedia article it is the only answer there is,
+    so blocking would freeze the site on events we simply don't know yet."""
+    d = _healthy_data()
+    d["tournaments"][0]["surface"] = "Astroturf"
+    out = health.output_problems("atp", _oc(data=d), NOW)
+    assert any("not a canonical surface" in p for p in out), out
+    assert health._gate_blocks(next(p for p in out if "not a canonical surface" in p))
+
+    d = _healthy_data()
+    d["tournaments"][0]["surfaceSource"] = "month"          # live event, surface guessed
+    out = health.output_problems("atp", _oc(data=d), NOW)
+    guess = [p for p in out if "is a month-of-year guess" in p]
+    assert guess, out
+    assert not health._gate_blocks(guess[0])
+    # a COMPLETED event's month guess is not surfaced — its rows are archive-backed by then
+    d = _healthy_data()
+    d["tournaments"][1]["surfaceSource"] = "month"
+    assert not any("month-of-year guess" in p
+                   for p in health.output_problems("atp", _oc(data=d), NOW))
+    print("ok test_output_surface_must_be_canonical_and_month_guess_is_advisory")
+
+
+def test_cross_tour_surface_split_is_flagged():
+    """One venue, one week, one court: a combined event ships a card on each tour. When they
+    disagree, one is provably wrong — and no per-tour check can see it. On 2026-07-27 BOTH
+    tours shipped the DC Open as Grass in the hard-court swing and every invariant passed."""
+    def _card(surface, **over):
+        c = {"name": "Mubadala DC Open", "surface": surface, "status": "live",
+             "start": "2026-07-27", "end": "2026-08-03"}
+        c.update(over)
+        return c
+
+    outs = {"atp": _oc(data={"tournaments": [_card("Hard")]}),
+            "wta": _oc(data={"tournaments": [_card("Grass")]})}
+    probs = health.cross_tour_problems(outs)
+    assert any("surface split across tours" in p for p in probs), probs
+    assert not health._gate_blocks(probs[0])          # advisory: which side is wrong is unknown
+    # agreeing boards are silent
+    same = {"atp": _oc(data={"tournaments": [_card("Hard")]}),
+            "wta": _oc(data={"tournaments": [_card("Hard")]})}
+    assert health.cross_tour_problems(same) == []
+    # same NAME in different weeks is a different event — never compared
+    apart = {"atp": _oc(data={"tournaments": [_card("Hard")]}),
+             "wta": _oc(data={"tournaments": [_card("Clay", start="2026-10-05",
+                                                     end="2026-10-11")]})}
+    assert health.cross_tour_problems(apart) == []
+    # a one-sided board (no counterpart) is silent
+    assert health.cross_tour_problems({"atp": _oc(data={"tournaments": [_card("Hard")]})}) == []
+    print("ok test_cross_tour_surface_split_is_flagged")
+
+
 def test_output_market_benchmark_freeze_is_flagged_advisory():
     """tennis-data dropped Pinnacle mid-Jan 2026 and the market benchmark silently
     stopped gaining rows while still claiming a current window. A matched-odds date
@@ -1208,6 +1263,8 @@ if __name__ == "__main__":
     test_output_kalshi_ledger_settled_carry_blocks()
     test_output_kalshi_ledger_settlement_disagreement_blocks()
     test_output_kalshi_ledger_double_scored_result_blocks()
+    test_output_surface_must_be_canonical_and_month_guess_is_advisory()
+    test_cross_tour_surface_split_is_flagged()
     test_read_outputs_detects_missing_and_corrupt()
     test_read_outputs_flags_nan_as_corrupt()
     test_format_issue_body_has_problems_and_fix_prompt()

@@ -20,6 +20,7 @@ New lesson → append the entry to the matching topic file and add its lead line
 ## Draws, rounds & live events — [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md)
 
 - "It never changes once released" is a claim about the FINAL state; a cache keyed on it must also check the state it was captured in. (2026-07-27)
+- Three bugs kept every HARD-COURT surface unresolved (wikilink pipe, one-word target) and a month guess with no provenance recycled itself as fact. (2026-07-27)
 - A name-set invariant must exclude the slots that don't name anyone. (2026-07-24)
 - A gate invariant that compares two DERIVED quantities must derive both sides exactly as the code that produced them — and be validated against messy real draw states, not one clean snapshot. (2026-07-13)
 - A completed-event projection must filter the ratings frame to main-draw ROUNDS before constructing its field. (2026-07-11)

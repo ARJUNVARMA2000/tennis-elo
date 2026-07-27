@@ -40,6 +40,60 @@ def test_parse_surface_reads_infobox_and_canonicalizes():
     print("ok test_parse_surface_reads_infobox_and_canonicalizes")
 
 
+def test_parse_surface_reads_one_word_link_targets():
+    """`[[Hardcourt|Hard (outdoor)]]` — the field capture stops at the pipe, so the parser
+    only ever sees the link TARGET, and hard courts spell it as ONE word. A bare \\bHard\\b
+    could not match inside "Hardcourt", so every hard-court event resolved to no surface and
+    fell through to the month guess: the DC Open, a hard court, shipped priced on grass Elo
+    on both tours (2026-07-27)."""
+    assert _parse_surface("| surface     = [[Hardcourt|Hard (outdoor)]]") == "Hard"
+    assert _parse_surface("| surface = [[Hardcourt]]") == "Hard"
+    assert _parse_surface("| surface = Hardcourt (indoor)") == "Hard"
+    assert _parse_surface("| surface = [[Clay courts|Clay]]") == "Clay"
+    # ...and the link TARGET need not name the surface at all — Memphis puts it in the
+    # DISPLAY text behind a generic target, so the field must be read to end of line.
+    assert _parse_surface("| surface=[[Tennis court#outdoor courts|Hard]] / outdoor") == "Hard"
+    # the guard against reading a stray word still holds — "court" is optional, not a licence
+    assert _parse_surface("| surface = Hardy Athletic Club") is None
+    assert _parse_surface("| surface = Grasshopper Club") is None
+    print("ok test_parse_surface_reads_one_word_link_targets")
+
+
+def test_resolve_surface_info_reports_provenance():
+    orig = surf.wiki_surface_map
+    try:
+        surf.wiki_surface_map = lambda tour: {"Nordea Open": "Clay"}
+        assert surf.resolve_surface_info("wta", "Nordea Open", "2026-07-06",
+                                         archive_surface="Hard") == ("Hard", "archive")
+        assert surf.resolve_surface_info("wta", "Nordea Open", "2026-07-06") == ("Clay", "wiki")
+        assert surf.resolve_surface_info("wta", "Unknown Event", "2026-07-06") == ("Grass", "month")
+    finally:
+        surf.wiki_surface_map = orig
+    print("ok test_resolve_surface_info_reports_provenance")
+
+
+def test_wiki_lookup_is_tolerant_so_surface_cannot_flip_on_start_day():
+    """The pre-start path matched the archive loosely while the live path matched exactly,
+    so one event could change surface the day it started — WTA Memphis read Hard while
+    upcoming and flipped to a July Grass guess on day one. Both paths now share this lookup."""
+    orig = surf.wiki_surface_map
+    try:
+        surf.wiki_surface_map = lambda tour: {"The Memphis Classic": "Hard"}
+        # cache holds the sponsor title; the board shows the de-sponsored city
+        assert surf.wiki_surface("wta", "The Memphis Classic") == "Hard"   # exact
+        assert surf.wiki_surface("wta", "the  memphis   classic") == "Hard"  # normalised
+        assert surf.wiki_surface("wta", "Memphis Classic") == "Hard"       # containment
+        assert surf.resolve_surface_info("wta", "Memphis Classic", "2026-07-27")[0] == "Hard"
+        # too-short and unrelated keys must NOT match by containment
+        assert surf.wiki_surface("wta", "Rome") is None
+        # an ambiguous hit resolves to None rather than guessing
+        surf.wiki_surface_map = lambda tour: {"Open Sud Clay": "Clay", "Open Sud Hard": "Hard"}
+        assert surf.wiki_surface("atp", "Open Sud") is None
+    finally:
+        surf.wiki_surface_map = orig
+    print("ok test_wiki_lookup_is_tolerant_so_surface_cannot_flip_on_start_day")
+
+
 def test_wiki_surface_map_reads_and_degrades():
     orig = surf.live_dir
     try:
@@ -88,7 +142,7 @@ def _row(**over):
     return base
 
 
-def _surface_b(cache, **over):
+def _cleaned(cache, **over):
     orig = surf.live_dir
     try:
         with tempfile.TemporaryDirectory() as d:
@@ -99,7 +153,20 @@ def _surface_b(cache, **over):
             out = clean(pd.DataFrame([_row(**over)]), tour="wta")
     finally:
         surf.live_dir = orig
-    return out["surface_b"].iloc[0]
+    return out
+
+
+def _surface_b(cache, **over):
+    return _cleaned(cache, **over)["surface_b"].iloc[0]
+
+
+def test_loader_stamps_surface_provenance():
+    """Every row records WHICH tier answered, so a consumer can refuse to recycle a month
+    guess as though the archive had asserted it."""
+    assert _cleaned(None)["surface_src"].iloc[0] == "month"
+    assert _cleaned({"Nordea Open": "Clay"})["surface_src"].iloc[0] == "wiki"
+    assert _cleaned({"Nordea Open": "Clay"}, surface="Hard")["surface_src"].iloc[0] == "archive"
+    print("ok test_loader_stamps_surface_provenance")
 
 
 def test_loader_backfills_surface_from_wiki_cache_else_month():
@@ -114,7 +181,11 @@ def test_loader_backfills_surface_from_wiki_cache_else_month():
 
 if __name__ == "__main__":
     test_parse_surface_reads_infobox_and_canonicalizes()
+    test_parse_surface_reads_one_word_link_targets()
+    test_resolve_surface_info_reports_provenance()
+    test_wiki_lookup_is_tolerant_so_surface_cannot_flip_on_start_day()
     test_wiki_surface_map_reads_and_degrades()
     test_resolve_surface_priority()
+    test_loader_stamps_surface_provenance()
     test_loader_backfills_surface_from_wiki_cache_else_month()
     print("\nALL PASSED")

@@ -222,8 +222,18 @@ def fetch_draw(event: str, year: int, tour: str, meta: dict) -> dict | None:
     }
 
 
-_SURFACE_FIELD_RE = re.compile(r"\bsurface\s*=([^\n|]*)", re.IGNORECASE)
-_SURFACE_WORD_RE = re.compile(r"\b(Hard|Clay|Grass|Carpet)\b", re.IGNORECASE)
+# Capture the WHOLE field value to end of line, like _CATEGORY_FIELD_RE does. Stopping at
+# the first `|` only ever saw the wikilink TARGET, and a target need not name the surface:
+# Memphis writes `[[Tennis court#outdoor courts|Hard]] / outdoor`, where the surface is in
+# the DISPLAY text. Infobox parameters are separated by a newline-anchored `|`, so a pipe
+# inside `[[...|...]]` never ends the field.
+_SURFACE_FIELD_RE = re.compile(r"\bsurface\s*=([^\n]*)", re.IGNORECASE)
+# `court`/`courts` may be joined to the surface word: `[[Clay court|Clay]]` reads "Clay
+# court" but `[[Hardcourt|Hard (outdoor)]]` reads "Hardcourt", where a bare \bHard\b cannot
+# match. Between them, these two gaps meant EVERY hard-court event (DC Open, National Bank
+# Open, Memphis) resolved to no surface and fell through to the month-of-year guess —
+# July -> Grass, on hard courts.
+_SURFACE_WORD_RE = re.compile(r"\b(Hard|Clay|Grass|Carpet)(?:\s?courts?)?\b", re.IGNORECASE)
 
 
 def _parse_surface(wikitext: str) -> str | None:
