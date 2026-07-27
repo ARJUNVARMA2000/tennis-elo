@@ -39,6 +39,9 @@ def _track(tour: str, predictor, df) -> None:
         print(f"  track/{tour}: skipped ({e})")
 
 
+KALSHI_QUICK_BUDGET_S = 180    # hourly run: Kalshi gets 3 min, then soft-fails and ships
+KALSHI_FULL_BUDGET_S = 1200    # daily run: 20 min for the historical backfill, which is
+                               # resumable, so a slow day just finishes it tomorrow
 QUICK_KALSHI_DAYS = 4   # hourly run only backfills candles for the last few days; the
                         # committed ledger carries older history, the daily run the rest
 
@@ -49,10 +52,17 @@ def _kalshi(tour: str, df, oos, recent_days=None) -> None:
     `recent_days` bounds the candlestick backfill so a cold cache on the hourly quick
     run can't stall on the full historical sweep."""
     try:
-        from .data.kalshi import refresh_snapshots
+        from .data.kalshi import refresh_snapshots, time_budget
         from .eval.kalshi_ledger import refresh_ledger
-        refresh_snapshots(tour, recent_days=recent_days)
-        refresh_ledger(tour, df, oos=oos)
+        # Bounded wall clock. `recent_days` already caps HOW MUCH the quick run fetches,
+        # but not how long a rate-limited Kalshi can take to refuse it — run 30227056240
+        # spent 4h here and, via the deploy concurrency group, blocked every refresh behind
+        # it. Quick runs get a tight budget (they repeat hourly); the full run gets a
+        # generous one so the historical backfill still progresses, just never unbounded.
+        budget = KALSHI_QUICK_BUDGET_S if recent_days is not None else KALSHI_FULL_BUDGET_S
+        with time_budget(budget):
+            refresh_snapshots(tour, recent_days=recent_days)
+            refresh_ledger(tour, df, oos=oos)
     except Exception as e:                                   # noqa: BLE001 — never fatal
         print(f"  kalshi/{tour}: skipped ({e})")
 

@@ -43,6 +43,13 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
+    # Backstop. GitHub's default job timeout is 6 HOURS, and the deploy concurrency group
+    # serialises runs — so one wedged step freezes every subsequent refresh behind it. On
+    # 2026-07-27 run 30227056240 sat 4h in the hourly quick refresh (unbounded Kalshi
+    # retries) and the site's tournament board stayed on the previous evening's data
+    # through a Monday morning when a dozen events were starting. A full retrain is ~30
+    # min, so 75 leaves ample headroom while capping the blast radius at one cycle.
+    timeout-minutes: 75
     environment:
       name: production
       url: ${{ env.SITE_URL }}

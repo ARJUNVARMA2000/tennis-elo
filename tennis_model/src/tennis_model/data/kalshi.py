@@ -24,6 +24,7 @@ Run:  PYTHONPATH=src python -m tennis_model.data.kalshi --tour all
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import time
@@ -60,14 +61,47 @@ KALSHI_ALIASES: dict[str, str] = {
 # ---------------------------------------------------------------------------
 # HTTP
 # ---------------------------------------------------------------------------
+# Wall-clock budget for one refresh. Every retry here is individually patient — a single
+# `_get` can spend ~420s on 429s (5 attempts, cool-downs up to 120s) — and a refresh makes
+# hundreds of calls, so with no ceiling a rate-limiting Kalshi stalls the caller for hours.
+# It did: run 30227056240 sat in the hourly quick refresh for 4h on 2026-07-27, and because
+# the deploy concurrency group serialises runs, it blocked every subsequent refresh and
+# froze the site's tournament board on the previous evening's data. Kalshi is a benchmark,
+# never a build dependency, so expiring the budget just soft-fails: `_get` returns None,
+# which every caller already treats as a fetch failure and degrades around. The work is
+# resumable (snapshots cache + ledger upsert), so a long backfill simply finishes over
+# several days instead of stalling one run. Same rule as the download retries:
+# a retry with no time budget is a hang waiting to happen.
+_DEADLINE: float | None = None
+
+
+@contextlib.contextmanager
+def time_budget(seconds: float | None):
+    """Bound every Kalshi HTTP call made inside the block. None = unbounded (tests/CLI)."""
+    global _DEADLINE
+    prev = _DEADLINE
+    _DEADLINE = None if seconds is None else time.monotonic() + seconds
+    try:
+        yield
+    finally:
+        _DEADLINE = prev
+
+
+def _budget_spent() -> bool:
+    return _DEADLINE is not None and time.monotonic() >= _DEADLINE
+
+
 def _get(path: str, params: dict | None = None) -> dict | None:
     """GET BASE+path -> parsed JSON; None on any persistent failure (soft-fail).
 
     404 is a deterministic None (used to trigger the /historical fallback); 429
-    gets a patient cool-down; other errors back off exponentially.
+    gets a patient cool-down; other errors back off exponentially. Returns None
+    immediately once the enclosing `time_budget` is spent.
     """
     url = BASE + path + ("?" + urllib.parse.urlencode(params) if params else "")
     for attempt in range(RETRIES):
+        if _budget_spent():
+            return None
         try:
             req = urllib.request.Request(url, headers=HEADERS)
             with urllib.request.urlopen(req, timeout=30) as r:

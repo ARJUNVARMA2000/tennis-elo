@@ -120,3 +120,47 @@ def test_dollars_and_epoch():
     assert _epoch("1970-01-01T00:00:00Z") == 0
     assert _epoch("2026-07-06T13:00:00Z") == 1783342800   # UTC regardless of local tz
     assert _epoch("garbage") is None
+
+
+# --- wall-clock budget (2026-07-27) ------------------------------------------------------
+
+def test_time_budget_soft_fails_instead_of_hanging():
+    """Every Kalshi retry is individually patient — one `_get` can spend ~420s on 429s —
+    and a refresh makes hundreds of calls, so with no ceiling a rate-limiting Kalshi stalls
+    the caller for hours. Run 30227056240 sat 4h in the hourly quick refresh and, via the
+    deploy concurrency group, blocked every refresh behind it. An expired budget must
+    return None (the soft-fail every caller already handles), not raise and not sleep."""
+    import time as _time
+
+    from tennis_model.data import kalshi
+
+    calls = []
+    orig_urlopen = kalshi.urllib.request.urlopen
+    orig_sleep = kalshi.time.sleep
+    try:
+        kalshi.urllib.request.urlopen = lambda *a, **k: calls.append(1)  # would TypeError
+        kalshi.time.sleep = lambda s: calls.append(("slept", s))
+        with kalshi.time_budget(0):                      # already spent
+            t0 = _time.monotonic()
+            assert kalshi._get("/markets", {"x": 1}) is None
+            assert _time.monotonic() - t0 < 1.0, "spent budget must return immediately"
+        assert calls == [], f"expired budget still hit the network/slept: {calls}"
+    finally:
+        kalshi.urllib.request.urlopen = orig_urlopen
+        kalshi.time.sleep = orig_sleep
+    # and the budget is scoped: leaving the block restores the previous (unbounded) state
+    assert kalshi._DEADLINE is None
+    assert not kalshi._budget_spent()
+    print("ok test_time_budget_soft_fails_instead_of_hanging")
+
+
+def test_time_budget_nests_and_restores():
+    """`None` means unbounded (CLI/tests); a nested block must not leak its deadline."""
+    from tennis_model.data import kalshi
+    with kalshi.time_budget(None):
+        assert kalshi._DEADLINE is None
+        with kalshi.time_budget(120):
+            assert kalshi._DEADLINE is not None and not kalshi._budget_spent()
+        assert kalshi._DEADLINE is None
+    assert kalshi._DEADLINE is None
+    print("ok test_time_budget_nests_and_restores")
