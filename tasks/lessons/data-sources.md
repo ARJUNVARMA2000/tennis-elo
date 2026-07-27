@@ -139,3 +139,20 @@ Indexed in [`../lessons.md`](../lessons.md).
   WARNS rather than raises: a genuinely truncated upstream is sometimes the truth, and
   refusing to load would take the site down over a data-quality issue the operator may
   already know about. See [[future-proof-no-quick-fixes]].
+
+- **Canonicalising names WITHIN a key group cannot merge variants that change the key —
+  a dropped surname ships one player as two.** (2026-07-27, Umag) `results._canonicalize_names`
+  folds accents and punctuation, so `Félix Auger-Aliassime` and `Felix Auger Aliassime` share a
+  `_name_key` and collapse. `Daniel Merida` (archive) and `Daniel Merida Aguilar` (live feed)
+  do not: the extra surname changes the key itself, so the pass that exists to unify spellings
+  structurally cannot see them as the same person. Umag exported `drawSize` 29 for a 28-draw,
+  `aliveCount` 2 on a completed event (the loser identity never cancelled the winner one), and
+  **split the champion's retrospective title odds across both entities** — the visible defect
+  the health advisory only hinted at. Fix: an explicit `config.PLAYER_ALIASES` applied before
+  the per-key vote (so frequency/source preference runs on merged counts). **Why:** the
+  tempting general rule — "one name's surname tokens are a prefix of the other's" — merges
+  genuine relatives (the Zverevs, the Bryans); there is no safe automatic bridge here.
+  **How to apply:** treat the alias table as the escape hatch for what keying cannot reach, add
+  an entry when the gate flags one, and pair it with an invariant that does not depend on names
+  being clean (a completed event's alive count is 1 *by definition*, not by set subtraction) —
+  so the next unbridged variant degrades one number instead of publishing a contradictory card.

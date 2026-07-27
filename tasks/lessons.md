@@ -15,9 +15,11 @@ New lesson → append the entry to the matching topic file and add its lead line
 - Label rows by what they ARE, not by which directory they arrived in. (2026-07-25)
 - The release snapshot is load-bearing data that `download` cannot reproduce. (2026-07-25)
 - An incomplete source moves only `n`, and nothing was watching `n`. (2026-07-25)
+- Canonicalising names WITHIN a key group cannot merge variants that change the key — a dropped surname ships one player as two. (2026-07-27)
 
 ## Draws, rounds & live events — [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md)
 
+- "It never changes once released" is a claim about the FINAL state; a cache keyed on it must also check the state it was captured in. (2026-07-27)
 - A name-set invariant must exclude the slots that don't name anyone. (2026-07-24)
 - A gate invariant that compares two DERIVED quantities must derive both sides exactly as the code that produced them — and be validated against messy real draw states, not one clean snapshot. (2026-07-13)
 - A completed-event projection must filter the ratings frame to main-draw ROUNDS before constructing its field. (2026-07-11)

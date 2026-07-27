@@ -84,6 +84,27 @@ def test_canonicalize_prefers_historical_spelling():
     print("ok test_canonicalize_prefers_historical_spelling")
 
 
+def test_canonicalize_merges_a_dropped_surname_via_alias():
+    """A variant that differs by MORE than accents/punct has a different `_name_key`, so the
+    per-key vote cannot merge it. Umag 2026 shipped 'Daniel Merida' (champion) and 'Daniel
+    Merida Aguilar' as two people: drawSize 29 for a 28-draw, aliveCount 2 on a finished
+    event, and the champion's title odds split across both identities."""
+    df = pd.DataFrame({
+        "winner_name": ["Daniel Merida", "Daniel Merida Aguilar"],
+        "loser_name": ["Daniel Merida Aguilar", "Vit Kopriva"],
+        "__src": [0, 2],
+    })
+    out = results._canonicalize_names(df.copy())
+    names = set(out["winner_name"]) | set(out["loser_name"])
+    assert "Daniel Merida Aguilar" not in names, names
+    assert "Daniel Merida" in names
+    # the alias key is the accent/punct-folded form, so a differently-punctuated variant folds too
+    df2 = pd.DataFrame({"winner_name": ["Daniel  Merida-Aguilar"], "loser_name": ["X Y"],
+                        "__src": [2]})
+    assert set(results._canonicalize_names(df2.copy())["winner_name"]) == {"Daniel Merida"}
+    print("ok test_canonicalize_merges_a_dropped_surname_via_alias")
+
+
 # ---------------------------------------------------------------------------
 # merge / dedup
 # ---------------------------------------------------------------------------
@@ -248,6 +269,7 @@ if __name__ == "__main__":
     test_name_key_folds_accents_and_punct()
     test_score_key_ignores_tiebreak_points()
     test_canonicalize_prefers_historical_spelling()
+    test_canonicalize_merges_a_dropped_surname_via_alias()
     test_merge_dedup_prefers_stat_bearing_row()
     test_same_day_rematch_survives_dedup()
     test_future_dated_row_is_dropped_at_ingest()

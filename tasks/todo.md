@@ -2086,3 +2086,90 @@ Deliberately NOT touched: the three tournament-card advisories still firing (Gen
 Umag / Palermo alive-counts, `Qualifier 18` as modelFavorite) and issue #10 (wta meta.matches
 128794 -> 128724). Both are pre-existing, advisory, and separately tracked — root causes were
 logged as unfixed in 772e5d4. Folding them in here would have delayed unblocking the deploy.
+
+---
+
+# Task: The tournament-card advisories — two root causes, not one (2026-07-27)
+
+772e5d4 added three advisory invariants and deliberately left the root causes. Four are
+firing on the 21:31Z green run. They are NOT one bug:
+
+```
+atp  Generali Open  champion 'Quentin Halys'   but 26 alive   (drawSize 28)
+atp  Umag           champion 'Daniel Merida'   but  2 alive   (drawSize 29)
+wta  Palermo        champion 'Francesca Jones' but 32 alive   (drawSize 32)
+wta  Palermo        modelFavorite 'Qualifier 6' is a draw placeholder
+```
+
+## Class 1 — a frozen early draw capture (Palermo, Generali Open; both advisories)
+
+`draws_wiki.download_wiki_draws` keeps any cached entry that already has slots, forever:
+
+```python
+if cached.get(name, {}).get("slots"):      # already have this draw — keep it
+```
+
+"A draw doesn't change once released" is false for a draw captured BEFORE qualifying
+resolves: the `Qualifier N` slots are never replaced. `project_tournament` then treats that
+frozen list as the authoritative main-draw population (deliberately — line 315, discarding it
+at completion once recreated a 133-player Wimbledon field), so:
+- `field_pool` = 32 placeholder strings, which no results row can ever match, so
+  `alive = field_pool - eliminated` subtracts **nothing** -> Palermo 32 of 32 alive
+- the projection runs over placeholders -> `modelFavorite 'Qualifier 6'`
+
+Proof it is the cache and not the article: the LOCAL `wiki_draws.json` (captured 07-25, after
+qualifying) has **0 placeholders and correct accents** for both events — `Alex Molčan`,
+`Facundo Díaz Acosta`. CI captured earlier and froze. A re-fetch fixes it.
+
+- [x] `_draw_is_settled(slots)` gates the cache skip: keep a capture only when every named
+      slot is a real player. `None` slots are byes and stay legal; an all-`None`/empty list
+      is not a draw. A failed re-fetch keeps the stale entry rather than losing the draw.
+- [x] Predicate is `sim.bracket.is_real` — the one `health.py:464` already delegates to, so
+      ingestion and gate cannot disagree about what "placeholder" means. Verified against the
+      exact strings production shipped ('Qualifier 6', 'Qualifier 18', 'Lucky Loser').
+- [x] The log now separates `N new` from `N re-fetched`, so a silent re-fetch loop is visible.
+- [x] Test on the real cached draw: clean today -> no re-fetch; inject one `Qualifier 6` ->
+      re-fetch. Evidence a re-fetch fixes it: the local 07-25 capture of the SAME two articles
+      has 0 placeholders and correct accents.
+
+## Class 2 — one player, two identities (Umag)
+
+Not a draw problem — Umag has no wiki draw at all. The results frame carries BOTH spellings:
+
+```
+Daniel Merida            <- champion
+Daniel Merida Aguilar    <- same player, only ever appears as a loser
+```
+
+`results._canonicalize_names` unifies spellings only WITHIN a `_name_key` group; a dropped
+surname changes the key, so the two never merge. Consequences: `drawSize` 29 for a 28-draw,
+`alive` = {champ, ghost} = 2, and the champion's retrospective title odds are **split across
+two entities** in the shipped projection — a user-visible defect the advisory only hints at.
+
+Chose alias table + structural alive (both), so the identity is actually fixed AND the card
+cannot contradict itself if a future variant appears before anyone adds an entry.
+
+- [x] `config.PLAYER_ALIASES` ({`_name_key(variant)` -> canonical}), applied at the TOP of
+      `results._canonicalize_names` so the existing source/frequency vote runs on merged
+      counts. Deliberately hand-kept: a "shorter name is a prefix of the longer" heuristic
+      would merge genuine relatives (the Zverevs, the Bryans).
+- [x] `alive = {champ}` when an event is completed and names a champion. A finished knockout
+      has one player standing by definition; deriving it by set subtraction made it hostage
+      to name hygiene on both sides.
+- [x] Kept the raw `field_pool - eliminated` as `still_in` for the >128-slot diagnostic, which
+      exists to debug exactly this class and would have been blunted by a hardcoded 1.
+
+## Review
+
+367 pytest (+3), ruff clean; all 3 new tests verified to fail against the reverted sources.
+
+The two classes looked like one advisory and were not: Palermo/Generali is an ingestion cache
+that froze, Umag is one player counted twice. Worth noting the synthetic fixture in
+`test_tournament_status.py` was ALREADY producing `aliveCount 7` on a completed event before
+this change — the invariant simply had no test asserting it, so a bug reproducible with zero
+network and zero real data sat in the suite the whole time.
+
+Not done, deliberately: promoting the three advisories to blocking. 772e5d4 says "promote once
+the ingestion is clean", but today's 16h outage was a blocking gate meeting live data it had
+never been tested against. Watch a full refresh cycle confirm these are silent, then promote in
+its own commit.

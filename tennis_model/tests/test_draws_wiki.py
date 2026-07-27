@@ -109,7 +109,24 @@ def test_rows_from_draws_only_prestart_events():
     print("ok test_rows_from_draws_only_prestart_events")
 
 
+def test_draw_is_settled_gates_the_forever_cache():
+    """The cache skip used to be `if cached slots: keep it`, on the theory that a released
+    draw never changes. It does when it was captured BEFORE qualifying resolved: Palermo and
+    Generali Open froze with `Qualifier N` slots, which no results row can match, so their
+    finished cards shipped 32-of-32 alive and a modelFavorite of 'Qualifier 6'."""
+    from tennis_model.data.draws_wiki import _draw_is_settled
+
+    assert _draw_is_settled(["A", "B", None, "C"])          # byes are legitimately empty
+    assert not _draw_is_settled(["A", "Qualifier 6", "B", "C"])   # must re-fetch
+    assert not _draw_is_settled(["A", "Lucky Loser", "B"])
+    assert not _draw_is_settled([None, None])               # nothing real -> not a draw
+    assert not _draw_is_settled([])
+    assert not _draw_is_settled(None)
+    print("ok test_draw_is_settled_gates_the_forever_cache")
+
+
 if __name__ == "__main__":
+    test_draw_is_settled_gates_the_forever_cache()
     test_parse_bracket_orders_sections_handles_bye_and_bestof()
     test_parse_bracket_qualifiers_are_distinct_and_not_a_power_of_two_is_none()
     test_slot_name_strips_disambiguator_and_reads_byes()

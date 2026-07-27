@@ -85,6 +85,23 @@ def test_status_real_partial_seeded_final_from_espn():
     print("ok test_status_real_partial_seeded_final_from_espn")
 
 
+def test_completed_event_reports_exactly_one_player_alive():
+    """A finished knockout has one player standing. Deriving that by `field_pool -
+    eliminated` depends on every entrant's two identities cancelling, which real data breaks:
+    Umag shipped 2 (one player under two spellings) and Palermo 32 (a frozen placeholder
+    draw). Even this synthetic fixture leaks 7 — P2..P7 win a round and never appear as a
+    loser, because the middle rounds simply aren't in the frame."""
+    fin = _project([], add_final=True)
+    assert fin["status"] == "completed" and fin["champion"] == "P0"
+    assert fin["aliveCount"] == 1, fin["aliveCount"]
+    # the retrospective field is still the FULL draw, not just the survivor
+    assert fin["drawSize"] == 16
+    # a live event still counts survivors the ordinary way
+    live = _project([])
+    assert live["status"] == "live" and live["aliveCount"] == 8, live["aliveCount"]
+    print("ok test_completed_event_reports_exactly_one_player_alive")
+
+
 def test_completed_projection_excludes_qualifying_field():
     """A completed Slam still projects its 128-player main draw, not qualifying rows."""
     rows = []

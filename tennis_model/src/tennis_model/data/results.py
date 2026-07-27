@@ -19,6 +19,7 @@ from ..config import (
     DEFAULT_TIER_K_MULT,
     MAX_FUTURE_MATCH_DAYS,
     MONTH_SURFACE,
+    PLAYER_ALIASES,
     ROUND_ORDER,
     SURFACE_MAP,
     TIER_ANCHORS,
@@ -128,6 +129,12 @@ def _canonicalize_names(df: pd.DataFrame) -> pd.DataFrame:
     """Unify spellings across sources (e.g. 'Felix Auger Aliassime' -> 'Felix
     Auger-Aliassime') by mapping every name to one canonical spelling per key,
     preferring the historical (Sackmann) spelling, then the most frequent."""
+    # Aliases first. The per-key pass below can only merge spellings that SHARE a key, so a
+    # variant differing by a dropped/added surname ('Daniel Merida Aguilar' vs the archive's
+    # 'Daniel Merida') survives it as a second person. Resolving those up front also means
+    # the frequency/source preference below is computed on already-merged counts.
+    for who in ("winner_name", "loser_name"):
+        df[who] = df[who].map(lambda x: PLAYER_ALIASES.get(_name_key(x), x))
     rec = pd.DataFrame({
         "name": pd.concat([df["winner_name"], df["loser_name"]], ignore_index=True),
         "src": pd.concat([df["__src"], df["__src"]], ignore_index=True),

@@ -324,8 +324,17 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
     if top_set is not None and wiki_draw is None and len(field_pool & top_set) < 2:
         return None                      # sub-tour / ITF event; a wiki draw IS tour-level
 
-    alive = field_pool - eliminated
-    field = list(field_pool if completed else alive)
+    # A finished knockout has exactly one player left standing: the champion. Deriving that
+    # by set subtraction makes it hostage to name hygiene on BOTH sides — Umag shipped
+    # aliveCount 2 because one entrant appeared under two spellings so the loser identity
+    # never cancelled the winner one, and Palermo shipped 32 of 32 because a frozen
+    # placeholder draw supplied a field no results row could match. Both are fixed at their
+    # sources (config.PLAYER_ALIASES, draws_wiki._draw_is_settled); stating this one
+    # structurally means a future name split degrades the projection without also publishing
+    # a self-contradictory card.
+    still_in = field_pool - eliminated
+    alive = {champ} if (completed and champ) else still_in
+    field = list(field_pool if completed else still_in)
     if len(field) < 2:
         return None
 
@@ -343,7 +352,7 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
     if len(slots) > 128:
         raise ValueError(
             f"{tour} tournament {name!r}: invalid {len(slots)}-slot bracket "
-            f"(field={len(field_pool)}, alive={len(alive)}, completed={completed}, "
+            f"(field={len(field_pool)}, alive={len(still_in)}, completed={completed}, "
             f"draw_state={draw_state}, wiki_slots={len(resolved_wslots or [])})"
         )
     proj, favorite = _simulate_projection(predictor, slots, surface, best_of, name, n_sims, seed)

@@ -128,3 +128,22 @@ Indexed in [`../lessons.md`](../lessons.md).
   constant across draw sizes; (3) any keyword round map needs its fallback proven
   against the SOURCE's real vocabulary (ESPN sends "Round 4", not the
   documented-looking "Round of 16"/"4th Round").
+
+- **"It never changes once released" is a claim about the artifact's FINAL state; a cache
+  keyed on it must also check the state it was captured IN.** (2026-07-27, Palermo/Generali
+  Open) `download_wiki_draws` skipped any event whose cached entry had slots — "a draw doesn't
+  change once released". True of a resolved draw, false of one captured before qualifying
+  finishes: those slots read `Qualifier 6`, Wikipedia replaces them later, and the cache never
+  looked again. `project_tournament` treats the cached draw as the authoritative main-draw
+  population (deliberately — discarding it at completion once recreated a 133-player
+  Wimbledon), so the frozen placeholders became a field no results row could ever match:
+  `alive = field_pool - eliminated` subtracted nothing and Palermo shipped **32 of 32 alive on
+  a finished event**, with `modelFavorite 'Qualifier 6'`. The article was fine the whole time —
+  a local capture of the same two articles taken days later had 0 placeholders and correct
+  accents. **Why:** the idempotence claim was about Wikipedia's content, but the cache key was
+  "do we have bytes", and those are only the same question once the content has settled.
+  **How to apply:** when skipping work because "this input is immutable", gate the skip on a
+  predicate that says the input REACHED its final state (`_draw_is_settled`), not merely that
+  it exists; borrow the predicate from whatever already judges that (`sim.bracket.is_real`,
+  which `health.py` uses for the same purpose) so ingestion and gate cannot drift; and keep the
+  stale copy when the re-fetch fails, so a refresh attempt can't lose data you already had.

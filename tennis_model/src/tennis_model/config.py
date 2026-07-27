@@ -486,6 +486,22 @@ WIKI_UA = "TennisEloModel/1.0 (https://github.com/; av3342@columbia.edu)"
 WIKI_TITLE_OVERRIDES: dict[str, str] = {}
 
 
+# ---------------------------------------------------------------------------
+# Player aliases — ONE person our sources spell two ways.
+# ---------------------------------------------------------------------------
+# data/results.py `_canonicalize_names` already unifies spellings that differ only by
+# accents or punctuation, because those share a `_name_key`. A DROPPED OR ADDED SURNAME
+# changes the key itself, so that pass can never merge them and the player ships as two
+# people: Umag 2026 exported drawSize 29 for a 28-draw, aliveCount 2 on a finished event,
+# and split the champion's retrospective title odds across both identities.
+# Keyed by `_name_key(variant)` -> the canonical spelling to keep. Deliberately a hand-kept
+# list, not a heuristic: "shorter name is a prefix of the longer" would merge genuine
+# relatives (the Zverevs, the Bryans). Add an entry when the health gate flags one.
+PLAYER_ALIASES: dict[str, str] = {
+    "daniel merida aguilar": "Daniel Merida",
+}
+
+
 BACKTEST_START_YEAR = 2010    # walk-forward evaluation window start
 # Adoption-protocol windows (eval/tune.py sweeps + eval/ab_data.py arbiter share these;
 # also published to the site via model.export.build_method).

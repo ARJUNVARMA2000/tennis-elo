@@ -401,12 +401,28 @@ def _rows_from_draws(draws: dict, today: str | None = None) -> list:
     return rows
 
 
+def _draw_is_settled(slots) -> bool:
+    """True when every named slot in a captured draw is a real player.
+
+    "A draw doesn't change once released" holds only for a draw captured AFTER qualifying
+    resolves. Capture it earlier and the `Qualifier N` slots are placeholders that Wikipedia
+    later replaces with real names — so such a capture must not be kept forever. `None` slots
+    are byes and are legitimately empty. The predicate is `sim.bracket.is_real`, the one
+    `health.py` already uses for modelFavorite, so ingestion and the gate cannot disagree
+    about what counts as a placeholder.
+    """
+    from ..sim.bracket import is_real
+    named = [s for s in (slots or []) if s is not None]
+    return bool(named) and all(is_real(s) for s in named)
+
+
 def download_wiki_draws(tours=TOURS) -> None:
     """Fetch each current/upcoming event's official draw from Wikipedia -> wiki_draws.json.
 
-    Idempotent + polite: an event whose draw we've already captured is kept as-is (a draw
-    doesn't change once released), so we only hit Wikipedia for events still awaiting one.
-    Events that have aged out of the ESPN window are pruned. Best-effort per event."""
+    Idempotent + polite: an event whose draw we've already captured AND fully resolved is
+    kept as-is, so we only hit Wikipedia for events still awaiting a draw or still carrying
+    qualifier placeholders. Events that have aged out of the ESPN window are pruned.
+    Best-effort per event."""
     from .live import fetch_events, parse_event_meta
     for tour in tours:
         try:
@@ -424,10 +440,11 @@ def download_wiki_draws(tours=TOURS) -> None:
             except Exception:  # noqa: BLE001 — a corrupt cache just means re-fetch
                 cached = {}
         out: dict = {}
-        fetched = 0
+        fetched = refreshed = 0
         for name, m in meta.items():
-            if cached.get(name, {}).get("slots"):      # already have this draw — keep it
-                out[name] = cached[name]
+            prev = cached.get(name) or {}
+            if _draw_is_settled(prev.get("slots")):    # fully resolved — this one never changes
+                out[name] = prev
                 continue
             year = int((m.get("start") or "2026")[:4] or 2026)
             try:
@@ -437,12 +454,17 @@ def download_wiki_draws(tours=TOURS) -> None:
                 entry = None
             if entry:
                 out[name] = entry
-                fetched += 1
+                if prev.get("slots"):
+                    refreshed += 1                    # placeholders replaced by real names
+                else:
+                    fetched += 1
+            elif prev.get("slots"):
+                out[name] = prev                      # re-fetch failed — keep what we had
         if out:
             d.mkdir(parents=True, exist_ok=True)
             path.write_text(json.dumps(out), encoding="utf-8")
             print(f"  wiki-draws/{tour}: {len(out)} draw(s) "
-                  f"({fetched} new) -> {path}")
+                  f"({fetched} new, {refreshed} re-fetched) -> {path}")
         else:
             print(f"  wiki-draws/{tour}: no draws posted yet for {len(meta)} tracked event(s)")
         _download_wiki_surfaces(tour, d, meta)   # main-article surfaces (separate best-effort cache)
