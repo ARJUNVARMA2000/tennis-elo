@@ -453,9 +453,22 @@ def build_tournaments(predictor, df: pd.DataFrame, tour: str, **kw) -> list:
     out = []
     for name, g in recent_tournaments(df):
         matchups = [(resolve(a), resolve(b)) for a, b in upcoming.get(name, [])]
-        t = project_tournament(predictor, name, g, tour, known=known, top_set=top_set,
-                               espn_fields=espn_fields, resolve=resolve, matchups=matchups,
-                               wiki_draw=wiki.get(name), **kw)
+        try:
+            t = project_tournament(predictor, name, g, tour, known=known, top_set=top_set,
+                                   espn_fields=espn_fields, resolve=resolve, matchups=matchups,
+                                   wiki_draw=wiki.get(name), **kw)
+        except ValueError as e:
+            # One unprojectable event must not cost the whole board. The >128-slot guard
+            # inside project_tournament is a real signal — a leaked qualifier padding a
+            # completed Slam field to 256 — but raising it here took the ENTIRE pipeline
+            # down: no export, no deploy, and every queued refresh behind it stalled. That
+            # happened twice (WTA Wimbledon on 2026-07-11 and again on 07-27, once the
+            # cached wiki draw aged out of the ESPN discovery sweep and stopped pinning the
+            # field). The 07-11 fix leaned on that cache being present, which it cannot be
+            # forever. Skip the event, say so loudly, and let the rest of the board ship;
+            # data/health.py still validates whatever we do publish.
+            print(f"::warning::{tour} tournament {name!r} skipped — {e}")
+            continue
         if t:
             out.append(t)
     # Pre-start events: the Wikipedia draw is out but no match has been played yet, so the

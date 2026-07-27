@@ -231,6 +231,59 @@ def test_build_tournaments_collapses_archive_and_sponsor_feed():
     print("ok test_build_tournaments_collapses_archive_and_sponsor_feed")
 
 
+def test_one_unprojectable_event_does_not_take_down_the_whole_board():
+    """The 2026-07-27 production outage. WTA Wimbledon, long completed, had a 129-player
+    results union (a leaked qualifier) and no cached wiki draw left to pin the field — the
+    >128-slot guard fired and the ValueError propagated out of build_tournaments, killing
+    the export, the deploy, and every queued refresh behind it. The site sat on the previous
+    evening's board through a Monday when a dozen events were starting.
+
+    The guard is right; taking the pipeline down with it is not. The bad event is skipped
+    and announced, every other event still ships."""
+    from tennis_model.sim import tournaments as T
+    end = pd.Timestamp("2026-07-27")
+    rows = []
+    # a healthy 16-draw completed event that MUST survive
+    for i in range(8):
+        rows.append(dict(tourney_name="Good Open", date=end - pd.Timedelta(days=6),
+                         round="R32", winner_name=f"P{i}", loser_name=f"P{8 + i}",
+                         surface_b="Hard", best_of=3, tourney_level="250",
+                         draw_level="main"))
+    rows.append(dict(tourney_name="Good Open", date=end, round="F", winner_name="P0",
+                     loser_name="P1", surface_b="Hard", best_of=3, tourney_level="250",
+                     draw_level="main"))
+    # the poisoned one: 130 distinct entrants on a completed draw -> pads past 128
+    for i in range(65):
+        rows.append(dict(tourney_name="Poisoned Slam", date=end - pd.Timedelta(days=8),
+                         round="R128", winner_name=f"Q{i}", loser_name=f"Q{65 + i}",
+                         surface_b="Grass", best_of=5, tourney_level="G",
+                         draw_level="main"))
+    rows.append(dict(tourney_name="Poisoned Slam", date=end - pd.Timedelta(days=1),
+                     round="F", winner_name="Q0", loser_name="Q1", surface_b="Grass",
+                     best_of=5, tourney_level="G", draw_level="main"))
+    df = pd.DataFrame(rows)
+
+    # every entrant must be RATED, or build_tournaments' top_set filter drops the event
+    # before the bracket guard can fire (which is what made the first draft of this test
+    # pass against the unfixed code — a green test that exercised nothing)
+    rated = {f"P{i}": 2000.0 - 30.0 * i for i in range(16)}
+    rated.update({f"Q{i}": 1900.0 - i for i in range(130)})
+    pred = _Pred(rated)
+
+    saved = (T._load_fields, T._load_upcoming, T._load_wiki_draws)
+    T._load_fields = lambda tour: {}
+    T._load_upcoming = lambda tour: {}
+    T._load_wiki_draws = lambda tour: {}          # the cache has aged out, as it really had
+    try:
+        out = build_tournaments(pred, df, "wta", n_sims=50, seed=1)   # must NOT raise
+    finally:
+        T._load_fields, T._load_upcoming, T._load_wiki_draws = saved
+
+    names = {t["name"] for t in out}
+    assert "Good Open" in names, f"a healthy event was lost with the bad one: {names}"
+    assert "Poisoned Slam" not in names, "the oversized bracket shipped anyway"
+    print("ok test_one_unprojectable_event_does_not_take_down_the_whole_board")
+
 if __name__ == "__main__":
     test_status_real_partial_seeded_final_from_espn()
     test_completed_projection_excludes_qualifying_field()
@@ -238,6 +291,7 @@ if __name__ == "__main__":
     test_oversized_projection_error_names_event_and_source_state()
     test_wiki_draw_makes_a_seeded_board_real()
     test_prestart_upcoming_projection_from_wiki()
+    test_one_unprojectable_event_does_not_take_down_the_whole_board()
     test_dedup_by_display_name_keeps_fuller_draw()
     test_build_tournaments_collapses_archive_and_sponsor_feed()
     print("\nALL PASSED")
