@@ -100,7 +100,7 @@ def _verdict(b: pd.DataFrame, a: pd.DataFrame) -> None:
               f"{d.mean():>+13.5f}±{se:.5f}{sb['acc']:>10.4f}{sa['acc']:>10.4f}"
               f"{sb['brier']:>9.4f}{sa['brier']:>9.4f}")
 
-    # per-year paired d — the instability tripwire (lessons.md): a real improvement
+    # per-year paired d — the instability tripwire (lessons/model-research.md): a real improvement
     # lifts (nearly) every year; bidirectional many-SE flapping = distribution artifact
     print("\nper-year paired d (>0 = arm better):")
     year_means = []

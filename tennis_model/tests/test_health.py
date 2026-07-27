@@ -1098,6 +1098,60 @@ def test_format_issue_body_has_problems_and_fix_prompt():
     print("ok test_format_issue_body_has_problems_and_fix_prompt")
 
 
+def test_output_stale_live_event_is_flagged_but_advisory():
+    """The real Iasi card (2026-07-27): status live, champion null, 3 alive — nine days
+    after it ended. `completed` is set ONLY by a round-"F" row, so a results feed that
+    drops the final strands the event at the top of the board forever. Advisory, because
+    all three of these checks were already firing on live data when they landed: blocking
+    would have frozen the site on an older build instead of fixing anything."""
+    d = _healthy_data()
+    d["tournaments"] = [dict(d["tournaments"][0], name="Iasi", status="live",
+                             drawStatus="seeded", drawSize=34, aliveCount=3, champion=None,
+                             end="2026-06-30")]                       # NOW is 2026-07-09
+    out = health.output_problems("atp", _oc(data=d), NOW)
+    stale = [p for p in out if "is stuck 'live'" in p]
+    assert stale and "9d ago" in stale[0], out
+    assert not any(health._gate_blocks(p) for p in stale), "a stale card must not freeze the site"
+    # a normally in-progress event is silent
+    d2 = _healthy_data()
+    d2["tournaments"] = [dict(d2["tournaments"][0], status="live", champion=None,
+                              end="2026-07-08")]
+    assert not any("is stuck 'live'" in p for p in health.output_problems("atp", _oc(data=d2), NOW))
+    print("ok test_output_stale_live_event_is_flagged_but_advisory")
+
+
+def test_output_completed_event_with_many_alive_is_flagged():
+    """The real Palermo card: completed, champion 'Francesca Jones', aliveCount 32 of 32.
+    The authoritative draw supplied the field while the results supplied the eliminations
+    and the two never joined — a finished event has exactly one player standing."""
+    d = _healthy_data()
+    d["tournaments"] = [dict(d["tournaments"][0], name="Palermo", status="completed",
+                             drawStatus="final", drawSize=32, aliveCount=32,
+                             champion="Francesca Jones", end="2026-07-08")]
+    out = health.output_problems("atp", _oc(data=d), NOW)
+    bad = [p for p in out if "players alive (expected 1)" in p]
+    assert bad and "32 players alive" in bad[0], out
+    assert not any(health._gate_blocks(p) for p in bad)
+    print("ok test_output_completed_event_with_many_alive_is_flagged")
+
+
+def test_output_numbered_qualifier_as_model_favourite_is_flagged():
+    """`_flag_placeholders` matches a fixed word set, so the NUMBERED form slipped through
+    and Palermo shipped modelFavorite 'Qualifier 30'. The check now delegates to the draw
+    machinery's own is_real predicate, which already understands that form."""
+    d = _healthy_data()
+    d["tournaments"] = [dict(d["tournaments"][0], modelFavorite="Qualifier 30")]
+    out = health.output_problems("atp", _oc(data=d), NOW)
+    bad = [p for p in out if "is a draw placeholder" in p]
+    assert bad, out
+    assert not any(health._gate_blocks(p) for p in bad)
+    # a real name is silent
+    d2 = _healthy_data()
+    d2["tournaments"] = [dict(d2["tournaments"][0], modelFavorite="P0")]
+    assert not any("is a draw placeholder" in p
+                   for p in health.output_problems("atp", _oc(data=d2), NOW))
+    print("ok test_output_numbered_qualifier_as_model_favourite_is_flagged")
+
 if __name__ == "__main__":
     test_problems_fresh_is_clean()
     test_problems_future_dated_match_flagged()
@@ -1116,6 +1170,9 @@ if __name__ == "__main__":
     test_gate_blocks_bad_output_without_writing_healthjson()
     test_gate_classifies_advisory_vs_blocking()
     test_output_healthy_is_clean()
+    test_output_stale_live_event_is_flagged_but_advisory()
+    test_output_completed_event_with_many_alive_is_flagged()
+    test_output_numbered_qualifier_as_model_favourite_is_flagged()
     test_output_model_age_flags_a_dead_retrain()
     test_output_model_age_is_advisory_never_blocking()
     test_output_model_age_missing_is_silent_and_fresh_is_clean()

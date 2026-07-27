@@ -64,7 +64,7 @@ def _logloss(p: np.ndarray) -> float:
 
 
 def _per_year_line(d: np.ndarray, years: np.ndarray) -> str:
-    """Compact per-year tripwire for --validate (lessons.md): a real gain lifts
+    """Compact per-year tripwire for --validate (lessons/model-research.md): a real gain lifts
     (nearly) every year; tune-overfit shows val years split with a big negative."""
     uniq = np.unique(years)
     means, ses = [], []

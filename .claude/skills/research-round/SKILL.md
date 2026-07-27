@@ -6,7 +6,8 @@ description: Run an autonomous model-research round (autoresearch loop) — boun
 # Research round launcher
 
 This skill only launches the loop. ALL rules live in `tasks/research/PROGRAM.md` —
-read it in full before the first experiment, along with `tasks/lessons.md`, the tail
+read it in full before the first experiment, along with `tasks/lessons/model-research.md`
+(and the `tasks/lessons.md` index for anything else the round touches), the tail
 of `tasks/research/ledger.tsv`, and `tasks/research/ideas.md`. Do not duplicate or
 paraphrase the program's rules from memory; the file is the authority.
 

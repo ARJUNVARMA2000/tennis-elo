@@ -19,7 +19,8 @@ Baseline at harness creation (walk-forward 2010–2026, adopted set @ `5c4d012`)
 | WTA combiner | 0.6829 | 0.5878 | 0.2018 | +0.0059 Brier gap — the open target |
 
 These numbers drift as adoptions land. Before citing a baseline anywhere, re-run
-`git log` and re-derive from the current tip (lessons.md: stale-metrics lesson).
+`git log` and re-derive from the current tip (`tasks/lessons/model-research.md`:
+stale-metrics lesson).
 
 ## Invariants
 
@@ -35,7 +36,8 @@ Read-only during a round:
   the round). Record the feature-cache build times in the results doc.
 - **Dependencies**: no installs, upgrades, or pins (cross-version pickle
   compatibility is a hard constraint; see AGENTS.md).
-- `.github/`, `web/`, this file, `AGENTS.md`. `tasks/lessons.md` is append-only.
+- `.github/`, `web/`, this file, `AGENTS.md`. `tasks/lessons/` and its `tasks/lessons.md`
+  index are append-only.
 
 Git: no `push`, no `git clean` (any flags — the gitignored `data/output/` caches and
 study DBs would be destroyed), no force-operations, no amending commits that predate
@@ -54,7 +56,8 @@ Modifiable:
   signal ships its prediction-time state mirror + parity test **in the same commit**,
   or is recorded venue/context-free (AGENTS.md hard rule).
 - `tasks/research/ledger.tsv` (append-only), `tasks/research/ideas.md` (append +
-  status edits), the round results doc, `tasks/todo.md`, `tasks/lessons.md` (append).
+  status edits), the round results doc, `tasks/todo.md`, `tasks/lessons/<topic>.md`
+  (append the entry, add its lead line to the `tasks/lessons.md` index).
 
 ## The loop
 
@@ -133,7 +136,7 @@ _verdict(base, arm)   # same frame -> rows positionally paired; else use _align 
 ```
 
 `_verdict` prints the windows table, the **per-year paired-d table**, and the final
-`GATE:` line. Read the per-year tripwire (lessons.md): a real improvement lifts
+`GATE:` line. Read the per-year tripwire (`tasks/lessons/model-research.md`): a real improvement lifts
 (nearly) every year — `17/17 positive` was the A5 signature; bidirectional
 many-SE flapping = training-distribution artifact → run the **ratings-only variant**
 (a data experiment is two experiments). Save both OOS frames to
@@ -196,7 +199,7 @@ id  date  tier  tour  group  hypothesis  change  budget_min  d_tune  se_tune  d_
    format — hypothesis, config, d±SE per window, per-year note, verdict for EVERY
    experiment including rejections, final table.
 3. Mirror the outcome into `tasks/todo.md`; append anything methodological to
-   `tasks/lessons.md`.
+   `tasks/lessons/model-research.md` and add its lead line to the `tasks/lessons.md` index.
 4. Leave the branch for user review. Never push.
 
 ## Idea generation

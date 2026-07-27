@@ -44,6 +44,7 @@ from ..config import (
     HEALTH_MAX_FORECAST_AGE_DAYS,
     HEALTH_MAX_FRESH_AGE_DAYS,
     HEALTH_MAX_FUTURE_DATE_DAYS,
+    HEALTH_MAX_LIVE_EVENT_AGE_DAYS,
     HEALTH_MAX_LIVERANK_NULL_FRAC,
     HEALTH_MAX_MARKET_LAG_DAYS,
     HEALTH_MAX_MODEL_AGE_DAYS,
@@ -234,6 +235,15 @@ _REQUIRED_OUTPUTS = ("meta", "players", "tournaments", "brackets", "upcoming", "
                      "ratings_history", "profiles", "draws", "fixtures", "method")
 _OPTIONAL_OUTPUTS = ("accuracy", "track", "market")
 _PLACEHOLDER_NAMES = {"tbd", "tba", "bye", "qualifier"}   # mirror data/live.py
+
+
+def _is_real_name(x: object) -> bool:
+    """True if this names an actual player. Delegates to the draw machinery's own
+    predicate so the numbered forms ("Qualifier 30") it already understands cannot
+    disagree with what the health gate considers a placeholder."""
+    from ..sim.bracket import is_real
+    return bool(is_real(x))
+
 _STATUSES = {"live", "upcoming", "completed"}
 _DRAW_STATES = {"real", "partial", "seeded", "final"}
 _REACH_ORDER = ("R128", "R64", "R32", "R16", "QF", "SF", "F", "Champion")
@@ -255,6 +265,13 @@ _GATE_ADVISORY = (
     "market.json odds coverage",   # benchmark-card staleness; odds are never a build dependency
     "forecast drift",              # model-decay advisory; a re-tune recommendation must never block a deploy
     "forecast log last advanced",  # eval-artifact liveness; never a build dependency
+    # Board-quality problems: the card is wrong, the numbers behind it are not. All three
+    # were ALREADY shipping when the checks landed (2026-07-27), so blocking would have
+    # frozen the site on an older build rather than fixing anything. Promote to blocking
+    # once the underlying ingestion is clean.
+    "is stuck 'live'",             # event whose final never arrived
+    "players alive (expected 1)",  # completed event whose eliminations never joined
+    "is a draw placeholder",       # 'Qualifier 30' surfaced as a real name
 )
 
 
@@ -399,7 +416,7 @@ def _check_projection(out: list, tour: str, name, proj: list) -> None:
             out.append(f"{tour}: {name!r} {who!r} reach odds not monotonically non-increasing")
 
 
-def _check_tournament(out: list, tour: str, t: dict) -> None:
+def _check_tournament(out: list, tour: str, t: dict, now: pd.Timestamp | None = None) -> None:
     name, status = t.get("name"), t.get("status")
     ds, size, alive, champ = t.get("drawStatus"), t.get("drawSize"), t.get("aliveCount"), t.get("champion")
     if status not in _STATUSES:
@@ -425,6 +442,29 @@ def _check_tournament(out: list, tour: str, t: dict) -> None:
         out.append(f"{tour}: completed tournament {name!r} has no champion")
     if status in ("live", "upcoming") and champ:
         out.append(f"{tour}: {status} tournament {name!r} already names champion {champ!r}")
+    # A live event whose last match is long past never received its final, so it is frozen
+    # "live" forever — the board showed Iasi live with 3 alive nine days after it ended
+    # (2026-07-27). `completed` is set ONLY by a round-"F" row (sim/tournaments.py), so a
+    # results feed that drops the final strands the card at the top of the page.
+    if status == "live" and now is not None:
+        age = _age_days(t.get("end"), now)
+        if age is not None and age > HEALTH_MAX_LIVE_EVENT_AGE_DAYS:
+            out.append(f"{tour}: live tournament {name!r} last played {age}d ago "
+                       f"(max {HEALTH_MAX_LIVE_EVENT_AGE_DAYS}) — its final never arrived, "
+                       f"so it is stuck 'live'")
+    # A finished event has exactly one player left standing. Palermo shipped as completed
+    # WITH a champion and aliveCount 32 of 32: the authoritative draw supplied the field
+    # while the results supplied the eliminations, and the two never joined.
+    if status == "completed" and champ and isinstance(alive, int) and alive > 1:
+        out.append(f"{tour}: completed tournament {name!r} names champion {champ!r} but "
+                   f"still reports {alive} players alive (expected 1)")
+    # `_flag_placeholders` matches a fixed word set, so the NUMBERED form ("Qualifier 30")
+    # slipped through and shipped as Palermo's modelFavorite. Use the same predicate the
+    # draw machinery uses to decide whether a slot names a real player.
+    fav = t.get("modelFavorite")
+    if fav is not None and not _is_real_name(fav):
+        out.append(f"{tour}: tournament {name!r} modelFavorite {fav!r} is a draw placeholder")
+
     proj = t.get("projection") or []
     _check_projection(out, tour, name, proj)
     _flag_placeholders(out, tour, f"tournament {name!r}", (p.get("name") for p in proj))
@@ -783,7 +823,7 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
             out.append(f"{tour}: tournaments.json has no live/upcoming event")
         for t in ts:
             if isinstance(t, dict):
-                _check_tournament(out, tour, t)
+                _check_tournament(out, tour, t, now)
         _tournament_name_problems(out, tour, ts)
 
     br = data.get("brackets")

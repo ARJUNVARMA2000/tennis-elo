@@ -214,7 +214,7 @@ jobs:
       # firebase.json's cache headers are load-bearing, not tuning: Firebase defaults to a
       # 1-hour browser cache, which would serve this hourly-refreshed site's odds stale.
       # It is strict JSON (firebase-tools JSON.parse's it) so the why lives in
-      # tasks/lessons.md — read that before touching the headers block.
+      # tasks/lessons/ci-and-deploy.md — read that before touching the headers block.
       - name: Deploy to Firebase Hosting
         id: deploy
         uses: FirebaseExtended/action-hosting-deploy@v0

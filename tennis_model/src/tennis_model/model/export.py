@@ -312,7 +312,7 @@ def build_method(tour: str) -> dict:
 
     Pure config: sources only the *_params_for accessors + config constants, so both
     the full and quick paths always publish the CURRENT production intent — never
-    hardcode these numbers in page copy (see the 2026-07-09 lessons.md entry). A
+    hardcode these numbers in page copy (see the 2026-07-09 tasks/lessons/web.md entry). A
     just-retuned config can briefly lead a stale predictor.pkl on the quick path;
     the daily full retrain (and the FeatureParams drift guard) closes that window.
     """
