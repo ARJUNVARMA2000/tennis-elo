@@ -49,7 +49,7 @@
           {
             "type": "command",
             "if": "Bash(git add *)",
-            "command": "python -c \"import sys,json,re; c=json.load(sys.stdin).get('tool_input',{}).get('command',''); m=re.search(r'git add (--all|-A|-u|\\.)(\\s|;|\\Z)', c); sys.stderr.write('Blocked: blanket git add sweeps concurrent sessions changes into your commit. Stage explicit paths instead.') if m else None; sys.exit(2 if m else 0)\"",
+            "command": "python3 -c \"import sys,json,re; c=json.load(sys.stdin).get('tool_input',{}).get('command',''); m=re.search(r'git add (--all|-A|-u|\\.)(\\s|;|\\Z)', c); sys.stderr.write('Blocked: blanket git add sweeps concurrent sessions changes into your commit. Stage explicit paths instead.') if m else None; sys.exit(2 if m else 0)\"",
             "timeout": 15,
             "statusMessage": "Checking git add scope"
           }
