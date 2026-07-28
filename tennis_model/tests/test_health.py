@@ -925,6 +925,59 @@ def test_board_quality_severity_follows_the_event_tier():
     print("ok test_board_quality_severity_follows_the_event_tier")
 
 
+def test_upcoming_event_that_already_ended_or_never_started():
+    """The mirror of the stuck-'live' check. Ending while never having gone live is
+    impossible — the results never joined — so the card invites clicks on odds for a
+    tournament that is already over. The started-but-not-live case only WARNS: ESPN start
+    dates include qualifying, so a main draw legitimately reads upcoming for a day or two,
+    and a Slam for its whole quali week."""
+    def _card(level, start, end, status="upcoming"):
+        d = _healthy_data()
+        d["tournaments"][0].update(name="Future Open", status=status, level=level,
+                                   start=start, end=end, champion=None)
+        return health.output_problems("atp", _oc(data=d), NOW)
+
+    # ended while still 'upcoming' -> blocks on a 500, warns on a 250
+    big = [p for p in _card("ATP 500", "2026-06-20", "2026-06-27") if "already ended" in p]
+    assert big and health._gate_blocks(big[0]), big
+    small = [p for p in _card("ATP 250", "2026-06-20", "2026-06-27") if "already ended" in p]
+    assert small and not health._gate_blocks(small[0]), small
+
+    # started days ago, not yet ended -> advisory at EVERY tier (qualifying lag is normal)
+    lag = [p for p in _card("ATP 500", "2026-07-01", "2026-07-30") if "has not flipped live" in p]
+    assert lag and not health._gate_blocks(lag[0]), lag
+    # ...and inside the grace window nothing fires at all
+    quiet = _card("ATP 500", str(NOW.date()), "2026-08-30")
+    assert not any("has not flipped live" in p or "already ended" in p for p in quiet), quiet
+    print("ok test_upcoming_event_that_already_ended_or_never_started")
+
+
+def test_lost_bracket_is_sentinel_only():
+    """A live event that HAD a bracket and now doesn't means its cached Wikipedia draw is
+    gone — the 2026-07-27 Wimbledon class, where the field then fell back to a noisy results
+    union and padded to an impossible 256-slot bracket, taking the whole board down."""
+    d = _healthy_data()
+    d["tournaments"][0].update(name="Test Open", status="live", hasBracket=False)
+    prev = {"bracket_events": ["test open"]}
+    out = health.output_problems("atp", _oc(data=d), NOW, prev)
+    hit = [p for p in out if "lost its bracket" in p]
+    assert hit and not health._gate_blocks(hit[0]), out
+    # the gate runs prev=None, so it can never see this at all
+    assert not any("lost its bracket" in p
+                   for p in health.output_problems("atp", _oc(data=d), NOW, None))
+    # still has its bracket -> silent; and a COMPLETED event dropping it is not news
+    d2 = _healthy_data()
+    d2["tournaments"][0].update(name="Test Open", status="live", hasBracket=True)
+    assert not any("lost its bracket" in p
+                   for p in health.output_problems("atp", _oc(data=d2), NOW, prev))
+    d3 = _healthy_data()
+    d3["tournaments"][0].update(name="Test Open", status="completed", hasBracket=False,
+                                champion="P0", aliveCount=1)
+    assert not any("lost its bracket" in p
+                   for p in health.output_problems("atp", _oc(data=d3), NOW, prev))
+    print("ok test_lost_bracket_is_sentinel_only")
+
+
 def test_cross_tour_surface_split_is_flagged():
     """One venue, one week, one court: a combined event ships a card on each tour. When they
     disagree, one is provably wrong — and no per-tour check can see it. On 2026-07-27 BOTH
@@ -1338,6 +1391,8 @@ if __name__ == "__main__":
     test_output_surface_must_be_canonical_and_month_guess_is_advisory()
     test_output_level_must_be_in_the_tour_vocabulary()
     test_board_quality_severity_follows_the_event_tier()
+    test_upcoming_event_that_already_ended_or_never_started()
+    test_lost_bracket_is_sentinel_only()
     test_cross_tour_surface_split_is_flagged()
     test_read_outputs_detects_missing_and_corrupt()
     test_read_outputs_flags_nan_as_corrupt()

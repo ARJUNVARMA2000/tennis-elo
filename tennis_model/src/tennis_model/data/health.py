@@ -50,6 +50,7 @@ from ..config import (
     HEALTH_MAX_MODEL_AGE_DAYS,
     HEALTH_MAX_RESULT_AGE_DAYS,
     HEALTH_MAX_STATS_AGE_DAYS,
+    HEALTH_MAX_UPCOMING_START_LAG_DAYS,
     HEALTH_MIN_MATCHES,
     HEALTH_MIN_STATS_FRACTION,
     HEALTH_OFFSEASON_RELAX_DAYS,
@@ -291,6 +292,11 @@ _GATE_ADVISORY = (
     # seeing (an unresolved tier also downgrades that event's own severity), never worth
     # freezing a deploy over.
     "tier did not resolve",
+    # Started but still labelled upcoming. ESPN start dates include qualifying, so a couple
+    # of days of lag is normal and a Slam's whole quali week is normal.
+    "has not flipped live",
+    # Run-over-run bracket loss: prev-based, so `--gate` (prev=None) can never see it anyway.
+    "lost its bracket since the previous run",
     # Stamped by `_tiered` on board-quality problems below the 500 tier.
     _BELOW_TIER.strip(),
 )
@@ -504,6 +510,23 @@ def _check_tournament(out: list, tour: str, t: dict, now: pd.Timestamp | None = 
             out.append(f"{tour}: live tournament {name!r} last played {age}d ago "
                        f"(max {HEALTH_MAX_LIVE_EVENT_AGE_DAYS}) — its final never arrived, "
                        f"so it is stuck 'live'")
+    # The mirror image: an event still labelled "upcoming" after its own dates have passed.
+    # Ending while never having gone live is impossible — the results simply never joined, so
+    # the card is inviting clicks on odds for a tournament that is already over. Tier-aware:
+    # marquee events must not ship in that state; the long tail warns.
+    if status == "upcoming" and now is not None:
+        end_age = _age_days(t.get("end"), now)
+        start_age = _age_days(t.get("start"), now)
+        if end_age is not None and end_age > 0:
+            out.append(_tiered(f"{tour}: upcoming tournament {name!r} already ended "
+                               f"({t.get('end')}, {end_age}d ago) but never went live — its "
+                               f"results are not joining", t.get("level")))
+        elif start_age is not None and start_age > HEALTH_MAX_UPCOMING_START_LAG_DAYS:
+            # Advisory at every tier: ESPN start dates include qualifying, so a main draw
+            # legitimately reads "upcoming" for a day or two — and a Slam for a whole week.
+            out.append(f"{tour}: upcoming tournament {name!r} started {t.get('start')} "
+                       f"({start_age}d ago, max {HEALTH_MAX_UPCOMING_START_LAG_DAYS}) but "
+                       f"has not flipped live")
     # A finished event has exactly one player left standing. Palermo shipped as completed
     # WITH a champion and aliveCount 32 of 32: the authoritative draw supplied the field
     # while the results supplied the eliminations, and the two never joined.
@@ -945,6 +968,21 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
         for t in ts:
             if isinstance(t, dict):
                 _check_tournament(out, tour, t, now)
+        # A live event that HAD a bracket and now doesn't: the cached Wikipedia draw pinning
+        # its field has gone. That is the 2026-07-27 Wimbledon class — the draw aged out of
+        # the ESPN discovery window, the field fell back to a noisy results union and padded
+        # to an impossible 256-slot bracket, taking the whole board down. Losing the bracket
+        # is the visible early warning. Sentinel-only by construction: `--gate` passes
+        # prev=None, so this can never block a deploy, only tell a human.
+        was = set(prev.get("bracket_events") or [])
+        if was:
+            now_live = {_norm_name(t["name"]) for t in ts if isinstance(t, dict) and t.get("name")
+                        and t.get("status") in ("live", "upcoming")}
+            has_now = {_norm_name(t["name"]) for t in ts if isinstance(t, dict) and t.get("name")
+                       and t.get("hasBracket")}
+            for gone in sorted((was & now_live) - has_now):
+                out.append(f"{tour}: live tournament {gone!r} lost its bracket since the "
+                           f"previous run — its cached Wikipedia draw may have aged out")
         _tournament_name_problems(out, tour, ts)
 
     br = data.get("brackets")
@@ -1141,6 +1179,11 @@ def main() -> int:
             "model_trained_at": meta.get("modelTrainedAt"),
             "forecast_lines": (oc["forecast"] or {}).get("lines"),
             "forecast_max_as_of": (oc["forecast"] or {}).get("max_as_of"),
+            # Feeds the lost-bracket sentinel on the NEXT run (see output_problems).
+            "bracket_events": sorted(
+                _norm_name(t["name"])
+                for t in (oc["data"].get("tournaments") or [])
+                if isinstance(t, dict) and t.get("name") and t.get("hasBracket")),
             "problems": op,
         }
         report["tours"][tour] = h

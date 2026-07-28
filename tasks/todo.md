@@ -2226,7 +2226,14 @@ Wikipedia for structure, fix the join layer.
       RESIDUAL: a 500+ event that is still upcoming AND has no cached wiki surface resolves
       src="month", which now BLOCKS. Narrow (500s have long-standing articles; the cache
       persists once written; A5 adds retry) but real — that was DC's exact state on 07-25.
-- [ ] A4 gates: upcoming-not-ended BLOCK; start-lag ADV (3d); lost-bracket sentinel
+- [x] A4 gates: (1) upcoming-but-already-ENDED — the mirror of stuck-'live'; ending while
+      never having gone live is impossible, so the card invites clicks on odds for a finished
+      event. Tier-aware. (2) started-but-not-live: ADVISORY at every tier, 3d grace, because
+      ESPN start dates include QUALIFYING (a Slam legitimately reads upcoming all quali week);
+      a strict start<=today would false-fire constantly. (3) lost-bracket: a live event that
+      HAD a bracket and now doesn't means its cached wiki draw is gone — the 07-27 Wimbledon
+      256-slot class, caught early. Sentinel-only by construction (gate passes prev=None).
+      Verified against LIVE production data: 0 blocking, only the Mifel advisory that A3 fixes.
 - [ ] A5 wiki hygiene: _get retry/backoff; single wikitext fetch for surface+category;
       fallback fetch cap; same-day miss suppression
 

@@ -432,6 +432,12 @@ HEALTH_MAX_MODEL_AGE_DAYS = 3        # meta.modelTrainedAt staleness. NOT the sa
                                     # leaves the site looking freshly built while the model behind
                                     # it rots (2026-07-19..24: 5 silent days). Same 3d ceiling as
                                     # the build age = three consecutive missed retrains.
+HEALTH_MAX_UPCOMING_START_LAG_DAYS = 3  # an "upcoming" event whose start date is further past
+                                        # than this never flipped live — its results are not
+                                        # joining. Needs slack, not a strict start<=today:
+                                        # ESPN start dates include QUALIFYING, so a main draw
+                                        # legitimately reads "upcoming" for a couple of days
+                                        # (and every Slam does, for a week).
 HEALTH_MAX_LIVE_EVENT_AGE_DAYS = 3    # a "live" event whose newest match is older than this
                                       # never received its final and is stuck live (Iasi sat
                                       # live for 9 days). Tour weeks run Mon-Sun, so a genuine
