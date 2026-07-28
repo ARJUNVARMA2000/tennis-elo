@@ -442,6 +442,12 @@ HEALTH_MAX_MODEL_AGE_DAYS = 3        # meta.modelTrainedAt staleness. NOT the sa
 # its anchor and padded to an impossible 256-slot bracket (2026-07-11 and again 07-27).
 EVENT_REGISTRY_RETENTION_DAYS = 400
 
+# Grace after an event's scheduled end before the board may call it complete without having
+# seen a round-"F" row. Two days absorbs a final pushed by rain or a late-night finish; beyond
+# that, a missing final is a dropped result, not an event still in progress. Iasi sat "live"
+# with three players alive for NINE days because completion keyed only on that row.
+EVENT_CALENDAR_COMPLETE_GRACE_DAYS = 2
+
 # How long a cached Wikipedia draw survives after ESPN stops listing its event. MUST exceed
 # the 40-day `sim.tournaments.recent_tournaments` window: the cache has to outlive the
 # discovery sweep it was populated from, because `build_tournaments` keeps projecting an event

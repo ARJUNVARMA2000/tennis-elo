@@ -25,7 +25,7 @@ import json
 
 import pandas as pd
 
-from ..config import live_dir
+from ..config import EVENT_CALENDAR_COMPLETE_GRACE_DAYS, live_dir
 from ..data.events import EventResolver, is_event_id, load_registry
 from ..data.results import _name_key
 from ..data.surface import resolve_level, resolve_surface_info
@@ -183,6 +183,21 @@ def _coalesce_groups(events: list, resolver) -> list:
             merged = merged.drop_duplicates(subset=["winner_name", "loser_name", "round"])
         out.append((best, merged, None if key.startswith("__name__") else key))
     return out
+
+
+def _scheduled_end(eid: str | None, name: str, resolver,
+                   wiki_by_id: dict, wiki_by_name: dict) -> str | None:
+    """The event's SCHEDULED end date, from the registry or its cached draw.
+
+    Distinct from the card's `end`, which is just the last match actually recorded — the very
+    thing that is missing when a final never arrives. Only a source that knows the calendar
+    can say an event is over."""
+    entry = (resolver.entry(eid) if (resolver and eid) else None) or {}
+    end = entry.get("end")
+    if end:
+        return str(end)
+    wd = _lookup(wiki_by_id, wiki_by_name, eid, name) or {}
+    return str(wd.get("end") or "") or None
 
 
 def _fields_view(by_id: dict, by_name: dict, eid: str | None, name: str) -> dict | None:
@@ -454,6 +469,7 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
                        espn_fields: dict | None = None, resolve=None,
                        matchups: list | None = None, wiki_draw: dict | None = None,
                        archive_hint: str | None = None, espn_id: str | None = None,
+                       event_end: str | None = None, dmax=None,
                        n_sims: int = 8000, seed: int = 11) -> dict | None:
     # The ratings frame can include qualifying matches for state updates. Tournament
     # projections, however, describe the main draw only. ``draw_level`` filters modern lower-
@@ -482,13 +498,29 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
 
     eliminated = set(main["loser_name"])
     final_rows = main[main["round"] == "F"]
-    completed = len(final_rows) > 0
+    has_final = len(final_rows) > 0
+    # An event should not need a round-"F" row to be over. Completion keyed ONLY on that row
+    # strands an event at the top of the board forever whenever the results feed drops its
+    # final: Iasi sat "live" with three players alive for NINE DAYS after it ended, and
+    # Hamburg for two (2026-07-27). If the calendar says it is finished and nothing is still
+    # scheduled, it is finished — we just cannot name the champion.
+    #
+    # Anchored on the DATA's max date, not on today: a frozen pipeline must not start
+    # declaring live events complete simply because wall-clock moved on.
+    calendar_over = False
+    if not has_final and event_end and dmax is not None and not matchups:
+        end_ts = pd.to_datetime(event_end, errors="coerce")
+        calendar_over = bool(pd.notna(end_ts) and pd.notna(dmax)
+                             and end_ts + pd.Timedelta(days=EVENT_CALENDAR_COMPLETE_GRACE_DAYS)
+                             < dmax)
+    completed = has_final or calendar_over
 
     champ = runner = None
     ef = (espn_fields or {}).get(name)
     if completed:
-        fr = final_rows.sort_values("date").iloc[-1]
-        champ, runner = fr["winner_name"], fr["loser_name"]
+        if has_final:
+            fr = final_rows.sort_values("date").iloc[-1]
+            champ, runner = fr["winner_name"], fr["loser_name"]
         field_pool = set(main["winner_name"]) | set(main["loser_name"])  # full main draw
     else:
         # Live: prefer ESPN's FULL main-draw field (incl. scheduled) so the Day-1
@@ -581,6 +613,9 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
         "start": str(g["date"].min().date()), "end": str(g["date"].max().date()),
         "status": "completed" if completed else "live", "drawStatus": draw_state,
         "espnId": espn_id, "surfaceSource": surface_src,
+        # False on a completed card means "the calendar says it is over, but the final never
+        # arrived" — the champion is genuinely unknown, not a builder bug.
+        "finalRecorded": bool(has_final),
         "drawSize": len(field_pool), "aliveCount": len(alive),
         "champion": champ, "runnerUp": runner,
         "modelFavorite": favorite,
@@ -699,7 +734,10 @@ def build_tournaments(predictor, df: pd.DataFrame, tour: str, **kw) -> list:
                                    resolve=resolve, matchups=matchups,
                                    wiki_draw=_lookup(wiki_by_id, wiki_by_name, eid, name),
                                    archive_hint=_archive_attrs(df, name)[0],
-                                   espn_id=eid, **kw)
+                                   espn_id=eid,
+                                   event_end=_scheduled_end(eid, name, resolver,
+                                                            wiki_by_id, wiki_by_name),
+                                   dmax=df["date"].max() if not df.empty else None, **kw)
         except ValueError as e:
             # One unprojectable event must not cost the whole board. The >128-slot guard
             # inside project_tournament is a real signal — a leaked qualifier padding a

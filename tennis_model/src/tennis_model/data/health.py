@@ -297,6 +297,9 @@ _GATE_ADVISORY = (
     "has not flipped live",
     # Run-over-run bracket loss: prev-based, so `--gate` (prev=None) can never see it anyway.
     "lost its bracket since the previous run",
+    # Calendar-complete without a final. The card is honest about not knowing the champion —
+    # far better than the alternative it replaced, which was sitting "live" for nine days.
+    "completed without a recorded final",
     # Stamped by `_tiered` on board-quality problems below the 500 tier.
     _BELOW_TIER.strip(),
 )
@@ -497,7 +500,16 @@ def _check_tournament(out: list, tour: str, t: dict, now: pd.Timestamp | None = 
         out.append(f"{tour}: tournament {name!r} real draw size {size} is not a standard "
                    f"bracket size (power of two or bye-draw {sorted(_BYE_DRAW_SIZES)})")
     if status == "completed" and not champ:
-        out.append(f"{tour}: completed tournament {name!r} has no champion")
+        # An event can now be called over by its CALENDAR when the results feed never
+        # delivered a final (sim/tournaments: Iasi sat "live" for nine days waiting for one).
+        # That card is honest — the champion is genuinely unknown — so it is advisory. A
+        # completed card with no champion and no such explanation is still a builder bug.
+        if t.get("finalRecorded") is False:
+            out.append(f"{tour}: completed tournament {name!r} completed without a recorded "
+                       f"final — its calendar says it is over but no final arrived, so the "
+                       f"champion is unknown")
+        else:
+            out.append(f"{tour}: completed tournament {name!r} has no champion")
     if status in ("live", "upcoming") and champ:
         out.append(f"{tour}: {status} tournament {name!r} already names champion {champ!r}")
     # A live event whose last match is long past never received its final, so it is frozen
@@ -968,6 +980,21 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
         for t in ts:
             if isinstance(t, dict):
                 _check_tournament(out, tour, t, now)
+        # One identity, one card. Two cards sharing an espnId is the duplicate-event class
+        # made checkable at last: on 2026-07-28 the WTA board shipped a 12-player "Washington
+        # Dc" fragment beside the full "Mubadala DC Open" — one tournament, two cards, two
+        # different favourites. BLOCKING, because `_coalesce_groups` merges before projecting,
+        # so a duplicate reaching here means that merge failed and one card is built on a
+        # partial event. Verified against the live board before landing: zero duplicates.
+        ids: dict = {}
+        for t in ts:
+            if isinstance(t, dict) and t.get("espnId"):
+                ids.setdefault(str(t["espnId"]), []).append(t.get("name"))
+        for eid, names in sorted(ids.items()):
+            if len(names) > 1:
+                shown = ", ".join(repr(n) for n in names)
+                out.append(f"{tour}: espnId {eid} ships on {len(names)} cards ({shown}) — "
+                           f"one event projected twice, so at least one is a partial record")
         # A live event that HAD a bracket and now doesn't: the cached Wikipedia draw pinning
         # its field has gone. That is the 2026-07-27 Wimbledon class — the draw aged out of
         # the ESPN discovery window, the field fell back to a noisy results union and padded

@@ -167,6 +167,42 @@ def test_coalesce_refuses_to_merge_concurrent_distinct_events():
     print("ok test_coalesce_refuses_to_merge_concurrent_distinct_events")
 
 
+def test_an_event_is_over_when_its_calendar_says_so_even_without_a_final():
+    """Iasi sat 'live' with three players alive for NINE DAYS after it ended, and Hamburg for
+    two, because completion keyed ONLY on a round-'F' row. A results feed that drops the final
+    stranded the card at the top of the board forever. Anchored on the DATA's max date, not
+    wall-clock: a frozen pipeline must not start declaring live events finished."""
+    g = _g(add_final=False)                      # 8 R64 results, no final
+    dmax = pd.Timestamp("2026-08-20")            # well past the event
+
+    over = project_tournament(_PRED, "Test Open", g, "atp", known=set(), top_set=None,
+                              espn_fields=None, resolve=lambda n: n, matchups=[],
+                              event_end="2026-08-09", dmax=dmax, n_sims=60, seed=1)
+    assert over["status"] == "completed"
+    assert over["finalRecorded"] is False         # ...and it says so
+    assert over["champion"] is None               # the champion is genuinely unknown
+    assert over["aliveCount"] == 8                # no champion -> no structural collapse to 1
+
+    # inside the grace window it is still live — a final can be a day late
+    still = project_tournament(_PRED, "Test Open", g, "atp", known=set(), top_set=None,
+                               espn_fields=None, resolve=lambda n: n, matchups=[],
+                               event_end="2026-08-19", dmax=dmax, n_sims=60, seed=1)
+    assert still["status"] == "live", still["status"]
+    # a pending matchup means it is genuinely still running, whatever the calendar says
+    busy = project_tournament(_PRED, "Test Open", g, "atp", known=set(), top_set=None,
+                              espn_fields=None, resolve=lambda n: n,
+                              matchups=[("P0", "P2")], event_end="2026-08-09", dmax=dmax,
+                              n_sims=60, seed=1)
+    assert busy["status"] == "live"
+    # and a real final still wins outright, with finalRecorded True
+    done = project_tournament(_PRED, "Test Open", _g(add_final=True), "atp", known=set(),
+                              top_set=None, espn_fields=None, resolve=lambda n: n,
+                              matchups=[], n_sims=60, seed=1)
+    assert done["status"] == "completed" and done["finalRecorded"] is True
+    assert done["champion"] == "P0" and done["aliveCount"] == 1
+    print("ok test_an_event_is_over_when_its_calendar_says_so_even_without_a_final")
+
+
 def test_coalesce_defects_found_in_review():
     """Three defects my own adversarial re-read caught before this shipped. Each is silent —
     none would have failed a test or shown up in a rebuild of this week's board."""

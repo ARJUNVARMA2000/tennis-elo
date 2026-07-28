@@ -978,6 +978,50 @@ def test_lost_bracket_is_sentinel_only():
     print("ok test_lost_bracket_is_sentinel_only")
 
 
+def test_calendar_complete_without_a_final_is_honest_not_a_bug():
+    """An event can now be called over by its CALENDAR when the results feed never delivered
+    a final — the alternative was Iasi sitting 'live' with three players alive for NINE days.
+    That card admits the champion is unknown, so it warns. A completed card with no champion
+    and no such explanation is still a builder bug and still blocks."""
+    d = _healthy_data()
+    d["tournaments"][1].update(champion=None, finalRecorded=False)
+    out = health.output_problems("atp", _oc(data=d), NOW)
+    hit = [p for p in out if "completed without a recorded final" in p]
+    assert hit and not health._gate_blocks(hit[0]), out
+
+    d = _healthy_data()
+    d["tournaments"][1].update(champion=None)          # no explanation -> builder bug
+    out = health.output_problems("atp", _oc(data=d), NOW)
+    hit = [p for p in out if "has no champion" in p]
+    assert hit and health._gate_blocks(hit[0]), out
+    print("ok test_calendar_complete_without_a_final_is_honest_not_a_bug")
+
+
+def test_one_identity_one_card():
+    """Two cards sharing an espnId is the duplicate-event class, finally checkable. On
+    2026-07-28 the WTA board shipped a 12-player 'Washington Dc' fragment beside the full
+    'Mubadala DC Open' — one tournament, two cards, two different favourites. Blocking:
+    coalescing merges BEFORE projecting, so a duplicate here means that merge failed and at
+    least one card is built on a partial event."""
+    d = _healthy_data()
+    d["tournaments"][0]["espnId"] = "888-2026"
+    d["tournaments"][1]["espnId"] = "888-2026"
+    out = health.output_problems("atp", _oc(data=d), NOW)
+    hit = [p for p in out if "ships on 2 cards" in p]
+    assert hit and health._gate_blocks(hit[0]), out
+    assert "888-2026" in hit[0]
+    # distinct ids, and id-less cards (an archive-only event outside ESPN's window), are fine
+    d = _healthy_data()
+    d["tournaments"][0]["espnId"] = "1-2026"
+    d["tournaments"][1]["espnId"] = "2-2026"
+    assert not any("ships on" in p for p in health.output_problems("atp", _oc(data=d), NOW))
+    d = _healthy_data()
+    for t in d["tournaments"]:
+        t["espnId"] = None
+    assert not any("ships on" in p for p in health.output_problems("atp", _oc(data=d), NOW))
+    print("ok test_one_identity_one_card")
+
+
 def test_cross_tour_surface_split_is_flagged():
     """One venue, one week, one court: a combined event ships a card on each tour. When they
     disagree, one is provably wrong — and no per-tour check can see it. On 2026-07-27 BOTH
@@ -1393,6 +1437,8 @@ if __name__ == "__main__":
     test_board_quality_severity_follows_the_event_tier()
     test_upcoming_event_that_already_ended_or_never_started()
     test_lost_bracket_is_sentinel_only()
+    test_calendar_complete_without_a_final_is_honest_not_a_bug()
+    test_one_identity_one_card()
     test_cross_tour_surface_split_is_flagged()
     test_read_outputs_detects_missing_and_corrupt()
     test_read_outputs_flags_nan_as_corrupt()

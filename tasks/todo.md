@@ -2316,5 +2316,17 @@ as the working rule for Track B: rebuild the artefact, don't just run the tests.
       Also: the first version of the retention test silently hit the live ESPN API (8.65s vs
       0.13s) because download_wiki_draws imports fetch_events INSIDE the function, making the
       monkeypatch a no-op. Third instance of that trap today; now a lesson.
-- [ ] B5 calendar completion (finalRecorded) + gate extensions
+- [x] B5 calendar completion + gate extensions. Completion keyed ONLY on a round-"F" row, so
+      a feed that drops the final stranded the card at the top of the board forever — Iasi
+      "live" with 3 alive for NINE days, Hamburg for two. Now: F-row OR calendar-over (event's
+      scheduled end + 2d grace, AND no pending matchups), anchored on the DATA's max date so a
+      frozen pipeline can't declare live events finished. Ships `finalRecorded: false` and a
+      null champion — the card admits the champion is unknown instead of lying about being live.
+      Gate: completed-without-final ADVISORY (honest, not a bug); no-champion stays BLOCKING
+      when unexplained; duplicate-espnId BLOCKING — safe only because coalescing landed FIRST
+      and the live board now has zero duplicate ids (it had one an hour ago; shipping this
+      check before coalescing would have blocked the deploy).
+      DELIBERATELY SKIPPED from the plan: the "live card not resolvable to the registry"
+      advisory. It would fire every run on Bloomfield Hills, a Challenger legitimately outside
+      ESPN's tracked set — permanent noise that reds the sentinel with no action attached.
 - [ ] B6 docs/lessons
