@@ -26,6 +26,7 @@ import json
 import pandas as pd
 
 from ..config import live_dir
+from ..data.events import EventResolver, is_event_id, load_registry
 from ..data.results import _name_key
 from ..data.surface import resolve_level, resolve_surface_info
 from .bracket import bracket_is_meaningful, bracket_rounds, is_real, oriented_logged, price_bracket
@@ -49,14 +50,74 @@ def _load_fields(tour: str) -> dict:
 
 
 def _load_upcoming(tour: str) -> dict:
-    """Scheduled/in-progress matchups {event: [(playerA, playerB), ...]} — the real
-    current-round draw. Reshapes the shared upcoming.csv loader into per-event matchup
-    pairs so the live projector pairs survivors by who actually plays whom, not by seeding."""
+    """Scheduled/in-progress matchups, keyed BOTH ways: ``{event_name_or_id: [(a, b), ...]}``.
+
+    Reshapes the shared upcoming.csv loader into per-event matchup pairs so the live
+    projector pairs survivors by who actually plays whom, not by seeding. Rows carrying an
+    ``espn_id`` are indexed under it as well as under their display name, so a lookup
+    succeeds whichever identity the caller resolved."""
     from ..model.upcoming import load_upcoming
     out: dict = {}
     for r in load_upcoming(tour).itertuples(index=False):
-        out.setdefault(str(r.tourney_name), []).append((str(r.playerA), str(r.playerB)))
+        pair = (str(r.playerA), str(r.playerB))
+        out.setdefault(str(r.tourney_name), []).append(pair)
+        eid = getattr(r, "espn_id", None)
+        if eid is not None and str(eid) != "nan" and str(eid):
+            out.setdefault(str(eid), []).append(pair)
     return out
+
+
+def _split_by_key(mapping: dict) -> tuple[dict, dict]:
+    """Split a cache into ``(by_id, by_name)``, classifying EVERY key independently.
+
+    Both formats coexist during the migration — a cache written before the re-key is
+    name-keyed, one written after is id-keyed, and a tour whose downloader soft-failed can
+    leave the two files in different shapes. Per-file assumptions break on exactly that.
+    An entry that is name-keyed but carries an ``espnId`` inside is indexed under BOTH, which
+    is what lets a draw cached under yesterday's sponsor title still be found today."""
+    by_id: dict = {}
+    by_name: dict = {}
+    for k, v in (mapping or {}).items():
+        if is_event_id(k):
+            by_id[str(k)] = v
+        else:
+            by_name[str(k)] = v
+            eid = v.get("espnId") if isinstance(v, dict) else None
+            if eid:
+                by_id.setdefault(str(eid), v)
+    return by_id, by_name
+
+
+def _lookup(by_id: dict, by_name: dict, eid: str | None, name: str):
+    """Cache entry for an event, preferring its stable id over its display name."""
+    if eid and eid in by_id:
+        return by_id[eid]
+    return by_name.get(str(name))
+
+
+def _fields_view(by_id: dict, by_name: dict, eid: str | None, name: str) -> dict | None:
+    """A one-entry ``{name: field}`` view of whatever the ID resolved to.
+
+    `project_tournament` does its own ``.get(name)`` on this dict; handing it a view keyed by
+    the name it will ask for lets the RESOLUTION move to ids without touching that function's
+    signature — or the tests that call it with a plain dict."""
+    hit = _lookup(by_id, by_name, eid, name)
+    return {str(name): hit} if hit else None
+
+
+def _group_event_id(g: pd.DataFrame, name: str, resolver) -> str | None:
+    """This event's ESPN id: the modal non-null ``espn_id`` on its rows, else name lookup.
+
+    Modal rather than "the id on any row" because the merge prefers stat-bearing archive
+    rows, which predate the id entirely — the surviving row for a match often has none."""
+    if "espn_id" in g.columns:
+        ids = g["espn_id"].dropna()
+        ids = ids[ids.astype(str).str.strip().ne("")]
+        if not ids.empty:
+            m = ids.astype(str).mode()
+            if not m.empty:
+                return m.iloc[0]
+    return resolver.id_of(name) if resolver else None
 
 
 def _load_wiki_draws(tour: str) -> dict:
@@ -302,7 +363,7 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
                        known: set | None = None, top_set: set | None = None,
                        espn_fields: dict | None = None, resolve=None,
                        matchups: list | None = None, wiki_draw: dict | None = None,
-                       archive_hint: str | None = None,
+                       archive_hint: str | None = None, espn_id: str | None = None,
                        n_sims: int = 8000, seed: int = 11) -> dict | None:
     # The ratings frame can include qualifying matches for state updates. Tournament
     # projections, however, describe the main draw only. ``draw_level`` filters modern lower-
@@ -429,7 +490,7 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
         "name": _display_name(name, known or set()), "surface": surface, "level": level, "bestOf": best_of,
         "start": str(g["date"].min().date()), "end": str(g["date"].max().date()),
         "status": "completed" if completed else "live", "drawStatus": draw_state,
-        "surfaceSource": surface_src,
+        "espnId": espn_id, "surfaceSource": surface_src,
         "drawSize": len(field_pool), "aliveCount": len(alive),
         "champion": champ, "runnerUp": runner,
         "modelFavorite": favorite,
@@ -441,7 +502,8 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
 
 
 def project_upcoming(predictor, name: str, wd: dict, tour: str, df: pd.DataFrame,
-                     known: set | None, resolve, n_sims: int = 8000, seed: int = 11) -> dict | None:
+                     known: set | None, resolve, espn_id: str | None = None,
+                     n_sims: int = 8000, seed: int = 11) -> dict | None:
     """Pre-start projection for an event whose Wikipedia draw is out but which hasn't
     played a match yet (so it's absent from the results-driven event list). The full real
     bracket, no eliminations -> honest 'real' pre-tournament title odds from release."""
@@ -470,7 +532,7 @@ def project_upcoming(predictor, name: str, wd: dict, tour: str, df: pd.DataFrame
         "name": _display_name(name, known or set()), "surface": surface, "level": level, "bestOf": best_of,
         "start": str(wd.get("start") or ""), "end": str(wd.get("end") or wd.get("start") or ""),
         "status": "upcoming", "drawStatus": "real",
-        "surfaceSource": surface_src,
+        "espnId": espn_id, "surfaceSource": surface_src,
         "drawSize": len(field_pool), "aliveCount": len(field_pool),
         "champion": None, "runnerUp": None,
         "modelFavorite": favorite, "favoritePicked": False,
@@ -526,14 +588,29 @@ def build_tournaments(predictor, df: pd.DataFrame, tour: str, **kw) -> list:
     for k in predictor.elo.overall:
         canon.setdefault(_name_key(k), k)
     resolve = lambda n: canon.get(_name_key(n), n)
+    # Identity layer: the registry plus every id a cache already carries INSIDE an entry. That
+    # `extra` seeding is load-bearing, not decorative — ESPN renamed the DC Open mid-event by
+    # inserting a word ("Citi"), which no containment rule can bridge and which the registry
+    # never saw under the old title; the espnId stamped in the cached draw is what recovers it.
+    resolver = EventResolver(load_registry(tour), extra=[
+        (k, v["espnId"]) for src in (wiki, espn_fields) for k, v in (src or {}).items()
+        if isinstance(v, dict) and v.get("espnId")])
+    wiki_by_id, wiki_by_name = _split_by_key(wiki)
+    fields_by_id, fields_by_name = _split_by_key(espn_fields)
+    up_by_id, up_by_name = _split_by_key(upcoming)
     out = []
     for name, g in recent_tournaments(df):
-        matchups = [(resolve(a), resolve(b)) for a, b in upcoming.get(name, [])]
+        eid = _group_event_id(g, name, resolver)
+        matchups = [(resolve(a), resolve(b))
+                    for a, b in (_lookup(up_by_id, up_by_name, eid, name) or [])]
         try:
             t = project_tournament(predictor, name, g, tour, known=known, top_set=top_set,
-                                   espn_fields=espn_fields, resolve=resolve, matchups=matchups,
-                                   wiki_draw=wiki.get(name),
-                                   archive_hint=_archive_attrs(df, name)[0], **kw)
+                                   espn_fields=_fields_view(fields_by_id, fields_by_name,
+                                                            eid, name),
+                                   resolve=resolve, matchups=matchups,
+                                   wiki_draw=_lookup(wiki_by_id, wiki_by_name, eid, name),
+                                   archive_hint=_archive_attrs(df, name)[0],
+                                   espn_id=eid, **kw)
         except ValueError as e:
             # One unprojectable event must not cost the whole board. The >128-slot guard
             # inside project_tournament is a real signal — a leaked qualifier padding a
@@ -552,15 +629,23 @@ def build_tournaments(predictor, df: pd.DataFrame, tour: str, **kw) -> list:
     # results-driven list above hasn't surfaced them. Project the real bracket now — but
     # only for events that are actually upcoming: dedup by DISPLAY name (a completed event's
     # results-feed name differs from ESPN's sponsor name) and skip anything already over.
+    # Recognise an already-projected event by ID as well as by display name: after a rename
+    # the wiki cache key and the board's name no longer match, and a name-only check shipped
+    # the same tournament twice.
     seen = {t["name"] for t in out}
+    seen_ids = {t.get("espnId") for t in out if t.get("espnId")}
     dmax = df["date"].max() if not df.empty else None
     for name, wd in wiki.items():
+        wd_id = str(wd.get("espnId") or "") or (name if is_event_id(name) else None)
+        if wd_id and wd_id in seen_ids:
+            continue
         if _display_name(name, known) in seen or not wd.get("slots"):
             continue
         end = pd.to_datetime(wd.get("end") or wd.get("start"), errors="coerce")
         if dmax is not None and pd.notna(end) and end < dmax - pd.Timedelta(days=2):
             continue                         # already finished (its card is a completed one)
-        t = project_upcoming(predictor, name, wd, tour, df, known, resolve, **kw)
+        t = project_upcoming(predictor, name, wd, tour, df, known, resolve,
+                             espn_id=wd_id or resolver.id_of(name), **kw)
         if t:
             out.append(t)
     # The results loop groups by RAW tourney_name, so an event whose live/ESPN feed uses a

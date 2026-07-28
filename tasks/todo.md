@@ -2272,6 +2272,19 @@ as the working rule for Track B: rebuild the artefact, don't just run the tests.
       ARCHIVE-ONLY frame), and `load_upcoming` imports wiki_upcoming_rows INSIDE the function,
       making the monkeypatch on `upcoming` a silent no-op. Both now fail-first correctly.
       The dedup-unchanged test passes before AND after by design — it is a regression guard.
-      B3 id-first joins + group coalescing in build_tournaments; B4 cache re-key + in-place
-      migration (never deletes) + end-based retention; B5 calendar completion
-      (finalRecorded) + gate extensions; B6 docs/lessons
+- [x] B3a id-first LOOKUPS in build_tournaments (split out from B3 — coalescing is the risky
+      half and gets its own commit). `_split_by_key` classifies every cache key independently
+      (both formats coexist during migration, and a soft-failed downloader can leave the two
+      files in different shapes); a name-keyed entry carrying espnId inside is indexed under
+      BOTH. `_group_event_id` takes the MODAL non-null espn_id — the merge prefers stat-bearing
+      archive rows, which predate the id, so the surviving row often has none. Cards ship
+      espnId; the pre-start loop recognises an already-projected event by id as well as name.
+      Rebuild proof: DC resolves 888-2026 with bracketSize 32. The regression test replays the
+      real rename and fails with `bracketSize: None` against the old code — the production
+      symptom exactly. Took three passes to get there: the first two failed on a missing
+      attribute and a missing field, either of which would have let a name lookup slip through.
+- [ ] B3b group coalescing (id-sharing groups concatenate before projection; an id-less group
+      folds in on date overlap + shared real players) — the duplicate-card class at its root
+- [ ] B4 cache re-key + in-place migration (never deletes) + end-based retention
+- [ ] B5 calendar completion (finalRecorded) + gate extensions
+- [ ] B6 docs/lessons

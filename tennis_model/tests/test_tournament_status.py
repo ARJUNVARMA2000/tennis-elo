@@ -86,6 +86,51 @@ def test_status_real_partial_seeded_final_from_espn():
     print("ok test_status_real_partial_seeded_final_from_espn")
 
 
+def test_a_renamed_event_still_finds_its_cached_draw(tmp_path, monkeypatch):
+    """The DC Open failure, end to end.
+
+    ESPN renamed "Mubadala Citi DC Open" -> "Mubadala DC Open" mid-tournament while the id
+    stayed 888-2026. Every cache keyed on the name was orphaned: `wiki.get(name)` missed, so
+    `wikiUrl` and `bracketSize` came back null and a live ATP/WTA 500 shipped with no draw at
+    all. Resolution now goes through the id, recovered from the espnId stamped INSIDE the
+    cached entry (name containment cannot bridge a word inserted mid-title).
+    """
+    from tennis_model.sim import tournaments as tsm
+
+    slots = [f"P{i}" for i in range(16)]
+    monkeypatch.setattr(tsm, "_load_wiki_draws", lambda tour: {
+        "Mubadala Citi DC Open": {                       # OLD name — the orphaned key
+            "slots": slots, "seeds": {}, "bestOf": 3, "espnId": "888-2026",
+            "start": "2026-07-25", "end": "2026-08-03",
+            "url": "https://en.wikipedia.org/wiki/2026_Mubadala_Citi_DC_Open"},
+    })
+    monkeypatch.setattr(tsm, "_load_fields", lambda tour: {})
+    monkeypatch.setattr(tsm, "_load_upcoming", lambda tour: {})
+    # raising=False so this test still RUNS against a build without the identity layer, and
+    # therefore fails on the real assertion (no bracket) rather than on a missing attribute
+    monkeypatch.setattr(tsm, "load_registry", lambda tour: {"events": {}}, raising=False)
+    # bracket PRICING is a separate concern (and needs a fuller predictor stub); this test is
+    # about whether the cached draw is RESOLVED at all
+    monkeypatch.setattr(tsm, "_price_event_bracket", lambda *a, **k: None)
+
+    # the results frame carries the NEW name, and its rows carry the id
+    rows = [dict(tourney_name="Mubadala DC Open", espn_id="888-2026",
+                 date=pd.Timestamp("2026-07-27"), round="R16",
+                 winner_name=f"P{i}", loser_name=f"P{8 + i}", surface_b="Hard",
+                 best_of=3, tourney_level="500") for i in range(8)]
+    out = build_tournaments(_PRED, pd.DataFrame(rows), "atp", n_sims=60, seed=1)
+    card = next(t for t in out if "DC Open" in t["name"])
+    # the substantive assertion first, so a build without the identity layer fails HERE —
+    # on the draw being orphaned — rather than on a field it simply doesn't emit yet
+    assert card["bracketSize"] == 16, card          # the draw was FOUND despite the rename
+    assert card["wikiUrl"], "wikiUrl lost — the cached entry was not resolved"
+    assert card["drawStatus"] == "real"
+    assert card["espnId"] == "888-2026"
+    # ...and the same event is not ALSO emitted by the pre-start loop under its old name
+    assert len([t for t in out if "DC Open" in t["name"]]) == 1, [t["name"] for t in out]
+    print("ok test_a_renamed_event_still_finds_its_cached_draw")
+
+
 def test_month_guessed_rows_never_pose_as_an_archive_surface():
     """A month-of-year guess must not be recycled as the authoritative archive value.
 
