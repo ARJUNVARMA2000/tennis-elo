@@ -91,16 +91,19 @@ def test_category_cache_refetches_a_poisoned_cross_tour_value(tmp_path, monkeypa
         "Generali Open": "WTA 125",          # poisoned — not an ATP tier
         "Swiss Open Gstaad": "ATP 250",      # valid — must be kept without a re-fetch
     }), encoding="utf-8")
+    # both events already have a surface, so only the TIER decides whether we re-fetch
+    (tmp_path / "wiki_surface.json").write_text(json.dumps({
+        "Generali Open": "Clay", "Swiss Open Gstaad": "Clay"}), encoding="utf-8")
     calls = []
 
     def _fake(name, year, tour):
         calls.append(name)
-        return "ATP 250 series"
+        return "Clay", "ATP 250 series"
 
-    monkeypatch.setattr(dw, "event_category", _fake)
+    monkeypatch.setattr(dw, "event_meta", _fake)
     meta = {"Generali Open": {"start": "2026-07-20"},
             "Swiss Open Gstaad": {"start": "2026-07-13"}}
-    dw._download_wiki_categories("atp", tmp_path, meta)
+    dw._download_wiki_meta("atp", tmp_path, meta)
 
     out = json.loads((tmp_path / "wiki_category.json").read_text(encoding="utf-8"))
     assert calls == ["Generali Open"], calls          # only the poisoned entry re-fetched
@@ -110,8 +113,8 @@ def test_category_cache_refetches_a_poisoned_cross_tour_value(tmp_path, monkeypa
     # no cached tier (which falls through to archive/fallback) beats the wrong tour's tier
     (tmp_path / "wiki_category.json").write_text(json.dumps({
         "Generali Open": "WTA 125", "Swiss Open Gstaad": "ATP 250"}), encoding="utf-8")
-    monkeypatch.setattr(dw, "event_category", lambda name, year, tour: None)
-    dw._download_wiki_categories("atp", tmp_path, meta)
+    monkeypatch.setattr(dw, "event_meta", lambda name, year, tour: (None, None))
+    dw._download_wiki_meta("atp", tmp_path, meta)
     out = json.loads((tmp_path / "wiki_category.json").read_text(encoding="utf-8"))
     assert "Generali Open" not in out
     assert out["Swiss Open Gstaad"] == "ATP 250"     # a still-valid entry is untouched

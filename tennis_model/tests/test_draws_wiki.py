@@ -10,10 +10,12 @@ the first-round rows the schedule board / forecast log consume.
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
 import mwparserfromhell
+import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
@@ -123,6 +125,99 @@ def test_draw_is_settled_gates_the_forever_cache():
     assert not _draw_is_settled([])
     assert not _draw_is_settled(None)
     print("ok test_draw_is_settled_gates_the_forever_cache")
+
+
+def test_get_retries_rate_limits_and_honours_retry_after(monkeypatch):
+    """This module had NO backoff, alone among the repo's rate-limited fetchers. A single 429
+    meant a missing surface, which falls through to the month-of-year guess — and on a
+    500-tier event that now blocks the deploy."""
+    import io
+    import urllib.error
+
+    from tennis_model.data import draws_wiki as dw
+
+    slept, calls = [], {"n": 0}
+    monkeypatch.setattr(dw.time, "sleep", lambda s: slept.append(s))
+
+    def _flaky(req, timeout=None):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise urllib.error.HTTPError("u", 429, "Too Many Requests",
+                                         {"Retry-After": "7"}, None)
+        return io.BytesIO(b'{"ok": true}')
+
+    monkeypatch.setattr(dw.urllib.request, "urlopen",
+                        lambda req, timeout=None: _CM(_flaky(req, timeout)))
+    assert dw._get({"action": "query"}) == {"ok": True}
+    assert calls["n"] == 2 and slept == [7.0], (calls, slept)
+
+    # a permanent error is NOT retried — it is the caller's to handle on the first attempt
+    calls["n"] = 0
+    def _gone(req, timeout=None):
+        calls["n"] += 1
+        raise urllib.error.HTTPError("u", 404, "Not Found", {}, None)
+    monkeypatch.setattr(dw.urllib.request, "urlopen", _gone)
+    with pytest.raises(urllib.error.HTTPError):
+        dw._get({"action": "query"})
+    assert calls["n"] == 1
+    print("ok test_get_retries_rate_limits_and_honours_retry_after")
+
+
+def test_wiki_meta_resolves_both_fields_in_one_pass(tmp_path, monkeypatch):
+    """Surface and tier live on the SAME article; two separate sweeps re-resolved the title
+    and each walked their own candidate loop — ~30 calls per unresolved event, hourly."""
+    from tennis_model.data import draws_wiki as dw
+
+    calls = []
+    monkeypatch.setattr(dw, "event_meta",
+                        lambda name, year, tour: calls.append(name) or ("Hard", "ATP 500"))
+    dw._download_wiki_meta("atp", tmp_path, {"DC Open": {"start": "2026-07-27"}})
+    assert calls == ["DC Open"], calls               # ONE resolution for both fields
+    assert json.loads((tmp_path / "wiki_surface.json").read_text())["DC Open"] == "Hard"
+    assert json.loads((tmp_path / "wiki_category.json").read_text())["DC Open"] == "ATP 500"
+    # both cached -> no fetch at all next run
+    calls.clear()
+    dw._download_wiki_meta("atp", tmp_path, {"DC Open": {"start": "2026-07-27"}})
+    assert calls == []
+
+
+def test_wiki_meta_throttles_a_persistent_miss_but_not_an_imminent_event(tmp_path, monkeypatch):
+    """A miss is never cached as a VALUE (the article may still be written), but re-asking
+    hourly for an event weeks away is what made the fan-out expensive. Stamp the attempt and
+    skip it for the rest of the day — unless the event starts within a couple of days."""
+    from tennis_model.data import draws_wiki as dw
+
+    calls = []
+    monkeypatch.setattr(dw, "event_meta",
+                        lambda name, year, tour: calls.append(name) or (None, None))
+    far = {"Faraway Open": {"start": "2026-12-01"}}
+    dw._download_wiki_meta("atp", tmp_path, far)
+    assert calls == ["Faraway Open"]
+    assert json.loads((tmp_path / "wiki_meta_misses.json").read_text())["Faraway Open"]
+    calls.clear()
+    dw._download_wiki_meta("atp", tmp_path, far)     # same day -> throttled
+    assert calls == []
+    # an event starting within the imminent window is retried every run regardless
+    from datetime import UTC, datetime
+    soon = {"Soon Open": {"start": datetime.now(UTC).strftime("%Y-%m-%d")}}
+    dw._download_wiki_meta("atp", tmp_path, soon)
+    calls.clear()
+    dw._download_wiki_meta("atp", tmp_path, soon)
+    assert calls == ["Soon Open"], calls
+    print("ok test_wiki_meta_throttles_a_persistent_miss_but_not_an_imminent_event")
+
+
+class _CM:
+    """Minimal context-manager wrapper so a stubbed urlopen can stand in for the real one."""
+
+    def __init__(self, fh):
+        self._fh = fh
+
+    def __enter__(self):
+        return self._fh
+
+    def __exit__(self, *a):
+        return False
 
 
 if __name__ == "__main__":

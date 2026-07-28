@@ -2234,8 +2234,23 @@ Wikipedia for structure, fix the join layer.
       HAD a bracket and now doesn't means its cached wiki draw is gone — the 07-27 Wimbledon
       256-slot class, caught early. Sentinel-only by construction (gate passes prev=None).
       Verified against LIVE production data: 0 blocking, only the Mifel advisory that A3 fixes.
-- [ ] A5 wiki hygiene: _get retry/backoff; single wikitext fetch for surface+category;
-      fallback fetch cap; same-day miss suppression
+- [x] A5 wiki hygiene: `_get` had NO backoff — alone among this repo's rate-limited fetchers
+      (kalshi, wta_stats both handle 429). Now 3 attempts honouring Retry-After; a permanent
+      404 still raises on the first try. `event_surface`/`event_category` merged into one
+      `event_meta`: both fields live on the SAME article but each function re-resolved the
+      title and walked its own candidate loop — ~30 calls per unresolved event, hourly.
+      Fallback fetches capped at 5. Misses are STAMPED (never cached as a value) so a
+      far-off event isn't re-asked every hour; anything starting within 2 days always retries.
+      File formats unchanged, so every reader is untouched. Live check: DC ('Hard','ATP 500'),
+      Memphis ('Hard','WTA 250') in one pass each.
+
+## Track A review
+
+All five shipped. The through-line: EVERY commit had a defect that only a real artefact
+exposed while the unit suite stayed green — live Wikipedia caught A1's second parse bug (the
+wikilink pipe), a card rebuild caught A2's tuple leaking into a surface field, the browser
+caught A3's second projection renderer. Three lessons recorded on that alone. Worth keeping
+as the working rule for Track B: rebuild the artefact, don't just run the tests.
 
 ## Track B — event identity (after A)
 - [ ] B1 events.py registry (per-tour, names history = alias table) written by both

@@ -24,9 +24,11 @@ from __future__ import annotations
 
 import json
 import re
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from ..config import SURFACE_MAP, TOURS, WIKI_API, WIKI_TITLE_OVERRIDES, WIKI_UA, live_dir
 
@@ -46,12 +48,40 @@ _PLACEHOLDER = {"qualifier", "q", "ll", "lucky loser", "wc", "wildcard", "alt", 
 _SENTINEL = object()   # RD1 slot param absent (a bye position, seed sits in RD2)
 
 
+_GET_ATTEMPTS = 3
+_RETRY_STATUS = {429, 500, 502, 503, 504}
+_MAX_BACKOFF_S = 30.0
+
+
 def _get(params: dict) -> dict:
-    """GET the MediaWiki API as JSON (keyless; descriptive UA per Wikimedia etiquette)."""
+    """GET the MediaWiki API as JSON (keyless; descriptive UA per Wikimedia etiquette).
+
+    Retries a rate-limit or transient server error, honouring `Retry-After` when Wikimedia
+    sends one. Every other fetcher against a rate-limited source in this repo already does
+    this (`kalshi`, `wta_stats`); this one had no backoff at all, so a single 429 turned into
+    a missing surface — which falls through to the month-of-year guess, and on a 500-tier
+    event that now blocks the deploy. A permanent error (404 for a page that does not exist)
+    is NOT retried: it is raised on the first attempt for the caller to handle."""
     url = WIKI_API + "?" + urllib.parse.urlencode({**params, "format": "json"})
     req = urllib.request.Request(url, headers={"User-Agent": WIKI_UA})
-    with urllib.request.urlopen(req, timeout=30) as r:
-        return json.loads(r.read())
+    for attempt in range(_GET_ATTEMPTS):
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                return json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            if e.code not in _RETRY_STATUS or attempt == _GET_ATTEMPTS - 1:
+                raise
+            hdr = (e.headers or {}).get("Retry-After") if hasattr(e, "headers") else None
+            try:
+                wait = min(float(hdr), _MAX_BACKOFF_S) if hdr else float(2 ** attempt)
+            except (TypeError, ValueError):
+                wait = float(2 ** attempt)
+        except (urllib.error.URLError, TimeoutError, OSError):
+            if attempt == _GET_ATTEMPTS - 1:
+                raise
+            wait = float(2 ** attempt)
+        time.sleep(wait)
+    raise RuntimeError("unreachable")   # pragma: no cover — the loop always returns or raises
 
 
 def _wikitext(title: str) -> str | None:
@@ -266,38 +296,63 @@ def _surface_of(title: str) -> str | None:
     return _parse_surface(wt) if wt else None
 
 
-def event_surface(event: str, year: int, tour: str) -> str | None:
-    """Court surface for an ESPN event from its Wikipedia MAIN article infobox, or None.
+_FALLBACK_FETCH_CAP = 5   # candidate articles fetched per event before giving up this run
 
-    Surface lives only on the main tournament article, never the "– Singles" draw sub-article
-    fetch_draw reads — so this is a separate resolution. It is deliberately LOOSER than
-    resolve_title: surface is gender-invariant, and the main article is findable by sponsor name
-    even when the gendered singles draw isn't ("Nordea Open" -> "2026 Swedish Open"). Wrong-event
-    risk is bounded by year-in-title + a parseable surface field + a distinctive body anchor."""
+
+def event_meta(event: str, year: int, tour: str) -> tuple[str | None, str | None]:
+    """``(surface, category)`` for an ESPN event, from its Wikipedia MAIN article, in ONE pass.
+
+    Both fields live on the SAME article, but they used to be resolved by two functions that
+    each re-ran ``resolve_title`` and then each walked their own search-result loop fetching
+    up to ten more articles — roughly thirty API calls per unresolved event, every hour,
+    against a source with no backoff. Resolve once, fetch each candidate once, parse both.
+
+    The resolution is deliberately LOOSER than ``resolve_title``: the main article is findable
+    by sponsor name even when the gendered singles draw is not ("Nordea Open" -> "2026 Swedish
+    Open"). Wrong-event risk stays bounded by year-in-title, a distinctive body anchor, and —
+    for the tier specifically — ``_parse_category``'s tour gate."""
+    def _both(wt: str | None) -> tuple[str | None, str | None]:
+        if not wt:
+            return None, None
+        return _parse_surface(wt), _parse_category(wt, tour)
+
     ov = WIKI_TITLE_OVERRIDES.get(event)
     if ov:
-        return _surface_of(ov if str(year) in ov else f"{year} {ov}")
+        return _both(_wikitext(ov if str(year) in ov else f"{year} {ov}"))
+
+    surface = category = None
     singles = resolve_title(event, year, tour)          # fully year+anchor+gender gated
     if singles:
-        surf = _surface_of(_main_article_title(singles))
-        if surf:
-            return surf
+        surface, category = _both(_wikitext(_main_article_title(singles)))
+        if surface and category:
+            return surface, category
     # Sponsor-renamed / brand-new: search directly for the main (non-singles) article.
     clean = " ".join(w for w in event.split() if w.lower() not in _SPONSOR_NOISE)
     anchor = _anchor(clean)
     d = _get({"action": "query", "list": "search", "srsearch": f"{year} {clean}", "srlimit": 10})
+    fetched = 0
     for h in d.get("query", {}).get("search", []) or []:
         title = h.get("title", "")
         low = title.lower()
         if str(year) not in low or any(x in low for x in ("doubles", "qualif", "singles")):
             continue
+        if fetched >= _FALLBACK_FETCH_CAP:
+            break
         wt = _wikitext(title)
+        fetched += 1
         if not wt or (anchor and anchor not in wt.lower()):  # body must name the distinctive token
             continue
-        surf = _parse_surface(wt)
-        if surf:
-            return surf
-    return None
+        s, c = _both(wt)
+        surface, category = surface or s, category or c
+        if surface and category:
+            break
+    return surface, category
+
+
+def event_surface(event: str, year: int, tour: str) -> str | None:
+    """Court surface from the event's Wikipedia main article, or None. Thin view of
+    `event_meta` — the download sweep calls that directly to resolve both fields at once."""
+    return event_meta(event, year, tour)[0]
 
 
 _CATEGORY_FIELD_RE = re.compile(r"\bcategory\s*=([^\n]*)", re.IGNORECASE)
@@ -358,32 +413,10 @@ def _category_of(title: str, tour: str) -> str | None:
 
 
 def event_category(event: str, year: int, tour: str) -> str | None:
-    """Tournament tier for an ESPN event from its Wikipedia MAIN article ``category``, or None.
-    Mirrors event_surface's resolution (category lives on the main article like surface); None
-    when the article omits the field, so the curated EVENT_TIER_FALLBACK then applies."""
-    ov = WIKI_TITLE_OVERRIDES.get(event)
-    if ov:
-        return _category_of(ov if str(year) in ov else f"{year} {ov}", tour)
-    singles = resolve_title(event, year, tour)
-    if singles:
-        cat = _category_of(_main_article_title(singles), tour)
-        if cat:
-            return cat
-    clean = " ".join(w for w in event.split() if w.lower() not in _SPONSOR_NOISE)
-    anchor = _anchor(clean)
-    d = _get({"action": "query", "list": "search", "srsearch": f"{year} {clean}", "srlimit": 10})
-    for h in d.get("query", {}).get("search", []) or []:
-        title = h.get("title", "")
-        low = title.lower()
-        if str(year) not in low or any(x in low for x in ("doubles", "qualif", "singles")):
-            continue
-        wt = _wikitext(title)
-        if not wt or (anchor and anchor not in wt.lower()):
-            continue
-        cat = _parse_category(wt, tour)
-        if cat:
-            return cat
-    return None
+    """Tournament tier from the event's Wikipedia main article ``category``, or None when the
+    article omits the field (so the curated EVENT_TIER_FALLBACK then applies). Thin view of
+    `event_meta` — the download sweep calls that directly to resolve both fields at once."""
+    return event_meta(event, year, tour)[1]
 
 
 _ROUND_BY_SIZE = {128: "R128", 64: "R64", 32: "R32", 16: "R16", 8: "QF", 4: "SF", 2: "F"}
@@ -494,84 +527,91 @@ def download_wiki_draws(tours=TOURS) -> None:
                   f"({fetched} new, {refreshed} re-fetched) -> {path}")
         else:
             print(f"  wiki-draws/{tour}: no draws posted yet for {len(meta)} tracked event(s)")
-        _download_wiki_surfaces(tour, d, meta)   # main-article surfaces (separate best-effort cache)
-        _download_wiki_categories(tour, d, meta)  # main-article tier/category (separate best-effort cache)
+        _download_wiki_meta(tour, d, meta)   # main-article surface + tier, one pass (best-effort)
 
 
-def _download_wiki_surfaces(tour: str, d, meta: dict) -> None:
-    """Cache each tracked event's Wikipedia main-article surface -> live/<tour>/wiki_surface.json
-    (read offline by data.surface.wiki_surface_map).
-
-    A SEPARATE cache from wiki_draws.json because surface must be captured even for events with
-    no parseable draw yet — the exact new/sponsor-named events that otherwise fall to the month
-    guess. Idempotent (a surface doesn't change once known), pruned to the current ESPN window,
-    never caches a miss (so it retries once the article appears), best-effort per event."""
-    path = d / "wiki_surface.json"
-    cached: dict = {}
-    if path.exists():
-        try:
-            cached = json.loads(path.read_text(encoding="utf-8"))
-        except Exception:  # noqa: BLE001 — a corrupt cache just means re-fetch
-            cached = {}
-    out: dict = {}
-    fetched = 0
-    for name, m in meta.items():
-        if cached.get(name):                      # already resolved — keep it
-            out[name] = cached[name]
-            continue
-        year = int((m.get("start") or "2026")[:4] or 2026)
-        try:
-            surf = event_surface(name, year, tour)
-        except Exception as e:  # noqa: BLE001 — one bad article must not kill the sweep
-            print(f"  wiki-surface/{tour}: {name} skipped ({e})")
-            surf = None
-        if surf:                                  # never cache a miss -> retry when it posts
-            out[name] = surf
-            fetched += 1
-    if out:
-        d.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(out), encoding="utf-8")
-        print(f"  wiki-surface/{tour}: {len(out)} surface(s) ({fetched} new) -> {path}")
+def _load_json(path) -> dict:
+    """Read a best-effort JSON cache; {} when absent or corrupt (a corrupt cache re-fetches)."""
+    if not path.exists():
+        return {}
+    try:
+        d = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001 — a corrupt cache just means re-fetch
+        return {}
+    return d if isinstance(d, dict) else {}
 
 
-def _download_wiki_categories(tour: str, d, meta: dict) -> None:
-    """Cache each tracked event's Wikipedia main-article tier/category ->
-    live/<tour>/wiki_category.json (read offline by data.surface.wiki_category_map). Parallel to
-    _download_wiki_surfaces (same idempotent / window-pruned / never-cache-a-miss policy) — the
-    tier is needed for the exact new/sponsor-named events the archive can't identify. Best-effort."""
-    path = d / "wiki_category.json"
-    cached: dict = {}
-    if path.exists():
-        try:
-            cached = json.loads(path.read_text(encoding="utf-8"))
-        except Exception:  # noqa: BLE001 — a corrupt cache just means re-fetch
-            cached = {}
+_MISS_RETRY_IMMINENT_DAYS = 2   # an event starting this soon is retried every run regardless
+
+
+def _download_wiki_meta(tour: str, d, meta: dict) -> None:
+    """Cache each tracked event's main-article SURFACE and TIER in one sweep ->
+    live/<tour>/wiki_surface.json + wiki_category.json (both read offline by data.surface).
+
+    One pass, not two. Both fields live on the same article, but they used to be fetched by
+    two functions that each re-resolved the title and each walked their own candidate loop —
+    up to ~30 API calls per unresolved event, every hour, against a source this module gave no
+    backoff at all. Formats are unchanged, so every reader is untouched.
+
+    Policy per field: idempotent (a surface does not change once known), window-pruned, and
+    never caches a MISS — a value must be able to appear when the article is finally written.
+    A miss is only STAMPED, so we stop re-asking hourly for an event that is weeks away; an
+    event starting within _MISS_RETRY_IMMINENT_DAYS is always retried. A cached TIER is
+    additionally dropped when it is no longer sayable in this tour's vocabulary (a value
+    captured before the tour gate existed can be the other tour's — see _parse_category)."""
     from .surface import normalize_level
 
-    out: dict = {}
-    fetched = 0
+    s_path, c_path = d / "wiki_surface.json", d / "wiki_category.json"
+    miss_path = d / "wiki_meta_misses.json"
+    surf_cached, cat_cached = _load_json(s_path), _load_json(c_path)
+    misses = _load_json(miss_path)
+    today = datetime.now(UTC).strftime("%Y-%m-%d")
+
+    surf_out: dict = {}
+    cat_out: dict = {}
+    miss_out: dict = {}
+    fetched = skipped = 0
     for name, m in meta.items():
-        prev = cached.get(name)
-        # Keep a cached tier only if it is still sayable in THIS tour's vocabulary. A value
-        # captured before the tour gate existed can be the other tour's ("WTA 125" on the ATP
-        # board, Generali Open), and "already resolved — keep it" would pin that forever — the
-        # same first-capture-wins trap `_draw_is_settled` fixes for draws. Re-fetch instead.
-        if prev and normalize_level(prev, tour):
-            out[name] = prev
+        have_s = surf_cached.get(name)
+        prev_c = cat_cached.get(name)
+        have_c = prev_c if (prev_c and normalize_level(prev_c, tour)) else None
+        if have_s:
+            surf_out[name] = have_s
+        if have_c:
+            cat_out[name] = have_c
+        if have_s and have_c:
             continue
-        year = int((m.get("start") or "2026")[:4] or 2026)
+
+        start = str(m.get("start") or "")
+        imminent = start <= (datetime.now(UTC) + timedelta(days=_MISS_RETRY_IMMINENT_DAYS)) \
+            .strftime("%Y-%m-%d")
+        if misses.get(name) == today and not imminent:
+            miss_out[name] = misses[name]      # already asked today; the article won't appear faster
+            skipped += 1
+            continue
+
+        year = int((start or "2026")[:4] or 2026)
         try:
-            cat = event_category(name, year, tour)
+            surf, cat = event_meta(name, year, tour)
         except Exception as e:  # noqa: BLE001 — one bad article must not kill the sweep
-            print(f"  wiki-category/{tour}: {name} skipped ({e})")
-            cat = None
-        if cat:                                   # never cache a miss -> retry when it posts
-            out[name] = cat
+            print(f"  wiki-meta/{tour}: {name} skipped ({e})")
+            surf = cat = None
+        if surf and not have_s:
+            surf_out[name] = surf
             fetched += 1
-    if out:
-        d.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(out), encoding="utf-8")
-        print(f"  wiki-category/{tour}: {len(out)} categor(ies) ({fetched} new) -> {path}")
+        if cat and not have_c:
+            cat_out[name] = cat
+            fetched += 1
+        if not (surf_out.get(name) and cat_out.get(name)):
+            miss_out[name] = today             # stamp, never cache the miss as a value
+
+    d.mkdir(parents=True, exist_ok=True)
+    for path, out in ((s_path, surf_out), (c_path, cat_out)):
+        if out:
+            path.write_text(json.dumps(out), encoding="utf-8")
+    miss_path.write_text(json.dumps(miss_out), encoding="utf-8")
+    print(f"  wiki-meta/{tour}: {len(surf_out)} surface(s), {len(cat_out)} tier(s) "
+          f"({fetched} newly resolved, {skipped} miss-throttled) -> {d}")
 
 
 if __name__ == "__main__":
