@@ -298,6 +298,11 @@ def download_live(tours=TOURS) -> None:
         except Exception as e:  # noqa: BLE001 — live overlay is best-effort, never build-fatal
             print(f"  live/{tour}: skipped ({e})")
             continue
+        # Record identity BEFORE the per-file writes, and before any `if` that could skip
+        # them: a quiet week with no completed matches still needs its events registered, and
+        # a rename must be captured the run it happens or the old name is lost.
+        from .events import update_registry
+        update_registry(tour, parse_event_meta(events))
         d = live_dir(tour)
         d.mkdir(parents=True, exist_ok=True)
         if not df.empty:

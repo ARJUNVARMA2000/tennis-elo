@@ -2253,8 +2253,16 @@ caught A3's second projection renderer. Three lessons recorded on that alone. Wo
 as the working rule for Track B: rebuild the artefact, don't just run the tests.
 
 ## Track B — event identity (after A)
-- [ ] B1 events.py registry (per-tour, names history = alias table) written by both
-      downloaders; B2 espn_id through live.csv/upcoming.csv/fields.json + results CANON;
+- [x] B1 events.py registry (per-tour, names history = alias table) written by both
+      downloaders — inert, zero consumers, warms in the CI cache before B3 reads it. Built
+      against the REAL feed: 8 ATP / 15 WTA events, and 888-2026 (DC), 306-2026 (Nordea),
+      421-2026 (National Bank) each appear on BOTH tours, confirming combined events share
+      one id. Key finding pinned in a test: name-only resolution CANNOT bridge the DC rename
+      ("Citi" was inserted mid-name, so neither containment direction works) and `id_of`
+      correctly refuses rather than guessing — what recovers the orphaned cache entry is the
+      espnId draws_wiki already stamps INSIDE it, seeded via `EventResolver(extra=...)`.
+      That makes `extra` load-bearing for B3/B4, not decorative.
+- [ ] B2 espn_id through live.csv/upcoming.csv/fields.json + results CANON;
       B3 id-first joins + group coalescing in build_tournaments; B4 cache re-key + in-place
       migration (never deletes) + end-based retention; B5 calendar completion
       (finalRecorded) + gate extensions; B6 docs/lessons

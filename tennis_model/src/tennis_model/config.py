@@ -432,6 +432,17 @@ HEALTH_MAX_MODEL_AGE_DAYS = 3        # meta.modelTrainedAt staleness. NOT the sa
                                     # leaves the site looking freshly built while the model behind
                                     # it rots (2026-07-19..24: 5 silent days). Same 3d ceiling as
                                     # the build age = three consecutive missed retrains.
+# ---------------------------------------------------------------------------
+# Event identity (data/events.py)
+# ---------------------------------------------------------------------------
+# How long a registry entry survives without being seen in ESPN's window. ESPN ids are
+# year-scoped (888-2026 -> 888-2027), so growth is ~80 entries/tour/year and a full season of
+# alias history costs nothing. An entry still referenced by a wiki cache is NEVER pruned
+# regardless of age — a cached draw outliving the entry that names it is how the field lost
+# its anchor and padded to an impossible 256-slot bracket (2026-07-11 and again 07-27).
+EVENT_REGISTRY_RETENTION_DAYS = 400
+
+
 HEALTH_MAX_UPCOMING_START_LAG_DAYS = 3  # an "upcoming" event whose start date is further past
                                         # than this never flipped live — its results are not
                                         # joining. Needs slack, not a strict start<=today:

@@ -483,11 +483,15 @@ def download_wiki_draws(tours=TOURS) -> None:
     kept as-is, so we only hit Wikipedia for events still awaiting a draw or still carrying
     qualifier placeholders. Events that have aged out of the ESPN window are pruned.
     Best-effort per event."""
+    from .events import update_registry
     from .live import fetch_events, parse_event_meta
     for tour in tours:
         try:
             events = fetch_events(tour)
             meta = parse_event_meta(events)
+            # Idempotent double-write with download_live: whichever downloader survives a
+            # best-effort failure still records identity, so a rename can't slip through.
+            update_registry(tour, meta)
         except Exception as e:  # noqa: BLE001 — draw overlay is best-effort, never build-fatal
             print(f"  wiki-draws/{tour}: skipped ({e})")
             continue
