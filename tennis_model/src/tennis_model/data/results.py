@@ -209,12 +209,30 @@ def merge_sources(tour: str) -> pd.DataFrame:
     df = _drop_impossible_dates(df)
     df = _canonicalize_names(df)
 
+    def _fill_espn_id(frame: pd.DataFrame, k: pd.Series) -> pd.DataFrame:
+        """Carry `espn_id` onto every row of a match BEFORE a dedup picks its survivor.
+
+        The id rides on ESPN live rows only — and those are exactly the rows dedup drops,
+        having no serve stats and the latest source rank. But the id describes the EVENT, not
+        whichever row happened to win, so losing it there costs the tournament its identity.
+        On 2026-07-28 that shipped the WTA board a 12-player "Washington Dc" fragment beside
+        the full 28-draw "Mubadala DC Open" — one tournament, two cards, two different
+        favourites — because the surviving archive rows had no id left to resolve.
+        """
+        if "espn_id" not in frame.columns or not frame["espn_id"].notna().any():
+            return frame
+        src = frame.loc[frame["espn_id"].notna()]
+        m = dict(zip(k.loc[src.index], src["espn_id"]))
+        frame["espn_id"] = frame["espn_id"].where(frame["espn_id"].notna(), k.map(m))
+        return frame
+
     has_stats = pd.to_numeric(df["w_svpt"], errors="coerce").notna()
     # year is part of the key: rivalries repeat identical scorelines across seasons,
     # and sources agree on year (dates themselves can drift a day between sources)
     df["__key"] = (df["winner_name"].astype(str) + "|" + df["loser_name"].astype(str)
                    + "|" + df["date"].dt.year.astype(str) + "|" + df["score"].map(_score_key))
     # prefer rows that have stats, then the earlier (cleaner) source
+    df = _fill_espn_id(df, df["__key"])
     df = df.assign(__hs=has_stats.astype(int)).sort_values(["__hs", "__src"], ascending=[False, True])
     df = df.drop_duplicates(subset="__key", keep="first")
     # second pass: the same ordered pair on the same calendar day in the same round is
@@ -222,6 +240,8 @@ def merge_sources(tour: str) -> pd.DataFrame:
     # the preferred row. Round must be part of the key: archive sources stamp every match
     # with the tournament START date, so a round-robin meeting and a final rematch at the
     # same event share a date (e.g. Federer d. Hewitt twice at the 2004 Masters Cup)
+    df = _fill_espn_id(df, df["winner_name"].astype(str) + "|" + df["loser_name"].astype(str)
+                       + "|" + df["date"].astype(str) + "|" + df["round"].astype(str))
     df = df.drop_duplicates(subset=["winner_name", "loser_name", "date", "round"], keep="first")
     return df.drop(columns=["__hs", "__key", "__src"])
 

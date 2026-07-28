@@ -2283,8 +2283,16 @@ as the working rule for Track B: rebuild the artefact, don't just run the tests.
       real rename and fails with `bracketSize: None` against the old code — the production
       symptom exactly. Took three passes to get there: the first two failed on a missing
       attribute and a missing field, either of which would have let a name lookup slip through.
+- [x] B3b-pre: the id must SURVIVE the dedup that drops its row. Found by reading production,
+      not tests: the WTA board was live-shipping a 12-player "Washington Dc" fragment BESIDE
+      the full 28-draw "Mubadala DC Open" — one tournament, two cards, two different
+      favourites (Navarro vs Pegula). Mechanism: dedup keys ignore tourney_name and prefer
+      stat-bearing archive rows, so the ESPN row — the ONLY one carrying espn_id — is dropped
+      and the identity goes with it. `_fill_espn_id` propagates the id across every row of a
+      match before each dedup pass. With B3a's seen_ids check that alone suppresses the
+      duplicate card. Test reproduces the live split and fails with {nan, nan} without it.
 - [ ] B3b group coalescing (id-sharing groups concatenate before projection; an id-less group
-      folds in on date overlap + shared real players) — the duplicate-card class at its root
+      folds in on date overlap + shared real players) — written, under adversarial review
 - [ ] B4 cache re-key + in-place migration (never deletes) + end-based retention
 - [ ] B5 calendar completion (finalRecorded) + gate extensions
 - [ ] B6 docs/lessons

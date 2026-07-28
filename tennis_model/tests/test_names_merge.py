@@ -217,9 +217,53 @@ def test_espn_id_rides_along_without_changing_the_dedup_winner():
     # the historical row still wins on merit (stats + full score) — the id did not tip it,
     # and the surviving row therefore has NO id, which is exactly why consumers must take
     # the modal non-null value per event rather than reading it off any single row
+    # the historical row still wins on merit — the id did not tip the choice...
     assert float(row["w_svpt"]) == 70.0 and row["score"] == "7-6(4) 6-3"
-    assert pd.isna(row["espn_id"])
+    # ...but it INHERITS the id from the ESPN duplicate that was dropped. The id describes
+    # the EVENT, not whichever row happened to survive; losing it there is what left the WTA
+    # board shipping a 12-player "Washington Dc" fragment beside the full "Mubadala DC Open"
+    # (2026-07-28) — one tournament, two cards, two different favourites.
+    assert row["espn_id"] == "100-2026", row["espn_id"]
     print("ok test_espn_id_rides_along_without_changing_the_dedup_winner")
+
+
+def test_the_surviving_group_keeps_the_id_when_sources_name_the_event_differently():
+    """The live 2026-07-28 split, reproduced. The fresh feed calls it "Washington Dc" and
+    ESPN calls it "Mubadala DC Open"; dedup keys ignore tourney_name, so the ESPN rows are
+    dropped as duplicates and their id went with them. The board then had no way to know the
+    two were one event and shipped both — a 12-player fragment beside the real 28-draw."""
+    orig = (results.historical_dir, results.stats_dir, results.fresh_dir,
+            results.live_dir, results.lower_dir)
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            dirs = {n: base / n for n in ("historical", "stats", "fresh", "live", "lower")}
+            for p in dirs.values():
+                p.mkdir(parents=True, exist_ok=True)
+            results.historical_dir = lambda tour: dirs["historical"]
+            results.stats_dir = lambda tour: dirs["stats"]
+            results.fresh_dir = lambda tour: dirs["fresh"]
+            results.live_dir = lambda tour: dirs["live"]
+            results.lower_dir = lambda tour: dirs["lower"]
+            # fresh feed: the archive city name, no id, and it WINS the dedup (earlier source)
+            _write_csv(dirs["fresh"] / "2026.csv",
+                "tourney_name,tourney_date,winner_name,loser_name,score\n"
+                "Washington Dc,2026/7/27,A Player,B Player,6-4 6-4\n"
+                "Washington Dc,2026/7/27,C Player,D Player,7-5 6-3\n")
+            # ESPN: same two matches under the sponsor title, carrying the id
+            _write_csv(dirs["live"] / "live.csv",
+                "tourney_name,espn_id,tourney_date,winner_name,loser_name,score\n"
+                "Mubadala DC Open,888-2026,2026-07-27,A Player,B Player,6-4 6-4\n"
+                "Mubadala DC Open,888-2026,2026-07-27,C Player,D Player,7-5 6-3\n")
+            df = results.merge_sources("atp")
+    finally:
+        (results.historical_dir, results.stats_dir,
+         results.fresh_dir, results.live_dir, results.lower_dir) = orig
+
+    assert len(df) == 2, df[["tourney_name", "winner_name"]]      # one event, not two
+    assert set(df["tourney_name"]) == {"Washington Dc"}           # the fresh name still wins
+    assert set(df["espn_id"]) == {"888-2026"}, set(df["espn_id"])  # ...but keeps the identity
+    print("ok test_the_surviving_group_keeps_the_id_when_sources_name_the_event_differently")
 
 
 def test_espn_id_column_exists_even_when_no_source_supplies_it():
