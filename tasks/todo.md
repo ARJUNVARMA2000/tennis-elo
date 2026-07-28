@@ -2594,3 +2594,10 @@ Completed alongside the separately committed Round D web work at current tip `d7
 - Final pre-publish verification on `3e75263`: Python 448 passed; web 178 passed; ESLint 0
   errors / 13 existing warnings; production build compiled and prerendered all 21 routes;
   `git diff --check` clean.
+
+## Follow-up — bound quick-mode predictor rebuilds
+
+- [ ] When `build_tour_quick()` detects a stale predictor and falls back to `build_tour()`,
+  preserve the quick-refresh Kalshi ledger/time limits instead of inheriting the full-build
+  allowance. Add a regression test for the stale-predictor path and compare deploy duration
+  without weakening the alias-revision rebuild or either production health gate.
