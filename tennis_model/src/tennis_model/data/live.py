@@ -156,6 +156,9 @@ def parse_events(events: list, gender: str) -> pd.DataFrame:
                     continue
                 rows.append({
                     "tourney_name": name,
+                    # The stable identity beside the display name: `tourney_name` is a
+                    # sponsor title that churns mid-event, `espn_id` does not.
+                    "espn_id": ev.get("id"),
                     "tourney_date": (comp.get("date") or "")[:10],   # YYYY-MM-DD
                     "round": rnd,
                     "best_of": None, "surface": None, "tourney_level": None,
@@ -226,7 +229,10 @@ def parse_fields(events: list, gender: str) -> dict:
                     if ln:
                         elim.add(ln)
         if len(field) >= 8:
-            out[name] = {"field": sorted(field), "eliminated": sorted(elim)}
+            # Still keyed by name (readers flip in B3); the id rides INSIDE so a rename can
+            # be bridged the way the wiki_draws entries already allow.
+            out[name] = {"field": sorted(field), "eliminated": sorted(elim),
+                         "espnId": ev.get("id")}
     return out
 
 
@@ -259,7 +265,7 @@ def parse_upcoming(events: list, gender: str) -> pd.DataFrame:
                 if len(names) < 2:                          # matchup not set yet (TBD player)
                     continue
                 rows.append({
-                    "tourney_name": name,
+                    "tourney_name": name, "espn_id": ev.get("id"),
                     "tourney_date": (comp.get("date") or "")[:10],   # YYYY-MM-DD
                     "round": rnd, "playerA": names[0], "playerB": names[1],
                 })

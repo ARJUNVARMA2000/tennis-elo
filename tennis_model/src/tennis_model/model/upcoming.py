@@ -21,7 +21,7 @@ from ..config import live_dir
 from ..data.results import _name_key as nkey
 from ..data.surface import resolve_level, resolve_surface
 
-UPCOMING_COLS = ["tourney_name", "tourney_date", "round", "playerA", "playerB"]
+UPCOMING_COLS = ["tourney_name", "espn_id", "tourney_date", "round", "playerA", "playerB"]
 
 
 def load_upcoming(tour: str) -> pd.DataFrame:
@@ -47,7 +47,12 @@ def load_upcoming(tour: str) -> pd.DataFrame:
         return pd.DataFrame(columns=UPCOMING_COLS)
     df = pd.concat(frames, ignore_index=True).reindex(columns=UPCOMING_COLS)
     pair = [frozenset((str(a), str(b))) for a, b in zip(df["playerA"], df["playerB"])]
-    df = df.assign(_ev=df["tourney_name"].astype(str), _pair=pair)
+    # Dedup on the event ID where both rows carry one, else the name. The ESPN feed and the
+    # Wikipedia overlay name the same event differently, so the same first-round matchup was
+    # only ever collapsed when the two happened to agree on the title.
+    ev_key = df["espn_id"].astype("object").where(df["espn_id"].notna(),
+                                                  df["tourney_name"].astype(str))
+    df = df.assign(_ev=ev_key.astype(str), _pair=pair)
     return (df[~df.duplicated(subset=["_ev", "_pair"])]
             .drop(columns=["_ev", "_pair"]).reset_index(drop=True))
 

@@ -90,6 +90,48 @@ def test_event_attrs_infers_else_none():
     assert event_attrs(pd.DataFrame(), "Wimbledon") == (None, None)   # no columns -> no crash
 
 
+def test_upcoming_dedup_keys_on_the_event_id_when_both_rows_have_one(tmp_path, monkeypatch):
+    """The ESPN feed and the Wikipedia overlay name the same event differently, so the same
+    first-round matchup only ever collapsed when the two happened to agree on the title."""
+    from tennis_model.model import upcoming as up
+
+    from tennis_model.data import draws_wiki
+
+    # `load_upcoming` imports wiki_upcoming_rows INSIDE the function, so it must be patched
+    # on its own module — patching the attribute on `upcoming` is a silent no-op.
+    monkeypatch.setattr(up, "live_dir", lambda tour: tmp_path)
+
+    def _overlay(rows):
+        monkeypatch.setattr(draws_wiki, "wiki_upcoming_rows", lambda tour: rows)
+
+    (tmp_path / "upcoming.csv").write_text(
+        "tourney_name,espn_id,tourney_date,round,playerA,playerB\n"
+        "Mubadala DC Open,888-2026,2026-07-27,R32,A Player,B Player\n", encoding="utf-8")
+    # the wiki overlay carries the SAME matchup under the older sponsor title
+    _overlay([{"tourney_name": "Mubadala Citi DC Open", "espn_id": "888-2026",
+               "tourney_date": "2026-07-27", "round": "R32",
+               "playerA": "A Player", "playerB": "B Player"}])
+    df = up.load_upcoming("atp")
+    assert len(df) == 1, df[["tourney_name", "playerA", "playerB"]].to_dict("records")
+
+    # with no ids on either side it still collapses by name, exactly as before
+    (tmp_path / "upcoming.csv").write_text(
+        "tourney_name,tourney_date,round,playerA,playerB\n"
+        "Same Open,2026-07-27,R32,A Player,B Player\n", encoding="utf-8")
+    _overlay([{"tourney_name": "Same Open", "tourney_date": "2026-07-27", "round": "R32",
+               "playerA": "B Player", "playerB": "A Player"}])
+    assert len(up.load_upcoming("atp")) == 1
+
+    # two genuinely different events sharing a matchup are NOT collapsed
+    (tmp_path / "upcoming.csv").write_text(
+        "tourney_name,espn_id,tourney_date,round,playerA,playerB\n"
+        "Open One,1-2026,2026-07-27,R32,A Player,B Player\n"
+        "Open Two,2-2026,2026-07-27,R32,A Player,B Player\n", encoding="utf-8")
+    _overlay([])
+    assert len(up.load_upcoming("atp")) == 2
+    print("ok test_upcoming_dedup_keys_on_the_event_id_when_both_rows_have_one")
+
+
 if __name__ == "__main__":
     test_enrich_resolves_infers_and_prices()
     test_name_resolution_and_month_fallback()

@@ -243,6 +243,31 @@ def test_parse_fields():
     print("ok test_parse_fields")
 
 
+def test_every_parsed_row_carries_the_stable_event_id():
+    """`tourney_name` is a sponsor title that churns mid-event — ESPN dropped "Citi" from the
+    DC Open on 2026-07-27 and orphaned every cache keyed on the name. The id does not churn,
+    and ESPN has always sent it; it was extracted once to dedup a fetch and thrown away."""
+    evs = _events()
+    df = live.parse_events(evs, "mens")
+    assert "espn_id" in df.columns
+    assert set(df.loc[df["tourney_name"] == "Test Open", "espn_id"]) == {"100"}
+    assert set(df.loc[df["tourney_name"] == "Big Slam", "espn_id"]) == {"200"}
+    assert df["espn_id"].notna().all()
+
+    up = live.parse_upcoming(evs, "mens")
+    assert "espn_id" in up.columns and up["espn_id"].notna().all()
+    assert set(up["espn_id"]) == {"100"}
+
+    # fields stay NAME-keyed for now (readers flip in B3) but carry the id inside, so a
+    # rename can be bridged the way wiki_draws entries already allow
+    fields = live.parse_fields(evs, "mens")
+    assert fields["Big Slam"]["espnId"] == "200"
+
+    # ...and the id is a HINT, never a dedup key: the exact-duplicate final still collapses
+    assert len(df[(df["tourney_name"] == "Test Open") & (df["round"] == "F")]) == 1
+    print("ok test_every_parsed_row_carries_the_stable_event_id")
+
+
 def test_placeholder_names_dropped():
     # the shared competitor->name gate: placeholder pseudo-athletes map to None
     for nm in ("TBD", "tbd", " TBD ", "TBA", "Bye", "Qualifier"):

@@ -174,6 +174,85 @@ def test_merge_dedup_prefers_stat_bearing_row():
     print("ok test_merge_dedup_prefers_stat_bearing_row")
 
 
+def test_espn_id_rides_along_without_changing_the_dedup_winner():
+    """`espn_id` exists only on live-overlay rows — the archive predates it and always will —
+    so it must be a HINT, never a key. This pins that the merge is behaviourally identical
+    with the column present: the same three rows survive, and the triplicated match still
+    keeps the stat-bearing HISTORICAL row, which carries no id at all."""
+    orig = (results.historical_dir, results.stats_dir, results.fresh_dir,
+            results.live_dir, results.lower_dir)
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            hist, stats, fresh, live, lower = (base / "historical", base / "stats",
+                                               base / "fresh", base / "live", base / "lower")
+            for p in (hist, stats, fresh, live, lower):
+                p.mkdir(parents=True, exist_ok=True)
+            results.historical_dir = lambda tour: hist
+            results.stats_dir = lambda tour: stats
+            results.fresh_dir = lambda tour: fresh
+            results.live_dir = lambda tour: live
+            results.lower_dir = lambda tour: lower
+
+            _write_csv(hist / "2026.csv",                       # no espn_id column at all
+                "tourney_name,tourney_date,winner_name,loser_name,score,w_svpt,l_svpt\n"
+                "Test Open,20260601,Félix Auger-Aliassime,Casper Ruud,7-6(4) 6-3,70,65\n")
+            _write_csv(fresh / "2026.csv",
+                "tourney_name,tourney_date,winner_name,loser_name,score\n"
+                "Test Open,2026/6/1,Felix Auger Aliassime,Casper Ruud,7-6(4) 6-3\n")
+            # the live duplicate is the ONLY row with an id, and under a RENAMED event title
+            _write_csv(live / "live.csv",
+                "tourney_name,espn_id,tourney_date,winner_name,loser_name,score\n"
+                "Test Open presented by Sponsor,100-2026,2026-06-01,"
+                "Felix Auger Aliassime,Casper Ruud,7-6 6-3\n")
+
+            df = results.merge_sources("atp")
+    finally:
+        (results.historical_dir, results.stats_dir,
+         results.fresh_dir, results.live_dir, results.lower_dir) = orig
+
+    assert "espn_id" in df.columns
+    assert len(df) == 1, df[["tourney_name", "winner_name", "score"]]
+    row = df.iloc[0]
+    # the historical row still wins on merit (stats + full score) — the id did not tip it,
+    # and the surviving row therefore has NO id, which is exactly why consumers must take
+    # the modal non-null value per event rather than reading it off any single row
+    assert float(row["w_svpt"]) == 70.0 and row["score"] == "7-6(4) 6-3"
+    assert pd.isna(row["espn_id"])
+    print("ok test_espn_id_rides_along_without_changing_the_dedup_winner")
+
+
+def test_espn_id_column_exists_even_when_no_source_supplies_it():
+    """`_read_dir` already keeps whatever extra columns a CSV happens to carry, so a live.csv
+    with an id would surface one regardless. What listing it in CANON guarantees is the case
+    that actually bites: an ARCHIVE-ONLY frame (an off-week, a fresh clone, any tour whose
+    live overlay failed) must still expose the column, so a consumer reading it never hits a
+    KeyError."""
+    orig = (results.historical_dir, results.stats_dir, results.fresh_dir,
+            results.live_dir, results.lower_dir)
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            dirs = {n: base / n for n in ("historical", "stats", "fresh", "live", "lower")}
+            for p in dirs.values():
+                p.mkdir(parents=True, exist_ok=True)
+            results.historical_dir = lambda tour: dirs["historical"]
+            results.stats_dir = lambda tour: dirs["stats"]
+            results.fresh_dir = lambda tour: dirs["fresh"]
+            results.live_dir = lambda tour: dirs["live"]
+            results.lower_dir = lambda tour: dirs["lower"]
+            _write_csv(dirs["historical"] / "2026.csv",     # no espn_id anywhere on disk
+                "tourney_name,tourney_date,winner_name,loser_name,score\n"
+                "Test Open,20260601,A Player,B Player,6-4 6-4\n")
+            df = results.merge_sources("atp")
+    finally:
+        (results.historical_dir, results.stats_dir,
+         results.fresh_dir, results.live_dir, results.lower_dir) = orig
+    assert "espn_id" in df.columns, df.columns.tolist()
+    assert df["espn_id"].isna().all()
+    print("ok test_espn_id_column_exists_even_when_no_source_supplies_it")
+
+
 def test_same_day_rematch_survives_dedup():
     """Archive sources stamp every match with the tournament START date, so a
     round-robin meeting and a final rematch share (pair, date). The same-day dedup

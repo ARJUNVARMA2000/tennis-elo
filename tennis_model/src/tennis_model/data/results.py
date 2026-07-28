@@ -52,7 +52,11 @@ from .scores import parse_score
 _STAT_COLS = [f"{s}_{c}" for s in ("w", "l")
               for c in ("ace", "df", "svpt", "1stIn", "1stWon", "2ndWon", "SvGms", "bpSaved", "bpFaced")]
 CANON = [
-    "tourney_id", "tourney_name", "surface", "draw_size", "tourney_level", "indoor",
+    # `espn_id` is present only on live-overlay rows (the archive predates it and always
+    # will), so it is a HINT, never a key: it is deliberately absent from both dedup subsets
+    # below, and consumers take the modal non-null value per event rather than expecting it
+    # on every row. Adding it here just means no reader hits a missing column.
+    "tourney_id", "espn_id", "tourney_name", "surface", "draw_size", "tourney_level", "indoor",
     "tourney_date", "match_num", "round", "best_of", "score", "minutes",
     "winner_name", "loser_name", "winner_hand", "loser_hand", "winner_ht", "loser_ht",
     "winner_age", "loser_age", "winner_ioc", "loser_ioc", "winner_id", "loser_id",

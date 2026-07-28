@@ -2262,7 +2262,16 @@ as the working rule for Track B: rebuild the artefact, don't just run the tests.
       correctly refuses rather than guessing — what recovers the orphaned cache entry is the
       espnId draws_wiki already stamps INSIDE it, seeded via `EventResolver(extra=...)`.
       That makes `extra` load-bearing for B3/B4, not decorative.
-- [ ] B2 espn_id through live.csv/upcoming.csv/fields.json + results CANON;
+- [x] B2 espn_id through live.csv/upcoming.csv/fields.json + results CANON. Dedup keys
+      UNTOUCHED — the id is a HINT, never a key (the archive predates it and always will, so
+      the surviving row after a merge often has none; consumers must take the modal non-null
+      per event). upcoming dedup keys on the id when both rows have one, else the name, so
+      the ESPN feed and the wiki overlay finally collapse the same matchup.
+      NOTE two of my first four tests were duds and I nearly shipped them: `_read_dir` already
+      keeps extra columns (so the CANON test proved nothing until rewritten to use an
+      ARCHIVE-ONLY frame), and `load_upcoming` imports wiki_upcoming_rows INSIDE the function,
+      making the monkeypatch on `upcoming` a silent no-op. Both now fail-first correctly.
+      The dedup-unchanged test passes before AND after by design — it is a regression guard.
       B3 id-first joins + group coalescing in build_tournaments; B4 cache re-key + in-place
       migration (never deletes) + end-based retention; B5 calendar completion
       (finalRecorded) + gate extensions; B6 docs/lessons
