@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { drawCaveat, heat, heroSlam, pct, percentileScaler, scoreDist, SLAM_HERO_LINGER_MS, SURFACE_BLEND } from "@/lib/ui";
+import { drawCaveat, heat, heroEvent, pct, percentileScaler, scoreDist, SLAM_HERO_LINGER_MS, SURFACE_BLEND } from "@/lib/ui";
 
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
 
@@ -31,7 +31,7 @@ describe("drawCaveat", () => {
   });
 });
 
-describe("heroSlam", () => {
+describe("heroEvent", () => {
   const slam = (status: string, end: string, name = "Wimbledon") =>
     ({ level: "Grand Slam", name, status, end });
   const NOW = new Date("2026-07-12T12:00").getTime(); // day after a 2026-07-11 final
@@ -41,21 +41,53 @@ describe("heroSlam", () => {
       { level: "WTA 125", name: "Grand Est Open 88", status: "live", end: "2026-07-11" },
       slam("live", "2026-07-13"),
     ];
-    expect(heroSlam(grid, NOW)?.name).toBe("Wimbledon");
+    expect(heroEvent(grid, NOW)?.name).toBe("Wimbledon");
   });
 
   it("keeps a just-finished Slam within the ~48h linger, then drops it", () => {
-    expect(heroSlam([slam("completed", "2026-07-11")], NOW)).toBeDefined();        // ~1 day out
-    const stale = new Date("2026-07-14T12:00").getTime();                          // ~3 days out
-    expect(heroSlam([slam("completed", "2026-07-11")], stale)).toBeUndefined();
+    expect(heroEvent([slam("completed", "2026-07-11")], NOW)).toBeDefined();        // ~1 day out
+    const stale = new Date("2026-07-14T12:00").getTime();                           // ~3 days out
+    expect(heroEvent([slam("completed", "2026-07-11")], stale)).toBeUndefined();
   });
 
-  it("honours the exact linger boundary and ignores completed non-Slams", () => {
+  it("honours the exact linger boundary", () => {
     const end = new Date("2026-07-11T00:00").getTime();
-    expect(heroSlam([slam("completed", "2026-07-11")], end + SLAM_HERO_LINGER_MS)).toBeDefined();
-    expect(heroSlam([slam("completed", "2026-07-11")], end + SLAM_HERO_LINGER_MS + 1)).toBeUndefined();
-    const notSlam = { level: "WTA 500", name: "Bad Homburg", status: "completed", end: "2026-07-11" };
-    expect(heroSlam([notSlam], NOW)).toBeUndefined();
+    expect(heroEvent([slam("completed", "2026-07-11")], end + SLAM_HERO_LINGER_MS)).toBeDefined();
+    expect(heroEvent([slam("completed", "2026-07-11")], end + SLAM_HERO_LINGER_MS + 1)).toBeUndefined();
+  });
+
+  // The gap this closes: per-round reach odds are computed for EVERY event, but only a Slam
+  // ever rendered them — so the DC Open, an ATP/WTA 500 with a full draw, showed a flat
+  // title-odds list and nothing about who reaches the quarters.
+  it("gives the hero to a live 500 when no Slam is running", () => {
+    const grid = [
+      { level: "ATP 250", name: "Generali Open", status: "live", end: "2026-07-26" },
+      { level: "ATP 500", name: "Mubadala DC Open", status: "live", end: "2026-08-03" },
+    ];
+    expect(heroEvent(grid, NOW)?.name).toBe("Mubadala DC Open");
+  });
+
+  it("ranks by prestige, and prefers a live event over a finished one of equal tier", () => {
+    const grid = [
+      { level: "ATP 500", name: "Five Hundred", status: "live", end: "2026-08-03" },
+      { level: "Masters 1000", name: "A Thousand", status: "live", end: "2026-08-03" },
+    ];
+    expect(heroEvent(grid, NOW)?.name).toBe("A Thousand");
+    const sameTier = [
+      { level: "ATP 500", name: "Done Open", status: "completed", end: "2026-07-11" },
+      { level: "ATP 500", name: "Live Open", status: "live", end: "2026-08-03" },
+    ];
+    expect(heroEvent(sameTier, NOW)?.name).toBe("Live Open");
+  });
+
+  it("hands the page back to the grid for tiers below 500, and for a finished non-Slam", () => {
+    expect(heroEvent([{ level: "ATP 250", name: "Small", status: "live", end: "2026-08-03" }],
+                     NOW)).toBeUndefined();
+    expect(heroEvent([{ level: "WTA 125", name: "Tiny", status: "live", end: "2026-08-03" }],
+                     NOW)).toBeUndefined();
+    // a wrapped-up 500 does not sit stale at the top the way a just-crowned Slam does
+    expect(heroEvent([{ level: "WTA 500", name: "Bad Homburg", status: "completed",
+                        end: "2026-07-11" }], NOW)).toBeUndefined();
   });
 });
 

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
-import { pct, surfaceColor, heat, eloKey, blendedElo, tournamentTier, drawCaveat, heroSlam } from "@/lib/ui";
+import { pct, surfaceColor, heat, eloKey, blendedElo, tournamentTier, drawCaveat, heroEvent } from "@/lib/ui";
 import { PageHead, Loading, Reveal, CallCard } from "@/components/bits";
 import { SPRING_SOFT } from "@/lib/motion";
 import { nameKey, type PlayerRow } from "@/lib/live";
@@ -72,18 +72,21 @@ export default function Tournaments() {
   const { tour } = useTour();
   const { data, loading } = useData<Tournament[]>("tournaments.json");
 
-  // When a Grand Slam is in progress — or finished within the last ~48h — the home page
-  // focuses on it: a prominent round-by-round forecast, with the week's other events tucked
-  // behind a toggle. heroSlam keeps a just-crowned champion front-and-centre for two days.
-  const slam = heroSlam(data || []);
+  // The week's biggest event owns the page: a prominent round-by-round forecast, with the
+  // rest tucked behind a toggle. Any live/upcoming 500-or-above qualifies, not only a Slam —
+  // the simulator has always produced per-round reach odds for every event, but only a Slam
+  // ever rendered them, so a 500 with a full draw showed a flat title-odds list and nothing
+  // about who reaches the quarters. A just-crowned Slam still lingers for two days.
+  const slam = heroEvent(data || []);
   const others = (data || []).filter((t) => t !== slam);
 
   if (slam) {
     const done = slam.status === "completed";
+    const tier = tournamentTier(slam.level, slam.name);
     return (
       <div className="pb-16">
         <PageHead
-          eyebrow={`${tour.toUpperCase()} · ${done ? "championship result" : "championship forecast"}`}
+          eyebrow={`${tour.toUpperCase()} · ${tier.short} · ${done ? "championship result" : "round-by-round forecast"}`}
           title={slam.name}
           sub={done
             ? "How the model saw the title race before a ball was struck — the leading contenders' pre-tournament chances of reaching each round, now set against the player who actually lifted the trophy."
