@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
-import { pct, surfaceColor, heat, eloKey, blendedElo, tournamentTier, drawCaveat, heroEvent } from "@/lib/ui";
+import { pct, surfaceColor, heat, eloKey, blendedElo, tournamentTier, drawCaveat, byTournamentPrestige, tournamentView } from "@/lib/ui";
 import { PageHead, Loading, Reveal, CallCard } from "@/components/bits";
 import { SPRING_SOFT } from "@/lib/motion";
 import { nameKey, type PlayerRow } from "@/lib/live";
@@ -72,32 +72,29 @@ export default function Tournaments() {
   const { tour } = useTour();
   const { data, loading } = useData<Tournament[]>("tournaments.json");
 
-  // The week's biggest event owns the page: a prominent round-by-round forecast, with the
-  // rest tucked behind a toggle. Any live/upcoming 500-or-above qualifies, not only a Slam —
-  // the simulator has always produced per-round reach odds for every event, but only a Slam
-  // ever rendered them, so a 500 with a full draw showed a flat title-odds list and nothing
-  // about who reaches the quarters. A just-crowned Slam still lingers for two days.
-  const slam = heroEvent(data || []);
-  const others = (data || []).filter((t) => t !== slam);
+  // Focused weeks (Grand Slam / Finals / 1000 / Olympics) get one round-by-round hero plus an
+  // above-the-fold disclosure for every other event. A 500-and-below week stays a complete,
+  // prestige-ordered multi-event grid so a concurrent 250 never disappears behind the 500.
+  const { hero, grid, other } = tournamentView(data || []);
 
-  if (slam) {
-    const done = slam.status === "completed";
-    const tier = tournamentTier(slam.level, slam.name);
+  if (hero) {
+    const done = hero.status === "completed";
+    const tier = tournamentTier(hero.level, hero.name);
     return (
       <div className="pb-16">
         <PageHead
           eyebrow={`${tour.toUpperCase()} · ${tier.short} · ${done ? "championship result" : "round-by-round forecast"}`}
-          title={slam.name}
+          title={hero.name}
           sub={done
             ? "How the model saw the title race before a ball was struck — the leading contenders' pre-tournament chances of reaching each round, now set against the player who actually lifted the trophy."
             : "The model's live title odds — the leading contenders' chances of reaching each round, from the favourites on down. Updated as the draw thins."}
         />
+        {other.length > 0 && <OtherEvents events={other} />}
         <LiveTicker />
         <Reveal>
-          <SlamHero t={slam} />
+          <SlamHero t={hero} />
         </Reveal>
         <UpNext />
-        {others.length > 0 && <OtherEvents events={others} />}
       </div>
     );
   }
@@ -118,13 +115,11 @@ export default function Tournaments() {
       )}
 
       <div className="mt-8 grid gap-4 lg:grid-cols-2">
-        {[...(data || [])]
-          .sort((a, b) => tournamentTier(a.level, a.name).rank - tournamentTier(b.level, b.name).rank)
-          .map((t, i) => (
-            <Reveal key={t.name + t.start} delay={Math.min(i * 0.04, 0.3)}>
-              <Card t={t} />
-            </Reveal>
-          ))}
+        {grid.map((t, i) => (
+          <Reveal key={t.name + t.start} delay={Math.min(i * 0.04, 0.3)}>
+            <Card t={t} />
+          </Reveal>
+        ))}
       </div>
     </div>
   );
@@ -328,25 +323,24 @@ function SlamHero({ t }: { t: Tournament }) {
   );
 }
 
-/** The week's non-Slam events, collapsed by default so the Slam stays front-and-centre. */
+/** Every non-hero event remains discoverable directly beneath the page intro. Native details
+    keeps the focused week compact while making the event count and expansion control visible
+    before the long round-by-round table. */
 function OtherEvents({ events }: { events: Tournament[] }) {
-  const [open, setOpen] = useState(false);
-  const ordered = [...events].sort((a, b) => tournamentTier(a.level, a.name).rank - tournamentTier(b.level, b.name).rank);
+  const ordered = byTournamentPrestige(events);
   return (
-    <div className="mt-10 border-t border-[var(--color-line)] pt-6">
-      <button onClick={() => setOpen(!open)} className="mono text-[12px] text-[var(--color-accent)] hover:underline">
-        {open ? "hide other recent events" : `show other recent events (${events.length})`}
-      </button>
-      {open && (
-        <div className="mt-5 grid gap-4 lg:grid-cols-2">
-          {ordered.map((t, i) => (
-            <Reveal key={t.name + t.start} delay={Math.min(i * 0.04, 0.3)}>
-              <Card t={t} />
-            </Reveal>
-          ))}
-        </div>
-      )}
-    </div>
+    <details className="mt-4 border-y border-[var(--color-line)] py-3">
+      <summary className="mono w-fit cursor-pointer text-[12px] text-[var(--color-accent)] hover:underline">
+        View other events ({events.length})
+      </summary>
+      <div className="mt-5 grid gap-4 lg:grid-cols-2">
+        {ordered.map((t, i) => (
+          <Reveal key={t.name + t.start} delay={Math.min(i * 0.04, 0.3)}>
+            <Card t={t} />
+          </Reveal>
+        ))}
+      </div>
+    </details>
   );
 }
 

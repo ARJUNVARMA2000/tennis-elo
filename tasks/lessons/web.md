@@ -4,6 +4,17 @@ Next.js rendering, URL/state, page contracts, public copy.
 
 Indexed in [`../lessons.md`](../lessons.md).
 
+- **A hero may change emphasis, never event membership — reserve single-event layouts for
+  truly dominant weeks and put the complete, counted alternative-event disclosure above the
+  fold.** (2026-07-28, ATP 500 hid its concurrent ATP 250) The 500-level hero change reused a
+  Slam-only page branch whose membership rule was “hero plus everything else collapsed below
+  the long forecast and Up Next.” The ATP 250 remained correct in `tournaments.json` but looked
+  missing to the user. Do not derive visibility as an accidental side effect of feature
+  selection. One pure view contract must sort every event by prestige and partition without
+  loss: 1000-and-above may take the hero, with every remainder named by an above-the-fold
+  disclosure; 500-and-below stays a complete multi-card grid. Pin both simultaneous-tier cases
+  in tests and verify the disclosure closed and open in the rendered page.
+
 - **Next 16/Turbopack drops SOME same-line spaces after JSX interpolations — put {" "}
   between any expression/element and following prose, and verify the RENDERED text.**
   (2026-07-10, /method detail sections) `value for the {tour.toUpperCase()} tour` rendered

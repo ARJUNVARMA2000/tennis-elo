@@ -64,6 +64,14 @@ export function tournamentTier(level: string = "", eventName: string = ""): { ra
   return { rank: 7, short: "Tour", full: level && l !== "q" ? level : "Tour" };
 }
 
+/** One shared tournament hierarchy for every board surface. Array.sort is stable, so events
+    of the same tier keep the producer's recency/status ordering. */
+export function byTournamentPrestige<T extends { level?: string; name: string }>(events: T[]): T[] {
+  return [...events].sort(
+    (a, b) => tournamentTier(a.level ?? "", a.name).rank - tournamentTier(b.level ?? "", b.name).rank,
+  );
+}
+
 /** How long a finished Grand Slam keeps the home-page hero after its final before the page
     falls back to the tournament grid. ~48h so the championship result stays front-and-centre
     through the days around the final (when interest peaks) instead of vanishing the instant
@@ -84,20 +92,17 @@ export function heroSlam<T extends { level: string; name: string; status: string
   });
 }
 
-/** Tiers that earn the round-by-round hero: Grand Slam (0), Tour Finals (1), 1000 (2), 500 (3).
-    Round-by-round reach odds are computed for EVERY event — the simulator has always produced
-    them — but only a Slam ever rendered them, so a 500 with a full 28/32 draw showed a flat
-    title-odds list and nothing about who is likely to reach the quarters. Mirrors the 500+
-    threshold the pre-deploy gate uses for board quality: the same events that must never ship
-    wrong are the ones that earn the full treatment. */
-export const HERO_MAX_TIER_RANK = 3;
+/** Tiers that earn the single-event round-by-round hero: Grand Slam (0), Tour Finals (1), and
+    Masters 1000/Olympics (2). A 500-and-below week stays a multi-event board: those tiers often
+    run concurrently, so promoting one must not make the others look missing. */
+export const HERO_MAX_TIER_RANK = 2;
 
 /** The tournament that owns the home-page hero, or undefined for the grid layout.
 
     A live or upcoming event at HERO_MAX_TIER_RANK or better wins, most prestigious first. A
     FINISHED event only qualifies if it is a Slam still inside SLAM_HERO_LINGER_MS — a
-    just-crowned Slam champion stays front-and-centre for two days, but a wrapped-up 500 hands
-    the page back to the grid rather than sitting stale at the top. `now` is injected for tests. */
+    just-crowned Slam champion stays front-and-centre for two days, but a wrapped-up non-Slam
+    hands the page back to the grid rather than sitting stale at the top. `now` is injected for tests. */
 export function heroEvent<T extends { level: string; name: string; status: string; end: string }>(
   tournaments: T[], now: number = Date.now(), maxRank: number = HERO_MAX_TIER_RANK,
 ): T | undefined {
@@ -114,6 +119,26 @@ export function heroEvent<T extends { level: string; name: string; status: strin
     if (dr !== 0) return dr;                                            // prestige first
     return Number(a.status === "completed") - Number(b.status === "completed"); // then live over done
   })[0];
+}
+
+export type TournamentView<T> = {
+  hero: T | undefined;
+  grid: T[];
+  other: T[];
+};
+
+/** Partition the home tournament payload without losing membership.
+
+    Focused weeks (1000+) get one hero and expose every remaining event through the nearby
+    disclosure. On 500-and-below weeks there is no hero: the complete prestige-ordered payload
+    renders directly in the card grid. */
+export function tournamentView<T extends { level: string; name: string; status: string; end: string }>(
+  tournaments: T[], now: number = Date.now(),
+): TournamentView<T> {
+  const ordered = byTournamentPrestige(tournaments);
+  const hero = heroEvent(ordered, now);
+  if (!hero) return { hero: undefined, grid: ordered, other: [] };
+  return { hero, grid: [], other: ordered.filter((event) => event !== hero) };
 }
 
 /** Heat color for a probability 0..1 — single-hue indigo luminance ramp.

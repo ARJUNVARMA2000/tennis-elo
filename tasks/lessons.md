@@ -60,6 +60,8 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 ## Web app — [`lessons/web.md`](lessons/web.md)
 
+- A hero may change emphasis, never event membership — reserve single-event layouts for truly
+  dominant weeks and put the complete, counted alternative-event disclosure above the fold. (2026-07-28)
 - Next 16/Turbopack drops SOME same-line spaces after JSX interpolations — put {" "} between any expression/element and following prose, and verify the RENDERED text. (2026-07-10)
 - A URL↔state bridge must apply URL→state only on NAVIGATION, and a client "redirect page" must hard-navigate. (2026-07-09)
 - A Δ-metric card must compute the sign its own caption promises — and match its neighbours' convention. (2026-07-09)

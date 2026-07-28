@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { drawCaveat, heat, heroEvent, pct, percentileScaler, scoreDist, SLAM_HERO_LINGER_MS, SURFACE_BLEND } from "@/lib/ui";
+import { drawCaveat, heat, heroEvent, pct, percentileScaler, scoreDist, SLAM_HERO_LINGER_MS, SURFACE_BLEND, tournamentView } from "@/lib/ui";
 
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
 
@@ -56,31 +56,51 @@ describe("heroEvent", () => {
     expect(heroEvent([slam("completed", "2026-07-11")], end + SLAM_HERO_LINGER_MS + 1)).toBeUndefined();
   });
 
-  // The gap this closes: per-round reach odds are computed for EVERY event, but only a Slam
-  // ever rendered them — so the DC Open, an ATP/WTA 500 with a full draw, showed a flat
-  // title-odds list and nothing about who reaches the quarters.
-  it("gives the hero to a live 500 when no Slam is running", () => {
+  // Regression: promoting the DC Open to the single-event hero reused the Slam layout and
+  // hid its concurrent ATP 250 behind "show other recent events". A 500-and-below week is a
+  // multi-event board; the cards themselves remain ordered by prestige.
+  it("keeps a live 500 and concurrent 250 in the prestige-ordered multi-event layout", () => {
     const grid = [
       { level: "ATP 250", name: "Generali Open", status: "live", end: "2026-07-26" },
       { level: "ATP 500", name: "Mubadala DC Open", status: "live", end: "2026-08-03" },
     ];
-    expect(heroEvent(grid, NOW)?.name).toBe("Mubadala DC Open");
+    const view = tournamentView(grid, NOW);
+    expect(view.hero).toBeUndefined();
+    expect(view.grid.map((t) => t.name)).toEqual(["Mubadala DC Open", "Generali Open"]);
+    expect(view.other).toEqual([]);
   });
 
-  it("ranks by prestige, and prefers a live event over a finished one of equal tier", () => {
+  it("gives a 1000 the hero and keeps every lesser event in the prestige-ordered disclosure", () => {
     const grid = [
+      { level: "ATP 250", name: "Two Fifty", status: "live", end: "2026-08-03" },
       { level: "ATP 500", name: "Five Hundred", status: "live", end: "2026-08-03" },
       { level: "Masters 1000", name: "A Thousand", status: "live", end: "2026-08-03" },
     ];
-    expect(heroEvent(grid, NOW)?.name).toBe("A Thousand");
+    const view = tournamentView(grid, NOW);
+    expect(view.hero?.name).toBe("A Thousand");
+    expect(view.grid).toEqual([]);
+    expect(view.other.map((t) => t.name)).toEqual(["Five Hundred", "Two Fifty"]);
+  });
+
+  it("prefers a live hero over a completed event of equal tier", () => {
     const sameTier = [
-      { level: "ATP 500", name: "Done Open", status: "completed", end: "2026-07-11" },
-      { level: "ATP 500", name: "Live Open", status: "live", end: "2026-08-03" },
+      { level: "Masters 1000", name: "Done Open", status: "completed", end: "2026-07-11" },
+      { level: "Masters 1000", name: "Live Open", status: "live", end: "2026-08-03" },
     ];
     expect(heroEvent(sameTier, NOW)?.name).toBe("Live Open");
   });
 
-  it("hands the page back to the grid for tiers below 500, and for a finished non-Slam", () => {
+  it("does not drop completed events from a focused week's disclosure", () => {
+    const view = tournamentView([
+      { level: "Masters 1000", name: "A Thousand", status: "live", end: "2026-08-03" },
+      { level: "ATP 500", name: "Done Five Hundred", status: "completed", end: "2026-07-20" },
+    ], NOW);
+    expect(view.other.map((t) => t.name)).toEqual(["Done Five Hundred"]);
+  });
+
+  it("hands the page back to the grid for tiers below 1000, and for a finished non-Slam", () => {
+    expect(heroEvent([{ level: "ATP 500", name: "Medium", status: "live", end: "2026-08-03" }],
+                     NOW)).toBeUndefined();
     expect(heroEvent([{ level: "ATP 250", name: "Small", status: "live", end: "2026-08-03" }],
                      NOW)).toBeUndefined();
     expect(heroEvent([{ level: "WTA 125", name: "Tiny", status: "live", end: "2026-08-03" }],
