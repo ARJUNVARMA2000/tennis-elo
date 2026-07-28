@@ -94,14 +94,26 @@ def test_month_guessed_rows_never_pose_as_an_archive_surface():
     from tennis_model.sim.tournaments import _known_surface
 
     guessed = pd.DataFrame({"surface_b": ["Grass", "Grass"], "surface_src": ["month", "month"]})
-    assert _known_surface(guessed) is None            # nothing KNOWN -> defer to the chain
+    assert _known_surface(guessed) == (None, None)    # nothing KNOWN -> defer to the chain
     mixed = pd.DataFrame({"surface_b": ["Grass", "Hard"], "surface_src": ["month", "wiki"]})
-    assert _known_surface(mixed) == "Hard"            # the known row wins over the guess
+    # the known row wins over the guess AND reports its own provenance, not a blanket
+    # "archive" — surfaceSource decides whether a wrong surface blocks the deploy
+    assert _known_surface(mixed) == ("Hard", "wiki")
     real = pd.DataFrame({"surface_b": ["Clay"], "surface_src": ["archive"]})
-    assert _known_surface(real) == "Clay"
+    assert _known_surface(real) == ("Clay", "archive")
     # frames with no provenance column (fixtures, pre-upgrade caches) keep the old behaviour
-    assert _known_surface(pd.DataFrame({"surface_b": ["Clay"]})) == "Clay"
-    assert _known_surface(pd.DataFrame({"other": [1]})) is None
+    assert _known_surface(pd.DataFrame({"surface_b": ["Clay"]})) == ("Clay", "archive")
+    assert _known_surface(pd.DataFrame({"other": [1]})) == (None, None)
+
+    # ...and every caller must UNPACK it. _archive_attrs forwards its surface straight into
+    # resolve_surface_info as archive_surface, so returning the pair whole shipped a literal
+    # ('Hard', 'archive') tuple as WTA Memphis's surface — caught only by rebuilding real cards.
+    from tennis_model.sim.tournaments import _archive_attrs
+    frame = pd.DataFrame({"tourney_name": ["Memphis Classic"], "surface_b": ["Hard"],
+                          "surface_src": ["archive"], "best_of": [3]})
+    a_surf, _lvl, _bo = _archive_attrs(frame, "The Memphis Classic")
+    assert a_surf == "Hard", a_surf
+    assert isinstance(a_surf, str)
     print("ok test_month_guessed_rows_never_pose_as_an_archive_surface")
 
 

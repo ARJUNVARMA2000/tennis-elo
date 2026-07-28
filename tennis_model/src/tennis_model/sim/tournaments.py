@@ -83,25 +83,33 @@ def _archive_attrs(df: pd.DataFrame, name: str) -> tuple:
     sub = df[names.str.lower().apply(lambda t: bool(t) and (t in ek or ek in t))]
     if sub.empty:
         return None, None, None
-    surf = _known_surface(sub)
+    surf, _src = _known_surface(sub)
     bo = pd.to_numeric(sub["best_of"], errors="coerce").max() if "best_of" in sub.columns else None
     return (surf,
             _main_level_code(sub),
             int(bo) if pd.notna(bo) else None)
 
 
-def _known_surface(rows: pd.DataFrame) -> str | None:
-    """Modal surface over rows whose surface is KNOWN — never a month-of-year guess.
+def _known_surface(rows: pd.DataFrame) -> tuple[str | None, str | None]:
+    """``(surface, source)`` over rows whose surface is KNOWN — never a month-of-year guess.
 
     `results.clean` stamps `surface_src`; a "month" row carries a season guess, not a fact.
     Returning one here would hand it back to `resolve_surface_info` as the authoritative
-    archive value, short-circuiting the Wikipedia tier that actually knows the answer. Frames
-    without the column (unit-test fixtures, pre-upgrade caches) keep the old behaviour."""
+    archive value, short-circuiting the Wikipedia tier that actually knows the answer. The
+    row's OWN source is carried out rather than relabelled "archive": `surfaceSource` decides
+    whether a wrong surface blocks the deploy, so it has to say where the value really came
+    from. Frames without the column (unit-test fixtures) keep the old behaviour."""
     if "surface_b" not in rows.columns:
-        return None
+        return None, None
     known = rows[rows["surface_src"] != "month"] if "surface_src" in rows.columns else rows
     m = known["surface_b"].mode()
-    return m.iloc[0] if not m.empty else None
+    if m.empty:
+        return None, None
+    val = m.iloc[0]
+    if "surface_src" not in known.columns:
+        return val, "archive"
+    s = known.loc[known["surface_b"] == val, "surface_src"].mode()
+    return val, (s.iloc[0] if not s.empty else "archive")
 
 
 def _main_level_code(g: pd.DataFrame):
@@ -291,10 +299,10 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
     # One chain, shared with the pre-start path: this event's KNOWN rows -> prior editions
     # (archive_hint) -> Wikipedia infobox -> month guess. Taking `surface_b.mode()` outright
     # was the live half of the split that let an event change surface the day it started.
-    surface = _known_surface(main)
-    surface, surface_src = resolve_surface_info(
-        tour, name, str(g["date"].min().date()),
-        archive_surface=surface if surface is not None else archive_hint)
+    surface, surface_src = _known_surface(main)
+    if surface is None:
+        surface, surface_src = resolve_surface_info(
+            tour, name, str(g["date"].min().date()), archive_surface=archive_hint)
     bo = pd.to_numeric(main["best_of"], errors="coerce").max()
     best_of = int(bo) if pd.notna(bo) else 3
     level = resolve_level(tour, name, archive_level=_level_label(_main_level_code(g), tour))

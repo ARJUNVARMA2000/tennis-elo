@@ -302,8 +302,15 @@ def event_surface(event: str, year: int, tour: str) -> str | None:
 
 _CATEGORY_FIELD_RE = re.compile(r"\bcategory\s*=([^\n]*)", re.IGNORECASE)
 _CATEGORY_LINK_RE = re.compile(r"\[\[([^\]|]+)(?:\|([^\]]+))?\]\]")
-# Words tagging which link is which tour's in a combined event's `category` value.
-_TOUR_TAG = {"atp": ("atp", "men"), "wta": ("wta", "women")}
+# Which link belongs to which tour in a combined event's `category` value. WORD-BOUNDARY
+# matching is load-bearing: plain substrings made "men" match inside "tournaments", so an ATP
+# request matched the WTA segment `[[WTA 125 tournaments|WTA 125]]` and shipped "WTA 125" on
+# the ATP board (Generali Open, 2026-07-27). `\bmen\b` correctly declines to match "women".
+_TOUR_TAG_RE = {
+    "atp": re.compile(r"\b(?:atp|men)\b", re.IGNORECASE),
+    "wta": re.compile(r"\b(?:wta|women)\b", re.IGNORECASE),
+}
+_OTHER_TOUR = {"atp": "wta", "wta": "atp"}
 
 
 def _parse_category(wikitext: str, tour: str) -> str | None:
@@ -311,11 +318,18 @@ def _parse_category(wikitext: str, tour: str) -> str | None:
     ``category=`` field, for ``tour``. The value is one or two ``[[Target|Display]]`` wikilinks
     — combined events carry both (ATP + WTA), split by ``<br/>`` and tagged (ATP)/(men)/(WTA)/
     (women); a Slam carries a single (ITF) link. Returns the tour's Display, or None if the
-    field is absent (e.g. 2025 Swedish Open). Pure regex, no parser dependency."""
+    field is absent (e.g. 2025 Swedish Open). Pure regex, no parser dependency.
+
+    Gated on tour in BOTH directions. It previously returned a lone link unconditionally and
+    guessed ``picks[0]`` when nothing was tagged, so an ATP lookup landing on the WTA article
+    of a combined event happily returned that tour's tier. None is the right answer when the
+    field does not say which tour it describes — the caller then falls back rather than
+    publishing another tour's tier."""
     m = _CATEGORY_FIELD_RE.search(wikitext or "")
     if not m:
         return None
-    tags = _TOUR_TAG.get(tour, ())
+    ours = _TOUR_TAG_RE.get(tour)
+    theirs = _TOUR_TAG_RE.get(_OTHER_TOUR.get(tour, ""))
     picks = []
     for seg in re.split(r"<br\s*/?>", m.group(1), flags=re.IGNORECASE):
         lm = _CATEGORY_LINK_RE.search(seg)
@@ -323,15 +337,18 @@ def _parse_category(wikitext: str, tour: str) -> str | None:
             disp = (lm.group(2) or lm.group(1)).strip()
             disp = re.sub(r"\s+tournaments$", "", disp, flags=re.IGNORECASE)  # bare link target -> "WTA 125"
             disp = re.sub(r"\s*\(tennis\)$", "", disp, flags=re.IGNORECASE)   # "Grand Slam (tennis)" -> "Grand Slam"
-            picks.append((disp, seg.lower()))
+            picks.append((disp, seg))
     if not picks:
         return None
-    if len(picks) == 1:
-        return picks[0][0]
-    for display, low in picks:
-        if any(t in low for t in tags):
-            return display
-    return picks[0][0]
+    for disp, seg in picks:                      # explicitly ours wins outright
+        if ours and (ours.search(seg) or ours.search(disp)):
+            return disp
+    # Nothing is tagged as ours. A link that is explicitly the OTHER tour's is never ours;
+    # what remains is tour-neutral (a Slam's single (ITF) link). Exactly one neutral link is
+    # unambiguous — ours by elimination. Two would be a guess about which tour they describe.
+    neutral = [d for d, s in picks
+               if not (theirs and (theirs.search(s) or theirs.search(d)))]
+    return neutral[0] if len(neutral) == 1 else None
 
 
 def _category_of(title: str, tour: str) -> str | None:
@@ -529,11 +546,18 @@ def _download_wiki_categories(tour: str, d, meta: dict) -> None:
             cached = json.loads(path.read_text(encoding="utf-8"))
         except Exception:  # noqa: BLE001 — a corrupt cache just means re-fetch
             cached = {}
+    from .surface import normalize_level
+
     out: dict = {}
     fetched = 0
     for name, m in meta.items():
-        if cached.get(name):                      # already resolved — keep it
-            out[name] = cached[name]
+        prev = cached.get(name)
+        # Keep a cached tier only if it is still sayable in THIS tour's vocabulary. A value
+        # captured before the tour gate existed can be the other tour's ("WTA 125" on the ATP
+        # board, Generali Open), and "already resolved — keep it" would pin that forever — the
+        # same first-capture-wins trap `_draw_is_settled` fixes for draws. Re-fetch instead.
+        if prev and normalize_level(prev, tour):
+            out[name] = prev
             continue
         year = int((m.get("start") or "2026")[:4] or 2026)
         try:

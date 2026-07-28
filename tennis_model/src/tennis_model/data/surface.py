@@ -16,6 +16,7 @@ so it never touches the network and is import-safe for the offline loader (``dat
 from __future__ import annotations
 
 import json
+import re
 
 from ..config import EVENT_TIER_FALLBACK, MONTH_SURFACE, live_dir
 
@@ -135,25 +136,83 @@ def wiki_category_map(tour: str) -> dict:
 
 def wiki_category(tour: str, event: str) -> str | None:
     """Cached Wikipedia tier/category for one event, or None if not cached."""
-    return wiki_category_map(tour).get(str(event))
+    return _lookup_by_name(wiki_category_map(tour), event)
+
+
+# One display vocabulary for tiers, per tour. Anything shipped on a card must be in here.
+_LEVEL_SHARED = ("Grand Slam", "Tour Finals", "Olympics", "Davis/BJK Cup", "United Cup",
+                 "Challenger")
+LEVEL_VOCAB = {
+    "atp": frozenset(_LEVEL_SHARED + ("Masters 1000", "ATP 500", "ATP 250", "ATP Tour")),
+    "wta": frozenset(_LEVEL_SHARED + ("WTA 1000", "WTA 500", "WTA 250", "WTA 125", "WTA Tour")),
+}
+
+
+def normalize_level(value: object, tour: str) -> str | None:
+    """Fold any source's tier string into `LEVEL_VOCAB[tour]`, or None if unrecognised.
+
+    Three sources speak three dialects: the archive emits single-letter codes ("C", "G"),
+    Wikipedia emits display prose ("ATP 250 series", "ATP Tour Masters 1000"), and the curated
+    fallback emits bare numbers ("250"). All three used to ship RAW, so one board carried
+    "ATP 250 series", "ATP 250" and "C" as if they were three different tiers. None (rather
+    than a guess) lets the caller fall through instead of publishing an unreadable string."""
+    cand = _level_candidate(value, tour)
+    # Self-enforcing: the normaliser can only ever emit a tier this tour actually has. Without
+    # it a bare "125" became "ATP 125" — a tier that does not exist (125s are WTA-only) — and
+    # the gate would then reject a string the normaliser itself produced.
+    return cand if cand in LEVEL_VOCAB.get(tour, frozenset()) else None
+
+
+def _level_candidate(value: object, tour: str) -> str | None:
+    if value is None:
+        return None
+    s = " ".join(str(value).split())
+    low = s.lower()
+    if not s or low in ("nan", "none"):
+        return None
+    t = tour.upper()
+    if low in ("g", "grand", "grandslam") or "grand slam" in low:
+        return "Grand Slam"
+    if low == "f" or "tour finals" in low:
+        return "Tour Finals"
+    if low == "o" or "olympic" in low:
+        return "Olympics"
+    if low == "d" or "davis" in low or "bjk" in low or "billie jean king" in low:
+        return "Davis/BJK Cup"
+    if "united cup" in low:
+        return "United Cup"
+    if low == "c" or "challenger" in low:
+        return "Challenger"
+    if low == "m" or "masters" in low or re.search(r"\b1000\b", low):
+        return "Masters 1000" if tour == "atp" else "WTA 1000"
+    m = re.search(r"\b(500|250|125)\b", low)
+    if m:
+        return f"{t} {m.group(1)}"
+    if low in ("a", "q") or low == f"{tour} tour":
+        return f"{t} Tour"
+    return None
+
+
+def _fallback_tier(tour: str, event: str) -> str | None:
+    """Curated EVENT_TIER_FALLBACK value, tolerating sponsor prefixes/suffixes."""
+    fb = EVENT_TIER_FALLBACK.get(str(event))
+    if not fb:  # a fallback key that merely APPEARS in a sponsor-padded event name
+        low = str(event).lower()
+        fb = next((v for k, v in EVENT_TIER_FALLBACK.items() if k.lower() in low), None)
+    if not fb:
+        return None
+    return f"{tour.upper()} {fb}" if str(fb).isdigit() else str(fb)
 
 
 def resolve_level(tour: str, event: str, archive_level: str | None = None) -> str:
     """Display tier for a live/upcoming event, mirroring resolve_surface:
         real archive level -> Wikipedia category -> curated EVENT_TIER_FALLBACK -> '{TOUR} Tour'.
     The caller passes ``archive_level`` only when the match frame gives a reliable current-edition
-    level (else None, so a stale historical tier can't win). Fallback values that are bare tier
-    numbers ("250") render "{TOUR} 250"; full strings ("Grand Slam") pass through."""
+    level (else None, so a stale historical tier can't win). Every tier crosses the SAME
+    normaliser on the way out, so no source's dialect reaches a card verbatim."""
     generic = f"{tour.upper()} Tour"
-    if archive_level and archive_level != generic:
-        return archive_level
-    cat = wiki_category(tour, event)
-    if cat:
-        return cat
-    fb = EVENT_TIER_FALLBACK.get(str(event))
-    if not fb:  # tolerate sponsor prefixes/suffixes: a fallback key that appears in the event name
-        low = str(event).lower()
-        fb = next((v for k, v in EVENT_TIER_FALLBACK.items() if k.lower() in low), None)
-    if fb:
-        return f"{tour.upper()} {fb}" if str(fb).isdigit() else str(fb)
+    for candidate in (archive_level, wiki_category(tour, event), _fallback_tier(tour, event)):
+        lv = normalize_level(candidate, tour)
+        if lv and lv != generic:
+            return lv
     return generic

@@ -133,3 +133,16 @@ Indexed in [`../lessons.md`](../lessons.md).
   `_fp` to the tour's current config and rebuilds on drift, healing shipped-bad pickles within
   an hour. Rules: derive invariants in the constructor, not at call sites; a staleness guard
   must check every config a pickle bakes in (schema AND params), not just the crash-prone part.
+
+- **Widening a helper's return arity is invisible to tests that exercise the helper and its
+  caller separately — rebuild the real artefact.** (2026-07-27) `_known_surface` was changed
+  to return `(surface, source)` so a card could report where its surface came from. Its unit
+  test was updated, its caller `_archive_attrs` was not — and `_archive_attrs` forwards that
+  value straight into `resolve_surface_info` as `archive_surface`, which returns it verbatim.
+  WTA Memphis therefore shipped the literal tuple `('Hard', 'archive')` as its surface. The
+  full suite (381 tests) passed: every test covered one side of the seam. What caught it was
+  rebuilding the actual tournament cards from the local frame and eyeballing the fields.
+  **How to apply:** after changing any shared helper's shape, grep every call site in the same
+  edit — and for a producer whose output ships, regenerate a real artefact and assert on its
+  TYPES, not only that the pipeline ran. A one-line `isinstance(t["surface"], str)` over
+  rebuilt cards is worth more than another unit test of the helper.

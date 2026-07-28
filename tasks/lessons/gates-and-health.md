@@ -90,3 +90,26 @@ Indexed in [`../lessons.md`](../lessons.md).
   the invariant true by construction rather than true in practice. Grep for the shape
   `round(x, n)` and `x <` in one dict literal. Test the boundary explicitly: a unit test on
   clean 0.7/0.3 inputs passes forever and proves nothing.
+
+- **A normaliser must be self-enforcing against the vocabulary its own gate checks, and a
+  tour tag matched as a bare substring finds "men" inside "tournaMENts".** (2026-07-27, the
+  ATP board shipping Generali Open as "WTA 125") Three sources speak three tier dialects —
+  archive letter codes ("C", "G"), Wikipedia display prose ("ATP 250 series", "ATP Tour
+  Masters 1000"), curated bare numbers ("250") — and all three reached cards verbatim, so one
+  board carried "ATP 250 series", "ATP 250" and "C" as if they were different tiers. The
+  cross-tour leak had two causes: `_parse_category` returned a LONE link unconditionally (an
+  ATP lookup landing on the WTA article of a combined event took its tier), and its tour tags
+  were plain substrings, so `("atp", "men")` matched `[[WTA 125 tournaments|WTA 125]]`
+  outright. Fixes: word-boundary tags (`\bmen\b` correctly declines "women" AND
+  "tournaments"), return None unless a link is ours or unambiguously neutral, and one
+  `normalize_level` at the single `resolve_level` choke point. **Why the normaliser needs its
+  own guard:** the first version turned a bare "125" into "ATP 125" — a tier that does not
+  exist — which the gate would then reject as a string the normaliser itself produced. It now
+  returns None for anything outside `LEVEL_VOCAB[tour]`, so "gate accepts what the producer
+  emits" is true by construction rather than by agreement — the same shape as the upset-flag
+  fix. **How to apply:** when a value must belong to a closed set, validate INSIDE the
+  producer against that set, never just at the gate; match tour/gender tags on word
+  boundaries; and treat "already resolved — keep it" in any cache as the first-capture trap it
+  is (a category cached before the tour gate existed would have pinned the wrong tour's tier
+  forever, exactly like the frozen draws in [`draws-and-live-events.md`](draws-and-live-events.md)).
+  Related: [[future-proof-no-quick-fixes]].

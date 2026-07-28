@@ -853,6 +853,60 @@ def test_output_surface_must_be_canonical_and_month_guess_is_advisory():
     print("ok test_output_surface_must_be_canonical_and_month_guess_is_advisory")
 
 
+def test_output_level_must_be_in_the_tour_vocabulary():
+    """A tier outside the vocabulary means some source's dialect reached a card verbatim —
+    the ATP board carried 'ATP 250 series' and 'C' beside 'ATP 250' as if they were three
+    tiers. Blocking regardless of tier: it is a builder bug, not board quality."""
+    d = _healthy_data()
+    d["tournaments"][0]["level"] = "ATP 250 series"          # raw wiki prose
+    out = health.output_problems("atp", _oc(data=d), NOW)
+    prob = [p for p in out if "level vocabulary" in p]
+    assert prob and health._gate_blocks(prob[0]), out
+
+    d = _healthy_data()
+    d["tournaments"][0]["level"] = "WTA 125"                 # the Generali Open symptom
+    out = health.output_problems("atp", _oc(data=d), NOW)
+    prob = [p for p in out if "belongs to the other tour" in p]
+    assert prob and health._gate_blocks(prob[0]), out
+
+    # a resolved, in-vocabulary tier is silent; the generic is advisory, not silent
+    d = _healthy_data()
+    d["tournaments"][0]["level"] = "ATP 500"
+    assert not any("level" in p for p in health.output_problems("atp", _oc(data=d), NOW))
+    d["tournaments"][0]["level"] = "ATP Tour"
+    out = health.output_problems("atp", _oc(data=d), NOW)
+    unresolved = [p for p in out if "tier did not resolve" in p]
+    assert unresolved and not health._gate_blocks(unresolved[0]), out
+    print("ok test_output_level_must_be_in_the_tour_vocabulary")
+
+
+def test_board_quality_severity_follows_the_event_tier():
+    """500-and-above must never ship wrong; below that, warn. One obscure 125 freezing the
+    whole site is the failure mode that cost 16 hours on 2026-07-27."""
+    assert health._tier_blocks("ATP 500") and health._tier_blocks("WTA 500")
+    assert health._tier_blocks("Grand Slam") and health._tier_blocks("Masters 1000")
+    assert health._tier_blocks("WTA 1000") and health._tier_blocks("Tour Finals")
+    for small in ("ATP 250", "WTA 250", "WTA 125", "Challenger", "ATP Tour", "WTA Tour",
+                  "Olympics", "Davis/BJK Cup", None):
+        assert not health._tier_blocks(small), small
+    # the SAME problem blocks on a 500 and only warns on a 125
+    msg = "atp: live tournament 'X' surface 'Grass' is a month-of-year guess — no archive"
+    assert health._gate_blocks(health._tiered(msg, "ATP 500"))
+    assert not health._gate_blocks(health._tiered(msg, "WTA 125"))
+    assert health._tiered(msg, "WTA 125").endswith("[below the 500 tier — advisory]")
+
+    # end to end through the real check: identical defect, opposite severity
+    def _probs(level):
+        d = _healthy_data()
+        d["tournaments"][0].update(level=level, surfaceSource="month")
+        return health.output_problems("atp", _oc(data=d), NOW)
+    big = [p for p in _probs("ATP 500") if "month-of-year guess" in p]
+    small = [p for p in _probs("ATP 250") if "month-of-year guess" in p]
+    assert big and health._gate_blocks(big[0]), big
+    assert small and not health._gate_blocks(small[0]), small
+    print("ok test_board_quality_severity_follows_the_event_tier")
+
+
 def test_cross_tour_surface_split_is_flagged():
     """One venue, one week, one court: a combined event ships a card on each tour. When they
     disagree, one is provably wrong — and no per-tour check can see it. On 2026-07-27 BOTH
@@ -1264,6 +1318,8 @@ if __name__ == "__main__":
     test_output_kalshi_ledger_settlement_disagreement_blocks()
     test_output_kalshi_ledger_double_scored_result_blocks()
     test_output_surface_must_be_canonical_and_month_guess_is_advisory()
+    test_output_level_must_be_in_the_tour_vocabulary()
+    test_board_quality_severity_follows_the_event_tier()
     test_cross_tour_surface_split_is_flagged()
     test_read_outputs_detects_missing_and_corrupt()
     test_read_outputs_flags_nan_as_corrupt()

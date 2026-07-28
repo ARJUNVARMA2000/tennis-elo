@@ -64,6 +64,7 @@ from ..model.features import FEATURES
 from ..sim.bracket import is_real
 from .charting import _GENDER, CHARTING_DIR
 from .results import load_matches
+from .surface import LEVEL_VOCAB
 
 
 def _offseason(now: pd.Timestamp) -> bool:
@@ -249,6 +250,9 @@ _STATUSES = {"live", "upcoming", "completed"}
 _DRAW_STATES = {"real", "partial", "seeded", "final"}
 _REACH_ORDER = ("R128", "R64", "R32", "R16", "QF", "SF", "F", "Champion")
 
+# Suffix `_tiered` stamps on a board-quality problem below the 500 tier (see GATE_BLOCKING_TIERS).
+_BELOW_TIER = " [below the 500 tier — advisory]"
+
 # The pre-deploy --gate blocks a deploy only on problems that make the shipped site WRONG
 # (impossible numbers, structural breaks, missing/corrupt required JSON). A thin or quirky
 # schedule/rankings feed is worth flagging but not worth freezing the site over, so these
@@ -273,19 +277,51 @@ _GATE_ADVISORY = (
     "is stuck 'live'",             # event whose final never arrived
     "players alive (expected 1)",  # completed event whose eliminations never joined
     "is a draw placeholder",       # 'Qualifier 30' surfaced as a real name
-    # A month-of-year surface is a GUESS, not a contradiction: for a brand-new event with
-    # no archive history and no Wikipedia article yet it is the only answer available, so
-    # blocking would freeze the site on events we simply don't know yet. It stays visible
-    # because the guess is exactly what mispriced the DC Open on grass Elo.
-    "is a month-of-year guess",
+    # NB: "is a month-of-year guess" is deliberately NOT listed — it is TIER-AWARE via
+    # `_tiered`, so it blocks on a 500-or-above (where a guessed surface misprices a marquee
+    # event, as it did the DC Open) and carries the _BELOW_TIER suffix elsewhere, because for
+    # a brand-new small event with no archive row and no article yet a guess is all there is.
     # Cross-tour surface disagreement: at least one side is wrong, but which one is not
     # knowable here, and freezing both boards over it helps nobody.
     "surface split across tours",
+    # A tier we could not resolve at all: the card shows the generic "{TOUR} Tour". Worth
+    # seeing (an unresolved tier also downgrades that event's own severity), never worth
+    # freezing a deploy over.
+    "tier did not resolve",
+    # Stamped by `_tiered` on board-quality problems below the 500 tier.
+    _BELOW_TIER.strip(),
 )
 
 # Canonical shipped surfaces — SURFACE_MAP's VALUES (Carpet folds to Hard), so this can
 # never drift from what `results.clean` is able to produce.
 _CANONICAL_SURFACES = frozenset(SURFACE_MAP.values())
+
+
+# Tier-aware severity for BOARD-QUALITY problems (a wrong surface, a placeholder projection,
+# a card that never flipped live). The marquee events are the ones that must never ship wrong;
+# the long tail warns instead, so one obscure 125 cannot freeze the whole site the way a
+# single ATP fixtures row froze it for 16 hours on 2026-07-27. Structural problems (corrupt
+# JSON, aliveCount > drawSize, a non-canonical surface VALUE) ignore tier and always block.
+# Olympics and Davis/BJK Cup are deliberately NOT here: both are marquee but have atypical
+# team formats, making them the likeliest spurious blockers, and they are rare enough that
+# advisory plus the post-deploy sentinel is adequate.
+GATE_BLOCKING_TIERS = frozenset({
+    "Grand Slam", "Tour Finals", "Masters 1000", "WTA 1000", "ATP 500", "WTA 500",
+})
+
+
+def _tier_blocks(level: object) -> bool:
+    """True when an event's tier is senior enough that board-quality problems block."""
+    return str(level) in GATE_BLOCKING_TIERS
+
+
+def _tiered(problem: str, level: object) -> str:
+    """Stamp a board-quality problem advisory unless the event is 500-or-above.
+
+    The severity decision lives in the MESSAGE rather than in the classifier, which keeps
+    `_gate_blocks` a pure string predicate (the property its tests rely on) and puts the
+    reason in the run log and the issue body instead of hiding it in classification code."""
+    return problem if _tier_blocks(level) else problem + _BELOW_TIER
 
 
 def _gate_blocks(problem: str) -> bool:
@@ -481,13 +517,28 @@ def _check_tournament(out: list, tour: str, t: dict, now: pd.Timestamp | None = 
     # and the /style page all key off this string), so it blocks. A month-of-year GUESS is
     # advisory — it is what shipped the DC Open, a hard court, priced on grass Elo, but for
     # a genuinely new event it is the only answer we have.
-    sfc = t.get("surface")
+    sfc, lvl = t.get("surface"), t.get("level")
     if sfc is not None and sfc not in _CANONICAL_SURFACES:
         out.append(f"{tour}: tournament {name!r} surface {sfc!r} is not a canonical surface "
                    f"({'/'.join(sorted(_CANONICAL_SURFACES))})")
     if status in ("live", "upcoming") and t.get("surfaceSource") == "month":
-        out.append(f"{tour}: {status} tournament {name!r} surface {sfc!r} is a month-of-year "
-                   f"guess — no archive or Wikipedia surface resolved")
+        out.append(_tiered(f"{tour}: {status} tournament {name!r} surface {sfc!r} is a "
+                           f"month-of-year guess — no archive or Wikipedia surface resolved",
+                           lvl))
+    # Level. A tier outside the vocabulary is a builder bug — some source's dialect reached a
+    # card verbatim ("ATP 250 series", "C") — so it blocks regardless of tier. A tier from the
+    # WRONG TOUR is the same bug with a sharper symptom: the ATP board shipped Generali Open
+    # as "WTA 125" because a substring tag matched "men" inside "tournaments".
+    if lvl is not None and lvl not in LEVEL_VOCAB.get(tour, frozenset()):
+        other = "wta" if tour == "atp" else "atp"
+        if lvl in LEVEL_VOCAB.get(other, frozenset()):
+            out.append(f"{tour}: tournament {name!r} level {lvl!r} belongs to the other tour")
+        else:
+            out.append(f"{tour}: tournament {name!r} level {lvl!r} is not in the "
+                       f"{tour.upper()} level vocabulary")
+    elif status in ("live", "upcoming") and lvl == f"{tour.upper()} Tour":
+        out.append(f"{tour}: {status} tournament {name!r} tier did not resolve "
+                   f"(shows the generic {lvl!r})")
 
     proj = t.get("projection") or []
     _check_projection(out, tour, name, proj)

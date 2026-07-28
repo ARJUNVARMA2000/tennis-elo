@@ -2198,8 +2198,22 @@ Wikipedia for structure, fix the join layer.
 - [ ] A2 placeholders: withhold projection+favorite until real names hold draw majority
       (user decision); filter published rows via is_real; web empty-table guard; projection
       name gate BLOCKING; promote modelFavorite placeholder check to blocking
-- [ ] A3 level: tour-gate _parse_category + event_category fallback; normalize_level
-      vocabulary at the resolve_level choke point; gate BLOCKING (vocab + cross-tour)
+- [x] A2 level (moved ahead of placeholders — tier severity depends on it): tour tags were
+      plain substrings and "men" is inside "tournaMENts", so `[[WTA 125 tournaments|WTA 125]]`
+      matched the ATP tags outright; plus a LONE link was returned regardless of tour. Both
+      gated now (word boundaries + None unless ours or unambiguously neutral). `normalize_level`
+      at the single resolve_level choke point, SELF-ENFORCING against LEVEL_VOCAB (a bare "125"
+      became "ATP 125", a tier that does not exist). Category cache no longer pins a poisoned
+      cross-tour value forever — same first-capture trap as the draws cache.
+      Tier-aware severity landed: GATE_BLOCKING_TIERS = Slam/Finals/1000/500 on both tours;
+      `_tiered` stamps board-quality problems below that advisory, keeping `_gate_blocks` a
+      pure string predicate. Olympics + Davis/BJK Cup deliberately advisory (atypical formats).
+      Verified by REBUILDING real cards: 0 levels outside vocabulary, 'ATP 250 series'->'ATP 250',
+      'C'->'Challenger'. That rebuild also caught a tuple I'd shipped as WTA Memphis's surface
+      (widening `_known_surface`'s return arity; the 381-test suite passed anyway).
+      RESIDUAL: a 500+ event that is still upcoming AND has no cached wiki surface resolves
+      src="month", which now BLOCKS. Narrow (500s have long-standing articles; the cache
+      persists once written; A5 adds retry) but real — that was DC's exact state on 07-25.
 - [ ] A4 gates: upcoming-not-ended BLOCK; start-lag ADV (3d); lost-bracket sentinel
 - [ ] A5 wiki hygiene: _get retry/backoff; single wikitext fetch for surface+category;
       fallback fetch cap; same-day miss suppression

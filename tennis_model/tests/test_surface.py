@@ -131,6 +131,49 @@ def test_resolve_surface_priority():
     print("ok test_resolve_surface_priority")
 
 
+def test_normalize_level_folds_every_source_dialect():
+    """Three sources, three dialects, all of which used to ship RAW: one board carried
+    'ATP 250 series', 'ATP 250' and 'C' as if they were different tiers."""
+    n = surf.normalize_level
+    assert n("ATP 250 series", "atp") == "ATP 250"          # wiki display prose
+    assert n("ATP Tour Masters 1000", "atp") == "Masters 1000"
+    assert n("WTA 125 tournaments", "wta") == "WTA 125"
+    assert n("C", "atp") == "Challenger"                     # archive single-letter codes
+    assert n("G", "wta") == "Grand Slam"
+    assert n("F", "atp") == "Tour Finals"
+    assert n("M", "wta") == "WTA 1000"                       # tour-relative
+    assert n("M", "atp") == "Masters 1000"
+    assert n("250", "wta") == "WTA 250"                      # curated bare numbers
+    assert n("A", "atp") == n("Q", "atp") == "ATP Tour"
+    assert n(None, "atp") is None and n("nan", "atp") is None
+    assert n("Some Exhibition", "atp") is None               # unknown -> None, never a guess
+    # every value the normaliser emits must be sayable in that tour's vocabulary
+    for tour in ("atp", "wta"):
+        for raw in ("ATP 250 series", "C", "G", "F", "M", "O", "D", "250", "125",
+                    "WTA 1000", "Grand Slam", "United Cup", "A"):
+            v = n(raw, tour)
+            assert v is None or v in surf.LEVEL_VOCAB[tour], (tour, raw, v)
+    print("ok test_normalize_level_folds_every_source_dialect")
+
+
+def test_resolve_level_normalizes_whichever_branch_wins():
+    orig = surf.wiki_category_map
+    try:
+        surf.wiki_category_map = lambda tour: {"Generali Open": "ATP 250 series"}
+        # wiki branch is normalised, not passed through raw
+        assert surf.resolve_level("atp", "Generali Open") == "ATP 250"
+        # archive branch too — "C" used to ship verbatim on the card
+        assert surf.resolve_level("atp", "Generali Open", archive_level="C") == "Challenger"
+        # a generic archive level does not win; the wiki branch still gets its turn
+        assert surf.resolve_level("atp", "Generali Open", archive_level="ATP Tour") == "ATP 250"
+        # nothing resolves -> the generic, never an unreadable string
+        surf.wiki_category_map = lambda tour: {}
+        assert surf.resolve_level("atp", "Totally Unknown Cup") == "ATP Tour"
+    finally:
+        surf.wiki_category_map = orig
+    print("ok test_resolve_level_normalizes_whichever_branch_wins")
+
+
 def _row(**over):
     """A minimal ESPN-style live row (surface unknown) that survives results.clean."""
     base = {"tourney_name": "Nordea Open", "date": pd.Timestamp("2026-07-06"),

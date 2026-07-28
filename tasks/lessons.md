@@ -36,6 +36,7 @@ New lesson → append the entry to the matching topic file and add its lead line
 - A correctness check that runs AFTER deploy can't stop a wrong deploy — gate before, on every mode. (2026-07-09)
 - Two timestamps that look like one: "when was this written" vs "when was this trained". (2026-07-25)
 - A flag derived from a value the producer then ROUNDS will eventually contradict the number it ships beside — the producer must move, because the gate only ever sees the rounded one. (2026-07-27)
+- A normaliser must be self-enforcing against the vocabulary its gate checks, and a tour tag matched as a bare substring finds "men" inside "tournaMENts". (2026-07-27)
 
 ## CI, alerts & deploy — [`lessons/ci-and-deploy.md`](lessons/ci-and-deploy.md)
 
@@ -73,3 +74,4 @@ New lesson → append the entry to the matching topic file and add its lead line
 - A feature that walks can't be adopted unless the pickled state can replay it. (2026-07-02)
 - An API field's semantics can mutate over an object's lifecycle — validate on the SETTLED objects you'll actually score, not the live ones you explored. (2026-07-07)
 - Duplicated construction sites drift: production shipped WTA pickles with fp=None. (2026-07-09)
+- Widening a helper's return arity is invisible to tests that cover the helper and its caller separately — rebuild the real artefact and assert on types. (2026-07-27)
