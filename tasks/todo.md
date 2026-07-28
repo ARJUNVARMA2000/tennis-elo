@@ -2415,6 +2415,129 @@ repository still has no `ANTHROPIC_API_KEY` secret.
       and the still-external `ANTHROPIC_API_KEY` setup to this round. Do not add or expose a
       credential from the code change.
 
+## OpenRouter migration — alias proposer (2026-07-28)
+
+The user supplied an OpenRouter credential to unblock the offline identity adjudicator and
+asked to use OpenRouter instead of a direct Anthropic key. The credential itself must never
+enter the worktree, logs, tests, or workflow source; because it was pasted into chat, rotate it
+before configuring the durable secret.
+
+- [ ] Replace the Anthropic SDK transport in `data/alias_proposer.py` with OpenRouter's
+      OpenAI-compatible chat-completions API and its current `openrouter:web_search` server
+      tool, while keeping candidate generation, `falsify()`, and PR review unchanged.
+- [ ] Rename the workflow contract to `OPENROUTER_API_KEY`, remove the now-unused Anthropic
+      dependency, and update project documentation that describes the quarantined client.
+- [ ] Add fail-first transport/workflow tests that pin the endpoint, bearer authentication,
+      search-tool budget, response parsing, and absence of credentials from tracked files.
+- [ ] Run the focused proposer/workflow tests, then the full Python suite from
+      `tennis_model/` with `PYTHONPATH=src`; append exact results and any residual setup.
+
+## Review — OpenRouter migration (2026-07-28)
+
+Implemented without copying the supplied credential into the filesystem or another command:
+
+- `ask_openrouter()` now posts to OpenRouter's OpenAI-compatible chat-completions endpoint,
+  selects `anthropic/claude-opus-5`, retains high reasoning effort, and exposes only the
+  `openrouter:web_search` server tool (8 calls / 24 cumulative results). The deterministic
+  candidate scan, `falsify()`, and human-reviewed PR boundary are unchanged.
+- The weekly workflow now reads only `secrets.OPENROUTER_API_KEY`. The transport is standard
+  library HTTP, so `anthropic` was removed from `requirements-propose.txt` and no LLM client
+  entered the pinned pipeline environment.
+- Added fail-first tests for the exact endpoint, bearer header, model, prompt roles, reasoning
+  config, search limits, refusal handling, workflow secret name, and absence of an OpenRouter
+  key prefix from tracked proposer files. The three focused tests failed before implementation
+  and passed afterwards.
+- Verification: `PYTHONPATH=src uv run python -m pytest -q tests/test_alias_proposer.py
+  tests/test_workflow_alerts.py` -> 67 passed; `PYTHONPATH=src uv run python -m pytest -q`
+  -> 447 passed; `git diff --check` -> clean. Reconciled against current tip `1fa2fcb`.
+
+Residual external setup: `gh secret list --app actions` shows only
+`FIREBASE_SERVICE_ACCOUNT`; `OPENROUTER_API_KEY` is not configured. No live/billable model call
+was made with the key pasted into chat. Rotate that exposed key, then store the replacement as
+the repository Actions secret `OPENROUTER_API_KEY` before dispatching `propose-aliases`.
+
+## OpenRouter cost reduction (2026-07-28)
+
+User approved the recommended model change after reviewing the proposer's bounded role and
+current OpenRouter prices.
+
+- [ ] Switch only the adjudicator from `anthropic/claude-opus-5` at high reasoning to
+      `openai/gpt-5.4-mini` at medium reasoning; retain the 8-search / 24-result ceilings and
+      every deterministic and human-review gate.
+- [ ] Update the transport contract test, run the focused proposer/workflow tests and full
+      Python suite, and append exact verification results.
+
+## Review — OpenRouter cost reduction (2026-07-28)
+
+- `MODEL` is now `openai/gpt-5.4-mini`; reasoning is `medium`. Search remains capped at 8
+  uses / 24 cumulative results, and no scan, falsifier, patch, workflow, or PR-review behavior
+  changed.
+- Verification: focused proposer/workflow suite -> 67 passed; full Python suite -> 447 passed.
+  A live no-search smoke call through OpenRouter using the configured model and medium
+  reasoning returned exactly `OK` via OpenAI: 11 prompt + 15 completion tokens (8 reasoning),
+  `$0.00007575`, no API error.
+
+## Round D — keep concurrent tournaments visible (2026-07-28)
+
+Production diagnosis: commit `7afd58f` correctly promoted a live 500-level event to the
+round-by-round hero, but reused the Slam-only page composition that collapses every other
+tournament. The ATP 250 is present in `tournaments.json`; the page hides it behind “show other
+recent events” solely because the ATP 500 was selected as the hero.
+
+- [ ] D1 add a fail-first web invariant: selecting a featured event must leave every other
+      live/upcoming tournament in the initially visible set; only completed events may collapse.
+- [ ] D2 keep the ATP 500 round-by-round hero, render concurrent live/upcoming ATP 250 cards
+      immediately below it, and reserve the disclosure toggle for completed recent events.
+- [ ] D3 run the focused web test, full web suite, and lint; then verify in the browser against
+      an artifact containing a simultaneous ATP 500 and ATP 250.
+- [ ] D4 record the visibility/composition lesson and append exact verification results here.
+
+### Round D plan correction
+
+User clarification after the first plan: the single-event hero is reserved for Grand Slams,
+Tour Finals/Olympics, and Masters 1000. A 500-and-below week uses the multi-event card layout,
+ordered by tournament prestige (500 before 250 before lower tiers), so no concurrent active
+event disappears merely because a more important one is present.
+
+### Round D implementation decision
+
+The event hierarchy is one shared ordering: Grand Slam → Tour Finals → Masters 1000/Olympics
+→ 500 → 250 → Cup/125/other. Apply it in two presentation modes:
+
+- **Focused weeks (1000-and-above):** the highest-ranked live/upcoming event owns the full
+  round-by-round hero. A compact `View other events (N)` disclosure sits beside the page intro,
+  not below the long hero table, and expands every remaining event in the same prestige order.
+- **Multi-event weeks (500-and-below):** no event takes the single-event hero. Every active
+  tournament card is visible immediately, ordered by prestige; completed recent events follow
+  after the active cards rather than displacing or hiding them.
+- **Invariant:** selecting a hero changes emphasis, never membership. Every event in the payload
+  is either immediately rendered or named by the above-the-fold disclosure, with its count.
+- **Test shape:** centralize the hierarchy/view partition in a pure helper returning
+  `{ hero, primary, other }`; unit-test the simultaneous 500+250 case, a 1000+500+250 case,
+  equal-tier stability, and completed-event handling. The page renders that result instead of
+  independently reimplementing selection, sorting, and disclosure.
+
+## Round D review
+
+Implemented the two-mode event hierarchy without touching the running model/data work:
+
+- `HERO_MAX_TIER_RANK` now stops at rank 2 (Grand Slam / Finals / Masters 1000 / Olympics).
+  A 500-and-below payload therefore stays in the complete card grid.
+- `byTournamentPrestige()` and `tournamentView()` are the single selection/order/membership
+  contract. A focused week returns one hero plus every remaining event; a non-focused week
+  returns the whole grid, ordered 500 before 250 before lower tiers.
+- Focused weeks expose a native `View other events (N)` disclosure immediately below the page
+  intro, before the long hero table. Opening it renders the existing full event cards.
+- Fail-first proof: the focused UI test failed in 2 places before the cutoff changed because
+  `heroEvent()` still selected the ATP 500. After implementation, the focused file passes 20/20.
+- Verification: full web suite 178/178; `npx tsc --noEmit` clean; ESLint 0 errors (13 existing
+  `set-state-in-effect`/unused-disable warnings outside the touched code); optimized Next.js
+  production build compiled and prerendered all 21 routes. Browser, real local ATP payload: DC
+  Open ATP 500 rendered first, followed by both live ATP 250s and every other event. Browser,
+  temporary local Masters fixture: the 1000 owned the hero, the closed control read
+  `View other events (7)`, and opening it revealed all seven remaining events in prestige order.
+  The temporary fixture is absent from the final generated artifact.
+
 ## Review — Round C hardening (2026-07-28)
 
 Completed alongside the separately committed Round D web work at current tip `d754b62`:
@@ -2450,3 +2573,24 @@ Completed alongside the separately committed Round D web work at current tip `d7
   independently recorded 178-test/build/browser verification.
 - Credential setup moved concurrently from Anthropic to OpenRouter; it remains external to
   this deterministic/runtime change. No credential was added to the repository.
+
+## Post-review identity and OpenRouter publish reconciliation (2026-07-28)
+
+- A final live refresh introduced one candidate after Round C's census: ESPN wrote ATP player
+  `W0BH` as `Chak Lam Coleman Wong` at Los Cabos while 180+ archive rows use `Coleman Wong`.
+  ATP's own profile URL and Hong Kong media notes join the full and short names to W0BH. Added
+  the terminal alias `chak lam coleman wong -> Coleman Wong`; its regression test failed before
+  the config entry and passed after it.
+- Final archive census against `1fa2fcb`: ATP 283,565 -> 283,561 rows and 8,154 -> 8,148
+  identities; WTA 128,762 -> 128,737 rows and 5,370 -> 5,363 identities. The current 180-day
+  proposer scan is empty on both tours after all 13 aliases.
+- A production-equivalent `pipeline --tour all --quick` detected both cached predictors as
+  stale, rebuilt both production combiners, regenerated exports/logs/ledgers, and completed.
+  `health --gate` passed with zero blockers; Bloomfield Hills retained the deliberately
+  non-blocking below-500 stale-live advisory recorded in Round C.
+- The proposer now uses OpenRouter's `openai/gpt-5.4-mini` at medium reasoning with the existing
+  8-search / 24-result ceilings. `OPENROUTER_API_KEY` is configured as an external GitHub
+  Actions secret; no credential value is tracked.
+- Final pre-publish verification on `3e75263`: Python 448 passed; web 178 passed; ESLint 0
+  errors / 13 existing warnings; production build compiled and prerendered all 21 routes;
+  `git diff --check` clean.

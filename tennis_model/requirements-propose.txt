@@ -5,8 +5,7 @@
 # across runs (AGENTS.md); nothing in this file is imported by the pipeline, the gate, or
 # the site build, so a bump here cannot move a single model probability.
 #
-# Unpinned on purpose, for the same reason: this is a client for a live API, and a stale
-# pin is the failure mode that matters here — not a version skew, which cannot reach the
-# model artifacts. The proposer's own contract with the API surface is pinned by
-# tests/test_alias_proposer.py, which never touches the network.
-anthropic
+# The OpenRouter transport uses Python's standard-library HTTP client. This file remains as
+# the workflow's explicit dependency boundary: adding an LLM client here is a deliberate,
+# reviewable change, while tests/test_alias_proposer.py pin the HTTP contract without touching
+# the network.

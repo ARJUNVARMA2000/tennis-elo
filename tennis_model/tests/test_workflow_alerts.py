@@ -522,8 +522,29 @@ def test_the_llm_dependency_stays_out_of_the_pinned_pipeline_requirements():
     """requirements.txt pins exist so the retrain is reproducible and its pickles load
     across runs. The proposer's client must never ride along into that install."""
     pinned = (REPO / "tennis_model" / "requirements.txt").read_text(encoding="utf-8")
-    assert "anthropic" not in pinned
-    assert (REPO / "tennis_model" / "requirements-propose.txt").exists()
+    proposer = (REPO / "tennis_model" / "requirements-propose.txt").read_text(
+        encoding="utf-8")
+    workflow = ALIAS_WORKFLOW.read_text(encoding="utf-8")
+    assert "anthropic" not in pinned and "openrouter" not in pinned
+    assert "anthropic" not in proposer.lower(), \
+        "the proposer uses OpenRouter's HTTP API directly; the Anthropic SDK came back"
+    assert "OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}" in workflow
+    assert "ANTHROPIC_API_KEY" not in workflow
+
+
+def test_the_openrouter_credential_is_never_embedded_in_tracked_proposer_files():
+    """The workflow may name the secret, but neither it nor the transport may carry a key.
+
+    OpenRouter's current key prefix gives this a deterministic check instead of relying on
+    reviewers to spot a long hexadecimal value in YAML or Python.
+    """
+    paths = [
+        ALIAS_WORKFLOW,
+        REPO / "tennis_model" / "requirements-propose.txt",
+        REPO / "tennis_model" / "src" / "tennis_model" / "data" / "alias_proposer.py",
+    ]
+    for path in paths:
+        assert "sk-or-v1-" not in path.read_text(encoding="utf-8"), path
 
 
 if __name__ == "__main__":

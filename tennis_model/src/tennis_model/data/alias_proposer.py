@@ -10,7 +10,7 @@ had already shipped to the board — "Mifel Tennis Open by Telcel Oppo" sat as a
 This module closes that loop without putting a model anywhere near the pipeline:
 
     gate problem / near-miss scan   deterministic — generates the candidate set
-      -> Claude + web search        adjudicates ONLY the candidates it was handed
+      -> OpenRouter + web search    adjudicates ONLY the candidates it was handed
       -> falsify()                  deterministic — discards what the data refutes
       -> a config patch on a branch  human review is the last gate
 
@@ -24,8 +24,8 @@ same player from Madrid, while the Zverevs and the Bryans are not.
 
 Deliberately quarantined from the pipeline:
   * nothing on the hourly path imports this module;
-  * `anthropic` is NOT in requirements.txt (the retrain must stay reproducible from pinned
-    deps, and pins come from CI install logs) — the proposer workflow installs it alone;
+  * the OpenRouter transport uses only the standard library, so no LLM client enters
+    requirements.txt (the retrain must stay reproducible from pins taken from CI logs);
   * the CLI exits 0 on every failure mode. A proposer outage must never be able to red a
     run or block a deploy; the worst case is a week with no PR.
 
@@ -44,7 +44,8 @@ from ..config import EVENT_TIER_FALLBACK, PLAYER_ALIASES, WIKI_TITLE_OVERRIDES
 from .names import name_key
 from .surface import LEVEL_VOCAB, normalize_level
 
-MODEL = "claude-opus-5"
+MODEL = "openai/gpt-5.4-mini"
+OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 # A weekly cap. The board carries a handful of open identities at a time; a scan returning
 # fifty means the near-miss rule broke, and the right response is to look at it, not to
 # spend an hour of search on noise.
@@ -423,29 +424,66 @@ def extract_json(text: str) -> dict:
     return {}
 
 
-def ask_claude(questions: list[Question], *, client=None, model: str = MODEL) -> tuple[list[dict], str]:
-    """One search-enabled call; returns (raw proposals, the model's full text).
+def ask_openrouter(questions: list[Question], *, opener=None, api_key: str | None = None,
+                   model: str = MODEL) -> tuple[list[dict], str]:
+    """Make one search-enabled OpenRouter call; return proposals and the full model text.
 
-    Streamed because a search-and-read turn is long enough to risk an HTTP timeout, and the
-    output is parsed from text rather than `output_config.format` on purpose: structured
-    outputs guarantee the FIRST content block is the JSON, and a web-search turn puts
-    server-tool blocks ahead of it. Parsing the last fenced block is robust to both, and the
-    real guarantee is `falsify`, not the schema."""
-    if client is None:
-        import anthropic  # local: optional dependency
-        client = anthropic.Anthropic()
-    with client.messages.stream(
-        model=model,
-        max_tokens=16000,
-        system=_SYSTEM,
-        output_config={"effort": "high"},
-        tools=[{"type": "web_search_20260209", "name": "web_search", "max_uses": 8}],
-        messages=[{"role": "user", "content": render_prompt(questions)}],
-    ) as stream:
-        message = stream.get_final_message()
-    if getattr(message, "stop_reason", None) == "refusal":
+    This deliberately uses the small OpenAI-compatible HTTP surface instead of adding an
+    SDK to the workflow environment. OpenRouter performs the server-tool loop itself, so
+    this remains one request even when the model searches several times. Parsing the last
+    fenced block is intentional: the deterministic ``falsify`` step, not a provider schema,
+    is the boundary that decides what can reach the config patch.
+    """
+    from urllib.request import Request, urlopen
+
+    api_key = api_key or os.environ.get("OPENROUTER_API_KEY")
+    if not api_key:
+        raise RuntimeError("OPENROUTER_API_KEY is not configured")
+    payload = {
+        "model": model,
+        "max_tokens": 16000,
+        "reasoning": {"effort": "medium", "exclude": True},
+        "messages": [
+            {"role": "system", "content": _SYSTEM},
+            {"role": "user", "content": render_prompt(questions)},
+        ],
+        "tools": [{
+            "type": "openrouter:web_search",
+            "parameters": {"max_uses": 8, "max_total_results": 24},
+        }],
+        "max_tool_calls": 8,
+    }
+    request = Request(
+        OPENROUTER_URL,
+        data=json.dumps(payload).encode(),
+        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        method="POST",
+    )
+    open_request = opener or urlopen
+    with open_request(request, timeout=600) as response:
+        result = json.loads(response.read())
+    if not isinstance(result, dict):
+        raise RuntimeError("OpenRouter returned a non-object response")
+    if result.get("error"):
+        error = result["error"]
+        message = error.get("message") if isinstance(error, dict) else None
+        raise RuntimeError(f"OpenRouter error: {message or 'request failed'}")
+    choices = result.get("choices")
+    if not isinstance(choices, list) or not choices:
+        raise RuntimeError("OpenRouter returned no choices")
+    choice = choices[0] if isinstance(choices[0], dict) else {}
+    message = choice.get("message") if isinstance(choice.get("message"), dict) else {}
+    if message.get("refusal") or choice.get("finish_reason") in {"content_filter", "refusal"}:
         return [], "(model declined the request)"
-    text = "\n".join(b.text for b in message.content if getattr(b, "type", None) == "text")
+    content = message.get("content")
+    if isinstance(content, str):
+        text = content
+    elif isinstance(content, list):
+        text = "\n".join(
+            block.get("text", "") for block in content if isinstance(block, dict)
+        )
+    else:
+        text = ""
     raw = extract_json(text).get("proposals")
     return (raw if isinstance(raw, list) else []), text
 
@@ -588,7 +626,7 @@ def main() -> int:
             print(render_prompt(questions))
             return 0
 
-        raw, text = ask_claude(questions)
+        raw, text = ask_openrouter(questions)
         result = adjudicate(questions, raw, evidence_by_tour)
         result["questions"] = [q.context for q in questions]
         result["transcript"] = text

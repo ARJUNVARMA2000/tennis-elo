@@ -20,10 +20,11 @@ go there (committed, so Codex sees them too), not auto-memory.
   on string similarity.
 - **The identity tables in `config.py` have a proposer, and it is not in the pipeline.**
   `data/alias_proposer.py` runs weekly (`.github/workflows/propose-aliases.yml`), scans for
-  candidates deterministically, asks Claude with web search to adjudicate ONLY those, throws
-  away anything the match record refutes, and opens a PR. Nothing on the hourly path imports
-  it and `anthropic` is kept out of `requirements.txt` on purpose. The falsifier is the
-  contract — read `falsify()` and its tests, not this summary.
+  candidates deterministically, asks a model through OpenRouter with web search to adjudicate
+  ONLY those, throws away anything the match record refutes, and opens a PR. Nothing on the
+  hourly path imports it; its OpenRouter transport uses the standard library, so no LLM client
+  enters `requirements.txt`. The falsifier is the contract — read `falsify()` and its tests,
+  not this summary.
 - Architecture, metrics, how to run it: root `README.md` and `tennis_model/README.md`.
 
 ## Everyday commands (bash)

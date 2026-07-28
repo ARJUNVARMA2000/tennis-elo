@@ -4,6 +4,8 @@ case below is a plausible-sounding proposal the data refutes."""
 
 from __future__ import annotations
 
+import json
+
 import pandas as pd
 import pytest
 from tennis_model.data.alias_proposer import Question
@@ -351,17 +353,56 @@ def test_adjudicate_uses_evidence_from_each_proposals_tour():
     assert [p["canonical"] for p in result["accepted"]] == ["Daniel Merida", "Ilinca Amariei"]
 
 
-def test_ask_claude_never_lets_a_refusal_look_like_an_empty_answer():
-    class _Msg:
-        stop_reason, content = "refusal", []
-
-    class _Stream:
+def _openrouter_response(payload):
+    class _Response:
         def __enter__(self): return self
         def __exit__(self, *a): return False
-        def get_final_message(self): return _Msg()
+        def read(self): return json.dumps(payload).encode()
 
-    class _Client:
-        messages = type("M", (), {"stream": staticmethod(lambda **kw: _Stream())})()
+    return _Response()
 
-    proposals, text = ap.ask_claude([_pair("A B", "A B C")], client=_Client())
+
+def test_ask_openrouter_pins_auth_search_and_reasoning_contract():
+    captured = {}
+
+    def opener(request, timeout):
+        captured["url"] = request.full_url
+        captured["headers"] = dict(request.header_items())
+        captured["payload"] = json.loads(request.data)
+        captured["timeout"] = timeout
+        return _openrouter_response({
+            "choices": [{"finish_reason": "stop", "message": {"content":
+                '```json\n{"proposals": [{"kind": "player_alias"}]}\n```'}}]
+        })
+
+    proposals, _ = ap.ask_openrouter(
+        [_pair("A B", "A B C")], opener=opener, api_key="test-openrouter-key")
+
+    assert proposals == [{"kind": "player_alias"}]
+    assert captured["url"] == "https://openrouter.ai/api/v1/chat/completions"
+    assert captured["headers"]["Authorization"] == "Bearer test-openrouter-key"
+    assert captured["headers"]["Content-type"] == "application/json"
+    payload = captured["payload"]
+    assert payload["model"] == "openai/gpt-5.4-mini"
+    assert payload["messages"][0] == {"role": "system", "content": ap._SYSTEM}
+    assert "Resolve these open identities" in payload["messages"][1]["content"]
+    assert payload["reasoning"] == {"effort": "medium", "exclude": True}
+    assert payload["tools"] == [{
+        "type": "openrouter:web_search",
+        "parameters": {"max_uses": 8, "max_total_results": 24},
+    }]
+    assert payload["max_tool_calls"] == 8
+    assert "test-openrouter-key" not in json.dumps(payload)
+    assert captured["timeout"] >= 300
+
+
+def test_ask_openrouter_never_lets_a_refusal_look_like_an_empty_answer():
+    def opener(*_args, **_kwargs):
+        return _openrouter_response({
+            "choices": [{"finish_reason": "content_filter",
+                         "message": {"content": "", "refusal": "not allowed"}}]
+        })
+
+    proposals, text = ap.ask_openrouter(
+        [_pair("A B", "A B C")], opener=opener, api_key="test-openrouter-key")
     assert proposals == [] and "declined" in text

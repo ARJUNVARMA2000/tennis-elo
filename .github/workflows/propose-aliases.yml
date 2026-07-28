@@ -1,15 +1,15 @@
 name: propose-aliases
 
 # Weekly identity sweep: read the gate's unresolved events + scan the match frame for split
-# player identities, ask Claude (with web search) to adjudicate ONLY those candidates, throw
-# away everything the match record refutes, and open a PR with what survives.
+# player identities, ask a model through OpenRouter (with web search) to adjudicate ONLY
+# those candidates, throw away everything the match record refutes, and open a PR with what
+# survives.
 #
 # Deliberately not part of refresh.yml:
 #   * it must never be able to delay or block a deploy — the hourly path has no LLM in it,
 #     and this workflow saves no cache and touches no output;
-#   * it needs a dependency (`anthropic`) that is kept OUT of the pinned requirements.txt,
-#     because those pins come from CI install logs and guard pickle compatibility for the
-#     retrain. Installed here, alone, and nowhere else.
+#   * the OpenRouter HTTP transport uses the standard library, so no LLM client dependency
+#     enters the pinned requirements.txt or the retrain environment.
 #
 # The output is a pull request. Merging it is what adopts anything; nothing here can merge.
 on:
@@ -58,11 +58,11 @@ jobs:
         working-directory: tennis_model
         env:
           PYTHONPATH: src
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           DRY: ${{ github.event.inputs.dry_run }}
         run: |
-          if [ -z "$ANTHROPIC_API_KEY" ]; then
-            echo "::notice::ANTHROPIC_API_KEY is not configured — skipping the proposer"
+          if [ -z "$OPENROUTER_API_KEY" ]; then
+            echo "::notice::OPENROUTER_API_KEY is not configured — skipping the proposer"
             exit 0
           fi
           python -m tennis_model.data.alias_proposer \

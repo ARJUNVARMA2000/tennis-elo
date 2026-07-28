@@ -547,6 +547,11 @@ PLAYER_ALIASES: dict[str, str] = {
     # Dedura-Palomero" are one match written twice, which is proof rather than inference.
     # Two Elo histories for one 2007-born German, and the shorter spelling holds the rating.
     "diego dedura palomero": "Diego Dedura",
+    # 2026-07-28 live scan: Los Cabos used the full name on an id-less ESPN row while the
+    # archive's 180+ matches use Coleman Wong under ATP player id W0BH. ATP's player URL and
+    # its own Hong Kong media notes use the full name for that same profile.
+    # https://www.atptour.com/en/players/chak-lam-coleman-wong/w0bh/overview
+    "chak lam coleman wong": "Coleman Wong",
     # 2026-07-28 alias-proposer: ATP short form and ITF full form identify one player.
     # https://www.atptour.com/en/players/adrian-boitan/b0c0/overview
     "gabi adrian boitan": "Adrian Boitan",

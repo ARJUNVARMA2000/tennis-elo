@@ -117,6 +117,22 @@ def test_canonicalize_maps_a_three_spelling_cluster_directly_to_one_name():
     print("ok test_canonicalize_maps_a_three_spelling_cluster_directly_to_one_name")
 
 
+def test_canonicalize_maps_the_live_espn_coleman_wong_name_to_his_history():
+    """Los Cabos 2026 arrived under the full name while every prior row uses the short one.
+
+    ESPN omitted its player id on that row, so the identity registry is the only bridge to
+    W0BH's existing rating history.
+    """
+    df = pd.DataFrame({
+        "winner_name": ["Chak Lam Coleman Wong", "Coleman Wong"],
+        "loser_name": ["Opponent One", "Opponent Two"],
+        "__src": [2, 0],
+    })
+    out = results._canonicalize_names(df.copy())
+    assert set(out["winner_name"]) == {"Coleman Wong"}
+    print("ok test_canonicalize_maps_the_live_espn_coleman_wong_name_to_his_history")
+
+
 # ---------------------------------------------------------------------------
 # merge / dedup
 # ---------------------------------------------------------------------------
