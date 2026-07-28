@@ -174,3 +174,28 @@ Indexed in [`../lessons.md`](../lessons.md).
   cache by containment, the live path exactly — so one event could legitimately change
   surface the day it started (Memphis: Hard while upcoming, Grass on day one). Two code paths
   answering the same question must share one function.
+
+- **Display names are for display; joins use the event ID; the name history IS the alias
+  table.** (2026-07-28, the whole Track B) Nineteen seams in this codebase joined two sources
+  on an event-NAME string, and that was the single largest bug family in its history: the
+  duplicate Bad Homburg card with the finalists swapped, tier regressions to "Tour", clay
+  events shipped as Grass because the archive says "Bastad" where ESPN says "Nordea Open"
+  (zero shared substring), and the DC Open losing its bracket outright when ESPN dropped
+  "Citi" from its title mid-tournament. The fix was in the data the whole time — ESPN gives
+  every event a stable id, `parse_event_meta` had always extracted it, and it was used once
+  to dedup a fetch and then thrown away. **Four things that were not obvious while building
+  it:** (1) a rename that INSERTS a word mid-title ("Mubadala Citi DC Open" ->
+  "Mubadala DC Open") defeats every containment rule, so name resolution must REFUSE rather
+  than guess — what recovers the orphaned cache entry is the espnId stamped inside it, which
+  makes `EventResolver(extra=...)` load-bearing rather than a convenience. (2) The id is a
+  HINT, never a key: the archive predates it, the merge prefers stat-bearing archive rows, so
+  the row that SURVIVES a dedup usually has no id — take the modal non-null value per event.
+  (3) Worse, the id was being lost in the very step that proved two records were the same
+  event; dedup keys ignore `tourney_name` (that is how a match reported twice collapses at
+  all) and drop the ESPN row, so the identity must be propagated across a match's rows BEFORE
+  the dedup picks a survivor. (4) Merging must happen BEFORE projection, not by deduping
+  cards afterwards — dedup only hid the fragment, one of the two projections was still built
+  on half an event. **How to apply:** when two sources describe the same thing, find the
+  stable id one of them already emits and plumb it end to end; where no id exists, join on
+  EVIDENCE (date overlap plus shared real participants), never on string similarity; and make
+  the producer collapse exactly what the gate would flag as a split.

@@ -2329,4 +2329,29 @@ as the working rule for Track B: rebuild the artefact, don't just run the tests.
       DELIBERATELY SKIPPED from the plan: the "live card not resolvable to the registry"
       advisory. It would fire every run on Bloomfield Hills, a Challenger legitimately outside
       ESPN's tracked set — permanent noise that reds the sentinel with no action attached.
-- [ ] B6 docs/lessons
+- [x] B6 docs/lessons. The Track B lesson (display names are for display; joins use the
+      event id; the name history IS the alias table) plus the four non-obvious things only
+      building it revealed: a mid-title insertion defeats containment so resolution must
+      REFUSE not guess; the id is a hint never a key; it was being lost in the very dedup step
+      that proved two records were one event; and merging must happen BEFORE projection, since
+      deduping cards afterwards only hid the fragment. AGENTS.md gotcha added so a future
+      session reads it at start rather than rediscovering it.
+
+## Track B review
+
+Six commits. The identity layer now closes the largest bug family in this repo's history at
+its root, and three separate live symptoms went away as a consequence: the DC Open's orphaned
+draw, the "Washington Dc" 12-player fragment shipping beside the real 28-draw, and the
+nine-day stuck-"live" class. Verified in production each time, not just in tests.
+
+What this session actually taught, in one line: EVERY commit had a defect that a green test
+suite did not catch. Live Wikipedia found A1's second parse bug; a card rebuild found A2's
+tuple leaking into a surface field; the browser found A3's second projection renderer; reading
+the production board found the id being dropped by dedup; a manual re-read found three silent
+coalescing defects after the agent review returned an empty result that read exactly like a
+pass; and wall-clock (8.65s vs 0.13s) found a test calling the live ESPN API. The failing-first
+check caught two tests that could not fail. Rebuild the artefact; don't trust the suite alone.
+
+Still open: the LLM alias proposer (offline, evidence-backed, PR-gated, with a deterministic
+falsifier — blocked on the account spend limit), and promoting the three 772e5d4 advisories
+plus the month-guess advisory to blocking once a full cycle proves them quiet.

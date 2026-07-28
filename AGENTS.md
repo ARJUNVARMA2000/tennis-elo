@@ -12,6 +12,12 @@ go there (committed, so Codex sees them too), not auto-memory.
   the app until that mirror is regenerated. Dev server on :3001.
 - `tasks/todo.md` and `tasks/lessons/*.md` are append-only logs, not checklists. The live round is
   at the *tail* of `todo.md`. Don't read either whole.
+- **Events join on `espnId`, never on their name.** `data/events.py` holds the registry; an
+  event's `names` list is its alias table, because ESPN's sponsor titles churn mid-tournament
+  and the archive uses city names instead ("Nordea Open" vs "Bastad" share nothing). The id is
+  a HINT on match rows, not a key — the archive predates it, so take the modal non-null value
+  per event. Where no id exists, join on evidence (date overlap + shared real players), never
+  on string similarity.
 - Architecture, metrics, how to run it: root `README.md` and `tennis_model/README.md`.
 
 ## Everyday commands (bash)

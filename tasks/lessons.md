@@ -20,6 +20,7 @@ New lesson → append the entry to the matching topic file and add its lead line
 ## Draws, rounds & live events — [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md)
 
 - "It never changes once released" is a claim about the FINAL state; a cache keyed on it must also check the state it was captured in. (2026-07-27)
+- Display names are for display; joins use the event ID; the name history IS the alias table. Where no id exists, join on evidence, never on string similarity. (2026-07-28)
 - Three bugs kept every HARD-COURT surface unresolved (wikilink pipe, one-word target) and a month guess with no provenance recycled itself as fact. (2026-07-27)
 - A name-set invariant must exclude the slots that don't name anyone. (2026-07-24)
 - A gate invariant that compares two DERIVED quantities must derive both sides exactly as the code that produced them — and be validated against messy real draw states, not one clean snapshot. (2026-07-13)
