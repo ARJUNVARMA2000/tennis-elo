@@ -105,6 +105,18 @@ def test_canonicalize_merges_a_dropped_surname_via_alias():
     print("ok test_canonicalize_merges_a_dropped_surname_via_alias")
 
 
+def test_canonicalize_maps_a_three_spelling_cluster_directly_to_one_name():
+    """Alias values must be terminal: the runtime performs one lookup, not a chain."""
+    df = pd.DataFrame({
+        "winner_name": ["Guto Miguel", "Luis Guto Miguel", "Luis Miguel"],
+        "loser_name": ["Opponent One", "Opponent Two", "Opponent Three"],
+        "__src": [2, 2, 2],
+    })
+    out = results._canonicalize_names(df.copy())
+    assert set(out["winner_name"]) == {"Guto Miguel"}
+    print("ok test_canonicalize_maps_a_three_spelling_cluster_directly_to_one_name")
+
+
 # ---------------------------------------------------------------------------
 # merge / dedup
 # ---------------------------------------------------------------------------

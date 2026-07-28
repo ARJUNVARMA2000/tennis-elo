@@ -547,6 +547,42 @@ PLAYER_ALIASES: dict[str, str] = {
     # Dedura-Palomero" are one match written twice, which is proof rather than inference.
     # Two Elo histories for one 2007-born German, and the shorter spelling holds the rating.
     "diego dedura palomero": "Diego Dedura",
+    # 2026-07-28 alias-proposer: ATP short form and ITF full form identify one player.
+    # https://www.atptour.com/en/players/adrian-boitan/b0c0/overview
+    "gabi adrian boitan": "Adrian Boitan",
+    # 2026-07-28 alias-proposer: both forms carry ATP player id M0WY.
+    # https://www.atptour.com/en/players/luis-guto-miguel/m0wy/overview
+    "luis guto miguel": "Guto Miguel",
+    # 2026-07-28 alias-proposer: both forms identify ATP player RD48.
+    # https://www.atptour.com/en/players/igor-marcondes/rd48/overview
+    "igor ribeiro marcondes": "Igor Marcondes",
+    # 2026-07-28 alias-proposer: ATP pages use both forms under player id S0WT.
+    # https://www.atptour.com/en/players/joel-schwaerzler/s0wt/overview
+    "joel josef schwaerzler": "Joel Schwaerzler",
+    # 2026-07-28 alias-proposer: this third form also carries ATP player id M0WY.
+    # https://www.atptour.com/en/players/luis-guto-miguel/m0wy/overview
+    "luis miguel": "Guto Miguel",
+    # 2026-07-28 alias-proposer: WTA short form and full name identify one player.
+    # https://www.wtatennis.com/players/326044/caijsa-hennemann
+    "caijsa wilda hennemann": "Caijsa Hennemann",
+    # 2026-07-28 alias-proposer: WTA short form and full name identify one player.
+    # https://www.wtatennis.com/players/321367/gabriela-knutson
+    "gabriela andrea knutson": "Gabriela Knutson",
+    # 2026-07-28 alias-proposer: WTA short form and full name identify one player.
+    # https://www.wtatennis.com/players/327490/ilinca-amariei
+    "ilinca dalina amariei": "Ilinca Amariei",
+    # 2026-07-28 alias-proposer: WTA short form and full name identify one player.
+    # https://www.wtatennis.com/players/321157/irene-burillo
+    "irene burillo escorihuela": "Irene Burillo",
+    # 2026-07-28 alias-proposer: WTA short form and full name identify one player.
+    # https://www.wtatennis.com/players/329464/maria-torres-murcia
+    "maria camila torres murcia": "Maria Torres Murcia",
+    # 2026-07-28 alias-proposer: WTA short form and ITF full form identify one player.
+    # https://www.itftennis.com/en/players/miriam-bianca-bulgaru/800333881/rou/wt/d/
+    "miriam bianca bulgaru": "Miriam Bulgaru",
+    # 2026-07-28 alias-proposer: WTA short form and ITF full form identify one player.
+    # https://www.itftennis.com/en/players/tiantsoa-sarah-rakotomanga-rajaonah/800507833/fra/jt/D/overview/
+    "tiantsoa sarah rakotomanga rajaonah": "Tiantsoa Rakotomanga Rajaonah",
 }
 
 

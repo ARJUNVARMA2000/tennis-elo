@@ -271,16 +271,11 @@ _GATE_ADVISORY = (
     "market.json odds coverage",   # benchmark-card staleness; odds are never a build dependency
     "forecast drift",              # model-decay advisory; a re-tune recommendation must never block a deploy
     "forecast log last advanced",  # eval-artifact liveness; never a build dependency
-    # Board-quality problems: the card is wrong, the numbers behind it are not. All three
-    # were ALREADY shipping when the checks landed (2026-07-27), so blocking would have
-    # frozen the site on an older build rather than fixing anything. Promote to blocking
-    # once the underlying ingestion is clean.
-    "is stuck 'live'",             # event whose final never arrived
-    "players alive (expected 1)",  # completed event whose eliminations never joined
-    # NB: the two placeholder checks (modelFavorite, projection rows) are NOT listed — they
-    # are TIER-AWARE via `_tiered`, so a ghost on a 500-or-above blocks while the long tail
-    # warns. The producer now withholds odds entirely below a real majority, so on a clean
-    # build neither can fire at any tier.
+    # Board-quality problems are TIER-AWARE via `_tiered`: 500-and-above blocks while the
+    # long tail warns. The original stuck-live, many-alive, and placeholder exemptions were
+    # removed after their producer fixes stayed quiet through successive real refreshes.
+    # The producer now withholds odds entirely below a real majority, so on a clean build
+    # the placeholder checks cannot fire at any tier.
     # NB: "is a month-of-year guess" is deliberately NOT listed — it is TIER-AWARE via
     # `_tiered`, so it blocks on a 500-or-above (where a guessed surface misprices a marquee
     # event, as it did the DC Open) and carries the _BELOW_TIER suffix elsewhere, because for
@@ -514,14 +509,14 @@ def _check_tournament(out: list, tour: str, t: dict, now: pd.Timestamp | None = 
         out.append(f"{tour}: {status} tournament {name!r} already names champion {champ!r}")
     # A live event whose last match is long past never received its final, so it is frozen
     # "live" forever — the board showed Iasi live with 3 alive nine days after it ended
-    # (2026-07-27). `completed` is set ONLY by a round-"F" row (sim/tournaments.py), so a
-    # results feed that drops the final strands the card at the top of the page.
+    # (2026-07-27). Calendar completion now prevents that producer failure; if it regresses,
+    # the normal board-quality tier policy applies.
     if status == "live" and now is not None:
         age = _age_days(t.get("end"), now)
         if age is not None and age > HEALTH_MAX_LIVE_EVENT_AGE_DAYS:
-            out.append(f"{tour}: live tournament {name!r} last played {age}d ago "
-                       f"(max {HEALTH_MAX_LIVE_EVENT_AGE_DAYS}) — its final never arrived, "
-                       f"so it is stuck 'live'")
+            out.append(_tiered(f"{tour}: live tournament {name!r} last played {age}d ago "
+                               f"(max {HEALTH_MAX_LIVE_EVENT_AGE_DAYS}) — its final never "
+                               f"arrived, so it is stuck 'live'", t.get("level")))
     # The mirror image: an event still labelled "upcoming" after its own dates have passed.
     # Ending while never having gone live is impossible — the results simply never joined, so
     # the card is inviting clicks on odds for a tournament that is already over. Tier-aware:
@@ -541,10 +536,12 @@ def _check_tournament(out: list, tour: str, t: dict, now: pd.Timestamp | None = 
                        f"has not flipped live")
     # A finished event has exactly one player left standing. Palermo shipped as completed
     # WITH a champion and aliveCount 32 of 32: the authoritative draw supplied the field
-    # while the results supplied the eliminations, and the two never joined.
+    # while the results supplied the eliminations, and the two never joined. Settled-draw
+    # refreshes now prevent that producer failure; regressions follow the tier policy.
     if status == "completed" and champ and isinstance(alive, int) and alive > 1:
-        out.append(f"{tour}: completed tournament {name!r} names champion {champ!r} but "
-                   f"still reports {alive} players alive (expected 1)")
+        out.append(_tiered(f"{tour}: completed tournament {name!r} names champion {champ!r} "
+                           f"but still reports {alive} players alive (expected 1)",
+                           t.get("level")))
     # `_flag_placeholders` matches a fixed word set, so the NUMBERED form ("Qualifier 30")
     # slipped through and shipped as Palermo's modelFavorite. Use the same predicate the
     # draw machinery uses to decide whether a slot names a real player.
@@ -554,8 +551,8 @@ def _check_tournament(out: list, tour: str, t: dict, now: pd.Timestamp | None = 
                            f"placeholder", t.get("level")))
     # Surface. A non-canonical value is a builder bug (the card, the per-surface Elo blend
     # and the /style page all key off this string), so it blocks. A month-of-year GUESS is
-    # advisory — it is what shipped the DC Open, a hard court, priced on grass Elo, but for
-    # a genuinely new event it is the only answer we have.
+    # tier-aware — it is what shipped the DC Open, a hard court, priced on grass Elo, but for
+    # a genuinely new small event it can be the only answer we have.
     sfc, lvl = t.get("surface"), t.get("level")
     if sfc is not None and sfc not in _CANONICAL_SURFACES:
         out.append(f"{tour}: tournament {name!r} surface {sfc!r} is not a canonical surface "

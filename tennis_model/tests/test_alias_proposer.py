@@ -102,6 +102,37 @@ def test_player_scan_skips_pairs_config_already_covers(evidence, monkeypatch):
     assert ap.player_questions(evidence, "atp") == []
 
 
+def test_stable_player_ids_refute_a_subset_pair_before_search(unpatched_config):
+    """Two ATP names can have the exact dropped-surname shape and still be two people.
+
+    The tour's alphanumeric player id is stronger evidence than the name heuristic, while
+    two spellings carrying the same id remain a legitimate question.
+    """
+    frame = pd.DataFrame([
+        ("Joao Lucas Reis Da Silva", "Opponent One", "R0A7", "O001", pd.Timestamp("2026-07-01")),
+        ("Joao Silva", "Opponent Two", "S0Y4", "O002", pd.Timestamp("2026-07-02")),
+        ("Guto Miguel", "Opponent Three", "M0WY", "O003", pd.Timestamp("2026-07-03")),
+        ("Guto Miguel", "Opponent Six", "M0WY", "O006", pd.Timestamp("2026-07-03")),
+        ("Luis Guto Miguel", "Opponent Four", "M0WY", "O004", pd.Timestamp("2026-07-04")),
+        ("Luis Miguel", "Opponent Five", "M0WY", "O005", pd.Timestamp("2026-07-05")),
+    ], columns=["winner_name", "loser_name", "winner_id", "loser_id", "date"])
+    subjects = [q.subject for q in ap.player_questions(ap.build_evidence(frame), "atp")]
+    assert ("Joao Lucas Reis Da Silva", "Joao Silva") not in subjects
+    assert ("Guto Miguel", "Luis Guto Miguel") in subjects
+    assert ("Guto Miguel", "Luis Miguel") in subjects
+    assert ("Luis Guto Miguel", "Luis Miguel") not in subjects
+
+
+def test_numeric_source_local_ids_do_not_refute_a_wta_name_pair(unpatched_config):
+    """Historical and current WTA feeds use different numeric id namespaces."""
+    frame = pd.DataFrame([
+        ("Caijsa Hennemann", "Opponent One", 326044.0, 1.0, pd.Timestamp("2026-07-01")),
+        ("Caijsa Wilda Hennemann", "Opponent Two", 216385.0, 2.0, pd.Timestamp("2026-07-02")),
+    ], columns=["winner_name", "loser_name", "winner_id", "loser_id", "date"])
+    subjects = [q.subject for q in ap.player_questions(ap.build_evidence(frame), "wta")]
+    assert ("Caijsa Hennemann", "Caijsa Wilda Hennemann") in subjects
+
+
 # --------------------------------------------------------------------------- falsifier
 def test_match_record_outranks_the_model(evidence):
     """The core rule. Even asked about, even asserted, two names that met across a net are
@@ -112,6 +143,18 @@ def test_match_record_outranks_the_model(evidence):
                 "reason": "same family, appears to be the same player"}
     reason = ap.falsify(proposal, _asked(q), evidence)
     assert reason and "played each other" in reason
+
+
+def test_stable_player_id_outranks_the_model(unpatched_config):
+    frame = pd.DataFrame([
+        ("Joao Lucas Reis Da Silva", "Opponent One", "R0A7", "O001", pd.Timestamp("2026-07-01")),
+        ("Joao Silva", "Opponent Two", "S0Y4", "O002", pd.Timestamp("2026-07-02")),
+    ], columns=["winner_name", "loser_name", "winner_id", "loser_id", "date"])
+    q = _pair("Joao Lucas Reis Da Silva", "Joao Silva")
+    proposal = {"kind": "player_alias", "tour": "atp", "variant": "Joao Silva",
+                "canonical": "Joao Lucas Reis Da Silva", "same_person": True}
+    reason = ap.falsify(proposal, _asked(q), ap.build_evidence(frame))
+    assert reason and "different stable player ids" in reason
 
 
 def test_model_cannot_widen_the_candidate_set(evidence):
@@ -285,6 +328,27 @@ def test_adjudicate_splits_a_mixed_answer_and_keeps_the_reasons(evidence):
     assert all(r["reason"] for r in result["rejected"])
     body = ap.summarize(result)
     assert "Daniel Merida" in body and "Discarded by the falsifier" in body
+
+
+def test_adjudicate_uses_evidence_from_each_proposals_tour():
+    atp = ap.build_evidence(_frame([
+        ("Daniel Merida", "ATP Opponent", pd.Timestamp("2026-06-01")),
+        ("Daniel Merida Aguilar", "ATP Other", pd.Timestamp("2026-06-02")),
+    ]))
+    wta = ap.build_evidence(_frame([
+        ("Ilinca Amariei", "WTA Opponent", pd.Timestamp("2026-06-01")),
+        ("Ilinca Dalina Amariei", "WTA Other", pd.Timestamp("2026-06-02")),
+    ]))
+    questions = [_pair("Daniel Merida", "Daniel Merida Aguilar", "atp"),
+                 _pair("Ilinca Amariei", "Ilinca Dalina Amariei", "wta")]
+    raw = [
+        {"kind": "player_alias", "tour": "atp", "variant": "Daniel Merida Aguilar",
+         "canonical": "Daniel Merida", "same_person": True},
+        {"kind": "player_alias", "tour": "wta", "variant": "Ilinca Dalina Amariei",
+         "canonical": "Ilinca Amariei", "same_person": True},
+    ]
+    result = ap.adjudicate(questions, raw, {"atp": atp, "wta": wta})
+    assert [p["canonical"] for p in result["accepted"]] == ["Daniel Merida", "Ilinca Amariei"]
 
 
 def test_ask_claude_never_lets_a_refusal_look_like_an_empty_answer():

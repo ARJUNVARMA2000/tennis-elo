@@ -123,6 +123,7 @@ class MatchEvidence:
     opponents: set = field(default_factory=set)
     spellings: dict = field(default_factory=dict)   # name_key -> {spelling: count}
     counts: dict = field(default_factory=dict)      # name_key -> matches played
+    stable_ids: dict = field(default_factory=dict)  # name_key -> cross-feed player ids
 
     def played_each_other(self, a: str, b: str) -> bool:
         return frozenset((name_key(a), name_key(b))) in self.opponents
@@ -130,9 +131,35 @@ class MatchEvidence:
     def known(self, name: str) -> bool:
         return name_key(name) in self.counts
 
+    def different_stable_ids(self, a: str, b: str) -> bool:
+        a_ids = self.stable_ids.get(name_key(a)) or set()
+        b_ids = self.stable_ids.get(name_key(b)) or set()
+        return bool(a_ids and b_ids and a_ids.isdisjoint(b_ids))
+
+    def shared_stable_ids(self, a: str, b: str) -> set[str]:
+        return ((self.stable_ids.get(name_key(a)) or set())
+                & (self.stable_ids.get(name_key(b)) or set()))
+
     def best_spelling(self, key: str) -> str | None:
         seen = self.spellings.get(key) or {}
         return max(seen, key=lambda s: (seen[s], s)) if seen else None
+
+
+def _stable_player_id(value) -> str | None:
+    """Return an id that is safe to compare across the loaded match feeds.
+
+    ATP's ids are alphanumeric strings (for example R0A7) and persist across the archive
+    and current feed. The WTA frames currently contain numeric ids from incompatible source
+    namespaces, so treating two different numbers as two people would refute real aliases.
+    """
+    if not isinstance(value, str):
+        return None
+    player_id = value.strip().upper()
+    if not player_id.isalnum():
+        return None
+    if not any(c.isalpha() for c in player_id) or not any(c.isdigit() for c in player_id):
+        return None
+    return player_id
 
 
 def build_evidence(df, since=None) -> MatchEvidence:
@@ -141,15 +168,22 @@ def build_evidence(df, since=None) -> MatchEvidence:
     ev = MatchEvidence()
     if since is not None and "date" in getattr(df, "columns", ()):
         df = df[df["date"] >= since]
-    for w, l in zip(df["winner_name"], df["loser_name"]):
+    columns = getattr(df, "columns", ())
+    winner_ids = df["winner_id"] if "winner_id" in columns else [None] * len(df)
+    loser_ids = df["loser_id"] if "loser_id" in columns else [None] * len(df)
+    for w, l, winner_id, loser_id in zip(
+            df["winner_name"], df["loser_name"], winner_ids, loser_ids):
         kw, kl = name_key(w), name_key(l)
         if not kw or not kl:
             continue
         ev.opponents.add(frozenset((kw, kl)))
-        for key, spelling in ((kw, w), (kl, l)):
+        for key, spelling, raw_id in ((kw, w, winner_id), (kl, l, loser_id)):
             ev.counts[key] = ev.counts.get(key, 0) + 1
             ev.spellings.setdefault(key, {})
             ev.spellings[key][spelling] = ev.spellings[key].get(spelling, 0) + 1
+            player_id = _stable_player_id(raw_id)
+            if player_id:
+                ev.stable_ids.setdefault(key, set()).add(player_id)
     return ev
 
 
@@ -167,7 +201,49 @@ def player_questions(evidence: MatchEvidence, tour: str, limit: int = MAX_QUESTI
     question; a pair that has met across a net is dropped here rather than asked about."""
     keys = [k for k in evidence.counts if len(k.split()) >= 2]
     toks = {k: frozenset(k.split()) for k in keys}
-    cands: list[tuple[int, str, str]] = []
+    cands: list[tuple[int, str, str, str]] = []
+    stable_subjects: set[tuple[str, str]] = set()
+
+    # A single stable id can have three spellings. Pairwise subset questions would then
+    # produce an alias chain, but results._canonicalize_names intentionally applies this
+    # table once. Build connected dropped-name components and ask every variant directly
+    # against the component's most-used spelling instead.
+    keys_by_id: dict[str, set[str]] = {}
+    for key, player_ids in evidence.stable_ids.items():
+        for player_id in player_ids:
+            keys_by_id.setdefault(player_id, set()).add(key)
+    for player_id, id_keys in keys_by_id.items():
+        remaining = set(id_keys)
+        while remaining:
+            component = {remaining.pop()}
+            changed = True
+            while changed:
+                changed = False
+                for candidate in list(remaining):
+                    if any(toks.get(candidate, frozenset()) < toks.get(member, frozenset())
+                           or toks.get(member, frozenset()) < toks.get(candidate, frozenset())
+                           for member in component):
+                        component.add(candidate)
+                        remaining.remove(candidate)
+                        changed = True
+            if len(component) < 2:
+                continue
+            canonical = max(component, key=lambda key: (
+                evidence.counts[key], -len(key.split()), evidence.best_spelling(key) or key))
+            canonical_spelling = evidence.best_spelling(canonical) or canonical
+            for variant in component - {canonical}:
+                if variant in PLAYER_ALIASES or canonical in PLAYER_ALIASES:
+                    continue
+                variant_spelling = evidence.best_spelling(variant) or variant
+                subject = tuple(sorted((canonical_spelling, variant_spelling)))
+                if evidence.played_each_other(*subject):
+                    continue
+                stable_subjects.add(subject)
+                cands.append((evidence.counts[variant], *subject,
+                              f"{variant_spelling!r} ({evidence.counts[variant]} matches) "
+                              f"and {canonical_spelling!r} ({evidence.counts[canonical]} "
+                              f"matches) share stable player id {player_id}"))
+
     for short in keys:
         for long in keys:
             if short == long or not toks[short] < toks[long]:
@@ -177,19 +253,26 @@ def player_questions(evidence: MatchEvidence, tour: str, limit: int = MAX_QUESTI
                 continue
             if frozenset((short, long)) in evidence.opponents:
                 continue
+            if evidence.different_stable_ids(short, long):
+                continue
+            if evidence.shared_stable_ids(short, long):
+                continue
             a = evidence.best_spelling(short) or short
             b = evidence.best_spelling(long) or long
             # Rarest-first: a split identity is lopsided (many matches under one spelling,
             # a handful under the other), and that is also the ordering that puts the
             # freshly-broken name ahead of a long-settled ambiguity.
-            cands.append((min(evidence.counts[short], evidence.counts[long]), a, b))
+            subject = tuple(sorted((a, b)))
+            if subject in stable_subjects:
+                continue
+            cands.append((min(evidence.counts[short], evidence.counts[long]), *subject,
+                          f"{a!r} ({evidence.counts[short]} matches) and "
+                          f"{b!r} ({evidence.counts[long]} matches) never played each "
+                          f"other and differ only by a dropped/added name part"))
     cands.sort(key=lambda c: (c[0], c[1], c[2]))
     return [
-        Question(kind="player_alias", tour=tour, subject=tuple(sorted((a, b))),
-                 context=f"{a!r} ({evidence.counts[name_key(a)]} matches) and "
-                         f"{b!r} ({evidence.counts[name_key(b)]} matches) never played "
-                         f"each other and differ only by a dropped/added name part")
-        for _, a, b in cands[:limit]
+        Question(kind="player_alias", tour=tour, subject=(a, b), context=context)
+        for _, a, b, context in cands[:limit]
     ]
 
 
@@ -223,6 +306,9 @@ def falsify(proposal: dict, asked: dict, evidence: MatchEvidence | None = None) 
             if evidence.played_each_other(variant, canonical):
                 return ("these two names have played each other, so they are two people "
                         "— the match record outranks the search result")
+            if evidence.different_stable_ids(variant, canonical):
+                return ("these names carry different stable player ids, so they are two "
+                        "people — the match record outranks the search result")
             if not evidence.known(canonical):
                 return f"canonical spelling {canonical!r} does not appear in the match record"
         return None
@@ -365,7 +451,8 @@ def ask_claude(questions: list[Question], *, client=None, model: str = MODEL) ->
 
 
 def adjudicate(questions: list[Question], raw: list[dict],
-               evidence: MatchEvidence | None = None, meta_fn=None) -> dict:
+               evidence: MatchEvidence | dict[str, MatchEvidence] | None = None,
+               meta_fn=None) -> dict:
     """Run every proposal past both halves of the falsifier. Returns accepted + rejected;
     the rejected list carries its reason because that is what makes the falsifier reviewable
     — a PR that shows what it threw away and why is one a human can actually audit."""
@@ -375,7 +462,9 @@ def adjudicate(questions: list[Question], raw: list[dict],
         if not isinstance(proposal, dict):
             rejected.append({"proposal": proposal, "reason": "not an object"})
             continue
-        reason = falsify(proposal, asked, evidence) or verify_article(proposal, meta_fn)
+        proposal_evidence = (evidence.get(str(proposal.get("tour") or ""))
+                             if isinstance(evidence, dict) else evidence)
+        reason = falsify(proposal, asked, proposal_evidence) or verify_article(proposal, meta_fn)
         (rejected.append({**proposal, "reason": reason}) if reason
          else accepted.append(proposal))
     return {"accepted": accepted, "rejected": rejected}
@@ -479,15 +568,15 @@ def main() -> int:
         if args.health and os.path.exists(args.health):
             with open(args.health) as fh:
                 questions += questions_from_health(json.load(fh))
-        evidence = None
+        evidence_by_tour: dict[str, MatchEvidence] = {}
         for tour in args.tours or []:
             import pandas as pd
 
             from .results import load_matches
             df = load_matches(tour)
             since = pd.Timestamp.now().normalize() - pd.Timedelta(days=SCAN_WINDOW_DAYS)
-            evidence = build_evidence(df, since=since)
-            questions += player_questions(evidence, tour)
+            evidence_by_tour[tour] = build_evidence(df, since=since)
+            questions += player_questions(evidence_by_tour[tour], tour)
         questions = questions[:MAX_QUESTIONS]
 
         for q in questions:
@@ -500,7 +589,7 @@ def main() -> int:
             return 0
 
         raw, text = ask_claude(questions)
-        result = adjudicate(questions, raw, evidence)
+        result = adjudicate(questions, raw, evidence_by_tour)
         result["questions"] = [q.context for q in questions]
         result["transcript"] = text
         for p in result["accepted"]:

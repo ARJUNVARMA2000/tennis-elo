@@ -2386,3 +2386,67 @@ Still open (deliberately):
   scan asks rather than decides.
 - Promote the three 772e5d4 advisories + the month-guess advisory to blocking once a full
   cycle proves them quiet.
+
+## Round C — close the remaining hardening gaps (2026-07-28)
+
+Evidence before editing: two successive production refreshes after B5 reported 0 output
+problems on both tours, including the refresh on `1fa2fcb`; the pre-deploy gate, data-health
+sentinel, and test workflow all passed. The placeholder and month-guess checks have already
+been promoted under the newer tier-aware policy. Only `stuck 'live'` and completed-with-many-
+alive retain their original blanket advisory exemptions. Also, a fresh deterministic proposer
+dry-run finds 12 player-name candidates, not the single ambiguous pair recorded above; the
+repository still has no `ANTHROPIC_API_KEY` secret.
+
+- [ ] C1 gate promotion: make the two remaining board-quality checks tier-aware like the
+      already-promoted placeholder/month checks — 500-and-above blocks; long-tail events keep
+      the explicit advisory suffix. Update the classifier comments and fail-first tests for
+      both severity branches.
+- [ ] C2 identity adjudication: research only the 12 candidates emitted by the deterministic
+      scan, retain source URLs/reasoning, run every proposed alias through `falsify()`, and add
+      only proposals that both web evidence and the match record support. Pin accepted and
+      rejected cases in proposer/config tests so the same spellings do not reappear silently.
+- [ ] C3 real-artifact proof: rebuild the affected match/card artifacts, census which rows and
+      identities collapse, then run the pre-deploy gate against the rebuild. A green unit suite
+      alone is not acceptance.
+- [ ] C4 verification: run the focused health/alias/workflow tests, then the full Python suite
+      from `tennis_model/` with `PYTHONPATH=src`; run web tests only if regenerated mirrored
+      output changes a web contract.
+- [ ] C5 review: append the exact accepted/rejected aliases, artifact deltas, commands/results,
+      and the still-external `ANTHROPIC_API_KEY` setup to this round. Do not add or expose a
+      credential from the code change.
+
+## Review — Round C hardening (2026-07-28)
+
+Completed alongside the separately committed Round D web work at current tip `d754b62`:
+
+- The stuck-live and completed-with-many-alive board checks now follow the existing tier-aware
+  gate contract: 500-and-above blocks; lower tiers retain a named advisory suffix. Fail-first
+  tests cover both severity branches.
+- Twelve aliases survived both source research and `falsify()`: Gabi Adrian Boitan → Adrian
+  Boitan; Luis Guto Miguel and Luis Miguel → Guto Miguel; Igor Ribeiro Marcondes → Igor
+  Marcondes; Joel Josef Schwaerzler → Joel Schwaerzler; Caijsa Wilda Hennemann → Caijsa
+  Hennemann; Gabriela Andrea Knutson → Gabriela Knutson; Ilinca Dalina Amariei → Ilinca
+  Amariei; Irene Burillo Escorihuela → Irene Burillo; Maria Camila Torres Murcia → Maria
+  Torres Murcia; Miriam Bianca Bulgaru → Miriam Bulgaru; and Tiantsoa Sarah Rakotomanga
+  Rajaonah → Tiantsoa Rakotomanga Rajaonah. A fresh real-data dry-run reports no open
+  identities.
+- Two tempting subset-name merges were rejected before model adjudication: Joao Silva (ATP
+  `S0Y4`) is not Joao Lucas Reis Da Silva (`R0A7`), and Luis Felipe Miguel (`M0OT`) is not
+  Luis/Guto Miguel (`M0WY`). The proposer now treats stable alphanumeric ids as refuting
+  evidence, keeps source-local numeric WTA ids non-authoritative, carries evidence per tour,
+  and resolves three-spelling id clusters directly to one terminal canonical.
+- Real archive census: ATP changed 283,565 → 283,561 match rows and 8,154 → 8,149 identities;
+  WTA changed 128,762 → 128,737 rows and 5,370 → 5,363 identities. The full local predictor
+  rebuild and a production-equivalent live/draw/rankings refresh completed for both tours.
+  The pre-deploy gate then passed with zero blockers (one intended below-500 Bloomfield Hills
+  stale-live advisory remained).
+- A predictor now records the alias-table revision. A push-triggered quick refresh therefore
+  promotes itself to a full rebuild after an identity change instead of pairing canonicalized
+  matches with cached split rating states.
+- Verification: focused health/alias/name/pipeline/workflow suite → 163 passed; the full shared
+  worktree → 447 passed; and an isolated worktree built from the Round C commit index → 445
+  passed. `git diff --check` was clean. Mirrored JSON changed only as generated data and
+  introduced no new web contract, so no additional web run was required beyond Round D's
+  independently recorded 178-test/build/browser verification.
+- Credential setup moved concurrently from Anthropic to OpenRouter; it remains external to
+  this deterministic/runtime change. No credential was added to the repository.

@@ -1,7 +1,8 @@
 """Quick-mode staleness guard: a cached predictor trained on an older feature schema
 must be detected (and rebuilt) instead of crashing inside XGBoost mid-refresh, and
 one carrying FeatureParams that differ from the tour's current config must be
-rebuilt instead of serving inference mismatched to its training frame.
+rebuilt instead of serving inference mismatched to its training frame. The same
+applies to player aliases: a renamed match frame cannot reuse split rating states.
 
 Runnable directly (`python tests/test_pipeline_guard.py`) or under pytest.
 """
@@ -71,6 +72,20 @@ def test_predictor_feat_param_guard():
     # a cross-tour pickle mixup self-reports the wrong tour; the explicit arg catches it
     assert not pipeline._predictor_current(_pred(_Clf(list(FEATURES)), "wta"), "atp")
     print("ok test_predictor_feat_param_guard")
+
+
+def test_predictor_player_alias_guard():
+    fresh = _pred(_Clf(list(FEATURES)), "atp")
+    assert pipeline._predictor_current(fresh, "atp")
+
+    stale = _pred(_Clf(list(FEATURES)), "atp")
+    stale.player_aliases = ()
+    assert not pipeline._predictor_current(stale, "atp")
+
+    legacy = _pred(_Clf(list(FEATURES)), "atp")
+    del legacy.player_aliases
+    assert not pipeline._predictor_current(legacy, "atp")
+    print("ok test_predictor_player_alias_guard")
 
 
 

@@ -1322,40 +1322,49 @@ def test_format_issue_body_has_problems_and_fix_prompt():
     print("ok test_format_issue_body_has_problems_and_fix_prompt")
 
 
-def test_output_stale_live_event_is_flagged_but_advisory():
+def test_output_stale_live_event_severity_follows_the_event_tier():
     """The real Iasi card (2026-07-27): status live, champion null, 3 alive — nine days
     after it ended. `completed` is set ONLY by a round-"F" row, so a results feed that
-    drops the final strands the event at the top of the board forever. Advisory, because
-    all three of these checks were already firing on live data when they landed: blocking
-    would have frozen the site on an older build instead of fixing anything."""
-    d = _healthy_data()
-    d["tournaments"] = [dict(d["tournaments"][0], name="Iasi", status="live",
-                             drawStatus="seeded", drawSize=34, aliveCount=3, champion=None,
-                             end="2026-06-30")]                       # NOW is 2026-07-09
-    out = health.output_problems("atp", _oc(data=d), NOW)
-    stale = [p for p in out if "is stuck 'live'" in p]
-    assert stale and "9d ago" in stale[0], out
-    assert not any(health._gate_blocks(p) for p in stale), "a stale card must not freeze the site"
+    drops the final strands the event at the top of the board forever. The producer fix has
+    now stayed quiet through successive real refreshes, so the normal board-quality tier
+    policy applies: a marquee event blocks while the long tail warns."""
+    def _problems(level):
+        d = _healthy_data()
+        d["tournaments"] = [dict(d["tournaments"][0], name="Iasi", status="live",
+                                 level=level, drawStatus="seeded", drawSize=34, aliveCount=3,
+                                 champion=None, end="2026-06-30")]     # NOW is 2026-07-09
+        return [p for p in health.output_problems("atp", _oc(data=d), NOW)
+                if "is stuck 'live'" in p]
+
+    big = _problems("ATP 500")
+    small = _problems("ATP 250")
+    assert big and "9d ago" in big[0] and health._gate_blocks(big[0]), big
+    assert small and not health._gate_blocks(small[0]), small
     # a normally in-progress event is silent
     d2 = _healthy_data()
     d2["tournaments"] = [dict(d2["tournaments"][0], status="live", champion=None,
                               end="2026-07-08")]
     assert not any("is stuck 'live'" in p for p in health.output_problems("atp", _oc(data=d2), NOW))
-    print("ok test_output_stale_live_event_is_flagged_but_advisory")
+    print("ok test_output_stale_live_event_severity_follows_the_event_tier")
 
 
 def test_output_completed_event_with_many_alive_is_flagged():
     """The real Palermo card: completed, champion 'Francesca Jones', aliveCount 32 of 32.
     The authoritative draw supplied the field while the results supplied the eliminations
-    and the two never joined — a finished event has exactly one player standing."""
-    d = _healthy_data()
-    d["tournaments"] = [dict(d["tournaments"][0], name="Palermo", status="completed",
-                             drawStatus="final", drawSize=32, aliveCount=32,
-                             champion="Francesca Jones", end="2026-07-08")]
-    out = health.output_problems("atp", _oc(data=d), NOW)
-    bad = [p for p in out if "players alive (expected 1)" in p]
-    assert bad and "32 players alive" in bad[0], out
-    assert not any(health._gate_blocks(p) for p in bad)
+    and the two never joined — a finished event has exactly one player standing. The fixed
+    ingestion is quiet, so this now follows the same tier policy as other board defects."""
+    def _problems(level):
+        d = _healthy_data()
+        d["tournaments"] = [dict(d["tournaments"][0], name="Palermo", status="completed",
+                                 level=level, drawStatus="final", drawSize=32, aliveCount=32,
+                                 champion="Francesca Jones", end="2026-07-08")]
+        return [p for p in health.output_problems("atp", _oc(data=d), NOW)
+                if "players alive (expected 1)" in p]
+
+    big = _problems("ATP 500")
+    small = _problems("ATP 250")
+    assert big and "32 players alive" in big[0] and health._gate_blocks(big[0]), big
+    assert small and not health._gate_blocks(small[0]), small
     print("ok test_output_completed_event_with_many_alive_is_flagged")
 
 
@@ -1394,7 +1403,7 @@ if __name__ == "__main__":
     test_gate_blocks_bad_output_without_writing_healthjson()
     test_gate_classifies_advisory_vs_blocking()
     test_output_healthy_is_clean()
-    test_output_stale_live_event_is_flagged_but_advisory()
+    test_output_stale_live_event_severity_follows_the_event_tier()
     test_output_completed_event_with_many_alive_is_flagged()
     test_output_numbered_qualifier_as_model_favourite_is_flagged()
     test_output_model_age_flags_a_dead_retrain()

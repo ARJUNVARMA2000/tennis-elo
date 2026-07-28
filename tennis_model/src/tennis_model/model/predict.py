@@ -15,7 +15,7 @@ from datetime import UTC, datetime
 import numpy as np
 import pandas as pd
 
-from ..config import output_dir
+from ..config import PLAYER_ALIASES, output_dir
 from ..data.charting import STYLE_FEATURES, build_profiles, name_key
 from ..points.markov import match_win_prob, score_distribution
 from ..ratings.elo import expected_score
@@ -49,6 +49,10 @@ class TennisPredictor:
         # omitted so no construction site can silently fall back to config defaults
         # (pipeline.build_tour once shipped WTA pickles with fp=None)
         self.fp = fp if fp is not None else feat_params_for(tour)
+        # The ratings walk consumes already-canonicalized names. A quick refresh restoring
+        # this pickle after PLAYER_ALIASES changes must rebuild those states rather than
+        # pair a renamed match frame with the old split identities.
+        self.player_aliases = tuple(sorted(PLAYER_ALIASES.items()))
         # When this model was trained. Derived here rather than at the call sites (both of
         # them construct straight out of train_final) so no path can ship an unstamped
         # pickle — same reasoning as `fp` above. It rides INSIDE the pickle on purpose: the
@@ -65,6 +69,11 @@ class TennisPredictor:
     def _trained_at(self) -> str | None:
         """None for pickles predating the stamp — the next full retrain fills it in."""
         return getattr(self, "trained_at", None)
+
+    @property
+    def _player_aliases(self) -> tuple:
+        """Empty for legacy pickles, which deliberately makes the quick guard rebuild."""
+        return getattr(self, "player_aliases", ())
 
     def _home_flag(self, a: str, b: str, event: str | None) -> float:
         """home_flag_diff for a real match at a known event (0 for hypotheticals)."""
