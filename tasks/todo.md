@@ -2302,6 +2302,19 @@ as the working rule for Track B: rebuild the artefact, don't just run the tests.
       draw at another the same week appears in both, which could manufacture three "shared
       players" between a Challenger and a main-tour event and merge two real tournaments.
       Each fix is pinned by reintroducing the defect and watching the test fail.
-- [ ] B4 cache re-key + in-place migration (never deletes) + end-based retention
+- [x] B4 RETENTION (the substantive half; the re-key itself is now largely moot because
+      B3a's `_split_by_key` already bridges name->id via each entry's embedded espnId).
+      The caches were rebuilt each run from the events ESPN currently lists, so a draw was
+      DELETED the moment ESPN stopped mentioning its event — while build_tournaments keeps
+      projecting that event for weeks (40d window). That is the 256-slot Wimbledon crash at
+      its source, and it fired twice because the 07-11 fix made the cache authoritative,
+      which only made the 07-27 deletion worse. Entries now survive on the EVENT's own dates
+      (45d > the 40d window). Surfaces/tiers get the same treatment.
+      Conflict found while writing it: retention initially resurrected the poisoned
+      cross-tour tier that A2 drops. Retention protects FACTS, not rejected values — the
+      carry-forward re-checks `normalize_level` before keeping a tier.
+      Also: the first version of the retention test silently hit the live ESPN API (8.65s vs
+      0.13s) because download_wiki_draws imports fetch_events INSIDE the function, making the
+      monkeypatch a no-op. Third instance of that trap today; now a lesson.
 - [ ] B5 calendar completion (finalRecorded) + gate extensions
 - [ ] B6 docs/lessons

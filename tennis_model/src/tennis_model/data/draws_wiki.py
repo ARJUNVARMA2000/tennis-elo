@@ -30,7 +30,15 @@ import urllib.parse
 import urllib.request
 from datetime import UTC, datetime, timedelta
 
-from ..config import SURFACE_MAP, TOURS, WIKI_API, WIKI_TITLE_OVERRIDES, WIKI_UA, live_dir
+from ..config import (
+    SURFACE_MAP,
+    TOURS,
+    WIKI_API,
+    WIKI_DRAW_RETENTION_DAYS,
+    WIKI_TITLE_OVERRIDES,
+    WIKI_UA,
+    live_dir,
+)
 
 # `mwparserfromhell` is imported lazily inside _parse_bracket so that merely READING the
 # cached wiki_draws.json (wiki_upcoming_rows, sim loaders) never needs the parser installed.
@@ -461,6 +469,24 @@ def _rows_from_draws(draws: dict, today: str | None = None) -> list:
     return rows
 
 
+def _retention_cutoff(now: datetime | None = None) -> str:
+    """ISO date before which a no-longer-listed cache entry may be dropped."""
+    return ((now or datetime.now(UTC)) - timedelta(days=WIKI_DRAW_RETENTION_DAYS)).strftime("%Y-%m-%d")
+
+
+def _still_worth_keeping(entry: object, cutoff: str) -> bool:
+    """Whether a cached entry ESPN no longer lists should be carried forward.
+
+    Keyed on the EVENT's own dates, not on whether ESPN still mentions it. A dict entry with
+    no usable date is kept (better a stale draw than a deleted one — a missing draw is what
+    crashes the board); a bare value with no dates at all is also kept, since a surface or a
+    tier never changes for a given event-year and costs nothing to hold."""
+    if not isinstance(entry, dict):
+        return True
+    ref = str(entry.get("end") or entry.get("start") or entry.get("retrieved") or "")[:10]
+    return not ref or ref >= cutoff
+
+
 def _draw_is_settled(slots) -> bool:
     """True when every named slot in a captured draw is a real player.
 
@@ -524,11 +550,23 @@ def download_wiki_draws(tours=TOURS) -> None:
                     fetched += 1
             elif prev.get("slots"):
                 out[name] = prev                      # re-fetch failed — keep what we had
+        # Carry forward draws ESPN has stopped listing, until the EVENT's own dates age out.
+        # Rebuilding `out` from the current window alone silently deleted every other draw —
+        # and `build_tournaments` keeps projecting an event for weeks after ESPN drops it, so
+        # the draw vanished from under a live consumer. That is the 256-slot Wimbledon crash:
+        # the field lost its anchor, fell back to a noisy results union, and took the whole
+        # board down. Twice, because the first fix leaned on this very cache being present.
+        cutoff = _retention_cutoff()
+        kept = 0
+        for name, prev in cached.items():
+            if name not in out and _still_worth_keeping(prev, cutoff):
+                out[name] = prev
+                kept += 1
         if out:
             d.mkdir(parents=True, exist_ok=True)
             path.write_text(json.dumps(out), encoding="utf-8")
             print(f"  wiki-draws/{tour}: {len(out)} draw(s) "
-                  f"({fetched} new, {refreshed} re-fetched) -> {path}")
+                  f"({fetched} new, {refreshed} re-fetched, {kept} kept past the window) -> {path}")
         else:
             print(f"  wiki-draws/{tour}: no draws posted yet for {len(meta)} tracked event(s)")
         _download_wiki_meta(tour, d, meta)   # main-article surface + tier, one pass (best-effort)
@@ -608,6 +646,22 @@ def _download_wiki_meta(tour: str, d, meta: dict) -> None:
             fetched += 1
         if not (surf_out.get(name) and cat_out.get(name)):
             miss_out[name] = today             # stamp, never cache the miss as a value
+
+    # Same retention rule as the draws: an event leaving ESPN's window must not delete facts
+    # we already know about it. A surface and a tier never change for a given event-year, so
+    # holding them costs nothing — and losing one sends the event straight back to the
+    # month-of-year guess, which on a 500 now blocks the deploy.
+    cutoff = _retention_cutoff()
+    for name, prev in surf_cached.items():
+        if name not in surf_out and _still_worth_keeping(prev, cutoff):
+            surf_out[name] = prev
+    for name, prev in cat_cached.items():
+        # A tier no longer sayable in THIS tour's vocabulary is poison, not a fact — carrying
+        # it forward would re-pin the "WTA 125 on the ATP board" value the drop above exists
+        # to clear. Retention protects what we know; it must not resurrect what we rejected.
+        if (name not in cat_out and _still_worth_keeping(prev, cutoff)
+                and normalize_level(prev, tour)):
+            cat_out[name] = prev
 
     d.mkdir(parents=True, exist_ok=True)
     for path, out in ((s_path, surf_out), (c_path, cat_out)):

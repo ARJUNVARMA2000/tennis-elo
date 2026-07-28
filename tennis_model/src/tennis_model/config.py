@@ -442,6 +442,15 @@ HEALTH_MAX_MODEL_AGE_DAYS = 3        # meta.modelTrainedAt staleness. NOT the sa
 # its anchor and padded to an impossible 256-slot bracket (2026-07-11 and again 07-27).
 EVENT_REGISTRY_RETENTION_DAYS = 400
 
+# How long a cached Wikipedia draw survives after ESPN stops listing its event. MUST exceed
+# the 40-day `sim.tournaments.recent_tournaments` window: the cache has to outlive the
+# discovery sweep it was populated from, because `build_tournaments` keeps projecting an event
+# for weeks after ESPN drops it. Pruning on "is ESPN still tracking this?" deleted Wimbledon's
+# draw mid-projection — the field lost its anchor, fell back to a noisy results union and
+# padded to an impossible 256-slot bracket, taking the whole board down (2026-07-11, and again
+# on 07-27 when the 07-11 fix turned out to depend on that very cache still being there).
+WIKI_DRAW_RETENTION_DAYS = 45
+
 
 HEALTH_MAX_UPCOMING_START_LAG_DAYS = 3  # an "upcoming" event whose start date is further past
                                         # than this never flipped live — its results are not

@@ -129,3 +129,19 @@ Indexed in [`../lessons.md`](../lessons.md).
   either fix what it finds in the same push or expect to. And distinguish the two failure
   surfaces before reacting: a red `refresh` run whose GATE lines are all warnings did NOT
   block a deploy; read which STEP failed before assuming the site is frozen.
+
+- **A function-local import makes `monkeypatch.setattr(module, name, ...)` a SILENT no-op, and
+  the test then quietly exercises the real thing.** (2026-07-28, three times in one session)
+  This repo imports lazily inside functions all over — `load_upcoming` does
+  `from ..data.draws_wiki import wiki_upcoming_rows`, `download_wiki_draws` does
+  `from .live import fetch_events`, `build_tournaments` does `from ..eval.track import ...` —
+  which is correct (it keeps the offline loaders importable without the network modules). But
+  a lazy import re-resolves the name from ITS OWN module at call time, so patching the
+  attribute on the *calling* module changes nothing at all. Both failures were invisible: one
+  test asserted a tautology against an empty overlay and passed, and one silently called the
+  live ESPN API on every run (giveaway: the file took 8.65s instead of 0.13s). **How to
+  apply:** patch the module the name is imported FROM, never the one it is used in; and treat
+  test wall-clock as a signal — a "fully offline" file that takes seconds is doing I/O, and a
+  test that passes when you revert the fix is not a weak test, it is not a test. Both traps
+  were caught only by the failing-first check ("N failed" ≠ the N I expected), which is the
+  cheapest real verification in this repo.

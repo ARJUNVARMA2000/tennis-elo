@@ -127,6 +127,74 @@ def test_draw_is_settled_gates_the_forever_cache():
     print("ok test_draw_is_settled_gates_the_forever_cache")
 
 
+def test_a_draw_outlives_the_discovery_window_that_found_it(tmp_path, monkeypatch):
+    """The 256-slot Wimbledon crash, at its source.
+
+    The cache was rebuilt each run from the events ESPN currently lists, so a draw was
+    DELETED the moment ESPN stopped mentioning its event — while `build_tournaments` keeps
+    projecting that event for weeks (a 40-day window). The draw vanished from under a live
+    consumer, the field lost its anchor, fell back to a noisy results union and padded to an
+    impossible 256-slot bracket, taking the whole board down. Twice: the 2026-07-11 fix made
+    the cache authoritative, which only made the 07-27 deletion worse."""
+    from tennis_model.data import draws_wiki as dw
+
+    slots = [f"P{i}" for i in range(16)]
+    (tmp_path / "wiki_draws.json").write_text(json.dumps({
+        # a settled draw for an event ESPN no longer lists, still inside its retention window
+        "Wimbledon": {"slots": slots, "seeds": {}, "bestOf": 5,
+                      "start": "2026-06-29", "end": "2026-07-12"},
+        # ...and one long past it
+        "Ancient Open": {"slots": slots, "seeds": {}, "bestOf": 3,
+                         "start": "2026-01-05", "end": "2026-01-11"},
+    }), encoding="utf-8")
+    # `download_wiki_draws` imports fetch_events / parse_event_meta / update_registry INSIDE
+    # the function, so they must be patched on their OWN modules — patching them on
+    # draws_wiki is a silent no-op that lets the test hit the real ESPN API (which is exactly
+    # what happened the first time this was written: the run took 8.6s).
+    from tennis_model.data import events as ev_mod
+    from tennis_model.data import live as live_mod
+
+    monkeypatch.setattr(dw, "live_dir", lambda tour: tmp_path)
+    monkeypatch.setattr(dw, "_download_wiki_meta", lambda *a, **k: None)
+    monkeypatch.setattr(live_mod, "fetch_events", lambda tour: [])
+    monkeypatch.setattr(live_mod, "parse_event_meta", lambda evs: {})
+    monkeypatch.setattr(ev_mod, "update_registry", lambda *a, **k: None)
+    # ESPN now lists NOTHING — the old code would write an empty cache and lose both draws
+    monkeypatch.setattr(dw, "_retention_cutoff",
+                        lambda now=None: "2026-07-01")     # pin "today - 45d"
+    dw.download_wiki_draws(["atp"])
+
+    out = json.loads((tmp_path / "wiki_draws.json").read_text(encoding="utf-8"))
+    assert "Wimbledon" in out, "a draw was deleted while its event was still projectable"
+    assert out["Wimbledon"]["slots"] == slots
+    assert "Ancient Open" not in out, "retention never expires"
+    print("ok test_a_draw_outlives_the_discovery_window_that_found_it")
+
+
+def test_retention_keeps_facts_but_does_not_resurrect_a_rejected_tier(tmp_path, monkeypatch):
+    """The two rules meet here and the drop must win. Retention exists so an event leaving
+    ESPN's window cannot delete what we know about it — but a tier that is no longer sayable
+    in this tour's vocabulary is not knowledge, it is the "WTA 125 on the ATP board" poison,
+    and carrying it forward would undo the very drop that clears it."""
+    from tennis_model.data import draws_wiki as dw
+
+    (tmp_path / "wiki_surface.json").write_text(json.dumps({"Gone Open": "Clay"}),
+                                                encoding="utf-8")
+    (tmp_path / "wiki_category.json").write_text(json.dumps({
+        "Gone Open": "ATP 250",        # valid for atp -> a fact, kept
+        "Poisoned Open": "WTA 125",    # the other tour's tier -> dropped, not carried
+    }), encoding="utf-8")
+    monkeypatch.setattr(dw, "event_meta", lambda name, year, tour: (None, None))
+    dw._download_wiki_meta("atp", tmp_path, {})            # ESPN lists neither event now
+
+    surf = json.loads((tmp_path / "wiki_surface.json").read_text(encoding="utf-8"))
+    cat = json.loads((tmp_path / "wiki_category.json").read_text(encoding="utf-8"))
+    assert surf["Gone Open"] == "Clay"          # a surface never changes; keep it
+    assert cat["Gone Open"] == "ATP 250"
+    assert "Poisoned Open" not in cat, "retention resurrected a rejected cross-tour tier"
+    print("ok test_retention_keeps_facts_but_does_not_resurrect_a_rejected_tier")
+
+
 def test_get_retries_rate_limits_and_honours_retry_after(monkeypatch):
     """This module had NO backoff, alone among the repo's rate-limited fetchers. A single 429
     meant a missing surface, which falls through to the month-of-year guess — and on a
