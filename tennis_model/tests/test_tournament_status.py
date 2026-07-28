@@ -86,6 +86,124 @@ def test_status_real_partial_seeded_final_from_espn():
     print("ok test_status_real_partial_seeded_final_from_espn")
 
 
+def _grp(name, players, start="2026-07-20", days=4, eid=None):
+    """A results group: `players` pairs, one match per day from `start`."""
+    rows = []
+    for i, (w, l) in enumerate(players):
+        rows.append(dict(tourney_name=name, espn_id=eid,
+                         date=pd.Timestamp(start) + pd.Timedelta(days=i % days),
+                         round="R32", winner_name=w, loser_name=l,
+                         surface_b="Clay", best_of=3, tourney_level="250"))
+    return pd.DataFrame(rows)
+
+
+def test_coalesce_merges_one_event_split_across_two_names():
+    """The Bad Homburg failure at its root. `recent_tournaments` groups by raw tourney_name,
+    so one event enters TWICE when its sources disagree about the title — the results feed
+    uses the archive city, ESPN the sponsor version. On 2026-07-09 that shipped two WTA cards
+    for one tournament, the second a nine-player fragment with the finalists swapped.
+    Deduping the CARDS afterwards hid it; one projection was still built on half an event."""
+    from tennis_model.sim.tournaments import _coalesce_groups
+
+    class _R:
+        def id_of(self, name):
+            return None
+
+    shared = [("A Player", "B Player"), ("C Player", "D Player"), ("E Player", "F Player")]
+    espn = ("Bad Homburg Open powered by Solarwatt",
+            _grp("Bad Homburg Open powered by Solarwatt", shared, eid="1-2026"))
+    archive = ("Bad Homburg", _grp("Bad Homburg", shared + [("G Player", "H Player")]))
+    out = _coalesce_groups([espn, archive], _R())
+    assert len(out) == 1, [n for n, _g, _e in out]
+    name, merged, eid = out[0]
+    assert eid == "1-2026"                      # identity survives the merge
+    assert name == "Bad Homburg"                # the FULLER record names it
+    assert len(_real_players_of(merged)) == 8   # both partial records, one event
+
+    # two groups with the SAME id merge without needing any name or player evidence
+    a = ("Nordea Open", _grp("Nordea Open", shared[:1], eid="306-2026"))
+    b = ("Bastad", _grp("Bastad", [("Z One", "Z Two")], eid="306-2026"))
+    out2 = _coalesce_groups([a, b], _R())
+    assert len(out2) == 1 and out2[0][2] == "306-2026"
+    print("ok test_coalesce_merges_one_event_split_across_two_names")
+
+
+def _real_players_of(g):
+    from tennis_model.sim.tournaments import _real_players
+    return _real_players(g)
+
+
+def test_coalesce_refuses_to_merge_concurrent_distinct_events():
+    """The negative control, and the reason a wrong merge is worse than none: it corrupts a
+    projection rather than mislabelling a card. Two real tournaments running the same week
+    cannot share three players — a player plays one event at a time — and placeholders are
+    numbered PER DRAW, so 'sharing' Qualifier N is evidence of nothing (issue #9, where
+    Washington and Memphis were reported as one renamed event over 20 shared placeholders)."""
+    from tennis_model.sim.tournaments import _coalesce_groups
+
+    class _R:
+        def id_of(self, name):
+            return None
+
+    dc = ("Mubadala DC Open", _grp("Mubadala DC Open",
+                                   [("A One", "A Two"), ("A Three", "A Four")],
+                                   start="2026-07-27", eid="888-2026"))
+    memphis = ("Memphis", _grp("Memphis", [("B One", "B Two"), ("B Three", "B Four")],
+                               start="2026-07-27"))
+    assert len(_coalesce_groups([dc, memphis], _R())) == 2      # disjoint fields -> separate
+
+    # sharing only PLACEHOLDERS must not merge either
+    ph = [(f"Qualifier {i}", f"Qualifier {i + 9}") for i in range(1, 5)]
+    q1 = ("Event One", _grp("Event One", ph, start="2026-07-27", eid="1-2026"))
+    q2 = ("Event Two", _grp("Event Two", ph, start="2026-07-27"))
+    assert len(_coalesce_groups([q1, q2], _R())) == 2
+
+    # an id-less group matching TWO id-bearing ones is ambiguous -> left alone
+    shared = [("S One", "S Two"), ("S Three", "S Four"), ("S Five", "S Six")]
+    e1 = ("Ev One", _grp("Ev One", shared, start="2026-07-20", eid="1-2026"))
+    e2 = ("Ev Two", _grp("Ev Two", shared, start="2026-07-20", eid="2-2026"))
+    orphan = ("Ev Orphan", _grp("Ev Orphan", shared, start="2026-07-20"))
+    assert len(_coalesce_groups([e1, e2, orphan], _R())) == 3
+    print("ok test_coalesce_refuses_to_merge_concurrent_distinct_events")
+
+
+def test_coalesce_defects_found_in_review():
+    """Three defects my own adversarial re-read caught before this shipped. Each is silent —
+    none would have failed a test or shown up in a rebuild of this week's board."""
+    from tennis_model.sim.tournaments import _coalesce_groups, _real_players
+
+    class _R:
+        def id_of(self, name):
+            return None
+
+    # (1) SILENT EVENT LOSS. Id-less groups were keyed by normalised display name and
+    # ASSIGNED, not appended, so two feeds spelling one name differently collided and the
+    # second overwrote the first — an event vanished from the board entirely.
+    a = ("Bad Homburg", _grp("Bad Homburg", [("A One", "A Two")], start="2026-06-20"))
+    b = ("Bad  Homburg", _grp("Bad  Homburg", [("B One", "B Two")], start="2026-06-20"))
+    assert len(_coalesce_groups([a, b], _R())) == 2, "an event was silently dropped"
+
+    # (2) ORDER-DEPENDENT MERGE. The hit search read `by_id` live, so an id-less group could
+    # match a synthetic entry added by an EARLIER id-less group and merge two unidentified
+    # events — undocumented, and dependent on iteration order.
+    shared = [("S One", "S Two"), ("S Three", "S Four"), ("S Five", "S Six")]
+    x = ("Ev X", _grp("Ev X", shared, start="2026-06-20"))
+    y = ("Ev Y", _grp("Ev Y", shared, start="2026-06-20"))
+    assert len(_coalesce_groups([x, y], _R())) == 2, "two id-less groups were merged"
+
+    # (3) QUALIFYING ROWS AS FALSE EVIDENCE. A player who loses qualifying at one event and
+    # plays the main draw at another the same week appears in both. Counting them could
+    # manufacture three "shared players" between a Challenger and a main-tour event.
+    q = pd.DataFrame([
+        dict(tourney_name="E", date=pd.Timestamp("2026-07-20"), round="Q1",
+             winner_name="Q Win", loser_name="Q Lose", draw_level="main"),
+        dict(tourney_name="E", date=pd.Timestamp("2026-07-21"), round="R32",
+             winner_name="Main One", loser_name="Main Two", draw_level="main"),
+    ])
+    assert _real_players(q) == {"Main One", "Main Two"}, _real_players(q)
+    print("ok test_coalesce_defects_found_in_review")
+
+
 def test_a_renamed_event_still_finds_its_cached_draw(tmp_path, monkeypatch):
     """The DC Open failure, end to end.
 

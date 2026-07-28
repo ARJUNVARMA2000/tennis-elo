@@ -95,6 +95,96 @@ def _lookup(by_id: dict, by_name: dict, eid: str | None, name: str):
     return by_name.get(str(name))
 
 
+COALESCE_MIN_OVERLAP_DAYS = 2
+COALESCE_MIN_SHARED_PLAYERS = 3
+
+
+def _real_players(g: pd.DataFrame) -> set:
+    """This group's real MAIN-DRAW participants — the only names that are evidence of identity.
+
+    Two filters, both load-bearing. Placeholders are numbered per draw, so two concurrent
+    events "share" every Qualifier N and none of them means anything (issue #9). And
+    QUALIFYING rows are excluded: a player who loses qualifying at one event and plays the
+    main draw at another the same week appears in both, so counting them could manufacture
+    three "shared players" between a Challenger and a main-tour event in the same city — and
+    merging two genuinely different tournaments corrupts a projection, not just a label."""
+    if "winner_name" not in g.columns:
+        return set()
+    main = g
+    if "draw_level" in g.columns:
+        rows = g[g["draw_level"] == "main"]
+        main = rows if not rows.empty else g
+    if "round" in main.columns:
+        ko = main[main["round"].isin(_KO_ROUNDS)]
+        main = ko if not ko.empty else main
+    return {n for n in set(main["winner_name"]) | set(main["loser_name"]) if is_real(n)}
+
+
+def _spans_overlap_days(a: pd.DataFrame, b: pd.DataFrame) -> int:
+    lo = max(a["date"].min(), b["date"].min())
+    hi = min(a["date"].max(), b["date"].max())
+    return (hi - lo).days if pd.notna(lo) and pd.notna(hi) and hi >= lo else -1
+
+
+def _coalesce_groups(events: list, resolver) -> list:
+    """Fold the groups that are the SAME tournament into one, before anything is projected.
+
+    `recent_tournaments` groups by raw `tourney_name`, so one real event enters twice
+    whenever its sources disagree about the title: the results feed carries the archive city
+    ("Bad Homburg") while ESPN carries the sponsor version ("Bad Homburg Open powered by
+    Solarwatt"). On 2026-07-09 that shipped TWO WTA cards for one tournament, the second a
+    nine-player fragment with champion and runner-up swapped. Deduping the CARDS afterwards
+    only ever hid it — one of the two projections was still built on half an event.
+
+    Two ways in. Groups resolving to the same espnId are the same event by definition. An
+    id-less group joins one on evidence instead: a real date overlap AND shared real players.
+    Deliberately the same predicate (and thresholds) the health gate uses to REPORT a split,
+    so the producer collapses exactly what the gate would flag — and no string rule is
+    involved, which is the point: "Bastad" and "Nordea Open" share no substring at all.
+
+    Ambiguity never merges. An id-less group matching two id-bearing ones is left alone,
+    because a wrong merge corrupts a projection rather than merely mislabelling a card."""
+    resolved = [(name, g, _group_event_id(g, name, resolver)) for name, g in events]
+    by_id: dict = {}
+    idless: list = []
+    for name, g, eid in resolved:
+        (by_id.setdefault(eid, []).append((name, g)) if eid else idless.append((name, g)))
+
+    # Snapshot the ID-BEARING keys before folding anything in. Searching `by_id` live would
+    # let an id-less group match a synthetic entry added by an EARLIER id-less group, quietly
+    # merging two unidentified events in an order-dependent way — not what this claims to do.
+    id_keys = list(by_id)
+    for i, (name, g) in enumerate(idless):
+        players = _real_players(g)
+        hits = [eid for eid in id_keys
+                if any(_spans_overlap_days(g, mg) >= COALESCE_MIN_OVERLAP_DAYS
+                       and len(players & _real_players(mg)) >= COALESCE_MIN_SHARED_PLAYERS
+                       for _n, mg in by_id[eid])]
+        if len(hits) == 1:
+            by_id[hits[0]].append((name, g))
+        else:
+            # Its own event. The key carries the index as well as the name: two id-less groups
+            # whose names merely NORMALISE alike ("Bad Homburg" / "Bad  Homburg" from different
+            # feeds) would otherwise collide and one would vanish from the board entirely.
+            by_id[f"__name__{i}__{_norm_display(name)}"] = [(name, g)]
+
+    out = []
+    for key, members in by_id.items():
+        if len(members) == 1:
+            (name, g), = members
+            out.append((name, g, None if key.startswith("__name__") else key))
+            continue
+        # One event, several partial records: concatenate, then take the name of the FULLEST
+        # member — the more complete record is the better basis for archive-name lookups.
+        frames = [g for _n, g in members]
+        best = max(members, key=lambda m: len(m[1]))[0]
+        merged = pd.concat(frames, ignore_index=True)
+        if {"winner_name", "loser_name", "round"} <= set(merged.columns):
+            merged = merged.drop_duplicates(subset=["winner_name", "loser_name", "round"])
+        out.append((best, merged, None if key.startswith("__name__") else key))
+    return out
+
+
 def _fields_view(by_id: dict, by_name: dict, eid: str | None, name: str) -> dict | None:
     """A one-entry ``{name: field}`` view of whatever the ID resolved to.
 
@@ -599,8 +689,7 @@ def build_tournaments(predictor, df: pd.DataFrame, tour: str, **kw) -> list:
     fields_by_id, fields_by_name = _split_by_key(espn_fields)
     up_by_id, up_by_name = _split_by_key(upcoming)
     out = []
-    for name, g in recent_tournaments(df):
-        eid = _group_event_id(g, name, resolver)
+    for name, g, eid in _coalesce_groups(recent_tournaments(df), resolver):
         matchups = [(resolve(a), resolve(b))
                     for a, b in (_lookup(up_by_id, up_by_name, eid, name) or [])]
         try:

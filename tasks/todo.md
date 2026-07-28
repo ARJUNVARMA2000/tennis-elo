@@ -2291,8 +2291,17 @@ as the working rule for Track B: rebuild the artefact, don't just run the tests.
       and the identity goes with it. `_fill_espn_id` propagates the id across every row of a
       match before each dedup pass. With B3a's seen_ids check that alone suppresses the
       duplicate card. Test reproduces the live split and fails with {nan, nan} without it.
-- [ ] B3b group coalescing (id-sharing groups concatenate before projection; an id-less group
-      folds in on date overlap + shared real players) — written, under adversarial review
+- [x] B3b group coalescing. The agent review never ran (8 of 9 agents died on a spend limit,
+      returning an empty result that would have read as a pass), so I re-read it myself and
+      found THREE silent defects — none of which failed a test or showed in a board rebuild:
+      (1) id-less groups were keyed by normalised display name and ASSIGNED not appended, so
+      two feeds spelling one name differently collided and an event vanished off the board;
+      (2) the hit search read `by_id` live, so an id-less group could match a synthetic entry
+      from an EARLIER id-less group — an undocumented, order-dependent merge; (3) `_real_players`
+      counted QUALIFYING rows, and a player who loses quali at one event and plays the main
+      draw at another the same week appears in both, which could manufacture three "shared
+      players" between a Challenger and a main-tour event and merge two real tournaments.
+      Each fix is pinned by reintroducing the defect and watching the test fail.
 - [ ] B4 cache re-key + in-place migration (never deletes) + end-based retention
 - [ ] B5 calendar completion (finalRecorded) + gate extensions
 - [ ] B6 docs/lessons
