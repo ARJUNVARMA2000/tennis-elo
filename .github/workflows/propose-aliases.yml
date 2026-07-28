@@ -1,0 +1,95 @@
+name: propose-aliases
+
+# Weekly identity sweep: read the gate's unresolved events + scan the match frame for split
+# player identities, ask Claude (with web search) to adjudicate ONLY those candidates, throw
+# away everything the match record refutes, and open a PR with what survives.
+#
+# Deliberately not part of refresh.yml:
+#   * it must never be able to delay or block a deploy — the hourly path has no LLM in it,
+#     and this workflow saves no cache and touches no output;
+#   * it needs a dependency (`anthropic`) that is kept OUT of the pinned requirements.txt,
+#     because those pins come from CI install logs and guard pickle compatibility for the
+#     retrain. Installed here, alone, and nowhere else.
+#
+# The output is a pull request. Merging it is what adopts anything; nothing here can merge.
+on:
+  schedule:
+    - cron: "40 7 * * 1"        # Mondays, after the 06:00 full retrain has published health.json
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Print the questions and stop (no API call, no PR)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write               # push the proposal branch
+  pull-requests: write          # open the PR
+
+concurrency:
+  group: propose-aliases
+  cancel-in-progress: true
+
+jobs:
+  propose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install Python deps
+        run: |
+          pip install -r tennis_model/requirements.txt
+          pip install -r tennis_model/requirements-propose.txt
+
+      # Read-only: restore what refresh.yml built, never save. A proposer run must not be
+      # able to shift the cache the pipeline depends on.
+      - name: Restore data cache
+        uses: actions/cache/restore@v6
+        with:
+          path: tennis_model/data
+          key: tennis-data-propose-never-hits
+          restore-keys: tennis-data-
+
+      - name: Propose identity fixes
+        id: propose
+        working-directory: tennis_model
+        env:
+          PYTHONPATH: src
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          DRY: ${{ github.event.inputs.dry_run }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::notice::ANTHROPIC_API_KEY is not configured — skipping the proposer"
+            exit 0
+          fi
+          python -m tennis_model.data.alias_proposer \
+            --health data/output/health.json \
+            --tour atp --tour wta \
+            --out /tmp/alias-proposals.json \
+            --body /tmp/alias-pr-body.md \
+            $([ "$DRY" = "true" ] && echo --dry-run || echo --apply)
+
+      # The full adjudication — accepted, rejected, and the model's transcript — is kept as
+      # an artifact whether or not a PR is opened. A week where everything was refuted is
+      # exactly as informative as a week where something was accepted.
+      - name: Upload adjudication
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: alias-proposals
+          path: |
+            /tmp/alias-proposals.json
+            /tmp/alias-pr-body.md
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Open the proposal PR
+        if: github.event.inputs.dry_run != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BODY_FILE: /tmp/alias-pr-body.md
+          BRANCH: alias-proposer/${{ github.run_id }}
+        run: .github/scripts/open-alias-pr.sh

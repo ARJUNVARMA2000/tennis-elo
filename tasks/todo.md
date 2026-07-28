@@ -2355,3 +2355,34 @@ check caught two tests that could not fail. Rebuild the artefact; don't trust th
 Still open: the LLM alias proposer (offline, evidence-backed, PR-gated, with a deterministic
 falsifier — blocked on the account spend limit), and promoting the three 772e5d4 advisories
 plus the month-guess advisory to blocking once a full cycle proves them quiet.
+
+## Review — alias proposer (2026-07-28)
+
+Closes the loop the user named: "Can we use an LLM api with search to identify the issues
+with the names mismatches etc? This cannot keep happening." Shape chosen: offline proposer
++ PR, so the runtime stays fully deterministic.
+
+Shipped:
+- `data/alias_proposer.py` — candidate scan (deterministic) -> Claude + web search
+  (adjudicates only what it was handed) -> `falsify()` (deterministic) -> config patch on a
+  branch -> human merge. `PLAYER_ALIASES`, `WIKI_TITLE_OVERRIDES`, `EVENT_TIER_FALLBACK`.
+- `.github/workflows/propose-aliases.yml` (weekly, restore-only cache, no save) and
+  `.github/scripts/open-alias-pr.sh` (creates, can never merge), the latter covered by
+  `tests/test_workflow_alerts.py` per the AGENTS.md rule.
+- `requirements-propose.txt` keeps `anthropic` out of the pinned pipeline install.
+- 23 tests in `tests/test_alias_proposer.py`; each falsifier rule verified failing-first by
+  reintroducing its defect (5 defects replayed, all caught).
+
+Found while validating, and fixed in the same commit: **Diego Dedura shipped as two players**
+— 36 matches as "Diego Dedura", 3 as "Diego Dedura-Palomero", with Stuttgart 2026-06-09
+recorded under both spellings (one match, two rows, two Elo histories). The deterministic
+scan surfaced it before any API call. Alias added; the duplicate row collapses.
+
+Still open (deliberately):
+- The proposer needs `ANTHROPIC_API_KEY` as a repo secret. Without it the job no-ops with a
+  notice rather than failing — it is a convenience on a pipeline that is correct without it.
+- One live candidate is genuinely ambiguous and left for the first real run to adjudicate:
+  "Luis Felipe Miguel" (3 matches) vs "Luis Miguel" (4) — never played each other, so the
+  scan asks rather than decides.
+- Promote the three 772e5d4 advisories + the month-guess advisory to blocking once a full
+  cycle proves them quiet.

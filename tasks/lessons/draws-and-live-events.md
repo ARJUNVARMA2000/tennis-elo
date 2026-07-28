@@ -199,3 +199,27 @@ Indexed in [`../lessons.md`](../lessons.md).
   stable id one of them already emits and plumb it end to end; where no id exists, join on
   EVIDENCE (date overlap plus shared real participants), never on string similarity; and make
   the producer collapse exactly what the gate would flag as a split.
+
+- **Put the model between two deterministic layers, and let the cheap one run first.**
+  (2026-07-28, `data/alias_proposer.py`) The three hand-kept identity tables in `config.py`
+  were all populated reactively — an entry got added days after the mismatch had already
+  shipped to the board. The instinct was "ask an LLM with search to spot these", and the
+  design that actually works puts the model in the middle rather than at the front:
+  a deterministic scan GENERATES the candidates, the model ADJUDICATES only those, a
+  deterministic falsifier DISCARDS what the data refutes, and a human merges the PR.
+  Containment is the load-bearing rule — `falsify` rejects any proposal whose subject was
+  not one of the questions asked — because it means a hallucinated pair cannot enter the
+  system even if the model is completely confident. The domain rule that outranks any search
+  result: **two names that have ever met each other across a net are two people.**
+  **The part that was genuinely surprising:** the deterministic half found a live production
+  bug on its first run, before a single token was spent. Diego Dedura had 36 matches under
+  one spelling and 3 under "Diego Dedura-Palomero", and Stuttgart 2026-06-09 carried BOTH
+  ("James Duckworth d. Diego Dedura" and "James Duckworth d. Diego Dedura-Palomero" are one
+  match written twice) — two Elo histories for one player, plus a phantom duplicate row. A
+  token-subset scan over the last 180 days surfaces that in milliseconds; the LLM was never
+  needed for it, and would have been asked only about the genuinely ambiguous leftovers.
+  **How to apply:** before reaching for a model, write the scan that enumerates the
+  candidates — it is usually most of the value, it is free, it is testable, and whatever it
+  cannot decide is a much smaller and better-posed question to spend an API call on. Then
+  make the model's answer falsifiable against data you already hold, and keep the adopt step
+  human. Never let a bot merge into a branch whose push IS the production deploy.

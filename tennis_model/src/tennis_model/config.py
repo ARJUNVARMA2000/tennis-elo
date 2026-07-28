@@ -537,9 +537,16 @@ WIKI_TITLE_OVERRIDES: dict[str, str] = {
 # and split the champion's retrospective title odds across both identities.
 # Keyed by `_name_key(variant)` -> the canonical spelling to keep. Deliberately a hand-kept
 # list, not a heuristic: "shorter name is a prefix of the longer" would merge genuine
-# relatives (the Zverevs, the Bryans). Add an entry when the health gate flags one.
+# relatives (the Zverevs, the Bryans). Add an entry when the health gate flags one, or when
+# `data/alias_proposer.py` opens a PR proposing one (that path is reviewed, never automatic).
 PLAYER_ALIASES: dict[str, str] = {
     "daniel merida aguilar": "Daniel Merida",
+    # Found by the alias proposer's DETERMINISTIC half on 2026-07-28, before any model call:
+    # 36 matches as "Diego Dedura", 3 as "Diego Dedura-Palomero", and Stuttgart 2026-06-09
+    # carries BOTH — "James Duckworth d. Diego Dedura" and "James Duckworth d. Diego
+    # Dedura-Palomero" are one match written twice, which is proof rather than inference.
+    # Two Elo histories for one 2007-born German, and the shorter spelling holds the rating.
+    "diego dedura palomero": "Diego Dedura",
 }
 
 

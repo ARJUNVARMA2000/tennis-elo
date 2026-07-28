@@ -27,7 +27,9 @@ REPO = Path(__file__).resolve().parents[2]
 SCRIPT = REPO / ".github" / "scripts" / "report-deploy-health.sh"
 DATA_SCRIPT = REPO / ".github" / "scripts" / "report-data-health.sh"
 MODE_SCRIPT = REPO / ".github" / "scripts" / "decide-mode.sh"
+ALIAS_SCRIPT = REPO / ".github" / "scripts" / "open-alias-pr.sh"
 WORKFLOW = REPO / ".github" / "workflows" / "refresh.yml"
+ALIAS_WORKFLOW = REPO / ".github" / "workflows" / "propose-aliases.yml"
 
 # Windows dev boxes may lack bash; CI (ubuntu-latest) never does, which is where it counts.
 _BASH = shutil.which("bash")
@@ -437,6 +439,91 @@ def test_no_alert_logic_is_left_inline_in_the_workflow():
     wf = WORKFLOW.read_text(encoding="utf-8")
     for forbidden in ("gh issue create", "gh issue close", "gh issue comment"):
         assert forbidden not in wf, f"{forbidden!r} is inline in refresh.yml — move it to a script"
+
+
+# --- the alias proposer's PR script ------------------------------------------------------
+
+def _run_alias(config_changed: bool, body: str | None = "## proposals\n- something\n"):
+    """Run open-alias-pr.sh inside a throwaway git repo, so `git diff` is real."""
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        (tmp / "gh").write_text(_GH_STUB, encoding="utf-8", newline="\n")
+        (tmp / "gh").chmod(0o755)
+        calls = tmp / "calls.txt"
+        calls.write_text("", encoding="utf-8")
+        repo = tmp / "repo"
+        (repo / "tennis_model" / "src" / "tennis_model").mkdir(parents=True)
+        cfg = repo / "tennis_model" / "src" / "tennis_model" / "config.py"
+        cfg.write_text("PLAYER_ALIASES = {}\n", encoding="utf-8", newline="\n")
+        for cmd in (["init", "-q", "-b", "master"], ["add", "-A"],
+                    ["-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "init"]):
+            subprocess.run(["git", *cmd], cwd=repo, check=True, capture_output=True)
+        if config_changed:
+            cfg.write_text('PLAYER_ALIASES = {"a b c": "A B"}\n', encoding="utf-8", newline="\n")
+        body_file = tmp / "body.md"
+        if body is not None:
+            body_file.write_text(body, encoding="utf-8", newline="\n")
+        env = {**os.environ, "PATH": f"{tmp}{os.pathsep}{os.environ.get('PATH', '')}",
+               "GH_CALLS": str(calls), "FAKE_EXISTING": "", "GH_FAIL_LIST": "",
+               "BODY_FILE": str(body_file), "DRY_RUN": "1", "BRANCH": "alias/test"}
+        p = subprocess.run([_BASH, str(ALIAS_SCRIPT)], cwd=repo, env=env,
+                           capture_output=True, text=True, timeout=60)
+        return p.returncode, [ln for ln in calls.read_text(encoding="utf-8").splitlines() if ln], \
+            cfg.read_text(encoding="utf-8")
+
+
+def test_a_quiet_week_opens_nothing():
+    """The overwhelmingly common outcome. No config change means no branch, no PR, and no
+    `gh` call at all — a weekly "nothing to report" PR would be noise that trains the
+    reviewer to close without reading."""
+    code, calls, _ = _run_alias(config_changed=False)
+    assert code == 0 and calls == []
+
+
+def test_a_patch_without_its_evidence_is_discarded_not_opened():
+    """The proposer writes the patch and the body in the same run; a patch with no body
+    means the body step died. Opening it anyway would put an unreviewable model-authored
+    config change in front of a human with nothing to check it against."""
+    code, calls, config = _run_alias(config_changed=True, body=None)
+    assert code == 0 and calls == []
+    assert config == "PLAYER_ALIASES = {}\n", "the unreviewable edit was left in the tree"
+
+
+def test_a_real_proposal_reaches_the_pr_branch():
+    code, _, _ = _run_alias(config_changed=True)
+    assert code == 0
+
+
+def test_the_proposer_can_never_merge_its_own_pr():
+    """master IS production in this repo (push == deploy, no review in front of it). A bot
+    that could merge would deploy a model-authored config edit with no human in the loop —
+    the single thing the whole propose->falsify->PR design exists to prevent."""
+    # Comments are stripped: the script explains in prose why it never merges, and a naive
+    # substring check would flag its own documentation.
+    script = "\n".join(ln for ln in ALIAS_SCRIPT.read_text(encoding="utf-8").splitlines()
+                       if not ln.lstrip().startswith("#"))
+    assert "gh pr create" in script
+    assert "gh pr merge" not in script
+    assert "--auto" not in script and "--admin" not in script
+    wf = ALIAS_WORKFLOW.read_text(encoding="utf-8")
+    assert "gh pr merge" not in wf and "gh pr create" not in wf, \
+        "PR logic is inline in the workflow again — move it to the script"
+
+
+def test_the_proposer_never_writes_the_pipeline_cache():
+    """It restores the data cache to read the match frame. If it ever SAVED one, a proposer
+    run could hand the hourly pipeline a cache it never validated."""
+    wf = ALIAS_WORKFLOW.read_text(encoding="utf-8")
+    assert "actions/cache/restore@" in wf
+    assert "actions/cache/save@" not in wf and "uses: actions/cache@" not in wf
+
+
+def test_the_llm_dependency_stays_out_of_the_pinned_pipeline_requirements():
+    """requirements.txt pins exist so the retrain is reproducible and its pickles load
+    across runs. The proposer's client must never ride along into that install."""
+    pinned = (REPO / "tennis_model" / "requirements.txt").read_text(encoding="utf-8")
+    assert "anthropic" not in pinned
+    assert (REPO / "tennis_model" / "requirements-propose.txt").exists()
 
 
 if __name__ == "__main__":
