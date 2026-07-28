@@ -28,7 +28,7 @@ import pandas as pd
 from ..config import live_dir
 from ..data.results import _name_key
 from ..data.surface import resolve_level, resolve_surface_info
-from .bracket import bracket_is_meaningful, bracket_rounds, oriented_logged, price_bracket
+from .bracket import bracket_is_meaningful, bracket_rounds, is_real, oriented_logged, price_bracket
 from .draws import advance_slots, draw_status, live_draw, standard_seed_draw
 from .simulate import simulate_tournament
 
@@ -210,13 +210,35 @@ def recent_tournaments(df: pd.DataFrame, within_days: int = 40,
     return [(n, g) for n, g, _ in events[:max_events]]
 
 
+def projection_is_meaningful(field_pool) -> bool:
+    """Whether title odds over this field describe players, or mostly placeholders.
+
+    Deliberately the SAME majority rule as `sim.bracket.bracket_is_meaningful`, on the same
+    `is_real` predicate: a card whose bracket is withheld as noise must not still publish
+    odds computed from that noise. Unresolved `Qualifier N` slots are unknown to the rating
+    pool, so each one enters the simulation at DEFAULT_RATING — on 2026-07-27 the DC Open
+    shipped 22 of 24 projected "players" as qualifiers and inflated the real favourite to
+    53-56% against a field of ghosts."""
+    field = list(field_pool or [])
+    if not field:
+        return False
+    return sum(1 for x in field if is_real(x)) * 2 >= len(field)
+
+
 def _simulate_projection(predictor, slots: list, surface: str, best_of: int,
                          name: str, n_sims: int, seed: int) -> tuple[list, str | None]:
     """Simulate a bracket -> (projection rows, model favourite). The odds-formatting shared
-    by the live/completed and the pre-start (Wikipedia) paths, so it lives in one place."""
+    by the live/completed and the pre-start (Wikipedia) paths, so it lives in one place.
+
+    Placeholder entrants stay IN the simulation — they occupy real draw slots and a real
+    player's path genuinely runs through them — but are never PUBLISHED as rows: a
+    "Qualifier 13" line with title odds is not a fact about anybody. Odds are not
+    renormalised over the survivors; each published number is still that player's true
+    marginal given what the draw currently knows."""
     sim = simulate_tournament(predictor, slots, surface=surface, best_of=best_of,
                               n_sims=n_sims, seed=seed, event=name)
     cols = set(sim.columns)
+    sim = sim[[is_real(p) for p in sim["player"]]] if "player" in sim.columns else sim
     proj = [{
         "name": r.player,
         "champion": round(float(r.Champion), 4),
@@ -384,7 +406,14 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
             f"(field={len(field_pool)}, alive={len(still_in)}, completed={completed}, "
             f"draw_state={draw_state}, wiki_slots={len(resolved_wslots or [])})"
         )
-    proj, favorite = _simulate_projection(predictor, slots, surface, best_of, name, n_sims, seed)
+    # Withhold odds entirely while placeholders hold the draw: a favourite computed against a
+    # field of default-rated ghosts is not a weaker estimate, it is a wrong one. Completed
+    # events are exempt — their field is the real participant list by definition.
+    if completed or projection_is_meaningful(field_pool):
+        proj, favorite = _simulate_projection(predictor, slots, surface, best_of, name,
+                                              n_sims, seed)
+    else:
+        proj, favorite = [], None
 
     # The ACTUAL ordered bracket (real draw only): rounds joined to results, unpriced here —
     # build_tournaments prices it once the forecast log is loaded. Frontier-fold-free.
@@ -426,7 +455,13 @@ def project_upcoming(predictor, name: str, wd: dict, tour: str, df: pd.DataFrame
     best_of = int(wd.get("bestOf") or bo or 3)
     level = resolve_level(tour, name)
     slots = advance_slots(wslots, set())
-    proj, favorite = _simulate_projection(predictor, slots, surface, best_of, name, n_sims, seed)
+    # Same rule as the live path: an early capture that is mostly "Qualifier N" ships as a
+    # schedule card (name/dates/surface/tier/drawSize) with no odds, until qualifying resolves.
+    if projection_is_meaningful(field_pool):
+        proj, favorite = _simulate_projection(predictor, slots, surface, best_of, name,
+                                              n_sims, seed)
+    else:
+        proj, favorite = [], None
     rseeds = {resolve(k): v for k, v in (wd.get("seeds") or {}).items()}
     bracket = bracket_rounds(wslots, [], rseeds)     # released draw, no results yet -> all pending
     if not bracket_is_meaningful(bracket, len(field_pool)):

@@ -276,7 +276,10 @@ _GATE_ADVISORY = (
     # once the underlying ingestion is clean.
     "is stuck 'live'",             # event whose final never arrived
     "players alive (expected 1)",  # completed event whose eliminations never joined
-    "is a draw placeholder",       # 'Qualifier 30' surfaced as a real name
+    # NB: the two placeholder checks (modelFavorite, projection rows) are NOT listed — they
+    # are TIER-AWARE via `_tiered`, so a ghost on a 500-or-above blocks while the long tail
+    # warns. The producer now withholds odds entirely below a real majority, so on a clean
+    # build neither can fire at any tier.
     # NB: "is a month-of-year guess" is deliberately NOT listed — it is TIER-AWARE via
     # `_tiered`, so it blocks on a 500-or-above (where a guessed surface misprices a marquee
     # event, as it did the DC Open) and carries the _BELOW_TIER suffix elsewhere, because for
@@ -512,7 +515,8 @@ def _check_tournament(out: list, tour: str, t: dict, now: pd.Timestamp | None = 
     # draw machinery uses to decide whether a slot names a real player.
     fav = t.get("modelFavorite")
     if fav is not None and not _is_real_name(fav):
-        out.append(f"{tour}: tournament {name!r} modelFavorite {fav!r} is a draw placeholder")
+        out.append(_tiered(f"{tour}: tournament {name!r} modelFavorite {fav!r} is a draw "
+                           f"placeholder", t.get("level")))
     # Surface. A non-canonical value is a builder bug (the card, the per-surface Elo blend
     # and the /style page all key off this string), so it blocks. A month-of-year GUESS is
     # advisory — it is what shipped the DC Open, a hard court, priced on grass Elo, but for
@@ -542,7 +546,16 @@ def _check_tournament(out: list, tour: str, t: dict, now: pd.Timestamp | None = 
 
     proj = t.get("projection") or []
     _check_projection(out, tour, name, proj)
-    _flag_placeholders(out, tour, f"tournament {name!r}", (p.get("name") for p in proj))
+    # `_flag_placeholders` tests exact membership of a fixed word set, so the NUMBERED form
+    # ("Qualifier 30") walked straight through it — 22 of DC's 24 projected "players" were
+    # qualifiers and nothing fired. Use the same `is_real` predicate the draw machinery and
+    # the modelFavorite check use, so producer and gate cannot disagree about what a real
+    # entrant is. Bracket SLOTS legitimately carry "Qualifier N"; a PROJECTION ROW never can.
+    ghosts = sorted({p.get("name") for p in proj if not _is_real_name(p.get("name"))})
+    if ghosts:
+        shown = ", ".join(repr(g) for g in ghosts[:3]) + (" …" if len(ghosts) > 3 else "")
+        out.append(_tiered(f"{tour}: tournament {name!r} projection names {len(ghosts)} draw "
+                           f"placeholder(s) as players ({shown})", t.get("level")))
 
 
 def _check_brackets(out: list, tour: str, brackets: list, tournaments) -> None:

@@ -222,6 +222,9 @@ EVENT_TIER_FALLBACK: dict = {
     "Nordea Open": "250",         # Swedish Open (Bastad) — its infobox omits `category`
     "Grand Est Open 88": "125",   # WTA 125 (also wiki-covered; kept correct as a backstop)
     "Hall of Fame Open": "250",
+    # Los Cabos Open — same shape as Nordea: the article resolves (via WIKI_TITLE_OVERRIDES,
+    # which now supplies its surface) but its infobox carries no `category` field.
+    "Mifel Tennis Open": "250",
 }
 
 # ---------------------------------------------------------------------------
@@ -483,7 +486,13 @@ WIKI_UA = "TennisEloModel/1.0 (https://github.com/; av3342@columbia.edu)"
 # ESPN sponsor name -> exact Wikipedia article base (year is prefixed, "– Singles"/
 # "– Men's singles"/"– Women's singles" is appended at resolve time). Only needed when
 # the search API can't disambiguate; keep small, extend when draws_wiki logs a miss.
-WIKI_TITLE_OVERRIDES: dict[str, str] = {}
+WIKI_TITLE_OVERRIDES: dict[str, str] = {
+    # ESPN's sponsor title shares no distinctive token with the article name, so the
+    # anchor-gated search cannot bridge it and the event resolved no draw, no surface and no
+    # tier — it shipped as a generic "ATP Tour" card until the tier-did-not-resolve advisory
+    # named it (2026-07-28).
+    "Mifel Tennis Open by Telcel Oppo": "Los Cabos Open",
+}
 
 
 # ---------------------------------------------------------------------------

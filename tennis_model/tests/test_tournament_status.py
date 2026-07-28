@@ -17,6 +17,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
+from tennis_model.sim.bracket import is_real
 from tennis_model.sim.tournaments import (
     _dedup_by_display_name,
     build_tournaments,
@@ -115,6 +116,44 @@ def test_month_guessed_rows_never_pose_as_an_archive_surface():
     assert a_surf == "Hard", a_surf
     assert isinstance(a_surf, str)
     print("ok test_month_guessed_rows_never_pose_as_an_archive_surface")
+
+
+def test_placeholder_heavy_draw_withholds_odds_entirely():
+    """A favourite computed against default-rated ghosts is not a weaker estimate, it is a
+    wrong one: the DC Open shipped 22 of 24 projected "players" as `Qualifier N` and inflated
+    the real favourite to 53-56%. Below a real majority the card ships schedule info only —
+    the SAME threshold that already withholds the bracket, so the two cannot disagree."""
+    from tennis_model.sim.tournaments import projection_is_meaningful
+
+    assert projection_is_meaningful(["A", "B", "C", "D"])
+    assert projection_is_meaningful(["A", "B", "Qualifier 1", "Qualifier 2"])   # exactly half
+    assert not projection_is_meaningful(["A", "Qualifier 1", "Qualifier 2", "Qualifier 3"])
+    assert not projection_is_meaningful([f"Qualifier {i}" for i in range(8)])
+    assert not projection_is_meaningful([])
+
+    # end to end: a mostly-placeholder wiki draw ships no odds and no favourite...
+    ph = ["A", "B"] + [f"Qualifier {i}" for i in range(1, 15)]
+    t = _project([], wiki_draw={"slots": ph, "seeds": {}, "bestOf": 3})
+    assert t["projection"] == [] and t["modelFavorite"] is None
+    assert t["drawSize"] == 16                       # the card still carries schedule facts
+    # ...while a resolved draw prices normally and publishes only real names
+    real = [f"P{i}" for i in range(16)]
+    t2 = _project([], wiki_draw={"slots": real, "seeds": {}, "bestOf": 3})
+    assert t2["projection"] and t2["modelFavorite"] in real
+    assert all(is_real(p["name"]) for p in t2["projection"])
+    print("ok test_placeholder_heavy_draw_withholds_odds_entirely")
+
+
+def test_projection_rows_never_name_a_placeholder():
+    """Even above the majority threshold, an unresolved slot must not appear AS a player —
+    it still occupies a real draw slot in the simulation, it just isn't anybody."""
+    slots = [f"P{i}" for i in range(12)] + [f"Qualifier {i}" for i in range(1, 5)]
+    t = _project([], wiki_draw={"slots": slots, "seeds": {}, "bestOf": 3})
+    assert t["projection"], "a majority-real draw should still be priced"
+    names = [p["name"] for p in t["projection"]]
+    assert all(is_real(n) for n in names), names
+    assert is_real(t["modelFavorite"])
+    print("ok test_projection_rows_never_name_a_placeholder")
 
 
 def test_completed_event_reports_exactly_one_player_alive():

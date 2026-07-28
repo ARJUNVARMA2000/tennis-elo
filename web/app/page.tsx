@@ -220,7 +220,16 @@ function SlamHero({ t }: { t: Tournament }) {
         </div>
       )}
 
-      {/* round-by-round forecast table */}
+      {/* Round-by-round forecast table. Withheld entirely while the draw is mostly
+          unresolved qualifiers (sim/tournaments.projection_is_meaningful): odds computed
+          over default-rated placeholders describe nobody, and used to inflate the real
+          favourite to 53-56% on day one. The card still carries the schedule facts. */}
+      {t.projection.length === 0 ? (
+        <div className="mono mt-5 text-[11px] text-[var(--color-faint)]">
+          Title odds appear once the draw is settled — qualifying places are still open.
+        </div>
+      ) : (
+      <>
       <div className="mono mt-5 mb-2 text-[10px] uppercase tracking-wider text-[var(--color-faint)]">
         {t.status === "completed" ? "Pre-tournament title race" : "Title race"} · chance of reaching each round · <span className="text-[var(--color-muted)]">tap a round to sort</span>
       </div>
@@ -309,6 +318,8 @@ function SlamHero({ t }: { t: Tournament }) {
         <button onClick={() => setOpen(!open)} className="mono mt-3 text-[11px] text-[var(--color-accent)] hover:underline">
           {open ? "show less" : `show all projected (${t.projection.length})`}
         </button>
+      )}
+      </>
       )}
     </div>
   );
@@ -428,8 +439,15 @@ function Card({ t }: { t: Tournament }) {
         </div>
       )}
 
-      {/* projection */}
+      {/* Projection. Withheld while the draw is mostly unresolved qualifiers — see the
+          matching guard on the hero card and sim/tournaments.projection_is_meaningful. */}
       <div className="mt-4 flex-1">
+        {t.projection.length === 0 ? (
+          <div className="mono text-[11px] text-[var(--color-faint)]">
+            Title odds appear once the draw is settled — qualifying places are still open.
+          </div>
+        ) : (
+        <>
         <div className="mono mb-2 text-[10px] uppercase tracking-wider text-[var(--color-faint)]">
           {t.status === "live" ? "Title odds from here" : "Pre-event title odds"}
         </div>
@@ -462,6 +480,8 @@ function Card({ t }: { t: Tournament }) {
           <button onClick={() => setOpen(!open)} className="mono mt-3 text-[11px] text-[var(--color-accent)] hover:underline">
             {open ? "show less" : `show all projected (${t.projection.length})`}
           </button>
+        )}
+        </>
         )}
       </div>
     </div>

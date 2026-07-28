@@ -37,6 +37,7 @@ New lesson → append the entry to the matching topic file and add its lead line
 - Two timestamps that look like one: "when was this written" vs "when was this trained". (2026-07-25)
 - A flag derived from a value the producer then ROUNDS will eventually contradict the number it ships beside — the producer must move, because the gate only ever sees the rounded one. (2026-07-27)
 - A normaliser must be self-enforcing against the vocabulary its gate checks, and a tour tag matched as a bare substring finds "men" inside "tournaMENts". (2026-07-27)
+- An advisory that fires on live data reds the post-deploy sentinel even when the gate passes — budget for fixing what it finds in the same push. (2026-07-28)
 
 ## CI, alerts & deploy — [`lessons/ci-and-deploy.md`](lessons/ci-and-deploy.md)
 

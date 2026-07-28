@@ -204,11 +204,18 @@ def _grade_tournaments(tourns: list, tour: str) -> dict:
         if not ev:
             continue                                        # not finished (or name miss)
         ck = nkey(ev["champion"])
+        # Score only snapshots that actually carried odds. A card whose draw was still mostly
+        # unresolved qualifiers publishes NO projection by design (see
+        # sim.tournaments.projection_is_meaningful); counting that as a forecast would charge
+        # the model a Brier of 1.0 — the worst possible score — for declining to guess.
+        priced = [s for s in snaps if (s.get("projection") or [])]
+        if not priced:
+            continue                                        # never priced -> not a benchmark event
         briers = []
-        for s in snaps:
-            proj = {nkey(p["name"]): p.get("champion", 0.0) for p in (s.get("projection") or [])}
+        for s in priced:
+            proj = {nkey(p["name"]): p.get("champion", 0.0) for p in s["projection"]}
             briers.append((1.0 - proj.get(ck, 0.0)) ** 2)   # champion-indicator Brier
-        last = max(snaps, key=lambda s: s.get("as_of", ""))
+        last = max(priced, key=lambda s: s.get("as_of", ""))
         fav = (last.get("projection") or [{}])[0].get("name")
         events.append({
             "event": ev.get("name"), "end": ev.get("end"), "champion": ev["champion"],

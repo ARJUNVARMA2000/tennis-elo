@@ -113,3 +113,19 @@ Indexed in [`../lessons.md`](../lessons.md).
   is (a category cached before the tour gate existed would have pinned the wrong tour's tier
   forever, exactly like the frozen draws in [`draws-and-live-events.md`](draws-and-live-events.md)).
   Related: [[future-proof-no-quick-fixes]].
+
+- **An advisory that fires on live data turns the post-deploy sentinel red even when the gate
+  passes — which is the check working, provided the finding is actionable.** (2026-07-28) A2
+  added an advisory for an event whose tier never resolved. The very next deploy passed the
+  gate and shipped, then the "Report data health" step filed issue #11 and reddened the job,
+  because `health.json ok` is false whenever ANY problem exists — advisory or not. The single
+  finding was real: "Mifel Tennis Open by Telcel Oppo" shares no distinctive token with its
+  article ("Los Cabos Open"), so the anchor-gated title search could not bridge it and the
+  event had no draw, no surface and no tier — it had been shipping as a generic "ATP Tour"
+  card unnoticed. Fix was the two escape hatches that already exist for exactly this:
+  `WIKI_TITLE_OVERRIDES` (which also unlocked its surface, Hard) and `EVENT_TIER_FALLBACK`
+  (the article omits `category` entirely, same shape as Nordea Open). **How to apply:** budget
+  for this when adding an advisory — it costs a red sentinel and an issue on the next run, so
+  either fix what it finds in the same push or expect to. And distinguish the two failure
+  surfaces before reacting: a red `refresh` run whose GATE lines are all warnings did NOT
+  block a deploy; read which STEP failed before assuming the site is frozen.

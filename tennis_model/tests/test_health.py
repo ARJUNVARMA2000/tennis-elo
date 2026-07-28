@@ -710,9 +710,27 @@ def test_output_matrix_antisymmetry():
 
 
 def test_output_placeholder_name_leak():
+    """A projection row must name a person. The old check tested membership of a fixed word
+    set, so the bare "TBD" was caught but the NUMBERED "Qualifier 30" walked through — which
+    is the form real draws actually use, and why 22 of the DC Open's 24 projected "players"
+    shipped unflagged. Both forms are caught now, via the same `is_real` the draw machinery
+    and the modelFavorite check use."""
+    for ghost in ("TBD", "Qualifier 30", "Lucky Loser", "Bye"):
+        d = _healthy_data()
+        d["tournaments"][0]["level"] = "ATP 500"          # a tier where board quality blocks
+        d["tournaments"][0]["projection"][0]["name"] = ghost
+        out = health.output_problems("atp", _oc(data=d), NOW)
+        hit = [p for p in out if "draw placeholder(s) as players" in p]
+        assert hit, (ghost, out)
+        assert health._gate_blocks(hit[0]), ghost
+        assert repr(ghost) in hit[0]
+    # ...and the same leak on a small event warns instead of freezing the whole site
     d = _healthy_data()
-    d["tournaments"][0]["projection"][0]["name"] = "TBD"
-    assert any("placeholder name" in p for p in health.output_problems("atp", _oc(data=d), NOW))
+    d["tournaments"][0]["level"] = "WTA 125"
+    d["tournaments"][0]["projection"][0]["name"] = "Qualifier 30"
+    hit = [p for p in health.output_problems("wta", _oc(data=d), NOW)
+           if "draw placeholder(s) as players" in p]
+    assert hit and not health._gate_blocks(hit[0]), hit
     print("ok test_output_placeholder_name_leak")
 
 

@@ -2195,9 +2195,21 @@ Wikipedia for structure, fix the join layer.
       on cards, and 3 gates (canonical BLOCK, month-guess ADV, cross-tour split ADV).
       Verified against LIVE Wikipedia: DC/Memphis/National Bank now all resolve 'Hard';
       Gstaad/Palermo still 'Clay'. 374 pytest (+7, all proven failing-first), ruff clean.
-- [ ] A2 placeholders: withhold projection+favorite until real names hold draw majority
-      (user decision); filter published rows via is_real; web empty-table guard; projection
-      name gate BLOCKING; promote modelFavorite placeholder check to blocking
+- [x] A3 placeholders: `projection_is_meaningful` (real*2 >= field) — the SAME majority rule
+      `bracket_is_meaningful` already uses, so a card whose bracket is withheld as noise can no
+      longer still publish odds from that noise. Placeholders stay IN the simulation (they hold
+      real draw slots) but are never PUBLISHED as rows; no renormalisation, so each number is
+      still a true marginal. Both web renderers guarded (the compact card is a SECOND component
+      — the hero-only fix left DC unguarded, caught in the browser). eval/track.py now scores
+      only priced snapshots: an unpriced card would have been charged Brier 1.0 for declining
+      to guess. Gate: projection names via `is_real` (the exact-set check let the NUMBERED
+      "Qualifier 30" through), tier-aware; modelFavorite check promoted to the same severity.
+- [x] Fallout from A2's new advisory: it immediately found 'Mifel Tennis Open by Telcel Oppo'
+      shipping a generic "ATP Tour" tier — no draw, no surface, no tier, because its sponsor
+      title shares no token with "Los Cabos Open". Fixed via the two escape hatches that exist
+      for this: WIKI_TITLE_OVERRIDES (also unlocks its surface: Hard) + EVENT_TIER_FALLBACK
+      (the article omits `category`, same as Nordea). Gate passed and the site deployed both
+      times; it was the SENTINEL that reddened, filing issue #11.
 - [x] A2 level (moved ahead of placeholders — tier severity depends on it): tour tags were
       plain substrings and "men" is inside "tournaMENts", so `[[WTA 125 tournaments|WTA 125]]`
       matched the ATP tags outright; plus a LONE link was returned regardless of tour. Both
