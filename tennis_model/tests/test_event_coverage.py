@@ -48,6 +48,30 @@ def test_begun_event_comes_from_results_even_when_projection_would_filter_it():
     assert event["start"] == "2026-07-25" and event["end"] == "2026-08-02"
 
 
+def test_completed_fallback_preserves_a_known_final_result():
+    results = pd.DataFrame([
+        {"tourney_name": "Settled Open", "espn_id": "999-2026", "date": "2026-07-20",
+         "round": "F", "winner_name": "A Champion", "loser_name": "B Runner",
+         "tourney_level": "250", "draw_level": "main"},
+    ])
+    registry = {"events": {"999-2026": {
+        "name": "Settled Open", "names": ["Settled Open"],
+        "start": "2026-07-14", "end": "2026-07-20",
+    }}}
+    manifest = build_event_coverage(results, "atp", build_date=BUILD_DATE,
+                                    upcoming_df=pd.DataFrame(), registry=registry)
+    event = manifest["events"][0]
+    assert event["finalRecorded"] is True
+    assert (event["champion"], event["runnerUp"]) == ("A Champion", "B Runner")
+
+    tournaments: list[dict] = []  # fewer than eight result players: projector returns no card
+    finalize_event_coverage(manifest, tournaments)
+    shell = tournaments[0]
+    assert shell["status"] == "completed" and shell["drawStatus"] == "final"
+    assert shell["finalRecorded"] is True
+    assert (shell["champion"], shell["runnerUp"]) == ("A Champion", "B Runner")
+
+
 def test_started_schedule_counts_but_future_and_calendar_only_do_not():
     upcoming = pd.DataFrame([
         {"tourney_name": "Odlum Brown VanOpen", "espn_id": "875-2026",

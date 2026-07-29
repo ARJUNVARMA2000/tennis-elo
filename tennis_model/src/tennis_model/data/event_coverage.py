@@ -105,8 +105,9 @@ def _cached_identity_extras(tour: str) -> list[tuple[str, str]]:
 
 
 def _candidate(name: str, event_id: str | None, start, end, source: str,
-               players, pairs, registry: dict) -> dict:
+               players, pairs, registry: dict, *, champion=None, runner_up=None) -> dict:
     start_s, end_s = _registry_dates(registry, event_id, start, end)
+    final_recorded = bool(_real_name(champion) and _real_name(runner_up))
     return {
         "espnId": event_id,
         "name": _registry_name(registry, event_id, name),
@@ -122,6 +123,9 @@ def _candidate(name: str, event_id: str | None, start, end, source: str,
         "players": {str(p) for p in players if _real_name(p)},
         "pairs": {tuple(sorted((_name_key(a), _name_key(b)))) for a, b in pairs
                   if _real_name(a) and _real_name(b)},
+        "finalRecorded": final_recorded,
+        "champion": str(champion) if final_recorded else None,
+        "runnerUp": str(runner_up) if final_recorded else None,
     }
 
 
@@ -146,6 +150,11 @@ def _result_candidates(df: pd.DataFrame, ref: pd.Timestamp, resolver: EventResol
             main = group[group["draw_level"].fillna("main").astype(str).str.lower() == "main"]
             if not main.empty:
                 group = main
+        final_rows = group[group["round"] == "F"].sort_values("_coverage_date")
+        champion = runner_up = None
+        if not final_rows.empty:
+            final = final_rows.iloc[-1]
+            champion, runner_up = final["winner_name"], final["loser_name"]
         direct = _event_id(group["espn_id"] if "espn_id" in group.columns else [])
         event_id = direct or resolver.id_of(raw_name)
         if not event_id and not _main_tour_group(group):
@@ -153,7 +162,8 @@ def _result_candidates(df: pd.DataFrame, ref: pd.Timestamp, resolver: EventResol
         players = list(group["winner_name"]) + list(group["loser_name"])
         pairs = list(zip(group["winner_name"], group["loser_name"]))
         out.append(_candidate(str(raw_name), event_id, group["_coverage_date"].min(),
-                              group["_coverage_date"].max(), "result", players, pairs, registry))
+                              group["_coverage_date"].max(), "result", players, pairs, registry,
+                              champion=champion, runner_up=runner_up))
     return out
 
 
@@ -247,6 +257,14 @@ def _merge_candidates(candidates: list[dict], tour: str, registry: dict) -> list
         names = sorted({n for m in members for n in m["names"]}, key=norm_event_name)
         players = sorted({p for m in members for p in m["players"]}, key=_name_key)
         pairs = sorted({pair for m in members for pair in m["pairs"]})
+        finals = {
+            (_name_key(m["champion"]), _name_key(m["runnerUp"])):
+                (m["champion"], m["runnerUp"])
+            for m in members if m.get("finalRecorded")
+        }
+        champion = runner_up = None
+        if len(finals) == 1:
+            champion, runner_up = next(iter(finals.values()))
         starts = [m["start"] for m in members if m.get("start")]
         ends = [m["end"] for m in members if m.get("end")]
         evidence_starts = [m["evidenceStart"] for m in members if m.get("evidenceStart")]
@@ -265,6 +283,11 @@ def _merge_candidates(candidates: list[dict], tour: str, registry: dict) -> list
             "evidenceEnd": max(evidence_ends) if evidence_ends else end,
             "evidence": sorted({s for m in members for s in m["evidence"]}),
             "players": players, "matchPairs": [list(pair) for pair in pairs],
+            # Preserve only one non-conflicting settled result. If two sources somehow claim
+            # different finals, the shell stays unknown and the existing health invariant
+            # raises the conflict instead of silently picking a champion.
+            "finalRecorded": champion is not None,
+            "champion": champion, "runnerUp": runner_up,
         })
     return sorted(events, key=lambda e: (e.get("start") or "", norm_event_name(e["name"])))
 
@@ -322,14 +345,19 @@ def _coverage_shell(event: dict, build_date: str, tour: str) -> dict:
     """An honest presence-only card when simulation cannot safely describe the draw."""
     end = _date(event.get("end"))
     ref = _date(build_date)
-    completed = bool(end is not None and ref is not None and end < ref)
+    has_final = bool(event.get("finalRecorded") and event.get("champion")
+                     and event.get("runnerUp"))
+    completed = has_final or bool(end is not None and ref is not None and end < ref)
     return {
         "name": event["name"], "surface": None, "level": f"{tour.upper()} Tour", "bestOf": 3,
         "start": event.get("start") or build_date, "end": event.get("end") or build_date,
-        "status": "completed" if completed else "live", "drawStatus": "unavailable",
+        "status": "completed" if completed else "live",
+        "drawStatus": "final" if has_final else "unavailable",
         "espnId": event.get("espnId"), "surfaceSource": None,
-        "finalRecorded": False if completed else None,
-        "drawSize": None, "aliveCount": None, "champion": None, "runnerUp": None,
+        "finalRecorded": has_final if completed else None,
+        "drawSize": None, "aliveCount": 1 if has_final else None,
+        "champion": event.get("champion") if has_final else None,
+        "runnerUp": event.get("runnerUp") if has_final else None,
         "modelFavorite": None, "favoritePicked": False, "projection": [],
         "bracket": None, "bracketSize": None, "wikiUrl": None,
         "coverageKey": event["key"], "coverageOnly": True,

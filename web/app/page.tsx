@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
-import { pct, surfaceColor, heat, eloKey, blendedElo, tournamentTier, drawCaveat, byTournamentPrestige, tournamentView } from "@/lib/ui";
+import { pct, surfaceColor, heat, eloKey, blendedElo, tournamentTier, drawCaveat, byTournamentPrestige, tournamentView, tournamentDrawLabel, emptyProjectionNote } from "@/lib/ui";
 import { PageHead, Loading, Reveal, CallCard } from "@/components/bits";
 import { SPRING_SOFT } from "@/lib/motion";
 import { nameKey, type PlayerRow } from "@/lib/live";
@@ -185,7 +185,7 @@ function SlamHero({ t }: { t: Tournament }) {
           </div>
           <h2 className="display mt-2 text-3xl leading-tight sm:text-4xl">{t.name}</h2>
           <div className="mono mt-1 text-[11px] text-[var(--color-faint)]">
-            {dateRange(t.start, t.end)} · {t.drawSize ? `${t.drawSize} draw` : "draw pending"}
+            {dateRange(t.start, t.end)} · {tournamentDrawLabel(t)}
           </div>
         </div>
         {t.status === "completed" ? (
@@ -210,9 +210,9 @@ function SlamHero({ t }: { t: Tournament }) {
             <div className="text-[15px] font-medium text-[var(--color-champ)]">{t.champion}</div>
           </div>
           <div className="text-right">
-            <div className="text-[10px] uppercase tracking-wider text-[var(--color-faint)]">Model favoured</div>
+            <div className="text-[10px] uppercase tracking-wider text-[var(--color-faint)]">{t.modelFavorite ? "Model favoured" : "Projection"}</div>
             <div className="mono text-[13px]" style={{ color: t.favoritePicked ? "var(--color-win)" : "var(--color-muted)" }}>
-              {t.modelFavorite} {t.favoritePicked ? "✓" : "✗"}
+              {t.modelFavorite ? <>{t.modelFavorite} {t.favoritePicked ? "✓" : "✗"}</> : "Unavailable"}
             </div>
           </div>
         </div>
@@ -224,7 +224,7 @@ function SlamHero({ t }: { t: Tournament }) {
           favourite to 53-56% on day one. The card still carries the schedule facts. */}
       {t.projection.length === 0 ? (
         <div className="mono mt-5 text-[11px] text-[var(--color-faint)]">
-          Title odds appear once the draw is settled — qualifying places are still open.
+          {emptyProjectionNote(t)}
         </div>
       ) : (
       <>
@@ -403,7 +403,7 @@ function Card({ t }: { t: Tournament }) {
           </div>
           <h3 className="display mt-2 text-2xl leading-tight">{t.name}</h3>
           <div className="mono mt-1 text-[11px] text-[var(--color-faint)]">
-            {dateRange(t.start, t.end)} · {t.drawSize ? `${t.drawSize} draw` : "draw pending"}
+            {dateRange(t.start, t.end)} · {tournamentDrawLabel(t)}
           </div>
         </div>
         {t.status === "completed" ? (
@@ -428,9 +428,9 @@ function Card({ t }: { t: Tournament }) {
             <div className="text-[15px] font-medium text-[var(--color-champ)]">{t.champion}</div>
           </div>
           <div className="text-right">
-            <div className="text-[10px] uppercase tracking-wider text-[var(--color-faint)]">Model favoured</div>
+            <div className="text-[10px] uppercase tracking-wider text-[var(--color-faint)]">{t.modelFavorite ? "Model favoured" : "Projection"}</div>
             <div className="mono text-[13px]" style={{ color: t.favoritePicked ? "var(--color-win)" : "var(--color-muted)" }}>
-              {t.modelFavorite} {t.favoritePicked ? "✓" : "✗"}
+              {t.modelFavorite ? <>{t.modelFavorite} {t.favoritePicked ? "✓" : "✗"}</> : "Unavailable"}
             </div>
           </div>
         </div>
@@ -441,7 +441,7 @@ function Card({ t }: { t: Tournament }) {
       <div className="mt-4 flex-1">
         {t.projection.length === 0 ? (
           <div className="mono text-[11px] text-[var(--color-faint)]">
-            Title odds appear once the draw is settled — qualifying places are still open.
+            {emptyProjectionNote(t)}
           </div>
         ) : (
         <>

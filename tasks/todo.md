@@ -2698,3 +2698,15 @@ overlap plus shared real players, never by name similarity.
   pipeline + direct re-export completed; `health --gate` passed with only the pre-existing
   below-500 Bloomfield Hills stale-live advisory. Local browser verification rendered all ATP
   cards and all 14 WTA cards—including Axeria and Odlum—with no console warnings/errors.
+
+## Round F — preserve settled finals in coverage fallback cards
+
+- [x] Add a production-shaped regression where a completed result group contains a final but
+  the projector emits no card; require the independent manifest and fallback card to preserve
+  the champion/runner-up instead of converting known settled evidence into an unknown final.
+- [x] Carry one non-conflicting final result through candidate merging and render a completed
+  fallback as a recorded final with honest copy when its historical title projection/draw field
+  remains unavailable. Do not weaken the existing completed-event health invariant.
+- [ ] Run focused producer/health/web tests, full Python and web verification, commit, push, and
+  require both the pre-deploy gate and post-deploy live membership verifier to pass; inspect the
+  data-health reporter before declaring the deployment green.

@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { drawCaveat, heat, heroEvent, pct, percentileScaler, scoreDist, SLAM_HERO_LINGER_MS, SURFACE_BLEND, tournamentView } from "@/lib/ui";
+import { drawCaveat, emptyProjectionNote, heat, heroEvent, pct, percentileScaler, scoreDist, SLAM_HERO_LINGER_MS, SURFACE_BLEND, tournamentDrawLabel, tournamentView } from "@/lib/ui";
 
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
 
@@ -30,6 +30,20 @@ describe("drawCaveat", () => {
     expect(drawCaveat({ status: "completed", drawStatus: "final" })).toBeNull();
     expect(drawCaveat({ status: "completed", drawStatus: "seeded" })).toBeNull(); // completed wins
     expect(drawCaveat({ status: "live" })).toBeNull(); // stale JSON -> unchanged UI
+  });
+});
+
+describe("coverage fallback copy", () => {
+  it("describes a known completed final without pretending its draw is pending", () => {
+    const final = { status: "completed", drawSize: null, champion: "A Champion" };
+    expect(tournamentDrawLabel(final)).toBe("final recorded");
+    expect(emptyProjectionNote(final)).toContain("final result is recorded");
+  });
+
+  it("keeps the pending copy for a begun event whose field is still unavailable", () => {
+    const live = { status: "live", drawSize: null, champion: null };
+    expect(tournamentDrawLabel(live)).toBe("draw pending");
+    expect(emptyProjectionNote(live)).toContain("once the draw is settled");
   });
 });
 

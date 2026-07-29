@@ -161,3 +161,15 @@ Indexed in [`../lessons.md`](../lessons.md).
   test that passes when you revert the fix is not a weak test, it is not a test. Both traps
   were caught only by the failing-first check ("N failed" ≠ the N I expected), which is the
   cheapest real verification in this repo.
+
+- **A fallback that preserves membership must also preserve settled facts already present in
+  its evidence, or a projector failure becomes a false missing-result incident.** (2026-07-28)
+  The independent coverage manifest correctly restored three completed events that the
+  projector could not safely simulate, but its presence-only shell discarded the `F` result
+  already in the same rows. Production therefore deployed and passed exact-membership
+  verification, then the unchanged completed-event health invariant correctly reddened the
+  run because Wimbledon and Nordea appeared to have no champion. **How to apply:** degradation
+  paths may omit derived projections, never source facts. Carry one non-conflicting final
+  winner/runner-up through the independent manifest and into the fallback card; if sources
+  conflict, preserve neither and let health report it rather than choosing. Test the fallback
+  with a final-only group—the exact shape that makes the normal projector return no card.

@@ -28,6 +28,24 @@ export function drawCaveat(t: { status: string; drawStatus?: string }):
   return null; // "real" / "final" / legacy undefined -> the actual draw, no caveat
 }
 
+/** Card copy for a coverage fallback. A settled result with no safely reconstructed field is
+    not a draw that is still pending: the final is known even though historical odds are not. */
+export function tournamentDrawLabel(t: {
+  status: string; drawSize?: number | null; champion?: string | null;
+}): string {
+  if (t.drawSize) return `${t.drawSize} draw`;
+  if (t.status === "completed" && t.champion) return "final recorded";
+  return "draw pending";
+}
+
+export function emptyProjectionNote(t: {
+  status: string; champion?: string | null;
+}): string {
+  if (t.status === "completed" && t.champion)
+    return "The final result is recorded; historical title odds are unavailable because the field could not be reconstructed safely.";
+  return "Title odds appear once the draw is settled — qualifying places are still open.";
+}
+
 export const SURFACES = ["Hard", "Clay", "Grass"] as const;
 export type Surface = (typeof SURFACES)[number];
 
