@@ -441,6 +441,36 @@ def test_completed_projection_keeps_authoritative_wiki_field():
     print("ok test_completed_projection_keeps_authoritative_wiki_field")
 
 
+def test_completed_projection_withholds_an_unreconciled_wiki_bracket():
+    """A cached ordered draw can be real-player-complete yet have stale ordering. If its
+    result fold cannot reach the recorded final, keep the factual card but do not publish an
+    apparently authoritative bracket whose final the strict serving gate must reject."""
+    rows = [
+        dict(tourney_name="Test Open", date=pd.Timestamp("2026-07-01"), round=rnd,
+             winner_name=winner, loser_name=loser, surface_b="Hard", best_of=3,
+             tourney_level="250", draw_level="main")
+        for rnd, winner, loser in (
+            ("QF", "A", "B"), ("QF", "C", "D"), ("QF", "E", "F"), ("QF", "G", "H"),
+            ("SF", "A", "C"), ("SF", "E", "G"), ("F", "A", "E"),
+        )
+    ]
+    good = project_tournament(
+        _PRED, "Test Open", pd.DataFrame(rows), "atp", known=set(), top_set=None,
+        resolve=lambda n: n, wiki_draw={"slots": list("ABCDEFGH"), "bestOf": 3},
+        n_sims=20, seed=1,
+    )
+    assert good["bracket"][-1]["matches"][0]["winner"] == "a"
+
+    stale = project_tournament(
+        _PRED, "Test Open", pd.DataFrame(rows), "atp", known=set(), top_set=None,
+        resolve=lambda n: n, wiki_draw={"slots": ["A", "B", "C", "D", "E", "G", "F", "H"],
+                                   "bestOf": 3},
+        n_sims=20, seed=1,
+    )
+    assert stale["status"] == "completed" and stale["champion"] == "A"
+    assert stale["bracket"] is None
+
+
 def test_oversized_projection_error_names_event_and_source_state():
     """An invalid LIVE source grouping must fail with actionable context, not KeyError: 256."""
     rows = [dict(tourney_name="Merged Event", date=pd.Timestamp("2026-07-01"),

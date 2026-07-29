@@ -2793,3 +2793,5 @@ overlap plus shared real players, never by name similarity.
   qualifier slots are re-fetched while legitimate byes remain valid.
 - [ ] Re-run the real quick build and strict gate, then stage this producer correction before
   the pending gate and UI changes.
+- [ ] Withhold an ordered bracket from a completed card when its result fold cannot decide the
+  final; keep the factual tournament card and the existing completed-bracket gate unchanged.

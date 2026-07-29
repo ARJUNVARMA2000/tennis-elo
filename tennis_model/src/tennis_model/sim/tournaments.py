@@ -682,6 +682,13 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
         bracket = bracket_rounds(resolved_wslots, recs, resolved_seeds)
         if not bracket_is_meaningful(bracket, len(field_pool)):
             bracket = None                       # mostly-placeholder early draw -> not worth showing
+        elif completed and bracket[-1]["matches"][0].get("winner") is None:
+            # A real-player-complete cache can still carry stale ordering from an early
+            # article capture. The factual event record remains valid, but advertising an
+            # ordered bracket that cannot reproduce its recorded final is dishonest. Keep
+            # the strict serving invariant and withhold this optional artifact instead.
+            print(f"  {tour} {name!r}: withheld cached bracket — completed final did not reconcile")
+            bracket = None
 
     return {
         "name": _display_name(name, known or set()), "surface": surface, "level": level, "bestOf": best_of,
@@ -696,7 +703,7 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
         "modelFavorite": favorite,
         "favoritePicked": bool(completed and favorite == champ),
         "projection": proj,
-        "bracket": bracket, "bracketSize": len(resolved_wslots) if resolved_wslots else None,
+        "bracket": bracket, "bracketSize": len(resolved_wslots) if bracket is not None else None,
         "wikiUrl": (wiki_draw or {}).get("url"),
     }
 
