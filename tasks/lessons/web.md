@@ -90,3 +90,11 @@ Indexed in [`../lessons.md`](../lessons.md).
   while `HERO_MAX_TIER_RANK` remains a pure layout threshold. Pin both halves in tests: a 500
   card emits reach columns, a 250 keeps its compact title-odds bars, and hero/concurrency
   membership assertions remain unchanged.
+
+- **A current board must rank lifecycle before prestige.** (2026-07-29, completed Wimbledon
+  above live DC Open) Prestige is a useful tie-breaker inside a comparable cohort, but it is
+  not a freshness signal. Sorting the whole recent-event payload by tier alone made a finished
+  Slam look current long after its explicit hero linger expired. For a current-events surface,
+  group by lifecycle first (`live → upcoming → completed`), then rank by prestige, and preserve
+  producer order for equal status/tier so recency remains stable. Pin the contract with one
+  mixed-status regression; same-status tests alone cannot expose the stale-event promotion.

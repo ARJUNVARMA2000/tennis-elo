@@ -93,3 +93,8 @@ New lesson → append the entry to the matching topic file and add its lead line
   [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md).
 - Card content must not be fused to hero layout; reach odds belong to reusable card content
   while hero eligibility controls emphasis only. See [`lessons/web.md`](lessons/web.md).
+
+## Round H addition (2026-07-29)
+
+- A current board ranks lifecycle before prestige; tier is a tie-breaker, not a freshness
+  signal. See [`lessons/web.md`](lessons/web.md).

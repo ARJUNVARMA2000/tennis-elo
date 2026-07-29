@@ -2839,3 +2839,19 @@ overlap plus shared real players, never by name similarity.
   any event from the `{hero, grid, other}` partition.
 - Run focused and full web verification, deploy deliberately, inspect both ATP and WTA boards,
   and append a review with the production run evidence.
+
+## Round H review — current tournaments first (2026-07-29)
+
+- The stale ordering came from one shared helper sorting only by tier, so a completed Grand
+  Slam outranked every live 500/250 even after its 48-hour hero linger had expired. Commit
+  `54b5b35` replaces that with `live → upcoming → completed`, then applies prestige within
+  each status; stable sorting still preserves producer recency for equal-status, equal-tier
+  events. Hero eligibility and `{hero, grid, other}` membership are unchanged.
+- Fail-first proof: the mixed-status regression received `Wimbledon, Done Thousand, Upcoming
+  Five Hundred, Live Five Hundred, Live Two Fifty` before the fix and the intended current-first
+  order afterward. Final verification was 185 web tests, ESLint at 0 errors / 13 existing
+  warnings, a clean diff check, and a successful 21-page production build.
+- Deployment `30450071486` passed quick regeneration, the strengthened pre-deploy gate, data
+  health, build, Firebase deployment, live verification, both reporters, and cache persistence.
+  Live browser inspection showed ATP beginning with DC Open and Mifel before Wimbledon, and
+  WTA beginning with DC Open, Memphis, Axeria, and Odlum Brown VanOpen before Wimbledon.
