@@ -207,14 +207,20 @@ def player_questions(evidence: MatchEvidence, tour: str, limit: int = MAX_QUESTI
     `_canonicalize_names` unifies anything sharing a `name_key`, so accents and punctuation
     are already handled. What survives it is a DROPPED OR ADDED SURNAME, which changes the
     key itself — the Umag 2026 shape, where one player shipped as two and the event exported
-    drawSize 29 for a 28-draw. So the candidate rule is exactly that shape: one key's tokens
-    are a strict superset of the other's.
+    drawSize 29 for a 28-draw. Inserting whitespace inside a compound given name also changes
+    token membership (``Soonwoo`` / ``Soon Woo``), so equal whitespace-stripped keys are the
+    second bounded candidate shape.
 
     Note what this deliberately does NOT do: it never proposes a merge on shared-surname
     alone. "Alexander Zverev" and "Mischa Zverev" are not a subset pair and never become a
     question; a pair that has met across a net is dropped here rather than asked about."""
     keys = [k for k in evidence.counts if len(k.split()) >= 2]
     toks = {k: frozenset(k.split()) for k in keys}
+
+    def near(a: str, b: str) -> bool:
+        return (toks[a] < toks[b] or toks[b] < toks[a]
+                or a.replace(" ", "") == b.replace(" ", ""))
+
     cands: list[tuple[int, str, str, str]] = []
     stable_subjects: set[tuple[str, str]] = set()
 
@@ -234,9 +240,7 @@ def player_questions(evidence: MatchEvidence, tour: str, limit: int = MAX_QUESTI
             while changed:
                 changed = False
                 for candidate in list(remaining):
-                    if any(toks.get(candidate, frozenset()) < toks.get(member, frozenset())
-                           or toks.get(member, frozenset()) < toks.get(candidate, frozenset())
-                           for member in component):
+                    if any(near(candidate, member) for member in component):
                         component.add(candidate)
                         remaining.remove(candidate)
                         changed = True
@@ -258,31 +262,34 @@ def player_questions(evidence: MatchEvidence, tour: str, limit: int = MAX_QUESTI
                               f"and {canonical_spelling!r} ({evidence.counts[canonical]} "
                               f"matches) share stable player id {player_id}"))
 
-    for short in keys:
-        for long in keys:
-            if short == long or not toks[short] < toks[long]:
+    for i, first in enumerate(keys):
+        for second in keys[i + 1:]:
+            if not near(first, second):
                 continue
             # Already covered by a hand-kept entry, or refuted before we spend a token on it.
-            if short in PLAYER_ALIASES or long in PLAYER_ALIASES:
+            if first in PLAYER_ALIASES or second in PLAYER_ALIASES:
                 continue
-            if frozenset((short, long)) in evidence.opponents:
+            if frozenset((first, second)) in evidence.opponents:
                 continue
-            if evidence.different_stable_ids(short, long):
+            if evidence.different_stable_ids(first, second):
                 continue
-            if evidence.shared_stable_ids(short, long):
+            if evidence.shared_stable_ids(first, second):
                 continue
-            a = evidence.best_spelling(short) or short
-            b = evidence.best_spelling(long) or long
+            a = evidence.best_spelling(first) or first
+            b = evidence.best_spelling(second) or second
             # Rarest-first: a split identity is lopsided (many matches under one spelling,
             # a handful under the other), and that is also the ordering that puts the
             # freshly-broken name ahead of a long-settled ambiguity.
             subject = tuple(sorted((a, b)))
             if subject in stable_subjects:
                 continue
-            cands.append((min(evidence.counts[short], evidence.counts[long]), *subject,
-                          f"{a!r} ({evidence.counts[short]} matches) and "
-                          f"{b!r} ({evidence.counts[long]} matches) never played each "
-                          f"other and differ only by a dropped/added name part"))
+            relation = ("differ only by whitespace inside a name part"
+                        if first.replace(" ", "") == second.replace(" ", "")
+                        else "differ only by a dropped/added name part")
+            cands.append((min(evidence.counts[first], evidence.counts[second]), *subject,
+                          f"{a!r} ({evidence.counts[first]} matches) and "
+                          f"{b!r} ({evidence.counts[second]} matches) never played each "
+                          f"other and {relation}"))
     cands.sort(key=lambda c: (c[0], c[1], c[2]))
     return [
         Question(kind="player_alias", tour=tour, subject=(a, b), context=context)

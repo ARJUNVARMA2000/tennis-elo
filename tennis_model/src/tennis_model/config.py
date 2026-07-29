@@ -541,6 +541,13 @@ WIKI_TITLE_OVERRIDES: dict[str, str] = {
 # `data/alias_proposer.py` opens a PR proposing one (that path is reviewed, never automatic).
 PLAYER_ALIASES: dict[str, str] = {
     "daniel merida aguilar": "Daniel Merida",
+    # 2026-07-29 Wimbledon duplicate: the archive's 360-match spelling and the live feed's
+    # 2-match inserted-space spelling describe one player. Without this the same match walks
+    # ratings twice and the completed Slam grows a phantom 129th entrant.
+    "soon woo kwon": "Soonwoo Kwon",
+    # 2026-07-29 Athens duplicate: western and family-name-first order describe one player
+    # (207 archive matches versus 4 under the reversed live spelling).
+    "zheng qinwen": "Qinwen Zheng",
     # Found by the alias proposer's DETERMINISTIC half on 2026-07-28, before any model call:
     # 36 matches as "Diego Dedura", 3 as "Diego Dedura-Palomero", and Stuttgart 2026-06-09
     # carries BOTH — "James Duckworth d. Diego Dedura" and "James Duckworth d. Diego

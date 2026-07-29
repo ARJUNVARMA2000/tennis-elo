@@ -110,6 +110,18 @@ def test_player_scan_asks_about_the_dropped_surname(evidence, unpatched_config):
     assert ("Daniel Merida", "Daniel Merida Aguilar") in subjects
 
 
+def test_player_scan_asks_about_a_split_compound_given_name(unpatched_config):
+    """Whitespace inserted inside a given name changes token membership, so the original
+    strict-subset scan missed Soonwoo/Soon Woo even though their folded text is identical."""
+    frame = _frame([
+        ("Soonwoo Kwon", "Opponent One", pd.Timestamp("2026-07-01")),
+        ("Soonwoo Kwon", "Opponent Two", pd.Timestamp("2026-07-02")),
+        ("Soon Woo Kwon", "Opponent Three", pd.Timestamp("2026-07-03")),
+    ])
+    subjects = [q.subject for q in ap.player_questions(ap.build_evidence(frame), "atp")]
+    assert ("Soon Woo Kwon", "Soonwoo Kwon") in subjects
+
+
 def test_scan_never_asks_about_a_shared_surname_alone(evidence, unpatched_config):
     """The rule is token-SUBSET, not shared surname — "shorter name is a prefix of the
     longer" would put every pair of tennis brothers on the list."""

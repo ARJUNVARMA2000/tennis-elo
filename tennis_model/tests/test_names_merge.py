@@ -133,6 +133,19 @@ def test_canonicalize_maps_the_live_espn_coleman_wong_name_to_his_history():
     print("ok test_canonicalize_maps_the_live_espn_coleman_wong_name_to_his_history")
 
 
+def test_canonicalize_maps_wimbledon_and_athens_split_identities():
+    """The same match arrived twice under spellings that change the name key. These aliases
+    must collapse before the ratings walk, not merely while building a tournament card."""
+    df = pd.DataFrame({
+        "winner_name": ["Soonwoo Kwon", "Soon Woo Kwon", "Qinwen Zheng", "Zheng Qinwen"],
+        "loser_name": ["Opponent One", "Opponent Two", "Opponent Three", "Opponent Four"],
+        "__src": [0, 2, 0, 2],
+    })
+    out = results._canonicalize_names(df.copy())
+    assert set(out["winner_name"]) == {"Soonwoo Kwon", "Qinwen Zheng"}
+    print("ok test_canonicalize_maps_wimbledon_and_athens_split_identities")
+
+
 # ---------------------------------------------------------------------------
 # merge / dedup
 # ---------------------------------------------------------------------------
