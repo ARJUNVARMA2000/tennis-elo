@@ -79,3 +79,14 @@ Indexed in [`../lessons.md`](../lessons.md).
   (`useData` sets `data=null`/`error`) with an explicit empty state. Reuse `CallCard`
   (two players + prob bars, `tone` for result vs projection), `pct`, `surfaceColor`.
   See [[future-proof-no-quick-fixes]].
+
+- **Card content must not be fused to hero layout.** (2026-07-29, reach odds disappeared
+  from every live event) Round-by-round reach data existed on every tournament projection,
+  but only the single hero renderer knew how to display it. Tightening hero eligibility to
+  protect concurrent events therefore removed the feature from the whole board during a
+  500-level week. Hero selection should decide emphasis and page composition only. Extract
+  reusable content primitives first, then apply the content rule independently at the card
+  tier where it belongs; here 500-and-above cards share the same reach rows as the Slam hero,
+  while `HERO_MAX_TIER_RANK` remains a pure layout threshold. Pin both halves in tests: a 500
+  card emits reach columns, a 250 keeps its compact title-odds bars, and hero/concurrency
+  membership assertions remain unchanged.

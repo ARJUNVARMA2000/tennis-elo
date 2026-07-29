@@ -85,3 +85,11 @@ New lesson → append the entry to the matching topic file and add its lead line
 - An API field's semantics can mutate over an object's lifecycle — validate on the SETTLED objects you'll actually score, not the live ones you explored. (2026-07-07)
 - Duplicated construction sites drift: production shipped WTA pickles with fp=None. (2026-07-09)
 - Widening a helper's return arity is invisible to tests that cover the helper and its caller separately — rebuild the real artefact and assert on types. (2026-07-27)
+
+## Round G additions (2026-07-29)
+
+- Draw identity without a stable event ID requires a shared real match; date overlap and
+  shared players alone fused Wimbledon into Nordea Open. See
+  [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md).
+- Card content must not be fused to hero layout; reach odds belong to reusable card content
+  while hero eligibility controls emphasis only. See [`lessons/web.md`](lessons/web.md).

@@ -223,3 +223,16 @@ Indexed in [`../lessons.md`](../lessons.md).
   cannot decide is a much smaller and better-posed question to spend an API call on. Then
   make the model's answer falsifiable against data you already hold, and keep the adopt step
   human. Never let a bot merge into a branch whose push IS the production deploy.
+
+- **Date overlap plus shared players does not identify one event; require a shared real
+  match when no stable event ID exists.** (2026-07-29, Wimbledon fused into Nordea Open)
+  Two concurrent WTA events overlapped by five days and shared nine players but shared zero
+  main-draw match pairs. The projector treated that as a sponsor rename, merged both result
+  groups, and manufactured a 152-player Wimbledon field. This differed from the independent
+  coverage resolver, which already required match evidence. Event IDs remain the decisive
+  path when both sides carry one; for id-less records, date overlap only bounds the search
+  and shared participants only raise suspicion. A shared knockout pair is the minimum
+  positive evidence that two differently named groups describe the same event. Build that
+  evidence from the same main-draw rows used to construct the field, and regression-test both
+  directions: the false concurrent-event merge stays split while a genuine renamed event
+  with a shared match still coalesces.

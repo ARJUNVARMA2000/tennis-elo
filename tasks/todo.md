@@ -2795,3 +2795,38 @@ overlap plus shared real players, never by name similarity.
   the pending gate and UI changes.
 - [ ] Withhold an ordered bracket from a completed card when its result fold cannot decide the
   final; keep the factual tournament card and the existing completed-bracket gate unchanged.
+
+## Round G review — Wimbledon field repair and reach cards (2026-07-29)
+
+- Producer fixes landed first in `35f6bc2`, `1751697`, `8ee9b22`, `ce34504`, `427fc32`, and
+  `6914380`. Grand Slams now use an authoritative 128 draw; an id-less event merge requires a
+  shared real match pair; one player cannot occupy two matches in one knockout round; known
+  Kwon/Zheng aliases are canonical; incomplete draw caches are re-fetched; and an
+  unreconcilable completed bracket is withheld without erasing the factual tournament card.
+  Live oversized fields remain fatal, while a completed unseatable field degrades to an honest
+  empty-projection record.
+- The producer push run `30421865323` passed quick regeneration, the existing pre-deploy gate,
+  data health, build, Firebase deploy, and all 8 live checks with exact membership for 22 begun
+  events. Scheduled full run `30429268554` then passed the full retrain, pre-deploy gate, data
+  health, build, deploy, and 8/8 live verification before ending red only at the final source
+  sentinel: WTA `/tournaments/` was unreachable after five retries, so cached WTA stats were
+  retained as designed. Its forecast-ledger commit was reconciled as `2cbe3ec` before the next
+  rollout stage.
+- The stricter gate landed separately in `1f50a46`. It blocks missing/noncanonical surfaces,
+  tier-wrong best-of values, completed generic tiers, downgraded `coverageOnly` defects, and
+  `shellKeys` parity mismatches while reporting one problem per actual shell. Focused health
+  verification passed 87 tests plus Ruff; deployment `30432522121` passed regeneration, both
+  health gates, build, deploy, live verification, and both reporters.
+- Shared reach-card rendering landed separately in `df6de1c`. `ReachRow`/`ReachStrip` now serve
+  the Slam hero and every non-empty 500+ card, while `HERO_MAX_TIER_RANK = 2` still controls
+  hero layout and 250/lower cards retain title-odds bars. The renderer regression passed 24
+  focused tests; the full verification before rollout was 476 Python tests and 184 web tests,
+  with Ruff clean, ESLint at 0 errors / 13 existing warnings, and the production build green.
+  Deployment `30433065154` passed the strengthened gate, data health, build, Firebase deploy,
+  and live verification.
+- Final production inspection showed exactly one ATP and one WTA Wimbledon card. Both are
+  `Grand Slam / Grass / 128 / completed / final / coverageOnly=false`; ATP is best-of-5 with
+  champion Jannik Sinner and WTA is best-of-3 with champion Linda Noskova. Nordea Open remains
+  a separate `WTA 250 / Clay / 32` final with champion Paula Badosa. Public health was green at
+  `2026-07-29T07:55:09Z`. Browser inspection confirmed R16/QF/SF/F/Win columns on both ATP and
+  WTA 500 cards and compact odds on 250 cards.
