@@ -25,6 +25,7 @@ import pandas as pd
 from ..config import live_dir
 from .events import EventResolver, load_registry, norm_event_name
 from .results import _name_key
+from .surface import resolve_level, resolve_surface_info
 
 COVERAGE_VERSION = 1
 COVERAGE_RETENTION_DAYS = 18
@@ -83,6 +84,50 @@ def _registry_name(registry: dict, event_id: str | None, fallback: str) -> str:
     return str(entry.get("name") or fallback)
 
 
+def _registry_names(registry: dict, event_id: str | None, fallback: str) -> set[str]:
+    entry = ((registry.get("events") or {}).get(str(event_id)) or {}) if event_id else {}
+    return {str(name) for name in [fallback, entry.get("name"), *(entry.get("names") or [])]
+            if name}
+
+
+def _mode(group: pd.DataFrame, columns: tuple[str, ...]):
+    for column in columns:
+        if column not in group.columns:
+            continue
+        values = [value for value in group[column]
+                  if value is not None and str(value).strip()
+                  and str(value).strip().lower() not in {"nan", "none"}]
+        if values:
+            return Counter(values).most_common(1)[0][0]
+    return None
+
+
+def _result_attrs(group: pd.DataFrame) -> tuple[object, object, object, int | None]:
+    """Tier, surface, provenance, and format evidence already present on result rows."""
+    level = _mode(group, ("tourney_level", "tier"))
+    surface_pairs = []
+    if "surface_b" in group.columns:
+        sources = (group["surface_src"] if "surface_src" in group.columns
+                   else pd.Series("archive", index=group.index))
+        surface_pairs = [
+            (surface, source)
+            for surface, source in zip(group["surface_b"], sources)
+            if surface is not None and str(surface).strip()
+            and str(surface).strip().lower() not in {"nan", "none"}
+        ]
+    # A real archive/wiki value outranks the month guess. Within one provenance tier, mode
+    # preserves the same source-majority behavior used elsewhere in the results pipeline.
+    trusted = [pair for pair in surface_pairs if str(pair[1]).lower() != "month"]
+    surface, surface_source = (Counter(trusted or surface_pairs).most_common(1)[0][0]
+                               if surface_pairs else (None, None))
+    best_of = None
+    if "best_of" in group.columns:
+        values = pd.to_numeric(group["best_of"], errors="coerce").dropna()
+        if not values.empty:
+            best_of = int(values.mode().iloc[0])
+    return level, surface, surface_source, best_of
+
+
 def _cached_identity_extras(tour: str) -> list[tuple[str, str]]:
     """Name/id evidence retained in caches after the registry prunes an old event.
 
@@ -105,13 +150,14 @@ def _cached_identity_extras(tour: str) -> list[tuple[str, str]]:
 
 
 def _candidate(name: str, event_id: str | None, start, end, source: str,
-               players, pairs, registry: dict, *, champion=None, runner_up=None) -> dict:
+               players, pairs, registry: dict, *, champion=None, runner_up=None,
+               archive_level=None, surface=None, surface_source=None, best_of=None) -> dict:
     start_s, end_s = _registry_dates(registry, event_id, start, end)
     final_recorded = bool(_real_name(champion) and _real_name(runner_up))
     return {
         "espnId": event_id,
         "name": _registry_name(registry, event_id, name),
-        "names": {str(name)},
+        "names": _registry_names(registry, event_id, str(name)),
         "start": start_s,
         "end": end_s,
         # Join evidence keeps the source-observed dates, not the broader ESPN calendar.
@@ -126,6 +172,10 @@ def _candidate(name: str, event_id: str | None, start, end, source: str,
         "finalRecorded": final_recorded,
         "champion": str(champion) if final_recorded else None,
         "runnerUp": str(runner_up) if final_recorded else None,
+        "archiveLevel": archive_level,
+        "surface": surface,
+        "surfaceSource": surface_source,
+        "bestOf": best_of,
     }
 
 
@@ -161,9 +211,12 @@ def _result_candidates(df: pd.DataFrame, ref: pd.Timestamp, resolver: EventResol
             continue
         players = list(group["winner_name"]) + list(group["loser_name"])
         pairs = list(zip(group["winner_name"], group["loser_name"]))
+        archive_level, surface, surface_source, best_of = _result_attrs(group)
         out.append(_candidate(str(raw_name), event_id, group["_coverage_date"].min(),
                               group["_coverage_date"].max(), "result", players, pairs, registry,
-                              champion=champion, runner_up=runner_up))
+                              champion=champion, runner_up=runner_up,
+                              archive_level=archive_level, surface=surface,
+                              surface_source=surface_source, best_of=best_of))
     return out
 
 
@@ -271,6 +324,13 @@ def _merge_candidates(candidates: list[dict], tour: str, registry: dict) -> list
         evidence_ends = [m["evidenceEnd"] for m in members if m.get("evidenceEnd")]
         start, end = (min(starts) if starts else None), (max(ends) if ends else None)
         display = _registry_name(registry, event_id, names[0] if names else "Unknown event")
+        archive_levels = [m.get("archiveLevel") for m in members if m.get("archiveLevel") is not None]
+        best_of_values = [m.get("bestOf") for m in members if m.get("bestOf") is not None]
+        surface_values = [(m.get("surface"), m.get("surfaceSource")) for m in members
+                          if m.get("surface") is not None]
+        trusted_surfaces = [pair for pair in surface_values if str(pair[1]).lower() != "month"]
+        merged_surface = (Counter(trusted_surfaces or surface_values).most_common(1)[0][0]
+                          if surface_values else (None, None))
         if event_id:
             key = f"espn:{event_id}"
         else:
@@ -288,6 +348,11 @@ def _merge_candidates(candidates: list[dict], tour: str, registry: dict) -> list
             # raises the conflict instead of silently picking a champion.
             "finalRecorded": champion is not None,
             "champion": champion, "runnerUp": runner_up,
+            "archiveLevel": (Counter(archive_levels).most_common(1)[0][0]
+                             if archive_levels else None),
+            "surface": merged_surface[0], "surfaceSource": merged_surface[1],
+            "bestOf": (Counter(best_of_values).most_common(1)[0][0]
+                       if best_of_values else None),
         })
     return sorted(events, key=lambda e: (e.get("start") or "", norm_event_name(e["name"])))
 
@@ -348,12 +413,42 @@ def _coverage_shell(event: dict, build_date: str, tour: str) -> dict:
     has_final = bool(event.get("finalRecorded") and event.get("champion")
                      and event.get("runnerUp"))
     completed = has_final or bool(end is not None and ref is not None and end < ref)
+    generic = f"{tour.upper()} Tour"
+    names = list(dict.fromkeys([*(event.get("names") or []), event.get("name")]))
+    level = generic
+    for name in names:
+        candidate = resolve_level(tour, str(name), archive_level=event.get("archiveLevel"))
+        if candidate != generic:
+            level = candidate
+            break
+
+    surface = surface_source = None
+    month_guess = None
+    archive_surface = (event.get("surface")
+                       if event.get("surfaceSource") == "archive" else None)
+    for name in names:
+        candidate, source = resolve_surface_info(
+            tour, str(name), event.get("start") or build_date,
+            archive_surface=archive_surface)
+        if source != "month":
+            surface, surface_source = candidate, source
+            break
+        month_guess = month_guess or (candidate, source)
+    if surface is None and event.get("surface") is not None:
+        surface, surface_source = event.get("surface"), event.get("surfaceSource")
+    if surface is None and month_guess:
+        surface, surface_source = month_guess
+
+    try:
+        best_of = int(event.get("bestOf"))
+    except (TypeError, ValueError):
+        best_of = 5 if tour == "atp" and level == "Grand Slam" else 3
     return {
-        "name": event["name"], "surface": None, "level": f"{tour.upper()} Tour", "bestOf": 3,
+        "name": event["name"], "surface": surface, "level": level, "bestOf": best_of,
         "start": event.get("start") or build_date, "end": event.get("end") or build_date,
         "status": "completed" if completed else "live",
         "drawStatus": "final" if has_final else "unavailable",
-        "espnId": event.get("espnId"), "surfaceSource": None,
+        "espnId": event.get("espnId"), "surfaceSource": surface_source,
         "finalRecorded": has_final if completed else None,
         "drawSize": None, "aliveCount": 1 if has_final else None,
         "champion": event.get("champion") if has_final else None,
@@ -392,4 +487,6 @@ def finalize_event_coverage(manifest: dict, tournaments: list[dict]) -> dict:
     tournaments.sort(key=lambda card: card.get("end") or "", reverse=True)
     tournaments.sort(key=lambda card: order.get(card.get("status"), 3))
     shipped = sorted(str(card["coverageKey"]) for card in tournaments if card.get("coverageKey"))
-    return {**manifest, "shippedKeys": shipped}
+    shell_keys = sorted(str(card["coverageKey"]) for card in tournaments
+                        if card.get("coverageKey") and card.get("coverageOnly"))
+    return {**manifest, "shippedKeys": shipped, "shellKeys": shell_keys}

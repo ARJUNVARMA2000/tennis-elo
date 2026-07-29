@@ -428,6 +428,7 @@ def event_category(event: str, year: int, tour: str) -> str | None:
 
 
 _ROUND_BY_SIZE = {128: "R128", 64: "R64", 32: "R32", 16: "R16", 8: "QF", 4: "SF", 2: "F"}
+_REGISTRY_BACKFILL_DAYS = 40
 
 
 def wiki_upcoming_rows(tour: str) -> list:
@@ -474,6 +475,11 @@ def _retention_cutoff(now: datetime | None = None) -> str:
     return ((now or datetime.now(UTC)) - timedelta(days=WIKI_DRAW_RETENTION_DAYS)).strftime("%Y-%m-%d")
 
 
+def _registry_backfill_cutoff(now: datetime | None = None) -> str:
+    """Oldest registry event whose missing draw is still useful to the projector."""
+    return ((now or datetime.now(UTC)) - timedelta(days=_REGISTRY_BACKFILL_DAYS)).strftime("%Y-%m-%d")
+
+
 def _still_worth_keeping(entry: object, cutoff: str) -> bool:
     """Whether a cached entry ESPN no longer lists should be carried forward.
 
@@ -509,7 +515,7 @@ def download_wiki_draws(tours=TOURS) -> None:
     kept as-is, so we only hit Wikipedia for events still awaiting a draw or still carrying
     qualifier placeholders. Events that have aged out of the ESPN window are pruned.
     Best-effort per event."""
-    from .events import update_registry
+    from .events import load_registry, update_registry
     from .live import fetch_events, parse_event_meta
     for tour in tours:
         try:
@@ -517,7 +523,7 @@ def download_wiki_draws(tours=TOURS) -> None:
             meta = parse_event_meta(events)
             # Idempotent double-write with download_live: whichever downloader survives a
             # best-effort failure still records identity, so a rename can't slip through.
-            update_registry(tour, meta)
+            registry = update_registry(tour, meta) or load_registry(tour)
         except Exception as e:  # noqa: BLE001 — draw overlay is best-effort, never build-fatal
             print(f"  wiki-draws/{tour}: skipped ({e})")
             continue
@@ -530,7 +536,7 @@ def download_wiki_draws(tours=TOURS) -> None:
             except Exception:  # noqa: BLE001 — a corrupt cache just means re-fetch
                 cached = {}
         out: dict = {}
-        fetched = refreshed = 0
+        fetched = refreshed = backfilled = 0
         for name, m in meta.items():
             prev = cached.get(name) or {}
             if _draw_is_settled(prev.get("slots")):    # fully resolved — this one never changes
@@ -562,11 +568,45 @@ def download_wiki_draws(tours=TOURS) -> None:
             if name not in out and _still_worth_keeping(prev, cutoff):
                 out[name] = prev
                 kept += 1
+        # Carry-forward cannot repair a cache that was already evicted. The event registry
+        # survives independently and still knows recent ids, names, and dates, so use it as a
+        # targeted recovery queue for exactly the projector's 40-day window. This stays behind
+        # the same per-event best-effort boundary as the current ESPN sweep.
+        present_ids = {str(entry.get("espnId")) for entry in out.values()
+                       if isinstance(entry, dict) and entry.get("espnId")}
+        present_names = {str(name).casefold() for name in out}
+        backfill_cutoff = _registry_backfill_cutoff()
+        for event_id, event in (registry.get("events") or {}).items():
+            ref = str(event.get("end") or event.get("start") or "")[:10]
+            names = [event.get("name"), *(event.get("names") or [])]
+            if (not ref or ref < backfill_cutoff or str(event_id) in present_ids
+                    or any(str(name).casefold() in present_names for name in names if name)):
+                continue
+            name = str(event.get("name") or next((n for n in names if n), ""))
+            if not name:
+                continue
+            recovery_meta = {
+                "espnId": str(event_id),
+                "start": event.get("start"),
+                "end": event.get("end"),
+            }
+            year = int(str(recovery_meta.get("start") or "2026")[:4] or 2026)
+            try:
+                entry = fetch_draw(name, year, tour, recovery_meta)
+            except Exception as e:  # noqa: BLE001 — registry recovery is best-effort too
+                print(f"  wiki-draws/{tour}: {name} backfill skipped ({e})")
+                entry = None
+            if entry:
+                out[name] = entry
+                present_ids.add(str(event_id))
+                present_names.add(name.casefold())
+                backfilled += 1
         if out:
             d.mkdir(parents=True, exist_ok=True)
             path.write_text(json.dumps(out), encoding="utf-8")
             print(f"  wiki-draws/{tour}: {len(out)} draw(s) "
-                  f"({fetched} new, {refreshed} re-fetched, {kept} kept past the window) -> {path}")
+                  f"({fetched} new, {refreshed} re-fetched, {backfilled} registry-backfilled, "
+                  f"{kept} kept past the window) -> {path}")
         else:
             print(f"  wiki-draws/{tour}: no draws posted yet for {len(meta)} tracked event(s)")
         _download_wiki_meta(tour, d, meta)   # main-article surface + tier, one pass (best-effort)

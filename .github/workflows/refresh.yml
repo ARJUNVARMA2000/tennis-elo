@@ -81,7 +81,9 @@ jobs:
           # the WTA stats backfill (2024+) only exists in the snapshot — a cache that
           # predates it must also trigger the restore
           if [ ! -f tennis_model/data/raw/atp/historical/2020.csv ] \
-             || [ ! -f tennis_model/data/raw/wta/stats/2024.csv ]; then
+             || [ ! -f tennis_model/data/raw/wta/stats/2024.csv ] \
+             || [ ! -d tennis_model/data/raw/atp/live ] \
+             || [ ! -d tennis_model/data/raw/wta/live ]; then
             echo "cache empty/incomplete -> restoring from release asset"
             gh release download data-archive --pattern 'raw-archive.tar.gz' -O /tmp/raw-archive.tar.gz \
               && tar -xzf /tmp/raw-archive.tar.gz -C tennis_model/data \
@@ -261,7 +263,7 @@ jobs:
           if [ "$(date -u +%u)" = "1" ] || [ -n "$FORCE" ]; then
             cd tennis_model/data
             DIRS=""
-            for d in raw/atp/historical raw/atp/stats raw/wta/historical raw/wta/stats raw/charting raw/odds raw/kalshi; do
+            for d in raw/atp/historical raw/atp/stats raw/wta/historical raw/wta/stats raw/atp/live raw/wta/live raw/charting raw/odds raw/kalshi; do
               [ -d "$d" ] && DIRS="$DIRS $d"
             done
             tar -czf /tmp/raw-archive.tar.gz $DIRS

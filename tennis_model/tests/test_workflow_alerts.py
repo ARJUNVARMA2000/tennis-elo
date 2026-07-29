@@ -420,6 +420,15 @@ def test_the_data_cache_is_saved_even_when_the_run_fails():
     assert save and "if: always()" in save, "the cache save is conditional again"
 
 
+def test_release_snapshot_preserves_live_identity_and_draw_caches():
+    """The live cache is the only durable carrier for old draw and ESPN identity evidence;
+    one Actions-cache eviction must restore it alongside the historical archive."""
+    wf = WORKFLOW.read_text(encoding="utf-8")
+    assert "raw/atp/live raw/wta/live" in wf
+    assert "tennis_model/data/raw/atp/live" in wf
+    assert "tennis_model/data/raw/wta/live" in wf
+
+
 def test_workflow_invokes_this_script():
     """Guards against the script drifting out of use: if refresh.yml stops calling it,
     every test above would keep passing while testing dead code."""

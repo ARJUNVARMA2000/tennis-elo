@@ -171,6 +171,45 @@ def test_a_draw_outlives_the_discovery_window_that_found_it(tmp_path, monkeypatc
     print("ok test_a_draw_outlives_the_discovery_window_that_found_it")
 
 
+def test_registry_backfills_a_recent_draw_missing_from_the_cache(tmp_path, monkeypatch):
+    """Carry-forward cannot recover bytes already lost. A recent registry event absent from
+    the cache must be fetched even after it disappears from ESPN's current sweep."""
+    from tennis_model.data import draws_wiki as dw
+    from tennis_model.data import events as ev_mod
+    from tennis_model.data import live as live_mod
+
+    registry = {"events": {"188-2026": {
+        "name": "Wimbledon", "names": ["The Championships", "Wimbledon"],
+        "start": "2026-06-29", "end": "2026-07-12",
+    }}}
+    calls: list[str] = []
+
+    def fetch(name, year, tour, meta):
+        calls.append(name)
+        if name == "Wimbledon":
+            return {"slots": [f"P{i}" for i in range(128)], "seeds": {}, "bestOf": 5,
+                    "start": meta["start"], "end": meta["end"],
+                    "espnId": meta["espnId"]}
+        return None
+
+    monkeypatch.setattr(dw, "live_dir", lambda tour: tmp_path)
+    monkeypatch.setattr(dw, "_download_wiki_meta", lambda *a, **k: None)
+    monkeypatch.setattr(dw, "fetch_draw", fetch)
+    monkeypatch.setattr(dw, "_registry_backfill_cutoff", lambda now=None: "2026-06-18",
+                        raising=False)
+    monkeypatch.setattr(live_mod, "fetch_events", lambda tour: [])
+    monkeypatch.setattr(live_mod, "parse_event_meta", lambda events: {})
+    monkeypatch.setattr(ev_mod, "update_registry", lambda *a, **k: registry)
+    monkeypatch.setattr(ev_mod, "load_registry", lambda *a, **k: registry)
+
+    dw.download_wiki_draws(["atp"])
+
+    out = json.loads((tmp_path / "wiki_draws.json").read_text(encoding="utf-8"))
+    assert calls == ["Wimbledon"]
+    assert out["Wimbledon"]["espnId"] == "188-2026"
+    assert len(out["Wimbledon"]["slots"]) == 128
+
+
 def test_retention_keeps_facts_but_does_not_resurrect_a_rejected_tier(tmp_path, monkeypatch):
     """The two rules meet here and the drop must win. Retention exists so an event leaving
     ESPN's window cannot delete what we know about it — but a tier that is no longer sayable

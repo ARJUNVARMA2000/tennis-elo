@@ -52,7 +52,8 @@ def test_completed_fallback_preserves_a_known_final_result():
     results = pd.DataFrame([
         {"tourney_name": "Settled Open", "espn_id": "999-2026", "date": "2026-07-20",
          "round": "F", "winner_name": "A Champion", "loser_name": "B Runner",
-         "tourney_level": "250", "draw_level": "main"},
+         "tourney_level": "G", "surface_b": "Grass", "surface_src": "archive",
+         "best_of": 5, "draw_level": "main"},
     ])
     registry = {"events": {"999-2026": {
         "name": "Settled Open", "names": ["Settled Open"],
@@ -70,6 +71,66 @@ def test_completed_fallback_preserves_a_known_final_result():
     assert shell["status"] == "completed" and shell["drawStatus"] == "final"
     assert shell["finalRecorded"] is True
     assert (shell["champion"], shell["runnerUp"]) == ("A Champion", "B Runner")
+    assert (shell["level"], shell["surface"], shell["surfaceSource"]) == (
+        "Grand Slam", "Grass", "archive")
+    assert shell["bestOf"] == 5 and shell["drawSize"] is None
+
+
+def test_wta_slam_shell_is_best_of_three_and_evidence_free_shell_stays_generic(monkeypatch):
+    from tennis_model.data import event_coverage as ec
+
+    monkeypatch.setattr(ec, "resolve_level", lambda tour, name, archive_level=None:
+                        "Grand Slam" if archive_level == "G" else f"{tour.upper()} Tour")
+    monkeypatch.setattr(ec, "resolve_surface_info", lambda tour, name, date, archive_surface=None:
+                        (archive_surface, "archive") if archive_surface else ("Hard", "month"))
+    base = {"version": 1, "tour": "wta", "buildDate": "2026-07-28"}
+    slam = {"key": "espn:1-2026", "espnId": "1-2026", "name": "Test Slam",
+            "names": ["Test Slam"], "start": "2026-07-01", "end": "2026-07-14",
+            "archiveLevel": "G", "surface": "Grass", "surfaceSource": "archive",
+            "bestOf": None, "finalRecorded": False, "players": []}
+    generic = {"key": "espn:2-2026", "espnId": "2-2026", "name": "Mystery Event",
+               "names": ["Mystery Event"], "start": "2026-07-20", "end": "2026-07-30",
+               "archiveLevel": None, "surface": None, "surfaceSource": None,
+               "bestOf": None, "finalRecorded": False, "players": []}
+    tournaments: list[dict] = []
+    finalized = finalize_event_coverage({**base, "events": [slam, generic]}, tournaments)
+    by_name = {card["name"]: card for card in tournaments}
+    assert by_name["Test Slam"]["level"] == "Grand Slam"
+    assert by_name["Test Slam"]["bestOf"] == 3
+    assert by_name["Mystery Event"]["level"] == "WTA Tour"
+    assert by_name["Mystery Event"]["bestOf"] == 3
+    assert finalized["shellKeys"] == ["espn:1-2026", "espn:2-2026"]
+
+
+def test_shell_resolution_tries_every_known_event_name(monkeypatch):
+    from tennis_model.data import event_coverage as ec
+
+    level_calls: list[str] = []
+    surface_calls: list[str] = []
+
+    def level(_tour, name, archive_level=None):
+        level_calls.append(name)
+        return "Grand Slam" if name == "Wimbledon" else "ATP Tour"
+
+    def surface(_tour, name, _date, archive_surface=None):
+        surface_calls.append(name)
+        return ("Grass", "wiki") if name == "Wimbledon" else ("Hard", "month")
+
+    monkeypatch.setattr(ec, "resolve_level", level)
+    monkeypatch.setattr(ec, "resolve_surface_info", surface)
+    event = {"key": "espn:188-2026", "espnId": "188-2026", "name": "The Championships",
+             "names": ["The Championships", "Wimbledon"],
+             "start": "2026-06-29", "end": "2026-07-12", "archiveLevel": None,
+             "surface": None, "surfaceSource": None, "bestOf": None,
+             "finalRecorded": False, "players": []}
+    tournaments: list[dict] = []
+    finalize_event_coverage({"version": 1, "tour": "atp", "buildDate": "2026-07-28",
+                             "events": [event]}, tournaments)
+    shell = tournaments[0]
+    assert shell["level"] == "Grand Slam" and shell["surface"] == "Grass"
+    assert shell["surfaceSource"] == "wiki" and shell["bestOf"] == 5
+    assert level_calls == ["The Championships", "Wimbledon"]
+    assert surface_calls == ["The Championships", "Wimbledon"]
 
 
 def test_started_schedule_counts_but_future_and_calendar_only_do_not():
@@ -123,6 +184,7 @@ def test_finalize_stamps_cards_and_adds_an_honest_shell_for_any_gap():
     assert shell["status"] == "live" and shell["drawStatus"] == "unavailable"
     assert shell["projection"] == [] and shell["drawSize"] is None
     assert finalized["shippedKeys"] == ["espn:875-2026"]
+    assert finalized["shellKeys"] == ["espn:875-2026"]
 
 
 def test_finalize_never_matches_idless_events_by_similar_name_alone():
