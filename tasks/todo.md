@@ -2707,6 +2707,29 @@ overlap plus shared real players, never by name similarity.
 - [x] Carry one non-conflicting final result through candidate merging and render a completed
   fallback as a recorded final with honest copy when its historical title projection/draw field
   remains unavailable. Do not weaken the existing completed-event health invariant.
-- [ ] Run focused producer/health/web tests, full Python and web verification, commit, push, and
+- [x] Run focused producer/health/web tests, full Python and web verification, commit, push, and
   require both the pre-deploy gate and post-deploy live membership verifier to pass; inspect the
   data-health reporter before declaring the deployment green.
+
+## Round F review — settled fallback finals (2026-07-28)
+
+- The first production run (`30411789813`) proved the new membership contract end to end: its
+  pre-deploy coverage gate, Firebase upload, and live exact-membership verifier all passed. It
+  then correctly ended red in `Report data health`, because the presence-only fallback had
+  discarded final results already present in the result rows for ATP/WTA Wimbledon and WTA
+  Nordea. Issue #13 named all three missing champions.
+- `event_coverage.py` now carries one non-conflicting final winner/runner-up through result
+  candidates and identity merging. A completed fallback publishes that settled result with
+  `drawStatus=final`; conflicting finals remain unknown for the unchanged health invariant to
+  report. The UI says `final recorded` and `Projection unavailable` rather than implying that a
+  completed draw is still pending or that a model favourite existed.
+- Fail-first proof: the production-shaped final-only regression failed on missing
+  `finalRecorded` before the fix. Verification after it: 460 Python tests and 183 web tests
+  passed; Ruff and TypeScript were clean; ESLint had 0 errors / 13 existing warnings; and the
+  21-route production build passed. Real cached evidence resolved Sinner–Zverev, Noskova–Muchova,
+  and Badosa–Waltert before deployment.
+- Corrective commit `42dc9be` deployed in run `30412570761` (7m37s). Quick regeneration,
+  pre-deploy integrity, data health, Firebase deployment, live Firebase verification, both
+  reporters, and cache persistence all passed. The public `health.json` reports `ok: true`, and
+  the three fallback cards now expose their recorded champions while exact ATP/WTA expected-key
+  membership remains intact.
