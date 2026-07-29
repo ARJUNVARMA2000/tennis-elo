@@ -57,14 +57,16 @@ def _healthy_data() -> dict:
                      "returnPctHard": 0.36, "returnPctClay": 0.39, "returnPctGrass": 0.34}
                     for i in range(3)],
         "matrix": {"players": ["P0", "P1", "P2"], "formats": [3], "surfaces": {"Hard": {"3": m}}},
-        "tournaments": [{"name": "Test Open", "surface": "Grass", "status": "live",
+        "tournaments": [{"name": "Test Open", "surface": "Grass", "level": "ATP 250",
+                         "bestOf": 3, "status": "live",
                          "drawStatus": "real", "drawSize": 128, "aliveCount": 7, "champion": None,
                          "coverageKey": "espn:1-2026",
                          "hasBracket": False,
                          "projection": [{"name": "P0", "champion": 0.5, "final": 0.6, "sf": 0.8,
                                          "reach": {"R32": 1.0, "R16": 1.0, "QF": 0.95,
                                                    "SF": 0.8, "F": 0.6, "Champion": 0.5}}]},
-                        {"name": "Mini Open", "surface": "Hard", "status": "completed",
+                        {"name": "Mini Open", "surface": "Hard", "level": "ATP 250",
+                         "bestOf": 3, "status": "completed",
                          "drawStatus": "real", "drawSize": 4, "aliveCount": 1, "champion": "A",
                          "coverageKey": "espn:2-2026",
                          "hasBracket": True, "projection": []}],
@@ -73,7 +75,8 @@ def _healthy_data() -> dict:
                                {"key": "espn:1-2026", "name": "Test Open", "espnId": "1-2026",
                                 "start": "2026-07-01", "end": "2026-07-12",
                                 "evidence": ["result"], "players": ["P0", "P1"]},
-                           ], "shippedKeys": ["espn:1-2026", "espn:2-2026"]},
+                           ], "shippedKeys": ["espn:1-2026", "espn:2-2026"],
+                           "shellKeys": []},
         "brackets": [_healthy_bracket()],
         "upcoming": [{"event": "Test Open", "playerA": "P0", "playerB": "P1", "pA": 0.7}],
         "fixtures": [{"modelProb": 0.6, "upset": False}, {"modelProb": 0.4, "upset": True}],
@@ -432,6 +435,8 @@ def test_gate_classifies_advisory_vs_blocking():
     assert health._gate_blocks("wta: 'X' 'P0' champion=1.4 out of [0,1]")            # impossible number
     assert health._gate_blocks("atp: tournaments.json missing")                      # missing required JSON
     assert health._gate_blocks("wta: tournament 'X' aliveCount 99 > drawSize 32")    # structural break
+    assert health._gate_blocks(
+        "atp: begun tournament 'Wimbledon' (coverage key espn:188-2026) is represented only by a coverage shell")
     assert not health._gate_blocks(
         "wta: tournaments.json lists the same event more than once (Bad Homburg) — a naming/dedup split")
     assert not health._gate_blocks("atp: tournaments.json has no live/upcoming event")
@@ -656,7 +661,8 @@ def test_output_bracket_early_draw_with_qualifiers_is_clean():
         "drawSize": 28, "bracketSize": 32, "champion": None, "runnerUp": None, "wikiUrl": None,
         "rounds": rounds,
     }]
-    d["tournaments"] = [{"name": "Gstaad", "surface": "Clay", "status": "upcoming",
+    d["tournaments"] = [{"name": "Gstaad", "surface": "Clay", "level": "ATP 250",
+                         "bestOf": 3, "status": "upcoming",
                          "drawStatus": "real", "drawSize": 28, "aliveCount": 28, "champion": None,
                          "coverageKey": "espn:7-2026", "hasBracket": True, "projection": []}]
     d["event_coverage"] = {
@@ -664,7 +670,7 @@ def test_output_bracket_early_draw_with_qualifiers_is_clean():
         "events": [{"key": "espn:7-2026", "espnId": "7-2026", "name": "Gstaad",
                     "start": "2026-07-14", "end": "2026-07-20",
                     "evidence": ["scheduled"], "players": ["Named One", "Named Two"]}],
-        "shippedKeys": ["espn:7-2026"],
+        "shippedKeys": ["espn:7-2026"], "shellKeys": [],
     }
     assert health.output_problems("atp", _oc(data=d), NOW) == []     # fully clean, no false-positive
     print("ok test_output_bracket_early_draw_with_qualifiers_is_clean")
@@ -910,6 +916,121 @@ def test_output_surface_must_be_canonical_and_month_guess_is_advisory():
     assert not any("month-of-year guess" in p
                    for p in health.output_problems("atp", _oc(data=d), NOW))
     print("ok test_output_surface_must_be_canonical_and_month_guess_is_advisory")
+
+
+def test_output_surface_is_required():
+    d = _healthy_data()
+    d["tournaments"][0]["surface"] = None
+    out = health.output_problems("atp", _oc(data=d), NOW)
+    missing = [p for p in out if "has no surface" in p]
+    assert missing and health._gate_blocks(missing[0]), out
+    print("ok test_output_surface_is_required")
+
+
+def test_output_best_of_matches_tour_and_tier():
+    cases = [
+        ("atp", "Grand Slam", 3, True, True),
+        ("atp", "Grand Slam", 5, False, False),
+        ("wta", "Grand Slam", 5, True, True),
+        ("wta", "Grand Slam", 3, False, False),
+        ("atp", "ATP 500", 5, True, True),
+        ("atp", "ATP 250", 5, True, False),
+        ("atp", "ATP Tour", 5, False, False),
+    ]
+    for tour, level, best_of, has_problem, blocks in cases:
+        card = {
+            "name": "Format Open", "surface": "Hard", "level": level,
+            "bestOf": best_of, "status": "live", "drawStatus": "real",
+            "drawSize": 32, "aliveCount": 16, "champion": None, "projection": [],
+        }
+        out: list[str] = []
+        health._check_tournament(out, tour, card, NOW)
+        problems = [p for p in out if "bestOf" in p]
+        assert bool(problems) is has_problem, (tour, level, best_of, out)
+        if problems:
+            assert health._gate_blocks(problems[0]) is blocks, problems
+    print("ok test_output_best_of_matches_tour_and_tier")
+
+
+def test_output_completed_generic_tier_is_advisory_unless_coverage_only():
+    card = {
+        "name": "Generic Open", "surface": "Hard", "level": "ATP Tour", "bestOf": 3,
+        "status": "completed", "drawStatus": "final", "drawSize": 32,
+        "aliveCount": 1, "champion": "P0", "projection": [],
+    }
+    out: list[str] = []
+    health._check_tournament(out, "atp", card, NOW)
+    unresolved = [p for p in out if "tier did not resolve" in p]
+    assert unresolved and not health._gate_blocks(unresolved[0]), out
+
+    out = []
+    health._check_tournament(out, "atp", {**card, "coverageOnly": True}, NOW)
+    unresolved = [p for p in out if "tier did not resolve" in p]
+    assert unresolved and health._gate_blocks(unresolved[0]), out
+    print("ok test_output_completed_generic_tier_is_advisory_unless_coverage_only")
+
+
+def test_output_coverage_only_card_is_gated_not_downgraded():
+    d = _healthy_data()
+    key = "espn:188-2026"
+    d["tournaments"] = [{
+        "name": "Wimbledon", "surface": None, "surfaceSource": "month",
+        "level": "ATP Tour", "bestOf": 3, "status": "live", "drawStatus": "partial",
+        "drawSize": None, "aliveCount": 1, "champion": None, "projection": [],
+        "coverageOnly": True, "coverageKey": key, "hasBracket": False,
+    }]
+    d["brackets"] = []
+    d["event_coverage"] = {
+        "version": 1, "tour": "atp", "buildDate": "2026-07-09",
+        "events": [{"key": key, "name": "Wimbledon", "espnId": "188-2026",
+                    "start": "2026-06-29", "end": "2026-07-12",
+                    "evidence": ["result"], "players": ["P0", "P1"]}],
+        "shippedKeys": [key], "shellKeys": [key],
+    }
+    out = health.output_problems("atp", _oc(data=d), NOW)
+    shell = [p for p in out if "represented only by a coverage shell" in p]
+    missing_surface = [p for p in out if "has no surface" in p]
+    month_guess = [p for p in out if "month-of-year guess" in p]
+    unresolved = [p for p in out if "tier did not resolve" in p]
+    assert shell and all(health._gate_blocks(p) for p in shell), out
+    assert missing_surface and all(health._gate_blocks(p) for p in missing_surface), out
+    assert month_guess and all(health._gate_blocks(p) and health._BELOW_TIER not in p
+                               for p in month_guess), out
+    assert unresolved and all(health._gate_blocks(p) for p in unresolved), out
+    print("ok test_output_coverage_only_card_is_gated_not_downgraded")
+
+
+def test_output_event_coverage_shell_keys_match_cards_and_report_each_shell():
+    d = _healthy_data()
+    d["event_coverage"]["shellKeys"] = ["espn:1-2026"]
+    out = health.output_problems("atp", _oc(data=d), NOW)
+    assert any("shellKeys does not match" in p for p in out), out
+
+    d = _healthy_data()
+    keys = ["espn:shell-a", "espn:shell-b"]
+    shells = []
+    events = []
+    for i, key in enumerate(keys):
+        name = f"Shell Open {i}"
+        shells.append({
+            "name": name, "surface": "Hard", "level": "ATP Tour", "bestOf": 3,
+            "status": "upcoming", "drawStatus": "partial", "drawSize": None,
+            "aliveCount": 0, "champion": None, "projection": [], "coverageOnly": True,
+            "coverageKey": key, "hasBracket": False,
+        })
+        events.append({"key": key, "name": name, "start": "2026-07-10",
+                       "end": "2026-07-20", "evidence": ["scheduled"], "players": []})
+    d["tournaments"] = shells
+    d["brackets"] = []
+    d["event_coverage"] = {
+        "version": 1, "tour": "atp", "buildDate": "2026-07-09", "events": events,
+        "shippedKeys": keys, "shellKeys": keys,
+    }
+    out = health.output_problems("atp", _oc(data=d), NOW)
+    shell_problems = [p for p in out if "represented only by a coverage shell" in p]
+    assert len(shell_problems) == 2, out
+    assert all(health._gate_blocks(p) for p in shell_problems), shell_problems
+    print("ok test_output_event_coverage_shell_keys_match_cards_and_report_each_shell")
 
 
 def test_output_level_must_be_in_the_tour_vocabulary():

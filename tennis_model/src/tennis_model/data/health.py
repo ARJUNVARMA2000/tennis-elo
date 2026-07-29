@@ -283,10 +283,8 @@ _GATE_ADVISORY = (
     # Cross-tour surface disagreement: at least one side is wrong, but which one is not
     # knowable here, and freezing both boards over it helps nobody.
     "surface split across tours",
-    # A tier we could not resolve at all: the card shows the generic "{TOUR} Tour". Worth
-    # seeing (an unresolved tier also downgrades that event's own severity), never worth
-    # freezing a deploy over.
-    "tier did not resolve",
+    # A tier we could not resolve at all is tier-aware through `_tiered`. A real generic
+    # small-event card gets the normal below-tier suffix; a coverage shell forces blocking.
     # Started but still labelled upcoming. ESPN start dates include qualifying, so a couple
     # of days of lag is normal and a Slam's whole quali week is normal.
     "has not flipped live",
@@ -322,13 +320,15 @@ def _tier_blocks(level: object) -> bool:
     return str(level) in GATE_BLOCKING_TIERS
 
 
-def _tiered(problem: str, level: object) -> str:
+def _tiered(problem: str, level: object, *, force: bool = False) -> str:
     """Stamp a board-quality problem advisory unless the event is 500-or-above.
 
     The severity decision lives in the MESSAGE rather than in the classifier, which keeps
     `_gate_blocks` a pure string predicate (the property its tests rely on) and puts the
-    reason in the run log and the issue body instead of hiding it in classification code."""
-    return problem if _tier_blocks(level) else problem + _BELOW_TIER
+    reason in the run log and the issue body instead of hiding it in classification code.
+    Coverage-only cards set ``force`` because their unresolved tier cannot be evidence that
+    a co-located defect is unimportant."""
+    return problem if force or _tier_blocks(level) else problem + _BELOW_TIER
 
 
 def _gate_blocks(problem: str) -> bool:
@@ -474,6 +474,7 @@ def _check_projection(out: list, tour: str, name, proj: list) -> None:
 
 def _check_tournament(out: list, tour: str, t: dict, now: pd.Timestamp | None = None) -> None:
     name, status = t.get("name"), t.get("status")
+    force = bool(t.get("coverageOnly"))
     ds, size, alive, champ = t.get("drawStatus"), t.get("drawSize"), t.get("aliveCount"), t.get("champion")
     if status not in _STATUSES:
         out.append(f"{tour}: tournament {name!r} has bad status {status!r}")
@@ -516,7 +517,7 @@ def _check_tournament(out: list, tour: str, t: dict, now: pd.Timestamp | None = 
         if age is not None and age > HEALTH_MAX_LIVE_EVENT_AGE_DAYS:
             out.append(_tiered(f"{tour}: live tournament {name!r} last played {age}d ago "
                                f"(max {HEALTH_MAX_LIVE_EVENT_AGE_DAYS}) — its final never "
-                               f"arrived, so it is stuck 'live'", t.get("level")))
+                               f"arrived, so it is stuck 'live'", t.get("level"), force=force))
     # The mirror image: an event still labelled "upcoming" after its own dates have passed.
     # Ending while never having gone live is impossible — the results simply never joined, so
     # the card is inviting clicks on odds for a tournament that is already over. Tier-aware:
@@ -527,7 +528,7 @@ def _check_tournament(out: list, tour: str, t: dict, now: pd.Timestamp | None = 
         if end_age is not None and end_age > 0:
             out.append(_tiered(f"{tour}: upcoming tournament {name!r} already ended "
                                f"({t.get('end')}, {end_age}d ago) but never went live — its "
-                               f"results are not joining", t.get("level")))
+                               f"results are not joining", t.get("level"), force=force))
         elif start_age is not None and start_age > HEALTH_MAX_UPCOMING_START_LAG_DAYS:
             # Advisory at every tier: ESPN start dates include qualifying, so a main draw
             # legitimately reads "upcoming" for a day or two — and a Slam for a whole week.
@@ -541,26 +542,38 @@ def _check_tournament(out: list, tour: str, t: dict, now: pd.Timestamp | None = 
     if status == "completed" and champ and isinstance(alive, int) and alive > 1:
         out.append(_tiered(f"{tour}: completed tournament {name!r} names champion {champ!r} "
                            f"but still reports {alive} players alive (expected 1)",
-                           t.get("level")))
+                           t.get("level"), force=force))
     # `_flag_placeholders` matches a fixed word set, so the NUMBERED form ("Qualifier 30")
     # slipped through and shipped as Palermo's modelFavorite. Use the same predicate the
     # draw machinery uses to decide whether a slot names a real player.
     fav = t.get("modelFavorite")
     if fav is not None and not _is_real_name(fav):
         out.append(_tiered(f"{tour}: tournament {name!r} modelFavorite {fav!r} is a draw "
-                           f"placeholder", t.get("level")))
+                           f"placeholder", t.get("level"), force=force))
     # Surface. A non-canonical value is a builder bug (the card, the per-surface Elo blend
     # and the /style page all key off this string), so it blocks. A month-of-year GUESS is
     # tier-aware — it is what shipped the DC Open, a hard court, priced on grass Elo, but for
     # a genuinely new small event it can be the only answer we have.
     sfc, lvl = t.get("surface"), t.get("level")
-    if sfc is not None and sfc not in _CANONICAL_SURFACES:
+    if sfc is None:
+        out.append(f"{tour}: tournament {name!r} has no surface")
+    elif sfc not in _CANONICAL_SURFACES:
         out.append(f"{tour}: tournament {name!r} surface {sfc!r} is not a canonical surface "
                    f"({'/'.join(sorted(_CANONICAL_SURFACES))})")
     if status in ("live", "upcoming") and t.get("surfaceSource") == "month":
         out.append(_tiered(f"{tour}: {status} tournament {name!r} surface {sfc!r} is a "
                            f"month-of-year guess — no archive or Wikipedia surface resolved",
-                           lvl))
+                           lvl, force=force))
+    # Match format drives the model's win transform. ATP Slams alone are best-of-five;
+    # every WTA card and every non-Slam ATP card is best-of-three. A generic tier is
+    # deliberately skipped because the resolver has not established which rule applies.
+    generic_level = f"{tour.upper()} Tour"
+    if lvl != generic_level:
+        expected_best_of = 5 if tour == "atp" and lvl == "Grand Slam" else 3
+        if t.get("bestOf") != expected_best_of:
+            out.append(_tiered(f"{tour}: tournament {name!r} bestOf={t.get('bestOf')!r} "
+                               f"does not match {lvl!r} (expected {expected_best_of})",
+                               lvl, force=force))
     # Level. A tier outside the vocabulary is a builder bug — some source's dialect reached a
     # card verbatim ("ATP 250 series", "C") — so it blocks regardless of tier. A tier from the
     # WRONG TOUR is the same bug with a sharper symptom: the ATP board shipped Generali Open
@@ -572,9 +585,9 @@ def _check_tournament(out: list, tour: str, t: dict, now: pd.Timestamp | None = 
         else:
             out.append(f"{tour}: tournament {name!r} level {lvl!r} is not in the "
                        f"{tour.upper()} level vocabulary")
-    elif status in ("live", "upcoming") and lvl == f"{tour.upper()} Tour":
-        out.append(f"{tour}: {status} tournament {name!r} tier did not resolve "
-                   f"(shows the generic {lvl!r})")
+    elif lvl == generic_level:
+        out.append(_tiered(f"{tour}: {status} tournament {name!r} tier did not resolve "
+                           f"(shows the generic {lvl!r})", lvl, force=force))
 
     proj = t.get("projection") or []
     _check_projection(out, tour, name, proj)
@@ -587,7 +600,7 @@ def _check_tournament(out: list, tour: str, t: dict, now: pd.Timestamp | None = 
     if ghosts:
         shown = ", ".join(repr(g) for g in ghosts[:3]) + (" …" if len(ghosts) > 3 else "")
         out.append(_tiered(f"{tour}: tournament {name!r} projection names {len(ghosts)} draw "
-                           f"placeholder(s) as players ({shown})", t.get("level")))
+                           f"placeholder(s) as players ({shown})", t.get("level"), force=force))
 
 
 def _check_brackets(out: list, tour: str, brackets: list, tournaments) -> None:
@@ -927,6 +940,7 @@ def _check_event_coverage(out: list, tour: str, coverage: dict, tournaments: lis
                        f"for {len(names)} expected events")
 
     shipped = Counter()
+    shell_names: dict[str, str] = {}
     missing_keys = []
     for card in tournaments:
         if not isinstance(card, dict):
@@ -936,6 +950,8 @@ def _check_event_coverage(out: list, tour: str, coverage: dict, tournaments: lis
             missing_keys.append(card.get("name"))
         else:
             shipped[str(key)] += 1
+            if card.get("coverageOnly"):
+                shell_names[str(key)] = str(card.get("name"))
     if missing_keys:
         shown = ", ".join(repr(n) for n in missing_keys[:3])
         out.append(f"{tour}: tournaments.json has {len(missing_keys)} card(s) without a "
@@ -955,6 +971,14 @@ def _check_event_coverage(out: list, tour: str, coverage: dict, tournaments: lis
     actual = sorted(key for key, count in shipped.items() for _ in range(count))
     if not isinstance(recorded, list) or sorted(str(k) for k in recorded) != actual:
         out.append(f"{tour}: event_coverage.json shippedKeys does not match tournaments.json")
+
+    recorded_shells = coverage.get("shellKeys")
+    actual_shells = sorted(shell_names)
+    if not isinstance(recorded_shells, list) or sorted({str(k) for k in recorded_shells}) != actual_shells:
+        out.append(f"{tour}: event_coverage.json shellKeys does not match coverageOnly cards")
+    for key in actual_shells:
+        out.append(f"{tour}: begun tournament {shell_names[key]!r} (coverage key {key}) is "
+                   f"represented only by a coverage shell")
 
 
 def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = None) -> list[str]:
