@@ -160,6 +160,54 @@ def test_alias_stale_quick_rebuild_keeps_quick_kalshi_limits(monkeypatch):
     assert ledgers == [("atp", frame, None)]
 
 
+def test_quick_refresh_updates_current_atp_stats_before_export(monkeypatch):
+    """A cached current-year stats file can stop before a just-completed ATP final.
+    Quick mode must refresh that lightweight overlay before loading/exporting matches;
+    WTA's rate-limited stats API remains outside the hourly path."""
+    import tennis_model.data.download as download
+    import tennis_model.data.draws_wiki as draws_wiki
+    import tennis_model.data.live as live
+    import tennis_model.data.rankings as rankings
+
+    calls = []
+    monkeypatch.setattr(
+        download,
+        "download_tml_stats",
+        lambda **kwargs: calls.append(("atp_stats", kwargs)) or ([], []),
+    )
+    monkeypatch.setattr(live, "download_live", lambda tours: calls.append(("live", tuple(tours))))
+    monkeypatch.setattr(
+        draws_wiki,
+        "download_wiki_draws",
+        lambda tours: calls.append(("wiki", tuple(tours))),
+    )
+    monkeypatch.setattr(
+        rankings,
+        "download_rankings",
+        lambda tours: calls.append(("rankings", tuple(tours))),
+    )
+    monkeypatch.setattr(pipeline, "build_tour_quick", lambda tour: calls.append(("build", tour)))
+    monkeypatch.setattr(pipeline, "_kalshi_report", lambda tours: calls.append(("report", tuple(tours))))
+
+    monkeypatch.setattr(sys, "argv", ["pipeline", "--tour", "all", "--quick"])
+    pipeline.main()
+    assert calls == [
+        ("atp_stats", {"full": False, "retries": 1}),
+        ("live", ("atp", "wta")),
+        ("wiki", ("atp", "wta")),
+        ("rankings", ("atp", "wta")),
+        ("build", "atp"),
+        ("build", "wta"),
+        ("report", ("atp", "wta")),
+    ]
+
+    calls.clear()
+    monkeypatch.setattr(sys, "argv", ["pipeline", "--tour", "wta", "--quick"])
+    pipeline.main()
+    assert not any(call[0] == "atp_stats" for call in calls)
+    assert ("build", "wta") in calls
+
+
 
 
 # --- the ratings walk must survive a failing backtest (2026-07-25) -----------------------

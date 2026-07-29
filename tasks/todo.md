@@ -2775,3 +2775,12 @@ overlap plus shared real players, never by name similarity.
   membership verifier, public data-health report, and direct inspection of Wimbledon/Nordea and
   reach columns. Append a Round G review plus lessons for shared-match event identity and
   separating card content from hero layout.
+
+## Round G deployment addendum — current-year ATP stats on quick runs
+
+- [ ] Add a failing quick-pipeline regression proving the current-year ATP stats source is
+  refreshed before export, while WTA keeps its rate-limited live-only quick path.
+- [ ] Refresh that ATP source in the quick producer, verify the real Kitzbuhel final becomes
+  decided from the same stale-cache shape as CI, and keep the completed-bracket gate blocking.
+- [ ] Push the producer correction first, require a scheduled quick run and its existing gate
+  to pass, then land the prepared Round G gate and reach-card commits.

@@ -188,9 +188,17 @@ def main():
     tours = list(TOURS) if args.tour == "all" else [args.tour]
 
     if args.quick:
+        from .data.download import download_tml_stats
         from .data.draws_wiki import download_wiki_draws
         from .data.live import download_live
         from .data.rankings import download_rankings
+        # ESPN's live window drops an event soon after its final. Refresh the lightweight
+        # current-year ATP overlay first so a quick run cannot keep reconstructing a
+        # completed bracket from a cache that stopped before the final (Kitzbuhel, 2026).
+        # One attempt keeps an unavailable stats host bounded; atomic writes preserve the
+        # cached file on failure. WTA's rate-limited stats backfill remains daily-only.
+        if "atp" in tours:
+            download_tml_stats(full=False, retries=1)
         download_live(tours)        # ESPN same-day overlay is the whole point of a quick run
         download_wiki_draws(tours)  # authoritative full draws at release (best-effort)
         download_rankings(tours)    # official live ranks (best-effort, keeps last good file)

@@ -214,12 +214,15 @@ def download(tour: str, kind: str = "fresh", years=None,
 
 
 def download_tml_stats(full: bool = False,
-                       include_challengers: bool = INCLUDE_CHALLENGERS) -> tuple[list[str], list[str]]:
+                       include_challengers: bool = INCLUDE_CHALLENGERS,
+                       retries: int = 3) -> tuple[list[str], list[str]]:
     """ATP full-schema overlay from stats.tennismylife.org (daily-updated year CSVs).
 
     full=True re-pulls every year from first_year (bootstrap / weekly repair);
     otherwise only the current year — retro corrections land via the weekly full run.
-    Returns (done, failed) file names.
+    ``retries`` lets hourly quick refreshes make one bounded attempt while the daily
+    source refresh keeps the normal transient-failure tolerance. Returns (done, failed)
+    file names.
     """
     src = TML_STATS_SOURCE
     this_year = datetime.now(UTC).year
@@ -230,7 +233,7 @@ def download_tml_stats(full: bool = False,
     d = stats_dir("atp")
     done, failed = [], []
     for name in names:
-        data = _via_https(src["data_url"].format(name=name))
+        data = _via_https(src["data_url"].format(name=name), retries=retries)
         if _valid_csv(data, _REQUIRED_STATS):
             _atomic_write(d / name, data)
             done.append(name)
