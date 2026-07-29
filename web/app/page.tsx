@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
 import { pct, surfaceColor, heat, eloKey, blendedElo, tournamentTier, drawCaveat, byTournamentPrestige, tournamentView, tournamentDrawLabel, emptyProjectionNote } from "@/lib/ui";
@@ -11,8 +11,8 @@ import LiveTicker from "@/components/LiveTicker";
 import Link from "next/link";
 import { upcomingCard, byTournamentTier, hasMatchupProfiles, type Upcoming } from "@/lib/upcoming";
 
-type Proj = { name: string; champion: number; final: number | null; sf: number | null; reach?: Record<string, number> };
-type Tournament = {
+export type Proj = { name: string; champion: number; final: number | null; sf: number | null; reach?: Record<string, number> };
+export type Tournament = {
   name: string; surface: string | null; level: string; bestOf: number;
   start: string; end: string; status: "completed" | "live" | "upcoming";
   drawStatus?: "real" | "partial" | "seeded" | "final" | "unavailable";
@@ -50,6 +50,81 @@ function reachOf(p: Proj): Record<string, number> {
 function heatBg(v: number, strong = false): string {
   const a = Math.min(255, Math.round((strong ? 0x30 : 0x22) + v * (strong ? 0x55 : 0x48)));
   return `${heat(v)}${a.toString(16).padStart(2, "0")}`;
+}
+
+/** Shared probability cells for both the focused hero and compact top-event cards. */
+export function ReachRow({
+  player, cols, prefix,
+}: {
+  player: Proj; cols: string[]; prefix: ReactNode;
+}) {
+  const reach = reachOf(player);
+  return (
+    <tr className="row-glow border-t border-[var(--color-line)]">
+      {prefix}
+      {cols.map((round) => {
+        const value = reach[round];
+        const isWin = round === "Champion";
+        return (
+          <td key={round} className="px-1 py-1.5 text-center">
+            {value == null ? (
+              <span className="text-[var(--color-faint)]">—</span>
+            ) : (
+              <span
+                className={`mono inline-block rounded px-1.5 py-0.5 text-[11px] ${isWin ? "font-semibold" : ""}`}
+                style={{
+                  background: heatBg(value, isWin),
+                  color: isWin ? "var(--color-champ)" : "var(--color-text)",
+                }}
+              >
+                {pct(value, 0)}
+              </span>
+            )}
+          </td>
+        );
+      })}
+    </tr>
+  );
+}
+
+/** Shared round-by-round table shell. Callers supply their leading player/Elo cells while
+    the rounds, heat treatment, and responsive scroll behavior stay identical. */
+export function ReachStrip({
+  players, cols, headerPrefix, rowPrefix, roundHeader, minWidth = "min-w-[430px]",
+}: {
+  players: Proj[];
+  cols: string[];
+  headerPrefix: ReactNode;
+  rowPrefix: (player: Proj, index: number) => ReactNode;
+  roundHeader?: (round: string) => ReactNode;
+  minWidth?: string;
+}) {
+  return (
+    <div className="-mx-1 overflow-x-auto" data-reach-strip>
+      <table className={`w-full border-collapse ${minWidth}`}>
+        <thead>
+          <tr className="mono text-[10px] uppercase tracking-wider text-[var(--color-faint)]">
+            {headerPrefix}
+            {cols.map((round) => (
+              <th key={round} className="px-1 pb-2 text-center font-normal">
+                {roundHeader ? roundHeader(round) : ROUND_LABEL[round]}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {players.map((player, index) => (
+            <ReachRow
+              key={player.name}
+              player={player}
+              cols={cols}
+              prefix={rowPrefix(player, index)}
+            />
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
 /** Honest flag shown only when a live/upcoming card's odds aren't running on the real
@@ -231,87 +306,61 @@ function SlamHero({ t }: { t: Tournament }) {
       <div className="mono mt-5 mb-2 text-[10px] uppercase tracking-wider text-[var(--color-faint)]">
         {t.status === "completed" ? "Pre-tournament title race" : "Title race"} · chance of reaching each round · <span className="text-[var(--color-muted)]">tap a round to sort</span>
       </div>
-      <div className="-mx-1 overflow-x-auto">
-        <table className="w-full min-w-[620px] border-collapse">
-          <thead>
-            <tr className="mono text-[10px] uppercase tracking-wider text-[var(--color-faint)]">
-              <th className="px-1 pb-2 text-right font-normal">#</th>
-              <th className="px-1 pb-2 text-left font-normal">Player</th>
-              <th className="px-1 pb-2 text-center font-normal whitespace-nowrap">Overall</th>
-              <th className="px-1 pb-2 text-center font-normal whitespace-nowrap">{t.surface} blend</th>
-              {cols.map((c) => {
-                const active = sortKey === c;
-                const isWin = c === "Champion";
-                return (
-                  <th key={c} className="px-1 pb-2 font-normal">
-                    <button
-                      type="button"
-                      onClick={() => sortBy(c)}
-                      aria-label={`Sort by chance of reaching ${ROUND_LABEL[c]}`}
-                      className={`mono mx-auto flex items-center gap-0.5 uppercase tracking-wider transition-colors hover:text-[var(--color-text)] ${
-                        isWin ? "text-[var(--color-champ)]" : active ? "text-[var(--color-text)]" : "text-[var(--color-faint)]"
-                      }`}
-                    >
-                      {ROUND_LABEL[c]}
-                      <span className="w-1.5 text-[7px] leading-none">{active ? (sortDir === "desc" ? "▼" : "▲") : ""}</span>
-                    </button>
-                  </th>
-                );
-              })}
-            </tr>
-          </thead>
-          <tbody>
-            {shown.map((p, i) => {
-              const r = reachOf(p);
-              const e = eloInfo.get(nameKey(p.name));
-              return (
-                <tr key={p.name} className="row-glow border-t border-[var(--color-line)]">
-                  <td className="mono px-1 py-1.5 text-right text-[11px] text-[var(--color-faint)]">{i + 1}</td>
-                  <td className="px-1 py-1.5 text-[13px] whitespace-nowrap" style={p.name === t.champion ? { color: "var(--color-champ)" } : undefined}>{p.name}</td>
-                  <td className="mono px-1 py-1.5 text-center text-[11px] whitespace-nowrap">
-                    {e ? (
-                      <>
-                        <span className="text-[var(--color-text)]">{e.overall}</span>
-                        <span className="ml-1 text-[10px] text-[var(--color-faint)]">#{e.overallRank}</span>
-                      </>
-                    ) : (
-                      <span className="text-[var(--color-faint)]">—</span>
-                    )}
-                  </td>
-                  <td className="mono px-1 py-1.5 text-center text-[11px] whitespace-nowrap">
-                    {e ? (
-                      <>
-                        <span className="text-[var(--color-text)]">{e.blended}</span>
-                        <span className="ml-1 text-[10px] text-[var(--color-faint)]">#{e.blendedRank}</span>
-                      </>
-                    ) : (
-                      <span className="text-[var(--color-faint)]">—</span>
-                    )}
-                  </td>
-                  {cols.map((c) => {
-                    const v = r[c];
-                    const isWin = c === "Champion";
-                    return (
-                      <td key={c} className="px-1 py-1.5 text-center">
-                        {v == null ? (
-                          <span className="text-[var(--color-faint)]">—</span>
-                        ) : (
-                          <span
-                            className={`mono inline-block rounded px-1.5 py-0.5 text-[11px] ${isWin ? "font-semibold" : ""}`}
-                            style={{ background: heatBg(v, isWin), color: isWin ? "var(--color-champ)" : "var(--color-text)" }}
-                          >
-                            {pct(v, 0)}
-                          </span>
-                        )}
-                      </td>
-                    );
-                  })}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      <ReachStrip
+        players={shown}
+        cols={cols}
+        minWidth="min-w-[620px]"
+        headerPrefix={(
+          <>
+            <th className="px-1 pb-2 text-right font-normal">#</th>
+            <th className="px-1 pb-2 text-left font-normal">Player</th>
+            <th className="px-1 pb-2 text-center font-normal whitespace-nowrap">Overall</th>
+            <th className="px-1 pb-2 text-center font-normal whitespace-nowrap">{t.surface} blend</th>
+          </>
+        )}
+        rowPrefix={(p, i) => {
+          const e = eloInfo.get(nameKey(p.name));
+          return (
+            <>
+              <td className="mono px-1 py-1.5 text-right text-[11px] text-[var(--color-faint)]">{i + 1}</td>
+              <td className="px-1 py-1.5 text-[13px] whitespace-nowrap" style={p.name === t.champion ? { color: "var(--color-champ)" } : undefined}>{p.name}</td>
+              <td className="mono px-1 py-1.5 text-center text-[11px] whitespace-nowrap">
+                {e ? (
+                  <>
+                    <span className="text-[var(--color-text)]">{e.overall}</span>
+                    <span className="ml-1 text-[10px] text-[var(--color-faint)]">#{e.overallRank}</span>
+                  </>
+                ) : <span className="text-[var(--color-faint)]">—</span>}
+              </td>
+              <td className="mono px-1 py-1.5 text-center text-[11px] whitespace-nowrap">
+                {e ? (
+                  <>
+                    <span className="text-[var(--color-text)]">{e.blended}</span>
+                    <span className="ml-1 text-[10px] text-[var(--color-faint)]">#{e.blendedRank}</span>
+                  </>
+                ) : <span className="text-[var(--color-faint)]">—</span>}
+              </td>
+            </>
+          );
+        }}
+        roundHeader={(c) => {
+          const active = sortKey === c;
+          const isWin = c === "Champion";
+          return (
+            <button
+              type="button"
+              onClick={() => sortBy(c)}
+              aria-label={`Sort by chance of reaching ${ROUND_LABEL[c]}`}
+              className={`mono mx-auto flex items-center gap-0.5 uppercase tracking-wider transition-colors hover:text-[var(--color-text)] ${
+                isWin ? "text-[var(--color-champ)]" : active ? "text-[var(--color-text)]" : "text-[var(--color-faint)]"
+              }`}
+            >
+              {ROUND_LABEL[c]}
+              <span className="w-1.5 text-[7px] leading-none">{active ? (sortDir === "desc" ? "▼" : "▲") : ""}</span>
+            </button>
+          );
+        }}
+      />
       {t.projection.length > 16 && (
         <button onClick={() => setOpen(!open)} className="mono mt-3 text-[11px] text-[var(--color-accent)] hover:underline">
           {open ? "show less" : `show all projected (${t.projection.length})`}
@@ -385,12 +434,14 @@ function UpNext() {
   );
 }
 
-function Card({ t }: { t: Tournament }) {
+export function Card({ t }: { t: Tournament }) {
   const [open, setOpen] = useState(false);
   const sc = surfaceColor(t.surface);
-  const live = t.status !== "completed";     // live or upcoming: show the forward projection
   const shown = open ? t.projection : t.projection.slice(0, 5);
   const maxP = Math.max(0.01, ...t.projection.map((p) => p.champion));
+  const showReach = tournamentTier(t.level, t.name).rank <= 3;
+  const present = new Set(t.projection.flatMap((p) => Object.keys(reachOf(p))));
+  const reachCols = DEEP_ROUNDS.filter((round) => present.has(round));
 
   return (
     <div className="panel flex h-full flex-col p-5">
@@ -445,34 +496,60 @@ function Card({ t }: { t: Tournament }) {
           </div>
         ) : (
         <>
-        <div className="mono mb-2 text-[10px] uppercase tracking-wider text-[var(--color-faint)]">
-          {t.status === "live" ? "Title odds from here" : "Pre-event title odds"}
-        </div>
-        <div className="space-y-1.5">
-          {shown.map((p, i) => {
-            const isChamp = p.name === t.champion;
-            return (
-              <div key={p.name} className="flex items-center gap-2.5">
-                <span className="mono w-4 text-right text-[11px] text-[var(--color-faint)]">{i + 1}</span>
-                <span className="w-40 truncate text-[13px]" style={{ color: isChamp ? "var(--color-champ)" : "var(--color-text)" }}>
-                  {p.name}
-                </span>
-                <div className="bartrack h-1.5 flex-1">
-                  <motion.div
-                    className="h-full w-full"
-                    initial={{ scaleX: 0 }}
-                    animate={{ scaleX: p.champion / maxP }}
-                    transition={{ ...SPRING_SOFT, delay: Math.min(i * 0.04, 0.4) }}
-                    style={{ background: heat(p.champion), transformOrigin: "left" }}
-                  />
-                </div>
-                <span className="mono w-10 text-right text-[12px]" style={{ color: isChamp ? "var(--color-champ)" : "var(--color-text)" }}>
-                  {pct(p.champion, 0)}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+        {showReach ? (
+          <>
+            <div className="mono mb-2 text-[10px] uppercase tracking-wider text-[var(--color-faint)]">
+              {t.status === "live" ? "Title race from here" : "Pre-event title race"} · chance of reaching each round
+            </div>
+            <ReachStrip
+              players={shown}
+              cols={reachCols}
+              headerPrefix={(
+                <>
+                  <th className="px-1 pb-2 text-right font-normal">#</th>
+                  <th className="px-1 pb-2 text-left font-normal">Player</th>
+                </>
+              )}
+              rowPrefix={(p, i) => (
+                <>
+                  <td className="mono px-1 py-1.5 text-right text-[11px] text-[var(--color-faint)]">{i + 1}</td>
+                  <td className="max-w-36 truncate px-1 py-1.5 text-[13px] whitespace-nowrap" style={p.name === t.champion ? { color: "var(--color-champ)" } : undefined}>{p.name}</td>
+                </>
+              )}
+            />
+          </>
+        ) : (
+          <>
+            <div className="mono mb-2 text-[10px] uppercase tracking-wider text-[var(--color-faint)]">
+              {t.status === "live" ? "Title odds from here" : "Pre-event title odds"}
+            </div>
+            <div className="space-y-1.5">
+              {shown.map((p, i) => {
+                const isChamp = p.name === t.champion;
+                return (
+                  <div key={p.name} className="flex items-center gap-2.5">
+                    <span className="mono w-4 text-right text-[11px] text-[var(--color-faint)]">{i + 1}</span>
+                    <span className="w-40 truncate text-[13px]" style={{ color: isChamp ? "var(--color-champ)" : "var(--color-text)" }}>
+                      {p.name}
+                    </span>
+                    <div className="bartrack h-1.5 flex-1">
+                      <motion.div
+                        className="h-full w-full"
+                        initial={{ scaleX: 0 }}
+                        animate={{ scaleX: p.champion / maxP }}
+                        transition={{ ...SPRING_SOFT, delay: Math.min(i * 0.04, 0.4) }}
+                        style={{ background: heat(p.champion), transformOrigin: "left" }}
+                      />
+                    </div>
+                    <span className="mono w-10 text-right text-[12px]" style={{ color: isChamp ? "var(--color-champ)" : "var(--color-text)" }}>
+                      {pct(p.champion, 0)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
         {t.projection.length > 5 && (
           <button onClick={() => setOpen(!open)} className="mono mt-3 text-[11px] text-[var(--color-accent)] hover:underline">
             {open ? "show less" : `show all projected (${t.projection.length})`}

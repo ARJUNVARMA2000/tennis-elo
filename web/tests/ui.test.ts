@@ -1,5 +1,8 @@
 import { readFileSync } from "node:fs";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { Card } from "@/app/page";
 import { drawCaveat, emptyProjectionNote, heat, heroEvent, pct, percentileScaler, scoreDist, SLAM_HERO_LINGER_MS, SURFACE_BLEND, tournamentDrawLabel, tournamentView } from "@/lib/ui";
 
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
@@ -138,6 +141,33 @@ describe("heroEvent", () => {
     // a wrapped-up 500 does not sit stale at the top the way a just-crowned Slam does
     expect(heroEvent([{ level: "WTA 500", name: "Bad Homburg", status: "completed",
                         end: "2026-07-11" }], NOW)).toBeUndefined();
+  });
+});
+
+describe("tournament grid card", () => {
+  it("renders round-by-round reach columns for a 500", () => {
+    const tournament = {
+      name: "Mubadala DC Open", surface: "Hard", level: "ATP 500", bestOf: 3,
+      start: "2026-07-25", end: "2026-08-02", status: "live" as const,
+      drawStatus: "real" as const, drawSize: 48, aliveCount: 16,
+      champion: null, runnerUp: null, modelFavorite: "Player One", favoritePicked: false,
+      projection: [
+        { name: "Player One", champion: 0.25, final: 0.4, sf: 0.6,
+          reach: { R16: 0.9, QF: 0.75, SF: 0.6, F: 0.4, Champion: 0.25 } },
+        { name: "Player Two", champion: 0.18, final: 0.31, sf: 0.5,
+          reach: { R16: 0.82, QF: 0.66, SF: 0.5, F: 0.31, Champion: 0.18 } },
+      ],
+    };
+    const html = renderToStaticMarkup(createElement(Card, { t: tournament }));
+    expect(html).toContain("R16");
+    expect(html).toContain("QF");
+    expect(html).toContain("SF");
+    expect(html).toContain("Win");
+
+    const smallHtml = renderToStaticMarkup(createElement(Card, {
+      t: { ...tournament, name: "Generali Open", level: "ATP 250" },
+    }));
+    expect(smallHtml).not.toContain("R16");
   });
 });
 
