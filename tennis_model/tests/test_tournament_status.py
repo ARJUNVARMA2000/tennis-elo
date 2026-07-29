@@ -167,6 +167,29 @@ def test_coalesce_refuses_to_merge_concurrent_distinct_events():
     print("ok test_coalesce_refuses_to_merge_concurrent_distinct_events")
 
 
+def test_coalesce_refuses_to_merge_events_that_share_players_but_no_match():
+    """The WTA Wimbledon/Nordea production shape: an id-less completed Slam overlapped
+    Nordea's ESPN calendar and shared nine players who entered both events in successive
+    weeks, but not one actual matchup. Player overlap is not event identity."""
+    from tennis_model.sim.tournaments import _coalesce_groups
+
+    class _R:
+        def id_of(self, name):
+            return None
+
+    shared = [f"Shared {i}" for i in range(9)]
+    wimbledon_pairs = [(shared[i], f"Slam Opp {i}") for i in range(9)]
+    nordea_pairs = [(shared[i], f"Nordea Opp {i}") for i in range(9)]
+    wimbledon = ("Wimbledon", _grp("Wimbledon", wimbledon_pairs,
+                                    start="2026-07-06", days=9))
+    nordea = ("Nordea Open", _grp("Nordea Open", nordea_pairs,
+                                  start="2026-07-11", days=9, eid="306-2026"))
+
+    out = _coalesce_groups([wimbledon, nordea], _R())
+    assert len(out) == 2, [(name, eid) for name, _g, eid in out]
+    print("ok test_coalesce_refuses_to_merge_events_that_share_players_but_no_match")
+
+
 def test_an_event_is_over_when_its_calendar_says_so_even_without_a_final():
     """Iasi sat 'live' with three players alive for NINE DAYS after it ended, and Hamburg for
     two, because completion keyed ONLY on a round-'F' row. A results feed that drops the final
@@ -419,20 +442,59 @@ def test_completed_projection_keeps_authoritative_wiki_field():
 
 
 def test_oversized_projection_error_names_event_and_source_state():
-    """An invalid source grouping must fail with actionable context, not KeyError: 256."""
+    """An invalid LIVE source grouping must fail with actionable context, not KeyError: 256."""
     rows = [dict(tourney_name="Merged Event", date=pd.Timestamp("2026-07-01"),
-                 round="R128", winner_name=f"P{i}", loser_name=f"P{65 + i}",
+                 round="R128", winner_name=f"P{i}", loser_name=f"P{130 + i}",
                  surface_b="Hard", best_of=3, tourney_level="250", draw_level="main")
-            for i in range(65)]
-    rows.append(dict(tourney_name="Merged Event", date=pd.Timestamp("2026-07-11"),
-                     round="F", winner_name="P0", loser_name="P1", surface_b="Hard",
-                     best_of=3, tourney_level="250", draw_level="main"))
+            for i in range(130)]
     with pytest.raises(ValueError, match=(
             r"wta tournament 'Merged Event': invalid 256-slot bracket .*"
-            r"field=130.*completed=True.*draw_state=final.*wiki_slots=0")):
+            r"field=260.*completed=False.*draw_state=seeded.*wiki_slots=0")):
         project_tournament(_PRED, "Merged Event", pd.DataFrame(rows), "wta", known=set(),
                            top_set=None, n_sims=10, seed=1)
     print("ok test_oversized_projection_error_names_event_and_source_state")
+
+
+def test_completed_card_survives_an_unseatable_field():
+    """A completed Slam is a factual record, not a forecast. If source noise leaves 130
+    entrants, preserve its settled facts and hard 128 draw size without simulating it."""
+    rows = [dict(tourney_name="Test Slam", date=pd.Timestamp("2026-07-01"),
+                 round="R128", winner_name=f"P{i}", loser_name=f"P{65 + i}",
+                 surface_b="Grass", best_of=5, tourney_level="G", draw_level="main")
+            for i in range(65)]
+    rows.append(dict(tourney_name="Test Slam", date=pd.Timestamp("2026-07-11"),
+                     round="F", winner_name="P0", loser_name="P1", surface_b="Grass",
+                     best_of=5, tourney_level="G", draw_level="main"))
+
+    card = project_tournament(_PRED, "Test Slam", pd.DataFrame(rows), "atp", known=set(),
+                              top_set=None, n_sims=10, seed=1)
+    assert card["status"] == "completed" and card["drawStatus"] == "final"
+    assert card["level"] == "Grand Slam" and card["surface"] == "Grass"
+    assert card["bestOf"] == 5 and card["drawSize"] == 128
+    assert card["champion"] == "P0" and card["runnerUp"] == "P1"
+    assert card["aliveCount"] == 1 and card["fieldUnreliable"] is True
+    assert card["projection"] == [] and card["modelFavorite"] is None
+    print("ok test_completed_card_survives_an_unseatable_field")
+
+
+def test_one_player_plays_one_match_per_round():
+    """A duplicate source row under another spelling cannot add a phantom entrant."""
+    rows = [dict(tourney_name="Test Open", date=pd.Timestamp("2026-07-01"),
+                 round="R16", winner_name=f"P{i}", loser_name=f"P{8 + i}",
+                 surface_b="Hard", best_of=3, tourney_level="250", draw_level="main")
+            for i in range(8)]
+    rows.insert(1, dict(tourney_name="Test Open", date=pd.Timestamp("2026-07-01"),
+                        round="R16", winner_name="P0", loser_name="Phantom P Zero",
+                        surface_b="Hard", best_of=3, tourney_level="250", draw_level="main"))
+    rows.append(dict(tourney_name="Test Open", date=pd.Timestamp("2026-07-07"),
+                     round="F", winner_name="P0", loser_name="P1", surface_b="Hard",
+                     best_of=3, tourney_level="250", draw_level="main"))
+
+    card = project_tournament(_PRED, "Test Open", pd.DataFrame(rows), "atp", known=set(),
+                              top_set=None, n_sims=20, seed=1)
+    assert card["drawSize"] == 16
+    assert all(p["name"] != "Phantom P Zero" for p in card["projection"])
+    print("ok test_one_player_plays_one_match_per_round")
 
 
 def test_wiki_draw_makes_a_seeded_board_real():
@@ -525,8 +587,8 @@ def test_one_unprojectable_event_does_not_take_down_the_whole_board():
     the export, the deploy, and every queued refresh behind it. The site sat on the previous
     evening's board through a Monday when a dozen events were starting.
 
-    The guard is right; taking the pipeline down with it is not. The bad event is skipped
-    and announced, every other event still ships."""
+    The guard is right; taking the pipeline down with it is not. A completed event now ships
+    as a factual, explicitly field-unreliable record while every healthy event survives."""
     from tennis_model.sim import tournaments as T
     end = pd.Timestamp("2026-07-27")
     rows = []
@@ -543,11 +605,11 @@ def test_one_unprojectable_event_does_not_take_down_the_whole_board():
     for i in range(65):
         rows.append(dict(tourney_name="Poisoned Slam", date=end - pd.Timedelta(days=8),
                          round="R128", winner_name=f"Q{i}", loser_name=f"Q{65 + i}",
-                         surface_b="Grass", best_of=5, tourney_level="G",
+                         surface_b="Grass", best_of=3, tourney_level="G",
                          draw_level="main"))
     rows.append(dict(tourney_name="Poisoned Slam", date=end - pd.Timedelta(days=1),
                      round="F", winner_name="Q0", loser_name="Q1", surface_b="Grass",
-                     best_of=5, tourney_level="G", draw_level="main"))
+                     best_of=3, tourney_level="G", draw_level="main"))
     df = pd.DataFrame(rows)
 
     # every entrant must be RATED, or build_tournaments' top_set filter drops the event
@@ -568,7 +630,9 @@ def test_one_unprojectable_event_does_not_take_down_the_whole_board():
 
     names = {t["name"] for t in out}
     assert "Good Open" in names, f"a healthy event was lost with the bad one: {names}"
-    assert "Poisoned Slam" not in names, "the oversized bracket shipped anyway"
+    poisoned = next(t for t in out if t["name"] == "Poisoned Slam")
+    assert poisoned["drawSize"] == 128 and poisoned["fieldUnreliable"] is True
+    assert poisoned["projection"] == [] and poisoned["modelFavorite"] is None
     print("ok test_one_unprojectable_event_does_not_take_down_the_whole_board")
 
 if __name__ == "__main__":

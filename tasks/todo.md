@@ -2733,3 +2733,45 @@ overlap plus shared real players, never by name similarity.
   reporters, and cache persistence all passed. The public `health.json` reports `ok: true`, and
   the three fallback cards now expose their recorded champions while exact ATP/WTA expected-key
   membership remains intact.
+
+## Round G — repair Wimbledon cards and restore reach odds on top cards
+
+- [ ] Add failing tournament regressions for the production shapes: refuse an id-less
+  Wimbledon/Nordea coalesce without a shared main-draw match, preserve the Bad Homburg
+  shared-match merge and same-id merge, discard a player's duplicate match within one knockout
+  round, return a factual completed Grand Slam card from an unseatable field with hard draw size
+  128, and keep live/upcoming oversized frontiers fatal.
+- [ ] Harden tournament construction in the producer: require at least one shared knockout
+  match pair for id-less event coalescing, deduplicate impossible second appearances within a
+  knockout round, add an extensible known-draw-size authority for Grand Slams, and degrade only
+  completed unseatable fields to an empty-projection `fieldUnreliable` record rather than
+  throwing or creating a shell.
+- [ ] Canonicalize `Soon Woo Kwon` to `Soonwoo Kwon` and `Zheng Qinwen` to `Qinwen Zheng`, add
+  walk-level regressions, and diagnose why the deterministic alias proposer omitted the Kwon
+  split; keep proposer changes bounded by its candidate/falsifier contract.
+- [ ] Add failing coverage-shell regressions, then carry archive tier, surface provenance, and
+  best-of evidence through candidate merging. Resolve shells across every registered event name,
+  preserve honest generic/null fields where evidence is absent, and use ATP Grand Slam best-of-5
+  versus WTA Grand Slam best-of-3 without pretending a shell has a draw.
+- [ ] Rebuild real ATP/WTA cards with the Wikipedia draw loader forced empty and prove both
+  Wimbledons ship as real `Grand Slam / Grass / 128` cards (ATP best-of-5, WTA best-of-3) while
+  Nordea remains separate. Mirror regenerated tournament data into the web payloads before
+  introducing new blocking checks.
+- [ ] Add failing gate regressions and then enforce canonical non-null surfaces, tier-correct
+  best-of, completed generic-tier reporting, non-downgraded `coverageOnly` defects, and exact
+  `shellKeys` parity between the coverage manifest and shipped shells. Extend the workflow alert
+  tests for live-cache snapshot coverage and keep every new failure class in the pre-upload gate.
+- [ ] Make Wikipedia draw retention recoverable: include both tours' `raw/<tour>/live` trees in
+  release snapshots and trip detection, and best-effort backfill registry-known events missing
+  from `wiki_draws.json` while they remain inside the 40-day window.
+- [ ] Add a failing web rendering regression, extract the shared reach strip from `SlamHero`,
+  and render it on every non-empty 500+ card without changing `HERO_MAX_TIER_RANK = 2` or the
+  existing hero/concurrency membership behavior.
+- [ ] Land producer and identity/cache changes in reviewable ordered commits with focused tests,
+  full Python verification, Ruff, web tests, TypeScript, lint, and a production build green.
+  Push deliberately, observe one scheduled producer run and its gate lines, and only then land
+  and deploy the new blocking gate invariants.
+- [ ] Verify the final production deploy with the pre-upload integrity gate, post-deploy live
+  membership verifier, public data-health report, and direct inspection of Wimbledon/Nordea and
+  reach columns. Append a Round G review plus lessons for shared-match event identity and
+  separating card content from hero layout.

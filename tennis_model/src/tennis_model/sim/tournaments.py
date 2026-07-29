@@ -36,6 +36,7 @@ from .simulate import simulate_tournament
 _KO_ROUNDS = {"R128", "R64", "R32", "R16", "QF", "SF", "F"}
 ROUND_COLS = ["R128", "R64", "R32", "R16", "QF", "SF", "F", "Champion"]  # reach-prob columns, entry -> title
 TOP_PROJECTION = 24          # players kept in each event's odds list
+KNOWN_DRAW_SIZE = {"Grand Slam": 128}
 
 
 def _load_fields(tour: str) -> dict:
@@ -97,19 +98,13 @@ def _lookup(by_id: dict, by_name: dict, eid: str | None, name: str):
 
 COALESCE_MIN_OVERLAP_DAYS = 2
 COALESCE_MIN_SHARED_PLAYERS = 3
+COALESCE_MIN_SHARED_PAIRS = 1
 
 
-def _real_players(g: pd.DataFrame) -> set:
-    """This group's real MAIN-DRAW participants — the only names that are evidence of identity.
-
-    Two filters, both load-bearing. Placeholders are numbered per draw, so two concurrent
-    events "share" every Qualifier N and none of them means anything (issue #9). And
-    QUALIFYING rows are excluded: a player who loses qualifying at one event and plays the
-    main draw at another the same week appears in both, so counting them could manufacture
-    three "shared players" between a Challenger and a main-tour event in the same city — and
-    merging two genuinely different tournaments corrupts a projection, not just a label."""
+def _main_draw_ko_rows(g: pd.DataFrame) -> pd.DataFrame:
+    """Rows eligible to prove event identity or populate a tournament card."""
     if "winner_name" not in g.columns:
-        return set()
+        return g.iloc[0:0]
     main = g
     if "draw_level" in g.columns:
         rows = g[g["draw_level"] == "main"]
@@ -117,7 +112,58 @@ def _real_players(g: pd.DataFrame) -> set:
     if "round" in main.columns:
         ko = main[main["round"].isin(_KO_ROUNDS)]
         main = ko if not ko.empty else main
+    return main
+
+
+def _real_players(g: pd.DataFrame) -> set:
+    """This group's real MAIN-DRAW participants — the only names that are identity evidence.
+
+    Two filters, both load-bearing. Placeholders are numbered per draw, so two concurrent
+    events "share" every Qualifier N and none of them means anything (issue #9). And
+    QUALIFYING rows are excluded: a player who loses qualifying at one event and plays the
+    main draw at another the same week appears in both, so counting them could manufacture
+    three "shared players" between a Challenger and a main-tour event in the same city — and
+    merging two genuinely different tournaments corrupts a projection, not just a label."""
+    main = _main_draw_ko_rows(g)
+    if main.empty:
+        return set()
     return {n for n in set(main["winner_name"]) | set(main["loser_name"]) if is_real(n)}
+
+
+def _real_match_pairs(g: pd.DataFrame) -> set[tuple[str, str]]:
+    """Canonical unordered matchups from exactly the rows :func:`_real_players` trusts."""
+    main = _main_draw_ko_rows(g)
+    if main.empty or not {"winner_name", "loser_name"} <= set(main.columns):
+        return set()
+    return {
+        tuple(sorted((_name_key(winner), _name_key(loser))))
+        for winner, loser in zip(main["winner_name"], main["loser_name"])
+        if is_real(winner) and is_real(loser)
+    }
+
+
+def _one_match_per_player_round(main: pd.DataFrame) -> pd.DataFrame:
+    """Keep the first source-ordered match involving each player in each knockout round.
+
+    A single-elimination player cannot play twice in one round. Duplicate source rows can
+    spell one side differently, but the unchanged opponent still proves the duplication.
+    The Olympic bronze-medal match is safe: feeds may label both medal matches ``F``, but
+    their four players are distinct, so both survive this rule.
+    """
+    required = {"round", "winner_name", "loser_name"}
+    if main.empty or not required <= set(main.columns):
+        return main
+    seen: dict[str, set[str]] = {}
+    keep: list[bool] = []
+    for round_name, winner, loser in zip(
+            main["round"], main["winner_name"], main["loser_name"]):
+        players = {_name_key(winner), _name_key(loser)} - {""}
+        used = seen.setdefault(str(round_name), set())
+        duplicate = bool(players & used)
+        keep.append(not duplicate)
+        if not duplicate:
+            used.update(players)
+    return main.loc[keep]
 
 
 def _spans_overlap_days(a: pd.DataFrame, b: pd.DataFrame) -> int:
@@ -137,10 +183,11 @@ def _coalesce_groups(events: list, resolver) -> list:
     only ever hid it — one of the two projections was still built on half an event.
 
     Two ways in. Groups resolving to the same espnId are the same event by definition. An
-    id-less group joins one on evidence instead: a real date overlap AND shared real players.
-    Deliberately the same predicate (and thresholds) the health gate uses to REPORT a split,
-    so the producer collapses exactly what the gate would flag — and no string rule is
-    involved, which is the point: "Bastad" and "Nordea Open" share no substring at all.
+    id-less group joins one on evidence instead: a real date overlap, shared real players,
+    AND at least one shared main-draw matchup. A shared week is insufficient: Wimbledon and
+    Nordea overlap on the calendar and share entrants who play both in succession. This is
+    deliberately the same shared-pair rule used by event coverage; no string rule is involved,
+    which is the point: "Bastad" and "Nordea Open" share no substring at all.
 
     Ambiguity never merges. An id-less group matching two id-bearing ones is left alone,
     because a wrong merge corrupts a projection rather than merely mislabelling a card."""
@@ -156,9 +203,11 @@ def _coalesce_groups(events: list, resolver) -> list:
     id_keys = list(by_id)
     for i, (name, g) in enumerate(idless):
         players = _real_players(g)
+        pairs = _real_match_pairs(g)
         hits = [eid for eid in id_keys
                 if any(_spans_overlap_days(g, mg) >= COALESCE_MIN_OVERLAP_DAYS
                        and len(players & _real_players(mg)) >= COALESCE_MIN_SHARED_PLAYERS
+                       and len(pairs & _real_match_pairs(mg)) >= COALESCE_MIN_SHARED_PAIRS
                        for _n, mg in by_id[eid])]
         if len(hits) == 1:
             by_id[hits[0]].append((name, g))
@@ -477,14 +526,7 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
     # ingestion rows, while the round filter also catches legacy/source rows whose Q1/Q2
     # matches were default-labelled "main". Once a Slam final appears, neither class may leak
     # into a >128-player completed field and pad it to an impossible 256-slot bracket.
-    main = g
-    if "draw_level" in g.columns:
-        main_rows = g[g["draw_level"] == "main"]
-        if not main_rows.empty:
-            main = main_rows
-    knockout = main[main["round"].isin(_KO_ROUNDS)]
-    if not knockout.empty:
-        main = knockout
+    main = _one_match_per_player_round(_main_draw_ko_rows(g))
 
     # One chain, shared with the pre-start path: this event's KNOWN rows -> prior editions
     # (archive_hint) -> Wikipedia infobox -> month guess. Taking `surface_b.mode()` outright
@@ -585,7 +627,38 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
         mus = matchups or []
         slots = live_draw(field, mus, rank)
         draw_state = draw_status(field, mus, rank)
-    if len(slots) > 128:
+    known_draw_size = KNOWN_DRAW_SIZE.get(level)
+    invalid_field = bool(known_draw_size and len(field_pool) > known_draw_size)
+    if len(slots) > 128 or invalid_field:
+        if completed:
+            # A settled tournament is a record, not a forecast. If its noisy source union
+            # cannot be seated, retain only facts we can prove and make the unreliable field
+            # explicit. Known tier geometry (a Grand Slam is 128) is authoritative; unknown
+            # tiers stay unknown rather than publishing a bogus 129/152-player draw.
+            return {
+                "name": _display_name(name, known or set()),
+                "surface": surface,
+                "level": level,
+                "bestOf": best_of,
+                "start": str(g["date"].min().date()),
+                "end": str(g["date"].max().date()),
+                "status": "completed",
+                "drawStatus": "final",
+                "espnId": espn_id,
+                "surfaceSource": surface_src,
+                "finalRecorded": bool(has_final),
+                "drawSize": known_draw_size,
+                "aliveCount": 1,
+                "champion": champ,
+                "runnerUp": runner,
+                "modelFavorite": None,
+                "favoritePicked": False,
+                "projection": [],
+                "fieldUnreliable": True,
+                "bracket": None,
+                "bracketSize": None,
+                "wikiUrl": (wiki_draw or {}).get("url"),
+            }
         raise ValueError(
             f"{tour} tournament {name!r}: invalid {len(slots)}-slot bracket "
             f"(field={len(field_pool)}, alive={len(still_in)}, completed={completed}, "
