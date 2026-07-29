@@ -7,6 +7,7 @@ import {
   isAbsoluteOnOrigin,
   freshnessOk,
   extractOgImage,
+  coverageProblems,
 } from "@/scripts/verify-deploy-lib.mjs";
 
 describe("parseCacheControl", () => {
@@ -104,5 +105,37 @@ describe("extractOgImage", () => {
   });
   it("returns null when there is no og:image", () => {
     expect(extractOgImage(`<meta name="twitter:card" content="summary"/>`)).toBeNull();
+  });
+});
+
+describe("coverageProblems", () => {
+  const health = {
+    eventCoverage: {
+      atp: {
+        expectedKeys: ["espn:1-2026", "espn:2-2026"],
+        shippedKeys: ["espn:1-2026", "espn:2-2026", "card:recent"],
+      },
+    },
+  };
+
+  it("accepts the exact freshly-built tournament membership", () => {
+    const cards = [
+      { name: "One", coverageKey: "espn:1-2026" },
+      { name: "Two", coverageKey: "espn:2-2026" },
+      { name: "Recent", coverageKey: "card:recent" },
+    ];
+    expect(coverageProblems(health, "atp", cards)).toEqual([]);
+  });
+
+  it("reports a missing begun event, a duplicate, and a stale extra card", () => {
+    const cards = [
+      { name: "One", coverageKey: "espn:1-2026" },
+      { name: "One Again", coverageKey: "espn:1-2026" },
+      { name: "Stale", coverageKey: "card:stale" },
+    ];
+    const problems = coverageProblems(health, "atp", cards).join("; ");
+    expect(problems).toContain("missing expected espn:2-2026");
+    expect(problems).toContain("duplicate espn:1-2026");
+    expect(problems).toContain("membership differs");
   });
 });

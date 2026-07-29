@@ -22,6 +22,8 @@ describe("drawCaveat", () => {
     expect(drawCaveat({ status: "upcoming", drawStatus: "real" })).toBeNull();
     expect(drawCaveat({ status: "live", drawStatus: "seeded" })?.label).toBe("Projected draw");
     expect(drawCaveat({ status: "live", drawStatus: "partial" })?.label).toBe("Draw incomplete");
+    expect(drawCaveat({ status: "live", drawStatus: "unavailable" })?.label)
+      .toBe("Event confirmed · draw pending");
   });
 
   it("never caveats a completed event or legacy JSON without drawStatus", () => {
@@ -96,6 +98,20 @@ describe("heroEvent", () => {
       { level: "ATP 500", name: "Done Five Hundred", status: "completed", end: "2026-07-20" },
     ], NOW);
     expect(view.other.map((t) => t.name)).toEqual(["Done Five Hundred"]);
+  });
+
+  it("preserves every coverage key across hero, grid, and other", () => {
+    const payload = [
+      { coverageKey: "espn:1000", level: "Masters 1000", name: "A Thousand", status: "live", end: "2026-08-03" },
+      { coverageKey: "espn:500", level: "ATP 500", name: "Five Hundred", status: "live", end: "2026-08-03" },
+      { coverageKey: "espn:250", level: "ATP 250", name: "Two Fifty", status: "live", end: "2026-08-03" },
+    ];
+    const view = tournamentView(payload, NOW);
+    const rendered = [view.hero, ...view.grid, ...view.other]
+      .filter((event): event is (typeof payload)[number] => Boolean(event))
+      .map((event) => event.coverageKey)
+      .sort();
+    expect(rendered).toEqual(payload.map((event) => event.coverageKey).sort());
   });
 
   it("hands the page back to the grid for tiers below 1000, and for a finished non-Slam", () => {

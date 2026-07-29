@@ -32,7 +32,7 @@ export type RawLiveMatch = {
 
 export type TournamentInfo = {
   name: string;
-  surface: string;
+  surface: string | null;
   bestOf: number;
   level: string;
   status: string;
@@ -110,7 +110,7 @@ export function matchContext(
   const t = (tournaments || []).find(
     (t) => t.status === "live" && t.name.length >= 5 && ev.includes(t.name.toLowerCase()),
   );
-  if (t) return { surface: t.surface, bestOf: t.bestOf || 3 };
+  if (t?.surface) return { surface: t.surface, bestOf: t.bestOf || 3 };
   return { surface: monthSurface(), bestOf: 3 };
 }
 

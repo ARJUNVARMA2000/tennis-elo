@@ -1,9 +1,10 @@
 name: propose-aliases
 
-# Weekly identity sweep: read the gate's unresolved events + scan the match frame for split
-# player identities, ask a model through OpenRouter (with web search) to adjudicate ONLY
-# those candidates, throw away everything the match record refutes, and open a PR with what
-# survives.
+# Weekly identity sweep: read the gate's unresolved/missing events + scan the match frame for
+# split player identities, ask a model through OpenRouter (with web search) to adjudicate ONLY
+# those candidates, throw away everything deterministic evidence refutes, and open a PR with
+# any safe config fix that survives. Event diagnoses with no deterministic edit remain in the
+# audit artifact rather than mutating runtime data.
 #
 # Deliberately not part of refresh.yml:
 #   * it must never be able to delay or block a deploy — the hourly path has no LLM in it,

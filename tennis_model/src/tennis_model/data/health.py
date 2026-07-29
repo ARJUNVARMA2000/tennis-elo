@@ -234,7 +234,7 @@ def problems(tour: str, h: dict, now: pd.Timestamp) -> list[str]:
 # ---------------------------------------------------------------------------
 # The web reads these per tour; the first group must always exist and parse, the second
 # is best-effort (accuracy is backtest-only, track needs graded forecasts).
-_REQUIRED_OUTPUTS = ("meta", "players", "tournaments", "brackets", "upcoming", "matrix",
+_REQUIRED_OUTPUTS = ("meta", "players", "tournaments", "event_coverage", "brackets", "upcoming", "matrix",
                      "ratings_history", "profiles", "draws", "fixtures", "method")
 _OPTIONAL_OUTPUTS = ("accuracy", "track", "market")
 _PLACEHOLDER_NAMES = {"tbd", "tba", "bye", "qualifier"}   # mirror data/live.py
@@ -248,7 +248,7 @@ def _is_real_name(x: object) -> bool:
     return bool(is_real(x))
 
 _STATUSES = {"live", "upcoming", "completed"}
-_DRAW_STATES = {"real", "partial", "seeded", "final"}
+_DRAW_STATES = {"real", "partial", "seeded", "final", "unavailable"}
 _REACH_ORDER = ("R128", "R64", "R32", "R16", "QF", "SF", "F", "Champion")
 
 # Suffix `_tiered` stamps on a board-quality problem below the 500 tier (see GATE_BLOCKING_TIERS).
@@ -889,6 +889,74 @@ def _check_method(out: list, tour: str, method: dict, meta: dict | None) -> None
         out.append(f"{tour}: method.json combiner.nBag={comb.get('nBag')!r} invalid")
 
 
+def _coverage_summary(coverage: object, tournaments: object) -> dict:
+    """Exact expected + shipped key lists embedded in health.json for live parity checks."""
+    events = coverage.get("events") if isinstance(coverage, dict) else []
+    cards = tournaments if isinstance(tournaments, list) else []
+    return {
+        "expectedKeys": sorted(str(e.get("key")) for e in (events or [])
+                               if isinstance(e, dict) and e.get("key")),
+        "shippedKeys": sorted(str(t.get("coverageKey")) for t in cards
+                              if isinstance(t, dict) and t.get("coverageKey")),
+    }
+
+
+def _check_event_coverage(out: list, tour: str, coverage: dict, tournaments: list) -> None:
+    """Every independently observed begun event occurs exactly once on the board."""
+    if coverage.get("version") != 1:
+        out.append(f"{tour}: event_coverage.json version {coverage.get('version')!r} is not 1")
+    if coverage.get("tour") != tour:
+        out.append(f"{tour}: event_coverage.json says tour={coverage.get('tour')!r}")
+    events = coverage.get("events")
+    if not isinstance(events, list):
+        out.append(f"{tour}: event_coverage.json events is not a list")
+        return
+
+    expected: dict[str, list[str]] = {}
+    malformed = 0
+    for event in events:
+        if not isinstance(event, dict) or not event.get("key") or not event.get("name"):
+            malformed += 1
+            continue
+        expected.setdefault(str(event["key"]), []).append(str(event["name"]))
+    if malformed:
+        out.append(f"{tour}: event_coverage.json has {malformed} malformed expected event(s)")
+    for key, names in sorted(expected.items()):
+        if len(names) > 1:
+            out.append(f"{tour}: event_coverage.json repeats coverage key {key} "
+                       f"for {len(names)} expected events")
+
+    shipped = Counter()
+    missing_keys = []
+    for card in tournaments:
+        if not isinstance(card, dict):
+            continue
+        key = card.get("coverageKey")
+        if not key:
+            missing_keys.append(card.get("name"))
+        else:
+            shipped[str(key)] += 1
+    if missing_keys:
+        shown = ", ".join(repr(n) for n in missing_keys[:3])
+        out.append(f"{tour}: tournaments.json has {len(missing_keys)} card(s) without a "
+                   f"coverageKey ({shown})")
+
+    for key, names in sorted(expected.items()):
+        count = shipped[key]
+        name = names[0]
+        if count == 0:
+            out.append(f"{tour}: begun tournament {name!r} (coverage key {key}) is missing "
+                       f"from tournaments.json")
+        elif count > 1:
+            out.append(f"{tour}: begun tournament {name!r} coverage key {key} appears "
+                       f"{count} times in tournaments.json")
+
+    recorded = coverage.get("shippedKeys")
+    actual = sorted(key for key, count in shipped.items() for _ in range(count))
+    if not isinstance(recorded, list) or sorted(str(k) for k in recorded) != actual:
+        out.append(f"{tour}: event_coverage.json shippedKeys does not match tournaments.json")
+
+
 def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = None) -> list[str]:
     """Pure given a read_outputs() dict; prev is the previous run's output snapshot
     ({"matches", "forecast_lines"}) for monotonicity, or None on the first run."""
@@ -1008,6 +1076,10 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
                 out.append(f"{tour}: live tournament {gone!r} lost its bracket since the "
                            f"previous run — its cached Wikipedia draw may have aged out")
         _tournament_name_problems(out, tour, ts)
+
+    coverage = data.get("event_coverage")
+    if isinstance(coverage, dict) and isinstance(ts, list):
+        _check_event_coverage(out, tour, coverage, ts)
 
     br = data.get("brackets")
     if isinstance(br, list):
@@ -1183,7 +1255,7 @@ def main() -> int:
     # is the precise stamp the /health page shows and ages client-side.
     report, all_problems = {"generated": str(now.date()),
                             "generatedAt": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                            "tours": {}}, []
+                            "eventCoverage": {}, "tours": {}}, []
     outs = {tour: read_outputs(tour) for tour in TOURS}
     # Cross-tour problems belong to no single tour; attach them to the first so they ride
     # the existing issue/dedup flow (report-data-health.sh reads health.json `ok`).
@@ -1210,6 +1282,8 @@ def main() -> int:
                 if isinstance(t, dict) and t.get("name") and t.get("hasBracket")),
             "problems": op,
         }
+        report["eventCoverage"][tour] = _coverage_summary(
+            oc["data"].get("event_coverage"), oc["data"].get("tournaments"))
         report["tours"][tour] = h
         all_problems += p + op
         print(f"  health/{tour}: results to {h['date_max']}, stats to {h['stats_date_max']}, "

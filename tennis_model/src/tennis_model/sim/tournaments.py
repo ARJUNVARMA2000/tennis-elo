@@ -360,7 +360,7 @@ def _dedup_by_display_name(entries: list, tour: str) -> list:
 
 
 def recent_tournaments(df: pd.DataFrame, within_days: int = 40,
-                       recent_days: int = 18, max_events: int = 14) -> list:
+                       recent_days: int = 18, max_events: int | None = None) -> list:
     """(name, sub_df) for single-elim events ending within `recent_days` of the data."""
     dmax = df["date"].max()
     win = df[df["date"] >= dmax - pd.Timedelta(days=within_days)]
@@ -373,7 +373,8 @@ def recent_tournaments(df: pd.DataFrame, within_days: int = 40,
             continue
         events.append((str(name), g.copy(), end))
     events.sort(key=lambda e: e[2], reverse=True)
-    return [(n, g) for n, g, _ in events[:max_events]]
+    kept = events if max_events is None else events[:max_events]
+    return [(n, g) for n, g, _ in kept]
 
 
 def projection_is_meaningful(field_pool) -> bool:
@@ -555,8 +556,9 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
 
     if len(field_pool) < 8:              # dedup-leftover fragment, not a real draw
         return None
-    if top_set is not None and wiki_draw is None and len(field_pool & top_set) < 2:
-        return None                      # sub-tour / ITF event; a wiki draw IS tour-level
+    if (top_set is not None and wiki_draw is None and not espn_id
+            and len(field_pool & top_set) < 2):
+        return None                      # id-less sub-tour / ITF event; ESPN id proves tour scope
 
     # A finished knockout has exactly one player left standing: the champion. Deriving that
     # by set subtraction makes it hostage to name hygiene on BOTH sides — Umag shipped

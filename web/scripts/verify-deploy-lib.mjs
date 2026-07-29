@@ -82,6 +82,41 @@ export function freshnessOk(live, expected) {
 }
 
 /**
+ * Compare one live tournaments.json payload with the membership recorded by the same
+ * freshly-built health.json. Expected keys must occur exactly once; the complete shipped
+ * multiset must also match so a CDN mix of old/new per-tour files cannot pass.
+ * @param {object} health
+ * @param {string} tour
+ * @param {Array<object>} tournaments
+ * @returns {string[]}
+ */
+export function coverageProblems(health, tour, tournaments) {
+  const summary = health?.eventCoverage?.[tour];
+  if (!summary || !Array.isArray(summary.expectedKeys) || !Array.isArray(summary.shippedKeys)) {
+    return [`${tour}: health.json eventCoverage summary missing/malformed`];
+  }
+  if (!Array.isArray(tournaments)) return [`${tour}: tournaments.json is not an array`];
+
+  const keys = tournaments.map((card) => card?.coverageKey).filter(Boolean).map(String);
+  const counts = new Map();
+  for (const key of keys) counts.set(key, (counts.get(key) || 0) + 1);
+  const problems = [];
+  const unnamed = tournaments.length - keys.length;
+  if (unnamed) problems.push(`${tour}: ${unnamed} card(s) missing coverageKey`);
+  for (const key of summary.expectedKeys.map(String)) {
+    const count = counts.get(key) || 0;
+    if (count === 0) problems.push(`${tour}: missing expected ${key}`);
+    else if (count > 1) problems.push(`${tour}: duplicate ${key} (${count} cards)`);
+  }
+  const expectedMembership = [...summary.shippedKeys].map(String).sort();
+  const actualMembership = [...keys].sort();
+  if (JSON.stringify(actualMembership) !== JSON.stringify(expectedMembership)) {
+    problems.push(`${tour}: tournament membership differs from freshly built health.json`);
+  }
+  return problems;
+}
+
+/**
  * Pull the og:image content value out of a page's HTML (order-insensitive on attributes).
  * @param {string} html
  * @returns {string|null}

@@ -7,6 +7,7 @@ Kept separate from pipeline orchestration so the export surface is easy to scan:
   profiles.json         per-player detail: splits, style, recent form, H2H, Elo line
   draws.json            current-top-field tournament projections per surface
   tournaments.json      latest real events: title odds + actual result (powers home)
+  event_coverage.json   independent begun-event set + exact shipped membership
   brackets.json         the actual ordered draw round-by-round, priced (powers /bracket)
   upcoming.json         scheduled matches + the model's current win prob (powers /schedule)
   fixtures.json         latest results with the model's pre-match call + upset flags
@@ -421,10 +422,14 @@ def export_all(tour, df, elo, srv, meta, predictor, oos=None) -> None:
     _write(tour, "ratings_history.json", build_history(elo, players))
     _write(tour, "profiles.json", build_profiles_json(df, elo, srv, meta, mcp, players))
     _write(tour, "draws.json", build_draws(predictor, players, tour))
+    from ..data.event_coverage import build_event_coverage, finalize_event_coverage
     from ..sim.tournaments import build_tournaments
+    coverage = build_event_coverage(df, tour)
     ts = build_tournaments(predictor, df, tour)
+    coverage = finalize_event_coverage(coverage, ts)
     _write(tour, "brackets.json", build_brackets_payload(ts))   # pops bracket/size/url, stamps hasBracket
     _write(tour, "tournaments.json", ts)
+    _write(tour, "event_coverage.json", coverage)
     _write(tour, "upcoming.json", build_upcoming(predictor, df, tour))
     _write(tour, "fixtures.json", build_fixtures(df, predictor))
     if accuracy:

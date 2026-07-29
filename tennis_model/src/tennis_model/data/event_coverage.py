@@ -1,0 +1,367 @@
+"""Independent evidence that every begun tour event reaches ``tournaments.json``.
+
+The tournament projector is intentionally forgiving: one malformed draw is skipped so it
+cannot take down the whole board. That makes a second, independent enumeration essential —
+otherwise the skip is indistinguishable from a quiet week. This module builds that expected
+set from facts that exist before projection:
+
+* a real main-draw knockout result; or
+* a real-player scheduled/in-progress matchup dated no later than the build date.
+
+Calendar entries and all-TBD draws are not proof that an event has begun. Stable ESPN ids are
+the primary identity. Where no id exists, two source records join only on overlapping dates
+plus at least two shared real players; names are display metadata, never join evidence.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from collections import Counter
+from datetime import UTC, datetime
+
+import pandas as pd
+
+from ..config import live_dir
+from .events import EventResolver, load_registry, norm_event_name
+from .results import _name_key
+
+COVERAGE_VERSION = 1
+COVERAGE_RETENTION_DAYS = 18
+_KO_ROUNDS = frozenset({"R128", "R64", "R32", "R16", "QF", "SF", "F"})
+_MAIN_LEVELS = frozenset({
+    "G", "M", "A", "F", "D", "O",
+    "250", "500", "1000", "125",
+    "ATP250", "ATP500", "ATP1000", "WTA125", "WTA250", "WTA500", "WTA1000",
+    "GRAND SLAM", "MASTERS 1000", "TOUR FINALS", "OLYMPICS",
+})
+
+
+def _date(value) -> pd.Timestamp | None:
+    parsed = pd.to_datetime(value, errors="coerce")
+    return pd.Timestamp(parsed).normalize() if pd.notna(parsed) else None
+
+
+def _iso(value) -> str | None:
+    parsed = _date(value)
+    return str(parsed.date()) if parsed is not None else None
+
+
+def _real_name(value) -> bool:
+    from ..sim.bracket import is_real
+    return bool(is_real(value))
+
+
+def _event_id(values) -> str | None:
+    ids = [str(v).strip() for v in values
+           if v is not None and str(v).strip() and str(v).strip().lower() != "nan"]
+    return Counter(ids).most_common(1)[0][0] if ids else None
+
+
+def _main_tour_group(group: pd.DataFrame) -> bool:
+    """Whether id-less results carry an explicit main-tour level.
+
+    A stable ESPN event id is already enough. This fallback catches archive-era tour events
+    without sweeping every Challenger/ITF result into a board whose projector deliberately
+    does not promise that population.
+    """
+    values: set[str] = set()
+    for column in ("tourney_level", "tier"):
+        if column in group.columns:
+            values |= {str(v).strip().upper() for v in group[column].dropna() if str(v).strip()}
+    return bool(values & _MAIN_LEVELS)
+
+
+def _registry_dates(registry: dict, event_id: str | None, start, end) -> tuple[str | None, str | None]:
+    entry = ((registry.get("events") or {}).get(str(event_id)) or {}) if event_id else {}
+    return (_iso(entry.get("start")) or _iso(start),
+            _iso(entry.get("end")) or _iso(end) or _iso(start))
+
+
+def _registry_name(registry: dict, event_id: str | None, fallback: str) -> str:
+    entry = ((registry.get("events") or {}).get(str(event_id)) or {}) if event_id else {}
+    return str(entry.get("name") or fallback)
+
+
+def _cached_identity_extras(tour: str) -> list[tuple[str, str]]:
+    """Name/id evidence retained in caches after the registry prunes an old event.
+
+    This is how the projector still recovers Wimbledon as ``188-2026`` once the registry's
+    retention window has elapsed; the independent manifest must not mint an id-less second
+    identity for the same source evidence.
+    """
+    out: list[tuple[str, str]] = []
+    for filename in ("fields.json", "wiki_draws.json"):
+        path = live_dir(tour) / filename
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        for key, value in (payload.items() if isinstance(payload, dict) else []):
+            event_id = value.get("espnId") if isinstance(value, dict) else None
+            if key and event_id:
+                out.append((str(key), str(event_id)))
+    return out
+
+
+def _candidate(name: str, event_id: str | None, start, end, source: str,
+               players, pairs, registry: dict) -> dict:
+    start_s, end_s = _registry_dates(registry, event_id, start, end)
+    return {
+        "espnId": event_id,
+        "name": _registry_name(registry, event_id, name),
+        "names": {str(name)},
+        "start": start_s,
+        "end": end_s,
+        # Join evidence keeps the source-observed dates, not the broader ESPN calendar.
+        # Adjacent events' qualifying calendars overlap and top players can enter both; using
+        # those broad ranges merged Wimbledon into the following week's Gstaad/Umag fields.
+        "evidenceStart": _iso(start),
+        "evidenceEnd": _iso(end) or _iso(start),
+        "evidence": {source},
+        "players": {str(p) for p in players if _real_name(p)},
+        "pairs": {tuple(sorted((_name_key(a), _name_key(b)))) for a, b in pairs
+                  if _real_name(a) and _real_name(b)},
+    }
+
+
+def _result_candidates(df: pd.DataFrame, ref: pd.Timestamp, resolver: EventResolver,
+                       registry: dict) -> list[dict]:
+    required = {"tourney_name", "date", "round", "winner_name", "loser_name"}
+    if df is None or df.empty or not required.issubset(df.columns):
+        return []
+    frame = df.copy()
+    frame["_coverage_date"] = pd.to_datetime(frame["date"], errors="coerce").dt.normalize()
+    # Keep the full current-edition evidence (not just the final days): filtering rows to the
+    # retention boundary first turned Wimbledon into a two-player, final-only "event". Forty
+    # days matches the projector's capture window; the GROUP end decides retention.
+    frame = frame[(frame["_coverage_date"] >= ref - pd.Timedelta(days=40))
+                  & (frame["_coverage_date"] <= ref)
+                  & frame["round"].isin(_KO_ROUNDS)]
+    out: list[dict] = []
+    for raw_name, group in frame.groupby("tourney_name", sort=False):
+        if group["_coverage_date"].max() < ref - pd.Timedelta(days=COVERAGE_RETENTION_DAYS):
+            continue
+        if "draw_level" in group.columns:
+            main = group[group["draw_level"].fillna("main").astype(str).str.lower() == "main"]
+            if not main.empty:
+                group = main
+        direct = _event_id(group["espn_id"] if "espn_id" in group.columns else [])
+        event_id = direct or resolver.id_of(raw_name)
+        if not event_id and not _main_tour_group(group):
+            continue
+        players = list(group["winner_name"]) + list(group["loser_name"])
+        pairs = list(zip(group["winner_name"], group["loser_name"]))
+        out.append(_candidate(str(raw_name), event_id, group["_coverage_date"].min(),
+                              group["_coverage_date"].max(), "result", players, pairs, registry))
+    return out
+
+
+def _scheduled_candidates(upcoming: pd.DataFrame, ref: pd.Timestamp, resolver: EventResolver,
+                          registry: dict) -> list[dict]:
+    required = {"tourney_name", "tourney_date", "playerA", "playerB"}
+    if upcoming is None or upcoming.empty or not required.issubset(upcoming.columns):
+        return []
+    frame = upcoming.copy()
+    frame["_coverage_date"] = pd.to_datetime(frame["tourney_date"], errors="coerce").dt.normalize()
+    frame = frame[(frame["_coverage_date"] >= ref - pd.Timedelta(days=COVERAGE_RETENTION_DAYS))
+                  & (frame["_coverage_date"] <= ref)]
+    frame = frame[[bool(_real_name(a) and _real_name(b))
+                   for a, b in zip(frame["playerA"], frame["playerB"])]]
+    if frame.empty:
+        return []
+    direct_ids = frame["espn_id"] if "espn_id" in frame.columns else pd.Series(None, index=frame.index)
+    frame = frame.assign(_coverage_id=[
+        (None if v is None or str(v).strip().lower() == "nan" else str(v).strip())
+        for v in direct_ids
+    ])
+    # Group same-id sponsor variants together immediately; id-less rows remain name-local
+    # until the evidence merge below proves that two names describe one event.
+    frame["_coverage_group"] = [eid or f"name:{name}"
+                                for eid, name in zip(frame["_coverage_id"], frame["tourney_name"])]
+    out: list[dict] = []
+    for _key, group in frame.groupby("_coverage_group", sort=False):
+        raw_name = str(group["tourney_name"].iloc[0])
+        direct = _event_id(group["_coverage_id"])
+        event_id = direct or resolver.id_of(raw_name)
+        players = list(group["playerA"]) + list(group["playerB"])
+        pairs = list(zip(group["playerA"], group["playerB"]))
+        candidate = _candidate(raw_name, event_id, group["_coverage_date"].min(),
+                               group["_coverage_date"].max(), "scheduled", players, pairs, registry)
+        candidate["names"] |= {str(n) for n in group["tourney_name"] if n}
+        out.append(candidate)
+    return out
+
+
+def _overlaps(a: dict, b: dict, *, evidence: bool = False) -> bool:
+    start_key, end_key = (("evidenceStart", "evidenceEnd") if evidence else ("start", "end"))
+    sa, ea = _date(a.get(start_key)), _date(a.get(end_key))
+    sb, eb = _date(b.get(start_key)), _date(b.get(end_key))
+    return bool(sa is not None and ea is not None and sb is not None and eb is not None
+                and max(sa, sb) <= min(ea, eb))
+
+
+def _same_event(a: dict, b: dict) -> bool:
+    aid, bid = a.get("espnId"), b.get("espnId")
+    if aid and bid:
+        return str(aid) == str(bid)
+    if not _overlaps(a, b, evidence=True):
+        return False
+    # The two shared players must also form the same observed matchup. Merely sharing two
+    # entrants is not enough across adjacent events: players who lose early at Wimbledon can
+    # enter the next week's 125 while the calendars still overlap at their boundaries.
+    return bool(set(a.get("pairs") or ()) & set(b.get("pairs") or ()))
+
+
+def _merge_candidates(candidates: list[dict], tour: str, registry: dict) -> list[dict]:
+    parent = list(range(len(candidates)))
+
+    def find(i: int) -> int:
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    def union(i: int, j: int) -> None:
+        ri, rj = find(i), find(j)
+        if ri != rj:
+            ids = {str(candidates[k]["espnId"]) for k in range(len(candidates))
+                   if find(k) in (ri, rj) and candidates[k].get("espnId")}
+            if len(ids) > 1:
+                return                 # an id-less bridge can never fuse two stable ids
+            parent[rj] = ri
+
+    for i, a in enumerate(candidates):
+        for j in range(i + 1, len(candidates)):
+            if _same_event(a, candidates[j]):
+                union(i, j)
+
+    groups: dict[int, list[dict]] = {}
+    for i, candidate in enumerate(candidates):
+        groups.setdefault(find(i), []).append(candidate)
+
+    events: list[dict] = []
+    for members in groups.values():
+        ids = sorted({str(m["espnId"]) for m in members if m.get("espnId")})
+        event_id = ids[0] if len(ids) == 1 else None
+        names = sorted({n for m in members for n in m["names"]}, key=norm_event_name)
+        players = sorted({p for m in members for p in m["players"]}, key=_name_key)
+        pairs = sorted({pair for m in members for pair in m["pairs"]})
+        starts = [m["start"] for m in members if m.get("start")]
+        ends = [m["end"] for m in members if m.get("end")]
+        evidence_starts = [m["evidenceStart"] for m in members if m.get("evidenceStart")]
+        evidence_ends = [m["evidenceEnd"] for m in members if m.get("evidenceEnd")]
+        start, end = (min(starts) if starts else None), (max(ends) if ends else None)
+        display = _registry_name(registry, event_id, names[0] if names else "Unknown event")
+        if event_id:
+            key = f"espn:{event_id}"
+        else:
+            proof = "|".join([tour, start or "", end or ""] + sorted(_name_key(p) for p in players))
+            key = "evidence:" + hashlib.sha256(proof.encode()).hexdigest()[:16]
+        events.append({
+            "key": key, "espnId": event_id, "name": display, "names": names,
+            "start": start, "end": end,
+            "evidenceStart": min(evidence_starts) if evidence_starts else start,
+            "evidenceEnd": max(evidence_ends) if evidence_ends else end,
+            "evidence": sorted({s for m in members for s in m["evidence"]}),
+            "players": players, "matchPairs": [list(pair) for pair in pairs],
+        })
+    return sorted(events, key=lambda e: (e.get("start") or "", norm_event_name(e["name"])))
+
+
+def build_event_coverage(df: pd.DataFrame, tour: str, *, build_date=None,
+                         upcoming_df: pd.DataFrame | None = None,
+                         registry: dict | None = None) -> dict:
+    """Return the versioned expected-event manifest for one build."""
+    ref = _date(build_date)
+    if ref is None:
+        ref = pd.Timestamp(datetime.now(UTC).date())
+    use_cache_identities = registry is None
+    registry = load_registry(tour) if registry is None else registry
+    resolver = EventResolver(registry, extra=_cached_identity_extras(tour) if use_cache_identities else ())
+    if upcoming_df is None:
+        from ..model.upcoming import load_upcoming
+        upcoming_df = load_upcoming(tour)
+    candidates = _result_candidates(df, ref, resolver, registry)
+    candidates += _scheduled_candidates(upcoming_df, ref, resolver, registry)
+    return {
+        "version": COVERAGE_VERSION,
+        "tour": tour,
+        "buildDate": str(ref.date()),
+        "events": _merge_candidates(candidates, tour, registry),
+    }
+
+
+def _card_players(card: dict) -> set[str]:
+    players = {p.get("name") for p in (card.get("projection") or []) if isinstance(p, dict)}
+    players |= {card.get("champion"), card.get("runnerUp")}
+    for rnd in card.get("bracket") or []:
+        for match in rnd.get("matches") or []:
+            players |= {match.get("a"), match.get("b")}
+    return {str(p) for p in players if _real_name(p)}
+
+
+def _card_matches_event(card: dict, event: dict) -> bool:
+    card_id, event_id = card.get("espnId"), event.get("espnId")
+    if card_id and event_id:
+        return str(card_id) == str(event_id)
+    if card_id or event_id or not _overlaps(card, event):
+        return False
+    cp = {_name_key(p) for p in _card_players(card)}
+    ep = {_name_key(p) for p in event.get("players") or [] if _real_name(p)}
+    return len(cp & ep) >= 2
+
+
+def _untracked_card_key(card: dict, tour: str) -> str:
+    proof = "|".join(str(x or "") for x in (
+        tour, card.get("name"), card.get("start"), card.get("end"), card.get("status")))
+    return "card:" + hashlib.sha256(proof.encode()).hexdigest()[:16]
+
+
+def _coverage_shell(event: dict, build_date: str, tour: str) -> dict:
+    """An honest presence-only card when simulation cannot safely describe the draw."""
+    end = _date(event.get("end"))
+    ref = _date(build_date)
+    completed = bool(end is not None and ref is not None and end < ref)
+    return {
+        "name": event["name"], "surface": None, "level": f"{tour.upper()} Tour", "bestOf": 3,
+        "start": event.get("start") or build_date, "end": event.get("end") or build_date,
+        "status": "completed" if completed else "live", "drawStatus": "unavailable",
+        "espnId": event.get("espnId"), "surfaceSource": None,
+        "finalRecorded": False if completed else None,
+        "drawSize": None, "aliveCount": None, "champion": None, "runnerUp": None,
+        "modelFavorite": None, "favoritePicked": False, "projection": [],
+        "bracket": None, "bracketSize": None, "wikiUrl": None,
+        "coverageKey": event["key"], "coverageOnly": True,
+    }
+
+
+def finalize_event_coverage(manifest: dict, tournaments: list[dict]) -> dict:
+    """Stamp explicit keys, fill any projector gap with a shell, and finalize membership.
+
+    Mutates ``tournaments`` because export immediately writes that same list. The returned
+    manifest is JSON-ready and records the complete shipped key multiset for health/deploy
+    parity checks.
+    """
+    events = list(manifest.get("events") or [])
+    for card in tournaments:
+        matches = [event for event in events if _card_matches_event(card, event)]
+        if len(matches) == 1:
+            card["coverageKey"] = matches[0]["key"]
+        elif card.get("espnId"):
+            card["coverageKey"] = f"espn:{card['espnId']}"
+        else:
+            card["coverageKey"] = _untracked_card_key(card, str(manifest.get("tour") or ""))
+        card.setdefault("coverageOnly", False)
+
+    counts = Counter(str(card.get("coverageKey")) for card in tournaments if card.get("coverageKey"))
+    for event in events:
+        if counts[event["key"]] == 0:
+            tournaments.append(_coverage_shell(event, str(manifest.get("buildDate") or ""),
+                                               str(manifest.get("tour") or "")))
+
+    order = {"live": 0, "upcoming": 1, "completed": 2}
+    tournaments.sort(key=lambda card: card.get("end") or "", reverse=True)
+    tournaments.sort(key=lambda card: order.get(card.get("status"), 3))
+    shipped = sorted(str(card["coverageKey"]) for card in tournaments if card.get("coverageKey"))
+    return {**manifest, "shippedKeys": shipped}

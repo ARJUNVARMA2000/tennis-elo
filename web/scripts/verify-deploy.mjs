@@ -17,6 +17,7 @@ import {
   extractHashedAsset,
   isAbsoluteOnOrigin,
   freshnessOk,
+  coverageProblems,
   extractOgImage,
 } from "./verify-deploy-lib.mjs";
 
@@ -140,6 +141,33 @@ await check(
     throw new Error(`stale: live generatedAt "${last}" != expected "${EXPECT_GENERATED_AT}" after ${FRESH_TRIES} tries`);
   },
 );
+
+await check("coverage: every begun event is on the live site exactly once", async () => {
+  let last = [];
+  for (let i = 0; i < FRESH_TRIES; i++) {
+    const healthRes = await fetchT(BASE + "/data/health.json", { cache: "no-store" });
+    must(healthRes.status === 200, `health.json -> ${healthRes.status}`);
+    const health = await healthRes.json();
+    last = [];
+    for (const tour of ["atp", "wta"]) {
+      const path = `/data/${tour}/tournaments.json`;
+      const res = await fetchT(BASE + path, { cache: "no-store" });
+      if (res.status !== 200) {
+        last.push(`${path} -> ${res.status}`);
+        continue;
+      }
+      last.push(...coverageProblems(health, tour, await res.json()));
+    }
+    if (last.length === 0) {
+      const n = ["atp", "wta"].reduce(
+        (sum, tour) => sum + (health?.eventCoverage?.[tour]?.expectedKeys?.length || 0), 0,
+      );
+      return `${n} begun event(s), exact membership`;
+    }
+    if (i < FRESH_TRIES - 1) await sleep(FRESH_DELAY_MS);
+  }
+  throw new Error(last.join("; "));
+});
 
 await check("meta: og:image absolute + on origin", async () => {
   const og = extractOgImage(homeHtml);

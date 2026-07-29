@@ -33,6 +33,8 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 ## Gates & health checks — [`lessons/gates-and-health.md`](lessons/gates-and-health.md)
 
+- Validating every item that EXISTS cannot detect an item that vanished — derive expected
+  membership independently, then carry the same keys through build, UI, and live serving. (2026-07-28)
 - Validate a gate invariant against the full tour CALENDAR, not the events in flight the week it ships. (2026-07-10)
 - Python `json.dump` emits a bare `NaN`, which the browser's strict `JSON.parse` REJECTS — one non-finite float blanks a whole page, and every Python-side check passes it. (2026-07-09)
 - A correctness check that runs AFTER deploy can't stop a wrong deploy — gate before, on every mode. (2026-07-09)

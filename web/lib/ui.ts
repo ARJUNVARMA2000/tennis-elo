@@ -4,7 +4,8 @@ export const pct = (x: number, d = 0) =>
 /** Honest caveat for a tournament card when its odds are NOT running on the real released
     draw. `drawStatus` comes from the backend (sim/tournaments): "real"/"final" (the actual
     bracket — no caveat), "partial" (some of the current round posted, the rest projected),
-    "seeded" (draw not released — the field is seeded by rating). Returns null when there is
+    "seeded" (draw not released — the field is seeded by rating), or "unavailable" (the event
+    is confirmed but no safe projection exists yet). Returns null when there is
     nothing to flag, so a normal real-draw card is unchanged. */
 export function drawCaveat(t: { status: string; drawStatus?: string }):
   { label: string; note: string } | null {
@@ -19,18 +20,23 @@ export function drawCaveat(t: { status: string; drawStatus?: string }):
       label: "Projected draw",
       note: "The draw hasn’t been released — these odds seed the field by rating, not the actual bracket.",
     };
+  if (t.drawStatus === "unavailable")
+    return {
+      label: "Event confirmed · draw pending",
+      note: "Play has begun, but the available field is not complete enough for trustworthy title odds yet.",
+    };
   return null; // "real" / "final" / legacy undefined -> the actual draw, no caveat
 }
 
 export const SURFACES = ["Hard", "Clay", "Grass"] as const;
 export type Surface = (typeof SURFACES)[number];
 
-export const surfaceColor = (s: string) =>
-  ({ Hard: "var(--color-hard)", Clay: "var(--color-clay)", Grass: "var(--color-grass)" } as Record<string, string>)[s] ||
+export const surfaceColor = (s: string | null) =>
+  ({ Hard: "var(--color-hard)", Clay: "var(--color-clay)", Grass: "var(--color-grass)" } as Record<string, string>)[s || ""] ||
   "var(--color-muted)";
 
-export const eloKey = (s: string) =>
-  ({ Hard: "eloHard", Clay: "eloClay", Grass: "eloGrass" } as Record<string, string>)[s] || "elo";
+export const eloKey = (s: string | null) =>
+  ({ Hard: "eloHard", Clay: "eloClay", Grass: "eloGrass" } as Record<string, string>)[s || ""] || "elo";
 
 /** Surface-blend weight per tour — mirrors tennis_model config.py ELO_PARAM_OVERRIDES[tour].surface_blend
     (ATP 0.63, WTA 0.62; BLEND_N50 = 0, so the blend is a fixed linear mix). The exported surface Elo already

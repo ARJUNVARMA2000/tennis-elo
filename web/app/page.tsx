@@ -13,10 +13,10 @@ import { upcomingCard, byTournamentTier, hasMatchupProfiles, type Upcoming } fro
 
 type Proj = { name: string; champion: number; final: number | null; sf: number | null; reach?: Record<string, number> };
 type Tournament = {
-  name: string; surface: string; level: string; bestOf: number;
+  name: string; surface: string | null; level: string; bestOf: number;
   start: string; end: string; status: "completed" | "live" | "upcoming";
-  drawStatus?: "real" | "partial" | "seeded" | "final";
-  drawSize: number; aliveCount: number;
+  drawStatus?: "real" | "partial" | "seeded" | "final" | "unavailable";
+  drawSize: number | null; aliveCount: number | null;
   champion: string | null; runnerUp: string | null;
   modelFavorite: string | null; favoritePicked: boolean;
   projection: Proj[];
@@ -180,12 +180,12 @@ function SlamHero({ t }: { t: Tournament }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <span className="chip" style={{ color: sc, borderColor: sc }}>{t.surface}</span>
+            <span className="chip" style={{ color: sc, borderColor: sc }}>{t.surface || "Surface TBD"}</span>
             <span className="mono text-[11px] text-[var(--color-faint)]">{tournamentTier(t.level, t.name).full} · Bo{t.bestOf}</span>
           </div>
           <h2 className="display mt-2 text-3xl leading-tight sm:text-4xl">{t.name}</h2>
           <div className="mono mt-1 text-[11px] text-[var(--color-faint)]">
-            {dateRange(t.start, t.end)} · {t.drawSize} draw
+            {dateRange(t.start, t.end)} · {t.drawSize ? `${t.drawSize} draw` : "draw pending"}
           </div>
         </div>
         {t.status === "completed" ? (
@@ -195,7 +195,7 @@ function SlamHero({ t }: { t: Tournament }) {
         ) : (
           <span className="mono flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-[var(--color-accent)]">
             <span className="live-dot inline-block h-2 w-2 rounded-full bg-[var(--color-accent)]" />
-            Live · {t.aliveCount} left
+            Live{t.aliveCount != null ? ` · ${t.aliveCount} left` : ""}
           </span>
         )}
       </div>
@@ -398,12 +398,12 @@ function Card({ t }: { t: Tournament }) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <span className="chip" style={{ color: sc, borderColor: sc }}>{t.surface}</span>
+            <span className="chip" style={{ color: sc, borderColor: sc }}>{t.surface || "Surface TBD"}</span>
             <span className="mono text-[11px] text-[var(--color-faint)]">{tournamentTier(t.level, t.name).full} · Bo{t.bestOf}</span>
           </div>
           <h3 className="display mt-2 text-2xl leading-tight">{t.name}</h3>
           <div className="mono mt-1 text-[11px] text-[var(--color-faint)]">
-            {dateRange(t.start, t.end)} · {t.drawSize} draw
+            {dateRange(t.start, t.end)} · {t.drawSize ? `${t.drawSize} draw` : "draw pending"}
           </div>
         </div>
         {t.status === "completed" ? (
@@ -413,7 +413,7 @@ function Card({ t }: { t: Tournament }) {
         ) : (
           <span className="mono flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-[var(--color-accent)]">
             <span className="live-dot inline-block h-2 w-2 rounded-full bg-[var(--color-accent)]" />
-            Live · {t.aliveCount} left
+            Live{t.aliveCount != null ? ` · ${t.aliveCount} left` : ""}
           </span>
         )}
       </div>

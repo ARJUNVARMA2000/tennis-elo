@@ -79,6 +79,32 @@ def test_cross_tour_problem_keeps_its_own_tour_not_the_block_it_is_filed_under()
     assert ap.questions_from_health(report)[0].tour == "wta"
 
 
+def test_coverage_failures_become_contained_event_search_questions():
+    report = {"tours": {"atp": {"output": {"problems": [
+        "atp: begun tournament 'Odlum Brown VanOpen' (coverage key espn:875-2026) "
+        "is missing from tournaments.json",
+        "atp: begun tournament 'Mystery Open' (coverage key evidence:abc123) "
+        "is missing from tournaments.json",
+    ]}}}}
+    qs = ap.questions_from_health(report)
+    assert [(q.kind, q.subject) for q in qs] == [
+        ("missing_event", ("Odlum Brown VanOpen", "espn:875-2026")),
+        ("event_identity", ("Mystery Open", "evidence:abc123")),
+    ]
+
+
+def test_event_search_answer_cannot_change_the_asked_coverage_identity():
+    q = Question(kind="missing_event", tour="wta",
+                 subject=("Odlum Brown VanOpen", "espn:875-2026"), context="missing")
+    good = {"kind": "missing_event", "tour": "wta", "event_name": "Odlum Brown VanOpen",
+            "coverage_key": "espn:875-2026", "espn_id": "875-2026",
+            "article": "2026 Odlum Brown VanOpen", "tier": "WTA 125",
+            "sources": ["https://www.wtatennis.com/tournament/2098/vancouver-125/2026/overview"]}
+    assert ap.falsify(good, _asked(q)) is None
+    changed = {**good, "coverage_key": "espn:999-2026", "espn_id": "999-2026"}
+    assert "not one of the questions asked" in ap.falsify(changed, _asked(q))
+
+
 def test_player_scan_asks_about_the_dropped_surname(evidence, unpatched_config):
     subjects = [q.subject for q in ap.player_questions(evidence, "atp")]
     assert ("Daniel Merida", "Daniel Merida Aguilar") in subjects

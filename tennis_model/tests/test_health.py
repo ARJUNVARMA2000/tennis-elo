@@ -59,13 +59,21 @@ def _healthy_data() -> dict:
         "matrix": {"players": ["P0", "P1", "P2"], "formats": [3], "surfaces": {"Hard": {"3": m}}},
         "tournaments": [{"name": "Test Open", "surface": "Grass", "status": "live",
                          "drawStatus": "real", "drawSize": 128, "aliveCount": 7, "champion": None,
+                         "coverageKey": "espn:1-2026",
                          "hasBracket": False,
                          "projection": [{"name": "P0", "champion": 0.5, "final": 0.6, "sf": 0.8,
                                          "reach": {"R32": 1.0, "R16": 1.0, "QF": 0.95,
                                                    "SF": 0.8, "F": 0.6, "Champion": 0.5}}]},
                         {"name": "Mini Open", "surface": "Hard", "status": "completed",
                          "drawStatus": "real", "drawSize": 4, "aliveCount": 1, "champion": "A",
+                         "coverageKey": "espn:2-2026",
                          "hasBracket": True, "projection": []}],
+        "event_coverage": {"version": 1, "tour": "atp", "buildDate": "2026-07-09",
+                           "events": [
+                               {"key": "espn:1-2026", "name": "Test Open", "espnId": "1-2026",
+                                "start": "2026-07-01", "end": "2026-07-12",
+                                "evidence": ["result"], "players": ["P0", "P1"]},
+                           ], "shippedKeys": ["espn:1-2026", "espn:2-2026"]},
         "brackets": [_healthy_bracket()],
         "upcoming": [{"event": "Test Open", "playerA": "P0", "playerB": "P1", "pA": 0.7}],
         "fixtures": [{"modelProb": 0.6, "upset": False}, {"modelProb": 0.4, "upset": True}],
@@ -104,6 +112,28 @@ def _ledger_row(**over) -> dict:
            "kalshi_result_a": "no", "a_won": "0"}
     row.update(over)
     return row
+
+
+def test_begun_event_missing_from_tournaments_is_a_blocking_output_problem():
+    d = _healthy_data()
+    d["tournaments"] = [t for t in d["tournaments"] if t["coverageKey"] != "espn:1-2026"]
+    out = health.output_problems("atp", _oc(data=d), NOW)
+    problem = next(p for p in out if "begun tournament" in p)
+    assert "Test Open" in problem and "espn:1-2026" in problem
+    assert health._gate_blocks(problem)
+
+
+def test_begun_event_must_ship_exactly_once_by_coverage_key():
+    d = _healthy_data()
+    d["tournaments"].append(dict(d["tournaments"][0], name="Renamed Test Open"))
+    out = health.output_problems("atp", _oc(data=d), NOW)
+    assert any("coverage key espn:1-2026 appears 2 times" in p for p in out)
+
+
+def test_calendar_only_event_is_not_an_expected_coverage_entry():
+    d = _healthy_data()
+    d["event_coverage"]["calendarOnly"] = [{"key": "espn:future-2026", "name": "Future"}]
+    assert not any("Future" in p for p in health.output_problems("atp", _oc(data=d), NOW))
 
 
 def _h(result_age=1, stats_age=2, frac=0.9, n=500, fresh_age=3, charting_age=30) -> dict:
@@ -292,6 +322,10 @@ def test_main_strict_exit_code_and_report():
     assert [r["key"] for r in report["tours"]["atp"]["checks"]] == \
         ["results", "future_dates", "stats", "coverage", "fresh", "charting"]
     assert report["generatedAt"].endswith("Z") and "T" in report["generatedAt"]
+    assert report["eventCoverage"]["atp"] == {
+        "expectedKeys": ["espn:1-2026"],
+        "shippedKeys": ["espn:1-2026", "espn:2-2026"],
+    }
     assert report["tours"]["atp"]["output"]["forecast_max_as_of"] == "2026-07-09"
     print("ok test_main_strict_exit_code_and_report")
 
@@ -624,7 +658,14 @@ def test_output_bracket_early_draw_with_qualifiers_is_clean():
     }]
     d["tournaments"] = [{"name": "Gstaad", "surface": "Clay", "status": "upcoming",
                          "drawStatus": "real", "drawSize": 28, "aliveCount": 28, "champion": None,
-                         "hasBracket": True, "projection": []}]
+                         "coverageKey": "espn:7-2026", "hasBracket": True, "projection": []}]
+    d["event_coverage"] = {
+        "version": 1, "tour": "atp", "buildDate": "2026-07-09",
+        "events": [{"key": "espn:7-2026", "espnId": "7-2026", "name": "Gstaad",
+                    "start": "2026-07-14", "end": "2026-07-20",
+                    "evidence": ["scheduled"], "players": ["Named One", "Named Two"]}],
+        "shippedKeys": ["espn:7-2026"],
+    }
     assert health.output_problems("atp", _oc(data=d), NOW) == []     # fully clean, no false-positive
     print("ok test_output_bracket_early_draw_with_qualifiers_is_clean")
 

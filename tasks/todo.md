@@ -2601,3 +2601,100 @@ Completed alongside the separately committed Round D web work at current tip `d7
   preserve the quick-refresh Kalshi ledger/time limits instead of inheriting the full-build
   allowance. Add a regression test for the stale-predictor path and compare deploy duration
   without weakening the alias-revision rebuild or either production health gate.
+
+## Round E — guarantee every begun tournament reaches the site
+
+Definition: an event has **begun** when independent source evidence shows either (a) at least
+one real knockout result, or (b) a scheduled/in-progress real-player matchup whose date is no
+later than the build date. ESPN calendar dates alone and all-TBD listings remain advisory until
+one of those facts exists. Identity is `espnId` first; an id-less event is matched only by date
+overlap plus shared real players, never by name similarity.
+
+- [x] E1 add fail-first producer and health tests for a versioned `event_coverage.json` manifest:
+      enumerate begun events independently from results + scheduled matchup evidence, attach
+      stable evidence-backed keys, and require every expected key to occur exactly once in
+      `tournaments.json`. A projector skip must block the pre-upload gate even when every other
+      card is valid; future/calendar-only records must not false-positive.
+- [x] E2 generate and mirror that manifest on full and quick builds, stamp the same explicit
+      coverage key onto each tournament card, and make coverage loss impossible to hide behind
+      a caught projection exception. Keep the existing card-validity checks; coverage is a new
+      set-completeness contract, not a replacement for them.
+- [x] E3 extend the web membership contract so `tournamentView()` is proven to preserve every
+      payload event across `{hero, grid, other}`, then publish each tour's expected/shipped
+      active coverage keys in `health.json` for serving-side verification.
+- [x] E4 extend `verify-deploy.mjs` to fetch live tournament payloads and compare their exact
+      coverage-key membership with the freshly deployed `health.json`, retrying through CDN
+      propagation. Add pure helper tests and keep the deploy-health alert path unchanged.
+- [x] E5 broaden the weekly search proposer with contained `missing_event` / `event_identity`
+      questions sourced only from deterministic coverage failures. Search may explain an
+      unresolved identity and cite sources, but cannot invent the expected set, mutate runtime
+      data, or bypass the existing human-reviewed PR boundary.
+- [x] E6 run focused fail-first tests, the full Python and web suites, lint/build, a real-data
+      quick export plus `health --gate`, and reconcile the plan against current `git log` before
+      recording a review section here.
+
+## Round E plan — keep stale quick rebuilds within the quick Kalshi envelope
+
+- [ ] Add a fail-first pipeline regression using an alias-stale predictor. Exercise the real
+  `build_tour_quick()` → full-rebuild path with training/export stubbed, and prove both that the
+  rebuilt predictor is saved and that Kalshi receives the 180-second / 4-day quick limits.
+- [ ] Thread a keyword-only Kalshi history limit through `build_tour()` and set it only from the
+  stale quick fallback; keep ordinary full builds on the 1200-second historical allowance and
+  update the stale-path log so aliases are named as part of the predictor contract.
+- [ ] Run the focused pipeline/Kalshi/health/workflow tests, the full Python suite, and the
+  post-deploy verifier unit test. Do not alter the alias-revision guard, pre-deploy integrity
+  gate, or post-deploy live-serving verifier.
+- [ ] Record the timing comparison in this round's review: historical stale-rebuild Actions run
+  `30407043892` took 22m03s end to end, while recent ordinary quick runs are roughly 7–8 minutes;
+  the code change reduces the two-tour Kalshi allowance on that path from 40 to 6 minutes. Treat
+  an actual post-change production duration as requiring a deliberate push to `master`.
+
+## Follow-up review — bounded stale quick rebuilds (2026-07-28)
+
+- The fail-first alias-stale regression completed the full ratings/training/save fallback but
+  captured the wrong benchmark contract: a 1200-second Kalshi allowance and `recent_days=None`.
+  After the routing change it captures the quick caller's 180-second / 4-day limits, while a
+  second assertion pins an ordinary full build to the original 1200-second / unbounded-history
+  behavior.
+- `build_tour()` now accepts one keyword-only `kalshi_recent_days` input and forwards it only to
+  `_kalshi()`. The stale quick branch supplies `QUICK_KALSHI_DAYS`; its ratings walk, combiner
+  retrain, predictor save, exports, alias-revision guard, and ledger requoting remain unchanged.
+  The stale-path diagnostic now names player aliases alongside schema and FeatureParams drift.
+- Actions evidence: pre-change quick run `30407043892` confirmed both ATP and WTA stale-predictor
+  rebuilds. Its quick step took 19m53s and the job 21m53s (22m03s trigger-to-completion). Ordinary
+  quick run `30404025779` took 5m02s for the quick step and 7m26s for the job. The 14m51s step
+  delta includes the required two-tour model rebuild, so it is not attributed wholly to Kalshi;
+  the deterministic comparison is the two-tour Kalshi allowance dropping from 40 to 6 minutes.
+  No production push was made, so an actual post-change stale-rebuild deploy duration remains
+  deliberately unmeasured.
+- Fail-first proof: the new regression failed with `budgets == [1200]` before the code change and
+  passed with `[180]` after it. Verification: focused pipeline/Kalshi/health/workflow suite 137
+  passed; post-deploy verifier 15 passed; direct and pytest pipeline-guard runs 5/5 each; current
+  shared-worktree Python suite 459 passed; Ruff clean on both touched Python files; and
+  `git diff --check` clean. Neither production health gate was changed.
+
+## Round E review — begun-event coverage (2026-07-28)
+
+- `event_coverage.json` now enumerates begun events independently from real knockout results
+  and scheduled/in-progress real-player matchups. Stable ESPN ids own identity; an id-less
+  cross-source join requires overlapping source-observed dates plus the same real matchup.
+  Calendar-only and future-only records do not enter the blocking expected set.
+- Every tournament card carries a `coverageKey`. A stable ESPN event is no longer rejected by
+  the top-100 heuristic, the arbitrary 14-event projector cap is gone, and a still-unprojectable
+  begun event receives an honest `coverageOnly` / `drawStatus=unavailable` shell rather than
+  disappearing. Current real data needed no shells: all 8 ATP and 14 WTA expected events built
+  full cards, including previously absent WTA Vancouver and Warsaw.
+- The pre-upload gate requires every expected key exactly once and publishes expected/shipped
+  membership in `health.json`. The web partition test proves `{hero, grid, other}` preserves
+  every key. The live verifier fetches both production tournament payloads and retries until
+  their exact membership matches the freshly deployed health report.
+- The weekly proposer now turns deterministic known-id gaps into `missing_event` questions and
+  id-less gaps into `event_identity` questions. Answers are pinned to the asked name/key, a
+  known ESPN id cannot be changed, cited sources are mandatory, and only a parser-verified
+  Wikipedia override can become a config diff; diagnosis-only answers remain audit artifacts.
+- Fail-first proof: the new Python module was absent and the JS coverage helper undefined before
+  implementation. Final verification: Python 459 passed; web 181 passed; TypeScript clean;
+  ESLint 0 errors / 13 existing warnings; production build rendered all 21 routes; real quick
+  pipeline + direct re-export completed; `health --gate` passed with only the pre-existing
+  below-500 Bloomfield Hills stale-live advisory. Local browser verification rendered all ATP
+  cards and all 14 WTA cards—including Axeria and Odlum—with no console warnings/errors.

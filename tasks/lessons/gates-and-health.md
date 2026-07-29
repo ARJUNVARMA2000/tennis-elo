@@ -4,6 +4,22 @@ Designing and placing the invariants in `health.py`; what a gate can and cannot 
 
 Indexed in [`../lessons.md`](../lessons.md).
 
+- **Validating every item that EXISTS cannot detect an item that vanished — derive expected
+  membership independently, then carry the same keys through build, UI, and live serving.**
+  (2026-07-28, begun-event coverage) `output_problems()` had extensive structural checks for
+  every tournament card and still could not detect one missing event: if the projector caught
+  an exception, applied its top-player filter, or stopped at its 14-event cap, the remaining
+  cards were internally valid and the gate passed. The fix is an independent manifest built
+  from pre-projection facts (real knockout results or begun real-player matchups), with one
+  explicit key carried into every card. The pre-upload gate checks expected key -> exactly one
+  card; the UI partition proves it preserves the payload set; `health.json` carries the built
+  membership so the post-deploy verifier can compare the actual live payload. An important
+  identity trap appeared on the first real census: broad event calendars overlap and players
+  can move after an early loss, so date overlap plus two shared names merged Wimbledon into the
+  following week's events. For id-less cross-source evidence, require the same real matchup on
+  overlapping source-observed dates; calendar dates enrich display/retention but never prove a
+  join. Search remains downstream of the deterministic failure and cannot define membership.
+
 - **Validate a gate invariant against the full tour CALENDAR, not the events in flight
   the week it ships.** (2026-07-10) The "real draw must be a power of two" gate check
   shipped 2026-07-08 during Wimbledon (128 — passes) and blocked the first deploy that

@@ -64,7 +64,7 @@ class Question:
     also the containment key: a proposal whose subject is not in the asked set is rejected,
     so the model can only ever answer what it was given."""
 
-    kind: str                    # "player_alias" | "wiki_title"
+    kind: str                    # player_alias | wiki_title | missing_event | event_identity
     tour: str
     subject: tuple[str, ...]
     context: str                 # the gate problem / scan finding, quoted into the prompt
@@ -79,6 +79,8 @@ _QUOTED_EVENT = re.compile(r"tournament (['\"])(.+?)\1")
 # The two markers that mean "we could not identify this event from its ESPN name".
 _EVENT_MARKERS = ("tier did not resolve", "level vocabulary")
 _TOUR_PREFIX = re.compile(r"^([a-z]+):")
+_COVERAGE_EVENT = re.compile(
+    r"begun tournament (['\"])(.+?)\1 \(coverage key ([^)]+)\) is missing from tournaments\.json")
 
 
 def questions_from_health(report: dict) -> list[Question]:
@@ -94,6 +96,17 @@ def questions_from_health(report: dict) -> list[Question]:
         problems = list(block.get("problems") or [])
         problems += list((block.get("output") or {}).get("problems") or [])
         for problem in problems:
+            coverage = _COVERAGE_EVENT.search(problem)
+            if coverage:
+                name, coverage_key = coverage.group(2), coverage.group(3)
+                pref = _TOUR_PREFIX.match(problem)
+                tour = pref.group(1) if pref and pref.group(1) in LEVEL_VOCAB else block_tour
+                kind = "missing_event" if coverage_key.startswith("espn:") else "event_identity"
+                q = Question(kind=kind, tour=tour, subject=(name, coverage_key), context=problem)
+                if q.key not in seen:
+                    seen.add(q.key)
+                    out.append(q)
+                continue
             if not any(marker in problem for marker in _EVENT_MARKERS):
                 continue
             m = _QUOTED_EVENT.search(problem)
@@ -287,7 +300,7 @@ def falsify(proposal: dict, asked: dict, evidence: MatchEvidence | None = None) 
     deliberate: containment first, so a proposal about something we never asked about is
     dead before any of its content is even inspected."""
     kind = proposal.get("kind")
-    if kind not in ("player_alias", "wiki_title"):
+    if kind not in ("player_alias", "wiki_title", "missing_event", "event_identity"):
         return f"unknown proposal kind {kind!r}"
     tour = str(proposal.get("tour") or "")
 
@@ -314,6 +327,30 @@ def falsify(proposal: dict, asked: dict, evidence: MatchEvidence | None = None) 
                 return f"canonical spelling {canonical!r} does not appear in the match record"
         return None
 
+    if kind in ("missing_event", "event_identity"):
+        event_name, coverage_key = proposal.get("event_name"), proposal.get("coverage_key")
+        if not isinstance(event_name, str) or not isinstance(coverage_key, str):
+            return "event_name/coverage_key missing or not strings"
+        if (kind, tour, (event_name, coverage_key)) not in asked:
+            return f"event {(event_name, coverage_key)!r} was not one of the questions asked"
+        expected_id = coverage_key.removeprefix("espn:") if coverage_key.startswith("espn:") else None
+        proposed_id = proposal.get("espn_id")
+        if expected_id and str(proposed_id or "") != expected_id:
+            return (f"espn_id {proposed_id!r} contradicts deterministic coverage key "
+                    f"{coverage_key!r}")
+        article = proposal.get("article")
+        if article is not None and (not isinstance(article, str) or not article.strip()):
+            return "article must be a non-empty string or null"
+        tier = proposal.get("tier")
+        if tier is not None and normalize_level(tier, tour) is None:
+            return f"tier {tier!r} is not in the {tour.upper()} level vocabulary"
+        sources = proposal.get("sources")
+        if not isinstance(sources, list) or not any(
+                isinstance(source, str) and source.startswith(("http://", "https://"))
+                for source in sources):
+            return "event diagnosis has no cited source URL"
+        return None
+
     espn_name, article = proposal.get("espn_name"), proposal.get("article")
     if not isinstance(espn_name, str) or not isinstance(article, str) or not article.strip():
         return "espn_name/article missing or not strings"
@@ -335,7 +372,9 @@ def verify_article(proposal: dict, meta_fn=None, year: int | None = None) -> str
     the problem? Applies it — runs OUR parser against the article the model named — and
     rejects anything that resolves no better than what we already had. Network; ``meta_fn``
     is injectable so tests never touch Wikipedia."""
-    if proposal.get("kind") != "wiki_title":
+    if proposal.get("kind") not in ("wiki_title", "missing_event", "event_identity"):
+        return None
+    if proposal.get("kind") in ("missing_event", "event_identity") and not proposal.get("article"):
         return None
     if meta_fn is None:
         from .draws_wiki import event_meta as meta_fn  # local: keeps the import optional
@@ -370,6 +409,9 @@ Rules:
   merge silently fuses two players' rating histories.
 - Two people with the same surname are usually relatives, not one person. Only assert one
   identity when a source shows the SAME individual written both ways.
+- A coverage question is already backed by deterministic match/schedule evidence. Search may
+  identify the official event, article, tier, cancellation, or source-feed explanation, but
+  must not replace its coverage key or claim a different ESPN id than the one supplied.
 """
 
 _SCHEMA_HINT = """Reply with prose reasoning, then end your message with ONE fenced JSON
@@ -381,12 +423,22 @@ block (```json ... ```) of this exact shape:
    "reason": "<one sentence>", "sources": ["<url>", ...]},
   {"kind": "wiki_title", "tour": "atp", "espn_name": "<exact name from the question>",
    "article": "<exact Wikipedia article title>", "tier": "<ATP 250|WTA 500|...|null>",
-   "reason": "<one sentence>", "sources": ["<url>", ...]}
+   "reason": "<one sentence>", "sources": ["<url>", ...]},
+  {"kind": "missing_event", "tour": "wta", "event_name": "<exact asked name>",
+   "coverage_key": "<exact asked key>", "espn_id": "<id from espn:key, or null>",
+   "official_name": "<official title or null>", "article": "<Wikipedia title or null>",
+   "tier": "<WTA 125|...|null>", "event_exists": true,
+   "reason": "<why this event is real and/or why a source may miss it>", "sources": ["<url>"]},
+  {"kind": "event_identity", "tour": "atp", "event_name": "<exact asked name>",
+   "coverage_key": "<exact asked key>", "espn_id": "<verified id or null>",
+   "official_name": "<official title or null>", "article": "<Wikipedia title or null>",
+   "tier": "<ATP 250|...|null>", "event_exists": true,
+   "reason": "<one sentence>", "sources": ["<url>"]}
 ]}
 
-`variant`/`canonical` and `espn_name` must be copied CHARACTER-FOR-CHARACTER from the
-question. `tier` must be one of the tour's tiers or null. Emit an empty list rather than a
-guess."""
+`variant`/`canonical`, `espn_name`, and coverage `event_name`/`coverage_key` must be copied
+CHARACTER-FOR-CHARACTER from the question. `tier` must be one of the tour's tiers or null.
+Emit an empty list rather than a guess."""
 
 
 def render_prompt(questions: list[Question]) -> str:
@@ -396,10 +448,17 @@ def render_prompt(questions: list[Question]) -> str:
             a, b = q.subject
             lines.append(f"{i}. [{q.tour.upper()} player] Are {a!r} and {b!r} the same "
                          f"person? Observed: {q.context}")
-        else:
+        elif q.kind == "wiki_title":
             lines.append(f"{i}. [{q.tour.upper()} event] Which Wikipedia article covers the "
                          f"{date.today().year} edition of {q.subject[0]!r}, and what tier is "
                          f"it? Observed: {q.context}")
+        else:
+            name, coverage_key = q.subject
+            ask = ("Why is this confirmed event missing from the site, and what official "
+                   "title/article/tier identifies it?" if q.kind == "missing_event" else
+                   "What stable official identity, if any, belongs to this id-less event?")
+            lines.append(f"{i}. [{q.tour.upper()} {q.kind}] {ask} Event {name!r}; "
+                         f"coverage key {coverage_key!r}. Observed: {q.context}")
     lines.append("\n" + _SCHEMA_HINT)
     return "\n".join(lines)
 
@@ -526,8 +585,12 @@ def _entries(proposals: list[dict], today: str) -> dict:
     for p in proposals:
         if p["kind"] == "player_alias":
             key, val, table = name_key(p["variant"]), p["canonical"], "PLAYER_ALIASES"
-        else:
+        elif p["kind"] == "wiki_title":
             key, val, table = p["espn_name"], p["article"], "WIKI_TITLE_OVERRIDES"
+        elif p.get("article"):
+            key, val, table = p["event_name"], p["article"], "WIKI_TITLE_OVERRIDES"
+        else:
+            continue                         # diagnosis artifact only; no deterministic edit
         why = " ".join(str(p.get("reason") or "proposed by the alias proposer").split())
         src = (p.get("sources") or [None])[0]
         out.setdefault(table, []).append(
@@ -538,13 +601,15 @@ def _entries(proposals: list[dict], today: str) -> dict:
         # / Mifel shape: the title override alone still leaves the tier unresolved, so the
         # curated fallback has to carry it. Bare number, matching the table's convention.
         tier = p.get("tier")
-        if p["kind"] == "wiki_title" and tier and not p.get("parsed_category"):
+        if p["kind"] in ("wiki_title", "missing_event", "event_identity") \
+                and tier and not p.get("parsed_category"):
+            event_name = p.get("espn_name") or p.get("event_name")
             digits = re.search(r"\d+", str(tier))
-            if digits and p["espn_name"] not in EVENT_TIER_FALLBACK:
+            if digits and event_name not in EVENT_TIER_FALLBACK:
                 out.setdefault("EVENT_TIER_FALLBACK", []).append(
                     f'    # {today} alias-proposer: article resolves but its infobox '
                     f'carries no `category`\n'
-                    f'    {_lit(p["espn_name"])}: {_lit(digits.group())},\n')
+                    f'    {_lit(event_name)}: {_lit(digits.group())},\n')
     return out
 
 
@@ -571,15 +636,22 @@ def summarize(result: dict) -> str:
     if not result["accepted"]:
         lines.append("_No proposal survived the falsifier._")
     for p in result["accepted"]:
-        what = (f"`{p['variant']}` -> `{p['canonical']}`" if p["kind"] == "player_alias"
-                else f"`{p['espn_name']}` -> [{p['article']}] ({p.get('tier') or 'tier unchanged'})")
+        if p["kind"] == "player_alias":
+            what = f"`{p['variant']}` -> `{p['canonical']}`"
+        elif p["kind"] == "wiki_title":
+            what = f"`{p['espn_name']}` -> [{p['article']}] ({p.get('tier') or 'tier unchanged'})"
+        else:
+            article = f" -> [{p['article']}]" if p.get("article") else ""
+            what = (f"`{p['event_name']}` ({p['coverage_key']}){article} "
+                    f"({p.get('tier') or 'tier unknown'})")
         lines.append(f"- **{p['kind']}** ({p.get('tour')}): {what} — {p.get('reason', '')}")
         for s in (p.get("sources") or [])[:3]:
             lines.append(f"  - {s}")
     if result["rejected"]:
         lines += ["", "### Discarded by the falsifier", ""]
         for p in result["rejected"]:
-            lines.append(f"- `{p.get('variant') or p.get('espn_name')}` — {p.get('reason')}")
+            lines.append(f"- `{p.get('variant') or p.get('espn_name') or p.get('event_name')}` "
+                         f"— {p.get('reason')}")
     lines += ["", "Every entry above is a *proposal*. The runtime is unchanged and stays "
               "fully deterministic; merging this PR is what adopts it."]
     return "\n".join(lines)
