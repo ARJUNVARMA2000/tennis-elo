@@ -88,12 +88,17 @@ export function tournamentTier(level: string = "", eventName: string = ""): { ra
   return { rank: 7, short: "Tour", full: level && l !== "q" ? level : "Tour" };
 }
 
-/** One shared tournament hierarchy for every board surface. Array.sort is stable, so events
-    of the same tier keep the producer's recency/status ordering. */
-export function byTournamentPrestige<T extends { level?: string; name: string }>(events: T[]): T[] {
-  return [...events].sort(
-    (a, b) => tournamentTier(a.level ?? "", a.name).rank - tournamentTier(b.level ?? "", b.name).rank,
-  );
+const TOURNAMENT_STATUS_RANK: Record<string, number> = { live: 0, upcoming: 1, completed: 2 };
+
+/** One shared tournament hierarchy for every board surface: current events before past ones,
+    then prestige within each status. Array.sort is stable, so events of the same status and
+    tier keep the producer's recency ordering. */
+export function byTournamentPriority<T extends { level?: string; name: string; status: string }>(events: T[]): T[] {
+  return [...events].sort((a, b) => {
+    const status = (TOURNAMENT_STATUS_RANK[a.status] ?? 3) - (TOURNAMENT_STATUS_RANK[b.status] ?? 3);
+    if (status !== 0) return status;
+    return tournamentTier(a.level ?? "", a.name).rank - tournamentTier(b.level ?? "", b.name).rank;
+  });
 }
 
 /** How long a finished Grand Slam keeps the home-page hero after its final before the page
@@ -159,7 +164,7 @@ export type TournamentView<T> = {
 export function tournamentView<T extends { level: string; name: string; status: string; end: string }>(
   tournaments: T[], now: number = Date.now(),
 ): TournamentView<T> {
-  const ordered = byTournamentPrestige(tournaments);
+  const ordered = byTournamentPriority(tournaments);
   const hero = heroEvent(ordered, now);
   if (!hero) return { hero: undefined, grid: ordered, other: [] };
   return { hero, grid: [], other: ordered.filter((event) => event !== hero) };

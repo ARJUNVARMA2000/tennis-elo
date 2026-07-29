@@ -2830,3 +2830,12 @@ overlap plus shared real players, never by name similarity.
   a separate `WTA 250 / Clay / 32` final with champion Paula Badosa. Public health was green at
   `2026-07-29T07:55:09Z`. Browser inspection confirmed R16/QF/SF/F/Win columns on both ATP and
   WTA 500 cards and compact odds on 250 cards.
+
+## Round H — prioritize current tournaments on the home board
+
+- Add a failing ordering regression proving live and upcoming tournaments render before
+  completed tournaments, while prestige still orders events within the same status group.
+- Update the shared tournament ordering helper without changing hero eligibility or dropping
+  any event from the `{hero, grid, other}` partition.
+- Run focused and full web verification, deploy deliberately, inspect both ATP and WTA boards,
+  and append a review with the production run evidence.

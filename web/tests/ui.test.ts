@@ -3,7 +3,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { Card } from "@/app/page";
-import { drawCaveat, emptyProjectionNote, heat, heroEvent, pct, percentileScaler, scoreDist, SLAM_HERO_LINGER_MS, SURFACE_BLEND, tournamentDrawLabel, tournamentView } from "@/lib/ui";
+import { byTournamentPriority, drawCaveat, emptyProjectionNote, heat, heroEvent, pct, percentileScaler, scoreDist, SLAM_HERO_LINGER_MS, SURFACE_BLEND, tournamentDrawLabel, tournamentView } from "@/lib/ui";
 
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
 
@@ -87,6 +87,23 @@ describe("heroEvent", () => {
     expect(view.hero).toBeUndefined();
     expect(view.grid.map((t) => t.name)).toEqual(["Mubadala DC Open", "Generali Open"]);
     expect(view.other).toEqual([]);
+  });
+
+  it("orders current tournaments before completed ones, then uses prestige within each status", () => {
+    const ordered = byTournamentPriority([
+      { level: "Grand Slam", name: "Wimbledon", status: "completed" },
+      { level: "ATP 500", name: "Upcoming Five Hundred", status: "upcoming" },
+      { level: "ATP 250", name: "Live Two Fifty", status: "live" },
+      { level: "ATP 500", name: "Live Five Hundred", status: "live" },
+      { level: "Masters 1000", name: "Done Thousand", status: "completed" },
+    ]);
+    expect(ordered.map((t) => t.name)).toEqual([
+      "Live Five Hundred",
+      "Live Two Fifty",
+      "Upcoming Five Hundred",
+      "Wimbledon",
+      "Done Thousand",
+    ]);
   });
 
   it("gives a 1000 the hero and keeps every lesser event in the prestige-ordered disclosure", () => {

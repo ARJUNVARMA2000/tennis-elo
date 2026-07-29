@@ -3,7 +3,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
-import { pct, surfaceColor, heat, eloKey, blendedElo, tournamentTier, drawCaveat, byTournamentPrestige, tournamentView, tournamentDrawLabel, emptyProjectionNote } from "@/lib/ui";
+import { pct, surfaceColor, heat, eloKey, blendedElo, tournamentTier, drawCaveat, byTournamentPriority, tournamentView, tournamentDrawLabel, emptyProjectionNote } from "@/lib/ui";
 import { PageHead, Loading, Reveal, CallCard } from "@/components/bits";
 import { SPRING_SOFT } from "@/lib/motion";
 import { nameKey, type PlayerRow } from "@/lib/live";
@@ -376,7 +376,7 @@ function SlamHero({ t }: { t: Tournament }) {
     keeps the focused week compact while making the event count and expansion control visible
     before the long round-by-round table. */
 function OtherEvents({ events }: { events: Tournament[] }) {
-  const ordered = byTournamentPrestige(events);
+  const ordered = byTournamentPriority(events);
   return (
     <details className="mt-4 border-y border-[var(--color-line)] py-3">
       <summary className="mono w-fit cursor-pointer text-[12px] text-[var(--color-accent)] hover:underline">
