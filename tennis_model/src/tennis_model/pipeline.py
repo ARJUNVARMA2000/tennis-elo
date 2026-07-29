@@ -81,8 +81,10 @@ def _kalshi_report(tours) -> None:
         print(f"  kalshi-report: skipped ({e})")
 
 
-def build_tour(tour: str, do_backtest: bool) -> None:
-    """Full build: re-walk ratings, retrain the combiner, write every JSON (daily)."""
+def build_tour(tour: str, do_backtest: bool, *,
+               kalshi_recent_days: int | None = None) -> None:
+    """Full build: re-walk ratings, retrain the combiner, write every JSON (daily).
+    `kalshi_recent_days` lets a quick caller retain its bounded benchmark sweep."""
     print(f"\n=== {tour.upper()} === loading matches + building features...")
     df = load_matches(tour)
     feat, elo, srv, ctx, meta = build_predictor_inputs(df)
@@ -113,7 +115,7 @@ def build_tour(tour: str, do_backtest: bool) -> None:
     if oos is not None:
         _market_scorecard(tour, oos)
     _track(tour, predictor, df)                  # logs upcoming forecasts first, so
-    _kalshi(tour, df, oos)                       # the ledger can price them (live)
+    _kalshi(tour, df, oos, recent_days=kalshi_recent_days)  # ledger prices them (live)
     _mirror(tour)
 
 
@@ -165,8 +167,9 @@ def build_tour_quick(tour: str) -> None:
     df = load_matches(tour)
     predictor = TennisPredictor.load(tour)
     if not _predictor_current(predictor, tour):
-        print("  quick: saved predictor is stale (feature schema or FeatureParams) -> full rebuild")
-        build_tour(tour, do_backtest=False)
+        print("  quick: saved predictor is stale (feature schema, FeatureParams, or player "
+              "aliases) -> full rebuild")
+        build_tour(tour, do_backtest=False, kalshi_recent_days=QUICK_KALSHI_DAYS)
         return
     export_all(tour, df, predictor.elo, predictor.srv, predictor.meta, predictor, oos=None)
     _track(tour, predictor, df)                  # refreshes the forecast log first, so the

@@ -10,6 +10,7 @@ Runnable directly (`python tests/test_pipeline_guard.py`) or under pytest.
 from __future__ import annotations
 
 import sys
+from contextlib import contextmanager
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
@@ -88,6 +89,77 @@ def test_predictor_player_alias_guard():
     print("ok test_predictor_player_alias_guard")
 
 
+def test_alias_stale_quick_rebuild_keeps_quick_kalshi_limits(monkeypatch):
+    """Alias drift still requires a complete ratings-state rebuild, but the hourly
+    caller must retain its bounded Kalshi sweep after entering that slow path."""
+    import tennis_model.data.kalshi as kalshi
+    import tennis_model.eval.kalshi_ledger as kalshi_ledger
+
+    frame = object()
+    saved, budgets, snapshots, ledgers = [], [], [], []
+    stale = _pred(_Clf(list(FEATURES)), "atp")
+    stale.player_aliases = ()
+
+    class _RebuiltPredictor:
+        @classmethod
+        def load(cls, tour):
+            return stale
+
+        def __init__(self, *args, tour, **kwargs):
+            self.elo, self.srv, self.meta = "elo", "srv", "meta"
+            self.tour = tour
+
+        def save(self):
+            saved.append(self.tour)
+
+    @contextmanager
+    def _time_budget(seconds):
+        budgets.append(seconds)
+        yield
+
+    monkeypatch.setattr(pipeline, "load_matches", lambda tour: frame)
+    monkeypatch.setattr(
+        pipeline,
+        "build_predictor_inputs",
+        lambda df: ("features", "elo", "srv", "ctx", "meta"),
+    )
+    monkeypatch.setattr(pipeline, "main_rows", lambda features: features)
+    monkeypatch.setattr(pipeline, "train_final", lambda features, **kwargs: ("clf", "iso", None))
+    monkeypatch.setattr(pipeline, "TennisPredictor", _RebuiltPredictor)
+    monkeypatch.setattr(pipeline, "export_all", lambda *args, **kwargs: None)
+    monkeypatch.setattr(pipeline, "_track", lambda *args, **kwargs: None)
+    monkeypatch.setattr(pipeline, "_mirror", lambda *args, **kwargs: None)
+    monkeypatch.setattr(kalshi, "time_budget", _time_budget)
+    monkeypatch.setattr(
+        kalshi,
+        "refresh_snapshots",
+        lambda tour, recent_days=None: snapshots.append((tour, recent_days)),
+    )
+    monkeypatch.setattr(
+        kalshi_ledger,
+        "refresh_ledger",
+        lambda tour, df, oos=None: ledgers.append((tour, df, oos)),
+    )
+
+    pipeline.build_tour_quick("atp")
+
+    assert saved == ["atp"], "alias drift no longer triggered a complete predictor rebuild"
+    assert budgets == [pipeline.KALSHI_QUICK_BUDGET_S]
+    assert snapshots == [("atp", pipeline.QUICK_KALSHI_DAYS)]
+    assert ledgers == [("atp", frame, None)]
+
+    saved.clear()
+    budgets.clear()
+    snapshots.clear()
+    ledgers.clear()
+    pipeline.build_tour("atp", do_backtest=False)
+
+    assert saved == ["atp"]
+    assert budgets == [pipeline.KALSHI_FULL_BUDGET_S]
+    assert snapshots == [("atp", None)]
+    assert ledgers == [("atp", frame, None)]
+
+
 
 
 # --- the ratings walk must survive a failing backtest (2026-07-25) -----------------------
@@ -137,7 +209,6 @@ def test_a_failing_backtest_does_not_cost_the_ratings_walk():
 
 
 if __name__ == "__main__":
-    test_predictor_schema_guard()
-    test_predictor_feat_param_guard()
-    test_a_failing_backtest_does_not_cost_the_ratings_walk()
-    print("\nALL PASSED")
+    import pytest
+
+    raise SystemExit(pytest.main([__file__, "-q"]))
