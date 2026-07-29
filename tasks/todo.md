@@ -2784,3 +2784,12 @@ overlap plus shared real players, never by name similarity.
   decided from the same stale-cache shape as CI, and keep the completed-bracket gate blocking.
 - [ ] Push the producer correction first, require a scheduled quick run and its existing gate
   to pass, then land the prepared Round G gate and reach-card commits.
+
+## Round G deployment addendum — incomplete draw caches
+
+- [ ] Add a failing-first cache test proving a 28-player draw with fewer than 28 real entrants
+  is not settled even when every populated slot is a real name.
+- [ ] Make cached-draw settlement validate the recorded entrant count, so unresolved null
+  qualifier slots are re-fetched while legitimate byes remain valid.
+- [ ] Re-run the real quick build and strict gate, then stage this producer correction before
+  the pending gate and UI changes.

@@ -118,7 +118,11 @@ def test_draw_is_settled_gates_the_forever_cache():
     finished cards shipped 32-of-32 alive and a modelFavorite of 'Qualifier 6'."""
     from tennis_model.data.draws_wiki import _draw_is_settled
 
-    assert _draw_is_settled(["A", "B", None, "C"])          # byes are legitimately empty
+    assert _draw_is_settled(["A", "B", None, "C"], draw_size=3)  # one legitimate bye
+    # Early draw captures can encode unresolved qualifiers as nulls too. The published
+    # entrant count distinguishes those holes from a real bye allocation.
+    incomplete_28 = [f"P{i}" for i in range(27)] + [None] * 5
+    assert not _draw_is_settled(incomplete_28, draw_size=28)
     assert not _draw_is_settled(["A", "Qualifier 6", "B", "C"])   # must re-fetch
     assert not _draw_is_settled(["A", "Lucky Loser", "B"])
     assert not _draw_is_settled([None, None])               # nothing real -> not a draw

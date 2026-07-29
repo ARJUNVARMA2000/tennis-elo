@@ -493,19 +493,27 @@ def _still_worth_keeping(entry: object, cutoff: str) -> bool:
     return not ref or ref >= cutoff
 
 
-def _draw_is_settled(slots) -> bool:
+def _draw_is_settled(slots, draw_size: object = None) -> bool:
     """True when every named slot in a captured draw is a real player.
 
     "A draw doesn't change once released" holds only for a draw captured AFTER qualifying
     resolves. Capture it earlier and the `Qualifier N` slots are placeholders that Wikipedia
-    later replaces with real names — so such a capture must not be kept forever. `None` slots
-    are byes and are legitimately empty. The predicate is `sim.bracket.is_real`, the one
-    `health.py` already uses for modelFavorite, so ingestion and the gate cannot disagree
-    about what counts as a placeholder.
+    later replaces with real names — so such a capture must not be kept forever. Wikipedia can
+    also encode an unresolved qualifier as ``None``, which is otherwise indistinguishable from
+    a legitimate bye in the slot list. When the cached entry carries the published draw size,
+    require exactly that many real entrants. The predicate is `sim.bracket.is_real`, the one
+    `health.py` already uses for modelFavorite, so ingestion and the gate cannot disagree about
+    what counts as a placeholder.
     """
     from ..sim.bracket import is_real
     named = [s for s in (slots or []) if s is not None]
-    return bool(named) and all(is_real(s) for s in named)
+    if not named or not all(is_real(s) for s in named):
+        return False
+    try:
+        expected = int(draw_size) if draw_size is not None else None
+    except (TypeError, ValueError):
+        expected = None
+    return expected is None or expected <= 0 or len(named) == expected
 
 
 def download_wiki_draws(tours=TOURS) -> None:
@@ -539,7 +547,8 @@ def download_wiki_draws(tours=TOURS) -> None:
         fetched = refreshed = backfilled = 0
         for name, m in meta.items():
             prev = cached.get(name) or {}
-            if _draw_is_settled(prev.get("slots")):    # fully resolved — this one never changes
+            if _draw_is_settled(prev.get("slots"), prev.get("drawSize")):
+                # fully resolved — this one never changes
                 out[name] = prev
                 continue
             year = int((m.get("start") or "2026")[:4] or 2026)
