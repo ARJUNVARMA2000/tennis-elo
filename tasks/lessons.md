@@ -54,6 +54,8 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 ## CI, alerts & deploy — [`lessons/ci-and-deploy.md`](lessons/ci-and-deploy.md)
 
+- Append-only task history still needs explicit completion state: check finished items before
+  adding the review. (2026-07-30)
 - An alert must never report the failure of its own transport as the thing it monitors. (2026-07-24)
 - A static host's DEFAULT cache is a staleness bug for an hourly-refreshed site — and `firebase.json` cannot document its own reasoning, because it must stay strict JSON. (2026-07-16)
 - Retiring a host is not the same as taking it down: GitHub Pages serves its LAST build forever. (2026-07-16)

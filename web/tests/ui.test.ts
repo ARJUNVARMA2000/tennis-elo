@@ -162,6 +162,39 @@ describe("heroEvent", () => {
 });
 
 describe("tournament grid card", () => {
+  const field = (count: number) => Array.from({ length: count }, (_, i) => ({
+    name: `Seed ${String(i + 1).padStart(2, "0")}`,
+    champion: (count - i) / 100,
+    final: (count - i) / 80,
+    sf: (count - i) / 60,
+    reach: { R16: 1, QF: 0.75, SF: 0.5, F: 0.3, Champion: (count - i) / 100 },
+  }));
+
+  const cardTournament = (count: number) => ({
+    name: "Field Visibility Open", surface: "Hard", level: "ATP 250", bestOf: 3,
+    start: "2026-07-25", end: "2026-08-02", status: "live" as const,
+    drawStatus: "real" as const, drawSize: count, aliveCount: count,
+    champion: null, runnerUp: null, modelFavorite: "Seed 01", favoritePicked: false,
+    projection: field(count),
+  });
+
+  it("shows 16 players by default on detailed and compact cards", () => {
+    for (const compact of [false, true]) {
+      const html = renderToStaticMarkup(createElement(Card, {
+        t: cardTournament(18), compact,
+      }));
+      expect(html).toContain("Seed 16");
+      expect(html).not.toContain("Seed 17");
+      expect(html).toContain("show all projected (18)");
+    }
+  });
+
+  it("shows every remaining player and no expansion control below 16", () => {
+    const html = renderToStaticMarkup(createElement(Card, { t: cardTournament(7) }));
+    expect(html).toContain("Seed 07");
+    expect(html).not.toContain("show all projected");
+  });
+
   it("renders round-by-round reach columns for every active card, regardless of tier", () => {
     const tournament = {
       name: "Mubadala DC Open", surface: "Hard", level: "ATP 500", bestOf: 3,

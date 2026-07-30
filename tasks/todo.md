@@ -2881,6 +2881,20 @@ overlap plus shared real players, never by name similarity.
   and Mifel cards, reach tables on both, Mifel's incomplete-draw warning intact, and no console
   errors.
 
+## Round K — faster, gated production deployment (completed 2026-07-29)
+
+- [x] Move historical Kalshi quote repair off the hourly critical path, share one strict
+  75-second quick-run budget across both tours, and emit stage timings.
+- [x] Reuse each tour's ESPN event sweep across live results and complete-draw acquisition
+  while preserving independent best-effort fallback.
+- [x] Skip documentation-only deploys; add a safely gated web-only path, required master-push
+  tests, Python/npm/Next caches, and immutable Firebase tooling.
+- [x] Upgrade Next.js and its lint config to 16.2.12, patch vulnerable production transitive
+  dependencies, and retain both the pre-upload and live-serving verification gates.
+- [x] Verify the combined draw/deploy worktree: 494 Python tests, Ruff, 186 web tests,
+  TypeScript, workflow/shell checks, clean `npm ci`, zero production audit findings, ESLint
+  with 0 errors / 13 existing warnings, production build, and `git diff --check`.
+
 ## Round L review — keep unsafe Kalshi prices out of the scorecard (2026-07-29)
 
 - The failure was an hourly resurrection, not a bad gate: daily repair had degraded unsafe
@@ -2894,3 +2908,28 @@ overlap plus shared real players, never by name similarity.
 - Verification passed 497 Python tests, Ruff, 187 web tests, TypeScript, shell/workflow checks,
   `npm ci`, a zero-finding production dependency audit, ESLint with 0 errors / 13 existing
   warnings, the 21-page production build, and `git diff --check`.
+
+## Round M — show a meaningful tournament field by default (completed 2026-07-30)
+
+- [x] Add renderer regressions for detailed and compact tournament cards proving players 1–16
+  are visible by default, player 17 stays behind `show all`, and an event with fewer than 16
+  available players renders all of them without an expansion control.
+- [x] Replace the card-only five-player cutoff with the same shared 16-player default already
+  used by the hero. Preserve sorting, expansion/collapse behavior, compact hero-week hierarchy,
+  and naturally shorter cards once fewer than 16 players remain.
+- [x] Run focused and full web tests, TypeScript, ESLint, production build, and rendered desktop
+  inspection of the real ATP board; append the review. Do not push or deploy without separate
+  explicit instruction.
+
+## Round M review — show a meaningful tournament field by default (2026-07-30)
+
+- Hero, detailed, and compact tournament views now share a 16-player default. Events with fewer
+  than 16 remaining players show their full field; larger fields retain `show all` / `show less`.
+- Fail-first renderer coverage proved the old five-player card cutoff, then passed for both card
+  variants at the 16/17 boundary and for a seven-player remaining field without an expansion
+  control.
+- Verification passed 189 web tests, TypeScript, the 21-page production build, and ESLint with
+  0 errors / 13 existing warnings. Rendered ATP inspection showed all 12 DC players and all 15
+  Mifel players, while a larger Wimbledon card showed 16 players plus its expansion control.
+- Publication was performed only after separate explicit authorization: commit to `master`, push,
+  and production deployment through the guarded refresh workflow.

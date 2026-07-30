@@ -31,6 +31,7 @@ function dateRange(start: string, end: string): string {
 
 // Round-by-round forecast table: which rounds to show (deepest, top-players-down) + labels.
 const DEEP_ROUNDS = ["R16", "QF", "SF", "F", "Champion"];
+const DEFAULT_VISIBLE_PLAYERS = 16;
 const ROUND_LABEL: Record<string, string> = {
   R128: "R128", R64: "R64", R32: "R32", R16: "R16", QF: "QF", SF: "SF", F: "F", Champion: "Win",
 };
@@ -247,7 +248,7 @@ function SlamHero({ t }: { t: Tournament }) {
     });
     return arr;
   }, [t.projection, sortKey, sortDir]);
-  const shown = open ? sorted : sorted.slice(0, 16);
+  const shown = open ? sorted : sorted.slice(0, DEFAULT_VISIBLE_PLAYERS);
 
   return (
     <div className="panel-glow mt-8 p-5 sm:p-6">
@@ -361,7 +362,7 @@ function SlamHero({ t }: { t: Tournament }) {
           );
         }}
       />
-      {t.projection.length > 16 && (
+      {t.projection.length > DEFAULT_VISIBLE_PLAYERS && (
         <button onClick={() => setOpen(!open)} className="mono mt-3 text-[11px] text-[var(--color-accent)] hover:underline">
           {open ? "show less" : `show all projected (${t.projection.length})`}
         </button>
@@ -437,7 +438,7 @@ function UpNext() {
 export function Card({ t, compact = false }: { t: Tournament; compact?: boolean }) {
   const [open, setOpen] = useState(false);
   const sc = surfaceColor(t.surface);
-  const shown = open ? t.projection : t.projection.slice(0, 5);
+  const shown = open ? t.projection : t.projection.slice(0, DEFAULT_VISIBLE_PLAYERS);
   const maxP = Math.max(0.01, ...t.projection.map((p) => p.champion));
   const present = new Set(t.projection.flatMap((p) => Object.keys(reachOf(p))));
   const reachCols = DEEP_ROUNDS.filter((round) => present.has(round));
@@ -550,7 +551,7 @@ export function Card({ t, compact = false }: { t: Tournament; compact?: boolean 
             </div>
           </>
         )}
-        {t.projection.length > 5 && (
+        {t.projection.length > DEFAULT_VISIBLE_PLAYERS && (
           <button onClick={() => setOpen(!open)} className="mono mt-3 text-[11px] text-[var(--color-accent)] hover:underline">
             {open ? "show less" : `show all projected (${t.projection.length})`}
           </button>

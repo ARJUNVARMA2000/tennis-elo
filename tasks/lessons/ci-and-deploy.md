@@ -193,3 +193,9 @@ Indexed in [`../lessons.md`](../lessons.md).
   is not a substitute for a mechanism that works — if you can name the case that defeats your
   fix, fix it or verify it is actually rare, don't file it under "accepted".
   See [[future-proof-no-quick-fixes]].
+
+- **Append-only task history still needs explicit completion state: check finished items before
+  adding the review.** (2026-07-30) “Append-only” means preserve the plan and its evidence; it
+  does not mean leave completed checkboxes open. When a round finishes, mark every completed
+  item `[x]`, then append the dated review. Otherwise the durable log presents finished work as
+  an active backlog and makes the live tail ambiguous.
