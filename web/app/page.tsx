@@ -4,7 +4,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
 import { pct, surfaceColor, heat, eloKey, blendedElo, tournamentTier, drawCaveat, byTournamentPriority, tournamentView, tournamentDrawLabel, emptyProjectionNote } from "@/lib/ui";
-import { PageHead, Loading, Reveal, CallCard } from "@/components/bits";
+import { PageHead, Loading, Reveal, CallCard, PlayerProfileLink } from "@/components/bits";
 import { SPRING_SOFT } from "@/lib/motion";
 import { nameKey, type PlayerRow } from "@/lib/live";
 import LiveTicker from "@/components/LiveTicker";
@@ -147,6 +147,8 @@ function DrawCaveat({ t, compact = false }: { t: Tournament; compact?: boolean }
 export default function Tournaments() {
   const { tour } = useTour();
   const { data, loading } = useData<Tournament[]>("tournaments.json");
+  const { data: players } = useData<PlayerRow[]>("players.json");
+  const profileRoster = useMemo(() => new Set((players ?? []).map((player) => player.name)), [players]);
 
   // Focused weeks (Grand Slam / Finals / 1000 / Olympics) get one round-by-round hero, then
   // compact cards for every concurrent event. A 500-and-below week stays a complete,
@@ -167,9 +169,9 @@ export default function Tournaments() {
         />
         <LiveTicker />
         <Reveal>
-          <SlamHero t={hero} />
+          <SlamHero t={hero} players={players} profileRoster={profileRoster} />
         </Reveal>
-        {other.length > 0 && <ConcurrentEvents events={other} />}
+        {other.length > 0 && <ConcurrentEvents events={other} profileRoster={profileRoster} />}
         <UpNext />
       </div>
     );
@@ -193,7 +195,7 @@ export default function Tournaments() {
       <div className="mt-8 grid gap-4 lg:grid-cols-2">
         {grid.map((t, i) => (
           <Reveal key={t.name + t.start} delay={Math.min(i * 0.04, 0.3)}>
-            <Card t={t} />
+            <Card t={t} profileRoster={profileRoster} />
           </Reveal>
         ))}
       </div>
@@ -203,7 +205,15 @@ export default function Tournaments() {
 
 /** Prominent forecast hero for the focused Slam: top players × per-round reach odds.
     Columns are sortable — tap a round to rank the field by its chance of getting there. */
-function SlamHero({ t }: { t: Tournament }) {
+function SlamHero({
+  t,
+  players,
+  profileRoster,
+}: {
+  t: Tournament;
+  players: PlayerRow[] | null;
+  profileRoster: ReadonlySet<string>;
+}) {
   const [open, setOpen] = useState(false);
   const { tour } = useTour();
   const sc = surfaceColor(t.surface);
@@ -213,7 +223,6 @@ function SlamHero({ t }: { t: Tournament }) {
   // Per contender: overall Elo + rank, and the surface-BLENDED rating + rank (the number the model
   // actually predicts with — raw surface Elo is heavily shrunk and misleads). Joined from players.json
   // by canonical name; ranks are within the top-200 board, the same population /rankings shows.
-  const { data: players } = useData<PlayerRow[]>("players.json");
   const eloInfo = useMemo(() => {
     const m = new Map<string, { overall: number; overallRank: number; blended: number; blendedRank: number }>();
     if (!players) return m;
@@ -283,12 +292,22 @@ function SlamHero({ t }: { t: Tournament }) {
         <div className="mt-4 flex items-center justify-between rounded-lg border border-[var(--color-line)] bg-[var(--color-panel2)]/40 px-3 py-2">
           <div>
             <div className="text-[10px] uppercase tracking-wider text-[var(--color-faint)]">Champion</div>
-            <div className="text-[15px] font-medium text-[var(--color-champ)]">{t.champion}</div>
+            <PlayerProfileLink
+              name={t.champion}
+              profileRoster={profileRoster}
+              className="text-[15px] font-medium text-[var(--color-champ)]"
+              linkClassName="transition-colors hover:underline"
+            />
           </div>
           <div className="text-right">
             <div className="text-[10px] uppercase tracking-wider text-[var(--color-faint)]">{t.modelFavorite ? "Model favoured" : "Projection"}</div>
             <div className="mono text-[13px]" style={{ color: t.favoritePicked ? "var(--color-win)" : "var(--color-muted)" }}>
-              {t.modelFavorite ? <>{t.modelFavorite} {t.favoritePicked ? "✓" : "✗"}</> : "Unavailable"}
+              {t.modelFavorite ? (
+                <>
+                  <PlayerProfileLink name={t.modelFavorite} profileRoster={profileRoster} linkClassName="hover:underline" />{" "}
+                  {t.favoritePicked ? "✓" : "✗"}
+                </>
+              ) : "Unavailable"}
             </div>
           </div>
         </div>
@@ -324,7 +343,9 @@ function SlamHero({ t }: { t: Tournament }) {
           return (
             <>
               <td className="mono px-1 py-1.5 text-right text-[11px] text-[var(--color-faint)]">{i + 1}</td>
-              <td className="px-1 py-1.5 text-[13px] whitespace-nowrap" style={p.name === t.champion ? { color: "var(--color-champ)" } : undefined}>{p.name}</td>
+              <td className="px-1 py-1.5 text-[13px] whitespace-nowrap" style={p.name === t.champion ? { color: "var(--color-champ)" } : undefined}>
+                <PlayerProfileLink name={p.name} profileRoster={profileRoster} linkClassName="transition-colors hover:text-[var(--color-accent)] hover:underline" />
+              </td>
               <td className="mono px-1 py-1.5 text-center text-[11px] whitespace-nowrap">
                 {e ? (
                   <>
@@ -375,7 +396,13 @@ function SlamHero({ t }: { t: Tournament }) {
 
 /** During a focused hero week, keep every concurrent event visible immediately after the hero
     while using compact title-odds cards so the supporting events do not compete for emphasis. */
-function ConcurrentEvents({ events }: { events: Tournament[] }) {
+function ConcurrentEvents({
+  events,
+  profileRoster,
+}: {
+  events: Tournament[];
+  profileRoster: ReadonlySet<string>;
+}) {
   const ordered = byTournamentPriority(events);
   return (
     <section aria-label="Other tournaments" className="mt-10">
@@ -386,7 +413,7 @@ function ConcurrentEvents({ events }: { events: Tournament[] }) {
       <div className="grid gap-4 lg:grid-cols-2">
         {ordered.map((t, i) => (
           <Reveal key={t.name + t.start} delay={Math.min(i * 0.04, 0.3)}>
-            <Card t={t} compact />
+            <Card t={t} compact profileRoster={profileRoster} />
           </Reveal>
         ))}
       </div>
@@ -440,7 +467,17 @@ function UpNext() {
   );
 }
 
-export function Card({ t, compact = false }: { t: Tournament; compact?: boolean }) {
+const EMPTY_PROFILE_ROSTER: ReadonlySet<string> = new Set();
+
+export function Card({
+  t,
+  compact = false,
+  profileRoster = EMPTY_PROFILE_ROSTER,
+}: {
+  t: Tournament;
+  compact?: boolean;
+  profileRoster?: ReadonlySet<string>;
+}) {
   const [open, setOpen] = useState(false);
   const sc = surfaceColor(t.surface);
   const shown = open ? t.projection : t.projection.slice(0, DEFAULT_VISIBLE_PLAYERS);
@@ -482,12 +519,22 @@ export function Card({ t, compact = false }: { t: Tournament; compact?: boolean 
         <div className="mt-4 flex items-center justify-between rounded-lg border border-[var(--color-line)] bg-[var(--color-panel2)]/40 px-3 py-2">
           <div>
             <div className="text-[10px] uppercase tracking-wider text-[var(--color-faint)]">Champion</div>
-            <div className="text-[15px] font-medium text-[var(--color-champ)]">{t.champion}</div>
+            <PlayerProfileLink
+              name={t.champion}
+              profileRoster={profileRoster}
+              className="text-[15px] font-medium text-[var(--color-champ)]"
+              linkClassName="transition-colors hover:underline"
+            />
           </div>
           <div className="text-right">
             <div className="text-[10px] uppercase tracking-wider text-[var(--color-faint)]">{t.modelFavorite ? "Model favoured" : "Projection"}</div>
             <div className="mono text-[13px]" style={{ color: t.favoritePicked ? "var(--color-win)" : "var(--color-muted)" }}>
-              {t.modelFavorite ? <>{t.modelFavorite} {t.favoritePicked ? "✓" : "✗"}</> : "Unavailable"}
+              {t.modelFavorite ? (
+                <>
+                  <PlayerProfileLink name={t.modelFavorite} profileRoster={profileRoster} linkClassName="hover:underline" />{" "}
+                  {t.favoritePicked ? "✓" : "✗"}
+                </>
+              ) : "Unavailable"}
             </div>
           </div>
         </div>
@@ -519,7 +566,9 @@ export function Card({ t, compact = false }: { t: Tournament; compact?: boolean 
               rowPrefix={(p, i) => (
                 <>
                   <td className="mono px-1 py-1.5 text-right text-[11px] text-[var(--color-faint)]">{i + 1}</td>
-                  <td className="max-w-36 truncate px-1 py-1.5 text-[13px] whitespace-nowrap" style={p.name === t.champion ? { color: "var(--color-champ)" } : undefined}>{p.name}</td>
+                  <td className="max-w-36 truncate px-1 py-1.5 text-[13px] whitespace-nowrap" style={p.name === t.champion ? { color: "var(--color-champ)" } : undefined}>
+                    <PlayerProfileLink name={p.name} profileRoster={profileRoster} linkClassName="transition-colors hover:text-[var(--color-accent)] hover:underline" />
+                  </td>
                 </>
               )}
             />
@@ -535,9 +584,13 @@ export function Card({ t, compact = false }: { t: Tournament; compact?: boolean 
                 return (
                   <div key={p.name} className="flex items-center gap-2.5">
                     <span className="mono w-4 text-right text-[11px] text-[var(--color-faint)]">{i + 1}</span>
-                    <span className="w-40 truncate text-[13px]" style={{ color: isChamp ? "var(--color-champ)" : "var(--color-text)" }}>
-                      {p.name}
-                    </span>
+                    <PlayerProfileLink
+                      name={p.name}
+                      profileRoster={profileRoster}
+                      className="w-40 truncate text-[13px]"
+                      linkClassName="transition-colors hover:text-[var(--color-accent)] hover:underline"
+                      style={{ color: isChamp ? "var(--color-champ)" : "var(--color-text)" }}
+                    />
                     <div className="bartrack h-1.5 flex-1">
                       <motion.div
                         className="h-full w-full"

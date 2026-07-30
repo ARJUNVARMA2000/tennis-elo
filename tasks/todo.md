@@ -2963,3 +2963,26 @@ overlap plus shared real players, never by name similarity.
 - Commits `b8af8bb` and `9668920` were pushed to `master`. Production run `30514234317` passed the
   web-only deploy path, both integrity/data-health gates, Firebase deployment, and all 9 live
   serving checks, including the new `fail-closed-links+single-radar-v1` profile contract.
+
+## Round O — profile links in tournament cards
+
+- [x] Add fail-first renderer coverage proving detailed reach tables and compact title-odds cards
+  link players in the exported profile roster while leaving unavailable names as plain text.
+- [x] Pass the profile roster through the tournament hero, grid, and concurrent-event renderers,
+  and reuse one fail-closed player-name primitive without changing card sorting or expansion.
+- [x] Run focused and full web verification plus rendered checks of the WTA DC Open and Memphis
+  cards; append a review. Do not push or deploy without separate explicit instruction.
+
+### Review
+
+- Added one shared `PlayerProfileLink` primitive and used it for tournament champions, model
+  favourites, focused-event projections, detailed tournament tables, compact title-odds cards,
+  and existing matchup cards. Names outside `players.json` remain plain text.
+- Added a fail-first server-renderer regression covering both detailed and compact cards. Focused
+  tests passed (32), followed by all 194 web tests, TypeScript, production build, and lint with
+  zero errors (13 pre-existing warnings).
+- Rendered WTA verification found profile links for all 12 Washington DC rows and the six Memphis
+  players with dossiers. The six Memphis players without dossiers (including Ma YeXin and Kristina
+  Liutova) remained plain text; there were no console errors or horizontal overflow.
+- Reconciled against `git log -5`: the prior profile-link and radar repair was the latest shipped
+  work before this round. Publication was explicitly approved after implementation verification.

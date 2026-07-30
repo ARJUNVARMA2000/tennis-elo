@@ -94,6 +94,31 @@ export function ProbBar({ p, w = 120 }: { p: number; w?: number }) {
   );
 }
 
+/** A player name that fails closed when no exported dossier exists. Shared by match
+    cards and tournament projections so qualifiers never lead to a fallback profile. */
+export function PlayerProfileLink({
+  name,
+  profileRoster,
+  className = "",
+  linkClassName = "",
+  style,
+}: {
+  name: string;
+  profileRoster: ReadonlySet<string>;
+  className?: string;
+  linkClassName?: string;
+  style?: React.CSSProperties;
+}) {
+  const { tour } = useTour();
+  return profileRoster.has(name) ? (
+    <Link href={playerHref(name, tour)} className={`${className} ${linkClassName}`.trim()} style={style}>
+      {name}
+    </Link>
+  ) : (
+    <span className={className} style={style}>{name}</span>
+  );
+}
+
 /** Two players, each with their model win probability as a bar (they sum to 100%).
     tone="result" (default) marks the actual winner in green with a verdict — the Track
     "recent calls" grid and the Feed; tone="projection" marks the model's favourite in
@@ -150,13 +175,12 @@ export function CallCard({
                 <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: r.won ? hi : "transparent" }} />
                 {/* relative z-10 keeps the profile links clickable above the card's
                     stretched matchup link (a plain wrapper would nest anchors) */}
-                {profileRoster.has(r.name) ? (
-                  <Link href={playerHref(r.name, tour)} className="relative z-10 transition-colors hover:text-[var(--color-accent)] hover:underline">
-                    {r.name}
-                  </Link>
-                ) : (
-                  <span className="relative z-10">{r.name}</span>
-                )}
+                <PlayerProfileLink
+                  name={r.name}
+                  profileRoster={profileRoster}
+                  className="relative z-10"
+                  linkClassName="transition-colors hover:text-[var(--color-accent)] hover:underline"
+                />
               </span>
               <span className="mono text-sm" style={{ color: r.won ? "var(--color-text)" : "var(--color-muted)" }}>{pcts[i]}%</span>
             </div>

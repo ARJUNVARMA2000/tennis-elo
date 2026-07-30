@@ -195,6 +195,18 @@ describe("tournament grid card", () => {
     expect(html).not.toContain("show all projected");
   });
 
+  it("links profile-backed names and leaves unavailable names plain in detailed and compact cards", () => {
+    const profileRoster = new Set(["Seed 01"]);
+    for (const compact of [false, true]) {
+      const html = renderToStaticMarkup(createElement(Card, {
+        t: cardTournament(2), compact, profileRoster,
+      }));
+      expect(html).toMatch(/href="[^"]*p=Seed\+01/);
+      expect(html).not.toMatch(/href="[^"]*p=Seed\+02/);
+      expect(html).toContain("Seed 02");
+    }
+  });
+
   it("renders round-by-round reach columns for every active card, regardless of tier", () => {
     const tournament = {
       name: "Mubadala DC Open", surface: "Hard", level: "ATP 500", bestOf: 3,
