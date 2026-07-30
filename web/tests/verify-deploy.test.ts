@@ -8,6 +8,7 @@ import {
   freshnessOk,
   extractOgImage,
   coverageProblems,
+  hasProfileContract,
 } from "@/scripts/verify-deploy-lib.mjs";
 
 describe("parseCacheControl", () => {
@@ -137,5 +138,17 @@ describe("coverageProblems", () => {
     expect(problems).toContain("missing expected espn:2-2026");
     expect(problems).toContain("duplicate espn:1-2026");
     expect(problems).toContain("membership differs");
+  });
+});
+
+describe("hasProfileContract", () => {
+  it("requires the deployed player page to advertise fail-closed links and the dossier radar", () => {
+    expect(hasProfileContract(
+      `<main><div data-profile-contract="fail-closed-links+single-radar-v1"></div></main>`,
+    )).toBe(true);
+    expect(hasProfileContract(`<main><div class="profiles"></div></main>`)).toBe(false);
+    expect(hasProfileContract(
+      `<div data-profile-contract="fail-open-links+single-radar-v1"></div>`,
+    )).toBe(false);
   });
 });

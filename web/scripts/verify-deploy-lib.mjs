@@ -117,6 +117,18 @@ export function coverageProblems(health, tour, tournaments) {
 }
 
 /**
+ * The player route emits this marker only when its UI contract includes both parts of the
+ * user-facing repair: unavailable profile names fail closed, and dossiers contain the shared
+ * single-player radar. The live gate catches a stale/partial deploy serving the old route.
+ * @param {string} html
+ */
+export function hasProfileContract(html) {
+  return String(html || "").includes(
+    'data-profile-contract="fail-closed-links+single-radar-v1"',
+  );
+}
+
+/**
  * Pull the og:image content value out of a page's HTML (order-insensitive on attributes).
  * @param {string} html
  * @returns {string|null}

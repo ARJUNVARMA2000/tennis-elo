@@ -19,6 +19,7 @@ import {
   freshnessOk,
   coverageProblems,
   extractOgImage,
+  hasProfileContract,
 } from "./verify-deploy-lib.mjs";
 
 // ---- config -----------------------------------------------------------------
@@ -167,6 +168,14 @@ await check("coverage: every begun event is on the live site exactly once", asyn
     if (i < FRESH_TRIES - 1) await sleep(FRESH_DELAY_MS);
   }
   throw new Error(last.join("; "));
+});
+
+await check("player profiles: fail-closed links + dossier radar contract", async () => {
+  const res = await fetchT(BASE + "/player/", { cache: "no-store" });
+  must(res.status === 200, `/player/ -> ${res.status}`);
+  const html = await res.text();
+  must(hasProfileContract(html), "player profile contract marker missing (stale or partial deploy)");
+  return "fail-closed-links+single-radar-v1";
 });
 
 await check("meta: og:image absolute + on origin", async () => {

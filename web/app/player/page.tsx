@@ -28,7 +28,7 @@ type Profile = RadarProfile & {
 export default function Players() {
   const { tour } = useTour();
   return (
-    <div className="pb-16">
+    <div className="pb-16" data-profile-contract="fail-closed-links+single-radar-v1">
       <PageHead eyebrow={`${tour.toUpperCase()} · player dossier`} title="Profiles" />
       {/* useSearchParams (deep links) requires its own Suspense boundary under static export */}
       <Suspense fallback={<Loading />}>
