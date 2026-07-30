@@ -2936,13 +2936,30 @@ overlap plus shared real players, never by name similarity.
 
 ## Round N — honest player links and profile style radar
 
-- [ ] Add fail-first regressions proving a player name without a `profiles.json` entry renders as
+- [x] Add fail-first regressions proving a player name without a `profiles.json` entry renders as
   plain text, an invalid `?p=` profile URL never substitutes the tour's top player, and a valid
   profile produces a one-player 13-axis percentile radar.
-- [ ] Gate player and matchup links on the actual profile roster across shared match cards and
+- [x] Gate player and matchup links on the actual profile roster across shared match cards and
   every other player-name link surface; keep unavailable names visible but non-interactive.
-- [ ] Reuse the comparison page's radar axes, percentile scaling, labels, and chart component in
+- [x] Reuse the comparison page's radar axes, percentile scaling, labels, and chart component in
   the player dossier, with a clear single-player legend and graceful handling of missing metrics.
-- [ ] Run focused and full web tests, TypeScript, ESLint, production build, and rendered browser
+- [x] Run focused and full web tests, TypeScript, ESLint, production build, and rendered browser
   checks for Cruz Hewitt plus Jessica Pegula; append a review. Do not push or deploy without
   separate explicit instruction.
+
+## Round N review — honest player links and profile style radar (2026-07-30)
+
+- Match cards now receive the exported profile roster and fail closed per name: unavailable
+  qualifiers remain visible as plain text, while valid dossiers and two-player style matchups
+  remain linked. Player-page opponents use the same rule, and an invalid explicit `?p=` now shows
+  an honest not-found panel instead of silently substituting the tour's top profile.
+- Individual dossiers reuse the comparison surface's 13 axes, tour-wide percentile scalers, and
+  animated radar component. Production inspection confirmed Jessica Pegula's labeled 460px radar
+  without horizontal overflow; Cruz Hewitt remained visible on the ATP schedule with zero profile
+  or matchup links, and his direct profile URL contained neither Sinner nor a radar.
+- Fail-first coverage now pins selection, link, radar, and live-contract behavior. Final local
+  verification passed 193 web tests, TypeScript, the 21-page production build, `git diff --check`,
+  and ESLint with 0 errors / 13 existing warnings.
+- Commits `b8af8bb` and `9668920` were pushed to `master`. Production run `30514234317` passed the
+  web-only deploy path, both integrity/data-health gates, Firebase deployment, and all 9 live
+  serving checks, including the new `fail-closed-links+single-radar-v1` profile contract.
