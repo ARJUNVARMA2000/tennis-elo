@@ -5,16 +5,21 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
-import { pct, surfaceColor, SURFACES, STYLE_LABEL } from "@/lib/ui";
+import { pct, RADAR_AXES, surfaceColor, SURFACES, STYLE_LABEL } from "@/lib/ui";
+import {
+  buildRadarScalers,
+  profileRadarSeries,
+  resolveProfileSelection,
+  type RadarProfile,
+} from "@/lib/profile";
 import { playerHref, setSearchParam } from "@/lib/url";
-import { PageHead, Loading, Reveal, Spark, AnimatedNumber } from "@/components/bits";
+import { PageHead, Loading, Reveal, Spark, AnimatedNumber, Radar } from "@/components/bits";
 import Dropdown, { type DropdownOption } from "@/components/Dropdown";
 import { stagger, fadeUp } from "@/lib/motion";
 
-type Profile = {
+type Profile = RadarProfile & {
   name: string; elo: number; eloHard: number; eloClay: number; eloGrass: number; eloRank?: number;
   servePct: number; returnPct: number; rankPoints: number | null; matches: number; hand: string | null;
-  style: Record<string, number | null>;
   history: [string, number][];
   recent: { date: string; opp: string; surface: string; won: boolean; score: string; event: string }[];
   h2h: { opp: string; w: number; l: number }[];
@@ -51,28 +56,33 @@ function PlayersInner() {
   );
   const [sel, setSel] = useState("");
 
-  // URL is the source of truth for the selection: ?p= wins when it names a known
-  // player (cross-links, back/forward); otherwise fall back to the top player.
+  // URL is the source of truth for the selection. An explicit unknown ?p= is an
+  // honest not-found state; only the bare /player page defaults to the top player.
   useEffect(() => {
     if (!names.length) return;
-    if (urlName && names.includes(urlName)) {
-      if (urlName !== sel) setSel(urlName);
-    } else if (!names.includes(sel)) {
-      setSel(names[0]);
-    }
+    const next = resolveProfileSelection(names, urlName, sel);
+    if (next !== sel) setSel(next);
   }, [names, urlName, sel]);
   const notFound = !!urlName && names.length > 0 && !names.includes(urlName);
   const p = data?.[sel];
+  const profileRoster = useMemo(() => new Set(names), [names]);
+  const radarScalers = useMemo(
+    () => buildRadarScalers(data ? Object.values(data) : []),
+    [data],
+  );
+  const radarSeries = useMemo(
+    () => p ? profileRadarSeries(p, radarScalers, "var(--color-accent)") : [],
+    [p, radarScalers],
+  );
 
   const pick = (n: string) => {
-    setSel(n);
     router.replace(`${pathname}${setSearchParam(window.location.search, "p", n)}`, { scroll: false });
   };
-  const opp = (name: string) => (
+  const opp = (name: string) => profileRoster.has(name) ? (
     <Link href={playerHref(name, tour)} className="transition-colors hover:text-[var(--color-accent)] hover:underline">
       {name}
     </Link>
-  );
+  ) : <span>{name}</span>;
 
   return (
     <>
@@ -99,8 +109,8 @@ function PlayersInner() {
           </Reveal>
 
           {notFound && (
-            <div className="mono mt-3 text-xs text-[var(--color-faint)]">
-              No {tour.toUpperCase()} profile for “{urlName}” — showing {sel || "the top player"} instead.
+            <div className="panel mt-6 border-[var(--color-line)] p-5 text-sm text-[var(--color-muted)]">
+              No {tour.toUpperCase()} player profile is available for “{urlName}”. Search above to choose a player with a complete dossier.
             </div>
           )}
 
@@ -149,6 +159,27 @@ function PlayersInner() {
                   );
                 })}
                 <div className="mono mt-2 text-[10px] text-[var(--color-faint)]">from Match Charting Project</div>
+              </motion.div>
+
+              {/* same tour-relative spider chart used by the two-player comparison */}
+              <motion.div variants={fadeUp} className="panel p-4 sm:p-6 lg:col-span-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <div className="eyebrow">Style profile</div>
+                    <div className="mt-1 text-xs text-[var(--color-faint)]">
+                      Percentile versus the {tour.toUpperCase()} profile field · further out means higher
+                    </div>
+                  </div>
+                  <span className="flex items-center gap-2 text-sm">
+                    <span className="inline-block h-2.5 w-2.5 rounded-sm bg-[var(--color-accent)]" />
+                    <span className="mono text-[var(--color-accent)]">{p.name}</span>
+                  </span>
+                </div>
+                <Radar
+                  axes={RADAR_AXES}
+                  series={radarSeries}
+                  ariaLabel={`${p.name} style profile percentile radar`}
+                />
               </motion.div>
 
               {/* recent form */}

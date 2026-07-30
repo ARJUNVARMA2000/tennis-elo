@@ -4,18 +4,20 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
-import { RADAR_AXES, percentileScaler } from "@/lib/ui";
+import { RADAR_AXES } from "@/lib/ui";
+import {
+  buildRadarScalers,
+  profileRadarSeries,
+  readRadarValue,
+  type RadarProfile,
+} from "@/lib/profile";
 import { setSearchParam } from "@/lib/url";
 import { PageHead, Loading, Reveal, Radar } from "@/components/bits";
 import Dropdown, { type DropdownOption } from "@/components/Dropdown";
 import { stagger, fadeUp } from "@/lib/motion";
 
-type Profile = {
-  name: string;
+type Profile = RadarProfile & {
   eloRank?: number;
-  servePct: number; returnPct: number;
-  eloHard: number; eloClay: number; eloGrass: number;
-  style: Record<string, number | null>;
 };
 
 const A_COLOR = "var(--color-accent)";
@@ -23,11 +25,6 @@ const B_COLOR = "var(--color-cmp)";
 const DEFAULTS = ["Jannik Sinner", "Novak Djokovic"];
 
 const lastName = (n: string) => n.split(" ").slice(-1)[0];
-
-function readAxis(p: Profile, key: string, source: "style" | "top"): number | null {
-  const v = source === "style" ? p.style?.[key] : (p as unknown as Record<string, number | null>)[key];
-  return v == null || isNaN(v) ? null : v;
-}
 
 export default function Style() {
   const { tour } = useTour();
@@ -99,14 +96,7 @@ function StyleInner() {
 
   // One percentile scaler per axis, built from the whole field for the active tour.
   const scalers = useMemo(() => {
-    if (!data) return [];
-    const players = Object.values(data);
-    return RADAR_AXES.map((ax) => {
-      const vals = players
-        .map((p) => readAxis(p, ax.key, ax.source))
-        .filter((v): v is number => v != null);
-      return percentileScaler(vals);
-    });
+    return buildRadarScalers(data ? Object.values(data) : []);
   }, [data]);
 
   const pa = data?.[a];
@@ -114,15 +104,11 @@ function StyleInner() {
 
   const series = useMemo(() => {
     if (!pa || !pb || !scalers.length) return [];
-    const toSeries = (p: Profile, name: string, color: string) => ({
-      name, color,
-      values: RADAR_AXES.map((ax, i) => {
-        const raw = readAxis(p, ax.key, ax.source);
-        return raw == null ? 0 : scalers[i](raw);
-      }),
-    });
-    return [toSeries(pa, a, A_COLOR), toSeries(pb, b, B_COLOR)];
-  }, [pa, pb, a, b, scalers]);
+    return [
+      ...profileRadarSeries(pa, scalers, A_COLOR),
+      ...profileRadarSeries(pb, scalers, B_COLOR),
+    ];
+  }, [pa, pb, scalers]);
 
   return (
     <>
@@ -152,7 +138,7 @@ function StyleInner() {
                     <Legend name={a} color={A_COLOR} />
                     <Legend name={b} color={B_COLOR} />
                   </div>
-                  <Radar axes={RADAR_AXES} series={series} />
+                  <Radar axes={RADAR_AXES} series={series} ariaLabel={`${a} and ${b} style profile comparison`} />
                 </div>
 
                 {/* readout table */}
@@ -168,8 +154,8 @@ function StyleInner() {
                     <span className="mono justify-self-end text-xs" style={{ color: A_COLOR }}>{lastName(a)}</span>
                     <span className="mono justify-self-end text-xs" style={{ color: B_COLOR }}>{lastName(b)}</span>
                     {RADAR_AXES.map((ax) => {
-                      const ra = readAxis(pa, ax.key, ax.source);
-                      const rb = readAxis(pb, ax.key, ax.source);
+                      const ra = readRadarValue(pa, ax);
+                      const rb = readRadarValue(pb, ax);
                       return (
                         <Row
                           key={ax.key}

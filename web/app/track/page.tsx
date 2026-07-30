@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useMemo } from "react";
 import { useData, useTour } from "@/lib/tour";
 import { pct, surfaceColor } from "@/lib/ui";
 import { PageHead, Loading, Reveal, StatCard, CallCard } from "@/components/bits";
@@ -39,6 +40,8 @@ const statVal = (x: number | null | undefined): number | string =>
 export default function TrackPage() {
   const { tour } = useTour();
   const { data, loading } = useData<Track>("track.json");
+  const { data: players } = useData<{ name: string }[]>("players.json");
+  const profileRoster = useMemo(() => new Set((players ?? []).map((player) => player.name)), [players]);
 
   const mf = data?.matchForecasts;
   const to = data?.tournamentOdds;
@@ -212,6 +215,7 @@ export default function TrackPage() {
                           bottom={{ name: r.playerB, prob: 1 - r.p, won: !aWon }}
                           note={`model favoured ${r.p >= 0.5 ? r.playerA : r.playerB}`}
                           verdict={{ label: r.hit ? "called it ✓" : "missed ✗", good: r.hit }}
+                          profileRoster={profileRoster}
                         />
                       </Reveal>
                     );

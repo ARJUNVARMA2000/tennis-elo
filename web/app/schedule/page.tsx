@@ -63,7 +63,12 @@ export default function Schedule() {
               <div className="grid gap-2.5 sm:grid-cols-2">
                 {g.matches.map((m, i) => (
                   <Reveal key={`${m.playerA}-${m.playerB}-${i}`} delay={Math.min(gi * 0.02 + i * 0.01, 0.2)}>
-                    <CallCard tone="projection" {...upcomingCard(m)} matchup={hasMatchupProfiles(m, rated)} />
+                    <CallCard
+                      tone="projection"
+                      {...upcomingCard(m)}
+                      matchup={hasMatchupProfiles(m, rated)}
+                      profileRoster={rated}
+                    />
                   </Reveal>
                 ))}
               </div>

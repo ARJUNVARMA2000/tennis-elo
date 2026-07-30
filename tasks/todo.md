@@ -2933,3 +2933,16 @@ overlap plus shared real players, never by name similarity.
   Mifel players, while a larger Wimbledon card showed 16 players plus its expansion control.
 - Publication was performed only after separate explicit authorization: commit to `master`, push,
   and production deployment through the guarded refresh workflow.
+
+## Round N — honest player links and profile style radar
+
+- [ ] Add fail-first regressions proving a player name without a `profiles.json` entry renders as
+  plain text, an invalid `?p=` profile URL never substitutes the tour's top player, and a valid
+  profile produces a one-player 13-axis percentile radar.
+- [ ] Gate player and matchup links on the actual profile roster across shared match cards and
+  every other player-name link surface; keep unavailable names visible but non-interactive.
+- [ ] Reuse the comparison page's radar axes, percentile scaling, labels, and chart component in
+  the player dossier, with a clear single-player legend and graceful handling of missing metrics.
+- [ ] Run focused and full web tests, TypeScript, ESLint, production build, and rendered browser
+  checks for Cruz Hewitt plus Jessica Pegula; append a review. Do not push or deploy without
+  separate explicit instruction.

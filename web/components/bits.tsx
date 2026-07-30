@@ -110,6 +110,7 @@ export function CallCard({
   glow = false,
   tone = "result",
   matchup = false,
+  profileRoster,
 }: {
   surface: string;
   meta: string;
@@ -119,12 +120,14 @@ export function CallCard({
   verdict?: { label: string; good: boolean };
   glow?: boolean;
   tone?: "result" | "projection";
-  /** Make the whole card a drill-in to the two players' /style matchup. Callers gate
-      this on both names being in the rated roster (lib/upcoming hasMatchupProfiles) —
-      /style silently falls back to its default pair for names it can't resolve. */
+  /** Request a whole-card drill-in to the two players' /style matchup. The component
+      still verifies both names against profileRoster before emitting the link. */
   matchup?: boolean;
+  /** Exact names that have exported dossiers. Forecasts can include qualifiers outside
+      this roster; those names remain visible but must not become dead profile links. */
+  profileRoster: ReadonlySet<string>;
 }) {
-  // The tour makes every player name a working profile link with zero call-site changes.
+  // The tour keeps valid profile links shareable across ATP/WTA.
   const { tour } = useTour();
   // Show complementary integers so the two labels always sum to 100 (bar widths still
   // use the true probabilities). Round the top/authoritative side; complement the other.
@@ -132,8 +135,9 @@ export function CallCard({
   const pcts = [topPct, 100 - topPct];
   // green = the side that actually won; accent = the side we favour in an unplayed match.
   const hi = tone === "projection" ? "var(--color-accent)" : "var(--color-win)";
+  const matchupAvailable = matchup && profileRoster.has(top.name) && profileRoster.has(bottom.name);
   return (
-    <div className={`panel relative h-full p-4 ${glow ? "row-glow" : ""} ${matchup ? "group panel-link" : ""}`}>
+    <div className={`panel relative h-full p-4 ${glow ? "row-glow" : ""} ${matchupAvailable ? "group panel-link" : ""}`}>
       <div className="flex items-center justify-between gap-2">
         <span className="chip" style={{ color: surfaceColor(surface), borderColor: surfaceColor(surface) }}>{surface}</span>
         <span className="mono text-[11px] text-[var(--color-faint)]">{meta}</span>
@@ -146,9 +150,13 @@ export function CallCard({
                 <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: r.won ? hi : "transparent" }} />
                 {/* relative z-10 keeps the profile links clickable above the card's
                     stretched matchup link (a plain wrapper would nest anchors) */}
-                <Link href={playerHref(r.name, tour)} className="relative z-10 transition-colors hover:text-[var(--color-accent)] hover:underline">
-                  {r.name}
-                </Link>
+                {profileRoster.has(r.name) ? (
+                  <Link href={playerHref(r.name, tour)} className="relative z-10 transition-colors hover:text-[var(--color-accent)] hover:underline">
+                    {r.name}
+                  </Link>
+                ) : (
+                  <span className="relative z-10">{r.name}</span>
+                )}
               </span>
               <span className="mono text-sm" style={{ color: r.won ? "var(--color-text)" : "var(--color-muted)" }}>{pcts[i]}%</span>
             </div>
@@ -171,7 +179,7 @@ export function CallCard({
           {verdict && <span style={{ color: verdict.good ? "var(--color-win)" : "var(--color-loss)" }}>{verdict.label}</span>}
         </div>
       )}
-      {matchup && (
+      {matchupAvailable && (
         <Link
           href={pairHref("/style/", top.name, bottom.name, tour)}
           aria-label={`Style matchup: ${top.name} vs ${bottom.name}`}
@@ -268,10 +276,12 @@ export function Radar({
   axes,
   series,
   maxW = 460,
+  ariaLabel,
 }: {
   axes: { label: string }[];
   series: { name: string; color: string; values: number[] }[];
   maxW?: number;
+  ariaLabel?: string;
 }) {
   const N = axes.length;
   if (!N) return null;
@@ -284,7 +294,14 @@ export function Radar({
   const center = axes.map((_, i) => pt(i, 0.02).join(",")).join(" ");
 
   return (
-    <svg viewBox="0 0 440 380" width="100%" style={{ maxWidth: maxW }} className="mx-auto block overflow-visible">
+    <svg
+      viewBox="0 0 440 380"
+      width="100%"
+      style={{ maxWidth: maxW }}
+      className="mx-auto block overflow-visible"
+      role={ariaLabel ? "img" : undefined}
+      aria-label={ariaLabel}
+    >
       {/* grid rings */}
       {[0.25, 0.5, 0.75, 1].map((r) => (
         <polygon key={r} points={ring(r)} fill="none" stroke="var(--color-line)" strokeWidth={1} />

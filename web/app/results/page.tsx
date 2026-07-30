@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
 import { PageHead, Loading, Reveal, CallCard } from "@/components/bits";
@@ -13,6 +13,8 @@ type Fixture = {
 export default function Results() {
   const { tour } = useTour();
   const { data, loading } = useData<Fixture[]>("fixtures.json");
+  const { data: players } = useData<{ name: string }[]>("players.json");
+  const profileRoster = useMemo(() => new Set((players ?? []).map((player) => player.name)), [players]);
   const [onlyUpsets, setOnlyUpsets] = useState(false);
 
   const rows = (data || []).filter((f) => !onlyUpsets || f.upset);
@@ -52,6 +54,7 @@ export default function Results() {
                   bottom={{ name: f.loser, prob: 1 - f.modelProb, won: false }}
                   note={f.score}
                   verdict={{ label: f.upset ? "upset ✗" : "called it ✓", good: !f.upset }}
+                  profileRoster={profileRoster}
                 />
               </Reveal>
             ))}

@@ -427,7 +427,12 @@ function UpNext() {
           <Reveal key={`${m.playerA}-${m.playerB}-${i}`} delay={Math.min(i * 0.03, 0.2)}>
             {/* showEvent: this grid mixes tournaments, so each card names its event (the
                 /schedule board omits it — there the event is a section header). */}
-            <CallCard tone="projection" {...upcomingCard(m, { showEvent: true })} matchup={hasMatchupProfiles(m, rated)} />
+            <CallCard
+              tone="projection"
+              {...upcomingCard(m, { showEvent: true })}
+              matchup={hasMatchupProfiles(m, rated)}
+              profileRoster={rated}
+            />
           </Reveal>
         ))}
       </div>
