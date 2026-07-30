@@ -98,3 +98,8 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - A current board ranks lifecycle before prestige; tier is a tie-breaker, not a freshness
   signal. See [`lessons/web.md`](lessons/web.md).
+
+## Round I addition (2026-07-29)
+
+- Peer active events get equal detail; a marquee hero instead makes its visible supporting
+  events compact beneath it. See [`lessons/web.md`](lessons/web.md).

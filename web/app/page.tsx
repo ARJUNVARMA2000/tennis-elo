@@ -147,9 +147,9 @@ export default function Tournaments() {
   const { tour } = useTour();
   const { data, loading } = useData<Tournament[]>("tournaments.json");
 
-  // Focused weeks (Grand Slam / Finals / 1000 / Olympics) get one round-by-round hero plus an
-  // above-the-fold disclosure for every other event. A 500-and-below week stays a complete,
-  // prestige-ordered multi-event grid so a concurrent 250 never disappears behind the 500.
+  // Focused weeks (Grand Slam / Finals / 1000 / Olympics) get one round-by-round hero, then
+  // compact cards for every concurrent event. A 500-and-below week stays a complete,
+  // prestige-ordered multi-event grid with detailed reach odds for every active event.
   const { hero, grid, other } = tournamentView(data || []);
 
   if (hero) {
@@ -164,11 +164,11 @@ export default function Tournaments() {
             ? "How the model saw the title race before a ball was struck — the leading contenders' pre-tournament chances of reaching each round, now set against the player who actually lifted the trophy."
             : "The model's live title odds — the leading contenders' chances of reaching each round, from the favourites on down. Updated as the draw thins."}
         />
-        {other.length > 0 && <OtherEvents events={other} />}
         <LiveTicker />
         <Reveal>
           <SlamHero t={hero} />
         </Reveal>
+        {other.length > 0 && <ConcurrentEvents events={other} />}
         <UpNext />
       </div>
     );
@@ -372,24 +372,24 @@ function SlamHero({ t }: { t: Tournament }) {
   );
 }
 
-/** Every non-hero event remains discoverable directly beneath the page intro. Native details
-    keeps the focused week compact while making the event count and expansion control visible
-    before the long round-by-round table. */
-function OtherEvents({ events }: { events: Tournament[] }) {
+/** During a focused hero week, keep every concurrent event visible immediately after the hero
+    while using compact title-odds cards so the supporting events do not compete for emphasis. */
+function ConcurrentEvents({ events }: { events: Tournament[] }) {
   const ordered = byTournamentPriority(events);
   return (
-    <details className="mt-4 border-y border-[var(--color-line)] py-3">
-      <summary className="mono w-fit cursor-pointer text-[12px] text-[var(--color-accent)] hover:underline">
-        View other events ({events.length})
-      </summary>
-      <div className="mt-5 grid gap-4 lg:grid-cols-2">
+    <section aria-label="Other tournaments" className="mt-10">
+      <div className="mb-3 flex items-baseline gap-2">
+        <span className="eyebrow !text-[var(--color-text)]">Also on tour</span>
+        <span className="text-[11px] text-[var(--color-faint)]">{events.length} other {events.length === 1 ? "event" : "events"}</span>
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
         {ordered.map((t, i) => (
           <Reveal key={t.name + t.start} delay={Math.min(i * 0.04, 0.3)}>
-            <Card t={t} />
+            <Card t={t} compact />
           </Reveal>
         ))}
       </div>
-    </details>
+    </section>
   );
 }
 
@@ -434,14 +434,14 @@ function UpNext() {
   );
 }
 
-export function Card({ t }: { t: Tournament }) {
+export function Card({ t, compact = false }: { t: Tournament; compact?: boolean }) {
   const [open, setOpen] = useState(false);
   const sc = surfaceColor(t.surface);
   const shown = open ? t.projection : t.projection.slice(0, 5);
   const maxP = Math.max(0.01, ...t.projection.map((p) => p.champion));
-  const showReach = tournamentTier(t.level, t.name).rank <= 3;
   const present = new Set(t.projection.flatMap((p) => Object.keys(reachOf(p))));
   const reachCols = DEEP_ROUNDS.filter((round) => present.has(round));
+  const showReach = !compact && t.status !== "completed" && reachCols.length > 1;
 
   return (
     <div className="panel flex h-full flex-col p-5">

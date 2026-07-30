@@ -2855,3 +2855,28 @@ overlap plus shared real players, never by name similarity.
   health, build, Firebase deployment, live verification, both reporters, and cache persistence.
   Live browser inspection showed ATP beginning with DC Open and Mifel before Wimbledon, and
   WTA beginning with DC Open, Memphis, Axeria, and Odlum Brown VanOpen before Wimbledon.
+
+## Round I — show reach odds for every active tournament
+
+- Add a failing renderer regression proving a live ATP 250 with reach probabilities shows the
+  same round-by-round columns as a live ATP 500.
+- Replace the card's prestige cutoff with a lifecycle-and-data rule, while retaining compact
+  title-odds bars for completed cards and honest empty-projection handling.
+- Run the focused renderer regression and the full web test suite, then append a review with
+  the verification evidence.
+- Hero-week exception: keep the Grand Slam/1000 as the full-width hero, then render every
+  concurrent lower-tier event underneath in the compact title-odds card rather than hiding it
+  in an above-hero disclosure.
+
+## Round I review — active reach cards and hero-week support (2026-07-29)
+
+- `Card` now shows round-by-round reach columns for every live/upcoming event with meaningful
+  reach data, independent of tier. Completed events and explicitly compact cards retain the
+  title-odds bars, so a Grand Slam/1000 hero remains dominant while all concurrent events are
+  visible in an `Also on tour` grid immediately beneath it.
+- Fail-first proof: the live ATP 250 renderer still omitted `R16` before the change. The focused
+  suite now pins both a detailed active ATP 250 and the compact hero-week exception.
+- Verification passed 186 web tests, production build, and ESLint with 0 errors / 13 existing
+  warnings. Local browser inspection of real data confirmed equal 588px side-by-side DC Open
+  and Mifel cards, reach tables on both, Mifel's incomplete-draw warning intact, and no console
+  errors.

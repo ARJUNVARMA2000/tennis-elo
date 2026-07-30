@@ -98,3 +98,10 @@ Indexed in [`../lessons.md`](../lessons.md).
   group by lifecycle first (`live → upcoming → completed`), then rank by prestige, and preserve
   producer order for equal status/tier so recency remains stable. Pin the contract with one
   mixed-status regression; same-status tests alone cannot expose the stale-event promotion.
+
+- **Card detail follows lifecycle within a layout, while the hero controls supporting-event
+  density.** (2026-07-29, live Mifel had less information than live DC Open) If peer active
+  events share the grid, each gets the same available round-by-round reach data regardless of
+  tier. During a Grand Slam/1000 hero week, keep the marquee event full-width and render every
+  concurrent lower-tier event visibly after it as a compact title-odds card. Do not hide those
+  cards in a disclosure or let tier suppress useful data during an ordinary multi-event week.

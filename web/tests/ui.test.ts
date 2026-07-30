@@ -162,7 +162,7 @@ describe("heroEvent", () => {
 });
 
 describe("tournament grid card", () => {
-  it("renders round-by-round reach columns for a 500", () => {
+  it("renders round-by-round reach columns for every active card, regardless of tier", () => {
     const tournament = {
       name: "Mubadala DC Open", surface: "Hard", level: "ATP 500", bestOf: 3,
       start: "2026-07-25", end: "2026-08-02", status: "live" as const,
@@ -184,7 +184,24 @@ describe("tournament grid card", () => {
     const smallHtml = renderToStaticMarkup(createElement(Card, {
       t: { ...tournament, name: "Generali Open", level: "ATP 250" },
     }));
-    expect(smallHtml).not.toContain("R16");
+    expect(smallHtml).toContain("R16");
+    expect(smallHtml).toContain("QF");
+  });
+
+  it("keeps a concurrent lower-tier event compact beneath a hero", () => {
+    const tournament = {
+      name: "Generali Open", surface: "Clay", level: "ATP 250", bestOf: 3,
+      start: "2026-07-25", end: "2026-08-02", status: "live" as const,
+      drawStatus: "real" as const, drawSize: 28, aliveCount: 16,
+      champion: null, runnerUp: null, modelFavorite: "Player One", favoritePicked: false,
+      projection: [
+        { name: "Player One", champion: 0.25, final: 0.4, sf: 0.6,
+          reach: { R16: 0.9, QF: 0.75, SF: 0.6, F: 0.4, Champion: 0.25 } },
+      ],
+    };
+    const html = renderToStaticMarkup(createElement(Card, { t: tournament, compact: true }));
+    expect(html).toContain("Title odds from here");
+    expect(html).not.toContain("R16");
   });
 });
 
