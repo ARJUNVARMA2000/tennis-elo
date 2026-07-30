@@ -235,7 +235,9 @@ def test_upsert_idempotent_bytes(env):
 
 
 def test_upsert_freezes_candle_price_and_matched_result(env):
-    upsert(TOUR, build_rows(TOUR, _snaps(_snap_event()), _df(WIMBLEDON)))
+    initial = build_rows(TOUR, _snaps(_snap_event()), _df(WIMBLEDON))
+    initial[0]["price_ts"] = "2026-06-29T07:55:00Z"  # valid result-day morning quote
+    upsert(TOUR, initial)
     # upstream drift: price degrades to a provisional quote, result row vanishes
     drifted = build_rows(TOUR, _snaps(_snap_event(mid_a=0.99, mid_b=0.01, kind="quote")),
                          _df([{**WIMBLEDON[0], "winner_name": "Somebody Else",
@@ -249,12 +251,78 @@ def test_upsert_freezes_candle_price_and_matched_result(env):
 def test_refresh_ledger_counts(env, monkeypatch):
     monkeypatch.setattr(kl, "load_snapshots", lambda tour: _snaps(_snap_event()))
     stats = refresh_ledger(TOUR, _df(WIMBLEDON), requote=False)
-    # matched with a candle price but no p_model (no log, no OOS) -> not yet scoreable
+    # The hourly path cannot establish the result-day 08:00 price, so even without a
+    # model probability it must neutralize the occurrence-time candle immediately.
     assert stats["total"] == 1 and stats["matched"] == 1 and stats["scoreable"] == 0
+    row = kl._read_ledger(kl.KALSHI_LEDGER_DIR / f"{TOUR}.csv")["KXATPMATCH-26JUL08COBFER"]
+    assert (row["price_kind"], row["p_kalshi"], row["price_ts"]) == ("none", "", "")
 
     _write_log(env, [{"type": "match", "as_of": "2026-07-06", "playerA": "Flavio Cobolli",
                       "playerB": "Arthur Fery", "p": 0.68, "model_version": "0.1.0"}])
-    assert refresh_ledger(TOUR, _df(WIMBLEDON), requote=False)["scoreable"] == 1
+    assert refresh_ledger(TOUR, _df(WIMBLEDON), requote=False)["scoreable"] == 0
+
+
+def test_quick_refresh_never_resurrects_degraded_occurrence_quote(env, monkeypatch):
+    """A failed daily re-quote degrades the unsafe snapshot candle. The next hourly
+    no-network refresh must not import that same occurrence-time candle again; a later
+    daily refresh can still replace the degraded row with a valid morning quote."""
+    import tennis_model.data.kalshi as kal
+
+    monkeypatch.setattr(kl, "load_snapshots", lambda tour: _snaps(_snap_event()))
+    _write_log(env, [{"type": "match", "as_of": "2026-07-06",
+                      "playerA": "Flavio Cobolli", "playerB": "Arthur Fery",
+                      "p": 0.68, "model_version": "0.1.0"}])
+    monkeypatch.setattr(kal, "fetch_prematch_quotes", lambda *a: None)
+
+    refresh_ledger(TOUR, _df(WIMBLEDON), requote=True)
+    refresh_ledger(TOUR, _df(WIMBLEDON), requote=False)
+    row = kl._read_ledger(kl.KALSHI_LEDGER_DIR / f"{TOUR}.csv")["KXATPMATCH-26JUL08COBFER"]
+    assert (row["price_kind"], row["p_kalshi"], row["price_ts"]) == ("none", "", "")
+
+    cutoff = int(pd.Timestamp("2026-06-29 08:00", tz="UTC").timestamp())
+    monkeypatch.setattr(
+        kal,
+        "fetch_prematch_quotes",
+        lambda tour, ticker, anchor: {
+            "mid": 0.55, "mid_t30": 0.54, "spread": 0.02, "ts": anchor - 300,
+        },
+    )
+    assert refresh_ledger(TOUR, _df(WIMBLEDON), requote=True)["scoreable"] == 1
+    row = kl._read_ledger(kl.KALSHI_LEDGER_DIR / f"{TOUR}.csv")["KXATPMATCH-26JUL08COBFER"]
+    assert row["price_kind"] == "candle" and row["price_ts"] == "2026-06-29T07:55:00Z"
+    assert cutoff == int(pd.Timestamp(row["price_ts"], tz="UTC").timestamp()) + 300
+
+
+def test_quick_refresh_repairs_frozen_invalid_row_missing_from_snapshots(env, monkeypatch):
+    """Ledger integrity cannot depend on the market still existing in the snapshot cache.
+    A no-network refresh must neutralize a frozen scored row even when no fresh event row
+    is available to drive the upsert."""
+    _write_log(env, [{"type": "match", "as_of": "2026-07-06",
+                      "playerA": "Flavio Cobolli", "playerB": "Arthur Fery",
+                      "p": 0.68, "model_version": "0.1.0"}])
+    upsert(TOUR, build_rows(TOUR, _snaps(_snap_event()), _df(WIMBLEDON)))
+    monkeypatch.setattr(kl, "load_snapshots", lambda tour: _snaps())
+
+    assert refresh_ledger(TOUR, _df(WIMBLEDON), requote=False)["scoreable"] == 0
+    row = kl._read_ledger(kl.KALSHI_LEDGER_DIR / f"{TOUR}.csv")["KXATPMATCH-26JUL08COBFER"]
+    assert row["match_status"] == "matched"
+    assert (row["price_kind"], row["p_kalshi"], row["price_ts"]) == ("none", "", "")
+
+
+def test_quick_refresh_preserves_valid_morning_quote(env, monkeypatch):
+    event = _snap_event()
+    event["price"]["ts"] = "2026-07-08T07:55:00Z"
+    monkeypatch.setattr(kl, "load_snapshots", lambda tour: _snaps(event))
+    _write_log(env, [{"type": "match", "as_of": "2026-07-07",
+                      "playerA": "Flavio Cobolli", "playerB": "Arthur Fery",
+                      "p": 0.68, "model_version": "0.1.0"}])
+
+    stats = refresh_ledger(
+        TOUR, _df([{**WIMBLEDON[0], "date": "2026-07-08"}]), requote=False,
+    )
+    row = kl._read_ledger(kl.KALSHI_LEDGER_DIR / f"{TOUR}.csv")["KXATPMATCH-26JUL08COBFER"]
+    assert stats["scoreable"] == 1
+    assert row["price_kind"] == "candle" and row["price_ts"] == "2026-07-08T07:55:00Z"
 
 
 # ---------------------------------------------------------------------------
@@ -304,16 +372,17 @@ def test_pending_race_requote_failure_degrades_over_frozen_print(env, monkeypatc
 
 
 def test_requote_falls_back_to_frozen_match_when_results_source_gaps(env, monkeypatch):
-    """A transient results-source gap must not strand an occurrence-anchored quote:
-    when the fresh run cannot re-match the row but the frozen prior match survives
-    the merge, the requoter re-anchors using the FROZEN identity's result_date."""
+    """A transient results-source gap must not strand an unsafe or degraded quote:
+    the quick run neutralizes it, then the daily requoter uses the frozen identity's
+    result_date even when the fresh run cannot re-match the row."""
     import tennis_model.data.kalshi as kal
     monkeypatch.setattr(kl, "load_snapshots", lambda tour: _snaps(_snap_event()))
     refresh_ledger(TOUR, _no_results(), requote=True)          # pending, 12:55Z frozen
     refresh_ledger(TOUR, _df([{**WIMBLEDON[0], "date": "2026-07-08"}]),
-                   requote=False)                              # matched, quote stranded
+                   requote=False)                              # matched, unsafe quote degraded
     row = kl._read_ledger(kl.KALSHI_LEDGER_DIR / f"{TOUR}.csv")["KXATPMATCH-26JUL08COBFER"]
-    assert (row["match_status"], row["price_ts"]) == ("matched", "2026-07-08T12:55:00Z")
+    assert row["match_status"] == "matched"
+    assert (row["price_kind"], row["p_kalshi"], row["price_ts"]) == ("none", "", "")
 
     calls = []
     def fake_quotes(tour, ticker, cutoff):

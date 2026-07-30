@@ -91,6 +91,17 @@ def _budget_spent() -> bool:
     return _DEADLINE is not None and time.monotonic() >= _DEADLINE
 
 
+def _remaining_budget() -> float | None:
+    """Seconds left in the active budget, or None when the caller is unbounded."""
+    return None if _DEADLINE is None else max(0.0, _DEADLINE - time.monotonic())
+
+
+def _bounded_sleep(seconds: float) -> None:
+    """Sleep no longer than the enclosing refresh can afford."""
+    remaining = _remaining_budget()
+    time.sleep(seconds if remaining is None else min(seconds, remaining))
+
+
 def _get(path: str, params: dict | None = None) -> dict | None:
     """GET BASE+path -> parsed JSON; None on any persistent failure (soft-fail).
 
@@ -104,16 +115,20 @@ def _get(path: str, params: dict | None = None) -> dict | None:
             return None
         try:
             req = urllib.request.Request(url, headers=HEADERS)
-            with urllib.request.urlopen(req, timeout=30) as r:
+            remaining = _remaining_budget()
+            timeout = 30.0 if remaining is None else min(30.0, remaining)
+            if timeout <= 0:
+                return None
+            with urllib.request.urlopen(req, timeout=timeout) as r:
                 data = json.loads(r.read().decode("utf-8"))
-            time.sleep(PAUSE_S)
+            _bounded_sleep(PAUSE_S)
             return data
         except urllib.error.HTTPError as e:
             if e.code == 404:
                 return None
-            time.sleep(min(120, 30 * (attempt + 1)) if e.code == 429 else 2 ** attempt)
+            _bounded_sleep(min(120, 30 * (attempt + 1)) if e.code == 429 else 2 ** attempt)
         except Exception:  # noqa: BLE001 — network/JSON: retry, then give up soft
-            time.sleep(2 ** attempt)
+            _bounded_sleep(2 ** attempt)
     return None
 
 

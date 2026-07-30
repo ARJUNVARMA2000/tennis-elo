@@ -1,23 +1,23 @@
-"""Authoritative tournament draws from Wikipedia (MediaWiki API).
+"""Wikipedia complete-draw fallback and tournament metadata (MediaWiki API).
 
 ESPN's scoreboard pre-creates a tournament's bracket as empty shells and fills the real
 player names in **one day at a time** off the daily order of play, so it never carries a
 complete draw at release — which is why the live projector was forced to Elo-*seed* a
-hypothetical bracket until ESPN caught up. Wikipedia posts the **complete official draw
-the day it is released** (verified down to ATP-250), as ordered bracket templates.
+hypothetical bracket until ESPN caught up. Wikipedia often mirrors the complete draw as
+ordered bracket templates and remains useful when a first-party artifact is absent.
 
-We discover the current/upcoming events from the ESPN sweep (name + dates), resolve each
-to its Wikipedia draw article, and parse the **ORDERED** first-round bracket. The draw is
+``data.draws`` owns event discovery, first-party ATP/WTA precedence, retention and the
+normalized cache. This module resolves a Wikipedia article and parses its ordered first-round
+bracket. The draw is
 laid out as several `{N}TeamBracket-Compact-Tennis{3|5}[-Byes]` section templates (one per
 bracket section, top-to-bottom) plus small non-compact summary brackets for the late
 rounds; concatenating the `-Compact-` sections' first-round slots in document order
 reconstructs the full ordered draw. That order pins every downstream pairing (which half
 two future winners land on) — the piece ESPN's `match_num`-less feed can never give.
 
-Output: data/raw/<tour>/live/wiki_draws.json — {event: {slots, seeds, bestOf, drawSize,
-start, end, title, url, retrieved}} with RAW wiki player names (resolved to the model's
-canonical spellings at sim time, exactly like ESPN names). Best-effort: any failure leaves
-the existing file intact and never breaks a build.
+The normalized output is written by ``data.draws`` to ``tournament_draws.json`` with explicit
+provenance. The old direct ``wiki_draws.json`` writer below remains only as a migration/test
+seam. Player names are reconciled to the model at simulation time.
 """
 
 from __future__ import annotations
@@ -40,8 +40,7 @@ from ..config import (
     live_dir,
 )
 
-# `mwparserfromhell` is imported lazily inside _parse_bracket so that merely READING the
-# cached wiki_draws.json (wiki_upcoming_rows, sim loaders) never needs the parser installed.
+# `mwparserfromhell` is imported lazily inside _parse_bracket so cache readers never need it.
 
 # ESPN sponsor titles carry noise words that hurt Wikipedia search; drop them so
 # "EFG Swiss Open Gstaad" -> "Swiss Open Gstaad" matches the article.
@@ -240,7 +239,7 @@ def _parse_bracket(wikitext: str) -> dict | None:
 
 
 def fetch_draw(event: str, year: int, tour: str, meta: dict) -> dict | None:
-    """Resolve + parse one event's Wikipedia draw into a wiki_draws.json entry, or None."""
+    """Resolve + parse one event's Wikipedia fallback draw, or ``None``."""
     title = resolve_title(event, year, tour)
     if not title:
         return None
@@ -432,7 +431,7 @@ _REGISTRY_BACKFILL_DAYS = 40
 
 
 def wiki_upcoming_rows(tour: str) -> list:
-    """First-round matchups from the cached Wikipedia draws in upcoming.csv schema
+    """Legacy first-round rows from ``wiki_draws.json`` (new consumers use ``data.draws``).
     (tourney_name, tourney_date, round, playerA, playerB) — so the schedule board and the
     forecast log price the whole first round the moment the official draw is released.
 
@@ -517,7 +516,7 @@ def _draw_is_settled(slots, draw_size: object = None) -> bool:
 
 
 def download_wiki_draws(tours=TOURS) -> None:
-    """Fetch each current/upcoming event's official draw from Wikipedia -> wiki_draws.json.
+    """Legacy direct Wikipedia cache writer retained for migration regression tests.
 
     Idempotent + polite: an event whose draw we've already captured AND fully resolved is
     kept as-is, so we only hit Wikipedia for events still awaiting a draw or still carrying
@@ -722,4 +721,5 @@ def _download_wiki_meta(tour: str, d, meta: dict) -> None:
 
 
 if __name__ == "__main__":
-    download_wiki_draws()
+    from .draws import download_tournament_draws
+    download_tournament_draws()

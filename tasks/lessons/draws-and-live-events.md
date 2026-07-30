@@ -236,3 +236,28 @@ Indexed in [`../lessons.md`](../lessons.md).
   evidence from the same main-draw rows used to construct the field, and regression-test both
   directions: the false concurrent-event merge stays split while a genuine renamed event
   with a shared match still coalesces.
+
+- **Metadata aliases and draw locators are different namespaces.** (2026-07-29, Mifel draw
+  reported unavailable after play began) `WIKI_TITLE_OVERRIDES` correctly mapped Mifel's
+  sponsor title to the `Los Cabos Open` main article for surface and tier metadata. Reusing
+  that alias as the draw locator nevertheless failed, because the ordered bracket lived at
+  `2026 Los Cabos Open – Singles`; the main article was never evidence that a draw did not
+  exist. The official ATP artifact had another identity again: tournament id `7480` and
+  `posting/2026/7480/mds.pdf`. **How to apply:** keep event identity (`espnId`), metadata
+  aliases, and provider artifact IDs in separate fields and resolution paths. A mapping that
+  answers one resource type must not silently become the locator for another. Provider IDs
+  locate evidence; they never replace the canonical event key.
+
+- **Date overlap plus a token or a few shared players may rank source candidates, but only
+  near-complete field evidence may attach an official draw to an event.** (2026-07-29,
+  adjacent ATP events cross-attached during rate limiting) The first official-source pass
+  accepted two real shared players, which let Kitzbuhel's PDF attach to DC and Umag's PDF
+  attach to Estoril when the preferred lookup failed. Every individual fact was plausible:
+  the calendars overlapped, names were real, and tour/year matched. The event identity was
+  still false. The repaired contract requires the unique strongest candidate to reconcile at
+  least 75% of the live event field, with provider dates overlapping the ESPN calendar; name
+  tokens only order the bounded attempts. PDF geometry, entrant/byes consistency, source URL,
+  and tour/date provenance are gated independently. **How to apply:** sparse overlap is good
+  enough to generate candidates, never to attach a complete external artifact. Require
+  evidence proportional to what the artifact claims to cover, and regression-test adjacent
+  same-tour events that share players.

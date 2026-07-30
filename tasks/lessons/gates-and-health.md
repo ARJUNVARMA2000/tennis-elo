@@ -173,3 +173,19 @@ Indexed in [`../lessons.md`](../lessons.md).
   winner/runner-up through the independent manifest and into the fallback card; if sources
   conflict, preserve neither and let health report it rather than choosing. Test the fallback
   with a final-only group—the exact shape that makes the normal projector return no card.
+
+- **A repair that runs only on the slow path is not an invariant: enforce safety after the
+  fast path's frozen-field merge, across the whole retained artifact.** (2026-07-29, 36
+  occurrence-time Kalshi candles re-entered the scorecard) The daily ledger requoter already
+  did the correct thing: if it could not obtain the result day's 08:00 UTC candle, it degraded
+  the row to `price_kind=none`. The new hourly path intentionally skipped historical network
+  re-quotes, rebuilt the row from the occurrence-anchored snapshot cache, and resurrected the
+  unsafe candle on its very next upsert. The frozen-field policy made the asymmetry worse: it
+  protected a prior candle, but a prior `none` did not block the fresh candle. The health gate
+  correctly stopped deployment. **Fix:** every upsert now validates the FINAL row after frozen
+  fields merge, neutralizes unsafe completed-match prices without I/O, and scans the entire
+  retained ledger so a bad committed row heals even when its snapshot has disappeared. A daily
+  run can still replace the neutralized row with a validated morning quote. **How to apply:** a
+  slow repair and a fast writer sharing one artifact need the same post-merge validity seam;
+  sanitizing only the fresh input misses frozen state, while sanitizing only rows rebuilt this
+  run misses retained history. Test all three transitions: degrade, fast refresh, later upgrade.

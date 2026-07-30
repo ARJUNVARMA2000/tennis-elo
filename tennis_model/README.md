@@ -81,7 +81,11 @@ disappearing, is in the [root README](../README.md). Module map: `data/download.
 site's TypeScript copy), `data/wta_stats.py` (wtatennis.com API scraper),
 `data/rankings.py` (official live rankings), `data/geo.py` (host-country resolution),
 `data/health.py` (source + produced-output health sentinel), `data/charting.py` (MCP style),
-`data/odds.py` (odds benchmark).
+`data/odds.py` (odds benchmark), `data/draws.py` (source selection/cache),
+`data/draws_official.py` (ATP/WTA PDFs + provider-id evidence), and `data/draws_wiki.py`
+(Wikipedia fallback plus surface/tier metadata). Complete draws join the board on `espnId`;
+provider ids are locators only. Official candidates require calendar overlap and at least 75%
+live-field agreement, then Wikipedia and ESPN's partial frontier provide honest degradation.
 
 ## Layout
 
@@ -91,8 +95,9 @@ src/tennis_model/
   pipeline.py          orchestrator -> predictor.pkl, players.json, meta.json, accuracy.json
   cli.py               ad-hoc predictions / draw projections
   data/                download, results (merge/dedup), names, scores, geo, health,
-                       live, odds, rankings, wta_stats, charting, draws_wiki
-                       (Wikipedia draws), kalshi, surface, altitude, httpcache
+                       live, odds, rankings, wta_stats, charting, draws (source-neutral
+                       cache/orchestrator), draws_official (ATP/WTA PDFs), draws_wiki
+                       (fallback + metadata), kalshi, surface, altitude, httpcache
   ratings/             elo.py (math incl. xsurf), build.py (chronological Elo walk)
   points/              serve_return.py (opponent-adjusted skill walk), markov.py
   model/               features.py, train.py (bagged XGBoost + Platt + walk-forward),
@@ -106,7 +111,6 @@ src/tennis_model/
 ## Usage
 
 ```bash
-pip install -r requirements.txt
 cd tennis_model
 
 # FIRST: bootstrap from the release snapshot. `download` alone is NOT enough — the
@@ -118,22 +122,22 @@ gh release download data-archive --pattern 'raw-archive.tar.gz' -O /tmp/raw-arch
 tar -xzf /tmp/raw-archive.tar.gz -C data
 
 # THEN download all sources on top, and build both tours (predictor, site JSON, backtest)
-PYTHONPATH=src python -m tennis_model.data.download --kind all
-PYTHONPATH=src python -m tennis_model.pipeline --tour all --backtest
+PYTHONPATH=src uv run --with-requirements requirements.txt python -m tennis_model.data.download --kind all
+PYTHONPATH=src uv run --with-requirements requirements.txt python -m tennis_model.pipeline --tour all --backtest
 
 # ad-hoc queries (after the pipeline has trained a predictor)
-PYTHONPATH=src python -m tennis_model.cli predict "Jannik Sinner" "Carlos Alcaraz" --surface Hard --bo 5
-PYTHONPATH=src python -m tennis_model.cli project-slam "Wimbledon" 2025
-PYTHONPATH=src python -m tennis_model.cli field "Jannik Sinner" "Carlos Alcaraz" "Novak Djokovic" --surface Clay --bo 5
+PYTHONPATH=src uv run --with-requirements requirements.txt python -m tennis_model.cli predict "Jannik Sinner" "Carlos Alcaraz" --surface Hard --bo 5
+PYTHONPATH=src uv run --with-requirements requirements.txt python -m tennis_model.cli project-slam "Wimbledon" 2025
+PYTHONPATH=src uv run --with-requirements requirements.txt python -m tennis_model.cli field "Jannik Sinner" "Carlos Alcaraz" "Novak Djokovic" --surface Clay --bo 5
 
 # tuning (resumable Optuna studies under data/output/tuning/)
-PYTHONPATH=src python -m tennis_model.eval.tune --tour wta --group xgb --trials 200
-PYTHONPATH=src python -m tennis_model.eval.tune --tour wta --group xgb --validate
+PYTHONPATH=src uv run --with-requirements requirements.txt python -m tennis_model.eval.tune --tour wta --group xgb --trials 200
+PYTHONPATH=src uv run --with-requirements requirements.txt python -m tennis_model.eval.tune --tour wta --group xgb --validate
 
 # data-health sentinel — checks BOTH source freshness (stalled scrapers) AND the
 # produced JSON the web reads (counts, tournaments, matches, predictions make sense).
 # Writes data/output/health.json; --strict exits non-zero on any problem.
-PYTHONPATH=src python -m tennis_model.data.health --strict
+PYTHONPATH=src uv run --with-requirements requirements.txt python -m tennis_model.data.health --strict
 ```
 
 Every CI run — daily full and hourly quick — invokes this without `--strict`, then reads
@@ -164,9 +168,9 @@ from walk-forward backfill.
 
 ```bash
 # capture market snapshots (public API, no key) + rebuild ledger and scorecard
-PYTHONPATH=src python -m tennis_model.data.kalshi --tour all
-PYTHONPATH=src python -m tennis_model.eval.kalshi_ledger --tour all
-PYTHONPATH=src python -m tennis_model.eval.kalshi_report
+PYTHONPATH=src uv run --with-requirements requirements.txt python -m tennis_model.data.kalshi --tour all
+PYTHONPATH=src uv run --with-requirements requirements.txt python -m tennis_model.eval.kalshi_ledger --tour all
+PYTHONPATH=src uv run --with-requirements requirements.txt python -m tennis_model.eval.kalshi_report
 ```
 
 ## Methodology notes

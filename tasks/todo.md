@@ -2880,3 +2880,17 @@ overlap plus shared real players, never by name similarity.
   warnings. Local browser inspection of real data confirmed equal 588px side-by-side DC Open
   and Mifel cards, reach tables on both, Mifel's incomplete-draw warning intact, and no console
   errors.
+
+## Round L review — keep unsafe Kalshi prices out of the scorecard (2026-07-29)
+
+- The failure was an hourly resurrection, not a bad gate: daily repair had degraded unsafe
+  candles to `price_kind=none`, then `requote=False` rebuilt them from the occurrence-time
+  snapshot cache. Every ledger upsert now sanitizes the final post-freeze merge without network
+  I/O, including retained rows whose snapshots disappeared; valid morning quotes survive and a
+  later daily re-quote can still upgrade a neutralized row.
+- Cached regeneration neutralized 38 unsafe candles (the 36 scoreable gate failures plus two
+  rows without model prices) and rebuilt the report with 1,338 valid scored matches. Both the
+  complete pre-upload gate and strict source/output health pass with zero output problems.
+- Verification passed 497 Python tests, Ruff, 187 web tests, TypeScript, shell/workflow checks,
+  `npm ci`, a zero-finding production dependency audit, ESLint with 0 errors / 13 existing
+  warnings, the 21-page production build, and `git diff --check`.

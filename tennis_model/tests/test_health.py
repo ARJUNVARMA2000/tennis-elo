@@ -29,7 +29,9 @@ def _healthy_bracket() -> dict:
     return {
         "name": "Mini Open", "surface": "Hard", "level": "ATP 250", "bestOf": 3,
         "start": "2026-07-01", "end": "2026-07-06", "status": "completed",
-        "drawSize": 4, "bracketSize": 4, "champion": "A", "runnerUp": "C", "wikiUrl": None,
+        "drawSize": 4, "bracketSize": 4, "champion": "A", "runnerUp": "C",
+        "drawSource": "wikipedia", "drawSourceId": "Mini Open draw",
+        "drawSourceUrl": "https://en.wikipedia.org/wiki/Mini_Open_draw",
         "rounds": [
             {"round": "SF", "matches": [
                 {"a": "A", "b": "B", "seedA": 1, "seedB": None, "winner": "a",
@@ -643,6 +645,31 @@ def test_output_bracket_drawsize_must_match_slots():
     print("ok test_output_bracket_drawsize_must_match_slots")
 
 
+def test_output_bracket_requires_source_neutral_provenance():
+    d = _healthy_data()
+    d["brackets"][0]["drawSource"] = None
+    d["brackets"][0]["drawSourceId"] = None
+    d["brackets"][0]["drawSourceUrl"] = None
+    problems = health.output_problems("atp", _oc(data=d), NOW)
+    assert any("invalid drawSource" in problem for problem in problems)
+    assert any("missing drawSourceId" in problem for problem in problems)
+
+
+def test_output_official_bracket_requires_provider_host_dates_and_strong_field_evidence():
+    d = _healthy_data()
+    bracket = d["brackets"][0]
+    bracket.update({
+        "drawSource": "atp", "drawSourceId": "123",
+        "drawSourceUrl": "https://wtafiles.wtatennis.com/wrong.pdf",
+        "drawSourceStart": "2026-08-01", "drawSourceEnd": "2026-08-07",
+        "drawEvidencePlayers": 2, "drawEvidenceFieldPlayers": 28,
+    })
+    problems = health.output_problems("atp", _oc(data=d), NOW)
+    assert any("URL host" in problem for problem in problems)
+    assert any("2/28" in problem and "minimum 75%" in problem for problem in problems)
+    assert any("calendar does not overlap" in problem for problem in problems)
+
+
 def test_output_bracket_early_draw_with_qualifiers_is_clean():
     """An early-captured draw carries unresolved 'Qualifier N' placeholders. tournaments.json
     drawSize counts them (field_pool = non-null slots), so the bracket check must too — else
@@ -658,7 +685,9 @@ def test_output_bracket_early_draw_with_qualifiers_is_clean():
     d["brackets"] = [{
         "name": "Gstaad", "surface": "Clay", "level": "ATP 250", "bestOf": 3,
         "start": "2026-07-14", "end": "2026-07-20", "status": "upcoming",
-        "drawSize": 28, "bracketSize": 32, "champion": None, "runnerUp": None, "wikiUrl": None,
+        "drawSize": 28, "bracketSize": 32, "champion": None, "runnerUp": None,
+        "drawSource": "wikipedia", "drawSourceId": "Gstaad draw",
+        "drawSourceUrl": "https://en.wikipedia.org/wiki/Gstaad_draw",
         "rounds": rounds,
     }]
     d["tournaments"] = [{"name": "Gstaad", "surface": "Clay", "level": "ATP 250",

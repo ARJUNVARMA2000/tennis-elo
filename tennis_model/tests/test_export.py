@@ -221,15 +221,17 @@ def test_build_brackets_payload_splits_and_stamps():
     tournaments = [
         {"name": "With Draw", "surface": "Hard", "status": "completed", "drawSize": 2,
          "champion": "A", "runnerUp": "B", "bestOf": 3, "start": "2026-07-01",
-         "end": "2026-07-02", "bracket": rounds, "bracketSize": 2, "wikiUrl": "http://x"},
+         "end": "2026-07-02", "bracket": rounds, "bracketSize": 2,
+         "drawSource": "atp", "drawSourceId": "123",
+         "drawSourceUrl": "https://www.protennislive.com/x"},
         {"name": "No Draw", "status": "live", "bracket": None, "bracketSize": None,
-         "wikiUrl": None},
+         "drawSource": None, "drawSourceId": None, "drawSourceUrl": None},
     ]
     payload = export.build_brackets_payload(tournaments)
 
     # tournaments.json is stripped of the heavy bracket + stamped hasBracket
     assert "bracket" not in tournaments[0] and "bracketSize" not in tournaments[0]
-    assert "wikiUrl" not in tournaments[0]
+    assert "drawSourceUrl" not in tournaments[0]
     assert tournaments[0]["hasBracket"] is True
     assert tournaments[1]["hasBracket"] is False
 
@@ -237,7 +239,8 @@ def test_build_brackets_payload_splits_and_stamps():
     assert len(payload) == 1
     b = payload[0]
     assert b["name"] == "With Draw" and b["rounds"] == rounds
-    assert b["bracketSize"] == 2 and b["champion"] == "A" and b["wikiUrl"] == "http://x"
+    assert b["bracketSize"] == 2 and b["champion"] == "A"
+    assert b["drawSource"] == "atp" and b["drawSourceId"] == "123"
     _strict_load(json.dumps(export._finite(payload)))     # browser-strict round-trip
     print("ok test_build_brackets_payload_splits_and_stamps")
 

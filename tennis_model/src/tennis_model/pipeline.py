@@ -11,6 +11,8 @@ from __future__ import annotations
 
 import argparse
 import shutil
+import time
+from contextlib import contextmanager
 from datetime import UTC
 
 from .config import PLAYER_ALIASES, TOURS, WEB_DATA_DIR, output_dir
@@ -39,32 +41,63 @@ def _track(tour: str, predictor, df) -> None:
         print(f"  track/{tour}: skipped ({e})")
 
 
-KALSHI_QUICK_BUDGET_S = 180    # hourly run: Kalshi gets 3 min, then soft-fails and ships
+@contextmanager
+def _stage(label: str):
+    """Emit one unbuffered-friendly elapsed-time line around a pipeline stage."""
+    started = time.monotonic()
+    print(f"--- {label} started", flush=True)
+    try:
+        yield
+    finally:
+        print(f"--- {label} finished in {time.monotonic() - started:.1f}s", flush=True)
+
+
+# One allowance shared by both tours. Morning-of historical requotes are deliberately
+# daily-only; the hourly path captures new/open snapshots and repeats soon if the market
+# API is slow. This benchmark never determines a forecast or deploy-gate verdict.
+KALSHI_QUICK_BUDGET_S = 75
 KALSHI_FULL_BUDGET_S = 1200    # daily run: 20 min for the historical backfill, which is
                                # resumable, so a slow day just finishes it tomorrow
 QUICK_KALSHI_DAYS = 4   # hourly run only backfills candles for the last few days; the
                         # committed ledger carries older history, the daily run the rest
 
 
-def _kalshi(tour: str, df, oos, recent_days=None) -> None:
+def _kalshi(tour: str, df, oos) -> None:
     """Kalshi eval ledger: capture market snapshots, upsert the CSV. Best-effort:
     Kalshi is a benchmark, never a build dependency (report runs after both tours).
-    `recent_days` bounds the candlestick backfill so a cold cache on the hourly quick
-    run can't stall on the full historical sweep."""
+    This daily path owns historical quote repair; the hourly helper below deliberately
+    disables requotes and shares one smaller allowance across both tours."""
     try:
         from .data.kalshi import refresh_snapshots, time_budget
         from .eval.kalshi_ledger import refresh_ledger
-        # Bounded wall clock. `recent_days` already caps HOW MUCH the quick run fetches,
-        # but not how long a rate-limited Kalshi can take to refuse it — run 30227056240
-        # spent 4h here and, via the deploy concurrency group, blocked every refresh behind
-        # it. Quick runs get a tight budget (they repeat hourly); the full run gets a
-        # generous one so the historical backfill still progresses, just never unbounded.
-        budget = KALSHI_QUICK_BUDGET_S if recent_days is not None else KALSHI_FULL_BUDGET_S
-        with time_budget(budget):
-            refresh_snapshots(tour, recent_days=recent_days)
+        # The historical repair remains resumable, but even a rate-limited API cannot
+        # monopolize the serialized deploy queue indefinitely.
+        with time_budget(KALSHI_FULL_BUDGET_S):
+            refresh_snapshots(tour)
             refresh_ledger(tour, df, oos=oos)
     except Exception as e:                                   # noqa: BLE001 — never fatal
         print(f"  kalshi/{tour}: skipped ({e})")
+
+
+def _quick_kalshi(tours, frames: dict) -> None:
+    """Refresh the benchmark for all quick-run tours under one real wall-clock budget.
+
+    Historical morning quote repair can issue hundreds of candle requests and is safe to
+    defer to the daily full run because Kalshi is evaluation-only. New/open snapshots still
+    refresh hourly and the cross-tour report is republished from whatever completed."""
+    try:
+        from .data.kalshi import refresh_snapshots, time_budget
+        from .eval.kalshi_ledger import refresh_ledger
+
+        with time_budget(KALSHI_QUICK_BUDGET_S):
+            for tour in tours:
+                try:
+                    refresh_snapshots(tour, recent_days=QUICK_KALSHI_DAYS)
+                    refresh_ledger(tour, frames[tour], oos=None, requote=False)
+                except Exception as e:                         # noqa: BLE001 — per-tour soft fail
+                    print(f"  kalshi/{tour}: skipped ({e})")
+    except Exception as e:                                   # noqa: BLE001 — never fatal
+        print(f"  kalshi/quick: skipped ({e})")
 
 
 def _kalshi_report(tours) -> None:
@@ -81,10 +114,10 @@ def _kalshi_report(tours) -> None:
         print(f"  kalshi-report: skipped ({e})")
 
 
-def build_tour(tour: str, do_backtest: bool, *,
-               kalshi_recent_days: int | None = None) -> None:
+def build_tour(tour: str, do_backtest: bool, *, run_kalshi: bool = True):
     """Full build: re-walk ratings, retrain the combiner, write every JSON (daily).
-    `kalshi_recent_days` lets a quick caller retain its bounded benchmark sweep."""
+    ``run_kalshi=False`` is used only by a quick-mode compatibility rebuild so the
+    caller can keep both tours under the shared hourly benchmark budget."""
     print(f"\n=== {tour.upper()} === loading matches + building features...")
     df = load_matches(tour)
     feat, elo, srv, ctx, meta = build_predictor_inputs(df)
@@ -115,8 +148,10 @@ def build_tour(tour: str, do_backtest: bool, *,
     if oos is not None:
         _market_scorecard(tour, oos)
     _track(tour, predictor, df)                  # logs upcoming forecasts first, so
-    _kalshi(tour, df, oos, recent_days=kalshi_recent_days)  # ledger prices them (live)
+    if run_kalshi:
+        _kalshi(tour, df, oos)                         # daily historical benchmark repair
     _mirror(tour)
+    return df
 
 
 def _market_scorecard(tour: str, oos) -> None:
@@ -159,7 +194,7 @@ def _predictor_current(predictor, tour: str) -> bool:
         return False
 
 
-def build_tour_quick(tour: str) -> None:
+def build_tour_quick(tour: str):
     """Quick refresh (intra-day): reuse the saved predictor's states, re-pull live
     results, regenerate JSON. No re-walk, no retrain (~1-2 min). accuracy.json is left
     to persist from the last full run (the workflow caches data/output)."""
@@ -169,12 +204,11 @@ def build_tour_quick(tour: str) -> None:
     if not _predictor_current(predictor, tour):
         print("  quick: saved predictor is stale (feature schema, FeatureParams, or player "
               "aliases) -> full rebuild")
-        build_tour(tour, do_backtest=False, kalshi_recent_days=QUICK_KALSHI_DAYS)
-        return
+        return build_tour(tour, do_backtest=False, run_kalshi=False)
     export_all(tour, df, predictor.elo, predictor.srv, predictor.meta, predictor, oos=None)
-    _track(tour, predictor, df)                  # refreshes the forecast log first, so the
-    _kalshi(tour, df, oos=None, recent_days=QUICK_KALSHI_DAYS)   # ledger prices live matches
-    _mirror(tour)                                # (bounded backfill keeps the hourly run fast)
+    _track(tour, predictor, df)
+    _mirror(tour)
+    return df
 
 
 def main():
@@ -189,7 +223,7 @@ def main():
 
     if args.quick:
         from .data.download import download_tml_stats
-        from .data.draws_wiki import download_wiki_draws
+        from .data.draws import download_tournament_draws
         from .data.live import download_live
         from .data.rankings import download_rankings
         # ESPN's live window drops an event soon after its final. Refresh the lightweight
@@ -198,23 +232,32 @@ def main():
         # One attempt keeps an unavailable stats host bounded; atomic writes preserve the
         # cached file on failure. WTA's rate-limited stats backfill remains daily-only.
         if "atp" in tours:
-            download_tml_stats(full=False, retries=1)
-        download_live(tours)        # ESPN same-day overlay is the whole point of a quick run
-        download_wiki_draws(tours)  # authoritative full draws at release (best-effort)
-        download_rankings(tours)    # official live ranks (best-effort, keeps last good file)
+            with _stage("current ATP stats"):
+                download_tml_stats(full=False, retries=1)
+        with _stage("ESPN live results"):
+            events_by_tour = download_live(tours)
+        with _stage("complete tournament draws"):
+            download_tournament_draws(tours, events_by_tour=events_by_tour)
+        with _stage("live rankings"):
+            download_rankings(tours)
+        frames = {}
         for tour in tours:
-            build_tour_quick(tour)
-        _kalshi_report(tours)       # republish kalshi.json hourly from the fresh ledger
+            with _stage(f"{tour.upper()} forecast export"):
+                frames[tour] = build_tour_quick(tour)
+        with _stage("Kalshi quick benchmark"):
+            _quick_kalshi(tours, frames)
+        with _stage("Kalshi report"):
+            _kalshi_report(tours)
         return
 
     if args.download:
         from .data.download import download_fresh
-        from .data.draws_wiki import download_wiki_draws
+        from .data.draws import download_tournament_draws
         from .data.live import download_live
         from .data.rankings import download_rankings
         download_fresh(tours)
-        download_live(tours)        # ESPN same-day overlay so current events are current
-        download_wiki_draws(tours)  # authoritative full draws at release (best-effort)
+        events_by_tour = download_live(tours)  # ESPN same-day overlay; also feeds draw discovery
+        download_tournament_draws(tours, events_by_tour=events_by_tour)
         download_rankings(tours)
 
     for tour in tours:

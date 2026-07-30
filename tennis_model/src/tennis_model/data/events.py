@@ -23,11 +23,11 @@ Design notes worth keeping:
   table, and it is what lets a cache written under yesterday's sponsor title still be found
   today.
 * **Pruning never orphans a draw.** An entry is dropped only when it is both stale AND
-  unreferenced by any wiki cache. Leaning on a cache that could vanish under a consumer is
+  unreferenced by any draw cache. Leaning on a cache that could vanish under a consumer is
   what produced the 256-slot Wimbledon crash twice.
 
 Stdlib + config only, so the offline loaders can import it without dragging in the network
-modules (``live``/``draws_wiki`` import THIS, never the other way round).
+modules (``live``/``draws`` import THIS, never the other way round).
 """
 
 from __future__ import annotations
@@ -41,7 +41,7 @@ from pathlib import Path
 from ..config import EVENT_REGISTRY_RETENTION_DAYS, live_dir
 
 REGISTRY_FILE = "events.json"
-REGISTRY_VERSION = 1
+REGISTRY_VERSION = 2
 
 # ESPN event ids are "<numeric>-<year>" (888-2026). Used to tell an id-keyed cache entry from
 # a legacy name-keyed one during the migration, so both formats can be read at once.
@@ -49,7 +49,10 @@ EVENT_ID_RE = re.compile(r"^\d+-\d{4}$")
 
 # Caches whose keys may reference an event id; an entry referenced by any of them is never
 # pruned, however stale it looks.
-_REFERENCING_CACHES = ("wiki_draws.json", "wiki_surface.json", "wiki_category.json")
+_REFERENCING_CACHES = (
+    "tournament_draws.json", "wiki_draws.json",  # source-neutral + legacy migration input
+    "wiki_surface.json", "wiki_category.json",
+)
 
 _MIN_CONTAINMENT = 5   # a shorter fragment matches far too much to be evidence of identity
 
@@ -86,7 +89,7 @@ def load_registry(tour: str) -> dict:
 
 
 def _referenced_ids(tour: str) -> set:
-    """Event ids any wiki cache still keys on — these must survive pruning."""
+    """Event ids any draw/metadata cache still keys on — these must survive pruning."""
     out: set = set()
     for fname in _REFERENCING_CACHES:
         p = live_dir(tour) / fname
@@ -98,7 +101,7 @@ def _referenced_ids(tour: str) -> set:
             continue
         if isinstance(d, dict):
             out |= {k for k in d if is_event_id(k)}
-            # entries may also carry the id inside the value (wiki_draws does)
+            # entries may also carry the id inside the value during cache migrations
             out |= {v["espnId"] for v in d.values()
                     if isinstance(v, dict) and v.get("espnId")}
     return out
@@ -107,7 +110,7 @@ def _referenced_ids(tour: str) -> set:
 def prune(events: dict, referenced: set, now: datetime) -> dict:
     """Drop only entries that are BOTH long unseen AND unreferenced by any cache.
 
-    The reference check is the load-bearing half. A cached Wikipedia draw outliving the
+    The reference check is the load-bearing half. A cached complete draw outliving the
     registry entry that names it is precisely how the field lost its anchor and padded to an
     impossible 256-slot bracket, twice."""
     cutoff = (now - timedelta(days=EVENT_REGISTRY_RETENTION_DAYS)).strftime("%Y-%m-%d")
@@ -146,6 +149,29 @@ def update_registry(tour: str, meta: dict, now: datetime | None = None) -> dict:
         e["lastSeen"] = stamp
 
     reg["events"] = prune(events, _referenced_ids(tour), now)
+    reg["version"] = REGISTRY_VERSION
+    path = registry_path(tour)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(reg), encoding="utf-8")
+    return reg
+
+
+def set_source_id(tour: str, event_id: str, provider: str, source_id: str) -> dict:
+    """Persist a validated provider id under an existing ESPN event identity.
+
+    Provider ids make the next refresh cheap, but they never replace ``espnId`` as the join
+    key. A missing event is not invented here: discovery must first be anchored to registry
+    metadata written by :func:`update_registry`.
+    """
+    reg = load_registry(tour)
+    event = (reg.get("events") or {}).get(str(event_id))
+    if not isinstance(event, dict):
+        return reg
+    source_ids = dict(event.get("sourceIds") or {})
+    if source_ids.get(str(provider)) == str(source_id):
+        return reg
+    source_ids[str(provider)] = str(source_id)
+    event["sourceIds"] = source_ids
     reg["version"] = REGISTRY_VERSION
     path = registry_path(tour)
     path.parent.mkdir(parents=True, exist_ok=True)

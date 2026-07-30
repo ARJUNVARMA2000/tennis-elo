@@ -76,6 +76,8 @@ LEDGER_COLUMNS = [
 # never overwritten once set (see module docstring)
 _FROZEN_PRICE = ["mid_a", "mid_b", "p_kalshi", "p_kalshi_t30", "spread_max",
                  "price_ts", "price_kind", "volume_total", "oi_total", "liquidity"]
+_SCORING_PRICE = ["mid_a", "mid_b", "p_kalshi", "p_kalshi_t30", "spread_max",
+                  "price_ts"]
 _FROZEN_MATCH = ["event", "round", "surface", "tier", "best_of",
                  "player_a", "player_b", "rank_a", "rank_b", "rank_src",
                  "match_status", "result_type", "winner", "a_won", "result_date"]
@@ -459,6 +461,13 @@ def upsert(tour: str, rows: list[dict], healed: set[str] | None = None) -> dict:
                 row = {**row, **{c: prev[c] for c in _FROZEN_PRED if c in prev}}
         merged[row["event_ticker"]] = {c: row.get(c, "") for c in LEDGER_COLUMNS}
 
+    # Integrity belongs at the durable write seam, not only in the network requoter.
+    # Quick refreshes deliberately skip historical candle fetches, but they still rebuild
+    # rows from the occurrence-anchored snapshot cache. Without this pass an unsafe candle
+    # that a daily run degraded to ``none`` is resurrected on the next hourly upsert. Scan
+    # the whole merged ledger so old invalid rows heal even after their snapshots disappear.
+    degraded = _degrade_unsafe_scoring_prices(merged.values())
+
     KALSHI_LEDGER_DIR.mkdir(parents=True, exist_ok=True)
     out = sorted(merged.values(), key=lambda r: (r["occurrence_utc"], r["event_ticker"]))
     tmp = path.with_suffix(".csv.tmp")
@@ -472,6 +481,7 @@ def upsert(tour: str, rows: list[dict], healed: set[str] | None = None) -> dict:
     return {"total": len(out), "new": n_new, "matched": matched,
             "unmatched": sum(1 for r in out if r["match_status"] == "unmatched"),
             "pending": sum(1 for r in out if r["match_status"] == "pending"),
+            "degraded": degraded,
             "scoreable": sum(1 for r in out if r["match_status"] == "matched"
                              and r["result_type"] == "completed"
                              and r["price_kind"] == "candle"
@@ -519,6 +529,31 @@ def _scoring_quote_ok(prev: dict) -> bool:
     return True
 
 
+def _clear_scoring_price(row: dict) -> None:
+    """Make a row unscoreable without discarding its market or match identity."""
+    row.update({c: "" for c in _SCORING_PRICE})
+    row["price_kind"] = "none"
+
+
+def _degrade_unsafe_scoring_prices(rows) -> int:
+    """Neutralize every completed-match candle that is unsafe for scoring.
+
+    This is intentionally no-I/O and runs after frozen-field merging. It therefore
+    covers fresh hourly rows, resurrected snapshot candles, and legacy committed rows
+    that are no longer present in the snapshot cache. A later daily re-quote can still
+    replace ``price_kind=none`` with a validated morning candle.
+    """
+    degraded = 0
+    for row in rows:
+        if (row.get("match_status") == "matched"
+                and row.get("result_type") == "completed"
+                and row.get("price_kind") == "candle"
+                and not _scoring_quote_ok(row)):
+            _clear_scoring_price(row)
+            degraded += 1
+    return degraded
+
+
 def _requote_matched(tour: str, rows: list[dict], prior: dict | None = None,
                      healed: set[str] | None = None) -> int:
     """Fetch the 08:00 scoring quote for every matched row not already carrying one.
@@ -555,9 +590,7 @@ def _requote_matched(tour: str, rows: list[dict], prior: dict | None = None,
         if not (qa and qb):
             # never score the occurrence-anchored quote (possibly in-play): degrade
             # the row; snapshots re-supply a candle next run, so this retries daily
-            row.update({c: "" for c in ("mid_a", "mid_b", "p_kalshi", "p_kalshi_t30",
-                                        "spread_max", "price_ts")})
-            row["price_kind"] = "none"
+            _clear_scoring_price(row)
             continue
         row.update({
             "mid_a": _f(qa["mid"]), "mid_b": _f(qb["mid"]),
@@ -587,6 +620,9 @@ def refresh_ledger(tour: str, df: pd.DataFrame, oos: pd.DataFrame | None = None,
         if n:
             print(f"  kalshi-ledger/{tour}: fetched {n} morning-of scoring quotes")
     stats = upsert(tour, rows, healed=healed)
+    if stats["degraded"]:
+        print(f"  kalshi-ledger/{tour}: neutralized {stats['degraded']} unsafe "
+              "occurrence-time scoring quote(s)")
     print(f"  kalshi-ledger/{tour}: {stats['total']} rows (+{stats['new']} new), "
           f"{stats['matched']} matched / {stats['unmatched']} unmatched / "
           f"{stats['pending']} pending; {stats['scoreable']} scoreable")

@@ -136,7 +136,7 @@ def _cached_identity_extras(tour: str) -> list[tuple[str, str]]:
     identity for the same source evidence.
     """
     out: list[tuple[str, str]] = []
-    for filename in ("fields.json", "wiki_draws.json"):
+    for filename in ("fields.json", "tournament_draws.json", "wiki_draws.json"):
         path = live_dir(tour) / filename
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
@@ -454,7 +454,10 @@ def _coverage_shell(event: dict, build_date: str, tour: str) -> dict:
         "champion": event.get("champion") if has_final else None,
         "runnerUp": event.get("runnerUp") if has_final else None,
         "modelFavorite": None, "favoritePicked": False, "projection": [],
-        "bracket": None, "bracketSize": None, "wikiUrl": None,
+        "bracket": None, "bracketSize": None,
+        "drawSource": None, "drawSourceId": None, "drawSourceUrl": None,
+        "drawSourceStart": None, "drawSourceEnd": None, "drawEvidencePlayers": None,
+        "drawEvidenceFieldPlayers": None,
         "coverageKey": event["key"], "coverageOnly": True,
     }
 

@@ -122,7 +122,7 @@ def test_registries_are_per_tour_and_the_same_id_never_crosses():
 
 def test_missing_and_corrupt_registries_degrade_quietly():
     def body(root):
-        assert ev.load_registry("atp") == {"version": 1, "events": {}}
+        assert ev.load_registry("atp") == {"version": ev.REGISTRY_VERSION, "events": {}}
         d = root / "atp"
         d.mkdir(parents=True, exist_ok=True)
         (d / "events.json").write_text("{ not json", encoding="utf-8")

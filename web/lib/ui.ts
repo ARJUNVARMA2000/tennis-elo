@@ -13,7 +13,7 @@ export function drawCaveat(t: { status: string; drawStatus?: string }):
   if (t.drawStatus === "partial")
     return {
       label: "Draw incomplete",
-      note: "The full draw isn’t posted yet — later matchups are a model projection, not the official bracket.",
+      note: "No complete ordered draw has resolved yet — later matchups are a model projection, not an official bracket.",
     };
   if (t.drawStatus === "seeded")
     return {

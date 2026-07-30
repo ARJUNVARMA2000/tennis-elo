@@ -284,6 +284,15 @@ def download_fresh(tours=("atp", "wta")) -> None:
         download(t, "fresh")
 
 
+def _download_live_and_draws(tours) -> None:
+    """Acquire ESPN's scoreboard window once for both live and complete-draw consumers."""
+    from .draws import download_tournament_draws
+    from .live import download_live
+
+    events_by_tour = download_live(tours)
+    download_tournament_draws(tours, events_by_tour=events_by_tour)
+
+
 def download_all(tours=("atp", "wta")) -> dict[str, list]:
     """Full bootstrap (used by CI / a fresh clone): historical + stats + fresh + live
     + charting. Returns {source: failed_items} for the strict health gate."""
@@ -309,10 +318,7 @@ def download_all(tours=("atp", "wta")) -> dict[str, list]:
     except Exception as e:                      # noqa: BLE001 — scraper must not kill the build
         print(f"  wta/stats: scrape failed ({e})")
         failures["wta/stats"] = [str(e)]
-    from .live import download_live
-    download_live(tours)                 # ESPN same-day overlay (best-effort)
-    from .draws_wiki import download_wiki_draws
-    download_wiki_draws(tours)           # authoritative full draws at release (best-effort)
+    _download_live_and_draws(tours)      # one ESPN sweep; each consumer remains best-effort
     from .rankings import download_rankings
     download_rankings(tours)             # official live ranks (best-effort, not strict-fatal)
     from .charting import download_charting
@@ -344,15 +350,12 @@ if __name__ == "__main__":
     if args.kind == "all":
         strict_failures += strict_fatal(download_all(tours), this_year)
     elif args.kind == "live":
-        from .draws_wiki import download_wiki_draws
-        from .live import download_live
         from .rankings import download_rankings
-        download_live(tours)
-        download_wiki_draws(tours)
+        _download_live_and_draws(tours)
         download_rankings(tours)
     elif args.kind == "wiki":
-        from .draws_wiki import download_wiki_draws
-        download_wiki_draws(tours)
+        from .draws import download_tournament_draws
+        download_tournament_draws(tours)
     elif args.kind == "stats":
         _, f = download_tml_stats(full=True)
         strict_failures += [f"atp/stats:{i}" for i in f]

@@ -235,7 +235,7 @@ def _coalesce_groups(events: list, resolver) -> list:
 
 
 def _scheduled_end(eid: str | None, name: str, resolver,
-                   wiki_by_id: dict, wiki_by_name: dict) -> str | None:
+                   draws_by_id: dict, draws_by_name: dict) -> str | None:
     """The event's SCHEDULED end date, from the registry or its cached draw.
 
     Distinct from the card's `end`, which is just the last match actually recorded — the very
@@ -245,8 +245,8 @@ def _scheduled_end(eid: str | None, name: str, resolver,
     end = entry.get("end")
     if end:
         return str(end)
-    wd = _lookup(wiki_by_id, wiki_by_name, eid, name) or {}
-    return str(wd.get("end") or "") or None
+    draw = _lookup(draws_by_id, draws_by_name, eid, name) or {}
+    return str(draw.get("end") or "") or None
 
 
 def _fields_view(by_id: dict, by_name: dict, eid: str | None, name: str) -> dict | None:
@@ -274,17 +274,10 @@ def _group_event_id(g: pd.DataFrame, name: str, resolver) -> str | None:
     return resolver.id_of(name) if resolver else None
 
 
-def _load_wiki_draws(tour: str) -> dict:
-    """Wikipedia ORDERED draws {event: {slots, seeds, bestOf, drawSize, start, end, ...}}
-    written by data.draws_wiki.download_wiki_draws — the authoritative full bracket at
-    release. Missing/corrupt file simply means no wiki draw is available (ESPN fallback)."""
-    p = live_dir(tour) / "wiki_draws.json"
-    if not p.exists():
-        return {}
-    try:
-        return json.loads(p.read_text(encoding="utf-8"))
-    except Exception:  # noqa: BLE001 — a missing/corrupt draw cache is a no-op, never fatal
-        return {}
+def _load_tournament_draws(tour: str) -> dict:
+    """Complete ordered draws with source-neutral provenance; ESPN is the partial fallback."""
+    from ..data.draws import load_tournament_draws
+    return load_tournament_draws(tour)
 
 
 def _archive_attrs(df: pd.DataFrame, name: str) -> tuple:
@@ -444,7 +437,7 @@ def projection_is_meaningful(field_pool) -> bool:
 def _simulate_projection(predictor, slots: list, surface: str, best_of: int,
                          name: str, n_sims: int, seed: int) -> tuple[list, str | None]:
     """Simulate a bracket -> (projection rows, model favourite). The odds-formatting shared
-    by the live/completed and the pre-start (Wikipedia) paths, so it lives in one place.
+    by the live/completed and pre-start complete-draw paths, so it lives in one place.
 
     Placeholder entrants stay IN the simulation — they occupy real draw slots and a real
     player's path genuinely runs through them — but are never PUBLISHED as rows: a
@@ -466,8 +459,8 @@ def _simulate_projection(predictor, slots: list, surface: str, best_of: int,
     return proj, (proj[0]["name"] if proj else None)
 
 
-def _reconcile_wiki_names(slots: list, pool: list, resolve) -> dict:
-    """Map Wikipedia draw slot names to the model-canonical identity, bridging the few
+def _reconcile_draw_names(slots: list, pool: list, resolve) -> dict:
+    """Map provider draw slot names to the model-canonical identity, bridging the few
     spellings the accent/punct key can't — a transliteration (Alexander/Aleksandr Shevchenko),
     an extra given name (Daniel/Adolfo Daniel Vallejo), or CJK name order (Kwon Soon-woo /
     SoonWoo Kwon) — by matching the leftover against this event's OWN participant pool (the
@@ -485,18 +478,18 @@ def _reconcile_wiki_names(slots: list, pool: list, resolve) -> dict:
     pool = [p for p in dict.fromkeys(pool) if isinstance(p, str) and p]
     pool_keys = {_name_key(resolve(p)) for p in pool}
     canon: dict = {}
-    wiki_left: list = []
+    draw_left: list = []
     for s in dict.fromkeys(x for x in slots if x):
         if _name_key(resolve(s)) in pool_keys:
             canon[s] = resolve(s)
         else:
-            wiki_left.append(s)
-    if not wiki_left:
+            draw_left.append(s)
+    if not draw_left:
         return canon
     matched = {_name_key(resolve(s)) for s in canon}
     pool_left = [p for p in pool if _name_key(resolve(p)) not in matched]
     pairs = []
-    for s in wiki_left:
+    for s in draw_left:
         for p in pool_left:
             shared = len(toks(s) & toks(p))
             if shared:                       # a shared token (surname) is the anchor
@@ -517,7 +510,7 @@ def _reconcile_wiki_names(slots: list, pool: list, resolve) -> dict:
 def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
                        known: set | None = None, top_set: set | None = None,
                        espn_fields: dict | None = None, resolve=None,
-                       matchups: list | None = None, wiki_draw: dict | None = None,
+                       matchups: list | None = None, tournament_draw: dict | None = None,
                        archive_hint: str | None = None, espn_id: str | None = None,
                        event_end: str | None = None, dmax=None,
                        n_sims: int = 8000, seed: int = 11) -> dict | None:
@@ -574,31 +567,33 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
         else:
             field_pool = set(g["winner_name"]) | set(g["loser_name"])
 
-    # A released Wikipedia draw is the authoritative ORDERED bracket: it fixes the real
-    # entrants (and the event's best-of — Tennis5 for slams) so the live board runs on the
+    # A released complete draw is the authoritative ORDERED bracket: it fixes the real
+    # entrants (and the event's best-of) so the live board runs on the
     # actual draw, not a rating seed. Byes/qualifiers ride along in `slots` (None / distinct).
-    resolved_wslots = None
+    resolved_draw_slots = None
     resolved_seeds: dict = {}
-    if wiki_draw and wiki_draw.get("slots") and resolve:
-        # The wiki draw and ESPN's field/results name the SAME players in different spellings;
+    if tournament_draw and tournament_draw.get("slots") and resolve:
+        # The complete draw and ESPN's field/results name the SAME players in different spellings;
         # reconcile the residue the key can't bridge against this event's own field so an
         # eliminated player can't linger "alive" and freeze the fold at a stale early round.
         pool = list((ef or {}).get("field", [])) + list(g["loser_name"]) + list(g["winner_name"])
-        wcanon = _reconcile_wiki_names(wiki_draw["slots"], pool, resolve)
-        resolved_wslots = [(wcanon.get(s) or resolve(s)) if s else None for s in wiki_draw["slots"]]
-        # seeds are keyed by raw wiki name -> canonical, so the bracket cards match the draw
-        resolved_seeds = {(wcanon.get(k) or resolve(k)): v
-                          for k, v in (wiki_draw.get("seeds") or {}).items()}
-        # Wikipedia remains the authoritative main-draw population after completion too.
+        draw_canon = _reconcile_draw_names(tournament_draw["slots"], pool, resolve)
+        resolved_draw_slots = [
+            (draw_canon.get(slot) or resolve(slot)) if slot else None
+            for slot in tournament_draw["slots"]
+        ]
+        resolved_seeds = {(draw_canon.get(player) or resolve(player)): seed
+                          for player, seed in (tournament_draw.get("seeds") or {}).items()}
+        # The complete draw remains the authoritative population after completion too.
         # The results frame can retain a handful of qualifier/alternate spellings in rows
         # labelled as knockout rounds; discarding the known draw at the final recreated a
         # 133-player Wimbledon field and padded it to an impossible 256-slot bracket.
-        field_pool = {s for s in resolved_wslots if s is not None}
-        best_of = int(wiki_draw.get("bestOf") or best_of)
+        field_pool = {slot for slot in resolved_draw_slots if slot is not None}
+        best_of = int(tournament_draw.get("bestOf") or best_of)
 
     if len(field_pool) < 8:              # dedup-leftover fragment, not a real draw
         return None
-    if (top_set is not None and wiki_draw is None and not espn_id
+    if (top_set is not None and tournament_draw is None and not espn_id
             and len(field_pool & top_set) < 2):
         return None                      # id-less sub-tour / ITF event; ESPN id proves tour scope
 
@@ -607,7 +602,7 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
     # aliveCount 2 because one entrant appeared under two spellings so the loser identity
     # never cancelled the winner one, and Palermo shipped 32 of 32 because a frozen
     # placeholder draw supplied a field no results row could match. Both are fixed at their
-    # sources (config.PLAYER_ALIASES, draws_wiki._draw_is_settled); stating this one
+    # sources (config.PLAYER_ALIASES, draws._draw_is_settled); stating this one
     # structurally means a future name split degrades the projection without also publishing
     # a self-contradictory card.
     still_in = field_pool - eliminated
@@ -620,8 +615,8 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
     if completed:              # retrospective: pre-tournament title odds over the full field
         slots = standard_seed_draw(sorted(field, key=rank, reverse=True))
         draw_state = "final"
-    elif resolved_wslots is not None:    # live on the REAL ordered draw (exact all rounds)
-        slots = advance_slots(resolved_wslots, eliminated)
+    elif resolved_draw_slots is not None:    # live on the REAL ordered draw (exact all rounds)
+        slots = advance_slots(resolved_draw_slots, eliminated)
         draw_state = "real"
     else:                      # live from ESPN's partial matchups (seed the unknown frontier)
         mus = matchups or []
@@ -657,12 +652,18 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
                 "fieldUnreliable": True,
                 "bracket": None,
                 "bracketSize": None,
-                "wikiUrl": (wiki_draw or {}).get("url"),
+                "drawSource": (tournament_draw or {}).get("source"),
+                "drawSourceId": (tournament_draw or {}).get("sourceId"),
+                "drawSourceUrl": (tournament_draw or {}).get("sourceUrl"),
+                "drawSourceStart": (tournament_draw or {}).get("sourceStart"),
+                "drawSourceEnd": (tournament_draw or {}).get("sourceEnd"),
+                "drawEvidencePlayers": (tournament_draw or {}).get("evidencePlayers"),
+                "drawEvidenceFieldPlayers": (tournament_draw or {}).get("evidenceFieldPlayers"),
             }
         raise ValueError(
             f"{tour} tournament {name!r}: invalid {len(slots)}-slot bracket "
             f"(field={len(field_pool)}, alive={len(still_in)}, completed={completed}, "
-            f"draw_state={draw_state}, wiki_slots={len(resolved_wslots or [])})"
+            f"draw_state={draw_state}, draw_slots={len(resolved_draw_slots or [])})"
         )
     # Withhold odds entirely while placeholders hold the draw: a favourite computed against a
     # field of default-rated ghosts is not a weaker estimate, it is a wrong one. Completed
@@ -676,10 +677,10 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
     # The ACTUAL ordered bracket (real draw only): rounds joined to results, unpriced here —
     # build_tournaments prices it once the forecast log is loaded. Frontier-fold-free.
     bracket = None
-    if resolved_wslots is not None:
+    if resolved_draw_slots is not None:
         rcols = [c for c in ("winner_name", "loser_name", "score", "round") if c in main.columns]
         recs = main[rcols].to_dict("records") if not main.empty else []
-        bracket = bracket_rounds(resolved_wslots, recs, resolved_seeds)
+        bracket = bracket_rounds(resolved_draw_slots, recs, resolved_seeds)
         if not bracket_is_meaningful(bracket, len(field_pool)):
             bracket = None                       # mostly-placeholder early draw -> not worth showing
         elif completed and bracket[-1]["matches"][0].get("winner") is None:
@@ -703,15 +704,22 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
         "modelFavorite": favorite,
         "favoritePicked": bool(completed and favorite == champ),
         "projection": proj,
-        "bracket": bracket, "bracketSize": len(resolved_wslots) if bracket is not None else None,
-        "wikiUrl": (wiki_draw or {}).get("url"),
+        "bracket": bracket,
+        "bracketSize": len(resolved_draw_slots) if bracket is not None else None,
+        "drawSource": (tournament_draw or {}).get("source"),
+        "drawSourceId": (tournament_draw or {}).get("sourceId"),
+        "drawSourceUrl": (tournament_draw or {}).get("sourceUrl"),
+        "drawSourceStart": (tournament_draw or {}).get("sourceStart"),
+        "drawSourceEnd": (tournament_draw or {}).get("sourceEnd"),
+        "drawEvidencePlayers": (tournament_draw or {}).get("evidencePlayers"),
+        "drawEvidenceFieldPlayers": (tournament_draw or {}).get("evidenceFieldPlayers"),
     }
 
 
 def project_upcoming(predictor, name: str, wd: dict, tour: str, df: pd.DataFrame,
                      known: set | None, resolve, espn_id: str | None = None,
                      n_sims: int = 8000, seed: int = 11) -> dict | None:
-    """Pre-start projection for an event whose Wikipedia draw is out but which hasn't
+    """Pre-start projection for an event whose complete draw is out but which hasn't
     played a match yet (so it's absent from the results-driven event list). The full real
     bracket, no eliminations -> honest 'real' pre-tournament title odds from release."""
     wslots = [resolve(s) if s else None for s in (wd.get("slots") or [])]
@@ -745,7 +753,13 @@ def project_upcoming(predictor, name: str, wd: dict, tour: str, df: pd.DataFrame
         "modelFavorite": favorite, "favoritePicked": False,
         "projection": proj,
         "bracket": bracket, "bracketSize": len(wslots),
-        "wikiUrl": wd.get("url"),
+        "drawSource": wd.get("source"),
+        "drawSourceId": wd.get("sourceId"),
+        "drawSourceUrl": wd.get("sourceUrl"),
+        "drawSourceStart": wd.get("sourceStart"),
+        "drawSourceEnd": wd.get("sourceEnd"),
+        "drawEvidencePlayers": wd.get("evidencePlayers"),
+        "drawEvidenceFieldPlayers": wd.get("evidenceFieldPlayers"),
     }
 
 
@@ -789,7 +803,7 @@ def build_tournaments(predictor, df: pd.DataFrame, tour: str, **kw) -> list:
     top_set = set(sorted(predictor.elo.overall, key=predictor.elo.elo, reverse=True)[:100])
     espn_fields = _load_fields(tour)
     upcoming = _load_upcoming(tour)
-    wiki = _load_wiki_draws(tour)
+    draws = _load_tournament_draws(tour)
     # map ESPN player names onto the predictor's canonical spellings (accent/punct-insensitive)
     canon: dict = {}
     for k in predictor.elo.overall:
@@ -800,9 +814,10 @@ def build_tournaments(predictor, df: pd.DataFrame, tour: str, **kw) -> list:
     # inserting a word ("Citi"), which no containment rule can bridge and which the registry
     # never saw under the old title; the espnId stamped in the cached draw is what recovers it.
     resolver = EventResolver(load_registry(tour), extra=[
-        (k, v["espnId"]) for src in (wiki, espn_fields) for k, v in (src or {}).items()
+        (str(v.get("name") or k), v["espnId"])
+        for src in (draws, espn_fields) for k, v in (src or {}).items()
         if isinstance(v, dict) and v.get("espnId")])
-    wiki_by_id, wiki_by_name = _split_by_key(wiki)
+    draws_by_id, draws_by_name = _split_by_key(draws)
     fields_by_id, fields_by_name = _split_by_key(espn_fields)
     up_by_id, up_by_name = _split_by_key(upcoming)
     out = []
@@ -814,11 +829,11 @@ def build_tournaments(predictor, df: pd.DataFrame, tour: str, **kw) -> list:
                                    espn_fields=_fields_view(fields_by_id, fields_by_name,
                                                             eid, name),
                                    resolve=resolve, matchups=matchups,
-                                   wiki_draw=_lookup(wiki_by_id, wiki_by_name, eid, name),
+                                   tournament_draw=_lookup(draws_by_id, draws_by_name, eid, name),
                                    archive_hint=_archive_attrs(df, name)[0],
                                    espn_id=eid,
                                    event_end=_scheduled_end(eid, name, resolver,
-                                                            wiki_by_id, wiki_by_name),
+                                                            draws_by_id, draws_by_name),
                                    dmax=df["date"].max() if not df.empty else None, **kw)
         except ValueError as e:
             # One unprojectable event must not cost the whole board. The >128-slot guard
@@ -826,7 +841,7 @@ def build_tournaments(predictor, df: pd.DataFrame, tour: str, **kw) -> list:
             # completed Slam field to 256 — but raising it here took the ENTIRE pipeline
             # down: no export, no deploy, and every queued refresh behind it stalled. That
             # happened twice (WTA Wimbledon on 2026-07-11 and again on 07-27, once the
-            # cached wiki draw aged out of the ESPN discovery sweep and stopped pinning the
+            # cached complete draw aged out of the ESPN discovery sweep and stopped pinning the
             # field). The 07-11 fix leaned on that cache being present, which it cannot be
             # forever. Skip the event, say so loudly, and let the rest of the board ship;
             # data/health.py still validates whatever we do publish.
@@ -834,18 +849,19 @@ def build_tournaments(predictor, df: pd.DataFrame, tour: str, **kw) -> list:
             continue
         if t:
             out.append(t)
-    # Pre-start events: the Wikipedia draw is out but no match has been played yet, so the
+    # Pre-start events: a complete draw is out but no match has been played yet, so the
     # results-driven list above hasn't surfaced them. Project the real bracket now — but
     # only for events that are actually upcoming: dedup by DISPLAY name (a completed event's
     # results-feed name differs from ESPN's sponsor name) and skip anything already over.
     # Recognise an already-projected event by ID as well as by display name: after a rename
-    # the wiki cache key and the board's name no longer match, and a name-only check shipped
+    # the draw cache key and the board's name no longer match, and a name-only check shipped
     # the same tournament twice.
     seen = {t["name"] for t in out}
     seen_ids = {t.get("espnId") for t in out if t.get("espnId")}
     dmax = df["date"].max() if not df.empty else None
-    for name, wd in wiki.items():
-        wd_id = str(wd.get("espnId") or "") or (name if is_event_id(name) else None)
+    for key, wd in draws.items():
+        name = str(wd.get("name") or key)
+        wd_id = str(wd.get("espnId") or "") or (key if is_event_id(key) else None)
         if wd_id and wd_id in seen_ids:
             continue
         if _display_name(name, known) in seen or not wd.get("slots"):

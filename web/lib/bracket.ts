@@ -35,7 +35,13 @@ export type BracketEvent = {
   bracketSize: number;
   champion: string | null;
   runnerUp: string | null;
-  wikiUrl: string | null;
+  drawSource: "atp" | "wta" | "wikipedia";
+  drawSourceId: string;
+  drawSourceUrl: string;
+  drawSourceStart?: string | null;
+  drawSourceEnd?: string | null;
+  drawEvidencePlayers?: number | null;
+  drawEvidenceFieldPlayers?: number | null;
   rounds: BracketRound[];
 };
 
@@ -45,6 +51,10 @@ export type TournamentLite = {
   name: string;
   projection?: { name: string; reach?: Record<string, number> }[];
 };
+
+export function drawSourceLabel(source: BracketEvent["drawSource"]): string {
+  return source === "wikipedia" ? "Wikipedia fallback draw" : `${source.toUpperCase()} official draw`;
+}
 
 export const SECTION_SLOTS = 16;
 

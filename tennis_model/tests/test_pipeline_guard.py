@@ -89,9 +89,10 @@ def test_predictor_player_alias_guard():
     print("ok test_predictor_player_alias_guard")
 
 
-def test_alias_stale_quick_rebuild_keeps_quick_kalshi_limits(monkeypatch):
-    """Alias drift still requires a complete ratings-state rebuild, but the hourly
-    caller must retain its bounded Kalshi sweep after entering that slow path."""
+def test_alias_stale_quick_rebuild_defers_kalshi_to_shared_budget(monkeypatch):
+    """Alias drift still rebuilds the ratings state, but the tour builder returns its
+    frame without starting a private Kalshi allowance. The quick caller owns one shared
+    benchmark budget after every tour's forecast output is ready."""
     import tennis_model.data.kalshi as kalshi
     import tennis_model.eval.kalshi_ledger as kalshi_ledger
 
@@ -138,15 +139,15 @@ def test_alias_stale_quick_rebuild_keeps_quick_kalshi_limits(monkeypatch):
     monkeypatch.setattr(
         kalshi_ledger,
         "refresh_ledger",
-        lambda tour, df, oos=None: ledgers.append((tour, df, oos)),
+        lambda tour, df, oos=None, requote=True: ledgers.append((tour, df, oos, requote)),
     )
 
-    pipeline.build_tour_quick("atp")
+    assert pipeline.build_tour_quick("atp") is frame
 
     assert saved == ["atp"], "alias drift no longer triggered a complete predictor rebuild"
-    assert budgets == [pipeline.KALSHI_QUICK_BUDGET_S]
-    assert snapshots == [("atp", pipeline.QUICK_KALSHI_DAYS)]
-    assert ledgers == [("atp", frame, None)]
+    assert budgets == []
+    assert snapshots == []
+    assert ledgers == []
 
     saved.clear()
     budgets.clear()
@@ -157,7 +158,96 @@ def test_alias_stale_quick_rebuild_keeps_quick_kalshi_limits(monkeypatch):
     assert saved == ["atp"]
     assert budgets == [pipeline.KALSHI_FULL_BUDGET_S]
     assert snapshots == [("atp", None)]
-    assert ledgers == [("atp", frame, None)]
+    assert ledgers == [("atp", frame, None, True)]
+
+
+def test_quick_kalshi_uses_one_budget_and_never_requotes(monkeypatch):
+    import tennis_model.data.kalshi as kalshi
+    import tennis_model.eval.kalshi_ledger as kalshi_ledger
+
+    frames = {"atp": object(), "wta": object()}
+    budgets, snapshots, ledgers = [], [], []
+
+    @contextmanager
+    def _time_budget(seconds):
+        budgets.append(seconds)
+        yield
+
+    monkeypatch.setattr(kalshi, "time_budget", _time_budget)
+    monkeypatch.setattr(
+        kalshi,
+        "refresh_snapshots",
+        lambda tour, recent_days=None: snapshots.append((tour, recent_days)),
+    )
+    monkeypatch.setattr(
+        kalshi_ledger,
+        "refresh_ledger",
+        lambda tour, df, oos=None, requote=True: ledgers.append((tour, df, oos, requote)),
+    )
+
+    pipeline._quick_kalshi(["atp", "wta"], frames)
+
+    assert budgets == [pipeline.KALSHI_QUICK_BUDGET_S]
+    assert snapshots == [
+        ("atp", pipeline.QUICK_KALSHI_DAYS),
+        ("wta", pipeline.QUICK_KALSHI_DAYS),
+    ]
+    assert ledgers == [
+        ("atp", frames["atp"], None, False),
+        ("wta", frames["wta"], None, False),
+    ]
+
+
+def test_quick_kalshi_failure_does_not_starve_the_other_tour(monkeypatch):
+    import tennis_model.data.kalshi as kalshi
+    import tennis_model.eval.kalshi_ledger as kalshi_ledger
+
+    seen = []
+
+    @contextmanager
+    def _time_budget(_seconds):
+        yield
+
+    def snapshots(tour, recent_days=None):
+        seen.append(("snapshot", tour, recent_days))
+        if tour == "atp":
+            raise RuntimeError("temporary ATP market failure")
+
+    monkeypatch.setattr(kalshi, "time_budget", _time_budget)
+    monkeypatch.setattr(kalshi, "refresh_snapshots", snapshots)
+    monkeypatch.setattr(
+        kalshi_ledger,
+        "refresh_ledger",
+        lambda tour, df, oos=None, requote=True: seen.append(("ledger", tour, requote)),
+    )
+
+    pipeline._quick_kalshi(["atp", "wta"], {"atp": object(), "wta": object()})
+
+    assert seen == [
+        ("snapshot", "atp", pipeline.QUICK_KALSHI_DAYS),
+        ("snapshot", "wta", pipeline.QUICK_KALSHI_DAYS),
+        ("ledger", "wta", False),
+    ]
+
+
+def test_download_layer_reuses_live_events_for_complete_draws(monkeypatch):
+    import tennis_model.data.download as download
+    import tennis_model.data.draws as draws
+    import tennis_model.data.live as live
+
+    tours = ("atp", "wta")
+    shared = {"atp": [object()], "wta": [object()]}
+    calls = []
+    monkeypatch.setattr(live, "download_live", lambda got: calls.append(("live", got)) or shared)
+    monkeypatch.setattr(
+        draws,
+        "download_tournament_draws",
+        lambda got, events_by_tour=None: calls.append(("draws", got, events_by_tour)),
+    )
+
+    download._download_live_and_draws(tours)
+
+    assert calls == [("live", tours), ("draws", tours, shared)]
 
 
 def test_quick_refresh_updates_current_atp_stats_before_export(monkeypatch):
@@ -165,7 +255,7 @@ def test_quick_refresh_updates_current_atp_stats_before_export(monkeypatch):
     Quick mode must refresh that lightweight overlay before loading/exporting matches;
     WTA's rate-limited stats API remains outside the hourly path."""
     import tennis_model.data.download as download
-    import tennis_model.data.draws_wiki as draws_wiki
+    import tennis_model.data.draws as draws
     import tennis_model.data.live as live
     import tennis_model.data.rankings as rankings
 
@@ -175,18 +265,35 @@ def test_quick_refresh_updates_current_atp_stats_before_export(monkeypatch):
         "download_tml_stats",
         lambda **kwargs: calls.append(("atp_stats", kwargs)) or ([], []),
     )
-    monkeypatch.setattr(live, "download_live", lambda tours: calls.append(("live", tuple(tours))))
+    shared_events = {"atp": [object()], "wta": [object()]}
     monkeypatch.setattr(
-        draws_wiki,
-        "download_wiki_draws",
-        lambda tours: calls.append(("wiki", tuple(tours))),
+        live,
+        "download_live",
+        lambda tours: calls.append(("live", tuple(tours))) or shared_events,
+    )
+    monkeypatch.setattr(
+        draws,
+        "download_tournament_draws",
+        lambda tours, events_by_tour=None: calls.append(
+            ("draws", tuple(tours), events_by_tour)
+        ),
     )
     monkeypatch.setattr(
         rankings,
         "download_rankings",
         lambda tours: calls.append(("rankings", tuple(tours))),
     )
-    monkeypatch.setattr(pipeline, "build_tour_quick", lambda tour: calls.append(("build", tour)))
+    frames = {"atp": object(), "wta": object()}
+    monkeypatch.setattr(
+        pipeline,
+        "build_tour_quick",
+        lambda tour: calls.append(("build", tour)) or frames[tour],
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "_quick_kalshi",
+        lambda tours, got: calls.append(("kalshi", tuple(tours), got)),
+    )
     monkeypatch.setattr(pipeline, "_kalshi_report", lambda tours: calls.append(("report", tuple(tours))))
 
     monkeypatch.setattr(sys, "argv", ["pipeline", "--tour", "all", "--quick"])
@@ -194,10 +301,11 @@ def test_quick_refresh_updates_current_atp_stats_before_export(monkeypatch):
     assert calls == [
         ("atp_stats", {"full": False, "retries": 1}),
         ("live", ("atp", "wta")),
-        ("wiki", ("atp", "wta")),
+        ("draws", ("atp", "wta"), shared_events),
         ("rankings", ("atp", "wta")),
         ("build", "atp"),
         ("build", "wta"),
+        ("kalshi", ("atp", "wta"), frames),
         ("report", ("atp", "wta")),
     ]
 

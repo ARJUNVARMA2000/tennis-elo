@@ -380,15 +380,21 @@ def build_brackets_payload(tournaments: list) -> list:
     the tournaments entry (mutates ``tournaments`` in place). Keeps tournaments.json small —
     the home page fetches it every visit — while /bracket loads brackets.json on demand.
 
-    A tournaments entry has a bracket iff a released ordered draw exists (the Wikipedia
-    path). ``drawStatus == "real"`` is overloaded (the ESPN-frontier path returns "real"
+    A tournaments entry has a bracket iff a released ordered draw exists. ``drawStatus ==
+    "real"`` is overloaded (the ESPN-frontier path returns "real"
     with no ordered draw), so presence can't be inferred from it — ``hasBracket`` is explicit.
     """
     brackets = []
     for t in tournaments:
         rounds = t.pop("bracket", None)
         size = t.pop("bracketSize", None)
-        url = t.pop("wikiUrl", None)
+        source = t.pop("drawSource", None)
+        source_id = t.pop("drawSourceId", None)
+        source_url = t.pop("drawSourceUrl", None)
+        source_start = t.pop("drawSourceStart", None)
+        source_end = t.pop("drawSourceEnd", None)
+        evidence_players = t.pop("drawEvidencePlayers", None)
+        evidence_field_players = t.pop("drawEvidenceFieldPlayers", None)
         t["hasBracket"] = bool(rounds)
         if not rounds:
             continue
@@ -396,7 +402,11 @@ def build_brackets_payload(tournaments: list) -> list:
             "name": t.get("name"), "surface": t.get("surface"), "level": t.get("level"),
             "bestOf": t.get("bestOf"), "start": t.get("start"), "end": t.get("end"),
             "status": t.get("status"), "drawSize": t.get("drawSize"), "bracketSize": size,
-            "champion": t.get("champion"), "runnerUp": t.get("runnerUp"), "wikiUrl": url,
+            "champion": t.get("champion"), "runnerUp": t.get("runnerUp"),
+            "drawSource": source, "drawSourceId": source_id, "drawSourceUrl": source_url,
+            "drawSourceStart": source_start, "drawSourceEnd": source_end,
+            "drawEvidencePlayers": evidence_players,
+            "drawEvidenceFieldPlayers": evidence_field_players,
             "rounds": rounds,
         })
     return brackets

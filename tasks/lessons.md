@@ -19,6 +19,10 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 ## Draws, rounds & live events — [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md)
 
+- Metadata aliases and draw locators are different namespaces: one title may find the event
+  article while a different provider ID/title locates its bracket. (2026-07-29)
+- Date overlap plus a token or a few shared players may rank source candidates, but only
+  near-complete field evidence may attach an official draw to an event. (2026-07-29)
 - Put the model between two deterministic layers, and let the cheap one run first — the scan that enumerates candidates is most of the value. (2026-07-28)
 - "It never changes once released" is a claim about the FINAL state; a cache keyed on it must also check the state it was captured in. (2026-07-27)
 - Display names are for display; joins use the event ID; the name history IS the alias table. Where no id exists, join on evidence, never on string similarity. (2026-07-28)
@@ -33,6 +37,8 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 ## Gates & health checks — [`lessons/gates-and-health.md`](lessons/gates-and-health.md)
 
+- A repair that runs only on the slow path is not an invariant: enforce safety after the
+  fast path's frozen-field merge, across the whole retained artifact. (2026-07-29)
 - Validating every item that EXISTS cannot detect an item that vanished — derive expected
   membership independently, then carry the same keys through build, UI, and live serving. (2026-07-28)
 - A fallback that preserves membership must also preserve settled facts already present in its

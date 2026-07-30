@@ -32,6 +32,7 @@ import itertools
 import json
 import os
 import shutil
+import urllib.parse
 from collections import Counter
 from datetime import UTC, datetime
 
@@ -409,6 +410,11 @@ def _pow2(n) -> bool:
 # Madrid/Rome). The wiki bracket parser guarantees the SLOTS are a power of two
 # (draws_wiki._parse_bracket); drawSize counts entrants, so byes make it one of these.
 _BYE_DRAW_SIZES = frozenset({24, 28, 48, 56, 96})
+_DRAW_SOURCE_HOSTS = {
+    "atp": "www.protennislive.com",
+    "wta": "wtafiles.wtatennis.com",
+    "wikipedia": "en.wikipedia.org",
+}
 
 
 def _real_draw_size_ok(n) -> bool:
@@ -629,6 +635,39 @@ def _check_brackets(out: list, tour: str, brackets: list, tournaments) -> None:
         if status not in _STATUSES:
             out.append(f"{tour}: bracket {name!r} has bad status {status!r}")
 
+        # Provenance is part of a published bracket, not optional decoration. It makes the
+        # first-party/Wikipedia fallback observable and prevents a source-specific field from
+        # silently becoming authoritative again. Official artifacts additionally carry the
+        # date/player evidence that attached the provider id to this ESPN event.
+        source, source_id, source_url = (
+            ev.get("drawSource"), ev.get("drawSourceId"), ev.get("drawSourceUrl"))
+        if source not in _DRAW_SOURCE_HOSTS:
+            out.append(f"{tour}: bracket {name!r} has invalid drawSource {source!r}")
+        if not source_id:
+            out.append(f"{tour}: bracket {name!r} is missing drawSourceId")
+        host = urllib.parse.urlparse(str(source_url or "")).hostname
+        if source in _DRAW_SOURCE_HOSTS and host != _DRAW_SOURCE_HOSTS[source]:
+            out.append(f"{tour}: bracket {name!r} drawSource {source!r} has URL host "
+                       f"{host!r} (expected {_DRAW_SOURCE_HOSTS[source]!r})")
+        if source in ("atp", "wta"):
+            if source != tour:
+                out.append(f"{tour}: bracket {name!r} uses the other tour's official source {source!r}")
+            evidence = ev.get("drawEvidencePlayers")
+            field_evidence = ev.get("drawEvidenceFieldPlayers")
+            if (not isinstance(evidence, int) or not isinstance(field_evidence, int)
+                    or field_evidence < 2 or evidence < 2 or evidence * 4 < field_evidence * 3):
+                out.append(f"{tour}: bracket {name!r} official draw matches only "
+                           f"{evidence!r}/{field_evidence!r} event players (minimum 75%)")
+            event_start = pd.to_datetime(ev.get("start"), errors="coerce")
+            event_end = pd.to_datetime(ev.get("end") or ev.get("start"), errors="coerce")
+            source_start = pd.to_datetime(ev.get("drawSourceStart"), errors="coerce")
+            source_end = pd.to_datetime(ev.get("drawSourceEnd"), errors="coerce")
+            if (pd.isna(event_start) or pd.isna(event_end) or pd.isna(source_start)
+                    or pd.isna(source_end) or max(event_start, source_start) > min(event_end, source_end)):
+                out.append(f"{tour}: bracket {name!r} official draw calendar does not overlap "
+                           f"the tournament ({ev.get('drawSourceStart')}..{ev.get('drawSourceEnd')} "
+                           f"vs {ev.get('start')}..{ev.get('end')})")
+
         # structure: power-of-two size, rounds halve to a single final, labels match width
         if not _pow2(size):
             out.append(f"{tour}: bracket {name!r} bracketSize {size!r} is not a power of two")
@@ -649,7 +688,7 @@ def _check_brackets(out: list, tour: str, brackets: list, tournaments) -> None:
                            f"(expected {want!r} for {len(ms)} matches)")
 
         # drawSize: count round-0 slots the way tournaments.json drawSize does — field_pool is
-        # the non-null wiki slots, which INCLUDES unresolved "Qualifier N" placeholders (an
+        # the non-null complete-draw slots, which INCLUDES unresolved qualifier placeholders (an
         # early-captured draw legitimately carries them; the frozen-wiki capture never backfills
         # the names). Only byes (null) are excluded on both sides. Excluding placeholders here
         # would false-positive against drawSize (Gstaad's early draw, 2026-07-13).
@@ -1084,7 +1123,7 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
                 shown = ", ".join(repr(n) for n in names)
                 out.append(f"{tour}: espnId {eid} ships on {len(names)} cards ({shown}) — "
                            f"one event projected twice, so at least one is a partial record")
-        # A live event that HAD a bracket and now doesn't: the cached Wikipedia draw pinning
+        # A live event that HAD a bracket and now doesn't: the cached complete draw pinning
         # its field has gone. That is the 2026-07-27 Wimbledon class — the draw aged out of
         # the ESPN discovery window, the field fell back to a noisy results union and padded
         # to an impossible 256-slot bracket, taking the whole board down. Losing the bracket
@@ -1098,7 +1137,7 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
                        and t.get("hasBracket")}
             for gone in sorted((was & now_live) - has_now):
                 out.append(f"{tour}: live tournament {gone!r} lost its bracket since the "
-                           f"previous run — its cached Wikipedia draw may have aged out")
+                           f"previous run — its cached complete draw may have aged out")
         _tournament_name_problems(out, tour, ts)
 
     coverage = data.get("event_coverage")

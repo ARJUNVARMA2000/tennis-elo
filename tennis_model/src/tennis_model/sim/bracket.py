@@ -2,7 +2,7 @@
 
 Unlike ``sim/draws.advance_slots`` — a *frontier* fold that only tracks who is still
 alive — this rebuilds the ACTUAL per-round history of an event by pairing the
-authoritative ordered Wikipedia draw (``resolved_wslots``) forward and joining each
+validated complete ordered draw forward and joining each
 adjacent pair to the real result. ``advance_slots``'s ``_winner()`` returns the
 non-eliminated side, so once a player who won round *k* later loses round *k+1* both are
 in the eliminated set and the fold would advance the WRONG player through the historical
@@ -13,7 +13,7 @@ Pricing is a separate pass (:func:`price_bracket`) so this module stays pure and
 tested: it takes ``price_fn``/``logged_fn`` callables and never imports the predictor or
 the forecast log. Callers (``sim/tournaments.build_tournaments``) wire those in.
 
-Slot vocabulary (from ``draws_wiki`` -> ``_reconcile_wiki_names``):
+Slot vocabulary (from ``data.draws`` -> ``_reconcile_draw_names``):
   * a canonical player name (``str``)              -> a real entrant
   * ``None``                                       -> a bye (round 0) or TBD (later round)
   * ``"Qualifier N"`` / ``"Lucky Loser"`` (``str``) -> an unresolved placeholder

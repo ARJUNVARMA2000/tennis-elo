@@ -26,7 +26,7 @@ UPCOMING_COLS = ["tourney_name", "espn_id", "tourney_date", "round", "playerA", 
 
 def load_upcoming(tour: str) -> pd.DataFrame:
     """The tour's scheduled / in-progress matchups: ESPN's day-by-day feed unioned with the
-    full first round from any released Wikipedia draw (so the board shows every opening-round
+    full first round from any released complete draw (so the board shows every opening-round
     match at release, not just the handful ESPN has named). Deduped by event + unordered
     player pair (ESPN wins ties). A missing or corrupt source is a no-op, never fatal."""
     frames = []
@@ -37,18 +37,18 @@ def load_upcoming(tour: str) -> pd.DataFrame:
         except Exception:  # noqa: BLE001 — a corrupt upcoming file must not break anything
             pass
     try:
-        from ..data.draws_wiki import wiki_upcoming_rows
-        rows = wiki_upcoming_rows(tour)
+        from ..data.draws import tournament_draw_upcoming_rows
+        rows = tournament_draw_upcoming_rows(tour)
         if rows:
             frames.append(pd.DataFrame(rows))
-    except Exception:  # noqa: BLE001 — the wiki overlay is a bonus, never a build failure
+    except Exception:  # noqa: BLE001 — the complete-draw overlay is a bonus, never fatal
         pass
     if not frames:
         return pd.DataFrame(columns=UPCOMING_COLS)
     df = pd.concat(frames, ignore_index=True).reindex(columns=UPCOMING_COLS)
     pair = [frozenset((str(a), str(b))) for a, b in zip(df["playerA"], df["playerB"])]
     # Dedup on the event ID where both rows carry one, else the name. The ESPN feed and the
-    # Wikipedia overlay name the same event differently, so the same first-round matchup was
+    # complete-draw overlay can name the same event differently, so a first-round matchup was
     # only ever collapsed when the two happened to agree on the title.
     ev_key = df["espn_id"].astype("object").where(df["espn_id"].notna(),
                                                   df["tourney_name"].astype(str))

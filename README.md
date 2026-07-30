@@ -73,6 +73,8 @@ data ─┬─ surface Elo + cross-surface transfer (dynamic K, margin-of-victor
       seed-bagged XGBoost combiner (5×) ──Platt──> calibrated P(A beats B) + set distribution
             ┌────────────┴────────────┐
      match predictor            Monte Carlo draw simulator
+                                      ↑
+                    validated ATP/WTA draw → Wikipedia fallback → ESPN partial frontier
 ```
 
 ## Data — hourly fresh (the hard part)
@@ -96,11 +98,18 @@ deduplicated with stats-bearing rows winning:
 - **Official live rankings**: scraped hourly from live-tennis.eu (`data/rankings.py`)
   to put real ATP/WTA ranks and movement next to the model's Elo board (display only,
   never a model input).
+- **Complete tournament draws**: the first-party ATP and WTA main-draw PDFs are preferred;
+  WTA provider IDs come from its official tournament API, while stable ATP IDs are recovered
+  from the historical match archive. Every candidate must agree with the ESPN event calendar
+  and at least 75% of its live field before it can attach to that event's stable `espnId`.
+  Wikipedia is the complete-draw fallback, and ESPN's day-by-day order of play remains the
+  honest partial frontier when neither complete source is available. The exported bracket
+  records which source won.
 - **Style**: `JeffSackmann/tennis_MatchChartingProject`; **odds benchmark**:
   Tennis-Data.co.uk closing odds (Pinnacle/Bet365), auto-downloaded, never a model input.
 
-Results (the dominant signal) stay current to the hour via **ESPN's live scoreboard
-API**. Names are canonicalised across sources so the same player isn't split. A
+Results (the dominant signal) and eliminations stay current to the hour via **ESPN's live
+scoreboard API**. Names are canonicalised across sources so the same player isn't split. A
 **GitHub Action** ([`.github/workflows/refresh.yml`](.github/workflows/refresh.yml))
 re-pulls ESPN results and redeploys **hourly**, does a full re-download + retrain of
 both tours daily, snapshots the raw data to a release asset weekly (upstreams keep
@@ -135,13 +144,13 @@ web/                 Next.js 16 app (14 views, ATP/WTA toggle, static export)
 
 ```bash
 # 1. model: download data, train both tours, write JSON
-cd tennis_model && pip install -r requirements.txt
-PYTHONPATH=src python -m tennis_model.data.download --kind all
-PYTHONPATH=src python -m tennis_model.pipeline --tour all --backtest
+cd tennis_model
+PYTHONPATH=src uv run --with-requirements requirements.txt python -m tennis_model.data.download --kind all
+PYTHONPATH=src uv run --with-requirements requirements.txt python -m tennis_model.pipeline --tour all --backtest
 
 # ad-hoc queries
-PYTHONPATH=src python -m tennis_model.cli predict "Jannik Sinner" "Carlos Alcaraz" --surface Hard --bo 5
-PYTHONPATH=src python -m tennis_model.cli project-slam "Wimbledon" 2025
+PYTHONPATH=src uv run --with-requirements requirements.txt python -m tennis_model.cli predict "Jannik Sinner" "Carlos Alcaraz" --surface Hard --bo 5
+PYTHONPATH=src uv run --with-requirements requirements.txt python -m tennis_model.cli project-slam "Wimbledon" 2025
 
 # 2. web: dev server (reads tennis_model JSON, mirrored to web/public/data)
 cd ../web && npm install && npm run dev

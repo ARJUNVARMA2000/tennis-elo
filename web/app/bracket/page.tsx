@@ -11,6 +11,7 @@ import { tournamentTier, heat } from "@/lib/ui";
 import {
   type BracketEvent,
   type TournamentLite,
+  drawSourceLabel,
   resolveEventIndex,
   sectionCount,
   sectionLabels,
@@ -26,7 +27,7 @@ export default function Bracket() {
       <PageHead
         eyebrow={`${tour.toUpperCase()} · draws`}
         title="Brackets"
-        sub="The actual tournament draw, round by round. Every match carries the model's pre-match win probability; completed rounds show the real result, scores and upset flags."
+        sub="The complete tournament draw, round by round — first-party ATP/WTA when available, with a labeled Wikipedia fallback. Every match carries the model's pre-match win probability; ESPN results advance completed rounds with scores and upset flags."
       />
       {/* useSearchParams (shareable ?e= links) needs a Suspense boundary under static export */}
       <Suspense fallback={<Loading />}>
@@ -83,7 +84,8 @@ function BracketInner() {
   if (!events.length)
     return (
       <Empty>
-        No official draw is on file right now — brackets appear once an event&apos;s draw is released.
+        No complete ordered draw is on file right now. Active tournament cards still use
+        ESPN&apos;s posted matchups, and this page appears once an ATP/WTA or Wikipedia draw resolves.
       </Empty>
     );
   if (!ev) return <Empty>That event isn&apos;t available — pick another from the list.</Empty>;
@@ -167,11 +169,11 @@ function BracketInner() {
       <div className="mono mt-3 text-[10px] leading-relaxed text-[var(--color-faint)]">
         Win % is P(top player). Completed matches show the forecast logged before play;
         &quot;retro&quot; marks a retrospective estimate. Byes and unreleased qualifiers are unpriced.
-        {ev.wikiUrl && (
+        {ev.drawSourceUrl && (
           <>
             {" · "}
-            <a href={ev.wikiUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
-              draw source
+            <a href={ev.drawSourceUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
+              {drawSourceLabel(ev.drawSource)}
             </a>
           </>
         )}

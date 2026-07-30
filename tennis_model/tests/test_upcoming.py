@@ -95,14 +95,14 @@ def test_upcoming_dedup_keys_on_the_event_id_when_both_rows_have_one(tmp_path, m
     first-round matchup only ever collapsed when the two happened to agree on the title."""
     from tennis_model.model import upcoming as up
 
-    from tennis_model.data import draws_wiki
+    from tennis_model.data import draws
 
-    # `load_upcoming` imports wiki_upcoming_rows INSIDE the function, so it must be patched
+    # `load_upcoming` imports the draw overlay INSIDE the function, so it must be patched
     # on its own module — patching the attribute on `upcoming` is a silent no-op.
     monkeypatch.setattr(up, "live_dir", lambda tour: tmp_path)
 
     def _overlay(rows):
-        monkeypatch.setattr(draws_wiki, "wiki_upcoming_rows", lambda tour: rows)
+        monkeypatch.setattr(draws, "tournament_draw_upcoming_rows", lambda tour: rows)
 
     (tmp_path / "upcoming.csv").write_text(
         "tourney_name,espn_id,tourney_date,round,playerA,playerB\n"

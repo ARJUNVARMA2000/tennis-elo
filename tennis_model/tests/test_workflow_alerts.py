@@ -27,9 +27,11 @@ REPO = Path(__file__).resolve().parents[2]
 SCRIPT = REPO / ".github" / "scripts" / "report-deploy-health.sh"
 DATA_SCRIPT = REPO / ".github" / "scripts" / "report-data-health.sh"
 MODE_SCRIPT = REPO / ".github" / "scripts" / "decide-mode.sh"
+SCOPE_SCRIPT = REPO / ".github" / "scripts" / "decide-push-scope.sh"
 ALIAS_SCRIPT = REPO / ".github" / "scripts" / "open-alias-pr.sh"
 WORKFLOW = REPO / ".github" / "workflows" / "refresh.yml"
 ALIAS_WORKFLOW = REPO / ".github" / "workflows" / "propose-aliases.yml"
+TEST_WORKFLOW = REPO / ".github" / "workflows" / "test.yml"
 
 # Windows dev boxes may lack bash; CI (ubuntu-latest) never does, which is where it counts.
 _BASH = shutil.which("bash")
@@ -439,7 +441,61 @@ def test_workflow_invokes_this_script():
     assert ".github/scripts/report-data-health.sh" in wf
     assert MODE_SCRIPT.exists(), f"missing {MODE_SCRIPT}"
     assert ".github/scripts/decide-mode.sh" in wf
+    assert SCOPE_SCRIPT.exists(), f"missing {SCOPE_SCRIPT}"
+    assert ".github/scripts/decide-push-scope.sh" in wf
     assert "if: always()" in wf, "the never-ran guard only matters under if: always()"
+
+
+def _run_scope(event: str, files: list[str]) -> str:
+    with tempfile.TemporaryDirectory() as td:
+        output = Path(td) / "output"
+        env = {
+            **os.environ,
+            "EVENT_NAME": event,
+            "CHANGED_FILES": "\n".join(files),
+            "GITHUB_OUTPUT": str(output),
+        }
+        p = subprocess.run([_BASH, str(SCOPE_SCRIPT)], cwd=REPO, env=env,
+                           capture_output=True, text=True, timeout=30)
+        assert p.returncode == 0, p.stderr
+        return output.read_text(encoding="utf-8").strip()
+
+
+def test_push_scope_only_skips_data_refresh_for_web_and_neutral_docs():
+    assert _run_scope("schedule", ["web/app/page.tsx"]) == "scope=data"
+    assert _run_scope("push", ["web/app/page.tsx"]) == "scope=web"
+    assert _run_scope("push", ["web/app/page.tsx", "tasks/todo.md"]) == "scope=web"
+    assert _run_scope("push", ["firebase.json"]) == "scope=web"
+    assert _run_scope("push", ["web/app/page.tsx", "tennis_model/src/x.py"]) == "scope=data"
+
+
+def test_master_deploy_is_test_gated_and_docs_do_not_trigger_it():
+    wf = WORKFLOW.read_text(encoding="utf-8")
+    tests = TEST_WORKFLOW.read_text(encoding="utf-8")
+    assert "paths-ignore:" in wf and "tasks/**" in wf
+    assert "uses: ./.github/workflows/test.yml" in wf
+    assert "needs: tests" in wf
+    assert "needs.tests.result == 'success'" in wf
+    assert "workflow_call:" in tests
+    assert "branches-ignore: [master]" in tests
+
+
+def test_web_push_keeps_both_integrity_gates_and_uses_cached_mirror():
+    wf = WORKFLOW.read_text(encoding="utf-8")
+    assert "steps.scope.outputs.scope != 'web'" in wf
+    assert "steps.scope.outputs.scope == 'web'" in wf
+    assert "python -m tennis_model.data.health --gate" in wf
+    assert "python -m tennis_model.data.health" in wf
+    assert "Verify live Firebase deploy" in wf
+
+
+def test_deploy_inputs_are_cached_and_firebase_tooling_is_immutable():
+    wf = WORKFLOW.read_text(encoding="utf-8")
+    assert "cache: pip" in wf
+    assert "cache: npm" in wf
+    assert "path: web/.next/cache" in wf
+    assert "firebaseToolsVersion: \"15.25.0\"" in wf
+    assert "FirebaseExtended/action-hosting-deploy@500ac625ca2dd40cbd15f7659af953801858032a" in wf
 
 
 def test_no_alert_logic_is_left_inline_in_the_workflow():

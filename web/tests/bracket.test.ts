@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   type BracketEvent,
+  drawSourceLabel,
   finalsColumns,
   isPlaceholder,
   isRealSlot,
@@ -33,11 +34,19 @@ function mkEvent(size: number, name = "Test", extra: Partial<BracketEvent> = {})
   return {
     name, surface: "Hard", level: "Grand Slam", bestOf: 5, start: "2026-06-29",
     end: "2026-07-12", status: "live", drawSize: size, bracketSize: size,
-    champion: null, runnerUp: null, wikiUrl: null, rounds, ...extra,
+    champion: null, runnerUp: null,
+    drawSource: "wikipedia", drawSourceId: "test",
+    drawSourceUrl: "https://en.wikipedia.org/wiki/Test", rounds, ...extra,
   };
 }
 
 describe("slot labels", () => {
+  it("labels first-party and fallback draw provenance explicitly", () => {
+    expect(drawSourceLabel("atp")).toBe("ATP official draw");
+    expect(drawSourceLabel("wta")).toBe("WTA official draw");
+    expect(drawSourceLabel("wikipedia")).toBe("Wikipedia fallback draw");
+  });
+
   it("classifies real / placeholder / bye / tbd", () => {
     expect(isRealSlot("Jannik Sinner")).toBe(true);
     expect(isRealSlot(null)).toBe(false);

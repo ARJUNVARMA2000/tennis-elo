@@ -9,7 +9,7 @@ guess (July -> Grass), mislabeling the mid-July clay swing.
 `resolve_surface` closes that gap with a priority chain:
     real archive value  ->  Wikipedia main-article surface  ->  month-of-year fallback
 The Wikipedia surfaces are fetched + cached to ``live/<tour>/wiki_surface.json`` by the
-download step (``data.draws_wiki.download_wiki_draws``); this module only READS that cache,
+draw refresh (``data.draws.download_tournament_draws``); this module only READS that cache,
 so it never touches the network and is import-safe for the offline loader (``data.results``).
 """
 
@@ -20,7 +20,7 @@ import re
 
 from ..config import EVENT_TIER_FALLBACK, MONTH_SURFACE, live_dir
 
-# Paired with the writer in data/draws_wiki.download_wiki_draws (like wiki_draws.json).
+# Paired with the metadata writer invoked by data.draws.download_tournament_draws.
 _WIKI_SURFACE_FILE = "wiki_surface.json"
 _WIKI_CATEGORY_FILE = "wiki_category.json"
 

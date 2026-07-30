@@ -448,14 +448,17 @@ EVENT_REGISTRY_RETENTION_DAYS = 400
 # with three players alive for NINE days because completion keyed only on that row.
 EVENT_CALENDAR_COMPLETE_GRACE_DAYS = 2
 
-# How long a cached Wikipedia draw survives after ESPN stops listing its event. MUST exceed
+# How long a cached complete draw survives after ESPN stops listing its event. MUST exceed
 # the 40-day `sim.tournaments.recent_tournaments` window: the cache has to outlive the
 # discovery sweep it was populated from, because `build_tournaments` keeps projecting an event
 # for weeks after ESPN drops it. Pruning on "is ESPN still tracking this?" deleted Wimbledon's
 # draw mid-projection — the field lost its anchor, fell back to a noisy results union and
 # padded to an impossible 256-slot bracket, taking the whole board down (2026-07-11, and again
 # on 07-27 when the 07-11 fix turned out to depend on that very cache still being there).
-WIKI_DRAW_RETENTION_DAYS = 45
+TOURNAMENT_DRAW_RETENTION_DAYS = 45
+# Compatibility for the Wikipedia metadata helpers while draw authority itself is
+# source-neutral (`data/draws.py`). New draw code uses TOURNAMENT_DRAW_RETENTION_DAYS.
+WIKI_DRAW_RETENTION_DAYS = TOURNAMENT_DRAW_RETENTION_DAYS
 
 
 HEALTH_MAX_UPCOMING_START_LAG_DAYS = 3  # an "upcoming" event whose start date is further past
@@ -505,11 +508,9 @@ def odds_dir(tour: str) -> Path:
 
 
 # ---------------------------------------------------------------------------
-# Tournament draws (Wikipedia / MediaWiki API) — the authoritative full draw.
-# ESPN's scoreboard fills a pre-created bracket with real names only via the daily
-# order of play, so it never carries a complete draw at release; Wikipedia posts the
-# ORDERED bracket the day the official draw is released (verified down to ATP-250).
-# data/draws_wiki.py fetches each current/upcoming event's draw article and parses it.
+# Wikipedia fallback draw + event metadata (MediaWiki API). First-party ATP/WTA artifacts
+# are selected in data/draws.py; this provider supplies an ordered fallback plus the
+# main-article surface/tier fields. ESPN remains the incremental partial frontier.
 # ---------------------------------------------------------------------------
 WIKI_API = "https://en.wikipedia.org/w/api.php"
 # Wikimedia etiquette REQUIRES a descriptive User-Agent with contact info (generic UAs
@@ -519,11 +520,34 @@ WIKI_UA = "TennisEloModel/1.0 (https://github.com/; av3342@columbia.edu)"
 # "– Men's singles"/"– Women's singles" is appended at resolve time). Only needed when
 # the search API can't disambiguate; keep small, extend when draws_wiki logs a miss.
 WIKI_TITLE_OVERRIDES: dict[str, str] = {
-    # ESPN's sponsor title shares no distinctive token with the article name, so the
-    # anchor-gated search cannot bridge it and the event resolved no draw, no surface and no
-    # tier — it shipped as a generic "ATP Tour" card until the tier-did-not-resolve advisory
-    # named it (2026-07-28).
+    # Main-article metadata alias only: it supplies Los Cabos surface/tier evidence. A main
+    # page is not necessarily a singles-bracket page, which is why draw location now belongs
+    # to the first-party/source-neutral architecture instead of reusing this alias.
     "Mifel Tennis Open by Telcel Oppo": "Los Cabos Open",
+}
+
+# Provider tournament ids are source locators, never event join keys. Normal events resolve
+# from official calendars / the historical ATP id archive and persist under events.json
+# `sourceIds`; this reviewed table is only for sponsor-renamed or newly moved exceptions.
+OFFICIAL_DRAW_ID_OVERRIDES: dict[str, dict[str, str]] = {
+    "atp": {
+        # Mifel's ESPN title is the stable ATP Los Cabos event (official id 7480).
+        "424-2026": "7480",
+        # Combined-event sponsor title; ATP's stable Washington id is 418.
+        "888-2026": "418",
+        # Estoril moved from its usual spring slot in 2026, outside the archive resolver's
+        # seasonal candidate window. The provider id itself remains stable.
+        "400-2026": "7290",
+        # Canadian Masters sponsor title; ATP's Toronto edition uses provider id 421.
+        "421-2026": "421",
+    },
+    "wta": {
+        "888-2026": "1045",   # Washington DC
+        "875-2026": "2064",   # Odlum Brown VanOpen / Vancouver 125
+        "1073-2026": "1163",  # Axeria Open / Targu Mures 125
+        "421-2026": "806",    # National Bank Open / Montreal
+        "961-2026": "2087",   # T-Mobile Polish Open / Warsaw 125
+    },
 }
 
 

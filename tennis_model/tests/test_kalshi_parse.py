@@ -164,3 +164,32 @@ def test_time_budget_nests_and_restores():
         assert kalshi._DEADLINE is None
     assert kalshi._DEADLINE is None
     print("ok test_time_budget_nests_and_restores")
+
+
+def test_time_budget_caps_inflight_timeout_and_retry_sleep(monkeypatch):
+    """A deadline checked only before ``urlopen`` is not a wall-clock bound: the final
+    request can still take 30s and a 429 can then sleep another 120s. Both waits must be
+    clipped to the time actually remaining in the enclosing refresh budget."""
+    from tennis_model.data import kalshi
+
+    clock = [100.0]
+    timeouts, sleeps = [], []
+
+    def rate_limited(_request, timeout):
+        timeouts.append(timeout)
+        raise kalshi.urllib.error.HTTPError("https://example.test", 429, "slow", {}, None)
+
+    def advance(seconds):
+        sleeps.append(seconds)
+        clock[0] += seconds
+
+    monkeypatch.setattr(kalshi.time, "monotonic", lambda: clock[0])
+    monkeypatch.setattr(kalshi.time, "sleep", advance)
+    monkeypatch.setattr(kalshi.urllib.request, "urlopen", rate_limited)
+
+    with kalshi.time_budget(5):
+        assert kalshi._get("/markets") is None
+
+    assert timeouts == [5.0]
+    assert sleeps == [5.0]
+    assert clock[0] == 105.0

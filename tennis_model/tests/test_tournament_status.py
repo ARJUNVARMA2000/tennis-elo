@@ -73,7 +73,7 @@ def _g(add_final=False):
 def _project(matchups, wiki_draw=None, add_final=False):
     return project_tournament(_PRED, "Test Open", _g(add_final), "atp", known=set(),
                               top_set=None, espn_fields=None, resolve=lambda n: n,
-                              matchups=matchups, wiki_draw=wiki_draw, n_sims=200, seed=1)
+                              matchups=matchups, tournament_draw=wiki_draw, n_sims=200, seed=1)
 
 
 def test_status_real_partial_seeded_final_from_espn():
@@ -268,18 +268,19 @@ def test_a_renamed_event_still_finds_its_cached_draw(tmp_path, monkeypatch):
 
     ESPN renamed "Mubadala Citi DC Open" -> "Mubadala DC Open" mid-tournament while the id
     stayed 888-2026. Every cache keyed on the name was orphaned: `wiki.get(name)` missed, so
-    `wikiUrl` and `bracketSize` came back null and a live ATP/WTA 500 shipped with no draw at
+    draw provenance and `bracketSize` came back null and a live ATP/WTA 500 shipped with no draw at
     all. Resolution now goes through the id, recovered from the espnId stamped INSIDE the
     cached entry (name containment cannot bridge a word inserted mid-title).
     """
     from tennis_model.sim import tournaments as tsm
 
     slots = [f"P{i}" for i in range(16)]
-    monkeypatch.setattr(tsm, "_load_wiki_draws", lambda tour: {
+    monkeypatch.setattr(tsm, "_load_tournament_draws", lambda tour: {
         "Mubadala Citi DC Open": {                       # OLD name — the orphaned key
             "slots": slots, "seeds": {}, "bestOf": 3, "espnId": "888-2026",
             "start": "2026-07-25", "end": "2026-08-03",
-            "url": "https://en.wikipedia.org/wiki/2026_Mubadala_Citi_DC_Open"},
+            "source": "wikipedia", "sourceId": "DC draw",
+            "sourceUrl": "https://en.wikipedia.org/wiki/2026_Mubadala_Citi_DC_Open"},
     })
     monkeypatch.setattr(tsm, "_load_fields", lambda tour: {})
     monkeypatch.setattr(tsm, "_load_upcoming", lambda tour: {})
@@ -300,7 +301,7 @@ def test_a_renamed_event_still_finds_its_cached_draw(tmp_path, monkeypatch):
     # the substantive assertion first, so a build without the identity layer fails HERE —
     # on the draw being orphaned — rather than on a field it simply doesn't emit yet
     assert card["bracketSize"] == 16, card          # the draw was FOUND despite the rename
-    assert card["wikiUrl"], "wikiUrl lost — the cached entry was not resolved"
+    assert card["drawSourceUrl"], "draw provenance lost — the cached entry was not resolved"
     assert card["drawStatus"] == "real"
     assert card["espnId"] == "888-2026"
     # ...and the same event is not ALSO emitted by the pre-start loop under its old name
@@ -434,7 +435,7 @@ def test_completed_projection_keeps_authoritative_wiki_field():
     ]
     wiki = {"slots": [f"M{i}" for i in range(128)], "bestOf": 3}
     t = project_tournament(_PRED, "Test Slam", pd.DataFrame(rows), "wta", known=set(),
-                           top_set=None, resolve=lambda n: n, wiki_draw=wiki,
+                           top_set=None, resolve=lambda n: n, tournament_draw=wiki,
                            n_sims=10, seed=1)
     assert t["status"] == "completed" and t["drawSize"] == 128
     assert t["champion"] == "M0" and all(p["name"].startswith("M") for p in t["projection"])
@@ -456,14 +457,14 @@ def test_completed_projection_withholds_an_unreconciled_wiki_bracket():
     ]
     good = project_tournament(
         _PRED, "Test Open", pd.DataFrame(rows), "atp", known=set(), top_set=None,
-        resolve=lambda n: n, wiki_draw={"slots": list("ABCDEFGH"), "bestOf": 3},
+        resolve=lambda n: n, tournament_draw={"slots": list("ABCDEFGH"), "bestOf": 3},
         n_sims=20, seed=1,
     )
     assert good["bracket"][-1]["matches"][0]["winner"] == "a"
 
     stale = project_tournament(
         _PRED, "Test Open", pd.DataFrame(rows), "atp", known=set(), top_set=None,
-        resolve=lambda n: n, wiki_draw={"slots": ["A", "B", "C", "D", "E", "G", "F", "H"],
+        resolve=lambda n: n, tournament_draw={"slots": ["A", "B", "C", "D", "E", "G", "F", "H"],
                                    "bestOf": 3},
         n_sims=20, seed=1,
     )
@@ -479,7 +480,7 @@ def test_oversized_projection_error_names_event_and_source_state():
             for i in range(130)]
     with pytest.raises(ValueError, match=(
             r"wta tournament 'Merged Event': invalid 256-slot bracket .*"
-            r"field=260.*completed=False.*draw_state=seeded.*wiki_slots=0")):
+            r"field=260.*completed=False.*draw_state=seeded.*draw_slots=0")):
         project_tournament(_PRED, "Merged Event", pd.DataFrame(rows), "wta", known=set(),
                            top_set=None, n_sims=10, seed=1)
     print("ok test_oversized_projection_error_names_event_and_source_state")
@@ -595,14 +596,14 @@ def test_build_tournaments_collapses_archive_and_sponsor_feed():
                      loser_name="P0", surface_b="Grass", best_of=3, tourney_level=float("nan")))
     df = pd.DataFrame(rows)
 
-    saved = (T._load_fields, T._load_upcoming, T._load_wiki_draws)
+    saved = (T._load_fields, T._load_upcoming, T._load_tournament_draws)
     T._load_fields = lambda tour: {}
     T._load_upcoming = lambda tour: {}
-    T._load_wiki_draws = lambda tour: {}
+    T._load_tournament_draws = lambda tour: {}
     try:
         out = build_tournaments(_PRED, df, "wta", n_sims=200, seed=1)
     finally:
-        T._load_fields, T._load_upcoming, T._load_wiki_draws = saved
+        T._load_fields, T._load_upcoming, T._load_tournament_draws = saved
 
     homburg = [t for t in out if t["name"] == "Bad Homburg"]
     assert len(homburg) == 1, [t["name"] for t in out]       # not the duplicate pair
@@ -649,14 +650,14 @@ def test_one_unprojectable_event_does_not_take_down_the_whole_board():
     rated.update({f"Q{i}": 1900.0 - i for i in range(130)})
     pred = _Pred(rated)
 
-    saved = (T._load_fields, T._load_upcoming, T._load_wiki_draws)
+    saved = (T._load_fields, T._load_upcoming, T._load_tournament_draws)
     T._load_fields = lambda tour: {}
     T._load_upcoming = lambda tour: {}
-    T._load_wiki_draws = lambda tour: {}          # the cache has aged out, as it really had
+    T._load_tournament_draws = lambda tour: {}    # the cache has aged out, as it really had
     try:
         out = build_tournaments(pred, df, "wta", n_sims=50, seed=1)   # must NOT raise
     finally:
-        T._load_fields, T._load_upcoming, T._load_wiki_draws = saved
+        T._load_fields, T._load_upcoming, T._load_tournament_draws = saved
 
     names = {t["name"] for t in out}
     assert "Good Open" in names, f"a healthy event was lost with the bad one: {names}"

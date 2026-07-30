@@ -230,7 +230,7 @@ def parse_fields(events: list, gender: str) -> dict:
                         elim.add(ln)
         if len(field) >= 8:
             # Still keyed by name (readers flip in B3); the id rides INSIDE so a rename can
-            # be bridged the way the wiki_draws entries already allow.
+            # be bridged the way complete-draw cache entries already allow.
             out[name] = {"field": sorted(field), "eliminated": sorted(elim),
                          "espnId": ev.get("id")}
     return out
@@ -294,10 +294,17 @@ def parse_event_meta(events: list) -> dict:
     return out
 
 
-def download_live(tours=TOURS) -> None:
+def download_live(tours=TOURS) -> dict[str, list]:
+    """Refresh live overlays and return each successfully fetched raw ESPN event list.
+
+    Complete-draw discovery consumes the same scoreboard window immediately afterward;
+    returning the raw response avoids repeating 27 requests per tour. A tour whose fetch
+    fails is omitted so that the draw layer can make its own best-effort retry."""
+    fetched: dict[str, list] = {}
     for tour in tours:
         try:
             events = fetch_events(tour)
+            fetched[tour] = events
             df = parse_events(events, _gender(tour))
             fields = parse_fields(events, _gender(tour))
             upcoming = parse_upcoming(events, _gender(tour))
@@ -324,6 +331,7 @@ def download_live(tours=TOURS) -> None:
             upcoming.to_csv(d / "upcoming.csv", index=False, encoding="utf-8")
             print(f"  upcoming/{tour}: {len(upcoming)} scheduled matchups across "
                   f"{upcoming['tourney_name'].nunique()} events -> {d / 'upcoming.csv'}")
+    return fetched
 
 
 if __name__ == "__main__":

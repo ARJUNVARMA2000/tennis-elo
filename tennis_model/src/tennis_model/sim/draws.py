@@ -137,7 +137,7 @@ def live_draw(alive: list, matchups: list, rank) -> list:
     Falls back to ``standard_seed_draw`` when the feed gives no usable matchup, or when the
     unit count isn't a power of two (a partial/odd frontier we can't seat cleanly) — never
     worse than the old behaviour, exact whenever the round's matchups are fully posted.
-    When the *whole ordered draw* is known (Wikipedia), prefer ``advance_slots`` instead —
+    When the *whole ordered draw* is known, prefer ``advance_slots`` instead —
     it keeps the real bracket adjacency that this rating-seeding can only approximate.
     """
     alive = list(dict.fromkeys(alive))
@@ -171,7 +171,7 @@ def _winner(a, b, elim: set):
 
 
 def advance_slots(slots: list, eliminated) -> list:
-    """Collapse a KNOWN ordered bracket (e.g. a Wikipedia draw) by results down to the
+    """Collapse a KNOWN ordered bracket by results down to the
     current frontier, **keeping bracket order** so every downstream pairing stays exact.
 
     Fully-decided rounds fold to their winners (half the width); at the shallowest round
