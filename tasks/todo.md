@@ -2995,6 +2995,21 @@ overlap plus shared real players, never by name similarity.
 - [x] Normalize unresolved first-party draw placeholders to unique numbered slots at ingestion,
   matching the existing Wikipedia draw contract while preserving true byes, bracket order,
   seeds, and provider evidence.
-- [ ] Run focused official-draw, tournament-projection, bracket, and health-gate tests, then the
+- [x] Run focused official-draw, tournament-projection, bracket, and health-gate tests, then the
   full Python suite; reconcile against the latest git history and append the review. Publish the
   fix and verify a successful guarded refresh only with explicit approval.
+
+### Review
+
+- Reproduced Toronto's provider state as an early 96-entrant/128-slot draw: 80 named players,
+  16 repeated bare `Qualifier` labels, and 32 true byes. The fail-first regression proved the
+  16 seats collapsed to one identity before the parser repair.
+- Official draw ingestion now turns unresolved first-party labels into unique `Qualifier 1..N`
+  seat identities while preserving null byes, order, seed ownership, draw size, and evidence.
+  This matches the existing Wikipedia draw contract and prevents set-backed field collapse.
+- Focused verification passed 132 official-draw, tournament-status, bracket, and health tests;
+  the full Python suite passed all 498 tests, and `git diff --check` passed. Reconciled against
+  `git log -5`; the intervening remote commits only updated evaluation logs.
+- Commit `4b114d0` was pushed to `master` after explicit approval. Production run `30665029676`
+  passed Python/web CI, the live quick refresh, pre-deploy integrity and data-health gates,
+  Firebase deployment, and live-serving verification.
