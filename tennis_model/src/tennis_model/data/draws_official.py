@@ -35,6 +35,9 @@ ATP_PDF = "https://www.protennislive.com/posting/{year}/{source_id}/mds.pdf"
 WTA_PDF = "https://wtafiles.wtatennis.com/pdf/draws/{year}/{source_id}/MDS.pdf"
 PDF_UA = "Mozilla/5.0 (compatible; Deuce tennis draw monitor)"
 _ENTRY_CODES = frozenset({"A", "ALT", "JE", "JR", "LL", "NG", "PR", "Q", "SE", "WC"})
+_UNRESOLVED_SLOT_LABELS = frozenset({
+    "alt", "alternate", "ll", "lucky loser", "q", "qualifier", "tba", "tbd", "wc", "wildcard",
+})
 _GENERIC_EVENT_TOKENS = frozenset({"atp", "by", "championships", "classic", "ladies",
                                    "men", "open", "presented", "tennis", "the", "wta", "women"})
 _MONTHS = {m.lower(): i for i, m in enumerate(
@@ -150,7 +153,9 @@ def parse_official_text(text: str, best_of: int = 3) -> dict | None:
     """Ordered slots/seeds from extracted provider text.
 
     Numbered lines after the first complete 8..128 contiguous block belong to notes or seeded
-    player tables, so the first-round index itself is the geometry contract.
+    player tables, so the first-round index itself is the geometry contract. Provider PDFs use
+    one repeated bare label for every unresolved qualifying seat; number those seats uniquely,
+    just like the Wikipedia parser, so distinct entrants cannot collapse in set-backed consumers.
     """
     rows: dict[int, tuple[str | None, int | None]] = {}
     started = False
@@ -178,8 +183,17 @@ def parse_official_text(text: str, best_of: int = 3) -> dict | None:
     size = len(rows)
     if size < 8 or size > 128 or size & (size - 1):
         return None
-    slots = [rows[i][0] for i in range(1, size + 1)]
-    seeds = {player: seed for player, seed in rows.values() if player and seed is not None}
+    slots: list[str | None] = []
+    seeds: dict[str, int] = {}
+    placeholder = 0
+    for i in range(1, size + 1):
+        player, seed = rows[i]
+        if isinstance(player, str) and player.strip().casefold() in _UNRESOLVED_SLOT_LABELS:
+            placeholder += 1
+            player = f"Qualifier {placeholder}"
+        slots.append(player)
+        if player and seed is not None:
+            seeds[player] = seed
     return {"slots": slots, "seeds": seeds, "bestOf": int(best_of),
             "drawSize": sum(player is not None for player in slots), "bracketSize": size}
 

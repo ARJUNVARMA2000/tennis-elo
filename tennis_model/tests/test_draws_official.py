@@ -32,6 +32,30 @@ def test_parse_official_text_separates_entrants_from_bracket_width():
     assert draw["seeds"] == {"Player 1": 1}
 
 
+def test_parse_official_text_numbers_repeated_unresolved_qualifier_slots():
+    """Toronto's early 96-player PDF names every open qualifying seat `Qualifier`.
+
+    Those seats are distinct entrants. Leaving the provider label duplicated makes the
+    projector's set-backed field collapse them into one player (96 entrants -> 81), which
+    produces an internally inconsistent bracket and blocks the deployment integrity gate.
+    """
+    lines = ["National Bank Open", "2 August — 14 August 2026", "Main Draw Singles"]
+    for i in range(1, 129):
+        if i <= 80:
+            lines.append(f" {i}   PLAYER {i}, Test          USA")
+        elif i <= 96:
+            lines.append(f" {i}   Q   Qualifier")
+        else:
+            lines.append(f" {i}       Bye")
+
+    draw = official.parse_official_text("\n".join(lines))
+
+    assert draw is not None
+    assert draw["drawSize"] == 96 and draw["bracketSize"] == 128
+    assert draw["slots"][80:96] == [f"Qualifier {i}" for i in range(1, 17)]
+    assert len(set(slot for slot in draw["slots"] if slot is not None)) == 96
+
+
 def test_clipped_surname_without_comma_is_a_slot_and_reconciles_to_live_field():
     assert official._slot_line(" 17       6   VAN DE ZANDSCHULP…           NED") == (
         17, "Van De Zandschulp…", 6)

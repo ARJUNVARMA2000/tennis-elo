@@ -2986,3 +2986,15 @@ overlap plus shared real players, never by name similarity.
   Liutova) remained plain text; there were no console errors or horizontal overflow.
 - Reconciled against `git log -5`: the prior profile-link and radar repair was the latest shipped
   work before this round. Publication was explicitly approved after implementation verification.
+
+## Round P — restore deployments for unresolved official qualifier slots
+
+- [x] Add a fail-first official-draw regression reproducing Toronto's 96-entrant/128-slot
+  provider artifact with repeated unresolved `Qualifier` seats, proving every occupied seat
+  remains distinct and the draw population cannot collapse downstream.
+- [x] Normalize unresolved first-party draw placeholders to unique numbered slots at ingestion,
+  matching the existing Wikipedia draw contract while preserving true byes, bracket order,
+  seeds, and provider evidence.
+- [ ] Run focused official-draw, tournament-projection, bracket, and health-gate tests, then the
+  full Python suite; reconcile against the latest git history and append the review. Publish the
+  fix and verify a successful guarded refresh only with explicit approval.

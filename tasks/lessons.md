@@ -111,3 +111,9 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - Peer active events get equal detail; a marquee hero instead makes its visible supporting
   events compact beneath it. See [`lessons/web.md`](lessons/web.md).
+
+## Round P addition (2026-07-31)
+
+- Repeated unresolved provider labels identify distinct draw seats; number them before
+  set-backed consumers collapse the field. See
+  [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md).

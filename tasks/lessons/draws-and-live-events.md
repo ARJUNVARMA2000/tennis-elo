@@ -261,3 +261,14 @@ Indexed in [`../lessons.md`](../lessons.md).
   enough to generate candidates, never to attach a complete external artifact. Require
   evidence proportional to what the artifact claims to cover, and regression-test adjacent
   same-tour events that share players.
+
+- **An unresolved provider label identifies a slot type, not a reusable entrant identity.**
+  (2026-07-31, Toronto deploy gate) The ATP PDF correctly described a 96-entrant draw, but
+  printed the same bare `Qualifier` label in every one of its 16 open qualifying seats. The
+  parser preserved those duplicate strings; the projector then built its authoritative field
+  with a set, collapsing 16 distinct seats into one and exporting an impossible 81-player
+  population beside a 96-entrant bracket. The pre-deploy gate caught the population/geometry
+  contradiction and kept the last good site live. **How to apply:** normalize unresolved
+  source labels to unique seat identities (`Qualifier 1..N`) at ingestion, before any set,
+  map, simulation, or cache consumer sees them. Keep true byes as null, and regression-test
+  entrant cardinality against bracket geometry using the provider's messy pre-qualifying state.
