@@ -115,3 +115,10 @@ Indexed in [`../lessons.md`](../lessons.md).
   events leave the current page immediately; completed Grand Slams, Finals, 1000s, and Olympics
   remain compact for seven days, never as the hero. Test the mixed lifecycle payload, not each
   status in isolation.
+
+- **Primary ordering and information depth are separate decisions.** (2026-08-01, Toronto lost
+  its useful forecast when live play took priority) Keeping a live event first does not require
+  reducing the next marquee draw to a title-only card. While anything is live, upcoming Grand
+  Slams, Tour Finals, 1000s, and Olympics follow the live surface with the complete hero-style
+  round-by-round table; only lower-tier upcoming events stay compact. Encode this as a tier rule,
+  never a one-off tournament-name exception, so the same presentation applies to future events.

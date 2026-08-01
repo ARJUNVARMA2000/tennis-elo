@@ -325,6 +325,31 @@ def test_fixtures_upset_flag_agrees_with_the_rounded_prob_it_ships():
     print("ok test_fixtures_upset_flag_agrees_with_the_rounded_prob_it_ships")
 
 
+def test_build_upcoming_preserves_stable_event_id(monkeypatch):
+    """The tournament card join must survive sponsor/city display-name differences."""
+    import pandas as pd
+    from tennis_model.model import upcoming
+
+    enriched = [{
+        "event": "National Bank Open presented by Rogers",
+        "date": "2026-08-03",
+        "round": "R64",
+        "surface": "Hard",
+        "best_of": 3,
+        "level": "ATP 1000",
+        "playerA": "A",
+        "playerB": "B",
+        "pA": 0.61234,
+        "espnId": "421-2026",
+    }]
+    monkeypatch.setattr(upcoming, "load_upcoming", lambda tour: pd.DataFrame())
+    monkeypatch.setattr(upcoming, "enrich_upcoming", lambda *args: enriched)
+
+    rows = export.build_upcoming(object(), pd.DataFrame(), "atp")
+    assert rows[0]["event"] == "Toronto"
+    assert rows[0]["espnId"] == "421-2026"
+
+
 if __name__ == "__main__":
     test_finite_replaces_nonfinite_scalars()
     test_finite_recurses_into_nested_containers()

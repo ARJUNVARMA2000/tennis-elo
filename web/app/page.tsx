@@ -4,18 +4,19 @@ import { useMemo, useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
 import { pct, surfaceColor, heat, eloKey, blendedElo, tournamentTier, drawCaveat, byTournamentPriority, tournamentView, tournamentDrawLabel, emptyProjectionNote } from "@/lib/ui";
-import { PageHead, Loading, Reveal, CallCard, PlayerProfileLink } from "@/components/bits";
+import { PageHead, Loading, Reveal, PlayerProfileLink } from "@/components/bits";
 import { SPRING_SOFT } from "@/lib/motion";
 import { nameKey, type PlayerRow } from "@/lib/live";
 import LiveTicker from "@/components/LiveTicker";
 import Link from "next/link";
-import { upcomingCard, byTournamentTier, hasMatchupProfiles, type Upcoming } from "@/lib/upcoming";
+import { matchesForTournament, type Upcoming } from "@/lib/upcoming";
 
 export type Proj = { name: string; champion: number; final: number | null; sf: number | null; reach?: Record<string, number> };
 export type Tournament = {
   name: string; surface: string | null; level: string; bestOf: number;
   start: string; end: string; status: "completed" | "live" | "upcoming";
   drawStatus?: "real" | "partial" | "seeded" | "final" | "unavailable";
+  espnId?: string | null;
   drawSize: number | null; aliveCount: number | null;
   champion: string | null; runnerUp: string | null;
   modelFavorite: string | null; favoritePicked: boolean;
@@ -147,12 +148,13 @@ function DrawCaveat({ t, compact = false }: { t: Tournament; compact?: boolean }
 export default function Tournaments() {
   const { tour } = useTour();
   const { data, loading } = useData<Tournament[]>("tournaments.json");
+  const { data: scheduled } = useData<Upcoming[]>("upcoming.json");
   const { data: players } = useData<PlayerRow[]>("players.json");
   const profileRoster = useMemo(() => new Set((players ?? []).map((player) => player.name)), [players]);
 
-  // Lifecycle owns the page before prestige: live events are primary, upcoming draws wait in
-  // a compact section, and only recent completed prestige events remain as compact results.
-  const { hero, grid, other, upcoming, recent } = tournamentView(data || []);
+  // Lifecycle owns the page before prestige: live events remain primary, but the next top-tier
+  // draw keeps its complete forecast after them. Lower upcoming tiers and recent results stay compact.
+  const { hero, grid, other, featuredUpcoming, upcoming, recent } = tournamentView(data || []);
 
   if (hero) {
     const tier = tournamentTier(hero.level, hero.name);
@@ -167,18 +169,33 @@ export default function Tournaments() {
         />
         <LiveTicker />
         <Reveal>
-          <SlamHero t={hero} players={players} profileRoster={profileRoster} />
+          <SlamHero t={hero} players={players} profileRoster={profileRoster} upcomingMatches={scheduled || []} />
         </Reveal>
         {other.length > 0 && (
           <CompactEvents
             events={other}
             title={hero.status === "live" ? "Also live" : "Also coming up"}
             profileRoster={profileRoster}
+            upcomingMatches={scheduled || []}
           />
         )}
-        {upcoming.length > 0 && <CompactEvents events={upcoming} title="Coming up" profileRoster={profileRoster} />}
-        {recent.length > 0 && <CompactEvents events={recent} title="Recently finished" profileRoster={profileRoster} />}
-        <UpNext />
+        {featuredUpcoming.length > 0 && (
+          <FeaturedUpcomingEvents
+            events={featuredUpcoming}
+            players={players}
+            profileRoster={profileRoster}
+            upcomingMatches={scheduled || []}
+          />
+        )}
+        {upcoming.length > 0 && (
+          <CompactEvents
+            events={upcoming}
+            title={featuredUpcoming.length ? "More coming up" : "Coming up"}
+            profileRoster={profileRoster}
+            upcomingMatches={scheduled || []}
+          />
+        )}
+        {recent.length > 0 && <CompactEvents events={recent} title="Recently finished" profileRoster={profileRoster} upcomingMatches={scheduled || []} />}
       </div>
     );
   }
@@ -192,21 +209,65 @@ export default function Tournaments() {
       />
       <LiveTicker />
       {loading && <Loading />}
-      {data && !hero && grid.length === 0 && upcoming.length === 0 && recent.length === 0 && (
+      {data && !hero && grid.length === 0 && featuredUpcoming.length === 0 && upcoming.length === 0 && recent.length === 0 && (
         <div className="mono mt-10 text-sm text-[var(--color-faint)]">No current tournaments in the data yet.</div>
       )}
 
       <div className="mt-8 grid gap-4 lg:grid-cols-2">
         {grid.map((t, i) => (
           <Reveal key={t.name + t.start} delay={Math.min(i * 0.04, 0.3)}>
-            <Card t={t} profileRoster={profileRoster} />
+            <Card t={t} profileRoster={profileRoster} upcomingMatches={scheduled || []} />
           </Reveal>
         ))}
       </div>
-      {upcoming.length > 0 && <CompactEvents events={upcoming} title="Coming up" profileRoster={profileRoster} />}
-      {recent.length > 0 && <CompactEvents events={recent} title="Recently finished" profileRoster={profileRoster} />}
-      <UpNext />
+      {featuredUpcoming.length > 0 && (
+        <FeaturedUpcomingEvents
+          events={featuredUpcoming}
+          players={players}
+          profileRoster={profileRoster}
+          upcomingMatches={scheduled || []}
+        />
+      )}
+      {upcoming.length > 0 && (
+        <CompactEvents
+          events={upcoming}
+          title={featuredUpcoming.length ? "More coming up" : "Coming up"}
+          profileRoster={profileRoster}
+          upcomingMatches={scheduled || []}
+        />
+      )}
+      {recent.length > 0 && <CompactEvents events={recent} title="Recently finished" profileRoster={profileRoster} upcomingMatches={scheduled || []} />}
     </div>
+  );
+}
+
+/** Upcoming top-tier draws keep the complete forecast even while another tournament is live.
+    They follow the live surface so current play remains the page's first priority. */
+function FeaturedUpcomingEvents({
+  events,
+  players,
+  profileRoster,
+  upcomingMatches,
+}: {
+  events: Tournament[];
+  players: PlayerRow[] | null;
+  profileRoster: ReadonlySet<string>;
+  upcomingMatches: Upcoming[];
+}) {
+  return (
+    <section aria-label="Coming up" className="mt-10">
+      <div className="mb-3 flex flex-wrap items-baseline gap-2">
+        <span className="eyebrow !text-[var(--color-text)]">Coming up</span>
+        <span className="text-[11px] text-[var(--color-faint)]">
+          Full round-by-round forecast for the next top-tier {events.length === 1 ? "event" : "events"}
+        </span>
+      </div>
+      {events.map((t) => (
+        <Reveal key={t.name + t.start}>
+          <SlamHero t={t} players={players} profileRoster={profileRoster} upcomingMatches={upcomingMatches} />
+        </Reveal>
+      ))}
+    </section>
   );
 }
 
@@ -216,10 +277,12 @@ function SlamHero({
   t,
   players,
   profileRoster,
+  upcomingMatches,
 }: {
   t: Tournament;
   players: PlayerRow[] | null;
   profileRoster: ReadonlySet<string>;
+  upcomingMatches: Upcoming[];
 }) {
   const [open, setOpen] = useState(false);
   const { tour } = useTour();
@@ -397,6 +460,7 @@ function SlamHero({
       )}
       </>
       )}
+      <TournamentNextUp t={t} matches={upcomingMatches} profileRoster={profileRoster} />
     </div>
   );
 }
@@ -406,10 +470,12 @@ function CompactEvents({
   events,
   title,
   profileRoster,
+  upcomingMatches,
 }: {
   events: Tournament[];
   title: string;
   profileRoster: ReadonlySet<string>;
+  upcomingMatches: Upcoming[];
 }) {
   const ordered = byTournamentPriority(events);
   return (
@@ -421,7 +487,7 @@ function CompactEvents({
       <div className="grid gap-4 lg:grid-cols-2">
         {ordered.map((t, i) => (
           <Reveal key={t.name + t.start} delay={Math.min(i * 0.04, 0.3)}>
-            <Card t={t} compact profileRoster={profileRoster} />
+            <Card t={t} compact profileRoster={profileRoster} upcomingMatches={upcomingMatches} />
           </Reveal>
         ))}
       </div>
@@ -429,49 +495,52 @@ function CompactEvents({
   );
 }
 
-/** "Up next" — the soonest scheduled matches with the model's current win probability,
-    reusing the same upcoming.json + projection cards the /schedule board uses (so the two
-    surfaces can't drift). Self-hides when nothing is scheduled. Lives on the Overview page
-    so the latest model calls are always one glance away, in both the Slam and no-Slam
-    layouts; upcoming.json is regenerated every refresh, so these stay current for free. */
-const UP_NEXT_COUNT = 6;
-function UpNext() {
-  const { data } = useData<Upcoming[]>("upcoming.json");
-  // The rated roster gates each card's style-matchup drill-in (players without a
-  // profile — e.g. qualifiers outside the top N — keep a plain, unlinked card).
-  const { data: roster } = useData<{ name: string }[]>("players.json");
-  const rated = useMemo(() => new Set((roster ?? []).map((p) => p.name)), [roster]);
-  // Lead with the marquee events: byTournamentTier orders by prestige (Grand Slam → 1000 → …),
-  // keeping soonest-first within a tier — so during Wimbledon the SF cards surface here instead
-  // of a concurrent 125's opening round that merely happens to be scheduled a day sooner.
-  const rows = byTournamentTier(data || []).slice(0, UP_NEXT_COUNT);
+function matchDate(date: string): string {
+  const parsed = new Date(`${date}T00:00`);
+  return Number.isNaN(parsed.getTime()) ? date : `${MONTHS[parsed.getMonth()]} ${parsed.getDate()}`;
+}
+
+/** A deliberately small schedule footer for a live event. It replaces the old cross-event
+    six-card grid: the schedule now sits where its tournament context is immediately clear. */
+function TournamentNextUp({
+  t,
+  matches,
+  profileRoster,
+}: {
+  t: Tournament;
+  matches: Upcoming[];
+  profileRoster: ReadonlySet<string>;
+}) {
+  const rows = matchesForTournament(t, matches);
   if (rows.length === 0) return null;
   return (
-    <section aria-label="Upcoming matches" className="mt-10">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="flex items-baseline gap-2">
-          <span className="eyebrow !text-[var(--color-text)]">Up next</span>
-          <span className="hidden text-[11px] text-[var(--color-faint)] sm:inline">model win odds · latest predictions</span>
-        </div>
-        <Link href="/schedule" className="mono whitespace-nowrap text-[11px] text-[var(--color-accent)] hover:underline">
+    <div className="mt-5 border-t border-[var(--color-line)] pt-4" role="group" aria-label={`Next matches for ${t.name}`} data-next-matches>
+      <div className="mb-2.5 flex items-center justify-between gap-3">
+        <span className="mono text-[10px] uppercase tracking-wider text-[var(--color-faint)]">Next up</span>
+        <Link href="/schedule" className="mono whitespace-nowrap text-[10px] text-[var(--color-accent)] hover:underline">
           full schedule →
         </Link>
       </div>
-      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-        {rows.map((m, i) => (
-          <Reveal key={`${m.playerA}-${m.playerB}-${i}`} delay={Math.min(i * 0.03, 0.2)}>
-            {/* showEvent: this grid mixes tournaments, so each card names its event (the
-                /schedule board omits it — there the event is a section header). */}
-            <CallCard
-              tone="projection"
-              {...upcomingCard(m, { showEvent: true })}
-              matchup={hasMatchupProfiles(m, rated)}
-              profileRoster={rated}
-            />
-          </Reveal>
+      <div className="space-y-2">
+        {rows.map((match, index) => (
+          <div key={`${match.playerA}-${match.playerB}-${index}`} className="rounded-lg bg-[var(--color-panel2)]/45 px-3 py-2">
+            <div className="mono mb-1 text-[10px] uppercase tracking-wider text-[var(--color-faint)]">
+              {match.round} · {matchDate(match.date)}
+            </div>
+            <div className="flex min-w-0 items-baseline justify-between gap-3 text-[13px]">
+              <div className="min-w-0 truncate">
+                <PlayerProfileLink name={match.playerA} profileRoster={profileRoster} linkClassName="hover:text-[var(--color-accent)] hover:underline" />
+                {" "}<span className="mx-1.5 text-[var(--color-faint)]">vs</span>{" "}
+                <PlayerProfileLink name={match.playerB} profileRoster={profileRoster} linkClassName="hover:text-[var(--color-accent)] hover:underline" />
+              </div>
+              <span className="mono shrink-0 text-[11px] text-[var(--color-muted)]">
+                {pct(match.pA, 0)}–{pct(1 - match.pA, 0)}
+              </span>
+            </div>
+          </div>
         ))}
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -481,10 +550,12 @@ export function Card({
   t,
   compact = false,
   profileRoster = EMPTY_PROFILE_ROSTER,
+  upcomingMatches = [],
 }: {
   t: Tournament;
   compact?: boolean;
   profileRoster?: ReadonlySet<string>;
+  upcomingMatches?: Upcoming[];
 }) {
   const [open, setOpen] = useState(false);
   const sc = surfaceColor(t.surface);
@@ -625,6 +696,7 @@ export function Card({
         </>
         )}
       </div>
+      <TournamentNextUp t={t} matches={upcomingMatches} profileRoster={profileRoster} />
     </div>
   );
 }

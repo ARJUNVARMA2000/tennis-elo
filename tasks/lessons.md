@@ -122,3 +122,8 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - Partition lifecycle before hero selection: live play owns the page, upcoming draws wait, and
   only recent prestige results linger. See [`lessons/web.md`](lessons/web.md).
+
+## Round T addition (2026-08-01)
+
+- Keep primary ordering separate from information depth: future top-tier draws retain their full
+  forecast below live play. See [`lessons/web.md`](lessons/web.md).

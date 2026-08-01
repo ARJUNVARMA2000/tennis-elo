@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { byTournamentTier, groupByEvent, hasMatchupProfiles, upcomingCard, type Upcoming } from "@/lib/upcoming";
+import { byTournamentTier, groupByEvent, hasMatchupProfiles, matchesForTournament, upcomingCard, type Upcoming } from "@/lib/upcoming";
 
 const mk = (event: string, round: string, a: string, b: string, pA: number, surface = "Hard"): Upcoming => ({
   event,
@@ -40,6 +40,42 @@ describe("groupByEvent", () => {
 
   it("returns [] for no rows", () => {
     expect(groupByEvent([])).toEqual([]);
+  });
+});
+
+describe("matchesForTournament", () => {
+  const row = (event: string, espnId: string, a: string): Upcoming => ({
+    ...mk(event, "R32", a, "Opponent", 0.6), espnId,
+  });
+
+  it("joins by stable event identity, never by a matching display name", () => {
+    const rows = [
+      row("Toronto", "other-2026", "Wrong same-name match"),
+      row("National Bank Open presented by Rogers", "725-2026", "Right sponsor-name match"),
+    ];
+    const matches = matchesForTournament(
+      { name: "Toronto", status: "live", espnId: "725-2026" }, rows,
+    );
+    expect(matches.map((m) => m.playerA)).toEqual(["Right sponsor-name match"]);
+  });
+
+  it("caps live cards at three and never decorates upcoming or completed cards", () => {
+    const rows = Array.from({ length: 5 }, (_, i) => row("Toronto", "725-2026", `Player ${i + 1}`));
+    expect(matchesForTournament(
+      { name: "Toronto", status: "live", espnId: "725-2026" }, rows,
+    ).map((m) => m.playerA)).toEqual(["Player 1", "Player 2", "Player 3"]);
+    expect(matchesForTournament(
+      { name: "Toronto", status: "upcoming", espnId: "725-2026" }, rows,
+    )).toEqual([]);
+    expect(matchesForTournament(
+      { name: "Toronto", status: "completed", espnId: "725-2026" }, rows,
+    )).toEqual([]);
+  });
+
+  it("withholds matches when stable identity is unavailable", () => {
+    expect(matchesForTournament(
+      { name: "Toronto", status: "live", espnId: null }, [row("Toronto", "725-2026", "A")],
+    )).toEqual([]);
   });
 });
 

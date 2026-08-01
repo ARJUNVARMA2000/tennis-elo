@@ -126,14 +126,16 @@ export type TournamentView<T> = {
   hero: T | undefined;
   grid: T[];
   other: T[];
+  featuredUpcoming: T[];
   upcoming: T[];
   recent: T[];
 };
 
 /** Partition the home tournament payload by lifecycle and emphasis.
 
-    Live play always owns the primary cohort. When live events exist, upcoming draws move to a
-    compact secondary section; otherwise upcoming events become the primary cohort and may earn
+    Live play always owns the primary cohort. When live events exist, upcoming prestige draws
+    retain full round-by-round detail after the live surface while lower-tier draws move to a
+    compact secondary section. Otherwise upcoming events become the primary cohort and may earn
     the hero. Ordinary completed events disappear immediately. Completed prestige events
     (Grand Slam/Finals/1000/Olympics) remain compact for seven days, never as the hero. */
 export function tournamentView<T extends { level: string; name: string; status: string; end: string }>(
@@ -151,12 +153,18 @@ export function tournamentView<T extends { level: string; name: string; status: 
   });
   const primary = live.length ? live : future;
   const hero = heroEvent(primary, now);
-  const upcoming = live.length ? future : [];
-  if (!hero) return { hero: undefined, grid: primary, other: [], upcoming, recent };
+  const featuredUpcoming = live.length
+    ? future.filter((event) => tournamentTier(event.level, event.name).rank <= HERO_MAX_TIER_RANK)
+    : [];
+  const upcoming = live.length
+    ? future.filter((event) => tournamentTier(event.level, event.name).rank > HERO_MAX_TIER_RANK)
+    : [];
+  if (!hero) return { hero: undefined, grid: primary, other: [], featuredUpcoming, upcoming, recent };
   return {
     hero,
     grid: [],
     other: primary.filter((event) => event !== hero),
+    featuredUpcoming,
     upcoming,
     recent,
   };

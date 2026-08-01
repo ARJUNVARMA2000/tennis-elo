@@ -265,6 +265,7 @@ def build_upcoming(predictor, df, tour: str) -> list:
     known = _known_names(df)
     rows = [{
         "event": _display_name(r["event"], known, tour=tour, event_id=r.get("espnId")),
+        "espnId": r.get("espnId"),
         "date": r["date"], "round": r["round"],
         "surface": r["surface"], "bestOf": r["best_of"], "level": r["level"],
         "playerA": r["playerA"], "playerB": r["playerB"], "pA": round(r["pA"], 4),

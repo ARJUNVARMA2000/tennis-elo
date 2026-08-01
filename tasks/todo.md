@@ -3073,3 +3073,72 @@ overlap plus shared real players, never by name similarity.
   Toronto compact under `Coming up`, and Madrid compact under `Recently finished`; ordinary
   completed Estoril was absent and the page had no horizontal overflow. Reconciled against
   `git log -5`; `e81a54f` remained the latest commit before publication.
+
+## Round S — next scheduled matches inside live tournament cards
+
+- [ ] Add fail-first producer and web regressions for a stable `espnId` join between tournament
+  cards and scheduled matches; never attach matches by sponsor/city display-name similarity.
+- [ ] Add a restrained `Next up` footer to live detailed and live supporting cards only, capped
+  at three soonest-first matches with player names, round/date context, win odds, and a link to
+  the full schedule. Keep upcoming and completed cards unchanged.
+- [ ] Remove the redundant global upcoming-match grid from the tournament overview, then run
+  focused and full Python/web checks plus rendered desktop/mobile inspection. Reconcile against
+  the latest git history and append the review; do not push or deploy without explicit approval.
+
+## Round T — full upcoming forecasts for top-tier events
+
+- [x] Add a fail-first lifecycle regression proving that, while a lower-tier event is live, an
+  upcoming Grand Slam, Tour Finals, 1000, or Olympics draw is separated from compact upcoming
+  events without displacing live play.
+- [x] Render those upcoming top-tier events with the complete hero-style round-by-round table
+  after the live surface; keep lower-tier upcoming events compact and preserve the existing
+  no-live hero behavior.
+- [x] Record the generalized display rule, run focused/full web checks, and inspect the mixed
+  live-plus-Toronto overview at desktop and mobile sizes. Reconcile against current git history
+  and append the review; do not push or deploy without explicit approval.
+
+### Review
+
+- Upcoming top-tier detail is now a general lifecycle output, not a Toronto name exception:
+  Grand Slams, Tour Finals, 1000s, and Olympics enter `featuredUpcoming` whenever anything is
+  live. Live events remain the primary hero/grid cohort; lower-tier future events remain compact.
+- The overview renders every featured upcoming event with the same complete forecast surface as
+  a hero: player ratings, every available reach round, sortable columns, and the full-field
+  expansion. When no event is live, the existing upcoming-top-tier hero behavior is unchanged.
+- The fail-first mixed-lifecycle regression failed on the missing `featuredUpcoming` contract,
+  then passed for all four top-tier categories while also proving an upcoming 250 stays compact.
+  The coverage invariant now includes every lifecycle surface so the new partition cannot drop
+  an event. Final verification passed all 202 web tests, TypeScript, the 21-page production build,
+  and `git diff --check`; ESLint remained at 0 errors / 13 existing warnings.
+- Rendered against the current production ATP data, the 1280px view kept DC/Los Cabos first and
+  showed Toronto afterward with R128 through Win. At 390px, Toronto stayed in its 348px panel and
+  its 620px table scrolled inside a 314px strip. The separate live-card grid retains a pre-existing
+  min-content overflow on mobile; the new Toronto surface did not cause or enlarge it. Reconciled
+  against `git log -5`; `7ff211d` remains the latest commit. Nothing was committed or deployed.
+
+## Round U — next scheduled matches inside live tournament cards
+
+- [x] Preserve each scheduled row's stable `espnId` in the web export and add fail-first producer
+  and view regressions proving cards never join matches by sponsor/city display name.
+- [x] Add a compact live-card `Next up` footer capped at three soonest-first matches, with
+  round/date, player names, model odds, profile links, and a full-schedule link. Keep upcoming and
+  completed cards unchanged and remove the redundant global six-match grid.
+- [x] Run focused and full Python/web checks, inspect the rendered desktop board, reconcile current
+  git history, and append the review. Do not commit or deploy without explicit approval.
+
+### Review
+
+- `upcoming.json` now carries the same provider identity already present in the live schedule
+  source. `matchesForTournament` requires an exact non-null `espnId` on a live card, preserves the
+  producer's soonest-first order, and caps the result at three; missing identity safely withholds
+  the footer instead of guessing from names.
+- Both the hero and grid/compact card renderers share one small footer. The old cross-tournament
+  `Up next` grid was removed, so each matchup appears once in its event context and `/schedule`
+  remains the complete board. Upcoming and completed event cards do not receive the footer.
+- Fail-first regressions reproduced the missing identity export and the unsafe name-join case.
+  Final verification passed all 502 Python tests, all 202 web tests, TypeScript, the 21-page
+  production build, and `git diff --check`; ESLint remained at 0 errors / 13 existing warnings.
+- The regenerated ATP/WTA artifacts carried IDs through correctly. At 1280px, both live ATP cards
+  showed three-row footers within their 588px cards, retained equal density, and introduced no
+  horizontal overflow. A rendered-text pass also caught and fixed glued `Player Avs Player B`
+  accessibility text. Reconciled against `git log -5`; `7ff211d` remains the latest commit.

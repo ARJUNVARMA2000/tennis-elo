@@ -2,6 +2,7 @@
     pipeline's build_upcoming (mirrored to /data/<tour>/upcoming.json). pA = P(playerA wins). */
 export type Upcoming = {
   event: string;
+  espnId?: string | null;
   date: string;
   round: string;
   surface: string;
@@ -15,6 +16,24 @@ export type Upcoming = {
 import { tournamentTier } from "./ui";
 
 export type EventGroup = { event: string; surface: string; level?: string; matches: Upcoming[] };
+
+const TOURNAMENT_CARD_MATCH_LIMIT = 3;
+
+/** Scheduled matches belonging to one live tournament card. Identity is deliberately exact:
+    sponsor titles and familiar city labels can differ even within one refresh, so display names
+    are never a join key. Rows without the stable provider identity stay on /schedule rather than
+    risking attachment to the wrong card. The producer already orders rows soonest-first. */
+export function matchesForTournament(
+  tournament: { name: string; status: string; espnId?: string | null },
+  rows: Upcoming[],
+  limit = TOURNAMENT_CARD_MATCH_LIMIT,
+): Upcoming[] {
+  const eventId = String(tournament.espnId ?? "").trim();
+  if (tournament.status !== "live" || !eventId) return [];
+  return rows
+    .filter((row) => String(row.espnId ?? "").trim() === eventId)
+    .slice(0, Math.max(0, limit));
+}
 
 /** Order scheduled matches by tournament prestige (Grand Slam → 1000 → 500 → …), the same tier
     sort the /schedule board and the home tournament cards use. The rows already ship soonest-first

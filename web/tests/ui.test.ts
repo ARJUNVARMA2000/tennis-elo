@@ -135,16 +135,23 @@ describe("heroEvent", () => {
     expect(view.recent.map((t) => t.name)).toEqual(["Done Slam"]);
   });
 
-  it("keeps live play primary over an upcoming 1000 draw", () => {
+  it("keeps live play primary while giving upcoming top-tier draws full detail", () => {
     const view = tournamentView([
       { level: "ATP 500", name: "Live Five Hundred", status: "live", end: "2026-08-03" },
       { level: "Masters 1000", name: "Toronto", status: "upcoming", end: "2026-08-14" },
+      { level: "Grand Slam", name: "Future Slam", status: "upcoming", end: "2026-08-31" },
+      { level: "ATP Finals", name: "Future Finals", status: "upcoming", end: "2026-11-22" },
+      { level: "Olympics", name: "Future Olympics", status: "upcoming", end: "2028-07-30" },
+      { level: "ATP 250", name: "Future Two Fifty", status: "upcoming", end: "2026-08-10" },
       { level: "ATP 250", name: "Estoril", status: "completed", end: "2026-07-26" },
       { level: "Masters 1000", name: "Done Thousand", status: "completed", end: "2026-07-28" },
     ], new Date("2026-08-01T12:00").getTime());
     expect(view.hero).toBeUndefined();
     expect(view.grid.map((t) => t.name)).toEqual(["Live Five Hundred"]);
-    expect(view.upcoming.map((t) => t.name)).toEqual(["Toronto"]);
+    expect(view.featuredUpcoming.map((t) => t.name)).toEqual([
+      "Future Slam", "Future Finals", "Toronto", "Future Olympics",
+    ]);
+    expect(view.upcoming.map((t) => t.name)).toEqual(["Future Two Fifty"]);
     expect(view.recent.map((t) => t.name)).toEqual(["Done Thousand"]);
   });
 
@@ -158,14 +165,19 @@ describe("heroEvent", () => {
     expect(view.upcoming).toEqual([]);
   });
 
-  it("preserves every coverage key across hero, grid, and other", () => {
+  it("preserves every coverage key across all lifecycle surfaces", () => {
     const payload = [
       { coverageKey: "espn:1000", level: "Masters 1000", name: "A Thousand", status: "live", end: "2026-08-03" },
       { coverageKey: "espn:500", level: "ATP 500", name: "Five Hundred", status: "live", end: "2026-08-03" },
       { coverageKey: "espn:250", level: "ATP 250", name: "Two Fifty", status: "live", end: "2026-08-03" },
+      { coverageKey: "espn:future-slam", level: "Grand Slam", name: "Future Slam", status: "upcoming", end: "2026-08-31" },
+      { coverageKey: "espn:future-250", level: "ATP 250", name: "Future 250", status: "upcoming", end: "2026-08-10" },
+      { coverageKey: "espn:recent-slam", level: "Grand Slam", name: "Recent Slam", status: "completed", end: "2026-07-11" },
     ];
     const view = tournamentView(payload, NOW);
-    const rendered = [view.hero, ...view.grid, ...view.other]
+    const rendered = [
+      view.hero, ...view.grid, ...view.other, ...view.featuredUpcoming, ...view.upcoming, ...view.recent,
+    ]
       .filter((event): event is (typeof payload)[number] => Boolean(event))
       .map((event) => event.coverageKey)
       .sort();
@@ -288,6 +300,42 @@ describe("tournament grid card", () => {
     const html = renderToStaticMarkup(createElement(Card, { t: tournament, compact: true }));
     expect(html).toContain("Title odds from here");
     expect(html).not.toContain("R16");
+  });
+
+  it("adds at most three identity-matched scheduled matches to a live card", () => {
+    const tournament = { ...cardTournament(2), espnId: "725-2026", name: "Toronto" };
+    const upcomingMatches = Array.from({ length: 4 }, (_, i) => ({
+      event: "National Bank Open presented by Rogers",
+      espnId: "725-2026",
+      date: "2026-08-03",
+      round: "R64",
+      surface: "Hard",
+      bestOf: 3,
+      playerA: `Match A${i + 1}`,
+      playerB: `Match B${i + 1}`,
+      pA: 0.6,
+    }));
+    const html = renderToStaticMarkup(createElement(Card, { t: tournament, upcomingMatches }));
+    expect(html).toContain("Next up");
+    expect(html).toContain("full schedule");
+    expect(html).toContain("Match A1");
+    expect(html).toContain("Match A3");
+    expect(html).not.toContain("Match A4");
+    expect(html).toContain("60%–40%");
+  });
+
+  it("keeps the schedule footer off non-live cards", () => {
+    const match = {
+      event: "Toronto", espnId: "725-2026", date: "2026-08-03", round: "R64",
+      surface: "Hard", bestOf: 3, playerA: "A", playerB: "B", pA: 0.6,
+    };
+    for (const status of ["upcoming", "completed"] as const) {
+      const html = renderToStaticMarkup(createElement(Card, {
+        t: { ...cardTournament(2), status, espnId: "725-2026" },
+        upcomingMatches: [match],
+      }));
+      expect(html).not.toContain("Next up");
+    }
   });
 });
 
