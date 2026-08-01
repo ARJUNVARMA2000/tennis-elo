@@ -26,7 +26,7 @@ import json
 import pandas as pd
 
 from ..config import EVENT_CALENDAR_COMPLETE_GRACE_DAYS, live_dir
-from ..data.events import EventResolver, is_event_id, load_registry
+from ..data.events import EventResolver, display_event_name, is_event_id, load_registry
 from ..data.results import _name_key
 from ..data.surface import resolve_level, resolve_surface_info
 from .bracket import bracket_is_meaningful, bracket_rounds, is_real, oriented_logged, price_bracket
@@ -355,22 +355,20 @@ def _level_label(lv: object, tour: str) -> str:
 
 def _known_names(df: pd.DataFrame) -> set:
     """Tournament names that come from the archive (have a real level), for de-sponsoring."""
+    if df is None or not {"tourney_level", "tourney_name"} <= set(df.columns):
+        return set()
     return set(df.loc[df["tourney_level"].notna(), "tourney_name"].dropna().astype(str).unique())
 
 
-def _display_name(name: str, known: set) -> str:
-    """Prefer a clean archive name (city) embedded in an ESPN sponsor title.
+def _display_name(name: str, known: set, *, tour: str = "", event_id: str | None = None,
+                  identity_names: set | None = None) -> str:
+    """Prefer a familiar archive/city label over an ESPN sponsor title.
 
-    e.g. 'Lexus Eastbourne Open' -> 'Eastbourne', 'Vanda Pharmaceuticals Mallorca
-    Championships' -> 'Mallorca'. Falls back to the original name.
+    Stable identity evidence can connect unrelated strings; otherwise the conservative
+    containment cleanup still handles titles such as 'Lexus Eastbourne Open'.
     """
-    low = name.lower()
-    best = None
-    for kn in known:
-        k = kn.lower()
-        if len(k) >= 5 and k in low and (best is None or len(k) > len(best)):
-            best = kn
-    return best or name
+    return display_event_name(
+        tour, name, event_id, identity_names=identity_names or (), known_names=known)
 
 
 def _norm_display(name: str) -> str:
@@ -520,6 +518,10 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
     # matches were default-labelled "main". Once a Slam final appears, neither class may leak
     # into a >128-player completed field and pad it to an impossible 256-slot bracket.
     main = _one_match_per_player_round(_main_draw_ko_rows(g))
+    display_name = _display_name(
+        name, known or set(), tour=tour, event_id=espn_id,
+        identity_names=_known_names(g) - {name},
+    )
 
     # One chain, shared with the pre-start path: this event's KNOWN rows -> prior editions
     # (archive_hint) -> Wikipedia infobox -> month guess. Taking `surface_b.mode()` outright
@@ -631,7 +633,7 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
             # explicit. Known tier geometry (a Grand Slam is 128) is authoritative; unknown
             # tiers stay unknown rather than publishing a bogus 129/152-player draw.
             return {
-                "name": _display_name(name, known or set()),
+                "name": display_name,
                 "surface": surface,
                 "level": level,
                 "bestOf": best_of,
@@ -692,7 +694,7 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
             bracket = None
 
     return {
-        "name": _display_name(name, known or set()), "surface": surface, "level": level, "bestOf": best_of,
+        "name": display_name, "surface": surface, "level": level, "bestOf": best_of,
         "start": str(g["date"].min().date()), "end": str(g["date"].max().date()),
         "status": "completed" if completed else "live", "drawStatus": draw_state,
         "espnId": espn_id, "surfaceSource": surface_src,
@@ -744,7 +746,8 @@ def project_upcoming(predictor, name: str, wd: dict, tour: str, df: pd.DataFrame
     if not bracket_is_meaningful(bracket, len(field_pool)):
         bracket = None                               # mostly-placeholder early draw -> not worth showing
     return {
-        "name": _display_name(name, known or set()), "surface": surface, "level": level, "bestOf": best_of,
+        "name": _display_name(name, known or set(), tour=tour, event_id=espn_id),
+        "surface": surface, "level": level, "bestOf": best_of,
         "start": str(wd.get("start") or ""), "end": str(wd.get("end") or wd.get("start") or ""),
         "status": "upcoming", "drawStatus": "real",
         "espnId": espn_id, "surfaceSource": surface_src,
@@ -864,7 +867,7 @@ def build_tournaments(predictor, df: pd.DataFrame, tour: str, **kw) -> list:
         wd_id = str(wd.get("espnId") or "") or (key if is_event_id(key) else None)
         if wd_id and wd_id in seen_ids:
             continue
-        if _display_name(name, known) in seen or not wd.get("slots"):
+        if _display_name(name, known, tour=tour, event_id=wd_id) in seen or not wd.get("slots"):
             continue
         end = pd.to_datetime(wd.get("end") or wd.get("start"), errors="coerce")
         if dmax is not None and pd.notna(end) and end < dmax - pd.Timedelta(days=2):

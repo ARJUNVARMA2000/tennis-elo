@@ -264,7 +264,8 @@ def build_upcoming(predictor, df, tour: str) -> list:
     from .upcoming import enrich_upcoming, load_upcoming
     known = _known_names(df)
     rows = [{
-        "event": _display_name(r["event"], known), "date": r["date"], "round": r["round"],
+        "event": _display_name(r["event"], known, tour=tour, event_id=r.get("espnId")),
+        "date": r["date"], "round": r["round"],
         "surface": r["surface"], "bestOf": r["best_of"], "level": r["level"],
         "playerA": r["playerA"], "playerB": r["playerB"], "pA": round(r["pA"], 4),
     } for r in enrich_upcoming(predictor, df, load_upcoming(tour), tour)]

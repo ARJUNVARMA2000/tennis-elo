@@ -101,73 +101,65 @@ export function byTournamentPriority<T extends { level?: string; name: string; s
   });
 }
 
-/** How long a finished Grand Slam keeps the home-page hero after its final before the page
-    falls back to the tournament grid. ~48h so the championship result stays front-and-centre
-    through the days around the final (when interest peaks) instead of vanishing the instant
-    the match ends and the last hourly refresh flips the event to "completed". */
-export const SLAM_HERO_LINGER_MS = 48 * 60 * 60 * 1000;
-
-/** The tournament that should own the home-page hero, or undefined for the grid layout.
-    A Grand Slam that is live or upcoming always wins; a just-finished Slam keeps the hero for
-    SLAM_HERO_LINGER_MS past its end date so the champion lingers. `now` is injected for tests. */
-export function heroSlam<T extends { level: string; name: string; status: string; end: string }>(
-  tournaments: T[], now: number = Date.now(),
-): T | undefined {
-  return tournaments.find((t) => {
-    if (tournamentTier(t.level, t.name).rank !== 0) return false;        // not a Grand Slam
-    if (t.status !== "completed") return true;                          // still live/upcoming
-    const end = new Date(t.end + "T00:00").getTime();                   // finished — still within the linger window?
-    return Number.isFinite(end) && now - end <= SLAM_HERO_LINGER_MS;
-  });
-}
+/** A completed prestige event remains visible as a compact result for one week. */
+export const RECENT_PRESTIGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 /** Tiers that earn the single-event round-by-round hero: Grand Slam (0), Tour Finals (1), and
     Masters 1000/Olympics (2). A 500-and-below week stays a multi-event board: those tiers often
     run concurrently, so promoting one must not make the others look missing. */
 export const HERO_MAX_TIER_RANK = 2;
 
-/** The tournament that owns the home-page hero, or undefined for the grid layout.
+/** The active tournament that owns the home-page hero, or undefined for the grid layout.
 
-    A live or upcoming event at HERO_MAX_TIER_RANK or better wins, most prestigious first. A
-    FINISHED event only qualifies if it is a Slam still inside SLAM_HERO_LINGER_MS — a
-    just-crowned Slam champion stays front-and-centre for two days, but a wrapped-up non-Slam
-    hands the page back to the grid rather than sitting stale at the top. `now` is injected for tests. */
+    Completed events never qualify. `tournamentView` passes only one lifecycle cohort at a
+    time, so live play cannot lose the hero to a more prestigious upcoming draw. */
 export function heroEvent<T extends { level: string; name: string; status: string; end: string }>(
-  tournaments: T[], now: number = Date.now(), maxRank: number = HERO_MAX_TIER_RANK,
+  tournaments: T[], _now: number = Date.now(), maxRank: number = HERO_MAX_TIER_RANK,
 ): T | undefined {
-  const eligible = tournaments.filter((t) => {
-    const { rank } = tournamentTier(t.level, t.name);
-    if (rank > maxRank) return false;
-    if (t.status !== "completed") return true;
-    if (rank !== 0) return false;                                       // only a Slam lingers
-    const end = new Date(t.end + "T00:00").getTime();
-    return Number.isFinite(end) && now - end <= SLAM_HERO_LINGER_MS;
-  });
-  return [...eligible].sort((a, b) => {
-    const dr = tournamentTier(a.level, a.name).rank - tournamentTier(b.level, b.name).rank;
-    if (dr !== 0) return dr;                                            // prestige first
-    return Number(a.status === "completed") - Number(b.status === "completed"); // then live over done
-  })[0];
+  const eligible = tournaments.filter((t) =>
+    t.status !== "completed" && tournamentTier(t.level, t.name).rank <= maxRank);
+  return [...eligible].sort((a, b) =>
+    tournamentTier(a.level, a.name).rank - tournamentTier(b.level, b.name).rank)[0];
 }
 
 export type TournamentView<T> = {
   hero: T | undefined;
   grid: T[];
   other: T[];
+  upcoming: T[];
+  recent: T[];
 };
 
-/** Partition the home tournament payload without losing membership.
+/** Partition the home tournament payload by lifecycle and emphasis.
 
-    Focused weeks (1000+) get one hero and expose every remaining event through the nearby
-    disclosure. On 500-and-below weeks there is no hero: the complete prestige-ordered payload
-    renders directly in the card grid. */
+    Live play always owns the primary cohort. When live events exist, upcoming draws move to a
+    compact secondary section; otherwise upcoming events become the primary cohort and may earn
+    the hero. Ordinary completed events disappear immediately. Completed prestige events
+    (Grand Slam/Finals/1000/Olympics) remain compact for seven days, never as the hero. */
 export function tournamentView<T extends { level: string; name: string; status: string; end: string }>(
   tournaments: T[], now: number = Date.now(),
 ): TournamentView<T> {
   const ordered = byTournamentPriority(tournaments);
-  const hero = heroEvent(ordered, now);
-  if (!hero) return { hero: undefined, grid: ordered, other: [] };
-  return { hero, grid: [], other: ordered.filter((event) => event !== hero) };
+  const live = ordered.filter((event) => event.status === "live");
+  const future = ordered.filter((event) => event.status === "upcoming");
+  const recent = ordered.filter((event) => {
+    if (event.status !== "completed" || tournamentTier(event.level, event.name).rank > HERO_MAX_TIER_RANK)
+      return false;
+    const end = new Date(event.end + "T00:00").getTime();
+    const age = now - end;
+    return Number.isFinite(end) && age >= 0 && age <= RECENT_PRESTIGE_MS;
+  });
+  const primary = live.length ? live : future;
+  const hero = heroEvent(primary, now);
+  const upcoming = live.length ? future : [];
+  if (!hero) return { hero: undefined, grid: primary, other: [], upcoming, recent };
+  return {
+    hero,
+    grid: [],
+    other: primary.filter((event) => event !== hero),
+    upcoming,
+    recent,
+  };
 }
 
 /** Heat color for a probability 0..1 — single-hue indigo luminance ramp.

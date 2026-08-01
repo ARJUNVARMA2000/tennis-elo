@@ -39,6 +39,19 @@ def _meta(name, eid, start="2026-07-25", end="2026-08-03"):
     return {name: {"espnId": eid, "start": start, "end": end}}
 
 
+def test_public_label_prefers_identity_joined_archive_name_without_fuzzy_matching():
+    sponsor = "Acme Financial Services Championship presented by Example"
+    assert ev.display_event_name(
+        "atp", sponsor, "999-2026", identity_names={"Familiar City"}) == "Familiar City"
+    # A later Canadian edition stays familiar without guessing which rotating city hosts it.
+    assert ev.display_event_name(
+        "atp", "National Bank Open presented by Rogers", "421-2027") == "Canada"
+    # A current sponsor-labelled row must not outrank a familiar city contained in its title.
+    eastbourne = "Lexus Eastbourne Open"
+    assert ev.display_event_name(
+        "wta", eastbourne, known_names={eastbourne, "Eastbourne"}) == "Eastbourne"
+
+
 def test_rename_appends_to_the_alias_table():
     """The DC Open sequence. ESPN dropped "Citi" from the shortName mid-event while the id
     stayed 888-2026; every cache keyed on the name was orphaned. The registry must end with

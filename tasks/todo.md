@@ -3013,3 +3013,63 @@ overlap plus shared real players, never by name similarity.
 - Commit `4b114d0` was pushed to `master` after explicit approval. Production run `30665029676`
   passed Python/web CI, the live quick refresh, pre-deploy integrity and data-health gates,
   Firebase deployment, and live-serving verification.
+
+## Round Q — familiar Canadian Masters names and full-round forecasts
+
+- [x] Add fail-first producer coverage for the shared 2026 Canadian Masters ESPN identity,
+  proving its display label is `Toronto` on ATP and `Montreal` on WTA while every data join
+  continues to use `espnId`.
+- [x] Replace the sponsor title at the display-name boundary and make tournament forecast tables
+  show every available reach round (`R128`/`R64`/`R32` through Win), rather than discarding
+  everything before R16.
+- [x] Run focused and full Python/web verification plus a rendered mobile/desktop check of the
+  Canadian Masters table; reconcile against the latest git history and append the review. Do not
+  push or deploy without separate explicit instruction.
+
+### Review
+
+- Public naming now resolves at the producer's identity-aware display boundary: exact 2026
+  Canadian editions render `Toronto` (ATP) and `Montreal` (WTA), later unknown editions fall
+  back to `Canada`, and any sponsor title already joined by stable identity to a familiar
+  archive/city alias inherits that alias without fuzzy matching or changing join keys.
+- Tournament heroes and detailed cards now select from the complete ordered reach sequence,
+  so any available R128/R64/R32 probabilities precede R16 through Win. Missing rounds remain
+  omitted, and concurrent compact cards keep their title-only treatment.
+- Fail-first regressions reproduced both issues. Final verification passed all 501 Python tests,
+  all 195 web tests, TypeScript, the 21-page production build, and `git diff --check`; ESLint
+  remained at 0 errors / 13 existing warnings.
+- Rendered inspection showed all eight round columns fitting the 1280px desktop without page
+  overflow. At 390px mobile, the document stayed 380px wide while the 620px forecast table
+  scrolled inside its 314px strip, exposing early rounds first without widening the page.
+  Reconciled against `git log -5`; `e81a54f` remained the latest commit before publication.
+
+## Round R — live play owns the current-tournaments page
+
+- [x] Add fail-first view regressions proving ordinary completed events never render on the
+  overview, prestige events (Grand Slam/Finals/1000/Olympics) remain for seven days, and an
+  upcoming 1000-level draw cannot take the hero while any tournament is live.
+- [x] Make live events the primary surface: a live 1000 may own the hero; otherwise every live
+  event stays in the detailed grid, while upcoming events move to a compact `Coming up` section.
+  Only when nothing is live may an upcoming 1000-level event own the hero.
+- [x] Replace completed-event hero/linger behavior with a compact `Recently finished` prestige
+  section, update the web lesson with the lifecycle rule, and run focused/full web checks plus
+  rendered mixed live/upcoming/completed inspection.
+  Reconcile against the latest git history and append the review; do not push or deploy without
+  separate explicit instruction.
+
+### Review
+
+- The overview now partitions lifecycle before prestige. Live events are the only primary
+  cohort while play is underway; a live Slam/Finals/1000/Olympics may own the hero, otherwise
+  all live events receive detailed grid cards. Upcoming draws remain compact under `Coming up`
+  and may claim a hero only when no event is live.
+- Ordinary completed events leave immediately. Completed Grand Slams, Tour Finals, 1000s, and
+  Olympics remain as compact `Recently finished` results for exactly seven days and can never
+  become the hero.
+- Five fail-first lifecycle regressions reproduced the hierarchy bugs. Final verification passed
+  all 197 web tests, TypeScript, the 21-page production build, and `git diff --check`; ESLint
+  remained at 0 errors / 13 existing warnings.
+- Rendered mixed-state inspection at 1280px showed Washington DC first as a detailed live card,
+  Toronto compact under `Coming up`, and Madrid compact under `Recently finished`; ordinary
+  completed Estoril was absent and the page had no horizontal overflow. Reconciled against
+  `git log -5`; `e81a54f` remained the latest commit before publication.

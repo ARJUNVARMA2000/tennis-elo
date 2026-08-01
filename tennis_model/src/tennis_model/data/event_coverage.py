@@ -23,7 +23,7 @@ from datetime import UTC, datetime
 import pandas as pd
 
 from ..config import live_dir
-from .events import EventResolver, load_registry, norm_event_name
+from .events import EventResolver, display_event_name, load_registry, norm_event_name
 from .results import _name_key
 from .surface import resolve_level, resolve_surface_info
 
@@ -173,6 +173,7 @@ def _candidate(name: str, event_id: str | None, start, end, source: str,
         "champion": str(champion) if final_recorded else None,
         "runnerUp": str(runner_up) if final_recorded else None,
         "archiveLevel": archive_level,
+        "archiveNames": {str(name)} if source == "result" and archive_level is not None else set(),
         "surface": surface,
         "surfaceSource": surface_source,
         "bestOf": best_of,
@@ -323,7 +324,10 @@ def _merge_candidates(candidates: list[dict], tour: str, registry: dict) -> list
         evidence_starts = [m["evidenceStart"] for m in members if m.get("evidenceStart")]
         evidence_ends = [m["evidenceEnd"] for m in members if m.get("evidenceEnd")]
         start, end = (min(starts) if starts else None), (max(ends) if ends else None)
-        display = _registry_name(registry, event_id, names[0] if names else "Unknown event")
+        raw_display = _registry_name(registry, event_id, names[0] if names else "Unknown event")
+        archive_names = {name for member in members for name in member.get("archiveNames", set())}
+        display = display_event_name(
+            tour, raw_display, event_id, identity_names=archive_names - {raw_display})
         archive_levels = [m.get("archiveLevel") for m in members if m.get("archiveLevel") is not None]
         best_of_values = [m.get("bestOf") for m in members if m.get("bestOf") is not None]
         surface_values = [(m.get("surface"), m.get("surfaceSource")) for m in members

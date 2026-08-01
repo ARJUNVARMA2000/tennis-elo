@@ -3,7 +3,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { Card } from "@/app/page";
-import { byTournamentPriority, drawCaveat, emptyProjectionNote, heat, heroEvent, pct, percentileScaler, scoreDist, SLAM_HERO_LINGER_MS, SURFACE_BLEND, tournamentDrawLabel, tournamentView } from "@/lib/ui";
+import { byTournamentPriority, drawCaveat, emptyProjectionNote, heat, heroEvent, pct, percentileScaler, RECENT_PRESTIGE_MS, scoreDist, SURFACE_BLEND, tournamentDrawLabel, tournamentView } from "@/lib/ui";
 
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
 
@@ -63,16 +63,15 @@ describe("heroEvent", () => {
     expect(heroEvent(grid, NOW)?.name).toBe("Wimbledon");
   });
 
-  it("keeps a just-finished Slam within the ~48h linger, then drops it", () => {
-    expect(heroEvent([slam("completed", "2026-07-11")], NOW)).toBeDefined();        // ~1 day out
-    const stale = new Date("2026-07-14T12:00").getTime();                           // ~3 days out
-    expect(heroEvent([slam("completed", "2026-07-11")], stale)).toBeUndefined();
+  it("never gives the hero to a completed event", () => {
+    expect(heroEvent([slam("completed", "2026-07-11")], NOW)).toBeUndefined();
   });
 
-  it("honours the exact linger boundary", () => {
+  it("keeps a completed prestige event in recents for exactly seven days", () => {
     const end = new Date("2026-07-11T00:00").getTime();
-    expect(heroEvent([slam("completed", "2026-07-11")], end + SLAM_HERO_LINGER_MS)).toBeDefined();
-    expect(heroEvent([slam("completed", "2026-07-11")], end + SLAM_HERO_LINGER_MS + 1)).toBeUndefined();
+    const event = slam("completed", "2026-07-11");
+    expect(tournamentView([event], end + RECENT_PRESTIGE_MS).recent).toEqual([event]);
+    expect(tournamentView([event], end + RECENT_PRESTIGE_MS + 1).recent).toEqual([]);
   });
 
   // Regression: promoting the DC Open to the single-event hero reused the Slam layout and
@@ -126,12 +125,37 @@ describe("heroEvent", () => {
     expect(heroEvent(sameTier, NOW)?.name).toBe("Live Open");
   });
 
-  it("does not drop completed events from a focused week's disclosure", () => {
+  it("drops ordinary completed events but keeps a recent completed prestige event", () => {
     const view = tournamentView([
       { level: "Masters 1000", name: "A Thousand", status: "live", end: "2026-08-03" },
-      { level: "ATP 500", name: "Done Five Hundred", status: "completed", end: "2026-07-20" },
+      { level: "ATP 500", name: "Done Five Hundred", status: "completed", end: "2026-07-10" },
+      { level: "Grand Slam", name: "Done Slam", status: "completed", end: "2026-07-10" },
     ], NOW);
-    expect(view.other.map((t) => t.name)).toEqual(["Done Five Hundred"]);
+    expect(view.other).toEqual([]);
+    expect(view.recent.map((t) => t.name)).toEqual(["Done Slam"]);
+  });
+
+  it("keeps live play primary over an upcoming 1000 draw", () => {
+    const view = tournamentView([
+      { level: "ATP 500", name: "Live Five Hundred", status: "live", end: "2026-08-03" },
+      { level: "Masters 1000", name: "Toronto", status: "upcoming", end: "2026-08-14" },
+      { level: "ATP 250", name: "Estoril", status: "completed", end: "2026-07-26" },
+      { level: "Masters 1000", name: "Done Thousand", status: "completed", end: "2026-07-28" },
+    ], new Date("2026-08-01T12:00").getTime());
+    expect(view.hero).toBeUndefined();
+    expect(view.grid.map((t) => t.name)).toEqual(["Live Five Hundred"]);
+    expect(view.upcoming.map((t) => t.name)).toEqual(["Toronto"]);
+    expect(view.recent.map((t) => t.name)).toEqual(["Done Thousand"]);
+  });
+
+  it("allows an upcoming 1000 hero only when nothing is live", () => {
+    const view = tournamentView([
+      { level: "Masters 1000", name: "Toronto", status: "upcoming", end: "2026-08-14" },
+      { level: "ATP 250", name: "Future 250", status: "upcoming", end: "2026-08-10" },
+    ], NOW);
+    expect(view.hero?.name).toBe("Toronto");
+    expect(view.other.map((t) => t.name)).toEqual(["Future 250"]);
+    expect(view.upcoming).toEqual([]);
   });
 
   it("preserves every coverage key across hero, grid, and other", () => {
@@ -231,6 +255,23 @@ describe("tournament grid card", () => {
     }));
     expect(smallHtml).toContain("R16");
     expect(smallHtml).toContain("QF");
+  });
+
+  it("starts a large-draw forecast at its earliest available round", () => {
+    const tournament = {
+      name: "Toronto", surface: "Hard", level: "Masters 1000", bestOf: 3,
+      start: "2026-08-02", end: "2026-08-14", status: "upcoming" as const,
+      drawStatus: "real" as const, drawSize: 96, aliveCount: 96,
+      champion: null, runnerUp: null, modelFavorite: "Player One", favoritePicked: false,
+      projection: [
+        { name: "Player One", champion: 0.25, final: 0.4, sf: 0.6,
+          reach: { R128: 1, R64: 0.95, R32: 0.82, R16: 0.7, QF: 0.6,
+            SF: 0.5, F: 0.4, Champion: 0.25 } },
+      ],
+    };
+    const html = renderToStaticMarkup(createElement(Card, { t: tournament }));
+    for (const round of ["R128", "R64", "R32", "R16", "QF", "SF", "Win"])
+      expect(html).toContain(round);
   });
 
   it("keeps a concurrent lower-tier event compact beneath a hero", () => {

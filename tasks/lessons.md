@@ -117,3 +117,8 @@ New lesson → append the entry to the matching topic file and add its lead line
 - Repeated unresolved provider labels identify distinct draw seats; number them before
   set-backed consumers collapse the field. See
   [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md).
+
+## Round R addition (2026-08-01)
+
+- Partition lifecycle before hero selection: live play owns the page, upcoming draws wait, and
+  only recent prestige results linger. See [`lessons/web.md`](lessons/web.md).

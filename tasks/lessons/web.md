@@ -105,3 +105,13 @@ Indexed in [`../lessons.md`](../lessons.md).
   tier. During a Grand Slam/1000 hero week, keep the marquee event full-width and render every
   concurrent lower-tier event visibly after it as a compact title-odds card. Do not hide those
   cards in a disclosure or let tier suppress useful data during an ordinary multi-event week.
+
+- **Partition lifecycle before choosing a hero; prestige only compares events in the same
+  cohort.** (2026-08-01, upcoming Toronto draw displaced live Washington) Sorting the payload
+  live-first did not protect the page because hero selection independently filtered for 1000+
+  events, allowing an upcoming draw to become the main surface while matches were live. Build
+  explicit cohorts first: live events own the primary surface; upcoming events are compact while
+  anything is live and may earn a hero only when the live cohort is empty. Ordinary completed
+  events leave the current page immediately; completed Grand Slams, Finals, 1000s, and Olympics
+  remain compact for seven days, never as the hero. Test the mixed lifecycle payload, not each
+  status in isolation.

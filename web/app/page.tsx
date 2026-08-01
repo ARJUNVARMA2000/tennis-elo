@@ -30,7 +30,7 @@ function dateRange(start: string, end: string): string {
 }
 
 // Round-by-round forecast table: which rounds to show (deepest, top-players-down) + labels.
-const DEEP_ROUNDS = ["R16", "QF", "SF", "F", "Champion"];
+const FORECAST_ROUNDS = ["R128", "R64", "R32", "R16", "QF", "SF", "F", "Champion"];
 const DEFAULT_VISIBLE_PLAYERS = 16;
 const ROUND_LABEL: Record<string, string> = {
   R128: "R128", R64: "R64", R32: "R32", R16: "R16", QF: "QF", SF: "SF", F: "F", Champion: "Win",
@@ -150,28 +150,34 @@ export default function Tournaments() {
   const { data: players } = useData<PlayerRow[]>("players.json");
   const profileRoster = useMemo(() => new Set((players ?? []).map((player) => player.name)), [players]);
 
-  // Focused weeks (Grand Slam / Finals / 1000 / Olympics) get one round-by-round hero, then
-  // compact cards for every concurrent event. A 500-and-below week stays a complete,
-  // prestige-ordered multi-event grid with detailed reach odds for every active event.
-  const { hero, grid, other } = tournamentView(data || []);
+  // Lifecycle owns the page before prestige: live events are primary, upcoming draws wait in
+  // a compact section, and only recent completed prestige events remain as compact results.
+  const { hero, grid, other, upcoming, recent } = tournamentView(data || []);
 
   if (hero) {
-    const done = hero.status === "completed";
     const tier = tournamentTier(hero.level, hero.name);
     return (
       <div className="pb-16">
         <PageHead
-          eyebrow={`${tour.toUpperCase()} · ${tier.short} · ${done ? "championship result" : "round-by-round forecast"}`}
+          eyebrow={`${tour.toUpperCase()} · ${tier.short} · round-by-round forecast`}
           title={hero.name}
-          sub={done
-            ? "How the model saw the title race before a ball was struck — the leading contenders' pre-tournament chances of reaching each round, now set against the player who actually lifted the trophy."
-            : "The model's live title odds — the leading contenders' chances of reaching each round, from the favourites on down. Updated as the draw thins."}
+          sub={hero.status === "live"
+            ? "The model's live title odds — the leading contenders' chances of reaching each round, from the favourites on down. Updated as the draw thins."
+            : "The model's pre-event title odds — the leading contenders' chances of reaching each round before play begins."}
         />
         <LiveTicker />
         <Reveal>
           <SlamHero t={hero} players={players} profileRoster={profileRoster} />
         </Reveal>
-        {other.length > 0 && <ConcurrentEvents events={other} profileRoster={profileRoster} />}
+        {other.length > 0 && (
+          <CompactEvents
+            events={other}
+            title={hero.status === "live" ? "Also live" : "Also coming up"}
+            profileRoster={profileRoster}
+          />
+        )}
+        {upcoming.length > 0 && <CompactEvents events={upcoming} title="Coming up" profileRoster={profileRoster} />}
+        {recent.length > 0 && <CompactEvents events={recent} title="Recently finished" profileRoster={profileRoster} />}
         <UpNext />
       </div>
     );
@@ -182,14 +188,12 @@ export default function Tournaments() {
       <PageHead
         eyebrow={`${tour.toUpperCase()} · the current swing`}
         title="Latest Tournaments"
-        sub="Every recent event with the model's title odds for the field. Live events show who's favoured from here; finished events show whether the model called the champion."
+        sub="Every current event with the model's title odds for the field. Live play comes first; upcoming draws stay close without taking over the page."
       />
       <LiveTicker />
-      <UpNext />
-
       {loading && <Loading />}
-      {data && data.length === 0 && (
-        <div className="mono mt-10 text-sm text-[var(--color-faint)]">No recent tournaments in the data yet.</div>
+      {data && !hero && grid.length === 0 && upcoming.length === 0 && recent.length === 0 && (
+        <div className="mono mt-10 text-sm text-[var(--color-faint)]">No current tournaments in the data yet.</div>
       )}
 
       <div className="mt-8 grid gap-4 lg:grid-cols-2">
@@ -199,6 +203,9 @@ export default function Tournaments() {
           </Reveal>
         ))}
       </div>
+      {upcoming.length > 0 && <CompactEvents events={upcoming} title="Coming up" profileRoster={profileRoster} />}
+      {recent.length > 0 && <CompactEvents events={recent} title="Recently finished" profileRoster={profileRoster} />}
+      <UpNext />
     </div>
   );
 }
@@ -218,7 +225,7 @@ function SlamHero({
   const { tour } = useTour();
   const sc = surfaceColor(t.surface);
   const present = new Set(t.projection.flatMap((p) => Object.keys(reachOf(p))));
-  const cols = DEEP_ROUNDS.filter((c) => present.has(c));
+  const cols = FORECAST_ROUNDS.filter((c) => present.has(c));
 
   // Per contender: overall Elo + rank, and the surface-BLENDED rating + rank (the number the model
   // actually predicts with — raw surface Elo is heavily shrunk and misleads). Joined from players.json
@@ -394,21 +401,22 @@ function SlamHero({
   );
 }
 
-/** During a focused hero week, keep every concurrent event visible immediately after the hero
-    while using compact title-odds cards so the supporting events do not compete for emphasis. */
-function ConcurrentEvents({
+/** Compact secondary cohort: supporting live events, upcoming draws, or recent prestige results. */
+function CompactEvents({
   events,
+  title,
   profileRoster,
 }: {
   events: Tournament[];
+  title: string;
   profileRoster: ReadonlySet<string>;
 }) {
   const ordered = byTournamentPriority(events);
   return (
-    <section aria-label="Other tournaments" className="mt-10">
+    <section aria-label={title} className="mt-10">
       <div className="mb-3 flex items-baseline gap-2">
-        <span className="eyebrow !text-[var(--color-text)]">Also on tour</span>
-        <span className="text-[11px] text-[var(--color-faint)]">{events.length} other {events.length === 1 ? "event" : "events"}</span>
+        <span className="eyebrow !text-[var(--color-text)]">{title}</span>
+        <span className="text-[11px] text-[var(--color-faint)]">{events.length} {events.length === 1 ? "event" : "events"}</span>
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
         {ordered.map((t, i) => (
@@ -483,7 +491,7 @@ export function Card({
   const shown = open ? t.projection : t.projection.slice(0, DEFAULT_VISIBLE_PLAYERS);
   const maxP = Math.max(0.01, ...t.projection.map((p) => p.champion));
   const present = new Set(t.projection.flatMap((p) => Object.keys(reachOf(p))));
-  const reachCols = DEEP_ROUNDS.filter((round) => present.has(round));
+  const reachCols = FORECAST_ROUNDS.filter((round) => present.has(round));
   const showReach = !compact && t.status !== "completed" && reachCols.length > 1;
 
   return (

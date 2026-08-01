@@ -551,6 +551,19 @@ def test_prestart_upcoming_projection_from_wiki():
     print("ok test_prestart_upcoming_projection_from_wiki")
 
 
+@pytest.mark.parametrize(("tour", "expected"), [("atp", "Toronto"), ("wta", "Montreal")])
+def test_canadian_masters_uses_familiar_city_name(tour, expected):
+    """The shared ESPN sponsor title must not leak into either tour's public card."""
+    wd = {"slots": [f"P{i}" for i in range(16)], "bestOf": 3,
+          "start": "2026-08-02", "end": "2026-08-14"}
+    t = project_upcoming(
+        _PRED, "National Bank Open presented by Rogers", wd, tour,
+        pd.DataFrame(), set(), lambda n: n, espn_id="421-2026", n_sims=20, seed=1,
+    )
+    assert t["name"] == expected
+    print(f"ok test_canadian_masters_uses_familiar_city_name[{tour}]")
+
+
 def test_dedup_by_display_name_keeps_fuller_draw():
     """The naming/dedup split that reddened the daily refresh: the same event under an archive
     city name and an ESPN sponsor title, collapsed by _display_name to one shown name. Keep the

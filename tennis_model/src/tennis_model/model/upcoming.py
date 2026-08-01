@@ -112,5 +112,6 @@ def enrich_upcoming(predictor, df: pd.DataFrame, up_df: pd.DataFrame | None, tou
             "event": str(r.tourney_name), "date": str(r.tourney_date), "round": r.round,
             "surface": surface, "best_of": bo, "playerA": a, "playerB": b, "pA": p,
             "level": resolve_level(tour, str(r.tourney_name)),
+            "espnId": getattr(r, "espn_id", None),
         })
     return out

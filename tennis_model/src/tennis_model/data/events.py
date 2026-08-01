@@ -38,7 +38,7 @@ from collections.abc import Iterable
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from ..config import EVENT_REGISTRY_RETENTION_DAYS, live_dir
+from ..config import EVENT_DISPLAY_NAME_OVERRIDES, EVENT_REGISTRY_RETENTION_DAYS, live_dir
 
 REGISTRY_FILE = "events.json"
 REGISTRY_VERSION = 2
@@ -66,6 +66,46 @@ def norm_event_name(name: object) -> str:
     """Case/whitespace-insensitive event key. Mirrors ``health._norm_name`` and
     ``sim.tournaments._norm_display`` so all three collapse exactly the same pairs."""
     return " ".join(str(name).split()).casefold()
+
+
+def display_event_name(
+    tour: str,
+    raw_name: object,
+    event_id: object = None,
+    *,
+    identity_names: Iterable[object] = (),
+    known_names: Iterable[object] = (),
+) -> str:
+    """Return the familiar public label without weakening event identity.
+
+    Precedence is deliberately evidence-based: a reviewed edition override, then a safe
+    series fallback, then an archive name already joined to this exact event, then the old
+    containment cleanup for sponsor titles that include their city. No fuzzy name match can
+    establish identity here; callers may supply ``identity_names`` only after an id/evidence
+    join has already done that work.
+    """
+    raw = " ".join(str(raw_name or "").split())
+    eid = str(event_id or "").strip()
+    overrides = EVENT_DISPLAY_NAME_OVERRIDES.get(str(tour).lower(), {})
+    if eid and eid in overrides:
+        return overrides[eid]
+    series = eid.split("-", 1)[0] if eid else ""
+    if series and series in overrides:
+        return overrides[series]
+
+    identity = {" ".join(str(name).split()) for name in identity_names if str(name).strip()}
+    identity.discard(raw)
+    if identity:
+        # City/archive labels are normally the shortest trustworthy alias. Stable identity
+        # evidence makes this safe even when sponsor and archive strings share no substring.
+        return min(identity, key=lambda name: (len(name.split()), len(name), name.casefold()))
+
+    low = raw.casefold()
+    contained = [" ".join(str(name).split()) for name in known_names
+                 if len(" ".join(str(name).split())) >= 5
+                 and " ".join(str(name).split()) != raw
+                 and " ".join(str(name).split()).casefold() in low]
+    return max(contained, key=len) if contained else raw
 
 
 def registry_path(tour: str) -> Path:

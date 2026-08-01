@@ -550,6 +550,21 @@ OFFICIAL_DRAW_ID_OVERRIDES: dict[str, dict[str, str]] = {
     },
 }
 
+# Public event labels are familiar place/event names, not whichever sponsor title a feed
+# happens to publish this week. Exact ESPN edition ids take precedence; a numeric-series key
+# is a safe fallback only when the host is unknown (the Canadian Masters rotates cities).
+# Identity and provider joins still use espnId/sourceIds — this table is display metadata only.
+EVENT_DISPLAY_NAME_OVERRIDES: dict[str, dict[str, str]] = {
+    "atp": {
+        "421-2026": "Toronto",
+        "421": "Canada",
+    },
+    "wta": {
+        "421-2026": "Montreal",
+        "421": "Canada",
+    },
+}
+
 
 # ---------------------------------------------------------------------------
 # Player aliases — ONE person our sources spell two ways.
