@@ -1,5 +1,17 @@
 import type { Metadata } from "next";
 
+export const SITE_URL = (
+  process.env.NEXT_PUBLIC_SITE_URL || "https://deuce-forecast.web.app"
+).replace(/\/+$/, "");
+
+export const WEBSITE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "DEUCE",
+  alternateName: "DEUCE Tennis Forecast Engine",
+  url: `${SITE_URL}/`,
+};
+
 /** Per-route titles/descriptions — consumed by each route's layout.tsx
     (pages are client components, so metadata lives in tiny server layouts). */
 const PAGE_META: Record<string, { title: string; description: string }> = {
@@ -72,5 +84,11 @@ const PAGE_META: Record<string, { title: string; description: string }> = {
 
 export function pageMetadata(slug: keyof typeof PAGE_META | string): Metadata {
   const m = PAGE_META[slug];
-  return m ? { title: m.title, description: m.description } : {};
+  return m
+    ? {
+        title: m.title,
+        description: m.description,
+        alternates: { canonical: `/${slug}/` },
+      }
+    : {};
 }

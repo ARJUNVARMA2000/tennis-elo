@@ -4,6 +4,7 @@ import "./globals.css";
 import Nav from "@/components/Nav";
 import { GitHubIcon } from "@/components/bits";
 import { TourProvider } from "@/lib/tour";
+import { SITE_URL, WEBSITE_JSON_LD } from "@/lib/seo";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" });
@@ -12,12 +13,11 @@ const DESC =
   "A tennis forecast engine for the ATP & WTA tours: surface-blended Elo, an opponent-adjusted serve/return point model and an XGBoost combiner. Live ratings, match win probabilities and Monte Carlo draw simulations.";
 
 const TITLE = "DEUCE — Tennis Forecast Engine";
-// Set by the deploy workflow; the fallback keeps `next build` standalone (local, CI)
-// producing absolute og:image URLs rather than throwing on an empty metadataBase.
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://deuce-forecast.web.app";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
+  alternates: { canonical: "/" },
+  applicationName: "DEUCE",
   title: { default: TITLE, template: "%s · DEUCE" },
   description: DESC,
   openGraph: {
@@ -43,6 +43,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${inter.variable} ${geistMono.variable}`}>
       <body>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(WEBSITE_JSON_LD).replace(/</g, "\\u003c"),
+          }}
+        />
         <div className="atmosphere" />
         <TourProvider>
           <Nav />

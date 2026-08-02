@@ -1,12 +1,11 @@
-// Canonical list of the site's top-level routes — one home, imported by both the browser
-// harness (verify.mjs, local) and the post-deploy suite (verify-deploy.mjs, CI + local).
-// Trailing slashes match `trailingSlash: true` in next.config.ts, so these hit the exported
-// <route>/index.html directly with no redirect.
-export const ROUTES = [
+// Canonical list of indexable top-level routes — shared by the sitemap, tests, browser
+// harness, and post-deploy suite. Trailing slashes match `trailingSlash: true` in
+// next.config.ts, so these hit the exported <route>/index.html directly with no redirect.
+// Internal /health/ and legacy /upcoming/ are intentionally absent from search discovery.
+export const INDEXABLE_ROUTES = [
   "/",
   "/rankings/",
   "/results/",
-  "/upcoming/",
   "/schedule/",
   "/bracket/",
   "/scorecard/",
@@ -14,4 +13,14 @@ export const ROUTES = [
   "/accuracy/",
   "/trends/",
   "/explorer/",
+  "/simulator/",
+  "/player/",
+  "/style/",
+  "/strength/",
+  "/track/",
+  "/method/",
 ];
+
+// /upcoming/ remains in end-to-end verification because its client redirect to /results/
+// must keep working even though crawlers should index only the destination.
+export const ROUTES = [...INDEXABLE_ROUTES, "/upcoming/"];

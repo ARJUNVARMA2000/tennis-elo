@@ -10,7 +10,7 @@
 //   node scripts/verify-deploy.mjs [--base <url>] [--expect-generated-at <iso>]
 //   VERIFY_BASE_URL=... EXPECT_GENERATED_AT=... npm run verify:deploy
 // Exits non-zero if any check fails, so it can gate/alert in the workflow.
-import { ROUTES } from "./routes.mjs";
+import { INDEXABLE_ROUTES, ROUTES } from "./routes.mjs";
 import {
   parseCacheControl,
   contentTypeOk,
@@ -19,6 +19,8 @@ import {
   freshnessOk,
   coverageProblems,
   extractOgImage,
+  extractCanonical,
+  sitemapCoverageProblems,
   hasProfileContract,
 } from "./verify-deploy-lib.mjs";
 
@@ -66,6 +68,7 @@ function must(cond, msg) {
 // ---- checks -----------------------------------------------------------------
 // Home page fetched once and reused (cache header + asset discovery + meta).
 let homeHtml = "";
+const routeHtml = new Map();
 
 await check("routes 200 + text/html", async () => {
   const bad = [];
@@ -73,10 +76,47 @@ await check("routes 200 + text/html", async () => {
     const res = await fetchT(BASE + route);
     const ct = res.headers.get("content-type");
     if (res.status !== 200 || !contentTypeOk(ct, route)) bad.push(`${route} -> ${res.status} ${ct}`);
-    if (route === "/") homeHtml = await res.text();
+    const html = await res.text();
+    routeHtml.set(route, html);
+    if (route === "/") homeHtml = html;
   }
   must(bad.length === 0, `bad routes: ${bad.join("; ")}`);
   return `${ROUTES.length} routes ok`;
+});
+
+await check("crawl discovery: robots.txt + sitemap.xml", async () => {
+  const robotsRes = await fetchT(BASE + "/robots.txt");
+  must(robotsRes.status === 200, `robots.txt -> ${robotsRes.status}`);
+  must(
+    String(robotsRes.headers.get("content-type") || "").includes("text/plain"),
+    `robots.txt served as ${robotsRes.headers.get("content-type")}`,
+  );
+  const robots = await robotsRes.text();
+  must(/^User-agent:\s*\*$/im.test(robots), "robots.txt missing User-agent: *");
+  must(/^Allow:\s*\/$/im.test(robots), "robots.txt does not allow /");
+  must(
+    robots.includes(`Sitemap: ${ORIGIN}/sitemap.xml`),
+    `robots.txt sitemap is not ${ORIGIN}/sitemap.xml`,
+  );
+
+  const sitemapRes = await fetchT(BASE + "/sitemap.xml");
+  must(sitemapRes.status === 200, `sitemap.xml -> ${sitemapRes.status}`);
+  const sitemapType = String(sitemapRes.headers.get("content-type") || "").toLowerCase();
+  must(sitemapType.includes("xml"), `sitemap.xml served as ${sitemapType}`);
+  const problems = sitemapCoverageProblems(await sitemapRes.text(), ORIGIN, INDEXABLE_ROUTES);
+  must(problems.length === 0, problems.join("; "));
+  return `${INDEXABLE_ROUTES.length} canonical URLs`;
+});
+
+await check("meta: every indexable route has a self-canonical URL", async () => {
+  const bad = [];
+  for (const route of INDEXABLE_ROUTES) {
+    const canonical = extractCanonical(routeHtml.get(route));
+    const expected = new URL(route, ORIGIN).href;
+    if (canonical !== expected) bad.push(`${route} -> ${canonical || "missing"} (expected ${expected})`);
+  }
+  must(bad.length === 0, bad.join("; "));
+  return `${INDEXABLE_ROUTES.length} self-canonicals`;
 });
 
 await check("trailingSlash: /method -> 301 /method/", async () => {

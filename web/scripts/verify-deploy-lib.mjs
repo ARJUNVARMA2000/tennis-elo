@@ -142,3 +142,55 @@ export function extractOgImage(html) {
   m = s.match(/<meta[^>]+content=["']([^"']+)["'][^>]*\sproperty=["']og:image["']/i);
   return m ? m[1] : null;
 }
+
+/**
+ * Pull the canonical URL out of a page's HTML (order-insensitive on attributes).
+ * @param {string} html
+ * @returns {string|null}
+ */
+export function extractCanonical(html) {
+  const s = String(html || "");
+  let m = s.match(/<link[^>]+rel=["']canonical["'][^>]*\shref=["']([^"']+)["']/i);
+  if (m) return m[1];
+  m = s.match(/<link[^>]+href=["']([^"']+)["'][^>]*\srel=["']canonical["']/i);
+  return m ? m[1] : null;
+}
+
+/**
+ * Compare a sitemap's absolute URLs with the complete intended route inventory.
+ * @param {string} xml
+ * @param {string} origin
+ * @param {string[]} expectedRoutes
+ * @returns {string[]}
+ */
+export function sitemapCoverageProblems(xml, origin, expectedRoutes) {
+  const locations = [...String(xml || "").matchAll(/<loc>\s*([^<]+?)\s*<\/loc>/gi)]
+    .map((match) => match[1]);
+  const expected = new Set(expectedRoutes);
+  const counts = new Map();
+  const problems = [];
+
+  for (const location of locations) {
+    let parsed;
+    try {
+      parsed = new URL(location);
+    } catch {
+      problems.push(`malformed ${location}`);
+      continue;
+    }
+    if (parsed.origin !== origin) {
+      problems.push(`off-origin ${location}`);
+      continue;
+    }
+    const route = parsed.pathname;
+    counts.set(route, (counts.get(route) || 0) + 1);
+    if (!expected.has(route)) problems.push(`unexpected ${route}`);
+  }
+
+  for (const route of expectedRoutes) {
+    const count = counts.get(route) || 0;
+    if (count === 0) problems.push(`missing ${route}`);
+    else if (count > 1) problems.push(`duplicate ${route}`);
+  }
+  return problems;
+}

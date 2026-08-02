@@ -7,6 +7,8 @@ import {
   isAbsoluteOnOrigin,
   freshnessOk,
   extractOgImage,
+  extractCanonical,
+  sitemapCoverageProblems,
   coverageProblems,
   hasProfileContract,
 } from "@/scripts/verify-deploy-lib.mjs";
@@ -106,6 +108,50 @@ describe("extractOgImage", () => {
   });
   it("returns null when there is no og:image", () => {
     expect(extractOgImage(`<meta name="twitter:card" content="summary"/>`)).toBeNull();
+  });
+});
+
+describe("extractCanonical", () => {
+  it("handles both attribute orders", () => {
+    expect(
+      extractCanonical(`<link rel="canonical" href="https://example.com/method/"/>`),
+    ).toBe("https://example.com/method/");
+    expect(
+      extractCanonical(`<link href="https://example.com/method/" rel="canonical"/>`),
+    ).toBe("https://example.com/method/");
+  });
+
+  it("returns null when no canonical exists", () => {
+    expect(extractCanonical(`<link rel="icon" href="/icon.svg"/>`)).toBeNull();
+  });
+});
+
+describe("sitemapCoverageProblems", () => {
+  const origin = "https://deuce-forecast.web.app";
+  const routes = ["/", "/rankings/", "/method/"];
+
+  it("accepts the exact canonical route set", () => {
+    const xml = `<?xml version="1.0"?><urlset>
+      <url><loc>${origin}/</loc></url>
+      <url><loc>${origin}/rankings/</loc></url>
+      <url><loc>${origin}/method/</loc></url>
+    </urlset>`;
+    expect(sitemapCoverageProblems(xml, origin, routes)).toEqual([]);
+  });
+
+  it("reports missing, duplicate, off-origin, and unexpected URLs", () => {
+    const xml = `<urlset>
+      <url><loc>${origin}/</loc></url>
+      <url><loc>${origin}/</loc></url>
+      <url><loc>https://old.example/rankings/</loc></url>
+      <url><loc>${origin}/health/</loc></url>
+    </urlset>`;
+    const problems = sitemapCoverageProblems(xml, origin, routes).join("; ");
+    expect(problems).toContain("duplicate /");
+    expect(problems).toContain("off-origin https://old.example/rankings/");
+    expect(problems).toContain("unexpected /health/");
+    expect(problems).toContain("missing /rankings/");
+    expect(problems).toContain("missing /method/");
   });
 });
 

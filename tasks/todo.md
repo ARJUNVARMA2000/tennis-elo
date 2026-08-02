@@ -3166,3 +3166,32 @@ overlap plus shared real players, never by name similarity.
 - Final verification passed all 99 focused draw/health tests, all 503 Python tests, and
   `git diff --check`. Reconciled against `git log -5`; `d58ea3e` remains the latest commit. Nothing
   was committed, pushed, or deployed.
+
+## Round W — search discovery and canonical SEO
+
+- [x] Add fail-first SEO contracts for the complete indexable route set, per-page canonical URLs,
+  a permissive production `robots.txt`, and an XML sitemap that excludes the internal health page
+  and legacy `/upcoming/` redirect.
+- [x] Implement Next static metadata routes plus canonical and WebSite identity metadata, keeping
+  `/health/` and `/upcoming/` noindexed and making `/upcoming/` canonicalize to `/results/`.
+- [x] Extend the post-deploy verifier to guard the live robots/sitemap/canonical contract, then run
+  focused and full web checks, inspect the exported files, reconcile current git history, and
+  append the review. Do not commit, push, deploy, or submit Search Console without explicit approval.
+
+### Review
+
+- Next now statically exports a permissive `robots.txt` that advertises the production sitemap and
+  a `sitemap.xml` containing all 16 indexable routes exactly once. The internal `/health/` route and
+  noindexed legacy `/upcoming/` redirect are excluded; `/upcoming/` canonically points to `/results/`.
+- Every indexable page emits an absolute self-canonical URL on the Firebase origin. The root also
+  publishes consistent DEUCE application identity and `WebSite` JSON-LD for search-engine site-name
+  discovery. Existing route titles, descriptions, Open Graph data, and noindex rules are preserved.
+- The shared route inventory now drives the sitemap plus local/live route verification. The live
+  verifier checks robots MIME/directives, exact sitemap membership/origin, and every self-canonical.
+  A negative control against the still-unmodified production site failed exactly those two new
+  checks while the other nine checks passed, proving the new guard bites before deployment.
+- Fail-first coverage failed on the missing metadata routes/helpers, then passed all 26 focused
+  tests. Final verification passed all 210 web tests, TypeScript, the 23-route static production
+  build, exported-file inspection, and `git diff --check`; ESLint stayed at 0 errors / 13 existing
+  warnings. Reconciled against `git log -5`; `d34ab0c` remains the latest commit. Nothing was
+  committed, pushed, deployed, or submitted to Search Console.
