@@ -107,12 +107,18 @@ def _pretty_name(surname: str, given: str) -> str:
 
 def _slot_line(line: str) -> tuple[int, str | None, int | None] | None:
     """Parse one numbered first-round row from ATP/WTA's shared PDF layout."""
-    match = re.match(r"^(\s*)(\d{1,3})\s+(.+?)\s*$", line)
+    match = re.match(r"^(\s*)(\d{1,3})(\s*)(.+?)\s*$", line)
     if not match:
         return None
     if len(match.group(1)) > 3:  # downstream score/seed tables are deeply indented
         return None
-    number, body = int(match.group(2)), match.group(3)
+    number, gap, body = int(match.group(2)), match.group(3), match.group(4)
+    # PDF text extraction occasionally glues a slot number to its entry marker (`124WC`).
+    # A missing gap is valid only for a known marker, otherwise ordinary numbered prose could
+    # be mistaken for a player row.
+    glued_entry = re.match(r"^([A-Za-z]{1,3})\s+", body)
+    if not gap and (not glued_entry or glued_entry.group(1).upper() not in _ENTRY_CODES):
+        return None
     if re.match(r"^Bye(?:\s|$)", body, re.IGNORECASE):
         return number, None, None
 

@@ -3142,3 +3142,27 @@ overlap plus shared real players, never by name similarity.
   showed three-row footers within their 588px cards, retained equal density, and introduced no
   horizontal overflow. A rendered-text pass also caught and fixed glued `Player Avs Player B`
   accessibility text. Reconciled against `git log -5`; `7ff211d` remains the latest commit.
+
+## Round V — WTA Toronto official-draw parser repair
+
+- [x] Add a fail-first official-draw regression for WTA PDF rows whose slot number and entry code
+  are glued together (the current Toronto artifact contains `124WC`).
+- [x] Accept only recognized glued entry codes while preserving the parser's contiguous bracket
+  geometry and evidence checks; confirm the current 2026 Toronto PDF reconciles all 96 ESPN players.
+- [x] Run focused draw and health tests plus the full Python suite, run `git diff --check`, reconcile
+  current git history, and append the review. Do not commit, push, or deploy without explicit approval.
+
+### Review
+
+- The failed scheduled refresh reached the intended pre-deploy gate because Toronto had only a
+  coverage shell. Its official WTA PDF was otherwise complete, but extracted slot 124 as `124WC`;
+  the parser required whitespace after every slot number and discarded the 128-slot geometry.
+- `_slot_line` now permits a missing number/body gap only when the body begins with one of the
+  existing recognized entry codes. The contiguous-slot and player/date evidence contracts remain
+  unchanged, so arbitrary numbered prose cannot become a draw row.
+- The regression failed before the parser change and passed afterward. A fresh in-memory replay
+  against WTA source 806 and ESPN event `421-2026` parsed 96 entrants in a 128-slot bracket and
+  reconciled all 96 live-field players with no unmatched names.
+- Final verification passed all 99 focused draw/health tests, all 503 Python tests, and
+  `git diff --check`. Reconciled against `git log -5`; `d58ea3e` remains the latest commit. Nothing
+  was committed, pushed, or deployed.

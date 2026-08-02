@@ -68,6 +68,12 @@ def test_clipped_surname_without_comma_is_a_slot_and_reconciles_to_live_field():
     assert seeds == {"Botic Van De Zandschulp": 6} and shared == 2
 
 
+def test_slot_line_accepts_glued_provider_entry_code():
+    """Toronto's published WTA draw glues slot 124 to its wildcard marker (`124WC`)."""
+    assert official._slot_line("124WC    CROSS, Kayla                        CAN") == (
+        124, "Kayla Cross", None)
+
+
 def test_provider_date_parser_handles_both_dialects_and_implicit_cross_month():
     assert official.parse_date_span("Mifel\n27 July — 1 August 2026", 2026)[1].isoformat() == "2026-08-01"
     assert official.parse_date_span("VanOpen\nJuly 26-1 2026 | Hard", 2026)[1].isoformat() == "2026-08-01"
