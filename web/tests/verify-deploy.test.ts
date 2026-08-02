@@ -8,6 +8,7 @@ import {
   freshnessOk,
   extractOgImage,
   extractCanonical,
+  extractGoogleSiteVerification,
   sitemapCoverageProblems,
   coverageProblems,
   hasProfileContract,
@@ -123,6 +124,25 @@ describe("extractCanonical", () => {
 
   it("returns null when no canonical exists", () => {
     expect(extractCanonical(`<link rel="icon" href="/icon.svg"/>`)).toBeNull();
+  });
+});
+
+describe("extractGoogleSiteVerification", () => {
+  it("handles both attribute orders", () => {
+    expect(
+      extractGoogleSiteVerification(
+        `<meta name="google-site-verification" content="verification-token"/>`,
+      ),
+    ).toBe("verification-token");
+    expect(
+      extractGoogleSiteVerification(
+        `<meta content="verification-token" name="google-site-verification"/>`,
+      ),
+    ).toBe("verification-token");
+  });
+
+  it("returns null when the verification tag is absent", () => {
+    expect(extractGoogleSiteVerification(`<meta name="description" content="DEUCE"/>`)).toBeNull();
   });
 });
 

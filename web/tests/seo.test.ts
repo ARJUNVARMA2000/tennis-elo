@@ -2,7 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import robots from "@/app/robots";
 import sitemap from "@/app/sitemap";
-import { pageMetadata, SITE_URL, WEBSITE_JSON_LD } from "@/lib/seo";
+import {
+  GOOGLE_SITE_VERIFICATION,
+  pageMetadata,
+  SITE_URL,
+  SITE_VERIFICATION,
+  WEBSITE_JSON_LD,
+} from "@/lib/seo";
 import { INDEXABLE_ROUTES } from "@/scripts/routes.mjs";
 
 describe("search discovery metadata", () => {
@@ -56,5 +62,12 @@ describe("search discovery metadata", () => {
       alternateName: "DEUCE Tennis Forecast Engine",
       url: `${SITE_URL}/`,
     });
+  });
+
+  it("publishes the exact Google Search Console ownership token", () => {
+    expect(GOOGLE_SITE_VERIFICATION).toBe(
+      "A9r3zgELsRVJ1tEyVaDH4heFNcEeDXIvZ_KzRH__eHQ",
+    );
+    expect(SITE_VERIFICATION).toEqual({ google: GOOGLE_SITE_VERIFICATION });
   });
 });

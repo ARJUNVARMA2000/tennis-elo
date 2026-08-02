@@ -4,7 +4,7 @@ import "./globals.css";
 import Nav from "@/components/Nav";
 import { GitHubIcon } from "@/components/bits";
 import { TourProvider } from "@/lib/tour";
-import { SITE_URL, WEBSITE_JSON_LD } from "@/lib/seo";
+import { SITE_URL, SITE_VERIFICATION, WEBSITE_JSON_LD } from "@/lib/seo";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" });
@@ -18,6 +18,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   alternates: { canonical: "/" },
   applicationName: "DEUCE",
+  verification: SITE_VERIFICATION,
   title: { default: TITLE, template: "%s · DEUCE" },
   description: DESC,
   openGraph: {

@@ -3195,3 +3195,23 @@ overlap plus shared real players, never by name similarity.
   build, exported-file inspection, and `git diff --check`; ESLint stayed at 0 errors / 13 existing
   warnings. Reconciled against `git log -5`; `d34ab0c` remains the latest commit. Nothing was
   committed, pushed, deployed, or submitted to Search Console.
+
+## Round X — Google Search Console ownership verification
+
+- [x] Add the user-issued Google verification token through the root Next metadata contract and
+  pin the exact value in a focused regression.
+- [x] Build and inspect the exported homepage, extend the post-deploy verifier to require the exact
+  live token, and prepare the scoped `master` release. Do not attempt Search Console UI actions on
+  the user's behalf.
+
+### Review
+
+- The user-issued token is part of the root Next metadata contract, so every static build emits the
+  exact `google-site-verification` tag in the homepage `<head>` without adding a tracking script.
+- The post-deploy verifier now extracts and requires the exact token. Its negative control against
+  the current pre-release production site failed only the new ownership check while the other 11
+  serving checks passed, proving a missing or stale verification tag will block a green release.
+- Fail-first tests reproduced both missing contracts, then passed. Final verification passed all
+  213 web tests, TypeScript, the 23-route static build, exact exported-HTML inspection, and
+  `git diff --check`; ESLint remained at 0 errors / 13 existing warnings. Reconciled against
+  `git log -5`; `edfc3d5` remained the latest commit before publication.

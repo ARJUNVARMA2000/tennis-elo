@@ -4,6 +4,11 @@ export const SITE_URL = (
   process.env.NEXT_PUBLIC_SITE_URL || "https://deuce-forecast.web.app"
 ).replace(/\/+$/, "");
 
+export const GOOGLE_SITE_VERIFICATION =
+  "A9r3zgELsRVJ1tEyVaDH4heFNcEeDXIvZ_KzRH__eHQ";
+
+export const SITE_VERIFICATION = { google: GOOGLE_SITE_VERIFICATION };
+
 export const WEBSITE_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "WebSite",

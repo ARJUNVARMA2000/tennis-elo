@@ -20,6 +20,7 @@ import {
   coverageProblems,
   extractOgImage,
   extractCanonical,
+  extractGoogleSiteVerification,
   sitemapCoverageProblems,
   hasProfileContract,
 } from "./verify-deploy-lib.mjs";
@@ -34,6 +35,7 @@ function argVal(flag) {
 const BASE = (argVal("--base") || process.env.VERIFY_BASE_URL || "https://deuce-forecast.web.app").replace(/\/$/, "");
 const EXPECT_GENERATED_AT = argVal("--expect-generated-at") || process.env.EXPECT_GENERATED_AT || "";
 const ORIGIN = new URL(BASE).origin;
+const GOOGLE_SITE_VERIFICATION = "A9r3zgELsRVJ1tEyVaDH4heFNcEeDXIvZ_KzRH__eHQ";
 // Freshness may lag deploy by a few seconds of CDN propagation; poll before failing.
 // Overridable via env so CI can widen the window and tests can shorten it.
 const FRESH_TRIES = Number(process.env.FRESH_TRIES) || (EXPECT_GENERATED_AT ? 12 : 1);
@@ -117,6 +119,15 @@ await check("meta: every indexable route has a self-canonical URL", async () => 
   }
   must(bad.length === 0, bad.join("; "));
   return `${INDEXABLE_ROUTES.length} self-canonicals`;
+});
+
+await check("meta: Google Search Console ownership token", async () => {
+  const token = extractGoogleSiteVerification(homeHtml);
+  must(
+    token === GOOGLE_SITE_VERIFICATION,
+    `verification token was ${token || "missing"}`,
+  );
+  return "exact token present";
 });
 
 await check("trailingSlash: /method -> 301 /method/", async () => {

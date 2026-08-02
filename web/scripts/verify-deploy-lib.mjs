@@ -157,6 +157,23 @@ export function extractCanonical(html) {
 }
 
 /**
+ * Pull the Google Search Console ownership token from a page's HTML.
+ * @param {string} html
+ * @returns {string|null}
+ */
+export function extractGoogleSiteVerification(html) {
+  const s = String(html || "");
+  let m = s.match(
+    /<meta[^>]+name=["']google-site-verification["'][^>]*\scontent=["']([^"']+)["']/i,
+  );
+  if (m) return m[1];
+  m = s.match(
+    /<meta[^>]+content=["']([^"']+)["'][^>]*\sname=["']google-site-verification["']/i,
+  );
+  return m ? m[1] : null;
+}
+
+/**
  * Compare a sitemap's absolute URLs with the complete intended route inventory.
  * @param {string} xml
  * @param {string} origin
