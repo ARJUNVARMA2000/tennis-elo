@@ -3269,7 +3269,25 @@ overlap plus shared real players, never by name similarity.
 
 - [x] Confirm the intended worktree scope, clean diff, authenticated GitHub remote, current
   `master`, and the push-triggered production workflow.
-- [ ] Stage only the Round Y fix, tests, and durable project notes; commit directly to `master`
+- [x] Stage only the Round Y fix, tests, and durable project notes; commit directly to `master`
   with a scoped fix message as explicitly authorized.
-- [ ] Push `master`, monitor the complete refresh workflow through deploy and live verification,
-  confirm the data-health alert resolves, and append the release review.
+- [x] Push `master`, monitor the complete refresh workflow through deploy and live verification,
+  confirm the original match-count alert is absent, document unrelated remaining health
+  advisories, and append the release review.
+
+### Review
+
+- Committed the scoped fix as `9c17a08` (`fix(data): enforce WTA live population policy`) and
+  pushed `master`, triggering production run `30778009052`. Both reusable test jobs passed; the
+  refresh job completed successfully in 6m56s.
+- CI restored the legacy population-v1 predictors, the new compatibility guard rejected both,
+  and quick mode performed the intended one-time full ATP/WTA rebuild. The pre-deploy integrity
+  gate passed, Firebase deployed, the serving checks passed, both health reporters completed, and
+  the migrated cache was saved for subsequent quick runs.
+- Live WTA metadata reports 128610 matches, `matchPopulationVersion=2`,
+  `modelPopulationVersion=2`, `wta125Matches=0`, 93 excluded WTA-125 live matches, and zero
+  unclassified exclusions. The original `meta.matches dropped` failure is absent.
+- The shared data-health issue #14 remains open only for two unrelated tournament-board
+  advisories (Axeria had not flipped live; the below-500 VanOpen results were not joining). Those
+  make the health freshness subcheck advisory-red while all 11 serving/contract checks and the
+  deploy-health reporter pass; they were not folded into this population-policy release.
