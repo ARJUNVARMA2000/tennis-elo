@@ -16,6 +16,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import tennis_model.pipeline as pipeline
+from tennis_model.config import MATCH_POPULATION_VERSION
 from tennis_model.model.features import FEATURES, FeatureParams
 from tennis_model.model.predict import TennisPredictor
 
@@ -87,6 +88,22 @@ def test_predictor_player_alias_guard():
     del legacy.player_aliases
     assert not pipeline._predictor_current(legacy, "atp")
     print("ok test_predictor_player_alias_guard")
+
+
+def test_predictor_match_population_guard():
+    """A quick export cannot reuse rating state walked over a different match
+    population and then label the resulting JSON with the current population version."""
+    fresh = _pred(_Clf(list(FEATURES)), "wta")
+    assert pipeline._predictor_current(fresh, "wta")
+
+    stale = _pred(_Clf(list(FEATURES)), "wta")
+    stale.match_population_version = MATCH_POPULATION_VERSION - 1
+    assert not pipeline._predictor_current(stale, "wta")
+
+    legacy = _pred(_Clf(list(FEATURES)), "wta")
+    del legacy.match_population_version
+    assert not pipeline._predictor_current(legacy, "wta")
+    print("ok test_predictor_match_population_guard")
 
 
 def test_alias_stale_quick_rebuild_defers_kalshi_to_shared_budget(monkeypatch):

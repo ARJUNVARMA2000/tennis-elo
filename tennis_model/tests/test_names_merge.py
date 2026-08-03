@@ -338,6 +338,53 @@ def test_espn_id_column_exists_even_when_no_source_supplies_it():
     print("ok test_espn_id_column_exists_even_when_no_source_supplies_it")
 
 
+def test_wta_live_result_policy_excludes_125s_and_unknown_tiers_by_event_id():
+    """ESPN lists WTA 125s beside tour events, but INCLUDE_WTA_125 is deliberately false.
+    The result loader must classify by stable id, keep a known WTA 250, and withhold both a
+    known 125 and an unresolved event. The raw live file remains intact for board/draw use."""
+    orig = (results.historical_dir, results.stats_dir, results.fresh_dir,
+            results.live_dir, results.lower_dir, results.wiki_categories_by_event_id)
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            dirs = {n: base / n for n in ("historical", "stats", "fresh", "live", "lower")}
+            for p in dirs.values():
+                p.mkdir(parents=True, exist_ok=True)
+            results.historical_dir = lambda tour: dirs["historical"]
+            results.stats_dir = lambda tour: dirs["stats"]
+            results.fresh_dir = lambda tour: dirs["fresh"]
+            results.live_dir = lambda tour: dirs["live"]
+            results.lower_dir = lambda tour: dirs["lower"]
+            results.wiki_categories_by_event_id = lambda tour: {
+                "1017-2026": "WTA 125",
+                "401-2026": "WTA 250",
+            }
+            # Earlier-source duplicate: it wins the row dedup, inherits the ESPN id from
+            # live, and must then inherit the EVENT-level exclusion too.
+            _write_csv(dirs["fresh"] / "2026.csv",
+                "tourney_name,tourney_date,winner_name,loser_name,score\n"
+                "Rome,2026/07/19,A Player,B Player,6-4 6-4\n")
+            live_path = dirs["live"] / "live.csv"
+            _write_csv(live_path,
+                "tourney_name,espn_id,tourney_date,winner_name,loser_name,score\n"
+                "Renamed Rome Event,1017-2026,2026-07-19,A Player,B Player,6-4 6-4\n"
+                "Renamed Prague Event,401-2026,2026-07-26,C Player,D Player,6-3 6-3\n"
+                "Unknown New Event,999-2026,2026-07-26,E Player,F Player,7-5 6-4\n")
+
+            df = results.merge_sources("wta")
+            raw = pd.read_csv(live_path)
+    finally:
+        (results.historical_dir, results.stats_dir, results.fresh_dir,
+         results.live_dir, results.lower_dir, results.wiki_categories_by_event_id) = orig
+
+    assert set(df["espn_id"]) == {"401-2026"}, df[["espn_id", "tourney_name"]]
+    assert set(df["tourney_level"]) == {"WTA250"}
+    assert df.attrs["excluded_wta125_matches"] == 1
+    assert df.attrs["excluded_unclassified_wta_live_matches"] == 1
+    assert len(raw) == 3, "model filtering must not delete board/draw source rows"
+    print("ok test_wta_live_result_policy_excludes_125s_and_unknown_tiers_by_event_id")
+
+
 def test_same_day_rematch_survives_dedup():
     """Archive sources stamp every match with the tournament START date, so a
     round-robin meeting and a final rematch share (pair, date). The same-day dedup
@@ -435,6 +482,7 @@ if __name__ == "__main__":
     test_canonicalize_prefers_historical_spelling()
     test_canonicalize_merges_a_dropped_surname_via_alias()
     test_merge_dedup_prefers_stat_bearing_row()
+    test_wta_live_result_policy_excludes_125s_and_unknown_tiers_by_event_id()
     test_same_day_rematch_survives_dedup()
     test_future_dated_row_is_dropped_at_ingest()
     print("\nALL PASSED")

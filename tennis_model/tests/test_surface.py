@@ -174,6 +174,50 @@ def test_resolve_level_normalizes_whichever_branch_wins():
     print("ok test_resolve_level_normalizes_whichever_branch_wins")
 
 
+def test_wiki_categories_resolve_to_stable_event_ids_across_renames():
+    """The tier cache is legacy name-keyed, but result-policy decisions must join through
+    ESPN identity. A sponsor rename after the tier was cached must still classify the event;
+    conflicting aliases for one id are withheld rather than guessed."""
+    from tennis_model.data import events as event_ids
+
+    orig = (surf.live_dir, event_ids.live_dir)
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            tmp = Path(d)
+            surf.live_dir = event_ids.live_dir = lambda tour: tmp
+            (tmp / "events.json").write_text(json.dumps({
+                "version": 1,
+                "events": {
+                    "1017-2026": {
+                        "name": "Rome Ladies Open",
+                        "names": ["ATV Bancomat Tennis Open", "Rome Ladies Open"],
+                    },
+                    "401-2026": {
+                        "name": "Prague Open",
+                        "names": ["Livesport Prague Open", "Prague Open"],
+                    },
+                },
+            }), encoding="utf-8")
+            (tmp / "wiki_category.json").write_text(json.dumps({
+                "ATV Bancomat Tennis Open": "WTA 125",
+                "Livesport Prague Open": "WTA 250",
+            }), encoding="utf-8")
+            assert surf.wiki_categories_by_event_id("wta") == {
+                "1017-2026": "WTA 125",
+                "401-2026": "WTA 250",
+            }
+
+            # Two aliases for one identity cannot assert two different tiers.
+            (tmp / "wiki_category.json").write_text(json.dumps({
+                "ATV Bancomat Tennis Open": "WTA 125",
+                "Rome Ladies Open": "WTA 250",
+            }), encoding="utf-8")
+            assert "1017-2026" not in surf.wiki_categories_by_event_id("wta")
+    finally:
+        surf.live_dir, event_ids.live_dir = orig
+    print("ok test_wiki_categories_resolve_to_stable_event_ids_across_renames")
+
+
 def _row(**over):
     """A minimal ESPN-style live row (surface unknown) that survives results.clean."""
     base = {"tourney_name": "Nordea Open", "date": pd.Timestamp("2026-07-06"),
@@ -229,6 +273,7 @@ if __name__ == "__main__":
     test_wiki_lookup_is_tolerant_so_surface_cannot_flip_on_start_day()
     test_wiki_surface_map_reads_and_degrades()
     test_resolve_surface_priority()
+    test_wiki_categories_resolve_to_stable_event_ids_across_renames()
     test_loader_stamps_surface_provenance()
     test_loader_backfills_surface_from_wiki_cache_else_month()
     print("\nALL PASSED")

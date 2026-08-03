@@ -15,7 +15,7 @@ from datetime import UTC, datetime
 import numpy as np
 import pandas as pd
 
-from ..config import PLAYER_ALIASES, output_dir
+from ..config import MATCH_POPULATION_VERSION, PLAYER_ALIASES, output_dir
 from ..data.charting import STYLE_FEATURES, build_profiles, name_key
 from ..points.markov import match_win_prob, score_distribution
 from ..ratings.elo import expected_score
@@ -53,6 +53,10 @@ class TennisPredictor:
         # this pickle after PLAYER_ALIASES changes must rebuild those states rather than
         # pair a renamed match frame with the old split identities.
         self.player_aliases = tuple(sorted(PLAYER_ALIASES.items()))
+        # Rating state is the result of walking the adopted match population. A quick
+        # refresh may reuse it only while that population contract is unchanged; otherwise
+        # the cached model must be rebuilt before its outputs can claim the new version.
+        self.match_population_version = MATCH_POPULATION_VERSION
         # When this model was trained. Derived here rather than at the call sites (both of
         # them construct straight out of train_final) so no path can ship an unstamped
         # pickle — same reasoning as `fp` above. It rides INSIDE the pickle on purpose: the
@@ -74,6 +78,11 @@ class TennisPredictor:
     def _player_aliases(self) -> tuple:
         """Empty for legacy pickles, which deliberately makes the quick guard rebuild."""
         return getattr(self, "player_aliases", ())
+
+    @property
+    def _match_population_version(self) -> int | None:
+        """None for legacy pickles, which deliberately makes the quick guard rebuild."""
+        return getattr(self, "match_population_version", None)
 
     def _home_flag(self, a: str, b: str, event: str | None) -> float:
         """home_flag_diff for a real match at a known event (0 for hypotheticals)."""

@@ -28,7 +28,7 @@ import numpy as np
 import pandas as pd
 
 from .. import __version__
-from ..config import SURFACES, output_dir
+from ..config import MATCH_POPULATION_VERSION, SURFACES, output_dir
 from ..data.charting import build_profiles, name_key
 from ..data.rankings import load_rankings
 from ..data.results import summary
@@ -292,17 +292,31 @@ def _surface_of(oos):  # oos lacks surface; return empty to skip gracefully
     return pd.DataFrame(index=oos.index)
 
 
-def build_meta(df, players, accuracy, trained_at: str | None = None) -> dict:
+def build_meta(df, players, accuracy, trained_at: str | None = None,
+               model_population_version: int | None = None) -> dict:
     """`lastUpdated` is when this JSON was written; `modelTrainedAt` is when the predictor
     behind it was trained. They diverge on every quick refresh — which republishes the
-    saved pickle — so only the latter can reveal a daily retrain that has been failing."""
+    saved pickle — so only the latter can reveal a daily retrain that has been failing.
+    The model population version likewise comes from the pickle, never from current config."""
     s = summary(df)
+    levels = (df["tourney_level"].astype("string").str.replace(r"\s+", "", regex=True)
+              if "tourney_level" in df else pd.Series(dtype="string"))
     return {
         "tour": df["tour"].iloc[0] if "tour" in df else "atp",
         "lastUpdated": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "modelTrainedAt": trained_at,
         "dataThrough": s["date_max"], "modelVersion": __version__,
+        "matchPopulationVersion": MATCH_POPULATION_VERSION,
+        # Unlike the data-policy version above, this comes from inside predictor.pkl.
+        # Their equality proves cached rating state was walked over the rows now claimed.
+        "modelPopulationVersion": model_population_version,
         "matches": s["matches"], "players": s["players"], "activePlayers": len(players),
+        # Audited by the pre-deploy gate. INCLUDE_WTA_125 is false; any non-zero value
+        # means another ingestion path bypassed that adopted population policy.
+        "wta125Matches": int(levels.eq("WTA125").sum()),
+        "excludedWta125Matches": int(df.attrs.get("excluded_wta125_matches", 0)),
+        "excludedUnclassifiedWtaLiveMatches": int(
+            df.attrs.get("excluded_unclassified_wta_live_matches", 0)),
         "features": FEATURES, "surfaces": list(SURFACES),
         "backtest": accuracy.get("models") if accuracy else None,
         "notes": "Hybrid: surface-blended Elo + opponent-adjusted serve/return point model "
@@ -446,9 +460,12 @@ def export_all(tour, df, elo, srv, meta, predictor, oos=None) -> None:
     _write(tour, "fixtures.json", build_fixtures(df, predictor))
     if accuracy:
         _write(tour, "accuracy.json", accuracy)
-    # getattr, not predictor.trained_at: a pickle cached from before the stamp existed has
-    # no attribute, and a missing stamp must degrade to "unknown", never crash the export
-    _write(tour, "meta.json", build_meta(df, players, accuracy,
-                                         getattr(predictor, "trained_at", None)))
+    # Legacy attributes degrade to unknown rather than crashing. Quick mode normally rebuilds
+    # an unknown population version first; the output gate independently rejects one.
+    _write(tour, "meta.json", build_meta(
+        df, players, accuracy,
+        getattr(predictor, "trained_at", None),
+        getattr(predictor, "_match_population_version", None),
+    ))
     _write(tour, "method.json", build_method(tour))
     print(f"  exported JSON for {tour} ({len(players)} players){'' if accuracy else ' [quick]'}")

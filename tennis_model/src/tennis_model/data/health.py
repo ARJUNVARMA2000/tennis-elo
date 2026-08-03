@@ -55,6 +55,7 @@ from ..config import (
     HEALTH_MIN_MATCHES,
     HEALTH_MIN_STATS_FRACTION,
     HEALTH_OFFSEASON_RELAX_DAYS,
+    MATCH_POPULATION_VERSION,
     OUTPUT_DIR,
     SURFACE_MAP,
     TOURS,
@@ -272,6 +273,8 @@ _GATE_ADVISORY = (
     "market.json odds coverage",   # benchmark-card staleness; odds are never a build dependency
     "forecast drift",              # model-decay advisory; a re-tune recommendation must never block a deploy
     "forecast log last advanced",  # eval-artifact liveness; never a build dependency
+    "unclassified live match(es) withheld",  # conservative WTA population filtering;
+                                              # visible, but stale results beat policy leakage
     # Board-quality problems are TIER-AWARE via `_tiered`: 500-and-above blocks while the
     # long tail warns. The original stuck-live, many-alive, and placeholder exemptions were
     # removed after their producer fixes stayed quiet through successive real refreshes.
@@ -1039,11 +1042,37 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
         if nfeat != len(FEATURES):
             out.append(f"{tour}: meta.features has {nfeat} entries (expected {len(FEATURES)})")
         n = meta.get("matches")
+        population_version = meta.get("matchPopulationVersion")
+        if population_version != MATCH_POPULATION_VERSION:
+            out.append(f"{tour}: meta.matchPopulationVersion={population_version!r} "
+                       f"(expected {MATCH_POPULATION_VERSION})")
+        model_population_version = meta.get("modelPopulationVersion")
+        if model_population_version != MATCH_POPULATION_VERSION:
+            out.append(f"{tour}: meta.modelPopulationVersion={model_population_version!r} "
+                       f"does not match current population {MATCH_POPULATION_VERSION}")
         floor = HEALTH_MIN_MATCHES.get(tour, 0)
         if not isinstance(n, int) or n < floor:
             out.append(f"{tour}: meta.matches {n} below floor {floor}")
-        elif isinstance(prev.get("matches"), int) and n < prev["matches"] - 50:
+        elif (isinstance(prev.get("matches"), int)
+              and prev.get("match_population_version") == population_version
+              and n < prev["matches"] - 50):
             out.append(f"{tour}: meta.matches dropped {prev['matches']} -> {n}")
+        if tour == "wta":
+            wta125 = meta.get("wta125Matches")
+            if not isinstance(wta125, int) or isinstance(wta125, bool):
+                out.append("wta: meta.wta125Matches missing/unparseable")
+            elif wta125 != 0:
+                out.append(f"wta: model contains {wta125} WTA 125 match(es) while "
+                           "INCLUDE_WTA_125 is disabled")
+            excluded_125 = meta.get("excludedWta125Matches")
+            excluded_unknown = meta.get("excludedUnclassifiedWtaLiveMatches")
+            for field, value in (("excludedWta125Matches", excluded_125),
+                                 ("excludedUnclassifiedWtaLiveMatches", excluded_unknown)):
+                if (not isinstance(value, int) or isinstance(value, bool) or value < 0):
+                    out.append(f"wta: meta.{field} missing/invalid ({value!r})")
+            if isinstance(excluded_unknown, int) and excluded_unknown > 0:
+                out.append(f"wta: {excluded_unknown} unclassified live match(es) withheld "
+                           "from model ingestion")
         ap, players = meta.get("activePlayers"), data.get("players")
         if isinstance(players, list) and ap is not None and len(players) != ap:
             out.append(f"{tour}: players.json has {len(players)} rows but meta.activePlayers={ap}")
@@ -1335,6 +1364,12 @@ def main() -> int:
         h["problems"] = p
         h["output"] = {
             "matches": meta.get("matches"),
+            "match_population_version": meta.get("matchPopulationVersion"),
+            "model_population_version": meta.get("modelPopulationVersion"),
+            "wta125_matches": meta.get("wta125Matches"),
+            "excluded_wta125_matches": meta.get("excludedWta125Matches"),
+            "excluded_unclassified_wta_live_matches":
+                meta.get("excludedUnclassifiedWtaLiveMatches"),
             "model_trained_at": meta.get("modelTrainedAt"),
             "forecast_lines": (oc["forecast"] or {}).get("lines"),
             "forecast_max_as_of": (oc["forecast"] or {}).get("max_as_of"),

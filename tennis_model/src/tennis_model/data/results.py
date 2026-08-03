@@ -31,7 +31,7 @@ from ..config import (
     lower_dir,
     stats_dir,
 )
-from .surface import wiki_surface_lookup
+from .surface import wiki_categories_by_event_id, wiki_surface_lookup
 
 
 def tier_mults(tour: str | None) -> tuple[dict, float]:
@@ -174,10 +174,69 @@ def _stamp_draw_level(df: pd.DataFrame) -> pd.DataFrame:
     stamped = (df["draw_level"] if "draw_level" in df.columns
                else pd.Series(pd.NA, index=df.index, dtype=object))
     derived = pd.Series(pd.NA, index=df.index, dtype=object)
-    derived[lvl.eq("C")] = "chall"
+    derived[lvl.isin(("C", "WTA125"))] = "chall"
     derived[lvl.eq("Q")] = "qual"
     df["draw_level"] = stamped.combine_first(derived).fillna("main")
     return df
+
+
+_WTA_MODEL_LEVEL = {
+    "Grand Slam": "GrandSlam",
+    "Tour Finals": "WTAFinals",
+    "Olympics": "Olympics",
+    "Davis/BJK Cup": "DavisCup",
+    "United Cup": "UnitedCup",
+    "WTA 1000": "WTA1000",
+    "WTA 500": "WTA500",
+    "WTA 250": "WTA250",
+    "WTA 125": "WTA125",
+    "WTA Tour": "A",
+}
+
+
+def _stamp_live_result_policy(tour: str, live: pd.DataFrame) -> pd.DataFrame:
+    """Classify WTA live rows by ``espnId`` and mark policy-excluded results.
+
+    ESPN's WTA scoreboard mixes tour events and WTA 125s. The latter are intentionally
+    excluded by ``INCLUDE_WTA_125`` because no lower-tier source covers the tune window,
+    but the live overlay used to bypass that decision. Its rolling 14-day file therefore
+    added 125 results temporarily and removed them in batches when an event aged out.
+
+    Rows stay in this frame as identity hints until de-duplication: a stable-source copy of
+    the same match must inherit its ESPN id even when the live result itself is not eligible
+    for the model. Unique excluded rows are dropped only after both dedup passes. Unknown
+    tiers are withheld under the same conservative policy; uncertainty cannot silently opt
+    a lower-tier population into a model whose config opted it out.
+    """
+    live = live.copy()
+    live["__policy_excluded"] = False
+    live.attrs["excluded_wta125_matches"] = 0
+    live.attrs["excluded_unclassified_wta_live_matches"] = 0
+    live.attrs["excluded_wta125_event_ids"] = ()
+    live.attrs["excluded_unclassified_wta_event_ids"] = ()
+    if tour != "wta" or live.empty:
+        return live
+
+    levels_by_id = wiki_categories_by_event_id(tour)
+    event_ids = live["espn_id"].astype("string").str.strip()
+    levels = event_ids.map(levels_by_id)
+    model_levels = levels.map(_WTA_MODEL_LEVEL)
+    live["tourney_level"] = model_levels.where(model_levels.notna(), live["tourney_level"])
+
+    from .. import config as _cfg
+    if _cfg.INCLUDE_WTA_125:
+        return live
+
+    is_125 = levels.eq("WTA 125")
+    unclassified = levels.isna()
+    live["__policy_excluded"] = is_125 | unclassified
+    live.attrs["excluded_wta125_event_ids"] = tuple(sorted(set(event_ids[is_125].dropna())))
+    live.attrs["excluded_unclassified_wta_event_ids"] = tuple(
+        sorted(set(event_ids[unclassified].dropna())))
+    if is_125.any() or unclassified.any():
+        print(f"  results/wta: withheld {int(is_125.sum())} WTA 125 and "
+              f"{int(unclassified.sum())} unclassified live row(s) from model ingestion")
+    return live
 
 
 def merge_sources(tour: str) -> pd.DataFrame:
@@ -193,7 +252,9 @@ def merge_sources(tour: str) -> pd.DataFrame:
     hist = _read_dir(historical_dir(tour))
     stats = _read_dir(stats_dir(tour))
     fresh = _read_dir(fresh_dir(tour))
-    live = _read_dir(live_dir(tour))
+    live = _stamp_live_result_policy(tour, _read_dir(live_dir(tour)))
+    excluded_125_ids = set(live.attrs.get("excluded_wta125_event_ids", ()))
+    excluded_unknown_ids = set(live.attrs.get("excluded_unclassified_wta_event_ids", ()))
     hist["__src"], stats["__src"], fresh["__src"], live["__src"] = 0, 1, 2, 3
     frames = [hist, stats, fresh, live]
     from .. import config as _cfg
@@ -243,7 +304,22 @@ def merge_sources(tour: str) -> pd.DataFrame:
     df = _fill_espn_id(df, df["winner_name"].astype(str) + "|" + df["loser_name"].astype(str)
                        + "|" + df["date"].astype(str) + "|" + df["round"].astype(str))
     df = df.drop_duplicates(subset=["winner_name", "loser_name", "date", "round"], keep="first")
-    return df.drop(columns=["__hs", "__key", "__src"])
+    event_ids = df["espn_id"].astype("string").str.strip()
+    excluded_125 = event_ids.isin(excluded_125_ids)
+    excluded_unknown = event_ids.isin(excluded_unknown_ids)
+    excluded = excluded_125 | excluded_unknown
+    if "__policy_excluded" in df:
+        excluded |= df["__policy_excluded"].fillna(False).astype(bool)
+    policy_audit = {
+        # Counts are taken after de-duplication, so they equal the actual model-population
+        # cleanup (including an earlier-source duplicate that inherited the live row's id).
+        "excluded_wta125_matches": int(excluded_125.sum()),
+        "excluded_unclassified_wta_live_matches": int(excluded_unknown.sum()),
+    }
+    df = df.loc[~excluded].drop(
+        columns=["__hs", "__key", "__src", "__policy_excluded"], errors="ignore")
+    df.attrs.update(policy_audit)
+    return df
 
 
 def _backfill_bios(df: pd.DataFrame) -> pd.DataFrame:
@@ -415,10 +491,13 @@ def thin_seasons(df: pd.DataFrame) -> list[int]:
 
 def load_matches(tour: str = "atp") -> pd.DataFrame:
     """Top-level entry: merge sources, clean, backfill bios, chronologically sort."""
-    df = clean(merge_sources(tour), tour=tour)
+    merged = merge_sources(tour)
+    policy_audit = dict(merged.attrs)
+    df = clean(merged, tour=tour)
     df = _backfill_bios(df)
     df["tour"] = tour
     df = chronological(df)
+    df.attrs.update(policy_audit)
     thin = thin_seasons(df)
     if thin:
         counts = df["date"].dt.year.value_counts()

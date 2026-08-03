@@ -16,6 +16,8 @@ import tempfile
 from collections import deque
 from pathlib import Path
 
+import pandas as pd
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import tennis_model.model.export as export
@@ -249,19 +251,35 @@ def test_build_meta_separates_build_time_from_model_time():
     """`lastUpdated` is when this JSON was written; `modelTrainedAt` is when the predictor
     was trained. The hourly quick refresh rewrites the first while reusing the pickle
     behind the second — so only their divergence can reveal a dead daily retrain."""
-    import pandas as pd
-
     df = pd.DataFrame({"tour": ["atp"], "date": [pd.Timestamp("2026-07-24")],
                        "winner_name": ["A"], "loser_name": ["B"],
                        "has_stats": [True], "completed": [True], "surface_b": ["Hard"]})
     trained = "2026-07-04T04:31:07Z"
-    meta = export.build_meta(df, players=[], accuracy=None, trained_at=trained)
+    meta = export.build_meta(df, players=[], accuracy=None, trained_at=trained,
+                             model_population_version=export.MATCH_POPULATION_VERSION)
     assert meta["modelTrainedAt"] == trained
+    assert meta["modelPopulationVersion"] == export.MATCH_POPULATION_VERSION
     assert meta["lastUpdated"] != trained and meta["lastUpdated"].endswith("Z")
     # a pickle predating the stamp must export null, not crash or fake a fresh time
     assert export.build_meta(df, players=[], accuracy=None)["modelTrainedAt"] is None
     _strict_load(json.dumps(export._finite(meta)))
     print("ok test_build_meta_separates_build_time_from_model_time")
+
+
+def test_build_meta_audits_wta_125_policy_rows():
+    df = pd.DataFrame({"tour": ["wta", "wta"],
+                       "date": [pd.Timestamp("2026-07-24")] * 2,
+                       "winner_name": ["A", "C"], "loser_name": ["B", "D"],
+                       "tourney_level": ["WTA250", "WTA125"],
+                       "has_stats": [True, False], "completed": [True, True],
+                       "surface_b": ["Hard", "Clay"]})
+    df.attrs["excluded_wta125_matches"] = 31
+    df.attrs["excluded_unclassified_wta_live_matches"] = 2
+    meta = export.build_meta(df, players=[], accuracy=None)
+    assert meta["wta125Matches"] == 1
+    assert meta["excludedWta125Matches"] == 31
+    assert meta["excludedUnclassifiedWtaLiveMatches"] == 2
+    print("ok test_build_meta_audits_wta_125_policy_rows")
 
 
 def test_predictor_stamps_trained_at_and_survives_a_pickle_round_trip():
@@ -274,12 +292,16 @@ def test_predictor_stamps_trained_at_and_survives_a_pickle_round_trip():
 
     p = TennisPredictor(clf=None, iso=None, elo=None, srv=None, ctx=None, meta={}, tour="wta")
     assert p.trained_at and p.trained_at.endswith("Z")
-    assert pickle.loads(pickle.dumps(p)).trained_at == p.trained_at
+    restored = pickle.loads(pickle.dumps(p))
+    assert restored.trained_at == p.trained_at
+    assert restored._match_population_version == export.MATCH_POPULATION_VERSION
 
     # a pickle from before the stamp existed degrades to None, never raises
     old = TennisPredictor(clf=None, iso=None, elo=None, srv=None, ctx=None, meta={}, tour="wta")
     del old.trained_at
     assert old._trained_at is None
+    del old.match_population_version
+    assert old._match_population_version is None
     assert getattr(old, "trained_at", None) is None      # the accessor export_all uses
     print("ok test_predictor_stamps_trained_at_and_survives_a_pickle_round_trip")
 
@@ -361,6 +383,7 @@ if __name__ == "__main__":
     test_build_method_atp_uses_xgb_defaults()
     test_build_brackets_payload_splits_and_stamps()
     test_build_meta_separates_build_time_from_model_time()
+    test_build_meta_audits_wta_125_policy_rows()
     test_predictor_stamps_trained_at_and_survives_a_pickle_round_trip()
     test_fixtures_upset_flag_agrees_with_the_rounded_prob_it_ships()
     print("\nALL PASSED")

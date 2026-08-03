@@ -16,6 +16,7 @@ New lesson → append the entry to the matching topic file and add its lead line
 - The release snapshot is load-bearing data that `download` cannot reproduce. (2026-07-25)
 - An incomplete source moves only `n`, and nothing was watching `n`. (2026-07-25)
 - Canonicalising names WITHIN a key group cannot merge variants that change the key — a dropped surname ships one player as two. (2026-07-27)
+- A rolling overlay must enforce the model's population policy by stable identity before merge, and intentional population changes need an explicit version boundary. (2026-08-03)
 
 ## Draws, rounds & live events — [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md)
 

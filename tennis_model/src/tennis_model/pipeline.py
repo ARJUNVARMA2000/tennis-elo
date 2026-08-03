@@ -15,7 +15,7 @@ import time
 from contextlib import contextmanager
 from datetime import UTC
 
-from .config import PLAYER_ALIASES, TOURS, WEB_DATA_DIR, output_dir
+from .config import MATCH_POPULATION_VERSION, PLAYER_ALIASES, TOURS, WEB_DATA_DIR, output_dir
 from .data.results import load_matches
 from .model.export import export_all
 from .model.features import FEATURES, build_predictor_inputs, feat_params_for, main_rows
@@ -176,7 +176,8 @@ def _predictor_current(predictor, tour: str) -> bool:
     against freshly assembled frames would crash inside XGBoost), or carrying
     FeatureParams that differ from the tour's current config — its combiner was
     trained on frames built with other thresholds (e.g. a pickle that shipped with
-    fp=None, or one predating a FEAT_PARAM_OVERRIDES adoption)."""
+    fp=None, or one predating a FEAT_PARAM_OVERRIDES adoption), or rating state
+    walked over a different match-population contract."""
     try:
         trained = list(predictor.clf.get_booster().feature_names or [])
         if trained != list(FEATURES):
@@ -187,6 +188,11 @@ def _predictor_current(predictor, tour: str) -> bool:
         if predictor._fp != feat_params_for(tour):
             return False
     except Exception:                                        # noqa: BLE001 — foreign fp shape (cross-version pickle): rebuild
+        return False
+    try:
+        if predictor._match_population_version != MATCH_POPULATION_VERSION:
+            return False
+    except Exception:                                        # noqa: BLE001 — legacy/foreign pickle: rebuild
         return False
     try:
         return predictor._player_aliases == tuple(sorted(PLAYER_ALIASES.items()))
@@ -202,8 +208,8 @@ def build_tour_quick(tour: str):
     df = load_matches(tour)
     predictor = TennisPredictor.load(tour)
     if not _predictor_current(predictor, tour):
-        print("  quick: saved predictor is stale (feature schema, FeatureParams, or player "
-              "aliases) -> full rebuild")
+        print("  quick: saved predictor is stale (feature schema, FeatureParams, match "
+              "population, or player aliases) -> full rebuild")
         return build_tour(tour, do_backtest=False, run_kalshi=False)
     export_all(tour, df, predictor.elo, predictor.srv, predictor.meta, predictor, oos=None)
     _track(tour, predictor, df)

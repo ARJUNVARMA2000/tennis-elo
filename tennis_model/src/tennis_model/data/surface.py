@@ -163,6 +163,28 @@ def normalize_level(value: object, tour: str) -> str | None:
     return cand if cand in LEVEL_VOCAB.get(tour, frozenset()) else None
 
 
+def wiki_categories_by_event_id(tour: str) -> dict[str, str]:
+    """Return unambiguous cached tiers keyed by stable ESPN event identity.
+
+    ``wiki_category.json`` predates the event registry and is still keyed by the sponsor
+    title seen when Wikipedia was queried. Result ingestion cannot join on that name: ESPN
+    titles change during an edition, while ``espnId`` does not. Resolve every legacy key
+    through the registry's append-only alias table and keep an id only when all of its
+    aliases agree on one normalized tier. Unknown or contradictory evidence stays absent.
+    """
+    from .events import EventResolver, load_registry
+
+    resolver = EventResolver(load_registry(tour))
+    found: dict[str, set[str]] = {}
+    for name, raw_level in wiki_category_map(tour).items():
+        event_id = resolver.id_of(name)
+        level = normalize_level(raw_level, tour)
+        if event_id and level:
+            found.setdefault(event_id, set()).add(level)
+    return {event_id: next(iter(levels))
+            for event_id, levels in found.items() if len(levels) == 1}
+
+
 def _level_candidate(value: object, tour: str) -> str | None:
     if value is None:
         return None

@@ -3215,3 +3215,61 @@ overlap plus shared real players, never by name similarity.
   213 web tests, TypeScript, the 23-route static build, exact exported-HTML inspection, and
   `git diff --check`; ESLint remained at 0 errors / 13 existing warnings. Reconciled against
   `git log -5`; `edfc3d5` remained the latest commit before publication.
+
+## Round Y — WTA 125 live-result policy leak
+
+- [x] Add fail-first regressions proving ESPN live rows are classified through stable `espnId`
+  identity, excluded from the model when their resolved tier is WTA 125, and retained for all
+  other WTA tiers without removing their board/draw inputs.
+- [x] Stamp the resolved live-event tier before source merge, enforce `INCLUDE_WTA_125=False` on
+  that ingestion path, and expose a zero-WTA-125 model-row count in `meta.json`; extend the
+  pre-deploy output gate so this policy leak cannot ship again.
+- [x] Reproduce the July-19 rollover against the live ESPN payload, run focused and full Python
+  checks plus `git diff --check`, reconcile current git history, and append the review. Do not
+  commit, push, or deploy without explicit approval.
+
+### Review
+
+- The failed run was not an upstream truncation: ESPN's WTA endpoint mixes tour events with WTA
+  125s, and the rolling live overlay bypassed `INCLUDE_WTA_125=False`. At the August 3 UTC
+  rollover, July 19 left the 14-day query window and five 31-match events disappeared together,
+  producing the net `128827 -> 128703` drop.
+- The legacy name-keyed tier cache now resolves through the append-only event registry to stable
+  `espnId`. Known WTA 125 and unclassified live results are withheld from model state, while their
+  rows remain identity hints through de-duplication so eligible stable-source copies keep the id;
+  raw live inputs remain available to the tournament board and draw pipeline.
+- `meta.json` now audits final WTA-125 rows plus excluded known/unknown live rows. The pre-deploy
+  gate requires population schema v2, requires the audit fields, blocks any nonzero WTA-125 model
+  count, and reports unclassified exclusions as an advisory. Intentional population changes reset
+  run-over-run count comparison only across the explicit version boundary; comparison resumes on
+  the next run instead of weakening the existing drop threshold.
+- A real July 19 replay classified 278 completed WTA rows: 124 WTA 125 and 31 unclassified rows
+  were withheld, while 123 rows from four WTA tour events remained eligible. A production-shaped
+  all-tour quick refresh completed; WTA exported 128605 eligible matches with `wta125Matches=0`
+  and 93 current live WTA-125 rows excluded. The complete pre-deploy integrity gate passed.
+- Fail-first coverage reproduced all four missing contracts. Final verification passed all 508
+  Python tests and `git diff --check`. Reconciled against `git log -5`; `a766cf2` remains the
+  latest commit. Verification-only forecast/Kalshi log mutations were removed. Nothing was
+  committed, pushed, or deployed.
+
+### Review addendum — cached model-state compatibility
+
+- A final release-risk audit found that the quick path could clean the current match frame while
+  reusing ratings walked over population v1, then label the export v2. `predictor.pkl` now carries
+  its own match-population version; the quick guard rejects missing/mismatched versions and forces
+  a full rebuild, while `meta.modelPopulationVersion` lets the pre-deploy gate require exact
+  model/data parity.
+- Both real legacy ATP/WTA caches were rejected and self-healed through full rebuilds. Their new
+  predictors and exports report population v2, WTA still contains zero WTA-125 model rows, and the
+  complete integrity gate passes. Final verification after this added state guard passed all 510
+  Python tests and `git diff --check`; generated forecast-log mutations were removed. Nothing was
+  committed, pushed, or deployed.
+
+## Round Z — publish WTA population fix
+
+- [x] Confirm the intended worktree scope, clean diff, authenticated GitHub remote, current
+  `master`, and the push-triggered production workflow.
+- [ ] Stage only the Round Y fix, tests, and durable project notes; commit directly to `master`
+  with a scoped fix message as explicitly authorized.
+- [ ] Push `master`, monitor the complete refresh workflow through deploy and live verification,
+  confirm the data-health alert resolves, and append the release review.

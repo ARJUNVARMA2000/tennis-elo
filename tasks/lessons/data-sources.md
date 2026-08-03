@@ -156,3 +156,24 @@ Indexed in [`../lessons.md`](../lessons.md).
   an entry when the gate flags one, and pair it with an invariant that does not depend on names
   being clean (a completed event's alive count is 1 *by definition*, not by set subtraction) —
   so the next unbridged variant degrades one number instead of publishing a contradictory card.
+
+- **A rolling overlay must enforce the model's population policy by stable identity before
+  merge, and intentional population changes need an explicit version boundary.** (2026-08-03)
+  ESPN's WTA scoreboard mixes tour events with WTA 125s, while `INCLUDE_WTA_125=False`
+  because no 125 source covers the arbiter's tune window. The live overlay bypassed that
+  decision: its 14-day sweep temporarily added lower-tier results, then the UTC rollover from
+  August 2 to 3 dropped the July 19 query and five 31-match events together. The exported
+  population fell 128,827 -> 128,703 even though every source was parseable and current.
+  Filtering by event name would repeat the repo's largest identity bug, so the tier cache is
+  resolved through the registry's append-only aliases to `espnId`; WTA 125 and unclassified
+  live rows are withheld from model state but remain identity hints until stable-source
+  duplicates inherit the id, preserving board joins. The export now audits WTA-125 and
+  excluded counts, and the pre-deploy gate requires the model count to be zero. Finally,
+  monotonic `meta.matches` cannot compare two intentionally different populations: stamp a
+  required `matchPopulationVersion`, reset the baseline only across that explicit boundary,
+  then resume ordinary comparison on the next run. Never weaken the drop threshold to make a
+  migration green; version the population and keep the invariant intact.
+  The version must also ride inside `predictor.pkl`: cleaning the current frame is not enough
+  when a quick refresh can reuse ratings already walked over the old rows. Reject legacy or
+  mismatched predictor versions, rebuild them, export the model's own version separately, and
+  require model/data version parity in the deploy gate so stale state cannot be relabelled clean.

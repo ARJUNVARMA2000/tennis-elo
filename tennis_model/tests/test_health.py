@@ -51,6 +51,10 @@ def _healthy_data() -> dict:
     m = [[0.5 if i == j else (0.6 if i < j else 0.4) for j in range(3)] for i in range(3)]
     return {
         "meta": {"matches": 300_000, "activePlayers": 3, "features": ["f"] * len(FEATURES),
+                 "matchPopulationVersion": health.MATCH_POPULATION_VERSION,
+                 "modelPopulationVersion": health.MATCH_POPULATION_VERSION,
+                 "wta125Matches": 0, "excludedWta125Matches": 0,
+                 "excludedUnclassifiedWtaLiveMatches": 0,
                  "lastUpdated": "2026-07-09T00:00:00Z",
                  "modelTrainedAt": "2026-07-08T04:30:00Z"},   # last night's full retrain
         "players": [{"name": f"P{i}", "elo": 2000 - i, "eloRank": i + 1, "liveRank": i + 1,
@@ -541,9 +545,65 @@ def test_output_match_floor_and_drop():
     low = _healthy_data(); low["meta"]["matches"] = 1000
     assert any("below floor" in p for p in health.output_problems("atp", _oc(data=low), NOW))
     # a silent source drop vs the prior run's snapshot
-    dropped = health.output_problems("atp", _oc(), NOW, prev={"matches": 400_000})
+    dropped = health.output_problems(
+        "atp", _oc(), NOW,
+        prev={"matches": 400_000,
+              "match_population_version": health.MATCH_POPULATION_VERSION})
     assert any("dropped 400000 -> 300000" in p for p in dropped)
     print("ok test_output_match_floor_and_drop")
+
+
+def test_output_wta_125_policy_is_a_blocking_invariant():
+    leaked = _healthy_data(); leaked["meta"]["wta125Matches"] = 31
+    out = health.output_problems("wta", _oc(data=leaked), NOW)
+    hits = [p for p in out if "WTA 125" in p]
+    assert hits and all(health._gate_blocks(p) for p in hits), out
+
+    missing = _healthy_data(); del missing["meta"]["wta125Matches"]
+    out = health.output_problems("wta", _oc(data=missing), NOW)
+    assert any("wta125Matches missing" in p for p in out), out
+    missing_audit = _healthy_data(); del missing_audit["meta"]["excludedWta125Matches"]
+    out = health.output_problems("wta", _oc(data=missing_audit), NOW)
+    assert any("excludedWta125Matches missing/invalid" in p for p in out), out
+
+    unknown = _healthy_data(); unknown["meta"]["excludedUnclassifiedWtaLiveMatches"] = 2
+    out = [p for p in health.output_problems("wta", _oc(data=unknown), NOW)
+           if "unclassified live match(es) withheld" in p]
+    assert out and not any(health._gate_blocks(p) for p in out), out
+    print("ok test_output_wta_125_policy_is_a_blocking_invariant")
+
+
+def test_output_match_drop_resets_only_across_a_population_version_boundary():
+    clean = _healthy_data()
+    clean["meta"]["matches"] = 299_920
+    clean["meta"]["excludedWta125Matches"] = 80
+    # The deployed baseline predates the explicit population contract. This intentional
+    # version boundary resets comparison exactly once; the first new report records v2.
+    first = health.output_problems(
+        "wta", _oc(data=clean), NOW,
+        prev={"matches": 300_000, "match_population_version": 1})
+    assert not any("meta.matches dropped" in p for p in first), first
+    # Same-version comparisons resume immediately and retain the ordinary >50-row threshold.
+    audited = health.output_problems(
+        "wta", _oc(data=clean), NOW,
+        prev={"matches": 300_000,
+              "match_population_version": health.MATCH_POPULATION_VERSION})
+    assert any("meta.matches dropped" in p for p in audited), audited
+    print("ok test_output_match_drop_resets_only_across_a_population_version_boundary")
+
+
+def test_output_model_population_must_match_current_data_population():
+    stale = _healthy_data()
+    stale["meta"]["modelPopulationVersion"] = health.MATCH_POPULATION_VERSION - 1
+    out = health.output_problems("wta", _oc(data=stale), NOW)
+    hits = [p for p in out if "modelPopulationVersion" in p]
+    assert hits and all(health._gate_blocks(p) for p in hits), out
+
+    missing = _healthy_data()
+    del missing["meta"]["modelPopulationVersion"]
+    out = health.output_problems("wta", _oc(data=missing), NOW)
+    assert any("modelPopulationVersion" in p for p in out), out
+    print("ok test_output_model_population_must_match_current_data_population")
 
 
 def test_output_real_draw_must_be_standard_size():
@@ -1606,6 +1666,9 @@ if __name__ == "__main__":
     test_output_method_feature_count_drift()
     test_output_method_out_of_range()
     test_output_match_floor_and_drop()
+    test_output_wta_125_policy_is_a_blocking_invariant()
+    test_output_match_drop_resets_only_across_a_population_version_boundary()
+    test_output_model_population_must_match_current_data_population()
     test_output_real_draw_must_be_standard_size()
     test_output_completed_nonpower_of_two_is_fine()
     test_output_alive_gt_draw_and_missing_champion()
