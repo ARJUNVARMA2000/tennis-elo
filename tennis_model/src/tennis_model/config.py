@@ -529,6 +529,9 @@ WIKI_TITLE_OVERRIDES: dict[str, str] = {
     # page is not necessarily a singles-bracket page, which is why draw location now belongs
     # to the first-party/source-neutral architecture instead of reusing this alias.
     "Mifel Tennis Open by Telcel Oppo": "Los Cabos Open",
+    # 2026-08-03 alias-proposer: Wikipedia’s 2026 Canadian Open men’s singles page redirects to 2026 National Bank Open – Men's singles, and the ATP’s 2026 calendar lists the National Bank Open presented by Rogers as an ATP Masters 1000 event.
+    # https://en.wikipedia.org/wiki/2026_National_Bank_Open_%E2%80%93_Men%27s_singles
+    "Toronto": "2026 National Bank Open – Men's singles",
 }
 
 # Provider tournament ids are source locators, never event join keys. Normal events resolve
@@ -639,6 +642,12 @@ PLAYER_ALIASES: dict[str, str] = {
     # 2026-07-28 alias-proposer: WTA short form and ITF full form identify one player.
     # https://www.itftennis.com/en/players/tiantsoa-sarah-rakotomanga-rajaonah/800507833/fra/jt/D/overview/
     "tiantsoa sarah rakotomanga rajaonah": "Tiantsoa Rakotomanga Rajaonah",
+    # 2026-08-03 alias-proposer: ATP’s SY71 profile and rankings-history pages attach both spellings to the same official player record, so the spaced form is the canonical one.
+    # https://www.atptour.com/en/players/digvijaypratap-singh/sy71/overview
+    "digvijaypratap singh": "Digvijay Pratap Singh",
+    # 2026-08-03 alias-proposer: ATP’s O483 player page uses the apostrophe spelling, and the apostrophe-free form is just the ASCII/slug variant of that same player record.
+    # https://www.atptour.com/en/players/christopher-o-connell/o483/overview
+    "christopher oconnell": "Christopher O'Connell",
 }
 
 
