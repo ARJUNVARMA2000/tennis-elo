@@ -3424,3 +3424,9 @@ overlap plus shared real players, never by name similarity.
   Fritz over Rafael Jodar, and Iasi completed/WTA 250 with Mayar Sherif over Paula Badosa. Normal
   health reports zero problems; the pre-deploy gate, Ruff, `git diff --check`, 177 focused tests,
   and all 521 Python tests pass.
+
+### Production follow-up
+
+- [ ] Reproduce the post-deploy one-day ATP `Masters` fragment, fold it into Toronto only on
+  inclusive date overlap plus shared real-player/match evidence, and retain negative controls for
+  concurrent, adjacent, and ambiguous events. Re-run the focused/full gates and deploy the fix.

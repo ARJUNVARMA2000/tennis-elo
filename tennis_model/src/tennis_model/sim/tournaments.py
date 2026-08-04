@@ -97,7 +97,10 @@ def _lookup(by_id: dict, by_name: dict, eid: str | None, name: str):
     return by_name.get(str(name))
 
 
-COALESCE_MIN_OVERLAP_DAYS = 2
+# Inclusive date spans: zero means the two records share one observed match day. A transient
+# provider fragment can last only that day; the shared-player + exact-match requirements below
+# carry the identity proof, while disjoint and merely adjacent spans remain ineligible.
+COALESCE_MIN_OVERLAP_DAYS = 0
 COALESCE_MIN_SHARED_PLAYERS = 3
 COALESCE_MIN_SHARED_PAIRS = 1
 

@@ -156,6 +156,47 @@ def test_coalesce_merges_one_event_split_across_two_names():
     print("ok test_coalesce_merges_one_event_split_across_two_names")
 
 
+def test_coalesce_merges_one_day_transient_fragment_on_match_evidence():
+    """A provider can briefly emit a second, id-less group for one event for only one day.
+
+    Production did this to Toronto as ``Masters`` on 2026-08-04: the fragment shared real
+    matches with ``421-2026`` but its zero-day span failed the old two-day minimum and shipped
+    as a second generic-tier card. Same-day observations plus three shared real players and an
+    exact matchup are sufficient identity evidence; names remain irrelevant.
+    """
+    from tennis_model.sim.tournaments import _coalesce_groups
+
+    class _R:
+        def id_of(self, name):
+            return None
+
+    stable_pairs = [
+        ("A Player", "B Player"),
+        ("C Player", "D Player"),
+        ("E Player", "F Player"),
+    ]
+    stable = ("Stable Event", _grp(
+        "Stable Event", stable_pairs, start="2026-08-04", days=1, eid="421-2026"))
+    fragment = ("Unrelated Provider Label", _grp(
+        "Unrelated Provider Label", stable_pairs[:2], start="2026-08-04", days=1))
+
+    out = _coalesce_groups([stable, fragment], _R())
+
+    assert len(out) == 1
+    assert out[0][2] == "421-2026"
+    assert len(out[0][1]) == len(stable_pairs)
+
+    # Four shared entrants without one shared matchup are not identity evidence, even on
+    # the same day. This protects concurrent events and makes the positive rule non-name-based.
+    no_match = ("Other Event", _grp(
+        "Other Event",
+        [("A Player", "C Player"), ("B Player", "D Player")],
+        start="2026-08-04", days=1,
+    ))
+    assert len(_coalesce_groups([stable, no_match], _R())) == 2
+    print("ok test_coalesce_merges_one_day_transient_fragment_on_match_evidence")
+
+
 def _real_players_of(g):
     from tennis_model.sim.tournaments import _real_players
     return _real_players(g)
