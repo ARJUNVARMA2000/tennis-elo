@@ -279,6 +279,7 @@ def merge_sources(tour: str) -> pd.DataFrame:
     df = _stamp_draw_level(df)
     df["date"] = _parse_dates(df["tourney_date"])
     df = df[df["date"].notna() & df["winner_name"].notna() & df["loser_name"].notna()].copy()
+    df = _repair_corrupt_final_years(df)
     df = _drop_impossible_dates(df)
     df = _canonicalize_names(df)
 
@@ -300,10 +301,28 @@ def merge_sources(tour: str) -> pd.DataFrame:
         return frame
 
     has_stats = pd.to_numeric(df["w_svpt"], errors="coerce").notna()
-    # year is part of the key: rivalries repeat identical scorelines across seasons,
-    # and sources agree on year (dates themselves can drift a day between sources)
-    df["__key"] = (df["winner_name"].astype(str) + "|" + df["loser_name"].astype(str)
-                   + "|" + df["date"].dt.year.astype(str) + "|" + df["score"].map(_score_key))
+    # Year and round are part of the key: rivalries repeat identical scorelines across
+    # seasons, and even within one season. Sources agree on both while dates themselves can
+    # drift from an event start stamp to the match's actual day. Without round, Fritz's
+    # 2026 Delray R16 win over Jodar (7-6 6-4) erased their Washington final with the exact
+    # same score, then inherited Washington's ESPN id before the live row disappeared.
+    base_key = (df["winner_name"].astype(str) + "|" + df["loser_name"].astype(str)
+                + "|" + df["date"].dt.year.astype(str) + "|" + df["score"].map(_score_key))
+    round_key = df["round"].astype("string").fillna("").str.strip().str.upper()
+
+    def _only_round(values: pd.Series) -> str:
+        known = values[values.ne("")].unique()
+        return str(known[0]) if len(known) == 1 else ""
+
+    # Some overlays omit `round` while another copy of the SAME match supplies it. Treat an
+    # empty value as a wildcard only when its exact-date bucket (preferred), or its entire
+    # old-key bucket, has one unambiguous known round. Otherwise keep it separate: guessing
+    # which of two real rematches it belongs to would silently delete evidence again.
+    by_day = round_key.groupby(base_key + "|" + df["date"].astype(str)).transform(_only_round)
+    round_key = round_key.mask(round_key.eq("") & by_day.ne(""), by_day)
+    by_group = round_key.groupby(base_key).transform(_only_round)
+    round_key = round_key.mask(round_key.eq("") & by_group.ne(""), by_group)
+    df["__key"] = base_key + "|" + round_key
     # prefer rows that have stats, then the earlier (cleaner) source
     df = _fill_espn_id(df, df["__key"])
     df = df.assign(__hs=has_stats.astype(int)).sort_values(["__hs", "__src"], ascending=[False, True])
@@ -416,6 +435,66 @@ def _drop_impossible_dates(df: pd.DataFrame) -> pd.DataFrame:
         print(f"  results: dropped {n} row(s) dated beyond {horizon.date()} "
               f"(latest {worst}) — upstream date corruption")
     return df[~bad]
+
+
+def _repair_corrupt_final_years(df: pd.DataFrame) -> pd.DataFrame:
+    """Repair a far-future final's YEAR only when the bracket topology proves it.
+
+    The fresh WTA feed carried Iasi's final as 2029/7/20. Dropping it protects model state,
+    but permanently loses a factual champion once ESPN's rolling result window expires.
+    A narrow repair is possible without trusting an event-name join: inside the SAME raw
+    source and its exact source-native event group, the final's two players must be exactly
+    the two unique semifinal winners in one and only one prior season, and keeping the
+    original month/day in that season must place the final 1-7 days after those semifinals.
+
+    Anything less certain remains untouched and is dropped by ``_drop_impossible_dates``.
+    """
+    required = {"date", "round", "tourney_name", "winner_name", "loser_name", "__src"}
+    if df.empty or not required.issubset(df.columns):
+        return df
+    horizon = (pd.Timestamp.now(tz="UTC").tz_localize(None).normalize()
+               + pd.Timedelta(days=MAX_FUTURE_MATCH_DAYS))
+    candidates = df.index[(df["date"] > horizon) & df["round"].astype(str).str.upper().eq("F")]
+    if candidates.empty:
+        return df
+
+    out = df.copy()
+    repaired = 0
+    for idx in candidates:
+        row = out.loc[idx]
+        peers = out[
+            out["__src"].eq(row["__src"])
+            & out["tourney_name"].eq(row["tourney_name"])
+            & out["date"].notna()
+            & out["date"].le(horizon)
+        ]
+        semis = peers[peers["round"].astype(str).str.upper().eq("SF")]
+        final_players = {_name_key(row["winner_name"]), _name_key(row["loser_name"])} - {""}
+        if len(final_players) != 2:
+            continue
+        possible: list[pd.Timestamp] = []
+        for season in sorted(set(semis["date"].dt.year.astype(int))):
+            try:
+                corrected = pd.Timestamp(row["date"]).replace(year=season)
+            except ValueError:  # e.g. a leap-day typo into a non-leap inferred season
+                continue
+            edition_semis = semis[
+                semis["date"].lt(corrected)
+                & semis["date"].ge(corrected - pd.Timedelta(days=7))
+            ]
+            winners = {_name_key(name) for name in edition_semis["winner_name"]} - {""}
+            if winners == final_players and corrected <= horizon:
+                possible.append(corrected)
+        if len(possible) != 1:
+            continue
+        corrected = possible[0]
+        out.at[idx, "date"] = corrected
+        out.at[idx, "tourney_date"] = str(corrected.date())
+        repaired += 1
+    if repaired:
+        print(f"  results: repaired {repaired} far-future final year(s) from "
+              "source-native semifinal topology")
+    return out
 
 
 def clean(df: pd.DataFrame, tour: str | None = None) -> pd.DataFrame:

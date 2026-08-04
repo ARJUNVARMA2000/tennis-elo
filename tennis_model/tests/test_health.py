@@ -916,6 +916,30 @@ def test_output_distinct_events_are_clean():
     print("ok test_output_distinct_events_are_clean")
 
 
+def test_output_distinct_stable_ids_override_the_overlap_heuristic():
+    """Calendar ranges overlap and players move between successive events.
+
+    Toronto and Washington shared 13 players in production, but their distinct stable ids
+    prove they are not one event under two names.  The name heuristic remains a fallback for
+    id-less archive evidence; it must never overrule stronger identity.
+    """
+    toronto = _tourn("Toronto", "2026-08-02", "2026-08-14", ["A", "B", "C", "D"])
+    washington = _tourn(
+        "Mubadala DC Open", "2026-07-25", "2026-08-04", ["A", "B", "C", "E"],
+    )
+    toronto["espnId"] = "421-2026"
+    washington["espnId"] = "888-2026"
+
+    out = []
+    health._tournament_name_problems(out, "atp", [toronto, washington])
+    assert out == [], out
+
+    toronto["espnId"] = washington["espnId"] = None
+    health._tournament_name_problems(out, "atp", [toronto, washington])
+    assert any("one event under two names" in p for p in out), out
+    print("ok test_output_distinct_stable_ids_override_the_overlap_heuristic")
+
+
 def test_output_concurrent_events_with_open_qualifying_are_clean():
     """Issue #9 (2026-07-24): Washington (WTA 500) and Memphis (WTA 250) run the same week
     with entirely different fields, but both draws were still mostly unfilled — so they

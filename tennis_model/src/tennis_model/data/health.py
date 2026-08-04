@@ -870,10 +870,10 @@ def _tournament_name_problems(out: list, tour: str, ts: list) -> None:
     """Tournament names churn year-over-year (sponsor renames, new events); a rename the
     pipeline doesn't reconcile splits one event into two rows. Two symptoms, both bugs:
       A) the exact same name twice in one snapshot (a dedup/naming split), and
-      B) two DIFFERENTLY-named events that overlap in dates AND share players — impossible
-         for distinct events (a player plays one event per week), so it's one event under
-         two names. Concurrent-but-distinct events (e.g. Eastbourne+Mallorca) share no
-         players, so they don't trip it.
+      B) two DIFFERENTLY-named, identity-unknown events that overlap in dates AND share
+         players — usually one event under two names. Distinct stable ids are stronger
+         evidence and bypass this fallback: successive tournament calendar ranges can
+         overlap while players legally move between them (Toronto/Washington 2026).
 
     (B) counts only slots naming a REAL player, via the same `is_real` predicate the draw
     machinery uses to fill them. Unresolved slots are `Qualifier 1..N`, numbered per draw,
@@ -898,6 +898,9 @@ def _tournament_name_problems(out: list, tour: str, ts: list) -> None:
     for a, b in itertools.combinations(named, 2):
         if _norm_name(a["name"]) == _norm_name(b["name"]) or _overlap_days(a, b) < 2:
             continue
+        aid, bid = a.get("espnId"), b.get("espnId")
+        if aid and bid and str(aid) != str(bid):
+            continue                       # stable identity outranks a name/player heuristic
         fa, fb = _real_field(a), _real_field(b)
         shared = fa & fb
         # Two rules, because dropping the placeholders also dropped the counts: >=3 shared

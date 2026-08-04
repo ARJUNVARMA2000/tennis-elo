@@ -86,6 +86,34 @@ def test_status_real_partial_seeded_final_from_espn():
     print("ok test_status_real_partial_seeded_final_from_espn")
 
 
+def test_live_and_upcoming_tier_resolution_receive_stable_id(monkeypatch):
+    """Card builders must not discard the identity needed to bridge a sponsor rename."""
+    from tennis_model.sim import tournaments as tournament_module
+
+    calls = []
+
+    def level(tour, name, archive_level=None, event_id=None):
+        calls.append((tour, name, archive_level, event_id))
+        return "Masters 1000"
+
+    monkeypatch.setattr(tournament_module, "resolve_level", level)
+    live = project_tournament(
+        _PRED, "Toronto", _g(), "atp", known=set(), top_set=None,
+        espn_fields=None, resolve=lambda name: name, matchups=[],
+        espn_id="421-2026", n_sims=20, seed=1,
+    )
+    upcoming = project_upcoming(
+        _PRED, "National Bank Open presented by Rogers",
+        {"slots": list(_R)[:8], "start": "2026-08-02", "end": "2026-08-14"},
+        "atp", _g(), known=set(), resolve=lambda name: name,
+        espn_id="421-2026", n_sims=20, seed=1,
+    )
+
+    assert live["level"] == upcoming["level"] == "Masters 1000"
+    assert [call[3] for call in calls] == ["421-2026", "421-2026"]
+    print("ok test_live_and_upcoming_tier_resolution_receive_stable_id")
+
+
 def _grp(name, players, start="2026-07-20", days=4, eid=None):
     """A results group: `players` pairs, one match per day from `start`."""
     rows = []

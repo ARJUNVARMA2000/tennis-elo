@@ -488,7 +488,10 @@ def _coverage_shell(event: dict, build_date: str, tour: str) -> dict:
     names = list(dict.fromkeys([*(event.get("names") or []), event.get("name")]))
     level = generic
     for name in names:
-        candidate = resolve_level(tour, str(name), archive_level=event.get("archiveLevel"))
+        candidate = resolve_level(
+            tour, str(name), archive_level=event.get("archiveLevel"),
+            event_id=event.get("espnId"),
+        )
         if candidate != generic:
             level = candidate
             break

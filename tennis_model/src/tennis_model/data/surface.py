@@ -226,14 +226,22 @@ def _fallback_tier(tour: str, event: str) -> str | None:
     return f"{tour.upper()} {fb}" if str(fb).isdigit() else str(fb)
 
 
-def resolve_level(tour: str, event: str, archive_level: str | None = None) -> str:
+def resolve_level(tour: str, event: str, archive_level: str | None = None,
+                  event_id: str | None = None) -> str:
     """Display tier for a live/upcoming event, mirroring resolve_surface:
-        real archive level -> Wikipedia category -> curated EVENT_TIER_FALLBACK -> '{TOUR} Tour'.
+        real archive level -> stable-id Wikipedia category -> name-keyed Wikipedia category
+        -> curated EVENT_TIER_FALLBACK -> '{TOUR} Tour'.
     The caller passes ``archive_level`` only when the match frame gives a reliable current-edition
-    level (else None, so a stale historical tier can't win). Every tier crosses the SAME
-    normaliser on the way out, so no source's dialect reaches a card verbatim."""
+    level (else None, so a stale historical tier can't win). ``event_id`` bridges a current
+    result label to the legacy sponsor-title-keyed category cache through the event registry.
+    Every tier crosses the SAME normaliser on the way out, so no source's dialect reaches a
+    card verbatim."""
     generic = f"{tour.upper()} Tour"
-    for candidate in (archive_level, wiki_category(tour, event), _fallback_tier(tour, event)):
+    stable = str(event_id).strip() if event_id is not None else ""
+    by_id = (wiki_categories_by_event_id(tour).get(stable)
+             if stable and stable.lower() not in {"nan", "none", "<na>"} else None)
+    for candidate in (archive_level, by_id, wiki_category(tour, event),
+                      _fallback_tier(tour, event)):
         lv = normalize_level(candidate, tour)
         if lv and lv != generic:
             return lv

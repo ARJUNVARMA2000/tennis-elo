@@ -3385,3 +3385,42 @@ overlap plus shared real players, never by name similarity.
   overlapping identities with an unresolved tier, and Iasi is now correctly one completed
   `874-2026` event but its upstream-corrupted final remains unavailable. Those advisories make
   live health `ok=false`; the deploy itself and exact begun-event membership verification passed.
+
+## Round AD — resolve issue #14 tournament data-health advisories
+
+- [x] Add fail-first regressions for the ATP same-season rematch collision: two matches with the
+  same ordered players and score but different rounds/events must both survive de-duplication, so
+  the Washington final keeps its stable id and flips the `888-2026` card out of upcoming.
+- [x] Recover only strongly-proven corrupt final years: a far-future final may inherit the unique
+  season of its source-native event only when its two players are exactly the two semifinal
+  winners and the corrected date fits the tournament window; all ambiguous future rows remain
+  dropped. Prove the Iasi final/champion is restored without weakening the future-date guard.
+- [x] Resolve tournament tiers through stable `espnId` between current-edition archive evidence
+  and legacy name-keyed fallbacks, and pass that identity through live/upcoming cards, coverage,
+  and scheduled match output so Toronto remains Masters 1000 after a sponsor-title change.
+- [x] Stop the rename heuristic from merging overlapping cards whose distinct stable ids already
+  prove distinct events, while retaining the id-less rename detector and duplicate-id invariant.
+  Rebuild against the current ATP/WTA inputs; run focused tests, Ruff, the full Python suite,
+  normal health, the pre-deploy gate, and `git diff --check`; append the review. Do not commit,
+  push, or deploy without explicit approval.
+
+### Review
+
+- Washington's August final repeated the exact players and 7-6 6-4 score of their February
+  Delray match. The merge's year-wide key collapsed them before projection and transferred
+  `888-2026` to the wrong row. Round-aware de-duplication now preserves distinct rematches while
+  treating a missing round as a wildcard only when the source copies prove one unambiguous round.
+- Correcting that key restores genuine historical matches, so match population version 3 forces
+  cached predictors to rebuild once instead of relabelling version-2 rating state. The exact quick
+  migration rebuilt both tours locally and exported model/data population parity at version 3.
+- A far-future final year is now repaired only inside one raw source when exactly one season has
+  the final's two players as its two semifinal winners within seven days. The real Iasi row became
+  2026-07-20; unrelated or ambiguous future rows still reach the existing corruption drop.
+- Tier resolution now carries `espnId` through result cards, released-draw cards, coverage shells,
+  and scheduled match output. Toronto resolves `421-2026` through the registry to the cached
+  sponsor-title tier. The overlap heuristic likewise defers to two distinct stable ids while its
+  id-less rename fallback and duplicate-id invariant remain intact.
+- Current-data replay exports Toronto live/Masters 1000, Washington completed/ATP 500 with Taylor
+  Fritz over Rafael Jodar, and Iasi completed/WTA 250 with Mayar Sherif over Paula Badosa. Normal
+  health reports zero problems; the pre-deploy gate, Ruff, `git diff --check`, 177 focused tests,
+  and all 521 Python tests pass.

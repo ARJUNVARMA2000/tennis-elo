@@ -533,7 +533,9 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
             tour, name, str(g["date"].min().date()), archive_surface=archive_hint)
     bo = pd.to_numeric(main["best_of"], errors="coerce").max()
     best_of = int(bo) if pd.notna(bo) else 3
-    level = resolve_level(tour, name, archive_level=_level_label(_main_level_code(g), tour))
+    level = resolve_level(
+        tour, name, archive_level=_level_label(_main_level_code(g), tour), event_id=espn_id,
+    )
 
     eliminated = set(main["loser_name"])
     final_rows = main[main["round"] == "F"]
@@ -733,7 +735,7 @@ def project_upcoming(predictor, name: str, wd: dict, tour: str, df: pd.DataFrame
     surface, surface_src = resolve_surface_info(tour, name, wd.get("start") or "",
                                                 archive_surface=surface)
     best_of = int(wd.get("bestOf") or bo or 3)
-    level = resolve_level(tour, name)
+    level = resolve_level(tour, name, event_id=espn_id)
     slots = advance_slots(wslots, set())
     # Same rule as the live path: an early capture that is mostly "Qualifier N" ships as a
     # schedule card (name/dates/surface/tier/drawSize) with no odds, until qualifying resolves.

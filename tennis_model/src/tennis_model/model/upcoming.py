@@ -106,12 +106,13 @@ def enrich_upcoming(predictor, df: pd.DataFrame, up_df: pd.DataFrame | None, tou
         a, b = key2name.get(nkey(r.playerA)), key2name.get(nkey(r.playerB))
         if not a or not b or nkey(a) == nkey(b):
             continue
+        event_id = getattr(r, "espn_id", None)
         surface, bo = _surface_best_of(df, r.tourney_name, r.tourney_date, tour)
         p = float(predictor.win_prob(a, b, surface=surface, best_of=bo, event=str(r.tourney_name)))
         out.append({
             "event": str(r.tourney_name), "date": str(r.tourney_date), "round": r.round,
             "surface": surface, "best_of": bo, "playerA": a, "playerB": b, "pA": p,
-            "level": resolve_level(tour, str(r.tourney_name)),
-            "espnId": getattr(r, "espn_id", None),
+            "level": resolve_level(tour, str(r.tourney_name), event_id=event_id),
+            "espnId": event_id,
         })
     return out

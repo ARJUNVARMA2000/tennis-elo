@@ -54,6 +54,26 @@ def test_enrich_resolves_infers_and_prices():
     assert 0.5 < r["pA"] < 1.0                                    # Alcaraz favoured over Djokovic
 
 
+def test_enrich_passes_stable_event_id_to_tier_resolution(monkeypatch):
+    from tennis_model.model import upcoming as upcoming_module
+
+    seen = []
+
+    def level(tour, event, archive_level=None, event_id=None):
+        seen.append((tour, event, event_id))
+        return "Masters 1000"
+
+    monkeypatch.setattr(upcoming_module, "resolve_level", level)
+    rows = pd.DataFrame([{
+        "tourney_name": "Toronto", "espn_id": "421-2026",
+        "tourney_date": "2026-08-04", "round": "R64",
+        "playerA": "Carlos Alcaraz", "playerB": "Novak Djokovic",
+    }])
+    out = enrich_upcoming(_Pred(), _df(), rows, "atp")
+    assert out[0]["level"] == "Masters 1000"
+    assert seen == [("atp", "Toronto", "421-2026")]
+
+
 def test_name_resolution_and_month_fallback():
     # lower-case names resolve (accent/case-insensitive); an event absent from the frame
     # falls back to the season-by-month surface (July -> Grass) and best-of-3.

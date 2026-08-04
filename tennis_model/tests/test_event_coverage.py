@@ -124,7 +124,7 @@ def test_expired_live_name_recovers_cached_draw_id_from_match_evidence():
 def test_wta_slam_shell_is_best_of_three_and_evidence_free_shell_stays_generic(monkeypatch):
     from tennis_model.data import event_coverage as ec
 
-    monkeypatch.setattr(ec, "resolve_level", lambda tour, name, archive_level=None:
+    monkeypatch.setattr(ec, "resolve_level", lambda tour, name, archive_level=None, event_id=None:
                         "Grand Slam" if archive_level == "G" else f"{tour.upper()} Tour")
     monkeypatch.setattr(ec, "resolve_surface_info", lambda tour, name, date, archive_surface=None:
                         (archive_surface, "archive") if archive_surface else ("Hard", "month"))
@@ -150,11 +150,11 @@ def test_wta_slam_shell_is_best_of_three_and_evidence_free_shell_stays_generic(m
 def test_shell_resolution_tries_every_known_event_name(monkeypatch):
     from tennis_model.data import event_coverage as ec
 
-    level_calls: list[str] = []
+    level_calls: list[tuple[str, str | None]] = []
     surface_calls: list[str] = []
 
-    def level(_tour, name, archive_level=None):
-        level_calls.append(name)
+    def level(_tour, name, archive_level=None, event_id=None):
+        level_calls.append((name, event_id))
         return "Grand Slam" if name == "Wimbledon" else "ATP Tour"
 
     def surface(_tour, name, _date, archive_surface=None):
@@ -174,7 +174,9 @@ def test_shell_resolution_tries_every_known_event_name(monkeypatch):
     shell = tournaments[0]
     assert shell["level"] == "Grand Slam" and shell["surface"] == "Grass"
     assert shell["surfaceSource"] == "wiki" and shell["bestOf"] == 5
-    assert level_calls == ["The Championships", "Wimbledon"]
+    assert level_calls == [
+        ("The Championships", "188-2026"), ("Wimbledon", "188-2026"),
+    ]
     assert surface_calls == ["The Championships", "Wimbledon"]
 
 

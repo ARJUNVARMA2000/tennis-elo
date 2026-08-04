@@ -435,6 +435,126 @@ def test_same_day_rematch_survives_dedup():
     print("ok test_same_day_rematch_survives_dedup")
 
 
+def test_same_season_rematch_with_identical_score_survives_dedup():
+    """A year-wide player+score key must not erase a later, different-round rematch.
+
+    Taylor Fritz beat Rafael Jodar 7-6 6-4 in Delray's R16 and again in Washington's
+    final in 2026.  The stat-bearing February row used to win the de-duplication bucket,
+    inherit Washington's ESPN id, and delete the August final.  The tournament then had
+    factual results through the semifinals but could only ship its cached upcoming card.
+    """
+    orig = (results.historical_dir, results.stats_dir, results.fresh_dir,
+            results.live_dir, results.lower_dir)
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            hist, stats, fresh, live, lower = (base / "historical", base / "stats",
+                                               base / "fresh", base / "live", base / "lower")
+            for path in (hist, stats, fresh, live, lower):
+                path.mkdir(parents=True, exist_ok=True)
+            results.historical_dir = lambda tour: hist
+            results.stats_dir = lambda tour: stats
+            results.fresh_dir = lambda tour: fresh
+            results.live_dir = lambda tour: live
+            results.lower_dir = lambda tour: lower
+
+            _write_csv(stats / "2026.csv",
+                "tourney_name,tourney_date,round,winner_name,loser_name,score,w_svpt,l_svpt\n"
+                "Delray Beach,20260220,R16,Taylor Fritz,Rafael Jodar,7-6 6-4,70,65\n")
+            _write_csv(live / "live.csv",
+                "tourney_name,espn_id,tourney_date,round,winner_name,loser_name,score\n"
+                "Mubadala DC Open,888-2026,2026-08-03,F,Taylor Fritz,Rafael Jodar,7-6 6-4\n")
+
+            df = results.merge_sources("atp")
+    finally:
+        (results.historical_dir, results.stats_dir,
+         results.fresh_dir, results.live_dir, results.lower_dir) = orig
+
+    pair = df[(df["winner_name"] == "Taylor Fritz") & (df["loser_name"] == "Rafael Jodar")]
+    assert len(pair) == 2, pair[["tourney_name", "date", "round", "espn_id"]]
+    assert set(pair["round"]) == {"R16", "F"}
+    final = pair[pair["round"] == "F"].iloc[0]
+    assert final["tourney_name"] == "Mubadala DC Open"
+    assert final["espn_id"] == "888-2026"
+    assert pair[pair["round"] == "R16"]["espn_id"].isna().all()
+    print("ok test_same_season_rematch_with_identical_score_survives_dedup")
+
+
+def test_missing_round_copy_still_deduplicates_against_one_known_round():
+    """Adding round identity must not double a match when one source omits that field."""
+    orig = (results.historical_dir, results.stats_dir, results.fresh_dir,
+            results.live_dir, results.lower_dir)
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            hist, stats, fresh, live, lower = (base / "historical", base / "stats",
+                                               base / "fresh", base / "live", base / "lower")
+            for path in (hist, stats, fresh, live, lower):
+                path.mkdir(parents=True, exist_ok=True)
+            results.historical_dir = lambda tour: hist
+            results.stats_dir = lambda tour: stats
+            results.fresh_dir = lambda tour: fresh
+            results.live_dir = lambda tour: live
+            results.lower_dir = lambda tour: lower
+
+            _write_csv(stats / "2026.csv",
+                "tourney_name,tourney_date,round,winner_name,loser_name,score,w_svpt,l_svpt\n"
+                "Eastbourne,20260623,R32,A Player,B Player,6-4 6-3,70,65\n")
+            _write_csv(fresh / "2026.csv",
+                "tourney_name,tourney_date,winner_name,loser_name,score\n"
+                "Eastbourne,2026/6/23,A Player,B Player,6-4 6-3\n")
+
+            df = results.merge_sources("wta")
+    finally:
+        (results.historical_dir, results.stats_dir,
+         results.fresh_dir, results.live_dir, results.lower_dir) = orig
+
+    assert len(df) == 1, df[["tourney_name", "date", "round", "score"]]
+    assert df.iloc[0]["round"] == "R32"
+    print("ok test_missing_round_copy_still_deduplicates_against_one_known_round")
+
+
+def test_corrupt_final_year_repairs_only_from_semifinal_winners():
+    """A unique final topology can repair a year typo without relaxing the future guard.
+
+    Iasi's fresh feed says 2029/7/20, while its two 2026 semifinal winners are exactly the
+    final's players.  Preserve the month/day, inherit that unique source-native season, and
+    leave an unrelated far-future final to the ordinary corruption drop.
+    """
+    orig = (results.historical_dir, results.stats_dir, results.fresh_dir,
+            results.live_dir, results.lower_dir)
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            hist, stats, fresh, live, lower = (base / "historical", base / "stats",
+                                               base / "fresh", base / "live", base / "lower")
+            for path in (hist, stats, fresh, live, lower):
+                path.mkdir(parents=True, exist_ok=True)
+            results.historical_dir = lambda tour: hist
+            results.stats_dir = lambda tour: stats
+            results.fresh_dir = lambda tour: fresh
+            results.live_dir = lambda tour: live
+            results.lower_dir = lambda tour: lower
+
+            _write_csv(fresh / "2026.csv",
+                "tourney_name,tourney_date,round,winner_name,loser_name,score\n"
+                "Iasi,2026/7/18,SF,Mayar Sherif,Oleksandra Oliynykova,6-3 6-1\n"
+                "Iasi,2026/7/18,SF,Paula Badosa,Tamara Zidansek,3-6 7-5 7-6\n"
+                "Iasi,2029/7/20,F,Mayar Sherif,Paula Badosa,6-4 4-0 RET\n"
+                "Mystery Open,2029/8/20,F,A Player,B Player,6-4 6-4\n")
+
+            df = results.merge_sources("wta")
+    finally:
+        (results.historical_dir, results.stats_dir,
+         results.fresh_dir, results.live_dir, results.lower_dir) = orig
+
+    final = df[(df["tourney_name"] == "Iasi") & (df["round"] == "F")]
+    assert len(final) == 1, df[["tourney_name", "date", "round"]]
+    assert final["date"].iloc[0] == pd.Timestamp("2026-07-20")
+    assert "Mystery Open" not in set(df["tourney_name"])
+    print("ok test_corrupt_final_year_repairs_only_from_semifinal_winners")
+
+
 def test_future_dated_row_is_dropped_at_ingest():
     """One mistyped year is enough to corrupt every date-relative quantity downstream,
     because they anchor on the dataset's MAX date, not on today. The WTA fresh overlay

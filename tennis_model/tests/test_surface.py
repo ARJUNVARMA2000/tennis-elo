@@ -218,6 +218,41 @@ def test_wiki_categories_resolve_to_stable_event_ids_across_renames():
     print("ok test_wiki_categories_resolve_to_stable_event_ids_across_renames")
 
 
+def test_resolve_level_uses_stable_event_id_across_sponsor_rename():
+    """The current result label can be unrelated to the legacy name-keyed tier cache.
+
+    Toronto's rows carry the stable 421 id while the cache says "National Bank Open
+    presented by Rogers".  A generic archive code must fall through to that id evidence.
+    """
+    from tennis_model.data import events as event_ids
+
+    orig = (surf.live_dir, event_ids.live_dir)
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            tmp = Path(d)
+            surf.live_dir = event_ids.live_dir = lambda tour: tmp
+            (tmp / "events.json").write_text(json.dumps({
+                "version": 1,
+                "events": {
+                    "421-2026": {
+                        "name": "National Bank Open presented by Rogers",
+                        "names": ["National Bank Open presented by Rogers"],
+                    },
+                },
+            }), encoding="utf-8")
+            (tmp / "wiki_category.json").write_text(json.dumps({
+                "National Bank Open presented by Rogers": "ATP Tour Masters 1000",
+            }), encoding="utf-8")
+
+            assert surf.resolve_level(
+                "atp", "Toronto", archive_level="Q", event_id="421-2026",
+            ) == "Masters 1000"
+            assert surf.resolve_level("atp", "Toronto", archive_level="Q") == "ATP Tour"
+    finally:
+        surf.live_dir, event_ids.live_dir = orig
+    print("ok test_resolve_level_uses_stable_event_id_across_sponsor_rename")
+
+
 def _row(**over):
     """A minimal ESPN-style live row (surface unknown) that survives results.clean."""
     base = {"tourney_name": "Nordea Open", "date": pd.Timestamp("2026-07-06"),
