@@ -4,6 +4,20 @@ Designing and placing the invariants in `health.py`; what a gate can and cannot 
 
 Indexed in [`../lessons.md`](../lessons.md).
 
+- **A model-population exclusion must not erase factual event lifecycle evidence; preserve an
+  exact complementary event view and join it only at factual event consumers.** (2026-08-04,
+  WTA 125 cards stuck upcoming) The model correctly withheld ESPN's WTA 125 results to enforce
+  `INCLUDE_WTA_125=False`, then the exporter passed that same filtered dataframe to tournament
+  projection and independent coverage. The rating policy consequently hid settled facts from
+  the board: started events remained upcoming and completed finals had no champion. The existing
+  health invariant caught the bad artifacts; weakening it would have hidden the producer bug.
+  The durable split is an exact post-dedup complementary partition carried beside the eligible
+  model frame, cleaned into an event-facing view only where cards and coverage are built. Never
+  re-read the raw source independently at each consumer: that bypasses source priority,
+  de-duplication, inherited stable IDs, and policy audit counts. Test both halves together—the
+  excluded row is absent from model state and the same row's final completes the event card—then
+  rebuild real artifacts to prove profiles, fixtures, and model counts did not absorb it.
+
 - **Validating every item that EXISTS cannot detect an item that vanished — derive expected
   membership independently, then carry the same keys through build, UI, and live serving.**
   (2026-07-28, begun-event coverage) `output_problems()` had extensive structural checks for

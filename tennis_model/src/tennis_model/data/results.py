@@ -193,6 +193,11 @@ _WTA_MODEL_LEVEL = {
     "WTA Tour": "A",
 }
 
+# Private dataframe-attrs sidecar: exact post-dedup rows withheld from model state but
+# retained as factual event evidence. A list of records (rather than a nested DataFrame)
+# keeps attrs equality/copy semantics predictable across pandas operations.
+_POLICY_EVENT_ROWS_ATTR = "_policy_excluded_event_rows"
+
 
 def _stamp_live_result_policy(tour: str, live: pd.DataFrame) -> pd.DataFrame:
     """Classify WTA live rows by ``espnId`` and mark policy-excluded results.
@@ -255,6 +260,13 @@ def merge_sources(tour: str) -> pd.DataFrame:
     live = _stamp_live_result_policy(tour, _read_dir(live_dir(tour)))
     excluded_125_ids = set(live.attrs.get("excluded_wta125_event_ids", ()))
     excluded_unknown_ids = set(live.attrs.get("excluded_unclassified_wta_event_ids", ()))
+    live_levels_by_id = {}
+    if tour == "wta":
+        live_levels_by_id = (
+            live.dropna(subset=["espn_id", "tourney_level"])
+            .drop_duplicates("espn_id", keep="last")
+            .set_index("espn_id")["tourney_level"].to_dict()
+        )
     hist["__src"], stats["__src"], fresh["__src"], live["__src"] = 0, 1, 2, 3
     frames = [hist, stats, fresh, live]
     from .. import config as _cfg
@@ -305,6 +317,11 @@ def merge_sources(tour: str) -> pd.DataFrame:
                        + "|" + df["date"].astype(str) + "|" + df["round"].astype(str))
     df = df.drop_duplicates(subset=["winner_name", "loser_name", "date", "round"], keep="first")
     event_ids = df["espn_id"].astype("string").str.strip()
+    # An earlier-source duplicate can win de-duplication after inheriting only the live
+    # ESPN id. Carry the id-derived tier as well so the event-facing partition retains
+    # the authoritative WTA category even when the preferred archive row did not have it.
+    live_levels = event_ids.map(live_levels_by_id)
+    df["tourney_level"] = live_levels.where(live_levels.notna(), df["tourney_level"])
     excluded_125 = event_ids.isin(excluded_125_ids)
     excluded_unknown = event_ids.isin(excluded_unknown_ids)
     excluded = excluded_125 | excluded_unknown
@@ -315,6 +332,12 @@ def merge_sources(tour: str) -> pd.DataFrame:
         # cleanup (including an earlier-source duplicate that inherited the live row's id).
         "excluded_wta125_matches": int(excluded_125.sum()),
         "excluded_unclassified_wta_live_matches": int(excluded_unknown.sum()),
+        # The rating population and the tournament board answer different questions.
+        # Keep the exact complementary partition so the exporter can still observe starts,
+        # eliminations and finals without ever walking these rows through model state.
+        _POLICY_EVENT_ROWS_ATTR: df.loc[excluded].drop(
+            columns=["__hs", "__key", "__src", "__policy_excluded"],
+            errors="ignore").to_dict("records"),
     }
     df = df.loc[~excluded].drop(
         columns=["__hs", "__key", "__src", "__policy_excluded"], errors="ignore")
@@ -507,6 +530,35 @@ def load_matches(tour: str = "atp") -> pd.DataFrame:
               f"(see tennis_model/README.md Usage); `download` alone does not fetch it. "
               f"Metrics measured now are on LESS data than production has.")
     return df
+
+
+def event_match_view(model_df: pd.DataFrame, tour: str) -> pd.DataFrame:
+    """Return results used for tournament lifecycle, including policy-excluded live rows.
+
+    ``model_df`` remains the adopted rating/training population. ESPN WTA 125 and
+    unclassified rows withheld from that population still carry factual event state: play
+    began, who was eliminated, and who won the final. ``merge_sources`` stores its exact
+    post-dedup excluded partition in attrs; this function cleans and appends only that small
+    sidecar for the two event consumers (coverage and tournament cards).
+    """
+    records = model_df.attrs.get(_POLICY_EVENT_ROWS_ATTR, ())
+    if not records:
+        return model_df
+
+    event_only = clean(pd.DataFrame.from_records(records), tour=tour)
+    event_only["tour"] = tour
+    event_only = chronological(event_only)
+
+    # Do not propagate the private row payload into the derived view. Preserve only the
+    # scalar audit attrs; build_meta continues to receive model_df, never this frame.
+    attrs = {key: value for key, value in model_df.attrs.items()
+             if key != _POLICY_EVENT_ROWS_ATTR}
+    eligible = model_df.copy(deep=False)
+    eligible.attrs = {}
+    event_only.attrs = {}
+    combined = chronological(pd.concat([eligible, event_only], ignore_index=True))
+    combined.attrs.update(attrs)
+    return combined
 
 
 def summary(df: pd.DataFrame) -> dict:

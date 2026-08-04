@@ -371,7 +371,8 @@ def test_wta_live_result_policy_excludes_125s_and_unknown_tiers_by_event_id():
                 "Renamed Prague Event,401-2026,2026-07-26,C Player,D Player,6-3 6-3\n"
                 "Unknown New Event,999-2026,2026-07-26,E Player,F Player,7-5 6-4\n")
 
-            df = results.merge_sources("wta")
+            df = results.load_matches("wta")
+            event_df = results.event_match_view(df, "wta")
             raw = pd.read_csv(live_path)
     finally:
         (results.historical_dir, results.stats_dir, results.fresh_dir,
@@ -379,6 +380,10 @@ def test_wta_live_result_policy_excludes_125s_and_unknown_tiers_by_event_id():
 
     assert set(df["espn_id"]) == {"401-2026"}, df[["espn_id", "tourney_name"]]
     assert set(df["tourney_level"]) == {"WTA250"}
+    assert set(event_df["espn_id"]) == {"1017-2026", "401-2026", "999-2026"}
+    assert event_df.set_index("espn_id").loc["1017-2026", "tourney_level"] == "WTA125"
+    assert event_df.set_index("espn_id").loc["401-2026", "tourney_level"] == "WTA250"
+    assert pd.isna(event_df.set_index("espn_id").loc["999-2026", "tourney_level"])
     assert df.attrs["excluded_wta125_matches"] == 1
     assert df.attrs["excluded_unclassified_wta_live_matches"] == 1
     assert len(raw) == 3, "model filtering must not delete board/draw source rows"

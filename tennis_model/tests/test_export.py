@@ -282,6 +282,47 @@ def test_build_meta_audits_wta_125_policy_rows():
     print("ok test_build_meta_audits_wta_125_policy_rows")
 
 
+def test_build_event_outputs_uses_event_view_for_coverage_and_cards(monkeypatch):
+    """The model frame intentionally excludes WTA 125s, but tournament lifecycle and
+    coverage must consume the event-facing view that restores their factual live results."""
+    from tennis_model.data import event_coverage, results
+    from tennis_model.sim import tournaments
+
+    model_frame, event_frame = object(), object()
+    cards = [{"name": "Completed 125"}]
+    manifest = {"events": [{"key": "espn:1-2026"}]}
+    seen = []
+    monkeypatch.setattr(
+        results, "event_match_view",
+        lambda df, tour: seen.append(("view", df, tour)) or event_frame,
+    )
+    monkeypatch.setattr(
+        event_coverage, "build_event_coverage",
+        lambda df, tour: seen.append(("coverage", df, tour)) or manifest,
+    )
+    monkeypatch.setattr(
+        tournaments, "build_tournaments",
+        lambda predictor, df, tour: seen.append(("cards", predictor, df, tour)) or cards,
+    )
+    monkeypatch.setattr(
+        event_coverage, "finalize_event_coverage",
+        lambda got, ts: seen.append(("finalize", got, ts)) or {**got, "finalized": True},
+    )
+
+    predictor = object()
+    got_manifest, got_cards = export.build_event_outputs(
+        predictor, model_frame, "wta")
+
+    assert got_manifest == {**manifest, "finalized": True}
+    assert got_cards is cards
+    assert seen == [
+        ("view", model_frame, "wta"),
+        ("coverage", event_frame, "wta"),
+        ("cards", predictor, event_frame, "wta"),
+        ("finalize", manifest, cards),
+    ]
+
+
 def test_predictor_stamps_trained_at_and_survives_a_pickle_round_trip():
     """The stamp is derived in the constructor (not at the two call sites, which have
     forgotten a constructor arg before) and rides INSIDE the pickle — a file mtime would

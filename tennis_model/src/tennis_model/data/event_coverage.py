@@ -23,7 +23,7 @@ from datetime import UTC, datetime
 import pandas as pd
 
 from ..config import live_dir
-from .events import EventResolver, display_event_name, load_registry, norm_event_name
+from .events import EventResolver, display_event_name, is_event_id, load_registry, norm_event_name
 from .results import _name_key
 from .surface import resolve_level, resolve_surface_info
 
@@ -221,6 +221,68 @@ def _result_candidates(df: pd.DataFrame, ref: pd.Timestamp, resolver: EventResol
     return out
 
 
+def cached_draw_identity_aliases(
+        df: pd.DataFrame, draws: dict, *, ref=None) -> list[tuple[str, str]]:
+    """Prove id-less result names against ID-keyed complete draws.
+
+    ESPN's rolling result file is the only match source that carries ``espnId``.  When an
+    event ages out, an archive label such as ``Iasi`` can remain while the cached official
+    draw is still keyed as ``874-2026``.  Names are deliberately irrelevant here: a result
+    group earns the draw's id only when their date spans overlap, at least three real players
+    agree, and at least two actual first-round matchups agree.  The plural matchup rule is
+    load-bearing: Iasi and the adjacent Nordea event shared 13 players but only one match.
+    Ambiguous evidence earns no alias.
+    """
+    if df is None or df.empty or "date" not in df.columns or not draws:
+        return []
+    ref_date = _date(ref)
+    if ref_date is None:
+        dates = pd.to_datetime(df.get("date"), errors="coerce")
+        ref_date = pd.Timestamp(dates.max()).normalize() if dates.notna().any() else None
+    if ref_date is None:
+        return []
+
+    empty_registry = {"events": {}}
+    candidates = _result_candidates(df, ref_date, EventResolver(empty_registry), empty_registry)
+    draw_evidence: list[tuple[str, pd.Timestamp, pd.Timestamp, set[str], set[tuple[str, str]]]] = []
+    for key, entry in draws.items():
+        if not isinstance(entry, dict):
+            continue
+        event_id = str(entry.get("espnId") or (key if is_event_id(key) else "")).strip()
+        start, end = _date(entry.get("start")), _date(entry.get("end") or entry.get("start"))
+        slots = list(entry.get("slots") or [])
+        if not event_id or start is None or end is None or len(slots) < 8:
+            continue
+        players = {_name_key(slot) for slot in slots if _real_name(slot)}
+        pairs = {
+            tuple(sorted((_name_key(slots[i]), _name_key(slots[i + 1]))))
+            for i in range(0, len(slots) - 1, 2)
+            if _real_name(slots[i]) and _real_name(slots[i + 1])
+        }
+        draw_evidence.append((event_id, start, end, players, pairs))
+
+    aliases: list[tuple[str, str]] = []
+    for candidate in candidates:
+        if candidate.get("espnId"):
+            continue
+        cstart = _date(candidate.get("evidenceStart"))
+        cend = _date(candidate.get("evidenceEnd"))
+        if cstart is None or cend is None:
+            continue
+        cplayers = {_name_key(player) for player in candidate.get("players") or []}
+        cpairs = set(candidate.get("pairs") or ())
+        hits = {
+            event_id for event_id, start, end, players, pairs in draw_evidence
+            if max(cstart, start) <= min(cend, end)
+            and (min(cend, end) - max(cstart, start)).days >= 2
+            and len(cplayers & players) >= 3
+            and len(cpairs & pairs) >= 2
+        }
+        if len(hits) == 1:
+            aliases.append((str(candidate["name"]), next(iter(hits))))
+    return aliases
+
+
 def _scheduled_candidates(upcoming: pd.DataFrame, ref: pd.Timestamp, resolver: EventResolver,
                           registry: dict) -> list[dict]:
     required = {"tourney_name", "tourney_date", "playerA", "playerB"}
@@ -363,14 +425,19 @@ def _merge_candidates(candidates: list[dict], tour: str, registry: dict) -> list
 
 def build_event_coverage(df: pd.DataFrame, tour: str, *, build_date=None,
                          upcoming_df: pd.DataFrame | None = None,
-                         registry: dict | None = None) -> dict:
+                         registry: dict | None = None, draws: dict | None = None) -> dict:
     """Return the versioned expected-event manifest for one build."""
     ref = _date(build_date)
     if ref is None:
         ref = pd.Timestamp(datetime.now(UTC).date())
     use_cache_identities = registry is None
     registry = load_registry(tour) if registry is None else registry
-    resolver = EventResolver(registry, extra=_cached_identity_extras(tour) if use_cache_identities else ())
+    if draws is None and use_cache_identities:
+        from .draws import load_tournament_draws
+        draws = load_tournament_draws(tour)
+    extras = list(_cached_identity_extras(tour) if use_cache_identities else ())
+    extras += cached_draw_identity_aliases(df, draws or {}, ref=ref)
+    resolver = EventResolver(registry, extra=extras)
     if upcoming_df is None:
         from ..model.upcoming import load_upcoming
         upcoming_df = load_upcoming(tour)

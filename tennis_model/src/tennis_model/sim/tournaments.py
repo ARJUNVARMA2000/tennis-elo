@@ -26,6 +26,7 @@ import json
 import pandas as pd
 
 from ..config import EVENT_CALENDAR_COMPLETE_GRACE_DAYS, live_dir
+from ..data.event_coverage import cached_draw_identity_aliases
 from ..data.events import EventResolver, display_event_name, is_event_id, load_registry
 from ..data.results import _name_key
 from ..data.surface import resolve_level, resolve_surface_info
@@ -819,7 +820,9 @@ def build_tournaments(predictor, df: pd.DataFrame, tour: str, **kw) -> list:
     resolver = EventResolver(load_registry(tour), extra=[
         (str(v.get("name") or k), v["espnId"])
         for src in (draws, espn_fields) for k, v in (src or {}).items()
-        if isinstance(v, dict) and v.get("espnId")])
+        if isinstance(v, dict) and v.get("espnId")]
+        + cached_draw_identity_aliases(
+            df, draws, ref=df["date"].max() if not df.empty else None))
     draws_by_id, draws_by_name = _split_by_key(draws)
     fields_by_id, fields_by_name = _split_by_key(espn_fields)
     up_by_id, up_by_name = _split_by_key(upcoming)

@@ -428,6 +428,23 @@ def build_brackets_payload(tournaments: list) -> list:
     return brackets
 
 
+def build_event_outputs(predictor, df: pd.DataFrame, tour: str) -> tuple[dict, list]:
+    """Build event artifacts from factual lifecycle evidence, not only model rows.
+
+    The model dataframe intentionally excludes WTA 125 results, while the board must still
+    know that those tournaments started or completed. Keep this split at one export seam so
+    profiles, fixtures, metadata and every trained state continue to use ``df`` unchanged.
+    """
+    from ..data import event_coverage, results
+    from ..sim import tournaments
+
+    event_df = results.event_match_view(df, tour)
+    coverage = event_coverage.build_event_coverage(event_df, tour)
+    cards = tournaments.build_tournaments(predictor, event_df, tour)
+    coverage = event_coverage.finalize_event_coverage(coverage, cards)
+    return coverage, cards
+
+
 def export_all(tour, df, elo, srv, meta, predictor, oos=None) -> None:
     """Write every frontend JSON for one tour.
 
@@ -448,11 +465,7 @@ def export_all(tour, df, elo, srv, meta, predictor, oos=None) -> None:
     _write(tour, "ratings_history.json", build_history(elo, players))
     _write(tour, "profiles.json", build_profiles_json(df, elo, srv, meta, mcp, players))
     _write(tour, "draws.json", build_draws(predictor, players, tour))
-    from ..data.event_coverage import build_event_coverage, finalize_event_coverage
-    from ..sim.tournaments import build_tournaments
-    coverage = build_event_coverage(df, tour)
-    ts = build_tournaments(predictor, df, tour)
-    coverage = finalize_event_coverage(coverage, ts)
+    coverage, ts = build_event_outputs(predictor, df, tour)
     _write(tour, "brackets.json", build_brackets_payload(ts))   # pops bracket/size/url, stamps hasBracket
     _write(tour, "tournaments.json", ts)
     _write(tour, "event_coverage.json", coverage)

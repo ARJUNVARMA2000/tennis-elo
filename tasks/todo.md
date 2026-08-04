@@ -3291,3 +3291,77 @@ overlap plus shared real players, never by name similarity.
   advisories (Axeria had not flipped live; the below-500 VanOpen results were not joining). Those
   make the health freshness subcheck advisory-red while all 11 serving/contract checks and the
   deploy-health reporter pass; they were not folded into this population-policy release.
+
+## Round AA — separate WTA model population from board lifecycle evidence
+
+- [x] Add fail-first regressions proving policy-excluded WTA live results remain absent from the
+  rating/model dataframe but are present in an event-facing view, and that a final in that view
+  makes the exported card completed with the real champion rather than stale-upcoming.
+- [x] Preserve the exact post-dedup policy-excluded rows as event-only evidence and use the
+  augmented view only for tournament projection and independent event coverage. Keep model
+  training, profiles, fixtures, metadata counts, and the zero-WTA-125 gate on the eligible view.
+- [x] Rebuild the real WTA event artifacts and confirm Axeria, VanOpen, and Palermo complete with
+  their recorded finals; run focused/full Python checks, the integrity gate, `git diff --check`,
+  and reconcile current git history. Do not commit, push, or deploy without explicit approval.
+
+### Review
+
+- The WTA population-policy fix correctly removed WTA 125 results from rating state, but the
+  exporter reused that same filtered dataframe for tournament cards and independent event
+  coverage. It therefore erased the only lifecycle evidence for Axeria and VanOpen even though
+  ESPN's raw live file contained both completed draws and finals.
+- `merge_sources()` now preserves the exact post-dedup excluded partition as a private event-only
+  sidecar. `event_match_view()` cleans and joins that evidence only at the event export seam;
+  training, profiles, fixtures, model metadata, and the zero-WTA-125 population invariant still
+  consume the unchanged eligible dataframe.
+- A production-shaped WTA quick export kept 128605 eligible model matches and projected Axeria,
+  VanOpen, and Palermo as completed with their recorded champions (Laura Samson, Taylah Preston,
+  and Francesca Jones). All three coverage records carry their final evidence. Both normal health
+  and `--gate` report zero output problems.
+- Fail-first coverage reproduced the missing producer/view contracts. Final verification passed
+  158 focused tests, all 514 Python tests, and `git diff --check`. Reconciled against current
+  `master` (`43662db`); the verification-only WTA forecast-log append was removed. Nothing was
+  committed, pushed, or deployed.
+
+## Round AB — reconnect Iasi after the ESPN result window expires
+
+- [x] Add fail-first regressions for the August 4 rollover: the stable `Iasi` result group has no
+  `espnId`, its final is discarded for the upstream 2029 date typo, and the cached official draw
+  is keyed as `874-2026`; date/player/real-match evidence must recover that identity without a
+  name-similarity join.
+- [x] Share that evidence-derived identity between tournament projection and independent event
+  coverage so both produce one completed WTA 250 card for `874-2026`, with the missing final
+  reported honestly instead of emitting an id-less generic coverage shell that blocks deploy.
+- [x] Reproduce the expired-live-overlay state against the real WTA inputs, run focused/full
+  Python checks plus the pre-deploy integrity gate and `git diff --check`, reconcile current git
+  history, and append the review. Do not commit, push, or deploy without explicit approval.
+
+### Review
+
+- Production run `30875441383` crossed the UTC date boundary and ESPN's rolling WTA payload fell
+  from ten events to nine. Iasi disappeared from the live overlay; the stable feeds still carried
+  its main draw only through the semifinals because the fresh final is mistyped as `2029/7/20`
+  and correctly rejected. The remaining short `Iasi` group had no `espnId`, so it could not find
+  the retained `874-2026` draw/calendar and the coverage gate blocked its generic shell.
+- `cached_draw_identity_aliases()` now proves an id-less result group against ID-keyed complete
+  draws using overlapping observed dates, at least three shared real players, and at least two
+  shared first-round matchups. Tournament projection and independent coverage consume the same
+  derived aliases. Names never participate in the join, and ambiguous evidence remains id-less.
+- The real expired-overlay replay resolved Iasi from 32 shared players and 16 shared matches;
+  overlapping Nordea was rejected despite 13 shared players because only one match agreed. Iasi
+  exported exactly once as completed, WTA 250, Clay, key `espn:874-2026`, and not coverage-only.
+  Its genuinely missing final/champion remained the intended advisory rather than a blocker.
+- Fail-first checks reproduced both missing contracts, then 34 focused tests and all 512 Python
+  tests passed. The pre-deploy integrity gate passed with only the two existing Axeria/VanOpen
+  advisories, and `git diff --check` passed. Reconciled against current production `master`
+  (`43662db`). Nothing was committed, pushed, or deployed.
+
+## Round AC — publish August 4 WTA data-health fixes
+
+- [x] Confirm the combined release scope contains only the WTA125 lifecycle-evidence fix, the
+  Iasi expired-overlay identity fix, their regressions, and durable project notes; verify GitHub
+  authentication and exact synchronization with production `master`.
+- [ ] Run the complete Python suite and pre-deploy integrity gate, stage the explicit release
+  files, commit directly to `master`, and push the production trigger as authorized.
+- [ ] Monitor the production workflow through deploy and live verification, confirm issue #14's
+  Axeria/VanOpen findings are absent, and append the release review.

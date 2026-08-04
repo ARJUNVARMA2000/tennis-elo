@@ -624,6 +624,51 @@ def test_build_tournaments_collapses_archive_and_sponsor_feed():
     print("ok test_build_tournaments_collapses_archive_and_sponsor_feed")
 
 
+def test_build_tournaments_uses_cached_draw_evidence_after_live_rows_expire(monkeypatch):
+    """When Iasi falls out of ESPN's result window, its stable rows retain only the
+    archive city label.  The cached official draw must recover 874-2026 by dates, players,
+    and real R32 matchups so the calendar can close the event instead of leaving it live."""
+    from tennis_model.sim import tournaments as T
+
+    slots = [f"I{i}" for i in range(32)]
+    rows = [
+        dict(tourney_name="Iasi", espn_id=None,
+             date=pd.Timestamp("2026-07-13") + pd.Timedelta(days=i % 6),
+             round="R32", winner_name=slots[2 * i], loser_name=slots[2 * i + 1],
+             surface_b="Clay", surface_src="archive", best_of=3,
+             tourney_level="WTA250", draw_level="main")
+        for i in range(16)
+    ]
+    # Data-relative lifecycle decisions anchor on the tour's newest match, as production does.
+    rows.append(dict(tourney_name="Current Open", espn_id="999-2026",
+                     date=pd.Timestamp("2026-08-04"), round="R32",
+                     winner_name="Current A", loser_name="Current B", surface_b="Hard",
+                     surface_src="archive", best_of=3, tourney_level="WTA250",
+                     draw_level="main"))
+    df = pd.DataFrame(rows)
+    draw = {
+        "name": "Unicredit Iasi Open", "espnId": "874-2026",
+        "start": "2026-07-12", "end": "2026-07-21", "slots": slots,
+        "seeds": {}, "bestOf": 3, "drawSize": 32, "source": "wta",
+    }
+    registry = {"events": {"874-2026": {
+        "name": "Unicredit Iasi Open", "names": ["Unicredit Iasi Open"],
+        "start": "2026-07-12", "end": "2026-07-21",
+    }}}
+    monkeypatch.setattr(T, "_load_fields", lambda _tour: {})
+    monkeypatch.setattr(T, "_load_upcoming", lambda _tour: {})
+    monkeypatch.setattr(T, "_load_tournament_draws", lambda _tour: {"874-2026": draw})
+    monkeypatch.setattr(T, "load_registry", lambda _tour: registry)
+    rated = {name: 2000.0 - i for i, name in enumerate(slots + ["Current A", "Current B"])}
+
+    cards = build_tournaments(_Pred(rated), df, "wta", n_sims=20, seed=1)
+
+    iasi = next(card for card in cards if card["name"] == "Iasi")
+    assert iasi["espnId"] == "874-2026"
+    assert iasi["status"] == "completed" and iasi["finalRecorded"] is False
+    assert iasi["level"] == "WTA 250" and iasi["surface"] == "Clay"
+
+
 def test_one_unprojectable_event_does_not_take_down_the_whole_board():
     """The 2026-07-27 production outage. WTA Wimbledon, long completed, had a 129-player
     results union (a leaked qualifier) and no cached wiki draw left to pin the field — the

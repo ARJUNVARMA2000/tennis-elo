@@ -76,6 +76,51 @@ def test_completed_fallback_preserves_a_known_final_result():
     assert shell["bestOf"] == 5 and shell["drawSize"] is None
 
 
+def test_expired_live_name_recovers_cached_draw_id_from_match_evidence():
+    """The August 4 Iasi rollover: ESPN's 14-day result window expired, leaving the
+    stable feed's short city label with no id.  The official draw still carries the id,
+    dates, players, and first-round pairings, which are enough to prove identity without
+    treating the four-letter name as string evidence."""
+    slots = [f"P{i}" for i in range(32)]
+    results = pd.DataFrame([
+        {"tourney_name": "Iasi", "espn_id": None,
+         "date": pd.Timestamp("2026-07-13") + pd.Timedelta(days=i % 6),
+         "round": "R32", "winner_name": slots[2 * i], "loser_name": slots[2 * i + 1],
+         "tourney_level": "WTA250", "draw_level": "main"}
+        for i in range(16)
+    ])
+    registry = {"events": {"874-2026": {
+        "name": "Unicredit Iasi Open", "names": ["Unicredit Iasi Open"],
+        "start": "2026-07-12", "end": "2026-07-21",
+    }}}
+    draws = {"874-2026": {
+        "name": "Unicredit Iasi Open", "espnId": "874-2026",
+        "start": "2026-07-12", "end": "2026-07-21", "slots": slots,
+    }}
+    # Adjacent events can overlap and reuse entrants.  This decoy shares 13 players but only
+    # one real matchup, the exact evidence shape that must not make identity ambiguous.
+    decoy_slots = ["P0", "P1"]
+    for i in range(2, 13):
+        decoy_slots.extend([f"P{i}", f"D{i}"])
+    decoy_slots.extend([f"D{i}" for i in range(13, 21)])
+    draws["306-2026"] = {
+        "name": "Nordea Open", "espnId": "306-2026",
+        "start": "2026-07-06", "end": "2026-07-20", "slots": decoy_slots,
+    }
+
+    manifest = build_event_coverage(
+        results, "wta", build_date="2026-08-04", upcoming_df=pd.DataFrame(),
+        registry=registry, draws=draws,
+    )
+
+    assert len(manifest["events"]) == 1
+    event = manifest["events"][0]
+    assert event["espnId"] == "874-2026" and event["key"] == "espn:874-2026"
+    assert event["name"] == "Iasi" and set(event["names"]) == {
+        "Iasi", "Unicredit Iasi Open"}
+    assert (event["start"], event["end"]) == ("2026-07-12", "2026-07-21")
+
+
 def test_wta_slam_shell_is_best_of_three_and_evidence_free_shell_stays_generic(monkeypatch):
     from tennis_model.data import event_coverage as ec
 

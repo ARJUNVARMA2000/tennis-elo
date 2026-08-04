@@ -38,6 +38,8 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 ## Gates & health checks — [`lessons/gates-and-health.md`](lessons/gates-and-health.md)
 
+- A model-population exclusion must not erase factual event lifecycle evidence; preserve an exact
+  complementary event view and join it only at factual event consumers. (2026-08-04)
 - A repair that runs only on the slow path is not an invariant: enforce safety after the
   fast path's frozen-field merge, across the whole retained artifact. (2026-07-29)
 - Validating every item that EXISTS cannot detect an item that vanished — derive expected
