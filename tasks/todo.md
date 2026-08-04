@@ -3427,6 +3427,25 @@ overlap plus shared real players, never by name similarity.
 
 ### Production follow-up
 
-- [ ] Reproduce the post-deploy one-day ATP `Masters` fragment, fold it into Toronto only on
+- [x] Reproduce the post-deploy one-day ATP `Masters` fragment, fold it into Toronto only on
   inclusive date overlap plus shared real-player/match evidence, and retain negative controls for
   concurrent, adjacent, and ambiguous events. Re-run the focused/full gates and deploy the fix.
+
+### Production follow-up review
+
+- The first `6dff794` deploy passed every blocking gate but its post-deploy sentinel caught a
+  transient, one-day id-less ATP card named `Masters`. It shared Toronto's players/matches but the
+  producer required two overlap days, so it escaped coalescing and fell back to generic `ATP Tour`.
+  The provider corrected itself before local re-download, proving this needed a replay regression
+  rather than a source-name exception.
+- Commit `51e16a8` makes observed date overlap inclusive: an id-less one-day fragment joins exactly
+  one stable-id event only with at least three shared real players and an exact main-draw matchup.
+  Same-day groups with the same players but no shared matchup, concurrent disjoint fields,
+  qualifying placeholders, and ambiguous multi-id matches remain separate. No name participates.
+- Ruff, the focused coalescing tests, all 522 Python tests, `git diff --check`, the pre-deploy gate,
+  and a normal two-tour health report passed locally. Production run `30886506358` passed both CI
+  jobs and every refresh/build/Firebase/live-verification/report/cache step in 11m38s.
+- Direct public-JSON verification at `2026-08-04T07:24:13Z` reports health `ok=true`, zero ATP/WTA
+  source or output problems, and model/data population parity at version 3 (ATP 284,016; WTA
+  128,832). Toronto is the sole `421-2026` live Masters 1000 card; Washington, Axeria, VanOpen, and
+  Iasi are completed with their recovered champions. Issue #14 closed automatically at 07:29Z.
