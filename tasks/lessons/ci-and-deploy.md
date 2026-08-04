@@ -4,6 +4,17 @@ Workflows, alert branches, cron, concurrency, hosting and serving, dependency pi
 
 Indexed in [`../lessons.md`](../lessons.md).
 
+- **A pre-push verification set must include the workflow's exact linter, not only tests and the
+  domain gate; otherwise CI becomes the first place formatting is exercised.** (2026-08-04,
+  WTA data-health release) All 514 tests, the real-data replay, and `health --gate` passed, but
+  the first production push stopped at Ruff because two new test imports violated `I001`.
+  Nothing deployed—the workflow gate worked—but the release incurred a needless failed run and
+  corrective commit. `git diff --check` cannot substitute for a language-aware import/style
+  check. Before a direct-to-master deploy, mirror the workflow's complete cheap gate locally:
+  repository-wide `ruff check .`, the full test suite, and the domain integrity gate. When CI
+  still finds something, reproduce the exact reported command before patching and rerun all
+  three; a passing formatter on only the named files can miss a second violation elsewhere.
+
 - **An alert must never report the failure of its own transport as the thing it monitors.**
   (2026-07-24, run 30106835566) Everything real passed — integrity gate green, 0 output
   problems on both tours, deploy succeeded, live verification OK — and the run still went

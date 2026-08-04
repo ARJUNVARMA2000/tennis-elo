@@ -3361,7 +3361,27 @@ overlap plus shared real players, never by name similarity.
 - [x] Confirm the combined release scope contains only the WTA125 lifecycle-evidence fix, the
   Iasi expired-overlay identity fix, their regressions, and durable project notes; verify GitHub
   authentication and exact synchronization with production `master`.
-- [ ] Run the complete Python suite and pre-deploy integrity gate, stage the explicit release
+- [x] Run the complete Python suite and pre-deploy integrity gate, stage the explicit release
   files, commit directly to `master`, and push the production trigger as authorized.
-- [ ] Monitor the production workflow through deploy and live verification, confirm issue #14's
+- [x] Monitor the production workflow through deploy and live verification, confirm issue #14's
   Axeria/VanOpen findings are absent, and append the release review.
+
+### Review
+
+- The scoped data fix shipped as `83e3b3e` (`fix(data): recover WTA tournament lifecycle
+  evidence`). Its first workflow stopped before refresh because local verification had omitted
+  CI's Ruff step; two new test import blocks violated `I001`. The deterministic import-only fix
+  shipped as `c6d6f91` after repository-wide Ruff, all 514 Python tests, and the pre-deploy gate
+  passed locally.
+- Production run `30880774288` completed successfully in 7m48s: both reusable test jobs passed,
+  quick ATP/WTA export completed, the integrity gate passed, the static site built, Firebase
+  deployed, and the live serving, data-health reporting, deploy-health reporting, and cache-save
+  steps all completed.
+- Direct live JSON verification shows Axeria completed with Laura Samson over Kaitlin Quevedo,
+  VanOpen completed with Taylah Preston over Maddison Inglis, and Palermo completed with
+  Francesca Jones over Fiona Ferro. The latest issue #14 report contains neither original
+  Axeria nor VanOpen finding.
+- Issue #14 remains open for newly surfaced advisory state: ATP Toronto/DC currently appears as
+  overlapping identities with an unresolved tier, and Iasi is now correctly one completed
+  `874-2026` event but its upstream-corrupted final remains unavailable. Those advisories make
+  live health `ok=false`; the deploy itself and exact begun-event membership verification passed.

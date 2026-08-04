@@ -57,6 +57,8 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 ## CI, alerts & deploy — [`lessons/ci-and-deploy.md`](lessons/ci-and-deploy.md)
 
+- A pre-push verification set must include the workflow's exact linter, not only tests and the
+  domain gate; otherwise CI becomes the first place formatting is exercised. (2026-08-04)
 - Append-only task history still needs explicit completion state: check finished items before
   adding the review. (2026-07-30)
 - An alert must never report the failure of its own transport as the thing it monitors. (2026-07-24)
