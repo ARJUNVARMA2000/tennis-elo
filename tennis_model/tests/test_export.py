@@ -285,8 +285,9 @@ def test_build_meta_audits_wta_125_policy_rows():
 def test_build_event_outputs_uses_event_view_for_coverage_and_cards(monkeypatch):
     """The model frame intentionally excludes WTA 125s, but tournament lifecycle and
     coverage must consume the event-facing view that restores their factual live results."""
-    from tennis_model.data import event_coverage, results
     from tennis_model.sim import tournaments
+
+    from tennis_model.data import event_coverage, results
 
     model_frame, event_frame = object(), object()
     cards = [{"name": "Completed 125"}]

@@ -10,8 +10,9 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from tennis_model.data import results
 from tennis_model.sim.tournaments import project_tournament
+
+from tennis_model.data import results
 
 
 class _Predictor:
