@@ -203,3 +203,19 @@ Indexed in [`../lessons.md`](../lessons.md).
   slow repair and a fast writer sharing one artifact need the same post-merge validity seam;
   sanitizing only the fresh input misses frozen state, while sanitizing only rows rebuilt this
   run misses retained history. Test all three transitions: degrade, fast refresh, later upgrade.
+
+- **Freshness that only a per-EVENT check can see must not be left to a tour-wide aggregate —
+  and when you write the limit down, check it against the sentence you justified it with.**
+  (2026-08-06) The stale-live check existed and had the right idea: its own commit
+  (`772e5d4`) argued "tour weeks run Mon-Sun, so a genuine in-progress event is never 3 days
+  idle". But it shipped as `HEALTH_MAX_LIVE_EVENT_AGE_DAYS = 3` and fires ABOVE the limit, so
+  it tolerated exactly the 3 idle days the rationale called impossible and would not have
+  fired until day 4. Toronto stalled at 3 days and every gate stayed green. It also asserted a
+  cause it could not observe — "its final never arrived, so it is stuck 'live'" — which is
+  only one of the two ways a live card goes quiet; the other is a results feed that went blind
+  mid-draw, and the message sent a reader looking in the wrong place. **How to apply:** a
+  limit and the reasoning next to it are a single claim — write the boundary case out
+  (`> 3` tolerates 3) and make sure the number encodes the sentence. And a gate message should
+  state what was OBSERVED plus the possible causes, never pick one; the gate sees a date, not
+  a reason. Prefer tightening an existing invariant to adding a second one with the same
+  predicate and a different threshold.

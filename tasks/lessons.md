@@ -7,6 +7,7 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 ## Data sources & freshness — [`lessons/data-sources.md`](lessons/data-sources.md)
 
+- A keyless upstream can start rejecting your client by its User-Agent alone, and a best-effort fetch that swallows EVERY query reports the outage as an empty week. (2026-08-06)
 - One mistyped date in an upstream row can empty a whole tour, because the date-relative windows anchor on the dataset's MAX date, not on today. (2026-07-25)
 - A transport that answers 200 with the WRONG BYTES must not end a fallback chain — and a retry cannot fix a payload the source is serving on purpose. (2026-07-24)
 - A freshness gate on a REDUNDANT source needs a load-bearing predicate — an unfixable upstream freeze otherwise stands red forever. (2026-07-10)
@@ -38,6 +39,7 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 ## Gates & health checks — [`lessons/gates-and-health.md`](lessons/gates-and-health.md)
 
+- Freshness that only a per-EVENT check can see must not be left to a tour-wide aggregate — and when you write the limit down, check it against the sentence you justified it with. (2026-08-06)
 - A model-population exclusion must not erase factual event lifecycle evidence; preserve an exact
   complementary event view and join it only at factual event consumers. (2026-08-04)
 - A repair that runs only on the slow path is not an invariant: enforce safety after the

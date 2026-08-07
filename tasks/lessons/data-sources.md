@@ -177,3 +177,26 @@ Indexed in [`../lessons.md`](../lessons.md).
   when a quick refresh can reuse ratings already walked over the old rows. Reject legacy or
   mismatched predictor versions, rebuild them, export the model's own version separately, and
   require model/data version parity in the deploy gate so stale state cannot be relabelled clean.
+
+- **A keyless upstream can start rejecting your client by its User-Agent alone, and a
+  best-effort fetch that swallows EVERY query reports the outage as an empty week.**
+  (2026-08-04..07, ATP board showed Zverev alive at 21% to win Toronto for three days after
+  he lost) ESPN's `site.api.espn.com` edge began 403-ing anything sending a custom
+  User-Agent; the overlay sent `Mozilla/5.0 tennis_model`, so all 28 scoreboard queries
+  failed on every refresh. `fetch_events()` caught each one with `except Exception: continue`
+  — right for one malformed day, catastrophic for all of them — and returned `[]`.
+  `download_live()` then printed `no completed matches found`, the exact line a genuinely
+  idle day prints, and its `if not df.empty:` write guard left the last good `live.csv` in
+  place. Thirteen consecutive green refresh runs. **Two things hid the blast radius:** it hit
+  BOTH tours, but WTA has its own daily stats scraper that kept `date_max` current, so only
+  ATP visibly froze and it read like an ATP-specific source problem rather than a transport
+  one. And the tour-wide `results` freshness check is a 5-day limit over an aggregate
+  dominated by FINISHED events, so one stalled tournament never moved it — ATP sat at 3 days
+  and reported `ok: true`. **The probe that found it:** the same URL returns 200 with curl's
+  default UA and 403 with any custom one, and the sibling host `site.web.api.espn.com` serves
+  the identical payload under every UA. **How to apply:** tolerating a single failed query is
+  correct, but tolerating *all* of them is how a transport outage disguises itself as
+  no-news — count the failures and raise when none succeeded, so an empty result always means
+  the source answered and had nothing. When a source dies, check every tour/feed it serves
+  before believing it is scoped to the one you noticed; a redundant path on the other tour
+  will happily mask a shared outage.

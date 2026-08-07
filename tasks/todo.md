@@ -3449,3 +3449,33 @@ overlap plus shared real players, never by name similarity.
   source or output problems, and model/data population parity at version 3 (ATP 284,016; WTA
   128,832). Toronto is the sole `421-2026` live Masters 1000 card; Washington, Axeria, VanOpen, and
   Iasi are completed with their recovered champions. Issue #14 closed automatically at 07:29Z.
+
+## ESPN live overlay 403 — stale ATP board (2026-08-06)
+
+Zverev lost Toronto/Montreal R32 on 2026-08-05 (Griekspoor 6-7 6-2 6-4) but still ships at 21%
+title odds. ATP `date_max` froze at 2026-08-04; WTA stayed current only because its own daily
+stats scraper backfills it, which masked a two-tour outage.
+
+Root cause: ESPN's `site.api.espn.com` edge began 403-ing the pipeline's
+`User-Agent: Mozilla/5.0 tennis_model` between run `30898710522` (08-04 10:00Z, 129 rows) and
+`30960020388` (08-04 23:27Z, 0 rows). Verified: that host 403s *any* custom UA and only admits
+curl's default; `site.web.api.espn.com` serves every UA. It went unseen for ~13 refresh runs
+because `fetch_events()` swallows all 27 per-query exceptions and returns `[]`, so
+`download_live()` prints the benign "no completed matches found" — identical to a quiet day —
+and `if not df.empty:` leaves the stale `live.csv` in place.
+
+- [x] Point `SCOREBOARD` at `site.web.api.espn.com` (verified end-to-end: ATP 0 -> 183 completed
+      rows through 08-07, Zverev/Griekspoor and Van De Zandschulp/Medvedev both present).
+- [x] Make the fetch loud: have `fetch_events()` distinguish "every query failed" from "nothing
+      completed", and `download_live()` report a transport failure instead of an empty day.
+- [x] Gate coverage. Planned as a new per-live-bracket invariant, but building it surfaced an
+      existing equivalent — `HEALTH_MAX_LIVE_EVENT_AGE_DAYS`, on the same `end` field, from
+      `772e5d4`. It did not fire because it is off by one against its own stated rationale
+      ("a genuine in-progress event is never 3 days idle") and tolerated exactly 3. Tightened
+      3 -> 2 and rewrote the message, which asserted a cause the gate cannot observe, rather
+      than shipping a second predicate at a different threshold.
+- [x] Tests: `test_health.py` for the stalled-feed case at the tier that blocks; `test_live_parse.py`
+      for all-queries-failed, single-bad-query, genuinely-empty, and the host lock. Both new tests
+      verified to fail against the pre-fix code. Fires on exactly Toronto + WTA Warsaw across both
+      shipped 08-07 payloads and nothing else.
+- [ ] Full Python suite + Ruff, then deploy and verify the recovered board drops Zverev.

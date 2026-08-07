@@ -517,16 +517,24 @@ def _check_tournament(out: list, tour: str, t: dict, now: pd.Timestamp | None = 
             out.append(f"{tour}: completed tournament {name!r} has no champion")
     if status in ("live", "upcoming") and champ:
         out.append(f"{tour}: {status} tournament {name!r} already names champion {champ!r}")
-    # A live event whose last match is long past never received its final, so it is frozen
-    # "live" forever — the board showed Iasi live with 3 alive nine days after it ended
-    # (2026-07-27). Calendar completion now prevents that producer failure; if it regresses,
-    # the normal board-quality tier policy applies.
+    # A live event that has stopped absorbing results is wrong in one of two ways, and the
+    # gate cannot tell them apart from `end` alone, so it must not assert either: the event
+    # ENDED and lost its final, freezing it live (Iasi showed live with 3 alive nine days
+    # after it finished, 2026-07-27), or it is genuinely still playing and the results feed
+    # has gone blind (2026-08-05: ESPN began 403-ing the live overlay, and Toronto kept
+    # showing Zverev alive at 21% to win for three days after Griekspoor knocked him out).
+    # The second is why this cannot be left to the tour-wide `results` freshness check —
+    # that limit is 5 days and is dominated by events that have already finished, so one
+    # stalled tournament never moves it. Both failures ship a board asserting that beaten
+    # players are still alive, which is the thing a user actually sees.
     if status == "live" and now is not None:
         age = _age_days(t.get("end"), now)
         if age is not None and age > HEALTH_MAX_LIVE_EVENT_AGE_DAYS:
             out.append(_tiered(f"{tour}: live tournament {name!r} last played {age}d ago "
-                               f"(max {HEALTH_MAX_LIVE_EVENT_AGE_DAYS}) — its final never "
-                               f"arrived, so it is stuck 'live'", t.get("level"), force=force))
+                               f"(max {HEALTH_MAX_LIVE_EVENT_AGE_DAYS}) — either its final "
+                               f"never arrived and it is stuck 'live', or its results feed has "
+                               f"stalled and eliminated players are still shown as alive",
+                               t.get("level"), force=force))
     # The mirror image: an event still labelled "upcoming" after its own dates have passed.
     # Ending while never having gone live is impossible — the results simply never joined, so
     # the card is inviting clicks on odds for a tournament that is already over. Tier-aware:

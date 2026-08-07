@@ -473,10 +473,14 @@ HEALTH_MAX_UPCOMING_START_LAG_DAYS = 3  # an "upcoming" event whose start date i
                                         # ESPN start dates include QUALIFYING, so a main draw
                                         # legitimately reads "upcoming" for a couple of days
                                         # (and every Slam does, for a week).
-HEALTH_MAX_LIVE_EVENT_AGE_DAYS = 3    # a "live" event whose newest match is older than this
-                                      # never received its final and is stuck live (Iasi sat
-                                      # live for 9 days). Tour weeks run Mon-Sun, so a genuine
-                                      # in-progress event is never 3 days idle.
+HEALTH_MAX_LIVE_EVENT_AGE_DAYS = 2    # a "live" event whose newest match is older than this
+                                      # has either lost its final and stuck live (Iasi sat live
+                                      # for 9 days) or gone blind mid-draw (2026-08-05: ESPN
+                                      # 403'd the overlay and Toronto showed Zverev alive at 21%
+                                      # for three days after he lost). Tour weeks run Mon-Sun, so
+                                      # a genuine in-progress event is never 3 days idle — which
+                                      # is what this bounds, since the check fires ABOVE it. It
+                                      # read 3 until 2026-08-06, one day slacker than that intent.
 HEALTH_MAX_LIVERANK_NULL_FRAC = 0.30  # top-200 without a live rank -> rankings source drifted (normal ~3-9%)
 # market.json: matched odds may trail the newest scored match by at most this — a larger
 # gap means the odds feed dropped a book and the benchmark window silently froze

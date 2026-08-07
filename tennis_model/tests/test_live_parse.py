@@ -278,6 +278,64 @@ def test_placeholder_names_dropped():
     print("ok test_placeholder_names_dropped")
 
 
+def _sweep_len() -> int:
+    """How many queries fetch_events issues: the featured call plus the day sweep."""
+    return 1 + len(range(-12, 15))
+
+
+def test_total_scoreboard_failure_is_raised_not_reported_as_a_quiet_week(monkeypatch):
+    """Regression for 2026-08-04..07. ESPN began 403-ing this client's User-Agent, so every
+    query below raised, `fetch_events` swallowed all of them and returned [], and the caller
+    printed "no completed matches found" — the same line a genuinely idle day prints. The
+    overlay stayed blind through ~13 refresh runs while a Masters played out, and the board
+    kept showing players who had already lost. An empty result must mean ESPN answered and
+    had nothing, never that nobody answered."""
+    calls = []
+
+    def _always_403(tour, datestr=None):
+        calls.append(datestr)
+        raise OSError("HTTP Error 403: Forbidden")
+
+    monkeypatch.setattr(live, "_fetch", _always_403)
+    try:
+        live.fetch_events("atp")
+    except live.ScoreboardUnavailable as e:
+        assert "403" in str(e), e
+    else:
+        raise AssertionError("a total transport failure must not look like an empty scoreboard")
+    assert len(calls) == _sweep_len(), calls
+    print("ok test_total_scoreboard_failure_is_raised_not_reported_as_a_quiet_week")
+
+
+def test_one_bad_query_still_yields_the_rest(monkeypatch):
+    """The tolerance that made the outage invisible is still correct for a single bad day —
+    only the all-failed case is a transport outage."""
+    def _one_bad(tour, datestr=None):
+        if datestr is None:
+            raise OSError("HTTP Error 500")
+        return [{"id": "421-2026", "shortName": "Toronto"}]
+
+    monkeypatch.setattr(live, "_fetch", _one_bad)
+    evs = live.fetch_events("atp")
+    assert [e["id"] for e in evs] == ["421-2026"], evs
+    print("ok test_one_bad_query_still_yields_the_rest")
+
+
+def test_a_genuinely_empty_scoreboard_is_not_an_error(monkeypatch):
+    """The off-season / rest-day case must stay silent — the point is to separate the two."""
+    monkeypatch.setattr(live, "_fetch", lambda tour, datestr=None: [])
+    assert live.fetch_events("atp") == []
+    print("ok test_a_genuinely_empty_scoreboard_is_not_an_error")
+
+
+def test_scoreboard_uses_the_host_that_serves_a_custom_user_agent():
+    """`site.api.espn.com` 403s any custom User-Agent since 2026-08-04 and took both tours'
+    overlay down; `site.web.api.espn.com` serves the identical payload. Locking the host
+    here so the shorter one cannot be restored as a tidy-up."""
+    assert "site.web.api.espn.com" in live.SCOREBOARD, live.SCOREBOARD
+    print("ok test_scoreboard_uses_the_host_that_serves_a_custom_user_agent")
+
+
 if __name__ == "__main__":
     test_round_label()
     test_draw_size()

@@ -23,13 +23,21 @@ import pandas as pd
 
 from ..config import TOURS, live_dir
 
-SCOREBOARD = "https://site.api.espn.com/apis/site/v2/sports/tennis/{tour}/scoreboard"
+# `site.web.api`, NOT the `site.api` host this used until 2026-08-04. That edge began
+# 403-ing every request carrying a custom User-Agent — it now admits only the default a
+# plain HTTP client sends — and took both tours' overlay down mid-Masters. `site.web.api`
+# serves the identical payload under any User-Agent. Do not "simplify" the host back.
+SCOREBOARD = "https://site.web.api.espn.com/apis/site/v2/sports/tennis/{tour}/scoreboard"
 
 # ESPN fills an undetermined slot in a scheduled match (opponent awaiting a prior
 # result, or a draw not yet published) with a pseudo-athlete named "TBD" — a
 # placeholder, not a player. It must never enter a field / matchup / result row:
 # one leaked "TBD" makes a 128-player Slam draw count 129.
 _PLACEHOLDER_NAMES = {"tbd", "tba", "bye", "qualifier"}
+
+
+class ScoreboardUnavailable(RuntimeError):
+    """Every scoreboard query failed — the overlay is blind, not merely idle."""
 
 
 def _athlete_name(c: dict | None) -> str | None:
@@ -185,14 +193,25 @@ def fetch_events(tour: str, days_back: int = 14, days_fwd: int = 12) -> list:
     offsets = range(-days_fwd, days_back + 1)        # negative = upcoming, positive = past
     queries = [None] + [(today - timedelta(days=k)).strftime("%Y%m%d") for k in offsets]
     seen: dict = {}
+    failures: list[Exception] = []
     for q in queries:
         try:
             for ev in _fetch(tour, q):
                 eid = ev.get("id")
                 if eid and eid not in seen:
                     seen[eid] = ev
-        except Exception:  # noqa: BLE001 — one malformed ESPN query must not kill the scoreboard
+        except Exception as e:  # noqa: BLE001 — one malformed ESPN query must not kill the scoreboard
+            failures.append(e)
             continue
+    # Tolerating a single bad query is right; tolerating ALL of them is how a transport
+    # outage disguises itself as a quiet week. On 2026-08-04 ESPN started 403-ing this
+    # client and every query in the sweep raised, so the caller saw an empty list and printed
+    # "no completed matches found" for ~13 refresh runs while a Masters draw played out.
+    # An empty return must mean ESPN answered and had nothing, never that nobody answered.
+    if failures and len(failures) == len(queries):
+        raise ScoreboardUnavailable(
+            f"all {len(queries)} scoreboard queries failed; last: {failures[-1]!r}"
+        ) from failures[-1]
     return list(seen.values())
 
 
@@ -308,6 +327,9 @@ def download_live(tours=TOURS) -> dict[str, list]:
             df = parse_events(events, _gender(tour))
             fields = parse_fields(events, _gender(tour))
             upcoming = parse_upcoming(events, _gender(tour))
+        except ScoreboardUnavailable as e:  # transport is down: say so, don't imply idleness
+            print(f"  live/{tour}: ERROR scoreboard unreachable, overlay is now STALE ({e})")
+            continue
         except Exception as e:  # noqa: BLE001 — live overlay is best-effort, never build-fatal
             print(f"  live/{tour}: skipped ({e})")
             continue

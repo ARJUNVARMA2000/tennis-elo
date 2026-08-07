@@ -1609,7 +1609,7 @@ def test_output_stale_live_event_severity_follows_the_event_tier():
                                  level=level, drawStatus="seeded", drawSize=34, aliveCount=3,
                                  champion=None, end="2026-06-30")]     # NOW is 2026-07-09
         return [p for p in health.output_problems("atp", _oc(data=d), NOW)
-                if "is stuck 'live'" in p]
+                if "last played" in p]
 
     big = _problems("ATP 500")
     small = _problems("ATP 250")
@@ -1619,8 +1619,37 @@ def test_output_stale_live_event_severity_follows_the_event_tier():
     d2 = _healthy_data()
     d2["tournaments"] = [dict(d2["tournaments"][0], status="live", champion=None,
                               end="2026-07-08")]
-    assert not any("is stuck 'live'" in p for p in health.output_problems("atp", _oc(data=d2), NOW))
+    assert not any("last played" in p for p in health.output_problems("atp", _oc(data=d2), NOW))
     print("ok test_output_stale_live_event_severity_follows_the_event_tier")
+
+
+def test_output_live_event_with_a_stalled_results_feed_blocks():
+    """Regression for 2026-08-05: ESPN began 403-ing the live overlay's User-Agent, ATP
+    results froze at 08-04, and Toronto shipped Zverev at 21% to win a title Griekspoor had
+    already knocked him out of — for three days, with the gate green the whole time.
+
+    The tour-wide `results` freshness check cannot catch this: its limit is 5 days and it is
+    dominated by finished events, so one stalled tournament never moves it. Only the
+    per-event check sees it, and it must fire at three idle days — the age this actually
+    reached — not four, which is what the old off-by-one limit of 3 allowed."""
+    def _toronto(end: str, level: str = "Masters 1000"):
+        d = _healthy_data()
+        d["tournaments"] = [dict(d["tournaments"][0], name="Toronto", status="live",
+                                 level=level, drawSize=96, aliveCount=79, champion=None,
+                                 end=end)]
+        return [p for p in health.output_problems("atp", _oc(data=d), NOW)
+                if "last played" in p]
+
+    stalled = _toronto("2026-07-06")            # NOW is 2026-07-09 -> 3 idle days
+    assert stalled, "a live draw idle for three days must fire"
+    assert "results feed has stalled" in stalled[0], stalled
+    assert health._gate_blocks(stalled[0]), "a Masters 1000 board must not ship stale"
+
+    # A rest or washed-out day is normal and must stay silent, so the limit is the first age
+    # a real tour week cannot explain — not a blanket alarm on every live event.
+    for playing in ("2026-07-09", "2026-07-08", "2026-07-07"):
+        assert not _toronto(playing), playing
+    print("ok test_output_live_event_with_a_stalled_results_feed_blocks")
 
 
 def test_output_completed_event_with_many_alive_is_flagged():
