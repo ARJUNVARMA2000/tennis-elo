@@ -687,6 +687,12 @@ PLAYER_ALIASES: dict[str, str] = {
     # 2026-07-28 alias-proposer: WTA short form and ITF full form identify one player.
     # https://www.itftennis.com/en/players/tiantsoa-sarah-rakotomanga-rajaonah/800507833/fra/jt/D/overview/
     "tiantsoa sarah rakotomanga rajaonah": "Tiantsoa Rakotomanga Rajaonah",
+    # 2026-08-07 alias-proposer: The ATP site shows both spellings on the same SY71 player profile, with the canonical display name as Digvijay Pratap Singh.
+    # https://www.atptour.com/en/players/digvijay%20pratap-singh/sy71/player-stats
+    "digvijaypratap singh": "Digvijay Pratap Singh",
+    # 2026-08-07 alias-proposer: The official ATP profile uses Christopher O'Connell, and Tennis Abstract lists the same Australian player as Christopher Oconnell with matching birth-date/ranking context.
+    # https://www.atptour.com/en/players/christopher-oconnell/o483/overview
+    "christopher oconnell": "Christopher O'Connell",
 }
 
 
