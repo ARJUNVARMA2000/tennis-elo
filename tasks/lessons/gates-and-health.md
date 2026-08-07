@@ -219,3 +219,18 @@ Indexed in [`../lessons.md`](../lessons.md).
   state what was OBSERVED plus the possible causes, never pick one; the gate sees a date, not
   a reason. Prefer tightening an existing invariant to adding a second one with the same
   predicate and a different threshold.
+
+- **A recency gate reads a MAX, so one corrupt future row disables it permanently — and
+  sanitising the population at ingest is what stops the paired corruption check from ever
+  seeing the cause.** (2026-08-07) WTA's fresh-overlay gate reported `fresh_age_days = -1078`
+  against a 14-day limit and passed, every hour, for three weeks: the overlay still carried
+  the Iasi final as `2029/7/20`, the same row as the 2026-07-25 incident, and `now - max` is
+  negative forever while it is there. The `future_dates` check written in response to that
+  very incident could not catch it either — it hangs off the MERGED `date_max`, which
+  `_drop_impossible_dates` has already cleaned, so it structurally cannot see a bad row in a
+  source file. Two checks, one blind because the quantity is signed and the other blind
+  because it reads downstream of the filter. **How to apply:** a gate over `max(dates)` is
+  only as trustworthy as the worst row in the file, so filter to credible rows for the AGE
+  signal and report the excluded rows as their own problem — otherwise fixing the age just
+  buries the corruption. And when a guard drops bad data at ingest, the check that was meant
+  to catch that same class must read the RAW source, not the guarded output.

@@ -793,64 +793,79 @@ def test_one_unprojectable_event_does_not_take_down_the_whole_board():
     assert poisoned["projection"] == [] and poisoned["modelFavorite"] is None
     print("ok test_one_unprojectable_event_does_not_take_down_the_whole_board")
 
-def _withdrawal_board(monkeypatch, withdrawn: tuple[str, ...]):
-    """An 8-slot live draw, one decided match (P2 d. P3), and `withdrawn` pulled out."""
+def _withdrawal_board(monkeypatch, withdrawals: dict, event="421-2026", extra_results=()):
+    """An 8-slot live draw (P0..P7), one decided match (P2 d. P3), plus `withdrawals`."""
     from tennis_model.sim import tournaments as tournament_module
     monkeypatch.setattr(tournament_module, "EVENT_WITHDRAWN_PLAYERS",
-                        {"atp": {"421-2026": withdrawn}, "wta": {}})
-    g = pd.DataFrame([dict(tourney_name="Test Open", date=pd.Timestamp("2026-08-03"),
-                           round="QF", winner_name="P2", loser_name="P3", surface_b="Hard",
-                           best_of=3, tourney_level="M")])
+                        {"atp": {event: withdrawals}, "wta": {}})
+    rows = [dict(tourney_name="Test Open", date=pd.Timestamp("2026-08-03"), round="QF",
+                 winner_name="P2", loser_name="P3", score="6-2 6-2", surface_b="Hard",
+                 best_of=3, tourney_level="M")]
+    rows += [dict(tourney_name="Test Open", date=pd.Timestamp("2026-08-04"), round="QF",
+                  winner_name=w, loser_name=l, score="6-4 6-4", surface_b="Hard",
+                  best_of=3, tourney_level="M") for w, l in extra_results]
     return project_tournament(
-        _PRED, "Test Open", g, "atp", known=set(), top_set=None, espn_fields=None,
-        resolve=lambda n: n, matchups=[],
+        _PRED, "Test Open", pd.DataFrame(rows), "atp", known=set(), top_set=None,
+        espn_fields=None, resolve=lambda n: n, matchups=[],
         tournament_draw={"slots": [f"P{i}" for i in range(8)], "bestOf": 3},
         espn_id="421-2026", n_sims=200, seed=1)
 
 
-def test_a_withdrawn_player_leaves_the_draw_and_their_opponent_advances(monkeypatch):
+def test_a_walkover_withdrawal_leaves_the_draw_and_the_opponent_advances(monkeypatch):
     """Regression for 2026-08-06. Eliminations come from loser rows, so a player who
     withdraws never generates the evidence that would remove them: Felix Auger-Aliassime
-    pulled out of Toronto two hours before his opener without hitting a ball and became the
-    board's FAVOURITE at 14.3%, with an unplayed R64 sitting in the released draw forever.
+    pulled out of Toronto without hitting a ball and became the board's FAVOURITE at 14.3%.
 
-    The configured withdrawal must both drop them from the projection and hand the walkover
-    to their opponent — half a fix would leave the bracket advancing nobody through the slot."""
-    base = _withdrawal_board(monkeypatch, ())
+    With no replacement named, the opponent is awarded the walkover."""
+    base = _withdrawal_board(monkeypatch, {})
     assert "P0" in {p["name"] for p in base["projection"]}, "control: P0 starts alive"
 
-    out = _withdrawal_board(monkeypatch, ("P0",))
+    out = _withdrawal_board(monkeypatch, {"P0": None})
     names = {p["name"] for p in out["projection"]}
     assert "P0" not in names, f"withdrawn player still on the board: {names}"
     assert "P1" in names, "the opponent must take the walkover, not vanish with them"
     assert out["aliveCount"] == base["aliveCount"] - 1, (out["aliveCount"], base["aliveCount"])
-    print("ok test_a_withdrawn_player_leaves_the_draw_and_their_opponent_advances")
+    print("ok test_a_walkover_withdrawal_leaves_the_draw_and_the_opponent_advances")
+
+
+def test_a_lucky_loser_takes_the_slot_and_plays_the_match(monkeypatch):
+    """The case Toronto actually was. Auger-Aliassime withdrew BEFORE his first match, so
+    the tour admitted a lucky loser — Jaime Faria — who played Droguet and lost 7-6 6-2.
+    Awarding a walkover there would invent a match that never happened and erase a real one,
+    so the slot must be SUBSTITUTED and the replacement judged on their own results."""
+    out = _withdrawal_board(monkeypatch, {"P0": "P9"}, extra_results=[("P1", "P9")])
+    names = {p["name"] for p in out["projection"]}
+    assert "P0" not in names, "the withdrawn player is not in the event at all"
+    assert "P9" not in names, "the replacement played and lost, so he is out too"
+    assert "P1" in names, "the winner of the real match advances"
+
+    # P0 held slot 0, so the replacement inherits side "a" and P1 stays on side "b".
+    slot = out["bracket"][0]["matches"][0]
+    assert (slot["a"], slot["b"]) == ("P9", "P1"), f"replacement must hold the slot: {slot}"
+    assert slot["winner"] == "b" and slot["score"] == "6-4 6-4", slot
+    assert slot["score"] != "W/O", "a played match must never be recorded as a walkover"
+    print("ok test_a_lucky_loser_takes_the_slot_and_plays_the_match")
 
 
 def test_withdrawals_are_scoped_to_their_own_event_id(monkeypatch):
     """Keyed by ESPN edition id, never by name — the same player is alive elsewhere."""
-    from tennis_model.sim import tournaments as tournament_module
-    monkeypatch.setattr(tournament_module, "EVENT_WITHDRAWN_PLAYERS",
-                        {"atp": {"999-2026": ("P0",)}, "wta": {}})
-    g = pd.DataFrame([dict(tourney_name="Test Open", date=pd.Timestamp("2026-08-03"),
-                           round="QF", winner_name="P2", loser_name="P3", surface_b="Hard",
-                           best_of=3, tourney_level="M")])
-    out = project_tournament(
-        _PRED, "Test Open", g, "atp", known=set(), top_set=None, espn_fields=None,
-        resolve=lambda n: n, matchups=[],
-        tournament_draw={"slots": [f"P{i}" for i in range(8)], "bestOf": 3},
-        espn_id="421-2026", n_sims=200, seed=1)
+    out = _withdrawal_board(monkeypatch, {"P0": None}, event="999-2026")
     assert "P0" in {p["name"] for p in out["projection"]}
     print("ok test_withdrawals_are_scoped_to_their_own_event_id")
 
 
 def test_an_override_that_matches_nobody_says_so(monkeypatch, capsys):
     """A misspelt name removes nobody. Silent no-ops are the failure shape this whole fix
-    came from, so the run must name the entry rather than quietly ship the player alive."""
-    base = _withdrawal_board(monkeypatch, ())
-    out = _withdrawal_board(monkeypatch, ("Felix Auger-Aliassime",))   # not in a P0..P7 draw
+    came from, so the run must name the entry rather than quietly ship the player alive.
+    The check must survive a SUBSTITUTION too: a correctly-applied replacement also leaves
+    the withdrawn player absent from the final field, so absence alone proves nothing."""
+    base = _withdrawal_board(monkeypatch, {})
+    out = _withdrawal_board(monkeypatch, {"Felix Auger-Aliassime": None})  # not in this draw
     assert out["aliveCount"] == base["aliveCount"], "nobody should have been removed"
     assert "removed nobody" in capsys.readouterr().out
+
+    _withdrawal_board(monkeypatch, {"P0": "P9"}, extra_results=[("P1", "P9")])
+    assert "removed nobody" not in capsys.readouterr().out, "a real substitution must be quiet"
     print("ok test_an_override_that_matches_nobody_says_so")
 
 

@@ -575,25 +575,29 @@ EVENT_DISPLAY_NAME_OVERRIDES: dict[str, dict[str, str]] = {
     },
 }
 
-# Players who left an event WITHOUT losing a match. Eliminations are derived from loser
-# rows, so a withdrawal produces no evidence that anything can act on: the player sits in
-# the released ordered draw with an unplayed match forever, stays in `still_in`, and keeps
-# collecting title odds. On 2026-08-06 that made Felix Auger-Aliassime — who pulled out with
-# a back injury two hours before his opener, having never hit a ball — the Toronto FAVOURITE
-# at 14.3%, one round after the same board finally dropped Zverev.
+# Players who left an event WITHOUT losing a match, mapped to whoever took their slot.
+# Eliminations are derived from loser rows, so a withdrawal produces no evidence anything
+# can act on: the player sits in the released ordered draw with an unplayed match forever,
+# survives `field_pool - eliminated`, and keeps collecting title odds. On 2026-08-06 that
+# made Felix Auger-Aliassime — who pulled out with a back injury two hours before his
+# opener, having never hit a ball — the Toronto FAVOURITE at 14.3%.
 #
-# This is a STOPGAP, not the mechanism. The real signal is already downloaded and needs no
-# hand-maintained list: ESPN drops a withdrawn player from the event field (Toronto shipped
-# 96 players with him absent), so "in the ordered draw but absent from the live field" is
-# derivable, and the gate half is that a bracket's alive set must be a subset of that field.
-# Keyed by ESPN edition id, never by name — see the events-join rule in AGENTS.md. Entries
-# are safe to leave behind once the event is over: a completed event takes its champion from
-# the final row, and the withdrawn player is genuinely not in that draw's survivor set.
-EVENT_WITHDRAWN_PLAYERS: dict[str, dict[str, tuple[str, ...]]] = {
+# The value is the REPLACEMENT, or None for a walkover, because the tour resolves the two
+# cases differently and the draw is only honest if it says which happened:
+#   * withdrawal BEFORE the player's first match -> a lucky loser enters that slot, and the
+#     match is played normally. Auger-Aliassime's slot went to Jaime Faria, who lost it to
+#     Titouan Droguet 7-6 6-2. Modelling this as a walkover would invent a match that never
+#     happened AND erase one that did.
+#   * retirement/withdrawal MID-EVENT -> no replacement is admitted and the opponent is
+#     awarded a walkover.
+#
+# STOPGAP, not the mechanism: the real signal is already downloaded. ESPN's field for the
+# event carries the replacement and drops the withdrawn player, so both the substitution and
+# the walkover are derivable without a hand-maintained list. Keyed by ESPN edition id, never
+# by name — see the events-join rule in AGENTS.md.
+EVENT_WITHDRAWN_PLAYERS: dict[str, dict[str, dict[str, str | None]]] = {
     "atp": {
-        # Withdrew 2026-08-05 with a back injury, ~2h before his R64 vs Titouan Droguet,
-        # who took the walkover and has since played on.
-        "421-2026": ("Felix Auger-Aliassime",),
+        "421-2026": {"Felix Auger-Aliassime": "Jaime Faria"},
     },
     "wta": {},
 }

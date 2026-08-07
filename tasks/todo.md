@@ -3552,3 +3552,58 @@ the opponent — but it is a second decision about the same mechanism, so it bel
 "how to go forward" call rather than in another hotfix.
 
 - [ ] Teach `bracket_rounds` about withdrawals so the draw view and the odds agree.
+
+## Complete the withdrawal fix + sweep for other breakage (2026-08-07)
+
+### 1. The withdrawal fix was not only incomplete, it was modelling the wrong event
+
+Chasing the missing bracket path showed the stopgap's premise was wrong. Droguet was never
+awarded a walkover: Auger-Aliassime withdrew BEFORE his first match, so the tour admitted a
+LUCKY LOSER — Jaime Faria — who played the match and lost it 7-6 6-2. Recording a walkover
+would have invented a match that never happened and erased one that did. Both cases are real
+(pre-first-match withdrawal -> replacement; mid-event -> walkover), so the config now maps
+`withdrawn -> replacement or None` and the two paths differ:
+
+- [x] Replacement named: the slot is SUBSTITUTED in `resolved_draw_slots`, so the real result
+      joins and the replacement is judged on their own results. `or slot` on the lookup, since
+      a walkover entry maps to None and must not blank the slot into a bye.
+- [x] No replacement: unchanged walkover handling — eliminated, and `bracket_rounds` resolves
+      the pairing to the opponent with score `W/O`, shipped UNPRICED (a model prob for a match
+      nobody played would flag an awarded walkover as an `upset`).
+- [x] `project_upcoming` reads the same helper, so a withdrawal between draw release and first
+      ball is handled identically pre-start.
+- [x] The "matched nobody" warning had to change with it: after a substitution the withdrawn
+      player is legitimately absent from the final field, which is indistinguishable from a
+      name that matched nothing. Now tracks actual hits against the pre-substitution draw.
+- [x] Verified on the real draw: R64 now reads `Droguet d. Faria 7-6 6-2`, R32 `Nakashima d.
+      Droguet 4-6 6-2 7-5`. Auger-Aliassime is absent entirely. He never played.
+
+### 2. WTA's fresh-overlay freshness gate has been dead for three weeks
+
+`fresh_age_days = -1078` against a 14-day limit, reported `ok`. The overlay still carries the
+Iasi final as `2029/7/20` — the SAME corrupt row as the 2026-07-25 incident. Age is
+`now - max`, so one future row pins it negative and the freeze alarm can never fire. The
+merged `future_dates` check could not cover it either: it reads the population AFTER
+`_drop_impossible_dates` strips the row, so it never sees a bad row in a source file.
+
+- [x] `fresh_date_max(tour, now)` excludes rows beyond the credible horizon -> WTA now reports
+      its true newest result (2026-08-03, 4d) instead of a date in 2029.
+- [x] New `fresh_future` check names the corrupt row, so fixing the age signal does not just
+      hide it. Advisory only (`--gate` is output-integrity), and WTA's fresh alarm stays
+      shadowed because its stats overlay is current — so this alerts without blocking.
+
+### 3. The alias proposer reds its own run and buries the branch
+
+The 08-03 weekly run produced two genuine falsifier-surviving proposals, pushed the branch,
+then died: `GitHub Actions is not permitted to create or approve pull requests`. `set -e` made
+that exit 1, breaking the script's own documented contract that every branch exits 0, and the
+pushed branch `alias-proposer/30807596234` has sat unnoticed since.
+
+- [x] Fall back to a `::warning::` naming the compare URL, and exit 0. Proposals are only
+      unannounced when this happens, never lost. Test asserts it stays green, still never
+      calls `gh pr merge`, and names the branch.
+- [ ] **Needs the owner, not code**: Settings -> Actions -> General -> "Allow GitHub Actions to
+      create and approve pull requests" is off (`can_approve_pull_request_reviews: false`).
+      Until it is on, the proposer can push but not open the PR. The two proposals waiting on
+      `alias-proposer/30807596234` are Digvijaypratap Singh -> Digvijay Pratap Singh and
+      Christopher Oconnell -> Christopher O'Connell.

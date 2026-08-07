@@ -67,10 +67,22 @@ git push --force-with-lease origin "$BRANCH"
 # `gh pr create`, never `gh pr merge`. Pushing to master IS the production deploy in this
 # repo (AGENTS.md), so an auto-merged bot PR would deploy a model-authored config change
 # with no human in the loop — the one thing this whole design exists to prevent.
-gh pr create --base "$BASE" --head "$BRANCH" \
-  --title "chore(aliases): proposed identity fixes ($(date -u +%Y-%m-%d))" \
-  --body-file "$BODY_FILE" \
-  --label alias-proposer 2>/dev/null \
-  || gh pr create --base "$BASE" --head "$BRANCH" \
-       --title "chore(aliases): proposed identity fixes ($(date -u +%Y-%m-%d))" \
-       --body-file "$BODY_FILE"
+TITLE="chore(aliases): proposed identity fixes ($(date -u +%Y-%m-%d))"
+gh pr create --base "$BASE" --head "$BRANCH" --title "$TITLE" \
+  --body-file "$BODY_FILE" --label alias-proposer 2>/dev/null \
+  || gh pr create --base "$BASE" --head "$BRANCH" --title "$TITLE" \
+       --body-file "$BODY_FILE" \
+  || {
+    # Opening the PR can be refused by a setting this repo cannot change from inside a run:
+    # "Allow GitHub Actions to create and approve pull requests" (Settings -> Actions ->
+    # General). On 2026-08-03 that turned two genuine, falsifier-surviving proposals into a
+    # red run and a raw GraphQL error, and the branch — which pushed FINE the line above —
+    # sat unnoticed. The proposals are not lost when this happens, only unannounced, so say
+    # exactly where they are. Exit 0: the header of this script promises every branch does,
+    # and paging the owner over a permissions checkbox is what that promise is for.
+    REPO_URL="${GITHUB_SERVER_URL:-https://github.com}/${GITHUB_REPOSITORY:-}"
+    echo "::warning::could not open the PR (most likely 'Allow GitHub Actions to create and"\
+"approve pull requests' is off). The branch IS pushed — open it by hand:"\
+"$REPO_URL/compare/$BASE...$BRANCH?expand=1"
+    exit 0
+  }

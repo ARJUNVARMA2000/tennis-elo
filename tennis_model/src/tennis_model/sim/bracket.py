@@ -28,6 +28,13 @@ from .draws import SIZE_NAME
 
 _PLACEHOLDER_PREFIXES = ("qualifier", "lucky loser", "bye", "tbd", "tba")
 
+# The score shipped for a match awarded without play. Standard tennis notation, so the
+# card reads correctly with no client change — and the marker `price_bracket` keys off to
+# leave a walkover UNPRICED. A model probability there would be a claim about a match that
+# never happened, and the winner-oriented `upset` flag derived from it would call an
+# awarded walkover an upset whenever the withdrawing player was the favourite.
+_WALKOVER = "W/O"
+
 
 def is_real(x: object) -> bool:
     """A slot that names an actual player (not a bye/TBD ``None`` or a placeholder string)."""
@@ -116,7 +123,8 @@ def _side_label(x: object) -> str | None:
     return str(x)
 
 
-def bracket_rounds(slots: list, results, seeds: dict | None = None) -> list[dict]:
+def bracket_rounds(slots: list, results, seeds: dict | None = None,
+                   withdrawn=None) -> list[dict]:
     """Forward-fold the ordered ``slots`` into rounds, joining ``results`` per pairing.
 
     ``slots`` is the authoritative ordered draw (length a power of two). ``results`` is an
@@ -124,9 +132,16 @@ def bracket_rounds(slots: list, results, seeds: dict | None = None) -> list[dict
     list of ``{"round": label, "matches": [...]}`` with **unpriced** matches (see
     :func:`price_bracket`); each match is
     ``{a, b, seedA, seedB, winner: "a"|"b"|None, score: str|None}``.
+
+    ``withdrawn`` names players who left the event without losing. They produce no result
+    row, so without them a pairing they never played reads as PENDING and advances nobody —
+    which silently truncates the whole path beneath it. Toronto 2026 shipped
+    ``Droguet vs Auger-Aliassime, winner=None`` for days after Auger-Aliassime withdrew,
+    hiding all three matches Droguet went on to play. A walkover is a real, decided result.
     """
     slots = _resolve_placeholders(list(slots), results)
     idx = _result_index(results)
+    gone = {_name_key(n) for n in (withdrawn or ())}
     rounds: list[dict] = []
     cur = list(slots)
     depth = 0
@@ -148,7 +163,15 @@ def bracket_rounds(slots: list, results, seeds: dict | None = None) -> list[dict
                     winner_name, score, _rnd = hit
                     winner_side = "a" if _name_key(winner_name) == _name_key(a) else "b"
                     adv = a if winner_side == "a" else b
-                # else: both real but unplayed -> pending; advance None
+                else:
+                    # No result row AND exactly one side withdrew -> walkover, not pending.
+                    # Both withdrawn (or neither) stays undecided: with nobody left to
+                    # advance, inventing a survivor would be worse than an honest gap.
+                    a_gone, b_gone = _name_key(a) in gone, _name_key(b) in gone
+                    if a_gone != b_gone:
+                        winner_side = "b" if a_gone else "a"
+                        adv = b if a_gone else a
+                        score = _WALKOVER
             # any other case (placeholder / TBD / double-bye) -> undecided, advance None
 
             matches.append({
@@ -213,7 +236,7 @@ def price_bracket(rounds: list[dict], price_fn, logged_fn) -> list[dict]:
             a, b = m["a"], m["b"]
             p: float | None = None
             src: str | None = None
-            if is_real(a) and is_real(b):
+            if is_real(a) and is_real(b) and m.get("score") != _WALKOVER:
                 if m["winner"] is not None:                       # completed
                     lp = logged_fn(a, b)
                     if lp is not None:

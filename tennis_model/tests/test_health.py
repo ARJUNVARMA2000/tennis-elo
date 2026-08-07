@@ -151,6 +151,43 @@ def _h(result_age=1, stats_age=2, frac=0.9, n=500, fresh_age=3, charting_age=30)
             "fresh_age_days": fresh_age, "charting_age_days": charting_age}
 
 
+def test_a_future_row_cannot_disable_the_fresh_overlay_freshness_gate(tmp_path, monkeypatch):
+    """Found 2026-08-07 on live data: WTA reported fresh_age_days = -1078 against a 14-day
+    limit and passed, because the overlay still carried the Iasi final as 2029/7/20 (the
+    same corrupt row as the 2026-07-25 incident). Age is `now - max`, so one future row pins
+    it negative forever and the freeze alarm for that source is dead — for three weeks, it
+    was. `_drop_impossible_dates` keeps the row out of the model population, which is
+    exactly why the merged future_dates check never saw it either."""
+    d = tmp_path / "wta" / "fresh"
+    d.mkdir(parents=True)
+    (d / "2026.csv").write_text(
+        "tourney_date\n2026/7/18\n2026/7/20\n2029/7/20\n", encoding="utf-8")
+    monkeypatch.setattr(health, "fresh_dir", lambda tour: d)
+    now = pd.Timestamp("2026-08-07")
+
+    assert health.fresh_date_max("wta", now) == pd.Timestamp("2026-07-20"), \
+        "the corrupt row must not be the reported maximum"
+    assert int((now - health.fresh_date_max("wta", now)).days) == 18, "18d stale, and visible"
+    # and the row it excluded is still named, so the fix reports the corruption rather than
+    # burying it — the whole failure mode here was a bad row nothing could see.
+    assert health.fresh_future_date_max("wta", now) == pd.Timestamp("2029-07-20")
+
+    (d / "2026.csv").write_text("tourney_date\n2026/7/18\n2026/8/05\n", encoding="utf-8")
+    assert health.fresh_date_max("wta", now) == pd.Timestamp("2026-08-05")
+    assert health.fresh_future_date_max("wta", now) is None, "a clean file reports nothing"
+    print("ok test_a_future_row_cannot_disable_the_fresh_overlay_freshness_gate")
+
+
+def test_fresh_overlay_corruption_is_reported():
+    rows = health.source_checks("wta", dict(_h(), fresh_future_date_max="2029-07-20"),
+                                pd.Timestamp("2026-08-07"))
+    hit = next(r for r in rows if r["key"] == "fresh_future")
+    assert not hit["ok"] and "2029-07-20" in hit["problem"], hit
+    clean = health.source_checks("wta", _h(), pd.Timestamp("2026-08-07"))
+    assert next(r for r in clean if r["key"] == "fresh_future")["ok"]
+    print("ok test_fresh_overlay_corruption_is_reported")
+
+
 def test_problems_fresh_is_clean():
     assert health.problems("atp", _h(), pd.Timestamp("2026-07-01")) == []
     print("ok test_problems_fresh_is_clean")
@@ -263,7 +300,7 @@ def test_source_checks_structure_and_consistency():
     for h in scenarios:
         for now in (july, pd.Timestamp("2026-12-15"), pd.Timestamp("2026-01-10")):
             rows = health.source_checks("atp", h, now)
-            assert [r["key"] for r in rows] == ["results", "future_dates", "stats", "coverage", "fresh", "charting"]
+            assert [r["key"] for r in rows] == ["results", "future_dates", "stats", "coverage", "fresh", "fresh_future", "charting"]
             for r in rows:
                 assert set(r) == {"key", "label", "value", "limit", "unit", "date",
                                   "ok", "note", "problem"}
@@ -279,17 +316,18 @@ def test_source_checks_structure_and_consistency():
 
 def test_tour_health_empty_frame_reports_none():
     """An empty tour must report None ages (flagged downstream), not crash on NaT."""
-    orig = (health.load_matches, health.fresh_date_max, health.charting_date_max)
+    orig = (health.load_matches, health.fresh_date_max, health.fresh_future_date_max, health.charting_date_max)
     try:
         health.load_matches = lambda tour: pd.DataFrame(
             {"date": pd.to_datetime(pd.Series([], dtype="object")),
              "completed": pd.Series([], dtype=bool),
              "has_stats": pd.Series([], dtype=bool)})
-        health.fresh_date_max = lambda tour: None
+        health.fresh_future_date_max = lambda tour, now=None: None
+        health.fresh_date_max = lambda tour, now=None: None
         health.charting_date_max = lambda tour: None
         h = health.tour_health("atp", pd.Timestamp("2026-07-01"))
     finally:
-        health.load_matches, health.fresh_date_max, health.charting_date_max = orig
+        health.load_matches, health.fresh_date_max, health.fresh_future_date_max, health.charting_date_max = orig
     assert h["matches"] == 0
     assert h["date_max"] is None and h["result_age_days"] is None
     assert h["fresh_age_days"] is None and h["charting_age_days"] is None
@@ -303,14 +341,15 @@ def test_main_strict_exit_code_and_report():
     today = pd.Timestamp(datetime.now(UTC).date())
     stale = pd.DataFrame({"date": pd.to_datetime(["2026-01-01"]),
                           "completed": [True], "has_stats": [True]})
-    orig = (health.load_matches, health.read_outputs, health.fresh_date_max,
+    orig = (health.load_matches, health.read_outputs, health.fresh_date_max, health.fresh_future_date_max,
             health.charting_date_max, health.OUTPUT_DIR, health.WEB_DATA_DIR,
             health.TOURS, sys.argv)
     try:
         with tempfile.TemporaryDirectory() as d:
             health.load_matches = lambda tour: stale
             health.read_outputs = lambda tour: _oc()          # outputs clean; failure is source-side
-            health.fresh_date_max = lambda tour: today        # hermetic: no real data/raw reads
+            health.fresh_future_date_max = lambda tour, now=None: None
+            health.fresh_date_max = lambda tour, now=None: today        # hermetic: no real data/raw reads
             health.charting_date_max = lambda tour: today
             health.OUTPUT_DIR = Path(d)
             health.WEB_DATA_DIR = Path(d) / "web"             # hermetic: no real web/ mirror
@@ -321,7 +360,7 @@ def test_main_strict_exit_code_and_report():
             sys.argv = ["health"]
             rc_soft = health.main()
     finally:
-        (health.load_matches, health.read_outputs, health.fresh_date_max,
+        (health.load_matches, health.read_outputs, health.fresh_date_max, health.fresh_future_date_max,
          health.charting_date_max, health.OUTPUT_DIR, health.WEB_DATA_DIR,
          health.TOURS, sys.argv) = orig
     assert rc_strict == 1 and report["ok"] is False and report["tours"]["atp"]["problems"]
@@ -329,7 +368,7 @@ def test_main_strict_exit_code_and_report():
     assert rc_soft == 0                      # same problems, but only --strict reds the build
     # /health page contract: structured rows + precise stamp + forecast liveness detail
     assert [r["key"] for r in report["tours"]["atp"]["checks"]] == \
-        ["results", "future_dates", "stats", "coverage", "fresh", "charting"]
+        ["results", "future_dates", "stats", "coverage", "fresh", "fresh_future", "charting"]
     assert report["generatedAt"].endswith("Z") and "T" in report["generatedAt"]
     assert report["eventCoverage"]["atp"] == {
         "expectedKeys": ["espn:1-2026"],
@@ -345,14 +384,15 @@ def test_main_surfaces_output_problems():
     today = pd.Timestamp(datetime.now(UTC).date())
     fresh = pd.DataFrame({"date": pd.to_datetime([datetime.now(UTC).date()]),
                           "completed": [True], "has_stats": [True]})
-    orig = (health.load_matches, health.read_outputs, health.fresh_date_max,
+    orig = (health.load_matches, health.read_outputs, health.fresh_date_max, health.fresh_future_date_max,
             health.charting_date_max, health.OUTPUT_DIR, health.WEB_DATA_DIR,
             health.TOURS, sys.argv)
     try:
         with tempfile.TemporaryDirectory() as d:
             health.load_matches = lambda tour: fresh
             health.read_outputs = lambda tour: _oc(missing=["tournaments"])
-            health.fresh_date_max = lambda tour: today        # hermetic: no real data/raw reads
+            health.fresh_future_date_max = lambda tour, now=None: None
+            health.fresh_date_max = lambda tour, now=None: today        # hermetic: no real data/raw reads
             health.charting_date_max = lambda tour: today
             health.OUTPUT_DIR = Path(d)
             health.WEB_DATA_DIR = Path(d) / "web"             # hermetic: no real web/ mirror
@@ -361,7 +401,7 @@ def test_main_surfaces_output_problems():
             rc = health.main()
             report = json.loads((Path(d) / "health.json").read_text())
     finally:
-        (health.load_matches, health.read_outputs, health.fresh_date_max,
+        (health.load_matches, health.read_outputs, health.fresh_date_max, health.fresh_future_date_max,
          health.charting_date_max, health.OUTPUT_DIR, health.WEB_DATA_DIR,
          health.TOURS, sys.argv) = orig
     assert rc == 1 and report["ok"] is False
@@ -382,14 +422,15 @@ def test_main_reports_a_stale_model_through_the_alert_path():
     stale = _healthy_data()
     stale["meta"]["lastUpdated"] = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     stale["meta"]["modelTrainedAt"] = (datetime.now(UTC) - timedelta(days=8)).strftime("%Y-%m-%dT%H:%M:%SZ")
-    orig = (health.load_matches, health.read_outputs, health.fresh_date_max,
+    orig = (health.load_matches, health.read_outputs, health.fresh_date_max, health.fresh_future_date_max,
             health.charting_date_max, health.OUTPUT_DIR, health.WEB_DATA_DIR,
             health.TOURS, sys.argv)
     try:
         with tempfile.TemporaryDirectory() as d:
             health.load_matches = lambda tour: fresh
             health.read_outputs = lambda tour: _oc(data=stale)
-            health.fresh_date_max = lambda tour: today
+            health.fresh_future_date_max = lambda tour, now=None: None
+            health.fresh_date_max = lambda tour, now=None: today
             health.charting_date_max = lambda tour: today
             health.OUTPUT_DIR = Path(d)
             health.WEB_DATA_DIR = Path(d) / "web"
@@ -398,7 +439,7 @@ def test_main_reports_a_stale_model_through_the_alert_path():
             health.main()
             report = json.loads((Path(d) / "health.json").read_text())
     finally:
-        (health.load_matches, health.read_outputs, health.fresh_date_max,
+        (health.load_matches, health.read_outputs, health.fresh_date_max, health.fresh_future_date_max,
          health.charting_date_max, health.OUTPUT_DIR, health.WEB_DATA_DIR,
          health.TOURS, sys.argv) = orig
     out = report["tours"]["atp"]["output"]
@@ -1399,13 +1440,14 @@ def test_main_reports_problems_changed():
                           "completed": [True], "has_stats": [True]})
     staler = pd.DataFrame({"date": pd.to_datetime(["2025-06-01"]),
                            "completed": [True], "has_stats": [True]})
-    orig = (health.load_matches, health.read_outputs, health.fresh_date_max,
+    orig = (health.load_matches, health.read_outputs, health.fresh_date_max, health.fresh_future_date_max,
             health.charting_date_max, health.OUTPUT_DIR, health.WEB_DATA_DIR,
             health.TOURS, sys.argv)
     try:
         with tempfile.TemporaryDirectory() as d:
             health.read_outputs = lambda tour: _oc()
-            health.fresh_date_max = lambda tour: today
+            health.fresh_future_date_max = lambda tour, now=None: None
+            health.fresh_date_max = lambda tour, now=None: today
             health.charting_date_max = lambda tour: today
             health.OUTPUT_DIR = Path(d)
             health.WEB_DATA_DIR = Path(d) / "web"
@@ -1421,7 +1463,7 @@ def test_main_reports_problems_changed():
             third = json.loads((Path(d) / "health.json").read_text())
             mirrored = json.loads((Path(d) / "web" / "health.json").read_text())
     finally:
-        (health.load_matches, health.read_outputs, health.fresh_date_max,
+        (health.load_matches, health.read_outputs, health.fresh_date_max, health.fresh_future_date_max,
          health.charting_date_max, health.OUTPUT_DIR, health.WEB_DATA_DIR,
          health.TOURS, sys.argv) = orig
     assert first["ok"] is False and first["problems_changed"] is True

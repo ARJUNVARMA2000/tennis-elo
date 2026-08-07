@@ -509,6 +509,18 @@ def _reconcile_draw_names(slots: list, pool: list, resolve) -> dict:
     return canon
 
 
+def _withdrawn_at(tour: str, espn_id: str | None, resolve=None) -> dict:
+    """Configured withdrawals for one event as ``{player: replacement or None}``.
+
+    Canonicalised on both sides so the names match draw spellings. Keyed by ESPN edition id
+    (see config.EVENT_WITHDRAWN_PLAYERS). Every path that decides who is still in the event
+    reads this one helper, so the odds and the displayed draw cannot disagree.
+    """
+    entries = EVENT_WITHDRAWN_PLAYERS.get(tour, {}).get(str(espn_id or ""), {})
+    canon = (lambda n: resolve(n) if (resolve and n) else n)
+    return {canon(gone): canon(repl) for gone, repl in entries.items()}
+
+
 def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
                        known: set | None = None, top_set: set | None = None,
                        espn_fields: dict | None = None, resolve=None,
@@ -576,12 +588,16 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
             field_pool = set(g["winner_name"]) | set(g["loser_name"])
 
     # A withdrawal leaves no loser row, so nothing above can ever eliminate the player and
-    # the released draw keeps them alive with an unplayed match. Fold the configured
-    # withdrawals in here, before the draw is folded: `advance_slots` treats an eliminated
-    # side as beaten, so the opponent correctly advances on the walkover they were awarded.
-    withdrawn = {(resolve(n) if resolve else n)
-                 for n in EVENT_WITHDRAWN_PLAYERS.get(tour, {}).get(str(espn_id or ""), ())}
-    eliminated = eliminated | withdrawn
+    # the released draw keeps them alive with an unplayed match. Only a walkover (nobody
+    # took the slot) is an elimination: where a lucky loser entered, the slot is SUBSTITUTED
+    # below and the replacement's own results decide it like any other entrant.
+    withdrawals = _withdrawn_at(tour, espn_id, resolve)
+    walkovers = {gone for gone, repl in withdrawals.items() if not repl}
+    eliminated = eliminated | walkovers
+    # Which configured names this event actually recognised. Membership in the FINAL
+    # field_pool cannot answer that: after a substitution the withdrawn player is legitimately
+    # gone from it, which is indistinguishable from a name that matched nothing at all.
+    withdrawal_hits = set(withdrawals) & field_pool
 
     # A released complete draw is the authoritative ORDERED bracket: it fixes the real
     # entrants (and the event's best-of) so the live board runs on the
@@ -598,6 +614,17 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
             (draw_canon.get(slot) or resolve(slot)) if slot else None
             for slot in tournament_draw["slots"]
         ]
+        # The released PDF is the draw as it stood at release. A player who withdrew before
+        # hitting a ball was replaced in that slot by a lucky loser, and every result from
+        # then on is the REPLACEMENT's. Substituting here — rather than treating the slot as
+        # decided — keeps one ordered draw that both the fold and the displayed bracket read,
+        # so Droguet's real 7-6 6-2 over Jaime Faria joins instead of an invented walkover.
+        # `or slot` matters: a walkover entry maps to None, and that must LEAVE the player in
+        # their slot (eliminated, so the opponent is awarded the W/O) rather than blank it
+        # into a bye, which would silently redraw the bracket.
+        withdrawal_hits |= {s for s in resolved_draw_slots if s} & set(withdrawals)
+        resolved_draw_slots = [(withdrawals.get(slot) or slot) if slot else None
+                               for slot in resolved_draw_slots]
         resolved_seeds = {(draw_canon.get(player) or resolve(player)): seed
                           for player, seed in (tournament_draw.get("seeds") or {}).items()}
         # The complete draw remains the authoritative population after completion too.
@@ -624,7 +651,7 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
     # A withdrawal override is matched by canonical name against this event's field, so a
     # spelling the draw does not use removes nobody — and would do it silently, which is the
     # exact shape of the outage that made this stopgap necessary. Say so instead.
-    if not completed and (unmatched := withdrawn - field_pool):
+    if not completed and (unmatched := set(withdrawals) - withdrawal_hits):
         print(f"  tournaments/{tour}: withdrawal override {sorted(unmatched)} is not in "
               f"{name!r}'s field and removed nobody — check it against the draw spelling")
 
@@ -703,7 +730,7 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
     if resolved_draw_slots is not None:
         rcols = [c for c in ("winner_name", "loser_name", "score", "round") if c in main.columns]
         recs = main[rcols].to_dict("records") if not main.empty else []
-        bracket = bracket_rounds(resolved_draw_slots, recs, resolved_seeds)
+        bracket = bracket_rounds(resolved_draw_slots, recs, resolved_seeds, withdrawn=walkovers)
         if not bracket_is_meaningful(bracket, len(field_pool)):
             bracket = None                       # mostly-placeholder early draw -> not worth showing
         elif completed and bracket[-1]["matches"][0].get("winner") is None:
@@ -746,7 +773,13 @@ def project_upcoming(predictor, name: str, wd: dict, tour: str, df: pd.DataFrame
     played a match yet (so it's absent from the results-driven event list). The full real
     bracket, no eliminations -> honest 'real' pre-tournament title odds from release."""
     wslots = [resolve(s) if s else None for s in (wd.get("slots") or [])]
-    field_pool = {s for s in wslots if s is not None}
+    # A player can withdraw between the draw release and the first ball. The released draw
+    # still names them, so the pre-start board must drop them here too — otherwise an event
+    # would list them as a contender right up until it goes live and the other path fixes it.
+    withdrawals = _withdrawn_at(tour, espn_id, resolve)
+    walkovers = {gone for gone, repl in withdrawals.items() if not repl}
+    wslots = [(withdrawals.get(s) or s) if s else None for s in wslots]
+    field_pool = {s for s in wslots if s is not None} - walkovers
     if len(field_pool) < 8:
         return None
     surface, _lvl, bo = _archive_attrs(df, name)
@@ -754,7 +787,7 @@ def project_upcoming(predictor, name: str, wd: dict, tour: str, df: pd.DataFrame
                                                 archive_surface=surface)
     best_of = int(wd.get("bestOf") or bo or 3)
     level = resolve_level(tour, name, event_id=espn_id)
-    slots = advance_slots(wslots, set())
+    slots = advance_slots(wslots, walkovers)
     # Same rule as the live path: an early capture that is mostly "Qualifier N" ships as a
     # schedule card (name/dates/surface/tier/drawSize) with no odds, until qualifying resolves.
     if projection_is_meaningful(field_pool):
@@ -763,7 +796,7 @@ def project_upcoming(predictor, name: str, wd: dict, tour: str, df: pd.DataFrame
     else:
         proj, favorite = [], None
     rseeds = {resolve(k): v for k, v in (wd.get("seeds") or {}).items()}
-    bracket = bracket_rounds(wslots, [], rseeds)     # released draw, no results yet -> all pending
+    bracket = bracket_rounds(wslots, [], rseeds, withdrawn=walkovers)  # released draw, no results
     if not bracket_is_meaningful(bracket, len(field_pool)):
         bracket = None                               # mostly-placeholder early draw -> not worth showing
     return {

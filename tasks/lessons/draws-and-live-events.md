@@ -272,3 +272,17 @@ Indexed in [`../lessons.md`](../lessons.md).
   source labels to unique seat identities (`Qualifier 1..N`) at ingestion, before any set,
   map, simulation, or cache consumer sees them. Keep true byes as null, and regression-test
   entrant cardinality against bracket geometry using the provider's messy pre-qualifying state.
+
+- **A player who leaves an event without losing exits in one of TWO ways, and picking the
+  wrong one both invents a match and erases a real one.** (2026-08-07, Toronto) Modelling
+  Auger-Aliassime's withdrawal as a walkover to Titouan Droguet looked right and was wrong:
+  he pulled out before his first match, so a lucky loser (Jaime Faria) took the slot and
+  actually played it, losing 7-6 6-2. The walkover would have shipped a match nobody played
+  and hidden the one that happened. The rule is the tour's: withdrawal BEFORE the player's
+  first match admits a replacement, mid-event withdrawal/retirement awards a walkover. The
+  tell that the model was wrong was in the data the whole time — the fold produced a round-3
+  opponent the actual result rows contradicted. **How to apply:** when reconstructing a draw,
+  a slot that "should" be decided but has no result row is a question about the ENTRANT, not
+  about the match; check whether someone else played from that slot before awarding anything.
+  A walkover must also ship unpriced — a probability for a match that never happened turns
+  the winner-oriented `upset` flag into a claim about a contest nobody had.

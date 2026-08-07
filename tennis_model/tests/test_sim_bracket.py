@@ -202,6 +202,59 @@ def test_bracket_meaningful_rejects_mostly_placeholder_draw():
     print("ok test_bracket_meaningful_rejects_mostly_placeholder_draw")
 
 
+def test_withdrawal_becomes_a_walkover_and_the_path_below_it_survives():
+    """Regression for Toronto 2026. A withdrawal writes no result row, so the pairing read
+    as PENDING and advanced nobody — and because every later round folds from the round
+    above, that one unresolved match erased the rest of its path. Auger-Aliassime withdrew
+    before playing Droguet, and Droguet's next three real matches vanished from the draw."""
+    # P2 withdraws before the QF; P1 walks over, then genuinely plays SF and F.
+    results = [
+        _res("P3", "P4", rnd="QF"), _res("P5", "P6", rnd="QF"), _res("P7", "P8", rnd="QF"),
+        _res("P1", "P3", rnd="SF"), _res("P5", "P7", rnd="SF"),
+        _res("P1", "P5", "6-3 6-3", rnd="F"),
+    ]
+    stranded = bracket_rounds(_SLOTS8, results)
+    assert stranded[0]["matches"][0]["winner"] is None, "control: the pairing is pending"
+    assert stranded[1]["matches"][0]["a"] is None, "control: the path below is erased"
+
+    rounds = bracket_rounds(_SLOTS8, results, withdrawn={"P2"})
+    wo = rounds[0]["matches"][0]
+    assert wo["a"] == "P1" and wo["b"] == "P2"
+    assert wo["winner"] == "a" and wo["score"] == "W/O"
+    assert rounds[1]["matches"][0]["a"] == "P1", "the walkover winner must feed the SF"
+    assert rounds[2]["matches"][0]["winner"] == "a", "and the final must resolve"
+    print("ok test_withdrawal_becomes_a_walkover_and_the_path_below_it_survives")
+
+
+def test_a_walkover_ships_unpriced():
+    """No match happened, so there is no honest probability — and a priced walkover would
+    be flagged an `upset` whenever the player who withdrew was the favourite."""
+    rounds = bracket_rounds(["P1", "P2"], [], withdrawn={"P2"})
+    price_bracket(rounds, price_fn=lambda a, b: 0.05, logged_fn=lambda a, b: 0.05)
+    m = rounds[0]["matches"][0]
+    assert m["winner"] == "a" and m["score"] == "W/O"
+    assert m["p"] is None and m["probSource"] is None and m["upset"] is None
+    print("ok test_a_walkover_ships_unpriced")
+
+
+def test_both_sides_withdrawn_stays_undecided():
+    """Nobody is left to advance; inventing a survivor is worse than an honest gap."""
+    rounds = bracket_rounds(["P1", "P2"], [], withdrawn={"P1", "P2"})
+    m = rounds[0]["matches"][0]
+    assert m["winner"] is None and m["score"] is None
+    print("ok test_both_sides_withdrawn_stays_undecided")
+
+
+def test_a_played_result_beats_the_withdrawal_list():
+    """If the players actually met, the real result wins — a stale config entry must never
+    overwrite recorded evidence."""
+    rounds = bracket_rounds(["P1", "P2"], [_res("P2", "P1", "6-1 6-1", rnd="F")],
+                            withdrawn={"P2"})
+    m = rounds[0]["matches"][0]
+    assert m["winner"] == "b" and m["score"] == "6-1 6-1"
+    print("ok test_a_played_result_beats_the_withdrawal_list")
+
+
 def test_is_real_classifies_slots():
     assert is_real("Jannik Sinner")
     assert not is_real(None)

@@ -56,6 +56,7 @@ from ..config import (
     HEALTH_MIN_STATS_FRACTION,
     HEALTH_OFFSEASON_RELAX_DAYS,
     MATCH_POPULATION_VERSION,
+    MAX_FUTURE_MATCH_DAYS,
     OUTPUT_DIR,
     SURFACE_MAP,
     TOURS,
@@ -94,10 +95,8 @@ def charting_date_max(tour: str):
     return m if pd.notna(m) else None
 
 
-def fresh_date_max(tour: str):
-    """Newest tourney_date in the fresh overlay's newest year file. Checked directly
-    because the merged result_age_days can't see this source freeze — the ESPN live
-    overlay keeps the merged maximum current. IO seam (patched in tests)."""
+def _fresh_dates(tour: str):
+    """Parsed tourney_date series from the fresh overlay's newest year file (or None)."""
     files = sorted(glob.glob(str(fresh_dir(tour) / "*.csv")))   # per-year names sort lexically
     if not files:
         return None
@@ -106,7 +105,53 @@ def fresh_date_max(tour: str):
         s = pd.read_csv(files[-1], usecols=["tourney_date"], encoding="utf-8-sig")["tourney_date"]
     except (ValueError, OSError):
         return None
-    m = _parse_dates(s).max()
+    return _parse_dates(s)
+
+
+def _credible_horizon(now: pd.Timestamp | None):
+    """The latest date a real match could carry, or None when we have no clock to judge by."""
+    if now is None:
+        return None
+    return (now.tz_localize(None) if now.tzinfo else now) + pd.Timedelta(days=MAX_FUTURE_MATCH_DAYS)
+
+
+def fresh_date_max(tour: str, now: pd.Timestamp | None = None):
+    """Newest CREDIBLE tourney_date in the fresh overlay's newest year file.
+
+    Checked directly because the merged result_age_days can't see this source freeze — the
+    ESPN live overlay keeps the merged maximum current. IO seam (patched in tests).
+
+    Future-dated rows are excluded, and that exclusion is the whole point of the argument.
+    Age is `now - max`, so ONE corrupt future row pins this negative forever and the
+    staleness gate above it can never fire again — a one-sided bound on a signed quantity
+    is not a bound. The WTA overlay carried the Iasi final as 2029/7/20 from 2026-07-20;
+    `fresh_age_days` read -1078 against a 14-day limit and reported ok for three weeks,
+    so the freeze alarm for that source was dead the entire time. `_drop_impossible_dates`
+    protects the model population from the same row, which is exactly why the merged
+    `date_max` check cannot stand in for this one — it never sees the corruption.
+    """
+    dates = _fresh_dates(tour)
+    if dates is None:
+        return None
+    horizon = _credible_horizon(now)
+    if horizon is not None:
+        dates = dates[dates <= horizon]
+    m = dates.max() if len(dates) else pd.NaT
+    return m if pd.notna(m) else None
+
+
+def fresh_future_date_max(tour: str, now: pd.Timestamp | None = None):
+    """Newest fresh-overlay date BEYOND the credible horizon, or None if the file is clean.
+
+    The corruption `fresh_date_max` filters out still has to be reported, or fixing the
+    staleness signal would simply hide the bad row instead. IO seam (patched in tests).
+    """
+    horizon = _credible_horizon(now)
+    dates = _fresh_dates(tour)
+    if dates is None or horizon is None:
+        return None
+    beyond = dates[dates > horizon]
+    m = beyond.max() if len(beyond) else pd.NaT
     return m if pd.notna(m) else None
 
 
@@ -119,8 +164,10 @@ def tour_health(tour: str, now: pd.Timestamp) -> dict:
     date_max = df["date"].max() if len(df) else pd.NaT
     res_max = completed["date"].max() if len(completed) else pd.NaT
     stat_max = stats_rows["date"].max() if len(stats_rows) else pd.NaT
-    fr_max, ch_max = fresh_date_max(tour), charting_date_max(tour)
+    fr_max, ch_max = fresh_date_max(tour, now), charting_date_max(tour)
+    fr_future = fresh_future_date_max(tour, now)
     return {
+        "fresh_future_date_max": str(fr_future.date()) if fr_future is not None else None,
         "matches": int(len(df)),
         "date_max": str(date_max.date()) if pd.notna(date_max) else None,
         "result_age_days": int((now - res_max).days) if pd.notna(res_max) else None,
@@ -164,8 +211,10 @@ def source_checks(tour: str, h: dict, now: pd.Timestamp) -> list[dict]:
     # the dataset's MAX date rather than on today — one mistyped year in the WTA fresh overlay
     # (Iasi final as 2029/7/20, seen 2026-07-25) moved elo.last_date three years out, and the
     # ACTIVE_DAYS window then held only the two players in that single row, so the tour
-    # exported 2 players instead of 200. results.py drops these at ingest; this is the check
-    # from the other side, so corruption arriving by a path that skips that filter still lands.
+    # exported 2 players instead of 200. results.py drops these at ingest, which also means
+    # this check sees the population AFTER that filter and so cannot catch a bad row in a
+    # source file — the per-source `fresh_future` check below is what covers that. This one
+    # is the backstop for corruption reaching the merged population by some other path.
     dmax = pd.Timestamp(h["date_max"]) if h.get("date_max") else None
     future_days = int((dmax - now).days) if dmax is not None else None
     rows.append(row(
@@ -215,6 +264,19 @@ def source_checks(tour: str, h: dict, now: pd.Timestamp) -> list[dict]:
                  else f"{tour}: newest fresh-overlay result is {fresh_age}d old "
                  f"(max {max_fresh}) — the results overlay source may have frozen"
                  if fresh_age > max_fresh and not stats_current else None)))
+    # The corrupt rows `fresh_date_max` now filters out still have to be named, or fixing the
+    # staleness signal would just hide them. This reads the RAW overlay, which is the only
+    # place the corruption survives: `_drop_impossible_dates` strips it before it can reach
+    # the merged `date_max` the future_dates check above looks at, so that check has never
+    # been able to see a bad row arriving by this path.
+    fr_future = h.get("fresh_future_date_max")
+    rows.append(row(
+        "fresh_future", "Fresh overlay date sanity", 1 if fr_future else 0, 0,
+        unit="rows", date=fr_future,
+        problem=(f"{tour}: fresh overlay carries a result dated {fr_future}, beyond every "
+                 f"credible horizon — an upstream year typo. It is excluded from the model "
+                 f"population and from the freshness age above, so this is the only signal "
+                 f"that it is there" if fr_future else None)))
     ch_age = h["charting_age_days"]
     rows.append(row(
         "charting", "Match charting (MCP)", ch_age, HEALTH_MAX_CHARTING_AGE_DAYS,

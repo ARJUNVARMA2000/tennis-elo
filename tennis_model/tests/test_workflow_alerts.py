@@ -41,6 +41,10 @@ pytestmark = pytest.mark.skipif(_BASH is None, reason="bash unavailable (non-CI 
 # redded run 30106835566 after a perfectly clean deploy.
 _GH_STUB = """#!/usr/bin/env bash
 echo "$1 $2" >> "$GH_CALLS"
+if [ "$1 $2" = "pr create" ] && [ "${GH_FAIL_PR:-}" = "1" ]; then
+  echo 'pull request create failed: GraphQL: GitHub Actions is not permitted to create or approve pull requests (createPullRequest)' >&2
+  exit 1
+fi
 if [ "$1 $2" = "issue list" ]; then
   if [ "${GH_FAIL_LIST:-}" = "1" ]; then
     echo 'non-200 OK status code: 504 Gateway Timeout' >&2
@@ -508,7 +512,8 @@ def test_no_alert_logic_is_left_inline_in_the_workflow():
 
 # --- the alias proposer's PR script ------------------------------------------------------
 
-def _run_alias(config_changed: bool, body: str | None = "## proposals\n- something\n"):
+def _run_alias(config_changed: bool, body: str | None = "## proposals\n- something\n",
+               dry_run: bool = True, fail_pr: bool = False):
     """Run open-alias-pr.sh inside a throwaway git repo, so `git diff` is real."""
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
@@ -528,20 +533,28 @@ def _run_alias(config_changed: bool, body: str | None = "## proposals\n- somethi
         body_file = tmp / "body.md"
         if body is not None:
             body_file.write_text(body, encoding="utf-8", newline="\n")
+        if not dry_run:                       # give the push a real remote to land on
+            bare = tmp / "origin.git"
+            subprocess.run(["git", "init", "-q", "--bare", str(bare)], check=True,
+                           capture_output=True)
+            subprocess.run(["git", "remote", "add", "origin", str(bare)], cwd=repo,
+                           check=True, capture_output=True)
         env = {**os.environ, "PATH": f"{tmp}{os.pathsep}{os.environ.get('PATH', '')}",
                "GH_CALLS": str(calls), "FAKE_EXISTING": "", "GH_FAIL_LIST": "",
-               "BODY_FILE": str(body_file), "DRY_RUN": "1", "BRANCH": "alias/test"}
+               "GH_FAIL_PR": "1" if fail_pr else "",
+               "BODY_FILE": str(body_file), "BRANCH": "alias/test",
+               "DRY_RUN": "1" if dry_run else ""}
         p = subprocess.run([_BASH, str(ALIAS_SCRIPT)], cwd=repo, env=env,
                            capture_output=True, text=True, timeout=60)
         return p.returncode, [ln for ln in calls.read_text(encoding="utf-8").splitlines() if ln], \
-            cfg.read_text(encoding="utf-8")
+            cfg.read_text(encoding="utf-8"), p.stdout + p.stderr
 
 
 def test_a_quiet_week_opens_nothing():
     """The overwhelmingly common outcome. No config change means no branch, no PR, and no
     `gh` call at all — a weekly "nothing to report" PR would be noise that trains the
     reviewer to close without reading."""
-    code, calls, _ = _run_alias(config_changed=False)
+    code, calls, _, _ = _run_alias(config_changed=False)
     assert code == 0 and calls == []
 
 
@@ -549,14 +562,30 @@ def test_a_patch_without_its_evidence_is_discarded_not_opened():
     """The proposer writes the patch and the body in the same run; a patch with no body
     means the body step died. Opening it anyway would put an unreviewable model-authored
     config change in front of a human with nothing to check it against."""
-    code, calls, config = _run_alias(config_changed=True, body=None)
+    code, calls, config, _ = _run_alias(config_changed=True, body=None)
     assert code == 0 and calls == []
     assert config == "PLAYER_ALIASES = {}\n", "the unreviewable edit was left in the tree"
 
 
 def test_a_real_proposal_reaches_the_pr_branch():
-    code, _, _ = _run_alias(config_changed=True)
+    code, _, _, _ = _run_alias(config_changed=True)
     assert code == 0
+
+
+def test_a_refused_pr_stays_green_and_says_where_the_branch_is():
+    """Found 2026-08-07. The 08-03 run produced two genuine falsifier-surviving proposals,
+    pushed the branch fine, then died on `gh pr create` because "Allow GitHub Actions to
+    create and approve pull requests" is off for this repo — a setting no workflow can change
+    from inside a run. `set -e` turned that into a red weekly job and a raw GraphQL error,
+    breaking this script's own documented contract that every branch exits 0, and the pushed
+    branch went unnoticed for four days. The proposals are only unannounced, never lost, so
+    the run must stay green and name the branch."""
+    code, calls, _, out = _run_alias(config_changed=True, dry_run=False, fail_pr=True)
+    assert code == 0, f"a permissions refusal must not red the weekly job:\n{out}"
+    assert "pr create" in calls, calls
+    assert "pr merge" not in calls, "still never merges, even on the fallback path"
+    assert "compare/master...alias/test" in out, f"the pushed branch must be named:\n{out}"
+    print("ok test_a_refused_pr_stays_green_and_says_where_the_branch_is")
 
 
 def test_the_proposer_can_never_merge_its_own_pr():

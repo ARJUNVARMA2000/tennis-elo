@@ -21,6 +21,7 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 ## Draws, rounds & live events — [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md)
 
+- A player who leaves without losing exits in TWO ways (lucky-loser replacement vs walkover); the wrong one invents a match and erases a real one. (2026-08-07)
 - Metadata aliases and draw locators are different namespaces: one title may find the event
   article while a different provider ID/title locates its bracket. (2026-07-29)
 - Date overlap plus a token or a few shared players may rank source candidates, but only
@@ -39,6 +40,7 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 ## Gates & health checks — [`lessons/gates-and-health.md`](lessons/gates-and-health.md)
 
+- A recency gate reads a MAX, so one corrupt future row disables it permanently — and sanitising at ingest blinds the paired corruption check. (2026-08-07)
 - Freshness that only a per-EVENT check can see must not be left to a tour-wide aggregate — and when you write the limit down, check it against the sentence you justified it with. (2026-08-06)
 - A model-population exclusion must not erase factual event lifecycle evidence; preserve an exact
   complementary event view and join it only at factual event consumers. (2026-08-04)
