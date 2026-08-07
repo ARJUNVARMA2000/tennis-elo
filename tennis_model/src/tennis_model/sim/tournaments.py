@@ -25,7 +25,7 @@ import json
 
 import pandas as pd
 
-from ..config import EVENT_CALENDAR_COMPLETE_GRACE_DAYS, live_dir
+from ..config import EVENT_CALENDAR_COMPLETE_GRACE_DAYS, EVENT_WITHDRAWN_PLAYERS, live_dir
 from ..data.event_coverage import cached_draw_identity_aliases
 from ..data.events import EventResolver, display_event_name, is_event_id, load_registry
 from ..data.results import _name_key
@@ -575,6 +575,14 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
         else:
             field_pool = set(g["winner_name"]) | set(g["loser_name"])
 
+    # A withdrawal leaves no loser row, so nothing above can ever eliminate the player and
+    # the released draw keeps them alive with an unplayed match. Fold the configured
+    # withdrawals in here, before the draw is folded: `advance_slots` treats an eliminated
+    # side as beaten, so the opponent correctly advances on the walkover they were awarded.
+    withdrawn = {(resolve(n) if resolve else n)
+                 for n in EVENT_WITHDRAWN_PLAYERS.get(tour, {}).get(str(espn_id or ""), ())}
+    eliminated = eliminated | withdrawn
+
     # A released complete draw is the authoritative ORDERED bracket: it fixes the real
     # entrants (and the event's best-of) so the live board runs on the
     # actual draw, not a rating seed. Byes/qualifiers ride along in `slots` (None / distinct).
@@ -613,6 +621,13 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
     # sources (config.PLAYER_ALIASES, draws._draw_is_settled); stating this one
     # structurally means a future name split degrades the projection without also publishing
     # a self-contradictory card.
+    # A withdrawal override is matched by canonical name against this event's field, so a
+    # spelling the draw does not use removes nobody — and would do it silently, which is the
+    # exact shape of the outage that made this stopgap necessary. Say so instead.
+    if not completed and (unmatched := withdrawn - field_pool):
+        print(f"  tournaments/{tour}: withdrawal override {sorted(unmatched)} is not in "
+              f"{name!r}'s field and removed nobody — check it against the draw spelling")
+
     still_in = field_pool - eliminated
     alive = {champ} if (completed and champ) else still_in
     field = list(field_pool if completed else still_in)

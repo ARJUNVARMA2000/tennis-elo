@@ -793,6 +793,67 @@ def test_one_unprojectable_event_does_not_take_down_the_whole_board():
     assert poisoned["projection"] == [] and poisoned["modelFavorite"] is None
     print("ok test_one_unprojectable_event_does_not_take_down_the_whole_board")
 
+def _withdrawal_board(monkeypatch, withdrawn: tuple[str, ...]):
+    """An 8-slot live draw, one decided match (P2 d. P3), and `withdrawn` pulled out."""
+    from tennis_model.sim import tournaments as tournament_module
+    monkeypatch.setattr(tournament_module, "EVENT_WITHDRAWN_PLAYERS",
+                        {"atp": {"421-2026": withdrawn}, "wta": {}})
+    g = pd.DataFrame([dict(tourney_name="Test Open", date=pd.Timestamp("2026-08-03"),
+                           round="QF", winner_name="P2", loser_name="P3", surface_b="Hard",
+                           best_of=3, tourney_level="M")])
+    return project_tournament(
+        _PRED, "Test Open", g, "atp", known=set(), top_set=None, espn_fields=None,
+        resolve=lambda n: n, matchups=[],
+        tournament_draw={"slots": [f"P{i}" for i in range(8)], "bestOf": 3},
+        espn_id="421-2026", n_sims=200, seed=1)
+
+
+def test_a_withdrawn_player_leaves_the_draw_and_their_opponent_advances(monkeypatch):
+    """Regression for 2026-08-06. Eliminations come from loser rows, so a player who
+    withdraws never generates the evidence that would remove them: Felix Auger-Aliassime
+    pulled out of Toronto two hours before his opener without hitting a ball and became the
+    board's FAVOURITE at 14.3%, with an unplayed R64 sitting in the released draw forever.
+
+    The configured withdrawal must both drop them from the projection and hand the walkover
+    to their opponent — half a fix would leave the bracket advancing nobody through the slot."""
+    base = _withdrawal_board(monkeypatch, ())
+    assert "P0" in {p["name"] for p in base["projection"]}, "control: P0 starts alive"
+
+    out = _withdrawal_board(monkeypatch, ("P0",))
+    names = {p["name"] for p in out["projection"]}
+    assert "P0" not in names, f"withdrawn player still on the board: {names}"
+    assert "P1" in names, "the opponent must take the walkover, not vanish with them"
+    assert out["aliveCount"] == base["aliveCount"] - 1, (out["aliveCount"], base["aliveCount"])
+    print("ok test_a_withdrawn_player_leaves_the_draw_and_their_opponent_advances")
+
+
+def test_withdrawals_are_scoped_to_their_own_event_id(monkeypatch):
+    """Keyed by ESPN edition id, never by name — the same player is alive elsewhere."""
+    from tennis_model.sim import tournaments as tournament_module
+    monkeypatch.setattr(tournament_module, "EVENT_WITHDRAWN_PLAYERS",
+                        {"atp": {"999-2026": ("P0",)}, "wta": {}})
+    g = pd.DataFrame([dict(tourney_name="Test Open", date=pd.Timestamp("2026-08-03"),
+                           round="QF", winner_name="P2", loser_name="P3", surface_b="Hard",
+                           best_of=3, tourney_level="M")])
+    out = project_tournament(
+        _PRED, "Test Open", g, "atp", known=set(), top_set=None, espn_fields=None,
+        resolve=lambda n: n, matchups=[],
+        tournament_draw={"slots": [f"P{i}" for i in range(8)], "bestOf": 3},
+        espn_id="421-2026", n_sims=200, seed=1)
+    assert "P0" in {p["name"] for p in out["projection"]}
+    print("ok test_withdrawals_are_scoped_to_their_own_event_id")
+
+
+def test_an_override_that_matches_nobody_says_so(monkeypatch, capsys):
+    """A misspelt name removes nobody. Silent no-ops are the failure shape this whole fix
+    came from, so the run must name the entry rather than quietly ship the player alive."""
+    base = _withdrawal_board(monkeypatch, ())
+    out = _withdrawal_board(monkeypatch, ("Felix Auger-Aliassime",))   # not in a P0..P7 draw
+    assert out["aliveCount"] == base["aliveCount"], "nobody should have been removed"
+    assert "removed nobody" in capsys.readouterr().out
+    print("ok test_an_override_that_matches_nobody_says_so")
+
+
 if __name__ == "__main__":
     test_status_real_partial_seeded_final_from_espn()
     test_completed_projection_excludes_qualifying_field()

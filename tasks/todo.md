@@ -3513,5 +3513,18 @@ from the stale feed and survived the fix:
   asserts that a bracket's alive set is a subset of the live field. That invariant is the gate
   half of this fix.
 
-- [ ] Resolve a withdrawn player to a walkover loss so the draw advances their opponent, and add
-      the alive-set-subset-of-field invariant plus its test.
+- [x] **Stopgap deployed**: `config.EVENT_WITHDRAWN_PLAYERS` (tour -> ESPN edition id -> names)
+      folds into `eliminated` in `project_tournament` before the draw is folded, so `advance_slots`
+      hands the opponent their walkover instead of stranding the slot. Auger-Aliassime is the only
+      entry. An override matching nobody prints a warning rather than no-op'ing silently — the
+      failure shape that started this whole round. Not the mechanism, by design.
+- [ ] Replace the hand-maintained list with the derived signal: ESPN already drops a withdrawn
+      player from the event field, so "in the ordered draw but absent from the live field" needs
+      no config. Decide whether that is safe on its own (a field that briefly under-reports would
+      eliminate real players) or wants corroboration from the opponent having advanced.
+- [ ] Gate half: a bracket's alive set must be a subset of the live field, with a test. Neither
+      existing gate sees this class — the stale-live check passes because `end` is current.
+- [ ] Unrelated, found on the way: `EVENT_DISPLAY_NAME_OVERRIDES` has ATP `421-2026` -> "Toronto"
+      and WTA `421-2026` -> "Montreal", but the 2026 editions are men's Montreal / women's
+      Toronto. The two are swapped, and the table's own comment notes the Canadian Masters
+      rotates cities. Venue feeds altitude/context features, so confirm before changing.

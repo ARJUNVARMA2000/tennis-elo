@@ -575,6 +575,29 @@ EVENT_DISPLAY_NAME_OVERRIDES: dict[str, dict[str, str]] = {
     },
 }
 
+# Players who left an event WITHOUT losing a match. Eliminations are derived from loser
+# rows, so a withdrawal produces no evidence that anything can act on: the player sits in
+# the released ordered draw with an unplayed match forever, stays in `still_in`, and keeps
+# collecting title odds. On 2026-08-06 that made Felix Auger-Aliassime — who pulled out with
+# a back injury two hours before his opener, having never hit a ball — the Toronto FAVOURITE
+# at 14.3%, one round after the same board finally dropped Zverev.
+#
+# This is a STOPGAP, not the mechanism. The real signal is already downloaded and needs no
+# hand-maintained list: ESPN drops a withdrawn player from the event field (Toronto shipped
+# 96 players with him absent), so "in the ordered draw but absent from the live field" is
+# derivable, and the gate half is that a bracket's alive set must be a subset of that field.
+# Keyed by ESPN edition id, never by name — see the events-join rule in AGENTS.md. Entries
+# are safe to leave behind once the event is over: a completed event takes its champion from
+# the final row, and the withdrawn player is genuinely not in that draw's survivor set.
+EVENT_WITHDRAWN_PLAYERS: dict[str, dict[str, tuple[str, ...]]] = {
+    "atp": {
+        # Withdrew 2026-08-05 with a back injury, ~2h before his R64 vs Titouan Droguet,
+        # who took the walkover and has since played on.
+        "421-2026": ("Felix Auger-Aliassime",),
+    },
+    "wta": {},
+}
+
 
 # ---------------------------------------------------------------------------
 # Player aliases — ONE person our sources spell two ways.
