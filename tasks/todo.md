@@ -3528,3 +3528,27 @@ from the stale feed and survived the fix:
       and WTA `421-2026` -> "Montreal", but the 2026 editions are men's Montreal / women's
       Toronto. The two are swapped, and the table's own comment notes the Canadian Masters
       rotates cities. Venue feeds altitude/context features, so confirm before changing.
+
+### Stopgap deploy verified — and it is only half the fix
+
+Run `31146447623` green (tests 49s/43s, refresh 17m58s). Live at `2026-08-07T04:18:13Z`:
+health `ok=true`, zero problems both tours. Toronto 25 -> **24 alive**, Auger-Aliassime off the
+board, Arthur Fils inherits the favourite slot at 14.9%. The title race is correct.
+
+The BRACKET panel is not, and this is pre-existing rather than caused by the stopgap. Shipped
+`brackets.json` still carries `R64: Titouan Droguet vs Felix Auger-Aliassime, winner=None`.
+`bracket_rounds` is a results-JOINED forward fold (`sim/bracket.py:145`): two real players with no
+result row between them are "pending" and advance `None`, so the walkover never resolves and the
+whole path below it dies. Droguet's three real matches are absent from the bracket view:
+
+    2026-08-03  R64  Droguet d. Luca Van Assche   6-4 2-6 7-6
+    2026-08-06  R32  Droguet d. Jaime Faria       7-6 6-2
+    2026-08-06  R16  Brandon Nakashima d. Droguet 4-6 6-2 7-5
+
+So `project_tournament` (odds) and `bracket_rounds` (draw display) disagree about who is alive.
+The stopgap only taught the first one about withdrawals. Fix is small and contained — give
+`bracket_rounds` the withdrawal set and let a pairing with exactly one withdrawn side resolve to
+the opponent — but it is a second decision about the same mechanism, so it belongs with the
+"how to go forward" call rather than in another hotfix.
+
+- [ ] Teach `bracket_rounds` about withdrawals so the draw view and the odds agree.
