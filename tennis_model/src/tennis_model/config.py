@@ -608,7 +608,14 @@ EVENT_WITHDRAWN_PLAYERS: dict[str, dict[str, dict[str, str | None]]] = {
     "atp": {
         "421-2026": {"Felix Auger-Aliassime": "Jaime Faria"},
     },
-    "wta": {},
+    "wta": {
+        # Found by the drawnNotInField check within one refresh of it shipping, rather than
+        # by anyone looking at the board. Vandromme has no result row anywhere in the event,
+        # Podlinska is the only name in the feed's field that is absent from the draw, and
+        # Podlinska's single match was against Valdmannova — who is exactly the occupant of
+        # the slot next to Vandromme's. Substitution, on three independent agreeing signals.
+        "961-2026": {"Jeline Vandromme": "Marcelina Podlinska"},
+    },
 }
 
 

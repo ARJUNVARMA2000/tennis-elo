@@ -3643,3 +3643,17 @@ rounds that closed with their own Review sections — this is an append-only log
   go wrong in the dangerous direction — a draw name the feed spells differently is
   indistinguishable from a genuine withdrawal by absence alone, and guessing wrong deletes a
   live player from the board. Detection automated, mutation still explicit and auditable.
+
+### The new check earned its keep within one refresh
+
+`drawnNotInField` shipped at 18:13Z and immediately flagged a THIRD instance nobody had
+looked for: WTA Warsaw carried `Jeline Vandromme`, who never played a match there. Three
+independent signals agree it is a substitution, not a spelling split — she has no result row
+anywhere in the event; `Marcelina Podlinska` is the only name in the feed's field absent from
+the draw; and Podlinska's single match was against `Vendula Valdmannova`, the exact occupant
+of the slot adjacent to Vandromme's. Recorded as `961-2026: {Vandromme: Podlinska}`.
+
+Worth noting what this says about the deliberate no-auto-derivation call above: the evidence
+that made this safe to resolve was the ADJACENCY agreeing, not the absence. Absence alone had
+two readings and picked the right one only because a human checked which. That is the argument
+for keeping detection automatic and mutation explicit, and it survived contact with a real case.
