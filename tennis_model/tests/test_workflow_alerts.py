@@ -572,6 +572,31 @@ def test_a_real_proposal_reaches_the_pr_branch():
     assert code == 0
 
 
+def test_a_directly_invoked_script_stays_executable():
+    """A script a workflow runs WITHOUT an interpreter dies with exit 126 if it loses its
+    executable bit, and nothing local catches it: the file still runs fine under `bash x.sh`,
+    ruff and pytest never look at the mode, and `git diff` shows only the content change.
+
+    Editing open-alias-pr.sh on 2026-08-07 silently dropped 100755 -> 100644 and the next
+    dispatch failed with "Permission denied" — the same job the edit was fixing. Most scripts
+    here are invoked as `bash <path>`, where the mode is irrelevant; this pins the ones where
+    it is load-bearing, discovered from the workflows rather than listed by hand."""
+    import re
+    direct = set()
+    for wf in sorted((REPO / ".github" / "workflows").glob("*.yml")):
+        direct |= set(re.findall(r"run:\s*(\.github/scripts/[\w.-]+\.sh)",
+                                 wf.read_text(encoding="utf-8")))
+    assert direct, "no directly-invoked script found — has the invocation style changed?"
+    listed = subprocess.run(["git", "ls-files", "-s", *sorted(direct)], cwd=REPO,
+                            capture_output=True, text=True, check=True).stdout
+    for line in listed.splitlines():
+        mode, path = line.split(" ", 1)[0], line.split("\t")[-1]
+        assert mode == "100755", (
+            f"{path} is invoked without an interpreter but is mode {mode} — it will fail "
+            f"with exit 126. Fix with: git update-index --chmod=+x {path}")
+    print("ok test_a_directly_invoked_script_stays_executable")
+
+
 def test_a_refused_pr_stays_green_and_says_where_the_branch_is():
     """Found 2026-08-07. The 08-03 run produced two genuine falsifier-surviving proposals,
     pushed the branch fine, then died on `gh pr create` because "Allow GitHub Actions to

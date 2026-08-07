@@ -564,13 +564,22 @@ OFFICIAL_DRAW_ID_OVERRIDES: dict[str, dict[str, str]] = {
 # happens to publish this week. Exact ESPN edition ids take precedence; a numeric-series key
 # is a safe fallback only when the host is unknown (the Canadian Masters rotates cities).
 # Identity and provider joins still use espnId/sourceIds — this table is display metadata only.
+# The Canadian Masters SWAPS CITIES EVERY YEAR and the two tours are always in opposite
+# cities, so a per-edition entry here is a claim about a specific year that silently rots at
+# the next one. 2026 is men's Montreal (IGA Stadium) / women's Toronto (Sobeys Stadium); these
+# two read the other way round until 2026-08-07, so the men's board was labelled Toronto for
+# an event played in Montreal and the women's Montreal for one played in Toronto. ESPN cannot
+# settle it — it reports "Toronto, Canada" as the venue for BOTH tours' 421-2026, which is
+# exactly why this table exists. The provider ids agree with the corrected labels: WTA 806 is
+# the Toronto edition (wtatennis.com/tournaments/806/toronto), ATP 421 the Montreal one.
+# ADDING A NEW YEAR: check which city each tour is in before copying the previous entry.
 EVENT_DISPLAY_NAME_OVERRIDES: dict[str, dict[str, str]] = {
     "atp": {
-        "421-2026": "Toronto",
+        "421-2026": "Montreal",
         "421": "Canada",
     },
     "wta": {
-        "421-2026": "Montreal",
+        "421-2026": "Toronto",
         "421": "Canada",
     },
 }

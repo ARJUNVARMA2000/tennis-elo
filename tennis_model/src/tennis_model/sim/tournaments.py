@@ -655,6 +655,20 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
         print(f"  tournaments/{tour}: withdrawal override {sorted(unmatched)} is not in "
               f"{name!r}'s field and removed nobody — check it against the draw spelling")
 
+    # Every entrant of a LIVE ordered draw should still be somebody ESPN lists in the event.
+    # One that is not has left without losing — the class that made Auger-Aliassime Toronto's
+    # favourite for a day — or is a name the draw and the feed spell differently. Both are
+    # bugs, and neither leaves any other trace. Derived HERE, not in the gate: the two sides
+    # are only comparable after `_reconcile_draw_names`, so a gate re-deriving it from the raw
+    # files would just rediscover the spelling noise this already resolved.
+    drawn_not_in_field: list = []
+    if not completed and resolved_draw_slots is not None and ef and resolve:
+        espn_field = {resolve(n) for n in ef.get("field", [])}
+        # Only judge against a field that plausibly covers the draw; a feed that briefly
+        # under-reports would otherwise indict every player it happened to omit.
+        if len(espn_field) >= len(field_pool):
+            drawn_not_in_field = sorted((field_pool - espn_field) - set(withdrawals))
+
     still_in = field_pool - eliminated
     alive = {champ} if (completed and champ) else still_in
     field = list(field_pool if completed else still_in)
@@ -763,6 +777,7 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
         "drawSourceEnd": (tournament_draw or {}).get("sourceEnd"),
         "drawEvidencePlayers": (tournament_draw or {}).get("evidencePlayers"),
         "drawEvidenceFieldPlayers": (tournament_draw or {}).get("evidenceFieldPlayers"),
+        "drawnNotInField": drawn_not_in_field,
     }
 
 
@@ -805,6 +820,10 @@ def project_upcoming(predictor, name: str, wd: dict, tour: str, df: pd.DataFrame
         "start": str(wd.get("start") or ""), "end": str(wd.get("end") or wd.get("start") or ""),
         "status": "upcoming", "drawStatus": "real",
         "espnId": espn_id, "surfaceSource": surface_src,
+        # Pre-start there are no eliminations and no live field to disagree with yet; the key
+        # ships anyway so every card carries the same schema and the gate never has to guess
+        # whether an absent list means "clean" or "this producer forgot".
+        "drawnNotInField": [],
         "drawSize": len(field_pool), "aliveCount": len(field_pool),
         "champion": None, "runnerUp": None,
         "modelFavorite": favorite, "favoritePicked": False,

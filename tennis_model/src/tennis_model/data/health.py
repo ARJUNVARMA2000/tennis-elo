@@ -269,14 +269,20 @@ def source_checks(tour: str, h: dict, now: pd.Timestamp) -> list[dict]:
     # place the corruption survives: `_drop_impossible_dates` strips it before it can reach
     # the merged `date_max` the future_dates check above looks at, so that check has never
     # been able to see a bad row arriving by this path.
+    # Reported as a NOTE, not a problem, because by the time it gets here the row is fully
+    # handled: `_repair_corrupt_final_years` puts a provable far-future final back in its real
+    # season, `_drop_impossible_dates` removes anything it could not prove, and `fresh_date_max`
+    # above now excludes it from the age signal. A standing red on an upstream typo nobody here
+    # can edit is the trap this repo already learned once — the daily full run reds on ANY
+    # problem regardless of the hourly dedup, so it would page every morning, forever, about
+    # something already fixed three ways. Visible on /health is the right severity.
     fr_future = h.get("fresh_future_date_max")
     rows.append(row(
         "fresh_future", "Fresh overlay date sanity", 1 if fr_future else 0, 0,
         unit="rows", date=fr_future,
-        problem=(f"{tour}: fresh overlay carries a result dated {fr_future}, beyond every "
-                 f"credible horizon — an upstream year typo. It is excluded from the model "
-                 f"population and from the freshness age above, so this is the only signal "
-                 f"that it is there" if fr_future else None)))
+        note=(f"upstream year typo: a result dated {fr_future}. Excluded from the model "
+              f"population and from the freshness age beside it, and repaired into its real "
+              f"season where the bracket topology proves the year" if fr_future else None)))
     ch_age = h["charting_age_days"]
     rows.append(row(
         "charting", "Match charting (MCP)", ch_age, HEALTH_MAX_CHARTING_AGE_DAYS,
@@ -579,6 +585,20 @@ def _check_tournament(out: list, tour: str, t: dict, now: pd.Timestamp | None = 
             out.append(f"{tour}: completed tournament {name!r} has no champion")
     if status in ("live", "upcoming") and champ:
         out.append(f"{tour}: {status} tournament {name!r} already names champion {champ!r}")
+    # An entrant of a live ordered draw that the feed no longer lists in the event has left
+    # without losing, or is spelled two ways. Nothing else catches either: eliminations come
+    # from loser rows, so a withdrawal leaves no evidence at all, and Felix Auger-Aliassime
+    # sat at 14.3% as Toronto's FAVOURITE having never hit a ball there. The producer derives
+    # this after reconciling the draw against the feed (sim/tournaments.py) because only it
+    # can tell the two apart; the gate's job is to refuse to ship the result.
+    missing = t.get("drawnNotInField")
+    if isinstance(missing, list) and missing:
+        out.append(_tiered(f"{tour}: live tournament {name!r} still has {len(missing)} drawn "
+                           f"player(s) the feed no longer lists in the event "
+                           f"({', '.join(map(str, missing[:4]))}) — they withdrew without "
+                           f"losing, or the draw and the feed spell them differently; either "
+                           f"way the board is showing someone who is not in the tournament",
+                           t.get("level"), force=force))
     # A live event that has stopped absorbing results is wrong in one of two ways, and the
     # gate cannot tell them apart from `end` alone, so it must not assert either: the event
     # ENDED and lost its final, freezing it live (Iasi showed live with 3 alive nine days

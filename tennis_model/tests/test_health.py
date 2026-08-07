@@ -178,14 +178,22 @@ def test_a_future_row_cannot_disable_the_fresh_overlay_freshness_gate(tmp_path, 
     print("ok test_a_future_row_cannot_disable_the_fresh_overlay_freshness_gate")
 
 
-def test_fresh_overlay_corruption_is_reported():
+def test_fresh_overlay_corruption_is_noted_but_does_not_page():
+    """Visible, not alarming. The row is already handled three ways by the time it reaches
+    here (repaired where topology proves the year, dropped otherwise, and excluded from the
+    age signal beside it), and the daily full run reds on ANY problem no matter what the
+    hourly dedup says — so raising one would page every morning forever about an upstream
+    typo nobody on this side can edit. That standing-red trap is already in the lessons."""
     rows = health.source_checks("wta", dict(_h(), fresh_future_date_max="2029-07-20"),
                                 pd.Timestamp("2026-08-07"))
     hit = next(r for r in rows if r["key"] == "fresh_future")
-    assert not hit["ok"] and "2029-07-20" in hit["problem"], hit
+    assert "2029-07-20" in hit["note"], hit
+    assert hit["ok"] and hit["problem"] is None, "must not red the daily run"
+    assert health.problems("wta", dict(_h(), fresh_future_date_max="2029-07-20"),
+                           pd.Timestamp("2026-08-07")) == []
     clean = health.source_checks("wta", _h(), pd.Timestamp("2026-08-07"))
-    assert next(r for r in clean if r["key"] == "fresh_future")["ok"]
-    print("ok test_fresh_overlay_corruption_is_reported")
+    assert next(r for r in clean if r["key"] == "fresh_future")["note"] is None
+    print("ok test_fresh_overlay_corruption_is_noted_but_does_not_page")
 
 
 def test_problems_fresh_is_clean():
@@ -1663,6 +1671,31 @@ def test_output_stale_live_event_severity_follows_the_event_tier():
                               end="2026-07-08")]
     assert not any("last played" in p for p in health.output_problems("atp", _oc(data=d2), NOW))
     print("ok test_output_stale_live_event_severity_follows_the_event_tier")
+
+
+def test_output_drawn_player_missing_from_the_feed_blocks():
+    """The gate half of the withdrawal class. Eliminations come from loser rows, so a player
+    who leaves without losing is invisible to every other check — Auger-Aliassime shipped as
+    Toronto's FAVOURITE at 14.3% having never played there. The producer derives the list
+    (only it can reconcile draw spellings against the feed); the gate refuses to ship it."""
+    def _problems(level, missing):
+        d = _healthy_data()
+        d["tournaments"] = [dict(d["tournaments"][0], name="Toronto", status="live",
+                                 level=level, champion=None, drawnNotInField=missing)]
+        return [p for p in health.output_problems("atp", _oc(data=d), NOW)
+                if "no longer lists" in p]
+
+    hits = _problems("Masters 1000", ["Felix Auger-Aliassime"])
+    assert hits and "Felix Auger-Aliassime" in hits[0], hits
+    assert health._gate_blocks(hits[0]), "a marquee board must not ship a phantom entrant"
+    assert not _problems("Masters 1000", []), "a clean draw is silent"
+    # Absent key = a build from before this shipped; it must not read as a problem.
+    d = _healthy_data()
+    d["tournaments"] = [dict(d["tournaments"][0], status="live", champion=None)]
+    d["tournaments"][0].pop("drawnNotInField", None)
+    assert not [p for p in health.output_problems("atp", _oc(data=d), NOW)
+                if "no longer lists" in p]
+    print("ok test_output_drawn_player_missing_from_the_feed_blocks")
 
 
 def test_output_live_event_with_a_stalled_results_feed_blocks():

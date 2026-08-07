@@ -620,9 +620,17 @@ def test_prestart_upcoming_projection_from_wiki():
     print("ok test_prestart_upcoming_projection_from_wiki")
 
 
-@pytest.mark.parametrize(("tour", "expected"), [("atp", "Toronto"), ("wta", "Montreal")])
+@pytest.mark.parametrize(("tour", "expected"), [("atp", "Montreal"), ("wta", "Toronto")])
 def test_canadian_masters_uses_familiar_city_name(tour, expected):
-    """The shared ESPN sponsor title must not leak into either tour's public card."""
+    """The shared ESPN sponsor title must not leak into either tour's public card — and each
+    tour must get the city it actually played in.
+
+    This test asserted the mapping the other way round until 2026-08-07, which is how the
+    men's board came to be labelled Toronto for an event held in Montreal (IGA Stadium) and
+    the women's Montreal for one held in Toronto (Sobeys Stadium). The feed cannot arbitrate:
+    ESPN reports "Toronto, Canada" as the venue for BOTH tours under the shared id 421-2026.
+    The two cities swap every year, so this pair is a fact about 2026 specifically — check the
+    venues before adding 2027 rather than copying these down."""
     wd = {"slots": [f"P{i}" for i in range(16)], "bestOf": 3,
           "start": "2026-08-02", "end": "2026-08-14"}
     t = project_upcoming(
@@ -845,6 +853,54 @@ def test_a_lucky_loser_takes_the_slot_and_plays_the_match(monkeypatch):
     assert slot["winner"] == "b" and slot["score"] == "6-4 6-4", slot
     assert slot["score"] != "W/O", "a played match must never be recorded as a walkover"
     print("ok test_a_lucky_loser_takes_the_slot_and_plays_the_match")
+
+
+def _field_board(monkeypatch, field, withdrawals=None):
+    """An 8-slot live draw P0..P7 against an ESPN field, so the two can disagree."""
+    from tennis_model.sim import tournaments as tournament_module
+    monkeypatch.setattr(tournament_module, "EVENT_WITHDRAWN_PLAYERS",
+                        {"atp": {"421-2026": withdrawals or {}}, "wta": {}})
+    g = pd.DataFrame([dict(tourney_name="Test Open", date=pd.Timestamp("2026-08-03"),
+                           round="QF", winner_name="P2", loser_name="P3", score="6-2 6-2",
+                           surface_b="Hard", best_of=3, tourney_level="M")])
+    return project_tournament(
+        _PRED, "Test Open", g, "atp", known=set(), top_set=None,
+        espn_fields={"Test Open": {"field": field, "eliminated": ["P3"]}},
+        resolve=lambda n: n, matchups=[],
+        tournament_draw={"slots": [f"P{i}" for i in range(8)], "bestOf": 3},
+        espn_id="421-2026", n_sims=200, seed=1)
+
+
+def test_a_drawn_player_the_feed_has_dropped_is_reported():
+    """The signal that would have caught Auger-Aliassime on day one without anyone noticing
+    the board. A withdrawal writes no loser row, so the ONLY trace it leaves is that the feed
+    stops listing the player while the released draw still does."""
+    full = [f"P{i}" for i in range(8)]
+    clean = _field_board(pytest.MonkeyPatch(), full)
+    assert clean["drawnNotInField"] == [], clean["drawnNotInField"]
+
+    # P0 gone from the field, a replacement in their place: same size, one name swapped.
+    gone = _field_board(pytest.MonkeyPatch(), [f"P{i}" for i in range(1, 8)] + ["P9"])
+    assert gone["drawnNotInField"] == ["P0"], gone["drawnNotInField"]
+    print("ok test_a_drawn_player_the_feed_has_dropped_is_reported")
+
+
+def test_an_explained_withdrawal_is_not_reported_twice():
+    """Once it is in the config the board is already correct, so re-flagging it would be a
+    permanent red the operator can do nothing about."""
+    out = _field_board(pytest.MonkeyPatch(), [f"P{i}" for i in range(1, 8)] + ["P9"],
+                       withdrawals={"P0": "P9"})
+    assert out["drawnNotInField"] == [], out["drawnNotInField"]
+    assert "P0" not in {p["name"] for p in out["projection"]}
+    print("ok test_an_explained_withdrawal_is_not_reported_twice")
+
+
+def test_a_short_field_indicts_nobody():
+    """A feed that briefly under-reports must not make every player it omitted look withdrawn
+    — that error removes REAL players from the board, which is worse than the bug it chases."""
+    out = _field_board(pytest.MonkeyPatch(), ["P1", "P2", "P3"])
+    assert out["drawnNotInField"] == [], out["drawnNotInField"]
+    print("ok test_a_short_field_indicts_nobody")
 
 
 def test_withdrawals_are_scoped_to_their_own_event_id(monkeypatch):

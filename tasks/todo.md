@@ -3551,7 +3551,8 @@ The stopgap only taught the first one about withdrawals. Fix is small and contai
 the opponent — but it is a second decision about the same mechanism, so it belongs with the
 "how to go forward" call rather than in another hotfix.
 
-- [ ] Teach `bracket_rounds` about withdrawals so the draw view and the odds agree.
+- [x] Teach `bracket_rounds` about withdrawals so the draw view and the odds agree. (a8f7dd7 — and
+      the answer turned out to be a lucky-loser substitution, not a walkover.)
 
 ## Complete the withdrawal fix + sweep for other breakage (2026-08-07)
 
@@ -3602,8 +3603,43 @@ pushed branch `alias-proposer/30807596234` has sat unnoticed since.
 - [x] Fall back to a `::warning::` naming the compare URL, and exit 0. Proposals are only
       unannounced when this happens, never lost. Test asserts it stays green, still never
       calls `gh pr merge`, and names the branch.
-- [ ] **Needs the owner, not code**: Settings -> Actions -> General -> "Allow GitHub Actions to
+- [x] **Needs the owner, not code**: Settings -> Actions -> General -> "Allow GitHub Actions to
       create and approve pull requests" is off (`can_approve_pull_request_reviews: false`).
       Until it is on, the proposer can push but not open the PR. The two proposals waiting on
       `alias-proposer/30807596234` are Digvijaypratap Singh -> Digvijay Pratap Singh and
       Christopher Oconnell -> Christopher O'Connell.
+
+## Clear the remaining live-round backlog (2026-08-07)
+
+Everything still open at the tail. The older unchecked boxes further up this file belong to
+rounds that closed with their own Review sections — this is an append-only log, not a queue.
+
+- [x] **Toronto/Montreal display labels were swapped.** ATP `421-2026` read "Toronto" and WTA
+      `421-2026` read "Montreal"; 2026 is men's Montreal (IGA Stadium) / women's Toronto
+      (Sobeys Stadium). ESPN cannot arbitrate — it reports "Toronto, Canada" for BOTH tours
+      under the shared id, which is why the override table exists at all. The provider ids
+      already agreed with the corrected labels (WTA 806 IS the Toronto edition). An existing
+      test asserted the inverted pair, so it was pinned wrong rather than unpinned; updated
+      with the evidence and a warning that the cities swap every year.
+- [x] **Gate half: a drawn entrant the feed no longer lists.** `drawnNotInField` is derived in
+      the PRODUCER, not the gate, because the two sides are only comparable after
+      `_reconcile_draw_names` — a gate re-deriving it from raw files would rediscover exactly
+      the spelling noise that already resolved. Tier-aware, so a Masters board blocks. Guarded
+      against a feed that under-reports (a short field indicts nobody), since wrongly removing
+      a REAL player is worse than the bug it chases. Absent key reads clean, so a build from
+      before this ships does not fail the gate.
+- [x] **Regression I caused and the guard for it.** Editing `open-alias-pr.sh` dropped its
+      executable bit (100755 -> 100644) and the very dispatch meant to prove the PR fix worked
+      died with exit 126, "Permission denied". Nothing local catches this: it still runs under
+      `bash x.sh`, and `git diff` shows only the content change. Restored, and a test now
+      discovers which scripts a workflow invokes WITHOUT an interpreter and asserts their git
+      index mode — `open-alias-pr.sh` is the only one, the rest run as `bash <path>`.
+
+### Deliberately not done
+
+- The hand-maintained withdrawal list stays. `drawnNotInField` now turns that class from a
+  silent three-day wrong board into an alert on the next refresh, and adding the config entry
+  after it fires takes a minute. Deriving the substitution automatically is the part that can
+  go wrong in the dangerous direction — a draw name the feed spells differently is
+  indistinguishable from a genuine withdrawal by absence alone, and guessing wrong deletes a
+  live player from the board. Detection automated, mutation still explicit and auditable.

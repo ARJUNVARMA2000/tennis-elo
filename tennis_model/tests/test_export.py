@@ -410,7 +410,7 @@ def test_build_upcoming_preserves_stable_event_id(monkeypatch):
     monkeypatch.setattr(upcoming, "enrich_upcoming", lambda *args: enriched)
 
     rows = export.build_upcoming(object(), pd.DataFrame(), "atp")
-    assert rows[0]["event"] == "Toronto"
+    assert rows[0]["event"] == "Montreal"   # ATP 421-2026 is the Montreal edition
     assert rows[0]["espnId"] == "421-2026"
 
 
