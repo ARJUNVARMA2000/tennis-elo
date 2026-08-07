@@ -3478,4 +3478,40 @@ and `if not df.empty:` leaves the stale `live.csv` in place.
       for all-queries-failed, single-bad-query, genuinely-empty, and the host lock. Both new tests
       verified to fail against the pre-fix code. Fires on exactly Toronto + WTA Warsaw across both
       shipped 08-07 payloads and nothing else.
-- [ ] Full Python suite + Ruff, then deploy and verify the recovered board drops Zverev.
+- [x] Full Python suite + Ruff, then deploy and verify the recovered board drops Zverev.
+
+### Review
+
+- `d09cea0` deployed via run `31144695662` (tests 55s/51s, refresh 15m59s, all green). Live
+  verification at `2026-08-07T03:47:24Z`: ATP `dataThrough` 08-04 -> **2026-08-07**, `result_age`
+  3d -> **0d** on both tours, health `ok=true` with zero source and output problems, 284,162
+  matches. Toronto now reads 25 alive of 96 with `end=2026-08-07`; **Zverev and Medvedev are off
+  the board.** The reported symptom is gone.
+- The host swap was the whole repair — 28/28 queries were failing, so nothing downstream was
+  wrong. Worth noting the 403 reproduces from a laptop too, so this was never CI-specific and a
+  local check would have caught it at any point in the three days.
+- Deliberately did NOT add the per-live-bracket invariant I planned. `HEALTH_MAX_LIVE_EVENT_AGE_DAYS`
+  already asserted it on the same `end` field; a second predicate at a different threshold would
+  have been two gates disagreeing about one question. Tightening the existing one 3 -> 2 makes it
+  match the rationale its own commit gave.
+
+### Follow-up found while verifying — withdrawals never eliminate anyone
+
+Felix Auger-Aliassime is now the Toronto **favourite at 14.3%**, and he withdrew before hitting a
+ball (back injury in practice, ~2h before his opener on 08-05). This is a DIFFERENT root cause
+from the stale feed and survived the fix:
+
+- Eliminations are derived from completed matches, i.e. from losses. A player who withdraws never
+  produces a loser row, so nothing can ever eliminate them and they stay alive forever.
+- The bracket's ordered draw comes from the official ATP PDF (`drawSource: atp`, `421`) published
+  before the withdrawal; his `R128` slot is a bye and his `R64` vs Titouan Droguet still carries
+  `winner=None`. Droguet meanwhile advanced on the walkover and has already played round 3.
+- The signal to fix it is present and already downloaded: ESPN's field for `421-2026` lists 96
+  players and FAA is **not among them**, nor among the 72 eliminated. So "in the ordered draw but
+  absent from the live field" is derivable today.
+- Both gates are blind to it. The stale-live check now passes (`end` is current), and nothing
+  asserts that a bracket's alive set is a subset of the live field. That invariant is the gate
+  half of this fix.
+
+- [ ] Resolve a withdrawn player to a walkover loss so the draw advances their opponent, and add
+      the alive-set-subset-of-field invariant plus its test.
