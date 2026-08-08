@@ -16,7 +16,6 @@ import {
   contentTypeOk,
   extractHashedAsset,
   isAbsoluteOnOrigin,
-  freshnessOk,
   coverageProblems,
   extractOgImage,
   extractCanonical,

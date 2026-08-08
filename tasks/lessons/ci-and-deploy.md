@@ -210,3 +210,11 @@ Indexed in [`../lessons.md`](../lessons.md).
   does not mean leave completed checkboxes open. When a round finishes, mark every completed
   item `[x]`, then append the dated review. Otherwise the durable log presents finished work as
   an active backlog and makes the live tail ambiguous.
+
+- **`tee` masks the command it is logging unless the workflow enables `pipefail`.** (2026-08-08)
+  The live verifier correctly found that the deployed health artifact reported `ok=false`, but
+  `node ... | tee ...` returned `tee`'s zero status, so GitHub marked the verifier successful and
+  the deploy-health alert reported success. The workflow now sets `pipefail`, while the verifier
+  itself checks serving/freshness separately from the data-health report that has its own alert
+  step. **How to apply:** every logged pipeline needs an explicit exit-status contract and a
+  regression that asserts the workflow preserves the producer command's failure.

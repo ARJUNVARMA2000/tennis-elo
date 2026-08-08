@@ -234,3 +234,12 @@ Indexed in [`../lessons.md`](../lessons.md).
   signal and report the excluded rows as their own problem — otherwise fixing the age just
   buries the corruption. And when a guard drops bad data at ingest, the check that was meant
   to catch that same class must read the RAW source, not the guarded output.
+
+- **A recency timestamp needs provenance, not a more generous threshold.** (2026-08-08) The
+  ongoing Challenger feed stamped Hagen's R32, R16 and quarterfinal rows with the tournament
+  start date, so the card looked five days idle while the event was progressing. Raising the
+  two-day limit would have weakened the watchdog for real match-dated cards. The projector now
+  carries `dateBasis` into the output and the health check skips only a proven start-date basis;
+  absent/legacy markers stay fail-closed on the existing check. **How to apply:** a date is not
+  a fact until its source semantics survive into the consumer that interprets it; put the
+  exception at the producer and test both the exception and the ordinary path.

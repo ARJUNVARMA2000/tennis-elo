@@ -933,6 +933,9 @@ def test_date_basis_detects_a_tournament_stamped_feed():
     assert _date_basis(mk([("2026-08-03", "R32"), ("2026-08-04", "R16")])) == "match"
     # One round on one day is an ordinary day of play, not a stamp.
     assert _date_basis(mk([("2026-08-03", "R32")] * 8)) == "match"
+    lower_one_round = mk([("2026-08-03", "R32")] * 8)
+    lower_one_round["draw_level"] = "chall"
+    assert _date_basis(lower_one_round) == "start"
     assert _date_basis(pd.DataFrame()) == "match"
     print("ok test_date_basis_detects_a_tournament_stamped_feed")
 

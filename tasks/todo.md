@@ -3717,3 +3717,14 @@ overall data-health flag and its `tee` pipeline masks a non-zero verifier exit f
   the verifier log pipeline.
 - Verification: 187 Python tests passed; 215 web tests passed; web lint passed with 13 existing
   React hook warnings and no errors.
+
+### Review addendum (2026-08-08)
+
+- The implementation was tightened so lower-tier `draw_level=chall` provenance earns the
+  `dateBasis: "start"` exemption when its rows share one date; legacy repeated-round frames
+  retain the structural fallback, and mixed observed dates remain match-dated.
+- Re-run verification: 553 Python tests passed; 215 web tests passed; Ruff, Node syntax checks,
+  and `git diff --check` passed. `npm run lint` exited 0 with the same 13 existing warnings.
+- The local `health --gate` blocked the cached local snapshot on stale Toronto and Montreal
+  cards (and warned on Warsaw); that cache predates the current Hagen data and is not a
+  regression in this fix.

@@ -41,6 +41,7 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 ## Gates & health checks — [`lessons/gates-and-health.md`](lessons/gates-and-health.md)
 
+- A recency timestamp needs provenance; a tournament-start stamp is not a last-match date, so carry the basis into the card and exempt only proven start-date feeds. (2026-08-08)
 - A recency gate reads a MAX, so one corrupt future row disables it permanently — and sanitising at ingest blinds the paired corruption check. (2026-08-07)
 - Freshness that only a per-EVENT check can see must not be left to a tour-wide aggregate — and when you write the limit down, check it against the sentence you justified it with. (2026-08-06)
 - A model-population exclusion must not erase factual event lifecycle evidence; preserve an exact
@@ -62,6 +63,7 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 ## CI, alerts & deploy — [`lessons/ci-and-deploy.md`](lessons/ci-and-deploy.md)
 
+- `tee` masks a failed verifier unless the workflow uses `pipefail`; test the pipeline's exit-status contract, not only the logged output. (2026-08-08)
 - A pre-push verification set must include the workflow's exact linter, not only tests and the
   domain gate; otherwise CI becomes the first place formatting is exercised. (2026-08-04)
 - Append-only task history still needs explicit completion state: check finished items before

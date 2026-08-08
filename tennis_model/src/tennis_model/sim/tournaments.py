@@ -514,7 +514,7 @@ def _reconcile_draw_names(slots: list, pool: list, resolve) -> dict:
     return canon
 
 
-def _date_basis(main: pd.DataFrame) -> str:
+def _date_basis(g: pd.DataFrame) -> str:
     """Whether this event's rows carry MATCH dates or one tournament stamp.
 
     Some feeds date every row with the tournament start. TML's in-progress Challenger file
@@ -523,15 +523,20 @@ def _date_basis(main: pd.DataFrame) -> str:
     stale-live check. Nothing is wrong with the event — the dates simply do not mean what
     that check assumes.
 
-    Derived from the rows rather than plumbed through from the source, because it is provable
-    on its face: sequential knockout rounds cannot share a calendar day, so two or more rounds
-    on exactly one date is a tournament stamp by construction. Note the frozen archive stamps
-    start dates the same way; that is harmless, because only LIVE events are aged.
+    Lower-tier provenance is explicit when the loader has stamped ``draw_level=chall``. When
+    that column is absent in a legacy/test frame, the repeated-round shape is the conservative
+    fallback: sequential knockout rounds cannot normally share a calendar day, so two or more
+    rounds on one date are a tournament stamp by construction. Mixed-source Challenger cards
+    with genuinely different observed dates stay on the match-date check.
     """
-    if main.empty or not {"date", "round"}.issubset(main.columns):
+    dates = g["date"].dropna().unique() if "date" in g.columns else []
+    if "draw_level" in g.columns:
+        levels = set(g["draw_level"].dropna().astype(str).str.strip().str.lower())
+        if levels == {"chall"} and len(dates) == 1:
+            return "start"
+    if g.empty or not {"date", "round"}.issubset(g.columns):
         return "match"
-    dates = main["date"].dropna().unique()
-    rounds = main["round"].dropna().astype(str).str.upper()
+    rounds = g["round"].dropna().astype(str).str.upper()
     rounds = {r for r in rounds if r in _KO_ROUNDS}
     return "start" if len(dates) == 1 and len(rounds) >= 2 else "match"
 
@@ -812,6 +817,7 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
                 "bestOf": best_of,
                 "start": str(g["date"].min().date()),
                 "end": str(g["date"].max().date()),
+                "dateBasis": _date_basis(g),
                 "status": "completed",
                 "drawStatus": "final",
                 "espnId": espn_id,
@@ -869,7 +875,7 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
     return {
         "name": display_name, "surface": surface, "level": level, "bestOf": best_of,
         "start": str(g["date"].min().date()), "end": str(g["date"].max().date()),
-        "dateBasis": _date_basis(main),
+        "dateBasis": _date_basis(g),
         "status": "completed" if completed else "live", "drawStatus": draw_state,
         "espnId": espn_id, "surfaceSource": surface_src,
         # False on a completed card means "the calendar says it is over, but the final never

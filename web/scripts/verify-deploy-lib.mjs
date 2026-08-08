@@ -89,7 +89,7 @@ export function freshnessOk(live, expected) {
  * @param {string|null|undefined} expected
  */
 export function healthArtifactOk(health, expected) {
-  return Boolean(health && typeof health === "object"
+  return Boolean(health && typeof health === "object" && !Array.isArray(health)
     && freshnessOk(health.generatedAt, expected));
 }
 
