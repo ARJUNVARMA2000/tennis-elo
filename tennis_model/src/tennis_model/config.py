@@ -584,6 +584,12 @@ EVENT_DISPLAY_NAME_OVERRIDES: dict[str, dict[str, str]] = {
     },
 }
 
+# Above this many drawn players missing from a live field, assume the FEED is broken rather
+# than that the tournament emptied out, and derive nothing. Real withdrawals are a trickle —
+# Toronto and Warsaw each had exactly one — while a feed that briefly under-reports drops them
+# in bulk, and acting on that would delete real contenders from the board.
+MAX_DERIVED_WITHDRAWALS = 4
+
 # Players who left an event WITHOUT losing a match, mapped to whoever took their slot.
 # Eliminations are derived from loser rows, so a withdrawal produces no evidence anything
 # can act on: the player sits in the released ordered draw with an unplayed match forever,
@@ -604,18 +610,15 @@ EVENT_DISPLAY_NAME_OVERRIDES: dict[str, dict[str, str]] = {
 # event carries the replacement and drops the withdrawn player, so both the substitution and
 # the walkover are derivable without a hand-maintained list. Keyed by ESPN edition id, never
 # by name — see the events-join rule in AGENTS.md.
+# EMPTY IS THE EXPECTED STATE. `sim/tournaments._derive_withdrawals` now works this out from
+# evidence, and was checked against both cases that used to be listed here: it reproduces
+# Auger-Aliassime -> Jaime Faria at Toronto and Jeline Vandromme -> Marcelina Podlinska at
+# Warsaw with this table empty. An entry belongs here only when the evidence genuinely cannot
+# settle a case — two candidates that both fit, or a replacement whose results never joined —
+# and `drawnNotInField` will name the event and player when that happens.
 EVENT_WITHDRAWN_PLAYERS: dict[str, dict[str, dict[str, str | None]]] = {
-    "atp": {
-        "421-2026": {"Felix Auger-Aliassime": "Jaime Faria"},
-    },
-    "wta": {
-        # Found by the drawnNotInField check within one refresh of it shipping, rather than
-        # by anyone looking at the board. Vandromme has no result row anywhere in the event,
-        # Podlinska is the only name in the feed's field that is absent from the draw, and
-        # Podlinska's single match was against Valdmannova — who is exactly the occupant of
-        # the slot next to Vandromme's. Substitution, on three independent agreeing signals.
-        "961-2026": {"Jeline Vandromme": "Marcelina Podlinska"},
-    },
+    "atp": {},
+    "wta": {},
 }
 
 

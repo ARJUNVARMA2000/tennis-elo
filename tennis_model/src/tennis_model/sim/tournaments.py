@@ -25,7 +25,12 @@ import json
 
 import pandas as pd
 
-from ..config import EVENT_CALENDAR_COMPLETE_GRACE_DAYS, EVENT_WITHDRAWN_PLAYERS, live_dir
+from ..config import (
+    EVENT_CALENDAR_COMPLETE_GRACE_DAYS,
+    EVENT_WITHDRAWN_PLAYERS,
+    MAX_DERIVED_WITHDRAWALS,
+    live_dir,
+)
 from ..data.event_coverage import cached_draw_identity_aliases
 from ..data.events import EventResolver, display_event_name, is_event_id, load_registry
 from ..data.results import _name_key
@@ -509,6 +514,68 @@ def _reconcile_draw_names(slots: list, pool: list, resolve) -> dict:
     return canon
 
 
+def _slot_result_joins(slots: list, results: list, pos: int, player: str) -> bool:
+    """Would ``player``, seated in slot ``pos``, actually play a RECORDED match there?
+
+    The corroboration, and the whole reason this can be derived at all. A replacement does
+    not merely appear in the field — they inherit a specific position and play whoever that
+    position owed. Seating a candidate and folding the real draw either reproduces a scored
+    result or it does not, which is a far stronger claim than "this name is new".
+    A scored match is required: a round-0 bye also sets a winner, and advancing through an
+    empty slot proves nothing about identity.
+    """
+    trial = list(slots)
+    trial[pos] = player
+    for rnd in bracket_rounds(trial, results):
+        for m in rnd["matches"]:
+            if player in (m.get("a"), m.get("b")) and m.get("winner") and m.get("score"):
+                return True
+    return False
+
+
+def _derive_withdrawals(slots: list, field: set, results: list) -> tuple[dict, list]:
+    """Infer who left a live draw without losing -> ``({player: replacement or None}, unresolved)``.
+
+    Eliminations come from loser rows, so a withdrawal is invisible to every ordinary signal;
+    the one trace it leaves is that the feed stops listing a player the released draw still
+    names. Absence ALONE is not enough to act on — a name the draw and the feed spell
+    differently looks identical — so nobody is removed here without positive evidence of what
+    replaced them:
+
+      * someone in the feed's field who is absent from the draw, and who plays a recorded
+        match from the vacated slot (:func:`_slot_result_joins`). Note this is right under
+        BOTH readings: a genuine lucky loser belongs in that slot, and a spelling split means
+        the feed's version is the one the results already use.
+      * or, when the field brought in nobody at all, a walkover — the opponent was awarded
+        the match and no replacement was ever admitted.
+
+    Anything else is returned UNRESOLVED rather than guessed, because the failure direction
+    matters: wrongly removing a live player deletes a real contender from the board, which is
+    worse than the phantom it was chasing. Mass absence is treated as a broken feed, not as a
+    tournament that emptied out.
+    """
+    drawn = {s for s in slots if s is not None and is_real(s)}
+    played = {r.get(k) for r in results for k in ("winner_name", "loser_name")}
+    absent = sorted((drawn - field) - played)     # drawn, dropped by the feed, never played
+    if not absent or len(absent) > MAX_DERIVED_WITHDRAWALS:
+        return {}, absent
+    extra = sorted((field - drawn) - {None})
+    if not extra:
+        # Nobody entered, so nobody was replaced: every absentee is a walkover.
+        return dict.fromkeys(absent), []
+    derived: dict = {}
+    unresolved: list = []
+    for gone in absent:
+        pos = slots.index(gone)
+        taken = set(derived.values())
+        hits = [r for r in extra if r not in taken and _slot_result_joins(slots, results, pos, r)]
+        if len(hits) == 1:
+            derived[gone] = hits[0]
+        else:
+            unresolved.append(gone)               # none corroborates, or several do
+    return derived, unresolved
+
+
 def _withdrawn_at(tour: str, espn_id: str | None, resolve=None) -> dict:
     """Configured withdrawals for one event as ``{player: replacement or None}``.
 
@@ -594,6 +661,7 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
     withdrawals = _withdrawn_at(tour, espn_id, resolve)
     walkovers = {gone for gone, repl in withdrawals.items() if not repl}
     eliminated = eliminated | walkovers
+    unresolved_absent: list = []
     # Which configured names this event actually recognised. Membership in the FINAL
     # field_pool cannot answer that: after a substitution the withdrawn player is legitimately
     # gone from it, which is indistinguishable from a name that matched nothing at all.
@@ -622,6 +690,27 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
         # `or slot` matters: a walkover entry maps to None, and that must LEAVE the player in
         # their slot (eliminated, so the opponent is awarded the W/O) rather than blank it
         # into a bye, which would silently redraw the bracket.
+        # Derive first, then let config override. The list stays as an escape hatch for the
+        # cases evidence cannot settle — it is no longer the mechanism, and an empty one is
+        # now the expected state rather than a gap.
+        if not completed and ef:
+            rcols = [c for c in ("winner_name", "loser_name", "score", "round")
+                     if c in main.columns]
+            derived, unresolved_absent = _derive_withdrawals(
+                resolved_draw_slots, {resolve(n) for n in ef.get("field", [])},
+                main[rcols].to_dict("records") if not main.empty else [])
+            for gone, repl in derived.items():
+                if gone not in withdrawals:
+                    print(f"  tournaments/{tour}: {name!r} derived withdrawal {gone!r}"
+                          + (f" -> {repl!r}" if repl else " (walkover)"))
+            withdrawals = {**derived, **withdrawals}
+            walkovers = {gone for gone, repl in withdrawals.items() if not repl}
+            eliminated = eliminated | walkovers
+            # An absence the config already answers is not unresolved. The override exists
+            # precisely for the cases evidence cannot corroborate, so re-flagging those would
+            # make using it a permanent red — the thing the operator did right.
+            unresolved_absent = [p for p in unresolved_absent if p not in withdrawals]
+
         withdrawal_hits |= {s for s in resolved_draw_slots if s} & set(withdrawals)
         resolved_draw_slots = [(withdrawals.get(slot) or slot) if slot else None
                                for slot in resolved_draw_slots]
@@ -661,13 +750,14 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
     # bugs, and neither leaves any other trace. Derived HERE, not in the gate: the two sides
     # are only comparable after `_reconcile_draw_names`, so a gate re-deriving it from the raw
     # files would just rediscover the spelling noise this already resolved.
-    drawn_not_in_field: list = []
-    if not completed and resolved_draw_slots is not None and ef and resolve:
-        espn_field = {resolve(n) for n in ef.get("field", [])}
-        # Only judge against a field that plausibly covers the draw; a feed that briefly
-        # under-reports would otherwise indict every player it happened to omit.
-        if len(espn_field) >= len(field_pool):
-            drawn_not_in_field = sorted((field_pool - espn_field) - set(withdrawals))
+    # What derivation could NOT explain. A resolved withdrawal is no longer reported — the
+    # board is already correct and a permanent red would say otherwise — so this is now the
+    # narrow residue: absent, never played, and no candidate whose results corroborate taking
+    # the slot. Mass absence is excluded on purpose; that is a broken feed rather than a
+    # tournament that emptied out, "these 40 players withdrew" would be the wrong sentence,
+    # and wrongly removing real players is the failure direction that actually costs.
+    drawn_not_in_field = ([] if len(unresolved_absent) > MAX_DERIVED_WITHDRAWALS
+                          else unresolved_absent)
 
     still_in = field_pool - eliminated
     alive = {champ} if (completed and champ) else still_in

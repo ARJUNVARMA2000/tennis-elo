@@ -17,6 +17,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
+from tennis_model.config import MAX_DERIVED_WITHDRAWALS
 from tennis_model.sim.bracket import is_real
 from tennis_model.sim.tournaments import (
     _dedup_by_display_name,
@@ -901,6 +902,88 @@ def test_a_short_field_indicts_nobody():
     out = _field_board(pytest.MonkeyPatch(), ["P1", "P2", "P3"])
     assert out["drawnNotInField"] == [], out["drawnNotInField"]
     print("ok test_a_short_field_indicts_nobody")
+
+
+def _res(w, l, score="6-4 6-4", rnd="QF"):
+    return {"winner_name": w, "loser_name": l, "score": score, "round": rnd}
+
+
+_D8 = [f"P{i}" for i in range(8)]
+
+
+def test_derive_substitution_needs_the_replacement_to_play_the_vacated_slot():
+    """Reproduces both real cases from evidence alone. P0 is gone from the field, P9 is in
+    the field but not the draw, and P9's recorded match is against P1 — the occupant of the
+    slot beside P0's. That last part is the whole argument: a replacement does not merely
+    appear, they inherit a position and play whoever it owed."""
+    from tennis_model.sim.tournaments import _derive_withdrawals
+    field = {f"P{i}" for i in range(1, 8)} | {"P9"}
+    derived, unresolved = _derive_withdrawals(_D8, field, [_res("P1", "P9")])
+    assert derived == {"P0": "P9"} and unresolved == [], (derived, unresolved)
+    print("ok test_derive_substitution_needs_the_replacement_to_play_the_vacated_slot")
+
+
+def test_derive_refuses_an_uncorroborated_newcomer():
+    """A new name in the field that never plays from the vacated slot proves nothing. This is
+    the guard that stops a diacritic mismatch from silently rewriting a draw: real ATP/WTA
+    draws carry Molčan, Báez and Cinà, and the feed spells them without the accents."""
+    from tennis_model.sim.tournaments import _derive_withdrawals
+    field = {f"P{i}" for i in range(1, 8)} | {"P9"}
+    derived, unresolved = _derive_withdrawals(_D8, field, [_res("P2", "P3")])
+    assert derived == {} and unresolved == ["P0"], (derived, unresolved)
+    print("ok test_derive_refuses_an_uncorroborated_newcomer")
+
+
+def test_derive_calls_a_walkover_only_when_nobody_entered():
+    """No extras at all means no replacement was admitted, so the opponent was awarded it."""
+    from tennis_model.sim.tournaments import _derive_withdrawals
+    derived, unresolved = _derive_withdrawals(
+        _D8, {f"P{i}" for i in range(1, 8)}, [_res("P2", "P3")])
+    assert derived == {"P0": None} and unresolved == [], (derived, unresolved)
+    print("ok test_derive_calls_a_walkover_only_when_nobody_entered")
+
+
+def test_derive_stays_out_when_the_feed_drops_players_wholesale():
+    """Mass absence is a broken feed, not a tournament that emptied out. Acting on it would
+    delete real contenders — the one failure direction worse than the phantom it chases."""
+    from tennis_model.sim.tournaments import _derive_withdrawals
+    derived, unresolved = _derive_withdrawals(_D8, {"P6", "P7"}, [])
+    assert derived == {}, derived
+    assert len(unresolved) > MAX_DERIVED_WITHDRAWALS, unresolved
+    print("ok test_derive_stays_out_when_the_feed_drops_players_wholesale")
+
+
+def test_derive_leaves_an_ambiguous_slot_alone():
+    """Two newcomers who BOTH played the vacated slot's opponent: report, never pick. Only
+    one of them can have taken the slot, and the evidence does not say which."""
+    from tennis_model.sim.tournaments import _derive_withdrawals
+    field = {f"P{i}" for i in range(1, 8)} | {"P9", "P10"}
+    derived, unresolved = _derive_withdrawals(
+        _D8, field, [_res("P1", "P9"), _res("P1", "P10")])
+    assert derived == {} and unresolved == ["P0"], (derived, unresolved)
+    print("ok test_derive_leaves_an_ambiguous_slot_alone")
+
+
+def test_derived_withdrawal_clears_the_board_with_no_config(monkeypatch):
+    """End to end with an EMPTY override table — the state the config now ships in."""
+    from tennis_model.sim import tournaments as tournament_module
+    monkeypatch.setattr(tournament_module, "EVENT_WITHDRAWN_PLAYERS", {"atp": {}, "wta": {}})
+    rows = [dict(tourney_name="Test Open", date=pd.Timestamp("2026-08-03"), round="QF",
+                 winner_name="P1", loser_name="P9", score="6-4 6-4", surface_b="Hard",
+                 best_of=3, tourney_level="M")]
+    out = project_tournament(
+        _PRED, "Test Open", pd.DataFrame(rows), "atp", known=set(), top_set=None,
+        espn_fields={"Test Open": {"field": [f"P{i}" for i in range(1, 8)] + ["P9"],
+                                   "eliminated": ["P9"]},
+                     },
+        resolve=lambda n: n, matchups=[],
+        tournament_draw={"slots": _D8, "bestOf": 3},
+        espn_id="421-2026", n_sims=200, seed=1)
+    names = {p["name"] for p in out["projection"]}
+    assert "P0" not in names, f"derivation should have removed P0: {names}"
+    assert out["drawnNotInField"] == [], out["drawnNotInField"]
+    assert out["bracket"][0]["matches"][0]["a"] == "P9", out["bracket"][0]["matches"][0]
+    print("ok test_derived_withdrawal_clears_the_board_with_no_config")
 
 
 def test_withdrawals_are_scoped_to_their_own_event_id(monkeypatch):

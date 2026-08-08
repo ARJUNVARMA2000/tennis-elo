@@ -3657,3 +3657,35 @@ Worth noting what this says about the deliberate no-auto-derivation call above: 
 that made this safe to resolve was the ADJACENCY agreeing, not the absence. Absence alone had
 two readings and picked the right one only because a human checked which. That is the argument
 for keeping detection automatic and mutation explicit, and it survived contact with a real case.
+
+## Withdrawal detection, automated (2026-08-07)
+
+The hand-maintained list is gone; `EVENT_WITHDRAWN_PLAYERS` now ships EMPTY and
+`_derive_withdrawals` works it out from evidence. Checked against both real cases with the
+table empty: it reproduces `Auger-Aliassime -> Jaime Faria` (Toronto) and
+`Jeline Vandromme -> Marcelina Podlinska` (Warsaw) exactly.
+
+What changed my mind about doing this at all. I argued twice that absence was too ambiguous
+to act on — a name the draw and the feed spell differently looks identical to a withdrawal.
+That is still true, and it is why the rule is NOT absence. It is **the replacement plays the
+match the vacated slot owed**: seat a candidate in the slot, fold the real draw, and see
+whether a SCORED result joins. That is the same three-way agreement I checked by hand for
+Warsaw, and it is decidable from data the pipeline already has.
+
+The ambiguity I was worried about turns out not to need resolving. If the newcomer is a
+genuine lucky loser, the slot is theirs. If it is the same person spelled two ways, the feed's
+spelling is the one the results already use — so substituting is right under BOTH readings,
+and the board is correct either way. (Live data confirms both happen: WTA 1067 derived
+`Ye-Xin Ma -> Ma YeXin`, which is a spelling split, not a withdrawal.)
+
+Guards, each earning its place against real data:
+- A scored match is required. Round-0 bye advancement sets a winner too and proves nothing.
+- Exactly one corroborating candidate, or it stays unresolved. Never pick between two.
+- `MAX_DERIVED_WITHDRAWALS = 4`: above that, derive nothing. Run against the live feed with
+  raw (unreconciled) names, ATP 304 showed 13 "absences" that were all diacritics — Molčan,
+  Báez, Cinà — and the guard produced ZERO derivations, which is the whole point.
+- `drawnNotInField` now reports only the residue derivation could not explain, so a resolved
+  withdrawal is no longer a permanent red, and using the override is not either.
+
+- [x] Replace the hand-maintained list with the derived signal.
+- [x] Keep the override as an escape hatch for genuinely undecidable cases.
