@@ -286,3 +286,20 @@ Indexed in [`../lessons.md`](../lessons.md).
   about the match; check whether someone else played from that slot before awarding anything.
   A walkover must also ship unpriced — a probability for a match that never happened turns
   the winner-oriented `upset` flag into a claim about a contest nobody had.
+
+- **A resolver that is "correct under both readings" will silently absorb the OTHER bug it
+  happens to fix — build it to name what it did, and read that output.** (2026-08-08)
+  `_derive_withdrawals` substitutes a feed name into a drawn player's slot when the newcomer
+  plays the match that slot owed. That is right whether the newcomer is a lucky loser (a real
+  withdrawal) or the same person spelled differently (a name split) — which is exactly why it
+  was safe to automate, and exactly why it hides the second case. Toronto and Warsaw were
+  genuine withdrawals; WTA 1067 was `Ye-Xin Ma` / `Ma YeXin`, one player whose 7 tour-level
+  matches were rating as two people. The board looked right in all three, so nothing would
+  ever have flagged the third. It was only visible because the derivation PRINTS every
+  substitution it makes and someone read the list. **How to apply:** when a fix is valid under
+  several different diagnoses, it cannot also be the detector for which one occurred — emit
+  the decision, and route the readings that need different follow-up (here: an alias, not a
+  withdrawal) somewhere they will actually be looked at. Also worth noting the falsifier's own
+  rules make a good hand-check: same-person claims were confirmed against `played_each_other`,
+  stable ids, and record membership before touching `PLAYER_ALIASES`, rather than on the
+  strength of two spellings looking alike.

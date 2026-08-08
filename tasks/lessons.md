@@ -21,6 +21,7 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 ## Draws, rounds & live events — [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md)
 
+- A resolver that is "correct under both readings" will silently absorb the OTHER bug it happens to fix — make it name what it did, and read that output. (2026-08-08)
 - A player who leaves without losing exits in TWO ways (lucky-loser replacement vs walkover); the wrong one invents a match and erases a real one. (2026-08-07)
 - Metadata aliases and draw locators are different namespaces: one title may find the event
   article while a different provider ID/title locates its bracket. (2026-07-29)

@@ -696,6 +696,16 @@ PLAYER_ALIASES: dict[str, str] = {
     # 2026-08-07 alias-proposer: The official ATP profile uses Christopher O'Connell, and Tennis Abstract lists the same Australian player as Christopher Oconnell with matching birth-date/ranking context.
     # https://www.atptour.com/en/players/christopher-oconnell/o483/overview
     "christopher oconnell": "Christopher O'Connell",
+    # 2026-08-08: family-name-first and western order for Ma Yexin (马烨欣), CHN. Surfaced by
+    # _derive_withdrawals, which "resolved" the Memphis Classic draw by substituting the feed's
+    # spelling into the slot — correct for the board, but it was papering over a split identity
+    # rather than a withdrawal. Checked against the same rules falsify() applies: the two never
+    # played each other, carry no conflicting stable ids, and both appear in the record (5
+    # matches as the archive spelling, 2 as the reversed one). Canonical follows the archive
+    # majority, as with "zheng qinwen"; the WTA's own listing hyphenates it as "Ye-Xin Ma".
+    # https://www.wtatennis.com/players/322417/ye-xin-ma
+    # https://www.itftennis.com/en/players/yexin-ma/800439388/chn/wt/D/overview/
+    "ma yexin": "Ye Xin Ma",
 }
 
 
