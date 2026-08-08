@@ -514,6 +514,28 @@ def _reconcile_draw_names(slots: list, pool: list, resolve) -> dict:
     return canon
 
 
+def _date_basis(main: pd.DataFrame) -> str:
+    """Whether this event's rows carry MATCH dates or one tournament stamp.
+
+    Some feeds date every row with the tournament start. TML's in-progress Challenger file
+    does: on 2026-08-08 Hagen carried 28 rows across R32, R16 and QF all stamped 20260803, so
+    a live event that had reached the quarter-finals read as five days idle and tripped the
+    stale-live check. Nothing is wrong with the event — the dates simply do not mean what
+    that check assumes.
+
+    Derived from the rows rather than plumbed through from the source, because it is provable
+    on its face: sequential knockout rounds cannot share a calendar day, so two or more rounds
+    on exactly one date is a tournament stamp by construction. Note the frozen archive stamps
+    start dates the same way; that is harmless, because only LIVE events are aged.
+    """
+    if main.empty or not {"date", "round"}.issubset(main.columns):
+        return "match"
+    dates = main["date"].dropna().unique()
+    rounds = main["round"].dropna().astype(str).str.upper()
+    rounds = {r for r in rounds if r in _KO_ROUNDS}
+    return "start" if len(dates) == 1 and len(rounds) >= 2 else "match"
+
+
 def _slot_result_joins(slots: list, results: list, pos: int, player: str) -> bool:
     """Would ``player``, seated in slot ``pos``, actually play a RECORDED match there?
 
@@ -637,7 +659,6 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
                              and end_ts + pd.Timedelta(days=EVENT_CALENDAR_COMPLETE_GRACE_DAYS)
                              < dmax)
     completed = has_final or calendar_over
-
     champ = runner = None
     ef = (espn_fields or {}).get(name)
     if completed:
@@ -848,6 +869,7 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
     return {
         "name": display_name, "surface": surface, "level": level, "bestOf": best_of,
         "start": str(g["date"].min().date()), "end": str(g["date"].max().date()),
+        "dateBasis": _date_basis(main),
         "status": "completed" if completed else "live", "drawStatus": draw_state,
         "espnId": espn_id, "surfaceSource": surface_src,
         # False on a completed card means "the calendar says it is over, but the final never

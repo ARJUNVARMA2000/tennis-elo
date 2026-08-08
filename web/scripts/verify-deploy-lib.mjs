@@ -82,6 +82,18 @@ export function freshnessOk(live, expected) {
 }
 
 /**
+ * True when the deployed health artifact has a usable freshness stamp. `ok` is deliberately
+ * not part of this contract: it also carries advisory data findings that do not mean the
+ * deployed files are stale or incorrectly served.
+ * @param {object|null|undefined} health
+ * @param {string|null|undefined} expected
+ */
+export function healthArtifactOk(health, expected) {
+  return Boolean(health && typeof health === "object"
+    && freshnessOk(health.generatedAt, expected));
+}
+
+/**
  * Compare one live tournaments.json payload with the membership recorded by the same
  * freshly-built health.json. Expected keys must occur exactly once; the complete shipped
  * multiset must also match so a CDN mix of old/new per-tour files cannot pass.

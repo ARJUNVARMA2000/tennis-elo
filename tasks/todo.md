@@ -3689,3 +3689,31 @@ Guards, each earning its place against real data:
 
 - [x] Replace the hand-maintained list with the derived signal.
 - [x] Keep the override as an escape hatch for genuinely undecidable cases.
+
+## Deployment health: Challenger activity dates and verifier failures (2026-08-08)
+
+Root cause found: the ongoing lower-tier feed records every Hagen row with the tournament
+start date, including current quarterfinals. The card therefore says it was last played five
+days ago even though the feed is progressing. Separately, the live verifier requires the
+overall data-health flag and its `tee` pipeline masks a non-zero verifier exit from GitHub.
+
+- [x] Add an explicit producer-side date-basis marker for result cards whose source dates are
+      tournament starts, and preserve the existing reliable match-date basis for other cards.
+- [x] Make the live-event health check honor that marker without weakening the stale-event
+      check for reliable cards; add producer and health regressions for both paths.
+- [x] Decouple post-deploy serving verification from the data report's advisory/overall `ok`
+      flag; verify the deployed artifact's freshness and serving contract, with unit coverage.
+- [x] Make the workflow's verifier pipeline propagate the Node verifier exit status, and add a
+      workflow regression so a future `tee` change cannot mask a failed live check.
+- [x] Run focused Python and web tests plus the applicable health/deploy gates; inspect the
+      generated diff and reconcile the final review with the current Git tip.
+
+### Review
+
+- Producer cards now carry `dateBasis: "start"` only when multiple knockout rounds share one
+  source date; reliable match-dated cards remain on the full stale-live check.
+- Post-deploy verification checks the deployed `generatedAt` and serving contracts without
+  failing solely on advisory `health.json.ok` findings; `refresh.yml` uses `pipefail` around
+  the verifier log pipeline.
+- Verification: 187 Python tests passed; 215 web tests passed; web lint passed with 13 existing
+  React hook warnings and no errors.

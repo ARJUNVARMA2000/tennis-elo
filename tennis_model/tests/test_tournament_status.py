@@ -20,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from tennis_model.config import MAX_DERIVED_WITHDRAWALS
 from tennis_model.sim.bracket import is_real
 from tennis_model.sim.tournaments import (
+    _date_basis,
     _dedup_by_display_name,
     build_tournaments,
     project_tournament,
@@ -85,6 +86,19 @@ def test_status_real_partial_seeded_final_from_espn():
     fin = _project([], add_final=True)
     assert fin["status"] == "completed" and fin["drawStatus"] == "final"
     print("ok test_status_real_partial_seeded_final_from_espn")
+
+
+def test_date_basis_marks_repeated_multi_round_stamps_only():
+    """A lower-tier feed's repeated tournament stamp must not trip live staleness."""
+    repeated = _g()
+    repeated.loc[repeated.index[-1], "round"] = "R32"
+    assert _date_basis(repeated) == "start"
+    reliable = repeated.copy()
+    reliable.loc[reliable.index[-1], "date"] = pd.Timestamp("2026-08-04")
+    assert _date_basis(reliable) == "match"
+    one_round = repeated[repeated["round"] == "R64"]
+    assert _date_basis(one_round) == "match"
+    print("ok test_date_basis_marks_repeated_multi_round_stamps_only")
 
 
 def test_live_and_upcoming_tier_resolution_receive_stable_id(monkeypatch):
@@ -902,6 +916,25 @@ def test_a_short_field_indicts_nobody():
     out = _field_board(pytest.MonkeyPatch(), ["P1", "P2", "P3"])
     assert out["drawnNotInField"] == [], out["drawnNotInField"]
     print("ok test_a_short_field_indicts_nobody")
+
+
+def test_date_basis_detects_a_tournament_stamped_feed():
+    """TML's in-progress Challenger file dates every row with the tournament START. On
+    2026-08-08 Hagen carried 28 rows across R32, R16 and QF all stamped 20260803, so a live
+    event playing its quarter-finals read as five days idle. Sequential knockout rounds cannot
+    share a calendar day, which makes this provable from the rows rather than a source list."""
+    from tennis_model.sim.tournaments import _date_basis
+    mk = lambda rows: pd.DataFrame([{"date": pd.Timestamp(d), "round": r} for d, r in rows])
+
+    hagen = [("2026-08-03", "R32")] * 16 + [("2026-08-03", "R16")] * 8 \
+        + [("2026-08-03", "QF")] * 4
+    assert _date_basis(mk(hagen)) == "start"
+    # Genuine match dates keep the full-strength check.
+    assert _date_basis(mk([("2026-08-03", "R32"), ("2026-08-04", "R16")])) == "match"
+    # One round on one day is an ordinary day of play, not a stamp.
+    assert _date_basis(mk([("2026-08-03", "R32")] * 8)) == "match"
+    assert _date_basis(pd.DataFrame()) == "match"
+    print("ok test_date_basis_detects_a_tournament_stamped_feed")
 
 
 def _res(w, l, score="6-4 6-4", rnd="QF"):

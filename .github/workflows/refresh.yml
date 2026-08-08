@@ -289,6 +289,7 @@ jobs:
           VERIFY_BASE_URL: ${{ env.SITE_URL }}
           FRESH_TRIES: "18"
         run: |
+          set -o pipefail
           EXPECT=$(python -c "import json; print(json.load(open('out/data/health.json'))['generatedAt'])")
           echo "expecting live generatedAt=$EXPECT"
           EXPECT_GENERATED_AT="$EXPECT" node scripts/verify-deploy.mjs 2>&1 | tee /tmp/verify-deploy.log

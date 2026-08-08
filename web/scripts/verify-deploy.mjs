@@ -23,6 +23,7 @@ import {
   extractGoogleSiteVerification,
   sitemapCoverageProblems,
   hasProfileContract,
+  healthArtifactOk,
 } from "./verify-deploy-lib.mjs";
 
 // ---- config -----------------------------------------------------------------
@@ -184,9 +185,8 @@ await check(
       const res = await fetchT(BASE + "/data/health.json");
       const j = await res.json();
       last = j.generatedAt;
-      must(j.ok === true, `live health.json reports ok=${j.ok}`);
-      if (freshnessOk(j.generatedAt, EXPECT_GENERATED_AT)) {
-        return `generatedAt ${j.generatedAt} (ok=true)`;
+      if (healthArtifactOk(j, EXPECT_GENERATED_AT)) {
+        return `generatedAt ${j.generatedAt} (serving contract ok; data ok=${j.ok})`;
       }
       if (i < FRESH_TRIES - 1) await sleep(FRESH_DELAY_MS);
     }

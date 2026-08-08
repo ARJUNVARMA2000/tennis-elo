@@ -6,6 +6,7 @@ import {
   extractHashedAsset,
   isAbsoluteOnOrigin,
   freshnessOk,
+  healthArtifactOk,
   extractOgImage,
   extractCanonical,
   extractGoogleSiteVerification,
@@ -95,6 +96,18 @@ describe("freshnessOk", () => {
     expect(freshnessOk("2026-07-17T20:12:17Z", "")).toBe(true);
     expect(freshnessOk("", "")).toBe(false);
     expect(freshnessOk(null, undefined)).toBe(false);
+  });
+});
+
+describe("healthArtifactOk", () => {
+  it("accepts a fresh artifact even when data health has advisory findings", () => {
+    expect(healthArtifactOk({ generatedAt: "2026-07-17T20:12:17Z", ok: false },
+      "2026-07-17T20:12:17Z")).toBe(true);
+  });
+  it("rejects missing or stale artifact stamps", () => {
+    expect(healthArtifactOk({ ok: true }, "2026-07-17T20:12:17Z")).toBe(false);
+    expect(healthArtifactOk({ generatedAt: "old", ok: true },
+      "2026-07-17T20:12:17Z")).toBe(false);
   });
 });
 

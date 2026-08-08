@@ -1670,6 +1670,11 @@ def test_output_stale_live_event_severity_follows_the_event_tier():
     d2["tournaments"] = [dict(d2["tournaments"][0], status="live", champion=None,
                               end="2026-07-08")]
     assert not any("last played" in p for p in health.output_problems("atp", _oc(data=d2), NOW))
+    d3 = _healthy_data()
+    d3["tournaments"] = [dict(d3["tournaments"][0], name="Hagen", status="live",
+                              level="Challenger", champion=None, end="2026-07-01",
+                              dateBasis="start")]
+    assert not any("last played" in p for p in health.output_problems("atp", _oc(data=d3), NOW))
     print("ok test_output_stale_live_event_severity_follows_the_event_tier")
 
 
@@ -1696,6 +1701,34 @@ def test_output_drawn_player_missing_from_the_feed_blocks():
     assert not [p for p in health.output_problems("atp", _oc(data=d), NOW)
                 if "no longer lists" in p]
     print("ok test_output_drawn_player_missing_from_the_feed_blocks")
+
+
+def test_a_tournament_stamped_feed_is_exempt_but_nothing_else_is():
+    """Hagen, 2026-08-08: 28 rows across R32/R16/QF all dated 08-03, so a live event playing
+    its quarter-finals read as five days idle. `end` is the tournament's start there, and
+    ageing it measures nothing — the signal is absent, not coarse, so the check is skipped
+    rather than given a slack limit that would pretend otherwise.
+
+    The exemption is per card and must be EARNED. A card whose dates are real match dates
+    keeps the full-strength check, or one badly-dated feed would blind the invariant that
+    caught Toronto."""
+    def _problems(basis):
+        d = _healthy_data()
+        d["tournaments"] = [dict(d["tournaments"][0], name="Hagen", status="live",
+                                 level="ATP 250", champion=None, end="2026-07-04",
+                                 dateBasis=basis)]        # NOW is 2026-07-09 -> 5 idle days
+        return [p for p in health.output_problems("atp", _oc(data=d), NOW)
+                if "last played" in p]
+
+    assert not _problems("start"), "a tournament-stamped card must not be aged"
+    assert _problems("match"), "a match-dated card keeps the full-strength check"
+    # An absent key is an older build, and must NOT silently buy the exemption.
+    d = _healthy_data()
+    d["tournaments"] = [dict(d["tournaments"][0], name="Hagen", status="live",
+                             level="ATP 250", champion=None, end="2026-07-04")]
+    d["tournaments"][0].pop("dateBasis", None)
+    assert [p for p in health.output_problems("atp", _oc(data=d), NOW) if "last played" in p]
+    print("ok test_a_tournament_stamped_feed_is_exempt_but_nothing_else_is")
 
 
 def test_output_live_event_with_a_stalled_results_feed_blocks():

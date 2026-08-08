@@ -609,7 +609,14 @@ def _check_tournament(out: list, tour: str, t: dict, now: pd.Timestamp | None = 
     # that limit is 5 days and is dominated by events that have already finished, so one
     # stalled tournament never moves it. Both failures ship a board asserting that beaten
     # players are still alive, which is the thing a user actually sees.
-    if status == "live" and now is not None:
+    # `dateBasis == "start"` means the producer proved these rows carry ONE tournament stamp
+    # rather than match dates (sim/tournaments._date_basis), so `end` is the event's start and
+    # ageing it measures nothing. Hagen shipped 28 rows across R32/R16/QF all dated 08-03 and
+    # read as five days idle while it was playing its quarter-finals. Skipped rather than given
+    # a longer limit: the signal is absent, not coarse, and a slack limit would pretend
+    # otherwise. Every card whose dates ARE match dates keeps the full-strength check — the
+    # exemption has to be earned per card, or one bad feed would blind the whole invariant.
+    if status == "live" and now is not None and t.get("dateBasis") != "start":
         age = _age_days(t.get("end"), now)
         if age is not None and age > HEALTH_MAX_LIVE_EVENT_AGE_DAYS:
             out.append(_tiered(f"{tour}: live tournament {name!r} last played {age}d ago "

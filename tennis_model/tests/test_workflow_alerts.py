@@ -450,6 +450,13 @@ def test_workflow_invokes_this_script():
     assert "if: always()" in wf, "the never-ran guard only matters under if: always()"
 
 
+def test_live_verifier_pipeline_propagates_failure():
+    """tee must not turn a failed Node verifier into a green workflow step."""
+    block = next((b for n, b in _step_blocks().items() if n == "Verify live Firebase deploy"), None)
+    assert block and "set -o pipefail" in block
+    assert "node scripts/verify-deploy.mjs 2>&1 | tee /tmp/verify-deploy.log" in block
+
+
 def _run_scope(event: str, files: list[str]) -> str:
     with tempfile.TemporaryDirectory() as td:
         output = Path(td) / "output"
