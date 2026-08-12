@@ -4,6 +4,7 @@ import "./globals.css";
 import Nav from "@/components/Nav";
 import { GitHubIcon } from "@/components/bits";
 import { TourProvider } from "@/lib/tour";
+import { APP_VIEWPORT } from "@/lib/mobile";
 import { SITE_URL, SITE_VERIFICATION, WEBSITE_JSON_LD } from "@/lib/seo";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -36,7 +37,7 @@ export const metadata: Metadata = {
   },
 };
 
-export const viewport: Viewport = { themeColor: "#08090a" };
+export const viewport: Viewport = APP_VIEWPORT;
 
 const GITHUB_URL = "https://github.com/ARJUNVARMA2000/tennis-elo";
 
@@ -53,8 +54,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div className="atmosphere" />
         <TourProvider>
           <Nav />
-          <main className="mx-auto w-full max-w-[1240px] px-4 sm:px-6">{children}</main>
-          <footer className="mx-auto mt-20 w-full max-w-[1240px] border-t border-[var(--color-line)] px-4 py-8 sm:px-6">
+          <main className="safe-x mx-auto w-full max-w-[1240px]">{children}</main>
+          <footer className="safe-bottom safe-x mx-auto mt-20 w-full max-w-[1240px] border-t border-[var(--color-line)] py-8">
             <div className="flex flex-wrap items-center justify-between gap-3 text-[13px] text-[var(--color-faint)]">
               <p>
                 <span className="font-medium text-[var(--color-muted)]">Deuce</span> — hybrid Elo +

@@ -3758,3 +3758,36 @@ lost its canonical tag. The next hourly run passed unchanged and auto-closed iss
   `generatedAt` failed exactly the freshness check, proving the live gate still bites.
 - Final reconciliation: local `master` and `origin/master` both pointed to `8f542bb` before this
   review was recorded; the only worktree changes are this fix, its tests, and task/lesson logs.
+
+## Mobile native-feel hardening (2026-08-12)
+
+- [x] Extend the root viewport contract for edge-to-edge rendering and safe-area-aware chrome;
+      use dynamic/small viewport units only where they improve the full-page shell.
+- [x] Harden coarse-pointer interactions: prevent iOS input zoom, remove sticky custom hover
+      states, suppress long-press selection on controls, and give taps immediate pressed feedback
+      without interfering with keyboard focus or Framer Motion transforms.
+- [x] Keep page and horizontal-nav scrolling intentional on touch hardware: contain page
+      overscroll/pull-to-refresh, retain native horizontal panning, and account for every notch
+      inset in the header, content, and footer.
+- [x] Add focused regressions for the viewport and mobile CSS contracts, then run the relevant
+      web tests, lint, production build, and `git diff --check`; inspect the rendered mobile app
+      if a local browser target is available.
+- [x] Reconcile the completed review against the current Git tip and record verified results.
+
+### Review
+
+- The root emits `viewport-fit=cover`, an explicit dark color scheme, and matching theme chrome;
+  safe-area utilities cover the sticky header, both horizontal gutters, and the footer bottom.
+- The page shell uses `100svh` with a `100dvh` upgrade and contains browser overscroll. Touch
+  controls suppress tap flash and long-press text selection, use `touch-action: manipulation`,
+  expose immediate pressed feedback, and force form controls to 16px only on coarse pointers.
+  The two handwritten hover treatments are now limited to fine pointers; Tailwind's generated
+  hover utilities were already gated.
+- The mobile nav retains native horizontal overflow, hides its scrollbar, and contains its own
+  horizontal overscroll. At a 390×844 browser viewport it rendered without document overflow;
+  the strip exposed 1,374px of content in its 380px scrollport and scrolled independently.
+- Verification: all 222 web tests passed (including three new mobile contract regressions), lint
+  passed with the same 13 existing React-hook warnings and no errors, the production build and
+  `git diff --check` passed, and rendered QA reported no browser errors.
+- Final reconciliation: local `master` and `origin/master` both point to `3bfc541`; the worktree
+  contains only this mobile hardening, its tests, and this task log.

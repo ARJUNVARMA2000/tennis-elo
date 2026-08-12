@@ -50,9 +50,19 @@
   --shadow-pop: 0 8px 32px rgba(0, 0, 0, 0.55);
 }
 
-* { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+html {
+  min-height: 100%;
+  background: var(--color-bg);
+  scroll-behavior: smooth;
+  overscroll-behavior: none;
+}
 body {
+  min-height: 100svh;
+  min-height: 100dvh;
   background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-body);
@@ -60,7 +70,30 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overflow-x: hidden;
+  overscroll-behavior: none;
 }
+
+/* Edge-to-edge viewport padding. max() preserves the normal gutter away from a notch. */
+.safe-x {
+  padding-left: max(1rem, env(safe-area-inset-left, 0px));
+  padding-right: max(1rem, env(safe-area-inset-right, 0px));
+}
+.safe-top { padding-top: env(safe-area-inset-top, 0px); }
+.safe-bottom { padding-bottom: max(2rem, env(safe-area-inset-bottom, 0px)); }
+
+/* Buttons should feel like controls without disabling selection in readable content. */
+button, [role="button"] {
+  -webkit-user-select: none;
+  user-select: none;
+}
+a[href], button, input, select, textarea, [role="button"] { touch-action: manipulation; }
+
+.mobile-nav {
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.mobile-nav::-webkit-scrollbar { display: none; }
 
 .atmosphere {
   position: fixed; inset: 0; z-index: -1; pointer-events: none;
@@ -81,7 +114,6 @@ body {
 /* A .panel that is one big link (the projection cards' style-matchup drill-in):
    accent-tinted border on hover so the whole card reads as clickable. */
 .panel-link { transition: border-color 0.15s ease; }
-.panel-link:hover { border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-line)); }
 .panel-glow {
   border: 1px solid transparent;
   border-radius: var(--radius-lg);
@@ -94,7 +126,25 @@ body {
 
 .bartrack { background: rgba(255, 255, 255, 0.05); border-radius: 4px; overflow: hidden; }
 .row-glow { transition: background 0.2s, box-shadow 0.2s; }
-.row-glow:hover { background: rgba(255, 255, 255, 0.03); box-shadow: inset 2px 0 0 var(--color-accent); will-change: background, box-shadow; }
+
+/* Hover treatments belong only to devices that can actually hover. */
+@media (hover: hover) and (pointer: fine) {
+  .panel-link:hover { border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-line)); }
+  .row-glow:hover { background: rgba(255, 255, 255, 0.03); box-shadow: inset 2px 0 0 var(--color-accent); will-change: background, box-shadow; }
+}
+
+/* iOS zooms focused form controls below 16px. :active starts on pointer-down. */
+@media (hover: none) and (pointer: coarse) {
+  input, select, textarea { font-size: 16px; }
+  button:not(:disabled):active, a[href]:active, [role="button"]:active { opacity: 0.72; }
+}
+
+@media (min-width: 40rem) {
+  .safe-x {
+    padding-left: max(1.5rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1.5rem, env(safe-area-inset-right, 0px));
+  }
+}
 
 /* Live pulse: transform/opacity only (the old box-shadow keyframe repainted every frame). */
 @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }

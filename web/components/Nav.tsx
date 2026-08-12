@@ -130,8 +130,8 @@ export default function Nav() {
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[var(--color-line)] bg-[rgba(8,9,10,0.72)] backdrop-blur-[20px]">
-      <div className="mx-auto flex h-14 w-full max-w-[1240px] items-center gap-4 px-4 sm:px-6">
+    <header className="safe-top sticky top-0 z-50 border-b border-[var(--color-line)] bg-[rgba(8,9,10,0.72)] backdrop-blur-[20px]">
+      <div className="safe-x mx-auto flex h-14 w-full max-w-[1240px] items-center gap-4">
         <Link href={withTour("/", tour)} className="flex items-center gap-2 text-[15px] font-semibold tracking-tight">
           <span className="inline-block h-2 w-2 rounded-[2px] bg-[var(--color-accent)]" />
           Deuce
@@ -286,7 +286,7 @@ export default function Nav() {
       </div>
 
       {/* mobile: flat scrollable chip strip */}
-      <nav aria-label="Primary (mobile)" className="flex gap-1.5 overflow-x-auto border-t border-[var(--color-line)] px-4 py-2 text-[12px] text-[var(--color-muted)] lg:hidden">
+      <nav aria-label="Primary (mobile)" className="mobile-nav safe-x flex gap-1.5 overflow-x-auto border-t border-[var(--color-line)] py-2 text-[12px] text-[var(--color-muted)] lg:hidden">
         {FLAT.map(({ href, label }) => {
           const a = isActive(path, href);
           return (
