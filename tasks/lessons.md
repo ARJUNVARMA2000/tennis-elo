@@ -145,3 +145,9 @@ New lesson → append the entry to the matching topic file and add its lead line
 - A dependent check must distinguish unavailable input from invalid input; otherwise one
   transport failure cascades into fabricated diagnoses. See
   [`lessons/ci-and-deploy.md`](lessons/ci-and-deploy.md).
+
+## Firebase cache addition (2026-08-12)
+
+- Zero-age revalidation still stores CDN entries; mutable content that must always be fresh can
+  require `no-cache, no-store` to avoid stuck cache keys. See
+  [`lessons/ci-and-deploy.md`](lessons/ci-and-deploy.md).

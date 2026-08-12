@@ -64,7 +64,7 @@ export async function fetchWithRetry(url, fetchOptions = {}, retryOptions = {}) 
 /**
  * Parse a Cache-Control header value into the flags the suite cares about.
  * @param {string|null|undefined} value
- * @returns {{immutable: boolean, mustRevalidate: boolean, maxAge: number|null}}
+ * @returns {{immutable: boolean, mustRevalidate: boolean, noCache: boolean, noStore: boolean, maxAge: number|null}}
  */
 export function parseCacheControl(value) {
   const tokens = String(value || "")
@@ -76,8 +76,20 @@ export function parseCacheControl(value) {
   return {
     immutable: tokens.includes("immutable"),
     mustRevalidate: tokens.includes("must-revalidate"),
+    noCache: tokens.includes("no-cache"),
+    noStore: tokens.includes("no-store"),
     maxAge: Number.isFinite(maxAge) ? maxAge : null,
   };
+}
+
+/**
+ * Mutable HTML/data must not be stored in either browsers or Firebase's CDN. A zero-age stored
+ * response still creates a cache key and forces revalidation, which can itself become stuck.
+ * @param {string|null|undefined} value
+ */
+export function mutableCacheControlOk(value) {
+  const cc = parseCacheControl(value);
+  return cc.noCache && cc.noStore;
 }
 
 /**

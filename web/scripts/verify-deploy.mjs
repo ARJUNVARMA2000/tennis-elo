@@ -24,6 +24,7 @@ import {
   hasProfileContract,
   healthArtifactOk,
   fetchWithRetry,
+  mutableCacheControlOk,
 } from "./verify-deploy-lib.mjs";
 
 // ---- config -----------------------------------------------------------------
@@ -149,19 +150,21 @@ await check("unknown path -> 404 page", async () => {
   return "404 served";
 });
 
-await check("cache-control: data + HTML revalidate, hashed static immutable", async () => {
+await check("cache-control: mutable content not stored, hashed static immutable", async () => {
   const dataRes = await fetchT(BASE + "/data/health.json");
-  must(parseCacheControl(dataRes.headers.get("cache-control")).mustRevalidate, "data/health.json not must-revalidate");
+  const dataCc = dataRes.headers.get("cache-control");
+  must(mutableCacheControlOk(dataCc), `data/health.json can be stored (got "${dataCc}")`);
 
   const homeRes = await fetchT(BASE + "/");
-  must(parseCacheControl(homeRes.headers.get("cache-control")).mustRevalidate, "/ HTML not must-revalidate");
+  const homeCc = homeRes.headers.get("cache-control");
+  must(mutableCacheControlOk(homeCc), `/ HTML can be stored (got "${homeCc}")`);
 
   const asset = extractHashedAsset(homeHtml, "js");
   must(asset, "no hashed /_next/static js asset found in home HTML");
   const assetRes = await fetchT(BASE + asset);
   const cc = parseCacheControl(assetRes.headers.get("cache-control"));
   must(cc.immutable, `hashed asset ${asset} not immutable (got "${assetRes.headers.get("cache-control")}")`);
-  return "revalidate/immutable split correct";
+  return "no-store/immutable split correct";
 });
 
 await check("MIME: js/css/json not falling through to html", async () => {

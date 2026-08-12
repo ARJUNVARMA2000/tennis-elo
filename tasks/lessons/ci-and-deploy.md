@@ -230,3 +230,18 @@ Indexed in [`../lessons.md`](../lessons.md).
   genuinely malformed available input. **How to apply:** whenever checks share a cache, map, or
   generated intermediate, model missing provenance explicitly and regression-test both an
   exhausted prerequisite and a real dependent-contract violation.
+
+- **`max-age=0, must-revalidate` prevents staleness but still creates CDN cache keys—and a
+  stuck revalidation key can make fresh static content unavailable.** (2026-08-12, run
+  31611366363 / issue #19) After bounded retry fixed the first false diagnosis, a later run
+  exhausted two 30-second requests for `/rankings/`, `robots.txt`, and a random 404 while fresh
+  health/data/assets on the same host passed. The behavior reproduced locally on both IPv4 and
+  IPv6: a bare path returned no bytes until timeout, while the same path with a unique query
+  returned immediately. Firebase documents hostname + path + query as cache identity and
+  `no-cache, no-store` as the static-content non-storage policy. The old catch-all therefore
+  paid the availability risk of stored entries without gaining a freshness window: shared
+  caches inherited `max-age=0` and had to revalidate every request. Fix: mutable HTML/data use
+  `no-cache, no-store`; only content-hashed `/_next/static/**` remains immutable. The live gate
+  probes bare user-facing URLs and asserts the deployed split, so query cache-busting cannot
+  conceal a real outage. **How to apply:** if content must be fresh on every request, decide
+  explicitly whether it should be stored at all; zero TTL and no storage are not equivalent.

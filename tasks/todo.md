@@ -3791,3 +3791,33 @@ lost its canonical tag. The next hourly run passed unchanged and auto-closed iss
   `git diff --check` passed, and rendered QA reported no browser errors.
 - Final reconciliation: local `master` and `origin/master` both point to `3bfc541`; the worktree
   contains only this mobile hardening, its tests, and this task log.
+
+## Firebase stuck cache keys / deploy-health issue #19 (2026-08-12)
+
+Run 31611366363 served the freshly deployed data and most assets, but bare requests for three
+independent paths returned no bytes through two 30-second attempts. The behavior reproduced
+locally on both IPv4 and IPv6. Adding a unique query string made the same paths return at once,
+isolating the failure to stored Firebase CDN cache keys rather than the built artifacts or Node.
+
+- [x] Replace the mutable HTML/data catch-all's zero-age revalidation policy with Firebase's
+      documented `no-cache, no-store` policy; preserve the immutable hashed-static override.
+- [x] Extend the live serving invariant and tests to require non-storage for mutable content
+      while still proving hashed assets remain immutable and genuine failures remain visible on
+      the bare user-facing URLs.
+- [x] Run focused/full web tests, lint/build, workflow tests, syntax/config checks, and diff QA;
+      record the cache-key evidence, official contract, and completed review against Git tip.
+
+### Review
+
+- The catch-all Hosting header is now `no-cache, no-store`; the later, more-specific hashed
+  static rule remains `public, max-age=31536000, immutable` and its ordering is regression-tested.
+- The live deploy verifier now requires both non-storage directives on bare HTML and data URLs,
+  retains the immutable asset assertion, and rejects the old zero-age stored policy explicitly.
+- Evidence: bare mutable paths intermittently returned no bytes on IPv4 and IPv6, while unique
+  query keys returned immediately. The still-old live deploy reported the old mutable header on
+  HTML/data and the immutable header on hashed JS, proving the new gate will bite after rollout.
+- Verification: 33 focused verifier tests and all 225 web tests passed; production build passed;
+  47 workflow-alert tests and Ruff passed; Firebase JSON parsing, Node syntax, and
+  `git diff --check` passed. Web lint exited 0 with the same 13 existing warnings.
+- Final reconciliation: local `master` and `origin/master` both point to `bf00604`; issue #19 is
+  still open because this header change has not yet been committed and deployed.

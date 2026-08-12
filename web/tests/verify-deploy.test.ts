@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 import {
   parseCacheControl,
@@ -15,6 +17,7 @@ import {
   hasProfileContract,
   canonicalRouteProblems,
   fetchWithRetry,
+  mutableCacheControlOk,
 } from "@/scripts/verify-deploy-lib.mjs";
 
 describe("fetchWithRetry", () => {
@@ -60,17 +63,55 @@ describe("parseCacheControl", () => {
     const cc = parseCacheControl("public, max-age=31536000, immutable");
     expect(cc.immutable).toBe(true);
     expect(cc.mustRevalidate).toBe(false);
+    expect(cc.noCache).toBe(false);
+    expect(cc.noStore).toBe(false);
     expect(cc.maxAge).toBe(31536000);
   });
-  it("flags must-revalidate (data + HTML)", () => {
-    const cc = parseCacheControl("public, max-age=0, must-revalidate");
-    expect(cc.mustRevalidate).toBe(true);
+  it("flags no-cache + no-store (mutable data + HTML)", () => {
+    const cc = parseCacheControl("no-cache, no-store");
+    expect(cc.noCache).toBe(true);
+    expect(cc.noStore).toBe(true);
     expect(cc.immutable).toBe(false);
-    expect(cc.maxAge).toBe(0);
+    expect(cc.maxAge).toBeNull();
   });
   it("is case- and whitespace-insensitive and tolerates null", () => {
     expect(parseCacheControl("  PUBLIC,  IMMUTABLE ").immutable).toBe(true);
-    expect(parseCacheControl(null)).toEqual({ immutable: false, mustRevalidate: false, maxAge: null });
+    expect(parseCacheControl(null)).toEqual({
+      immutable: false,
+      mustRevalidate: false,
+      noCache: false,
+      noStore: false,
+      maxAge: null,
+    });
+  });
+});
+
+describe("mutableCacheControlOk", () => {
+  it("requires the documented non-storage pair", () => {
+    expect(mutableCacheControlOk("no-cache, no-store")).toBe(true);
+    expect(mutableCacheControlOk("no-store")).toBe(false);
+    expect(mutableCacheControlOk("no-cache")).toBe(false);
+  });
+
+  it("rejects the zero-age stored policy that produced stuck CDN keys", () => {
+    expect(mutableCacheControlOk("public, max-age=0, must-revalidate")).toBe(false);
+  });
+});
+
+describe("Firebase Hosting cache configuration", () => {
+  it("does not store mutable content and keeps only hashed assets immutable", () => {
+    const config = JSON.parse(readFileSync(new URL("../../firebase.json", import.meta.url), "utf8"));
+    const rules = config.hosting.headers;
+    expect(rules).toEqual([
+      {
+        source: "**",
+        headers: [{ key: "Cache-Control", value: "no-cache, no-store" }],
+      },
+      {
+        source: "/_next/static/**",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
+    ]);
   });
 });
 
