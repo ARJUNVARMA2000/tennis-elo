@@ -46,17 +46,99 @@ export function Skeleton({ className = "" }: { className?: string }) {
   return <div className={`skeleton ${className}`} />;
 }
 
-/** Skeleton placeholder shown while a page's JSON loads. */
-export function Loading({ rows = 6 }: { rows?: number }) {
+type LoadingVariant = "table" | "cards" | "forecast" | "insights";
+
+/** Content-shaped placeholders keep the page structure legible while JSON loads. */
+export function Loading({ rows = 6, variant = "table" }: { rows?: number; variant?: LoadingVariant }) {
+  if (variant === "cards") {
+    return (
+      <div className="mt-8 grid gap-3 sm:grid-cols-2" aria-busy="true" aria-label="loading match cards">
+        {Array.from({ length: Math.min(rows, 4) }).map((_, i) => (
+          <div key={i} className="panel p-4" style={{ opacity: 1 - i * 0.1 }}>
+            <div className="flex justify-between gap-3"><Skeleton className="h-5 w-16" /><Skeleton className="h-3 w-28" /></div>
+            <Skeleton className="mt-4 h-4 w-2/3" />
+            <Skeleton className="mt-2 h-1.5 w-full" />
+            <Skeleton className="mt-4 h-4 w-1/2" />
+            <Skeleton className="mt-2 h-1.5 w-full" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+  if (variant === "forecast") {
+    return (
+      <div className="panel-glow mt-8 p-5 sm:p-6" aria-busy="true" aria-label="loading forecast">
+        <div className="flex items-start justify-between gap-4">
+          <div className="w-full"><Skeleton className="h-4 w-28" /><Skeleton className="mt-3 h-8 w-48" /><Skeleton className="mt-2 h-3 w-32" /></div>
+          <Skeleton className="h-4 w-20" />
+        </div>
+        <div className="panel-inset mt-6 p-3">
+          <Skeleton className="h-3 w-2/5" />
+          {Array.from({ length: rows }).map((_, i) => (
+            <div key={i} className="mt-3 flex items-center gap-3" style={{ opacity: 1 - i * 0.1 }}>
+              <Skeleton className="h-3 w-5" /><Skeleton className="h-4 w-36" /><Skeleton className="ml-auto h-4 w-12" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  if (variant === "insights") {
+    return (
+      <div className="mt-8 grid gap-3 sm:grid-cols-3" aria-busy="true" aria-label="loading overview insights">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="panel p-4"><Skeleton className="h-3 w-20" /><Skeleton className="mt-3 h-6 w-3/4" /><Skeleton className="mt-3 h-3 w-full" /></div>
+        ))}
+      </div>
+    );
+  }
   return (
-    <div className="panel mt-8 space-y-3 p-4" aria-busy="true" aria-label="loading">
-      <Skeleton className="h-4 w-1/3" />
+    <div className="panel mt-8 overflow-hidden" aria-busy="true" aria-label="loading table">
+      <div className="flex items-center gap-6 border-b border-[var(--color-line)] p-4"><Skeleton className="h-3 w-8" /><Skeleton className="h-3 w-36" /><Skeleton className="ml-auto h-3 w-20" /></div>
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} style={{ opacity: 1 - i * 0.13 }}>
-          <Skeleton className="h-8" />
+        <div key={i} className="flex items-center gap-6 border-b border-[var(--color-line)] px-4 py-3 last:border-0" style={{ opacity: 1 - i * 0.1 }}>
+          <Skeleton className="h-3 w-8" /><Skeleton className="h-4 w-36" /><Skeleton className="ml-auto h-4 w-16" />
         </div>
       ))}
     </div>
+  );
+}
+
+/** Counted status/filter chip shared by data-heavy boards. */
+export function FilterChip({
+  label,
+  count,
+  active,
+  onClick,
+  color = "var(--color-accent)",
+}: {
+  label: string;
+  count: number;
+  active: boolean;
+  onClick: () => void;
+  color?: string;
+}) {
+  return (
+    <motion.button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      whileTap={{ scale: 0.96 }}
+      className="mono inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[11px] transition-colors"
+      style={{
+        borderColor: active ? color : "var(--color-line)",
+        background: active ? `color-mix(in srgb, ${color} 14%, transparent)` : "transparent",
+        color: active ? color : "var(--color-muted)",
+      }}
+    >
+      {label}
+      <span
+        className="rounded px-1 py-px text-[9px]"
+        style={{ background: active ? `color-mix(in srgb, ${color} 18%, transparent)` : "rgba(255,255,255,0.05)" }}
+      >
+        {count}
+      </span>
+    </motion.button>
   );
 }
 

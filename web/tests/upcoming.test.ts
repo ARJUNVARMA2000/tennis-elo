@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { byTournamentTier, groupByEvent, hasMatchupProfiles, matchesForTournament, upcomingCard, type Upcoming } from "@/lib/upcoming";
+import { byTournamentTier, closestUpcomingMatch, filterUpcoming, groupByEvent, hasMatchupProfiles, matchesForTournament, upcomingCard, type Upcoming } from "@/lib/upcoming";
 
 const mk = (event: string, round: string, a: string, b: string, pA: number, surface = "Hard"): Upcoming => ({
   event,
@@ -175,5 +175,23 @@ describe("hasMatchupProfiles", () => {
 
   it("false against an empty roster (players.json still loading)", () => {
     expect(hasMatchupProfiles(mk("X", "F", "Alexander Zverev", "Jannik Sinner", 0.5), new Set())).toBe(false);
+  });
+});
+
+describe("schedule discovery helpers", () => {
+  const rows = [
+    mk("Montreal", "SF", "A", "B", 0.8, "Hard"),
+    mk("Montreal", "SF", "C", "D", 0.51, "Hard"),
+    mk("Bastad", "F", "E", "F", 0.54, "Clay"),
+  ];
+
+  it("selects the matchup closest to 50/50", () => {
+    expect(closestUpcomingMatch(rows)?.playerA).toBe("C");
+  });
+
+  it("filters by surface and event within the same payload", () => {
+    expect(filterUpcoming(rows, "Hard", "all")).toHaveLength(2);
+    expect(filterUpcoming(rows, "All", "Bastad").map((row) => row.playerA)).toEqual(["E"]);
+    expect(filterUpcoming(rows, "Clay", "Montreal")).toEqual([]);
   });
 });

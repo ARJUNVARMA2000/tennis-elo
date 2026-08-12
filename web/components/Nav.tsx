@@ -6,57 +6,13 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTour } from "@/lib/tour";
 import { withTour } from "@/lib/url";
+import { NAV_GROUPS, NAV_ITEMS } from "@/lib/navigation";
 import { SPRING } from "@/lib/motion";
 import { GitHubIcon } from "@/components/bits";
 import Freshness from "@/components/Freshness";
+import CommandSearch from "@/components/CommandSearch";
 
 const GITHUB_URL = "https://github.com/ARJUNVARMA2000/tennis-elo";
-
-type Item = { href: string; label: string; desc: string };
-type Group = { label: string; href?: string; items?: Item[] };
-
-const GROUPS: Group[] = [
-  { label: "Overview", href: "/" },
-  {
-    label: "Matches",
-    items: [
-      { href: "/schedule", label: "Schedule", desc: "Win odds for scheduled matches" },
-      { href: "/results", label: "Results", desc: "Model calls on recent results" },
-      { href: "/bracket", label: "Brackets", desc: "Real draws, round by round" },
-    ],
-  },
-  {
-    label: "Players",
-    items: [
-      { href: "/rankings", label: "Rankings", desc: "Live Elo top 100" },
-      { href: "/player", label: "Profiles", desc: "History, splits & H2H" },
-      { href: "/style", label: "Playing style", desc: "13-axis fingerprints" },
-      { href: "/strength", label: "Strength map", desc: "Serve vs return" },
-      { href: "/explorer", label: "Explorer", desc: "Any stat vs any stat" },
-      { href: "/trends", label: "Risers & fallers", desc: "Recent Elo movers" },
-    ],
-  },
-  {
-    label: "Forecasts",
-    items: [
-      { href: "/predict", label: "Predictor", desc: "Any matchup, any surface" },
-      { href: "/simulator", label: "Draw simulator", desc: "Monte Carlo title odds" },
-    ],
-  },
-  {
-    label: "Model",
-    items: [
-      { href: "/scorecard", label: "Scorecard", desc: "Full out-of-sample report" },
-      { href: "/accuracy", label: "Vs the market", desc: "Brier & calibration" },
-      { href: "/track", label: "Track record", desc: "Graded point-in-time calls" },
-      { href: "/method", label: "Method", desc: "How the engine works" },
-    ],
-  },
-];
-
-const FLAT: { href: string; label: string }[] = GROUPS.flatMap((g) =>
-  g.href ? [{ href: g.href, label: g.label }] : g.items!.map(({ href, label }) => ({ href, label })),
-);
 
 const isActive = (path: string, href: string) => (href === "/" ? path === "/" : path.startsWith(href));
 
@@ -139,7 +95,7 @@ export default function Nav() {
 
         {/* desktop: grouped nav with sliding active pill + glass dropdowns */}
         <nav ref={navRef} aria-label="Primary" className="ml-2 hidden flex-1 items-center gap-1 text-[13px] text-[var(--color-muted)] lg:flex">
-          {GROUPS.map((g) => {
+          {NAV_GROUPS.map((g) => {
             const groupActive = g.href
               ? isActive(path, g.href)
               : g.items!.some((it) => isActive(path, it.href));
@@ -244,6 +200,7 @@ export default function Nav() {
 
         <div className="ml-auto flex items-center gap-3">
           <Freshness />
+          <CommandSearch />
 
           {/* ATP / WTA segmented control with sliding thumb */}
           <div className="flex items-center rounded-md border border-[var(--color-line)] p-0.5">
@@ -287,7 +244,7 @@ export default function Nav() {
 
       {/* mobile: flat scrollable chip strip */}
       <nav aria-label="Primary (mobile)" className="mobile-nav safe-x flex gap-1.5 overflow-x-auto border-t border-[var(--color-line)] py-2 text-[12px] text-[var(--color-muted)] lg:hidden">
-        {FLAT.map(({ href, label }) => {
+        {NAV_ITEMS.map(({ href, label }) => {
           const a = isActive(path, href);
           return (
             <Link key={href} href={withTour(href, tour)} className="relative whitespace-nowrap rounded-md px-2.5 py-1">

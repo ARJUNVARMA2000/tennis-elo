@@ -9,7 +9,8 @@ import { SPRING_SOFT } from "@/lib/motion";
 import { nameKey, type PlayerRow } from "@/lib/live";
 import LiveTicker from "@/components/LiveTicker";
 import Link from "next/link";
-import { matchesForTournament, type Upcoming } from "@/lib/upcoming";
+import { pairHref } from "@/lib/url";
+import { closestUpcomingMatch, matchesForTournament, type Upcoming } from "@/lib/upcoming";
 
 export type Proj = { name: string; champion: number; final: number | null; sf: number | null; reach?: Record<string, number> };
 export type Tournament = {
@@ -155,6 +156,9 @@ export default function Tournaments() {
   // Lifecycle owns the page before prestige: live events remain primary, but the next top-tier
   // draw keeps its complete forecast after them. Lower upcoming tiers and recent results stay compact.
   const { hero, grid, other, featuredUpcoming, upcoming, recent } = tournamentView(data || []);
+  // Recent-only events are deliberately excluded: the insight labels describe live or upcoming
+  // draws, so falling back to a completed event would make "Next marquee" misleading.
+  const primary = hero ?? grid[0] ?? featuredUpcoming[0] ?? upcoming[0];
 
   if (hero) {
     const tier = tournamentTier(hero.level, hero.name);
@@ -166,6 +170,12 @@ export default function Tournaments() {
           sub={hero.status === "live"
             ? "The model's live title odds — the leading contenders' chances of reaching each round, from the favourites on down. Updated as the draw thins."
             : "The model's pre-event title odds — the leading contenders' chances of reaching each round before play begins."}
+        />
+        <OverviewInsights
+          events={data || []}
+          primary={primary}
+          matches={scheduled || []}
+          profileRoster={profileRoster}
         />
         <LiveTicker />
         <Reveal>
@@ -207,8 +217,17 @@ export default function Tournaments() {
         title="Latest Tournaments"
         sub="Every current event with the model's title odds for the field. Live play comes first; upcoming draws stay close without taking over the page."
       />
+      {loading && <Loading variant="insights" />}
+      {data && (
+        <OverviewInsights
+          events={data}
+          primary={primary}
+          matches={scheduled || []}
+          profileRoster={profileRoster}
+        />
+      )}
       <LiveTicker />
-      {loading && <Loading />}
+      {loading && <Loading variant="forecast" />}
       {data && !hero && grid.length === 0 && featuredUpcoming.length === 0 && upcoming.length === 0 && recent.length === 0 && (
         <div className="mono mt-10 text-sm text-[var(--color-faint)]">No current tournaments in the data yet.</div>
       )}
@@ -238,6 +257,100 @@ export default function Tournaments() {
       )}
       {recent.length > 0 && <CompactEvents events={recent} title="Recently finished" profileRoster={profileRoster} upcomingMatches={scheduled || []} />}
     </div>
+  );
+}
+
+/** Fast, factual scan of the same forecast data rendered below — no new model output. */
+function OverviewInsights({
+  events,
+  primary,
+  matches,
+  profileRoster,
+}: {
+  events: Tournament[];
+  primary?: Tournament;
+  matches: Upcoming[];
+  profileRoster: ReadonlySet<string>;
+}) {
+  const { tour } = useTour();
+  const favourite = primary?.projection.reduce<Proj | undefined>(
+    (best, player) => (!best || player.champion > best.champion ? player : best),
+    undefined,
+  );
+  const closest = closestUpcomingMatch(matches);
+  const live = events.filter((event) => event.status === "live");
+  const active = live.length ? live : events.filter((event) => event.status === "upcoming");
+  if (!primary && !closest) return null;
+
+  return (
+    <Reveal delay={0.03}>
+      <section aria-label="At a glance" className="mt-8">
+        <div className="mb-2.5 flex items-baseline gap-2">
+          <span className="eyebrow !text-[var(--color-text)]">At a glance</span>
+          <span className="text-[11px] text-[var(--color-faint)]">from the current forecast board</span>
+        </div>
+        <div className="data-scroll -mx-1 grid auto-cols-[minmax(260px,82vw)] grid-flow-col gap-3 px-1 pb-2 sm:mx-0 sm:grid-flow-row sm:grid-cols-3 sm:px-0">
+          {primary && (
+            <article className="panel min-w-0 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <span className="eyebrow !text-[10px]">{live.length ? "In play" : "Next marquee"}</span>
+                <span className="chip" style={{ color: surfaceColor(primary.surface), borderColor: surfaceColor(primary.surface) }}>
+                  {primary.surface || "TBD"}
+                </span>
+              </div>
+              <div className="mt-2 truncate text-[16px] font-medium text-[var(--color-text)]">{primary.name}</div>
+              <div className="mono mt-1 text-[10px] text-[var(--color-faint)]">
+                {active.length} {active.length === 1 ? "event" : "events"} {live.length ? "live" : "with a released draw"}
+                {primary.aliveCount != null && primary.status === "live" ? ` · ${primary.aliveCount} players left` : ""}
+              </div>
+            </article>
+          )}
+
+          {primary && favourite && (
+            <article className="panel min-w-0 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <span className="eyebrow !text-[10px]">Title favourite</span>
+                <span className="mono text-[16px] font-semibold text-[var(--color-champ)]">{pct(favourite.champion, 0)}</span>
+              </div>
+              <PlayerProfileLink
+                name={favourite.name}
+                profileRoster={profileRoster}
+                className="mt-2 block truncate text-[16px] font-medium text-[var(--color-text)]"
+                linkClassName="hover:text-[var(--color-accent)] hover:underline"
+              />
+              <div className="panel-inset mt-2.5 h-2 overflow-hidden p-px">
+                <motion.div
+                  className="h-full rounded-[5px] bg-[var(--color-champ)]"
+                  initial={{ scaleX: 0 }}
+                  animate={{ scaleX: favourite.champion }}
+                  transition={SPRING_SOFT}
+                  style={{ width: "100%", transformOrigin: "left" }}
+                />
+              </div>
+              <div className="mono mt-1.5 truncate text-[10px] text-[var(--color-faint)]">{primary.name} · win probability</div>
+            </article>
+          )}
+
+          {closest && (
+            <article className="panel min-w-0 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <span className="eyebrow !text-[10px]">Closest next match</span>
+                <span className="mono text-[13px] text-[var(--color-accent)]">
+                  {pct(Math.max(closest.pA, 1 - closest.pA), 0)}–{pct(Math.min(closest.pA, 1 - closest.pA), 0)}
+                </span>
+              </div>
+              <Link
+                href={pairHref("/predict/", closest.playerA, closest.playerB, tour)}
+                className="mt-2 block truncate text-[15px] font-medium text-[var(--color-text)] hover:text-[var(--color-accent)] hover:underline"
+              >
+                {closest.playerA} <span className="text-[var(--color-faint)]">vs</span> {closest.playerB}
+              </Link>
+              <div className="mono mt-2 truncate text-[10px] text-[var(--color-faint)]">{closest.event} · {closest.round} · open predictor →</div>
+            </article>
+          )}
+        </div>
+      </section>
+    </Reveal>
   );
 }
 

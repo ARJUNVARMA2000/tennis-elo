@@ -30,7 +30,7 @@ export default function Bracket() {
         sub="The complete tournament draw, round by round — first-party ATP/WTA when available, with a labeled Wikipedia fallback. Every match carries the model's pre-match win probability; ESPN results advance completed rounds with scores and upset flags."
       />
       {/* useSearchParams (shareable ?e= links) needs a Suspense boundary under static export */}
-      <Suspense fallback={<Loading />}>
+      <Suspense fallback={<Loading variant="forecast" />}>
         <BracketInner />
       </Suspense>
     </div>
@@ -78,7 +78,7 @@ function BracketInner() {
   const pick = (name: string) =>
     router.replace(`${pathname}${setSearchParam(window.location.search, "e", name)}`, { scroll: false });
 
-  if (loading) return <Loading />;
+  if (loading) return <Loading variant="forecast" />;
   if (error || !data)
     return <Empty>Couldn&apos;t load bracket data — it may be refreshing, so try again shortly.</Empty>;
   if (!events.length)
@@ -161,8 +161,10 @@ function BracketInner() {
       )}
 
       <Reveal delay={0.1}>
-        <div className="panel mt-4 p-3 sm:p-4">
-          <BracketTree ev={ev} section={section} tour={tour} roster={roster} />
+        <div className="panel mt-4 p-2 sm:p-3">
+          <div className="panel-inset overflow-hidden p-1 sm:p-2">
+            <BracketTree ev={ev} section={section} tour={tour} roster={roster} />
+          </div>
         </div>
       </Reveal>
 

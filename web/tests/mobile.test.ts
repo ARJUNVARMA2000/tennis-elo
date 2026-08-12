@@ -37,6 +37,7 @@ describe("mobile browser shell", () => {
 
     expect(css).toContain("min-height: 100svh");
     expect(css).toContain("min-height: 100dvh");
+    expect(css).toContain("overflow-x: clip");
     expect(css.match(/overscroll-behavior: none/g)).toHaveLength(2);
     expect(css).toContain("touch-action: manipulation");
     expect(css).toContain("user-select: none");
@@ -44,5 +45,17 @@ describe("mobile browser shell", () => {
     expect(css.indexOf(".row-glow:hover")).toBeGreaterThan(hoverGate);
     expect(css.indexOf("input, select, textarea { font-size: 16px; }")).toBeGreaterThan(coarseGate);
     expect(css.indexOf(":active { opacity: 0.72; }")).toBeGreaterThan(coarseGate);
+  });
+
+  it("keeps rankings data reachable through an adaptive mobile metric column", () => {
+    const rankings = readWebSource("app/rankings/page.tsx");
+    const css = readWebSource("app/globals.css");
+
+    expect(rankings).toContain('className="panel data-scroll"');
+    expect(rankings).toContain('className="ml-auto w-44 sm:hidden"');
+    expect(rankings).toContain("<MobileMetric");
+    expect(rankings).not.toContain('className="panel overflow-hidden"');
+    expect(css).toContain(".data-scroll");
+    expect(css).toContain("overflow-x: auto");
   });
 });

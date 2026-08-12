@@ -26,7 +26,7 @@ export default function Predict() {
         sub="Pick any two players, a surface and a format. The XGBoost combiner returns a calibrated win probability; the most likely set scores are back-solved from it with the Markov set model."
       />
       {/* useSearchParams (shareable ?a=&b= matchup links) needs a Suspense boundary under static export */}
-      <Suspense fallback={<Loading />}>
+      <Suspense fallback={<Loading variant="forecast" />}>
         <PredictInner />
       </Suspense>
     </div>
@@ -100,7 +100,7 @@ function PredictInner() {
 
   return (
     <>
-      {loading && <Loading />}
+      {loading && <Loading variant="forecast" />}
 
       {data && (
         <>
@@ -169,28 +169,30 @@ function PredictInner() {
                   <ProbBar p={p} w={"100%" as any} />
                 </div>
 
-                <div className="mono mt-8 text-[11px] uppercase tracking-wider text-[var(--color-faint)]">
-                  Most likely set scores
+                <div className="panel-inset mt-8 p-3 sm:p-4">
+                  <div className="mono text-[11px] uppercase tracking-wider text-[var(--color-faint)]">
+                    Most likely set scores
+                  </div>
+                  <motion.div
+                    variants={stagger(0.04)}
+                    initial="hidden"
+                    animate="show"
+                    className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3"
+                  >
+                    {dist.map((d) => (
+                      <motion.div
+                        key={d.label}
+                        variants={pop}
+                        className="flex items-center justify-between rounded-lg border border-[var(--color-line)] bg-[var(--color-panel)] px-3 py-2"
+                      >
+                        <span className="mono text-sm" style={{ color: d.a ? "var(--color-accent)" : "var(--color-cmp)" }}>
+                          {d.a ? players[a].split(" ").slice(-1) : players[b].split(" ").slice(-1)} {d.label}
+                        </span>
+                        <span className="mono text-sm text-[var(--color-muted)]">{pct(d.p, 0)}</span>
+                      </motion.div>
+                    ))}
+                  </motion.div>
                 </div>
-                <motion.div
-                  variants={stagger(0.04)}
-                  initial="hidden"
-                  animate="show"
-                  className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3"
-                >
-                  {dist.map((d) => (
-                    <motion.div
-                      key={d.label}
-                      variants={pop}
-                      className="flex items-center justify-between rounded-lg border border-[var(--color-line)] px-3 py-2"
-                    >
-                      <span className="mono text-sm" style={{ color: d.a ? "var(--color-accent)" : "var(--color-cmp)" }}>
-                        {d.a ? players[a].split(" ").slice(-1) : players[b].split(" ").slice(-1)} {d.label}
-                      </span>
-                      <span className="mono text-sm text-[var(--color-muted)]">{pct(d.p, 0)}</span>
-                    </motion.div>
-                  ))}
-                </motion.div>
               </div>
             </Reveal>
           )}

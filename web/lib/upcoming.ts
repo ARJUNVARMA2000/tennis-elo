@@ -80,6 +80,21 @@ export function hasMatchupProfiles(m: Upcoming, roster: ReadonlySet<string>): bo
   return roster.has(m.playerA) && roster.has(m.playerB);
 }
 
+/** The scheduled matchup closest to 50/50, preserving producer order on ties. */
+export function closestUpcomingMatch(rows: Upcoming[]): Upcoming | undefined {
+  return rows.reduce<Upcoming | undefined>((best, row) => {
+    if (!best) return row;
+    return Math.abs(row.pA - 0.5) < Math.abs(best.pA - 0.5) ? row : best;
+  }, undefined);
+}
+
+/** UI-only filtering within one upcoming payload; this is not an event join. */
+export function filterUpcoming(rows: Upcoming[], surface: string, event: string): Upcoming[] {
+  return rows.filter((match) =>
+    (surface === "All" || match.surface === surface) && (event === "all" || match.event === event)
+  );
+}
+
 /** Group scheduled matches by tournament, preserving input order — the pipeline already
     sorts rows soonest-first, so both the event order and the matches within each event
     come out in playing order. */

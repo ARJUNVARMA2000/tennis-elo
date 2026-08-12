@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AGE_MAX, AGE_MIN, parseAgeFilter, passesAgeFilter, rankRows } from "@/lib/ui";
+import { AGE_MAX, AGE_MIN, filterRankingRows, parseAgeFilter, passesAgeFilter, rankRows, sortRankingRows } from "@/lib/ui";
 
 type Row = { name: string; age: number | null; elo: number; eloHard?: number };
 const mk = (name: string, age: number | null, elo: number, eloHard = 0): Row => ({ name, age, elo, eloHard });
@@ -88,5 +88,23 @@ describe("rankRows", () => {
     const data = [mk("A", 20, 1), mk("B", 20, 2)];
     rankRows(data, "elo", null);
     expect(data.map((r) => r.name)).toEqual(["A", "B"]);
+  });
+});
+
+describe("interactive ranking rows", () => {
+  const rows = [
+    { name: "Alpha", rate: 1900, servePct: 0.61, returnPct: 0.43, liveRank: 8 },
+    { name: "Bravo", rate: 1800, servePct: 0.69, returnPct: 0.39, liveRank: null },
+    { name: "Charlie", rate: 1700, servePct: 0.64, returnPct: 0.47, liveRank: 3 },
+  ];
+
+  it("searches names case-insensitively", () => {
+    expect(filterRankingRows(rows, "BRAV").map((row) => row.name)).toEqual(["Bravo"]);
+  });
+
+  it("sorts every offered metric and leaves unavailable live ranks last", () => {
+    expect(sortRankingRows(rows, "serve", "desc").map((row) => row.name)).toEqual(["Bravo", "Charlie", "Alpha"]);
+    expect(sortRankingRows(rows, "return", "desc").map((row) => row.name)).toEqual(["Charlie", "Alpha", "Bravo"]);
+    expect(sortRankingRows(rows, "liveRank", "asc").map((row) => row.name)).toEqual(["Charlie", "Alpha", "Bravo"]);
   });
 });

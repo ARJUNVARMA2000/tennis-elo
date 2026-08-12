@@ -222,6 +222,44 @@ export function rankRows<T extends { age: number | null }>(data: T[], key: strin
     .slice(0, 100);
 }
 
+export type RankingSortKey = "rating" | "liveRank" | "serve" | "return";
+export type SortDirection = "asc" | "desc";
+
+type InteractiveRankingRow = {
+  name: string;
+  rate: number;
+  liveRank?: number | null;
+  servePct: number;
+  returnPct: number;
+};
+
+/** Search and re-order a pre-ranked board without changing its original Elo rank. */
+export function filterRankingRows<T extends { name: string }>(rows: T[], query: string): T[] {
+  const q = query.trim().toLocaleLowerCase();
+  if (!q) return rows;
+  return rows.filter((row) => row.name.toLocaleLowerCase().includes(q));
+}
+
+export function sortRankingRows<T extends InteractiveRankingRow>(
+  rows: T[],
+  key: RankingSortKey,
+  direction: SortDirection,
+): T[] {
+  const sign = direction === "asc" ? 1 : -1;
+  const value = (row: T): number | null => {
+    if (key === "rating") return row.rate;
+    if (key === "liveRank") return row.liveRank ?? null;
+    return key === "serve" ? row.servePct : row.returnPct;
+  };
+  return [...rows].sort((a, b) => {
+    const av = value(a), bv = value(b);
+    if (av == null && bv == null) return 0;
+    if (av == null) return 1;
+    if (bv == null) return -1;
+    return sign * (av - bv);
+  });
+}
+
 export const initials = (name: string) =>
   name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 

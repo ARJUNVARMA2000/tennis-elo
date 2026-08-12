@@ -3821,3 +3821,37 @@ isolating the failure to stored Firebase CDN cache keys rather than the built ar
   `git diff --check` passed. Web lint exited 0 with the same 13 existing warnings.
 - Final reconciliation: local `master` and `origin/master` both point to `bf00604`; issue #19 is
   still open because this header change has not yet been committed and deployed.
+
+## Beautiful UI-inspired usability pass (2026-08-12)
+
+- [x] Repair the rankings board on narrow screens with an adaptive metric view, reachable data,
+      player search, and explicit sortable desktop columns.
+- [x] Add an accessible global command search for pages, player profiles, current brackets, and
+      direct player-vs-player predictions, with keyboard and mobile entry points.
+- [x] Add a compact overview insight strip from existing forecast/schedule data without implying
+      AI recommendations or inventing new model outputs.
+- [x] Upgrade high-traffic filters with counted status chips on Results and useful event/surface
+      controls on Schedule while preserving existing URL and tour behavior.
+- [x] Replace generic loading blocks with content-shaped table, card-grid, and forecast states;
+      introduce restrained inset layering where it improves scanability.
+- [x] Add focused unit/contract coverage, run web tests/lint/build and `git diff --check`, inspect
+      desktop and 390px mobile renders, then record the review against the current Git tip.
+
+### Review
+
+- Rankings now use an adaptive three-column mobile board with a selectable metric, player search,
+  and sortable Elo/live-rank/serve/return columns on larger screens; the original board rank stays
+  visible when a secondary metric changes the display order.
+- The global command search is available from every header and via `Cmd/Ctrl+K` or `/`; it searches
+  routes immediately and lazy-loads the active tour's players and brackets only when opened, with a
+  direct `Player A vs Player B` predictor action.
+- The overview adds a factual current-event/title-favourite/closest-match strip from existing model
+  outputs. Results adds counted All/Called/Upsets filters, Schedule adds counted surfaces plus a
+  searchable event filter, and loading states now reflect the table/card/forecast content shape.
+- Rendered QA covered desktop and a 390px viewport across Overview, Rankings, Results, and Schedule.
+  The mobile document stayed at 380px client/scroll width, Rankings exposed `# / Player / metric`,
+  the insight carousel remained independently scrollable, and browser logs contained no errors.
+- Verification: all 236 web tests passed across 18 files; production build and `git diff --check`
+  passed; lint exited 0 with the same 13 existing React-hook warnings and no new warnings.
+- Final reconciliation: local `master` and `origin/master` both point to `7ac8aa9`; the worktree
+  contains this uncommitted UI pass, its focused tests, and this task log.

@@ -1,10 +1,11 @@
 "use client";
 
 import { useData, useTour } from "@/lib/tour";
-import { PageHead, Loading, Reveal, CallCard } from "@/components/bits";
-import { surfaceColor, tournamentTier } from "@/lib/ui";
-import { groupByEvent, hasMatchupProfiles, upcomingCard, type Upcoming } from "@/lib/upcoming";
-import { useMemo } from "react";
+import { PageHead, Loading, Reveal, CallCard, FilterChip } from "@/components/bits";
+import { surfaceColor, SURFACES, tournamentTier } from "@/lib/ui";
+import { filterUpcoming, groupByEvent, hasMatchupProfiles, upcomingCard, type Upcoming } from "@/lib/upcoming";
+import Dropdown from "@/components/Dropdown";
+import { useMemo, useState } from "react";
 
 export default function Schedule() {
   const { tour } = useTour();
@@ -14,11 +15,28 @@ export default function Schedule() {
   const { data: roster } = useData<{ name: string }[]>("players.json");
   const rated = useMemo(() => new Set((roster ?? []).map((p) => p.name)), [roster]);
   const total = (data || []).length;
+  const [filters, setFilters] = useState({ tour, surface: "All", event: "all" });
+  const surface = filters.tour === tour ? filters.surface : "All";
+  const event = filters.tour === tour ? filters.event : "all";
+  const setSurface = (value: string) => setFilters({ tour, surface: value, event });
+  const setEvent = (value: string) => setFilters({ tour, surface, event: value });
+  const eventOptions = useMemo(() => [
+    { value: "all", label: "All events" },
+    ...groupByEvent(data || []).map((group) => ({
+      value: group.event,
+      label: group.event,
+      sublabel: `${group.matches.length} ${group.matches.length === 1 ? "match" : "matches"}`,
+    })),
+  ], [data]);
+  const filtered = useMemo(() => filterUpcoming(data || [], surface, event), [data, surface, event]);
+  const surfaceCounts = useMemo(() => Object.fromEntries(
+    SURFACES.map((name) => [name, (data || []).filter((match) => match.surface === name).length]),
+  ) as Record<string, number>, [data]);
   // Order the board by tier prestige — Grand Slam → 1000 → 500 → 250. Each event's `level` is
   // resolved server-side (Wikipedia category → curated fallback; the archive tier is deliberately
   // skipped for upcoming rows so a stale historical tier can't win) and carried on the upcoming
   // rows, so there's no fragile cross-join. Stable sort keeps soonest-first within a tier.
-  const ordered = groupByEvent(data || [])
+  const ordered = groupByEvent(filtered)
     .map((g) => ({ g, tier: tournamentTier(g.level, g.event) }))
     .sort((a, b) => a.tier.rank - b.tier.rank);
 
@@ -30,7 +48,7 @@ export default function Schedule() {
         sub="Every scheduled and in-progress match with the model's current win probability. The favourite is highlighted; the two sides sum to 100%."
       />
 
-      {loading && <Loading />}
+      {loading && <Loading variant="cards" />}
 
       {!loading && total === 0 && (
         <div className="mono mt-10 text-sm text-[var(--color-faint)]">
@@ -39,42 +57,81 @@ export default function Schedule() {
       )}
 
       {total > 0 && (
-        <div className="mt-8 space-y-9">
-          {ordered.map(({ g, tier }, gi) => (
-            <section key={g.event}>
-              <div className="mb-3 flex items-center gap-3">
-                <span className="chip" style={{ color: surfaceColor(g.surface), borderColor: surfaceColor(g.surface) }}>
-                  {g.surface}
-                </span>
-                <span
-                  className="chip"
-                  style={{
-                    color: tier.rank === 0 ? "var(--color-champ)" : "var(--color-muted)",
-                    borderColor: tier.rank === 0 ? "var(--color-champ)" : "var(--color-line2)",
-                  }}
-                >
-                  {tier.short}
-                </span>
-                <h2 className="display text-lg">{g.event}</h2>
-                <span className="mono text-xs text-[var(--color-faint)]">
-                  {g.matches.length} {g.matches.length === 1 ? "match" : "matches"}
-                </span>
-              </div>
-              <div className="grid gap-2.5 sm:grid-cols-2">
-                {g.matches.map((m, i) => (
-                  <Reveal key={`${m.playerA}-${m.playerB}-${i}`} delay={Math.min(gi * 0.02 + i * 0.01, 0.2)}>
-                    <CallCard
-                      tone="projection"
-                      {...upcomingCard(m)}
-                      matchup={hasMatchupProfiles(m, rated)}
-                      profileRoster={rated}
-                    />
-                  </Reveal>
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
+        <>
+          <div className="mt-8 mb-6 flex flex-wrap items-center gap-2">
+            <FilterChip label="All" count={total} active={surface === "All"} onClick={() => setSurface("All")} />
+            {SURFACES.map((name) => (
+              <FilterChip
+                key={name}
+                label={name}
+                count={surfaceCounts[name] ?? 0}
+                active={surface === name}
+                onClick={() => setSurface(name)}
+                color={surfaceColor(name)}
+              />
+            ))}
+            <Dropdown
+              compact
+              searchable
+              align="right"
+              label="Tournament filter"
+              value={event}
+              onChange={setEvent}
+              options={eventOptions}
+              className="ml-auto w-full sm:w-64"
+            />
+          </div>
+
+          {filtered.length === 0 && (
+            <div className="panel-inset px-4 py-8 text-center">
+              <div className="text-sm text-[var(--color-muted)]">No matches fit these filters.</div>
+              <button
+                type="button"
+                onClick={() => setFilters({ tour, surface: "All", event: "all" })}
+                className="mono mt-2 text-[11px] text-[var(--color-accent)] hover:underline"
+              >
+                clear filters
+              </button>
+            </div>
+          )}
+
+          <div className="space-y-9">
+            {ordered.map(({ g, tier }, gi) => (
+              <section key={g.event}>
+                <div className="mb-3 flex items-center gap-3">
+                  <span className="chip" style={{ color: surfaceColor(g.surface), borderColor: surfaceColor(g.surface) }}>
+                    {g.surface}
+                  </span>
+                  <span
+                    className="chip"
+                    style={{
+                      color: tier.rank === 0 ? "var(--color-champ)" : "var(--color-muted)",
+                      borderColor: tier.rank === 0 ? "var(--color-champ)" : "var(--color-line2)",
+                    }}
+                  >
+                    {tier.short}
+                  </span>
+                  <h2 className="display text-lg">{g.event}</h2>
+                  <span className="mono text-xs text-[var(--color-faint)]">
+                    {g.matches.length} {g.matches.length === 1 ? "match" : "matches"}
+                  </span>
+                </div>
+                <div className="grid gap-2.5 sm:grid-cols-2">
+                  {g.matches.map((m, i) => (
+                    <Reveal key={`${m.playerA}-${m.playerB}-${i}`} delay={Math.min(gi * 0.02 + i * 0.01, 0.2)}>
+                      <CallCard
+                        tone="projection"
+                        {...upcomingCard(m)}
+                        matchup={hasMatchupProfiles(m, rated)}
+                        profileRoster={rated}
+                      />
+                    </Reveal>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
