@@ -13,7 +13,47 @@ import {
   sitemapCoverageProblems,
   coverageProblems,
   hasProfileContract,
+  canonicalRouteProblems,
+  fetchWithRetry,
 } from "@/scripts/verify-deploy-lib.mjs";
+
+describe("fetchWithRetry", () => {
+  it("recovers from a transient aborted request", async () => {
+    let calls = 0;
+    const sleeps: number[] = [];
+    const response = await fetchWithRetry("https://example.com/schedule/", {}, {
+      attempts: 2,
+      delayMs: 7,
+      timeoutMs: 100,
+      fetchImpl: async () => {
+        calls += 1;
+        if (calls === 1) throw new DOMException("This operation was aborted", "AbortError");
+        return new Response("ok");
+      },
+      sleep: async (ms) => { sleeps.push(ms); },
+    });
+
+    expect(await response.text()).toBe("ok");
+    expect(calls).toBe(2);
+    expect(sleeps).toEqual([7]);
+  });
+
+  it("reports the URL and attempt count when retries are exhausted", async () => {
+    let calls = 0;
+    await expect(fetchWithRetry("https://example.com/schedule/", {}, {
+      attempts: 2,
+      timeoutMs: 100,
+      fetchImpl: async () => {
+        calls += 1;
+        throw new DOMException("This operation was aborted", "AbortError");
+      },
+      sleep: async () => {},
+    })).rejects.toThrow(
+      "GET https://example.com/schedule/ failed after 2 attempts: This operation was aborted",
+    );
+    expect(calls).toBe(2);
+  });
+});
 
 describe("parseCacheControl", () => {
   it("flags immutable + long max-age (hashed static assets)", () => {
@@ -137,6 +177,33 @@ describe("extractCanonical", () => {
 
   it("returns null when no canonical exists", () => {
     expect(extractCanonical(`<link rel="icon" href="/icon.svg"/>`)).toBeNull();
+  });
+});
+
+describe("canonicalRouteProblems", () => {
+  const origin = "https://example.com";
+
+  it("does not fabricate missing-tag failures for route HTML that was unavailable", () => {
+    const html = new Map([
+      ["/", `<link rel="canonical" href="${origin}/"/>`],
+    ]);
+    expect(canonicalRouteProblems(html, origin, ["/", "/schedule/", "/method/"])).toEqual({
+      problems: [],
+      unavailable: ["/schedule/", "/method/"],
+    });
+  });
+
+  it("still fails a genuine missing or incorrect canonical in available HTML", () => {
+    const html = new Map([
+      ["/schedule/", "<title>Schedule</title>"],
+      ["/method/", `<link rel="canonical" href="${origin}/wrong/"/>`],
+    ]);
+    const result = canonicalRouteProblems(html, origin, ["/schedule/", "/method/"]);
+    expect(result.unavailable).toEqual([]);
+    expect(result.problems).toEqual([
+      `/schedule/ -> missing (expected ${origin}/schedule/)`,
+      `/method/ -> ${origin}/wrong/ (expected ${origin}/method/)`,
+    ]);
   });
 });
 

@@ -139,3 +139,9 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - Keep primary ordering separate from information depth: future top-tier draws retain their full
   forecast below live play. See [`lessons/web.md`](lessons/web.md).
+
+## Deployment verifier addition (2026-08-11)
+
+- A dependent check must distinguish unavailable input from invalid input; otherwise one
+  transport failure cascades into fabricated diagnoses. See
+  [`lessons/ci-and-deploy.md`](lessons/ci-and-deploy.md).

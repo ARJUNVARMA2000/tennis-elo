@@ -3728,3 +3728,33 @@ overall data-health flag and its `tee` pipeline masks a non-zero verifier exit f
 - The local `health --gate` blocked the cached local snapshot on stale Toronto and Montreal
   cards (and warned on Warsaw); that cache predates the current Hagen data and is not a
   regression in this fix.
+
+## Deployment verifier: transient route timeout false alarm (2026-08-11)
+
+Run 31545089452 deployed fresh, healthy artifacts, then one route request timed out. The route
+check reported only "This operation was aborted" and stopped fetching at `/schedule/`; the
+canonical check reused the incomplete HTML map and falsely claimed that every later route had
+lost its canonical tag. The next hourly run passed unchanged and auto-closed issue #18.
+
+- [x] Add bounded retry behavior for transient verifier fetch failures, with the failed URL and
+      attempt count preserved in the terminal error instead of a context-free abort message.
+- [x] Make the canonical check dependency-aware so unavailable route HTML cannot cascade into
+      fabricated metadata failures, while still failing genuine missing/wrong canonicals.
+- [x] Add deterministic regressions for a recovered transient abort, an exhausted route fetch,
+      and suppression of the dependent false diagnosis.
+- [x] Run the focused verifier tests, full web tests/lint/build, applicable Python workflow
+      tests, and live negative/positive controls; inspect the diff and reconcile against Git tip.
+
+### Review
+
+- Rejected network requests now retry twice by default. Exhaustion reports the exact URL and
+  attempt count; actual HTTP responses still go directly to the existing status/MIME checks.
+- Canonical validation checks only successfully served route HTML. A failed route remains a
+  route failure, while available HTML with a missing or wrong canonical still fails metadata.
+- Verification: 30 focused verifier tests and all 219 web tests passed; production build passed;
+  47 workflow-alert tests and Ruff passed; Node syntax and `git diff --check` passed. Web lint
+  exited 0 with the same 13 existing warnings.
+- Live positive control passed all 12 checks against Firebase. A deliberately wrong
+  `generatedAt` failed exactly the freshness check, proving the live gate still bites.
+- Final reconciliation: local `master` and `origin/master` both pointed to `8f542bb` before this
+  review was recorded; the only worktree changes are this fix, its tests, and task/lesson logs.

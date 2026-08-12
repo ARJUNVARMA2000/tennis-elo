@@ -18,11 +18,12 @@ import {
   isAbsoluteOnOrigin,
   coverageProblems,
   extractOgImage,
-  extractCanonical,
+  canonicalRouteProblems,
   extractGoogleSiteVerification,
   sitemapCoverageProblems,
   hasProfileContract,
   healthArtifactOk,
+  fetchWithRetry,
 } from "./verify-deploy-lib.mjs";
 
 // ---- config -----------------------------------------------------------------
@@ -40,17 +41,18 @@ const GOOGLE_SITE_VERIFICATION = "A9r3zgELsRVJ1tEyVaDH4heFNcEeDXIvZ_KzRH__eHQ";
 // Overridable via env so CI can widen the window and tests can shorten it.
 const FRESH_TRIES = Number(process.env.FRESH_TRIES) || (EXPECT_GENERATED_AT ? 12 : 1);
 const FRESH_DELAY_MS = Number(process.env.FRESH_DELAY_MS) || 5000;
+const FETCH_TRIES = Number(process.env.FETCH_TRIES) || 2;
+const FETCH_RETRY_DELAY_MS = Number(process.env.FETCH_RETRY_DELAY_MS) || 500;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function fetchT(url, opts = {}, ms = 30000) {
-  const ac = new AbortController();
-  const t = setTimeout(() => ac.abort(), ms);
-  try {
-    return await fetch(url, { signal: ac.signal, ...opts });
-  } finally {
-    clearTimeout(t);
-  }
+  return fetchWithRetry(url, opts, {
+    attempts: FETCH_TRIES,
+    delayMs: FETCH_RETRY_DELAY_MS,
+    timeoutMs: ms,
+    sleep,
+  });
 }
 
 // ---- check runner -----------------------------------------------------------
@@ -77,10 +79,13 @@ await check("routes 200 + text/html", async () => {
   for (const route of ROUTES) {
     const res = await fetchT(BASE + route);
     const ct = res.headers.get("content-type");
-    if (res.status !== 200 || !contentTypeOk(ct, route)) bad.push(`${route} -> ${res.status} ${ct}`);
+    const served = res.status === 200 && contentTypeOk(ct, route);
+    if (!served) bad.push(`${route} -> ${res.status} ${ct}`);
     const html = await res.text();
-    routeHtml.set(route, html);
-    if (route === "/") homeHtml = html;
+    if (served) {
+      routeHtml.set(route, html);
+      if (route === "/") homeHtml = html;
+    }
   }
   must(bad.length === 0, `bad routes: ${bad.join("; ")}`);
   return `${ROUTES.length} routes ok`;
@@ -111,14 +116,12 @@ await check("crawl discovery: robots.txt + sitemap.xml", async () => {
 });
 
 await check("meta: every indexable route has a self-canonical URL", async () => {
-  const bad = [];
-  for (const route of INDEXABLE_ROUTES) {
-    const canonical = extractCanonical(routeHtml.get(route));
-    const expected = new URL(route, ORIGIN).href;
-    if (canonical !== expected) bad.push(`${route} -> ${canonical || "missing"} (expected ${expected})`);
-  }
-  must(bad.length === 0, bad.join("; "));
-  return `${INDEXABLE_ROUTES.length} self-canonicals`;
+  const { problems, unavailable } = canonicalRouteProblems(routeHtml, ORIGIN, INDEXABLE_ROUTES);
+  must(problems.length === 0, problems.join("; "));
+  const checked = INDEXABLE_ROUTES.length - unavailable.length;
+  return unavailable.length
+    ? `${checked} self-canonicals; ${unavailable.length} unavailable (covered by route check)`
+    : `${checked} self-canonicals`;
 });
 
 await check("meta: Google Search Console ownership token", async () => {

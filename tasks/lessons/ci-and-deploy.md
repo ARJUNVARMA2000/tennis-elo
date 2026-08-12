@@ -218,3 +218,15 @@ Indexed in [`../lessons.md`](../lessons.md).
   itself checks serving/freshness separately from the data-health report that has its own alert
   step. **How to apply:** every logged pipeline needs an explicit exit-status contract and a
   regression that asserts the workflow preserves the producer command's failure.
+
+- **A dependent verifier check must distinguish "input unavailable" from "input invalid."**
+  (2026-08-11, run 31545089452 / issue #18) One Firebase route fetch aborted, ending the route
+  loop at `/schedule/`; the canonical check then interpreted every absent downstream HTML body
+  as a missing canonical tag and turned one transport timeout into fourteen false metadata
+  diagnoses. The unchanged next hourly run passed and auto-closed the alert. Fix shape: retry
+  rejected requests within a small bound, preserve the URL and attempt count when they still
+  fail, and let checks that reuse fetched artifacts validate only the artifacts actually
+  available. The prerequisite check owns unavailability; the dependent check still owns
+  genuinely malformed available input. **How to apply:** whenever checks share a cache, map, or
+  generated intermediate, model missing provenance explicitly and regression-test both an
+  exhausted prerequisite and a real dependent-contract violation.

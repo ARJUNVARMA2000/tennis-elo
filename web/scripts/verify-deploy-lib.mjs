@@ -3,6 +3,65 @@
 // importing the runnable (which would fire real network checks on import).
 
 /**
+ * Retry a rejected async operation a bounded number of times. HTTP responses are values, so
+ * callers still fail 4xx/5xx immediately under their own serving-contract checks; this only
+ * absorbs transport failures such as an aborted Firebase edge request.
+ *
+ * @template T
+ * @param {() => Promise<T>} operation
+ * @param {{attempts?: number, delayMs?: number, label?: string, sleep?: (ms: number) => Promise<void>}} options
+ * @returns {Promise<T>}
+ */
+export async function retryRejected(operation, options = {}) {
+  const attempts = Math.max(1, Math.trunc(Number(options.attempts) || 1));
+  const delayMs = Math.max(0, Number(options.delayMs) || 0);
+  const label = options.label || "operation";
+  const sleep = options.sleep || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+  let lastError;
+
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts) await sleep(delayMs);
+    }
+  }
+
+  const detail = lastError?.message || String(lastError);
+  throw new Error(`${label} failed after ${attempts} attempt${attempts === 1 ? "" : "s"}: ${detail}`,
+    { cause: lastError });
+}
+
+/**
+ * Fetch with a per-attempt timeout and bounded retries for rejected requests. Dependency
+ * injection keeps the abort/recovery behavior deterministic under unit test.
+ *
+ * @param {string} url
+ * @param {RequestInit} fetchOptions
+ * @param {{attempts?: number, delayMs?: number, timeoutMs?: number, fetchImpl?: typeof fetch, sleep?: (ms: number) => Promise<void>}} retryOptions
+ * @returns {Promise<Response>}
+ */
+export async function fetchWithRetry(url, fetchOptions = {}, retryOptions = {}) {
+  const timeoutMs = Math.max(1, Number(retryOptions.timeoutMs) || 30000);
+  const fetchImpl = retryOptions.fetchImpl || fetch;
+  return retryRejected(async () => {
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), timeoutMs);
+    try {
+      return await fetchImpl(url, { ...fetchOptions, signal: ac.signal });
+    } finally {
+      clearTimeout(timer);
+    }
+  }, {
+    attempts: retryOptions.attempts,
+    delayMs: retryOptions.delayMs,
+    label: `GET ${url}`,
+    sleep: retryOptions.sleep,
+  });
+}
+
+/**
  * Parse a Cache-Control header value into the flags the suite cares about.
  * @param {string|null|undefined} value
  * @returns {{immutable: boolean, mustRevalidate: boolean, maxAge: number|null}}
@@ -166,6 +225,33 @@ export function extractCanonical(html) {
   if (m) return m[1];
   m = s.match(/<link[^>]+href=["']([^"']+)["'][^>]*\srel=["']canonical["']/i);
   return m ? m[1] : null;
+}
+
+/**
+ * Validate canonicals only for successfully fetched route HTML. Unavailable pages already fail
+ * the route-serving check; treating their absent bodies as absent tags creates a second, false
+ * diagnosis that obscures the transport failure.
+ *
+ * @param {Map<string, string>} routeHtml
+ * @param {string} origin
+ * @param {string[]} routes
+ * @returns {{problems: string[], unavailable: string[]}}
+ */
+export function canonicalRouteProblems(routeHtml, origin, routes) {
+  const problems = [];
+  const unavailable = [];
+  for (const route of routes) {
+    if (!routeHtml.has(route)) {
+      unavailable.push(route);
+      continue;
+    }
+    const canonical = extractCanonical(routeHtml.get(route));
+    const expected = new URL(route, origin).href;
+    if (canonical !== expected) {
+      problems.push(`${route} -> ${canonical || "missing"} (expected ${expected})`);
+    }
+  }
+  return { problems, unavailable };
 }
 
 /**
