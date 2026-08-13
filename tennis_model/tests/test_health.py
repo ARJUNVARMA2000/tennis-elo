@@ -7,6 +7,7 @@ are exercised with their IO seams redirected (same save/restore pattern as test_
 
 from __future__ import annotations
 
+import copy
 import json
 import sys
 import tempfile
@@ -768,7 +769,7 @@ def test_output_official_bracket_requires_provider_host_dates_and_strong_field_e
     d = _healthy_data()
     bracket = d["brackets"][0]
     bracket.update({
-        "drawSource": "atp", "drawSourceId": "123",
+        "drawSource": "atp", "drawSourceId": "123", "espnId": "1-2026",
         "drawSourceUrl": "https://wtafiles.wtatennis.com/wrong.pdf",
         "drawSourceStart": "2026-08-01", "drawSourceEnd": "2026-08-07",
         "drawEvidencePlayers": 2, "drawEvidenceFieldPlayers": 28,
@@ -776,7 +777,41 @@ def test_output_official_bracket_requires_provider_host_dates_and_strong_field_e
     problems = health.output_problems("atp", _oc(data=d), NOW)
     assert any("URL host" in problem for problem in problems)
     assert any("2/28" in problem and "minimum 75%" in problem for problem in problems)
-    assert any("calendar does not overlap" in problem for problem in problems)
+    assert any("calendar overlap is too small" in problem for problem in problems)
+
+
+def test_output_official_bracket_rejects_adjacent_event_date_overlap():
+    d = _healthy_data()
+    bracket = d["brackets"][0]
+    bracket.update({
+        "drawSource": "atp", "drawSourceId": "806", "espnId": "718-2026",
+        "drawSourceUrl": "https://www.protennislive.com/posting/2026/806/mds.pdf",
+        "drawSourceStart": "2026-08-01", "drawSourceEnd": "2026-08-13",
+        "start": "2026-08-11", "end": "2026-08-24",
+        "drawEvidencePlayers": 72, "drawEvidenceFieldPlayers": 83,
+    })
+    problems = health.output_problems("atp", _oc(data=d), NOW)
+    hit = [problem for problem in problems if "calendar overlap is too small" in problem]
+    assert hit and health._gate_blocks(hit[0]), problems
+
+
+def test_output_one_official_draw_cannot_attach_to_multiple_espn_events():
+    d = _healthy_data()
+    first = d["brackets"][0]
+    first.update({
+        "drawSource": "atp", "drawSourceId": "806", "espnId": "421-2026",
+        "drawSourceUrl": "https://www.protennislive.com/posting/2026/806/mds.pdf",
+        "drawSourceStart": first["start"], "drawSourceEnd": first["end"],
+        "drawEvidencePlayers": 4, "drawEvidenceFieldPlayers": 4,
+    })
+    second = copy.deepcopy(first)
+    second.update(name="Adjacent Open", espnId="718-2026")
+    d["brackets"].append(second)
+
+    problems = health.output_problems("atp", _oc(data=d), NOW)
+    hit = [problem for problem in problems if "attached to multiple ESPN events" in problem]
+    assert hit and health._gate_blocks(hit[0]), problems
+    assert "421-2026" in hit[0] and "718-2026" in hit[0]
 
 
 def test_output_bracket_early_draw_with_qualifiers_is_clean():

@@ -29,10 +29,22 @@ def test_legacy_wikipedia_cache_migrates_to_generic_provenance(tmp_path, monkeyp
 
 
 def test_official_cache_requires_strong_attachment_evidence():
-    base = {"source": "atp", "evidencePlayers": 21, "evidenceFieldPlayers": 28}
+    base = {"source": "atp", "evidencePlayers": 21, "evidenceFieldPlayers": 28,
+            "start": "2026-08-01", "end": "2026-08-14",
+            "sourceStart": "2026-08-01", "sourceEnd": "2026-08-13"}
     assert draws._official_evidence_is_valid(base, "atp")
     assert not draws._official_evidence_is_valid({**base, "evidencePlayers": 20}, "atp")
     assert not draws._official_evidence_is_valid({**base, "source": "wta"}, "atp")
+    assert not draws._official_evidence_is_valid(
+        {**base, "start": "2026-08-11", "end": "2026-08-24"}, "atp")
+
+
+def test_settled_draw_requires_distinct_entrants():
+    clean = {"slots": [f"Player {i}" for i in range(8)], "drawSize": 8}
+    assert draws._draw_is_settled(clean)
+    assert not draws._draw_is_settled(
+        {"slots": ["Anna Bondar", "Anna Bondar", *[f"Player {i}" for i in range(6)]],
+         "drawSize": 8})
 
 
 def test_upcoming_rows_use_entry_name_and_stable_event_id():

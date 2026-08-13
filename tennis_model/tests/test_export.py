@@ -222,6 +222,7 @@ def test_build_brackets_payload_splits_and_stamps():
     rounds = [{"round": "F", "matches": [{"a": "A", "b": "B", "winner": "a"}]}]
     tournaments = [
         {"name": "With Draw", "surface": "Hard", "status": "completed", "drawSize": 2,
+         "espnId": "123-2026",
          "champion": "A", "runnerUp": "B", "bestOf": 3, "start": "2026-07-01",
          "end": "2026-07-02", "bracket": rounds, "bracketSize": 2,
          "drawSource": "atp", "drawSourceId": "123",
@@ -242,6 +243,7 @@ def test_build_brackets_payload_splits_and_stamps():
     b = payload[0]
     assert b["name"] == "With Draw" and b["rounds"] == rounds
     assert b["bracketSize"] == 2 and b["champion"] == "A"
+    assert b["espnId"] == "123-2026"
     assert b["drawSource"] == "atp" and b["drawSourceId"] == "123"
     _strict_load(json.dumps(export._finite(payload)))     # browser-strict round-trip
     print("ok test_build_brackets_payload_splits_and_stamps")

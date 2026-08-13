@@ -34,15 +34,17 @@ from .results import _name_key
 ATP_PDF = "https://www.protennislive.com/posting/{year}/{source_id}/mds.pdf"
 WTA_PDF = "https://wtafiles.wtatennis.com/pdf/draws/{year}/{source_id}/MDS.pdf"
 PDF_UA = "Mozilla/5.0 (compatible; Deuce tennis draw monitor)"
-_ENTRY_CODES = frozenset({"A", "ALT", "JE", "JR", "LL", "NG", "PR", "Q", "SE", "WC"})
+_ENTRY_CODES = frozenset({"A", "ALT", "JE", "JR", "LL", "NG", "PR", "Q", "Q/LL", "SE", "WC"})
 _UNRESOLVED_SLOT_LABELS = frozenset({
-    "alt", "alternate", "ll", "lucky loser", "q", "qualifier", "tba", "tbd", "wc", "wildcard",
+    "alt", "alternate", "ll", "lucky loser", "q", "qualifier", "qualifier/ll",
+    "tba", "tbd", "wc", "wildcard",
 })
 _GENERIC_EVENT_TOKENS = frozenset({"atp", "by", "championships", "classic", "ladies",
                                    "men", "open", "presented", "tennis", "the", "wta", "women"})
 _MONTHS = {m.lower(): i for i, m in enumerate(
     ("January", "February", "March", "April", "May", "June", "July", "August",
      "September", "October", "November", "December"), start=1)}
+_MIN_DATE_OVERLAP_RATIO = 0.5
 
 
 def official_pdf_url(tour: str, year: int, source_id: str) -> str:
@@ -116,7 +118,7 @@ def _slot_line(line: str) -> tuple[int, str | None, int | None] | None:
     # PDF text extraction occasionally glues a slot number to its entry marker (`124WC`).
     # A missing gap is valid only for a known marker, otherwise ordinary numbered prose could
     # be mistaken for a player row.
-    glued_entry = re.match(r"^([A-Za-z]{1,3})\s+", body)
+    glued_entry = re.match(r"^([A-Za-z/]{1,4})\s+", body)
     if not gap and (not glued_entry or glued_entry.group(1).upper() not in _ENTRY_CODES):
         return None
     if re.match(r"^Bye(?:\s|$)", body, re.IGNORECASE):
@@ -126,7 +128,7 @@ def _slot_line(line: str) -> tuple[int, str | None, int | None] | None:
     # clipped before the comma (`VAN DE ZANDSCHULP…`), in which case the live-field
     # reconciliation expands the surname-only token to the unique full player.
     prefix = body.lstrip()
-    entry_match = re.match(r"^([A-Za-z]{1,3})\s+", prefix)
+    entry_match = re.match(r"^([A-Za-z/]{1,4})\s+", prefix)
     if entry_match and entry_match.group(1).upper() in _ENTRY_CODES:
         prefix = prefix[entry_match.end():]
     seed = None
@@ -136,7 +138,7 @@ def _slot_line(line: str) -> tuple[int, str | None, int | None] | None:
         prefix = prefix[seed_match.end():]
     if "," not in prefix:
         clipped = re.split(r"\s{2,}", prefix.strip(), maxsplit=1)[0].strip()
-        if clipped and re.search(r"[A-Za-zÀ-ÖØ-öø-ÿ…]", clipped):
+        if clipped and re.search(r"[A-Za-zÀ-ÖØ-öø-ÿﬁ…]", clipped):
             return number, " ".join(clipped.split()).title(), seed
         return None
 
@@ -194,7 +196,9 @@ def parse_official_text(text: str, best_of: int = 3) -> dict | None:
     placeholder = 0
     for i in range(1, size + 1):
         player, seed = rows[i]
-        if isinstance(player, str) and player.strip().casefold() in _UNRESOLVED_SLOT_LABELS:
+        unresolved = (player.strip().casefold().replace("ﬁ", "fi")
+                      if isinstance(player, str) else "")
+        if unresolved in _UNRESOLVED_SLOT_LABELS:
             placeholder += 1
             player = f"Qualifier {placeholder}"
         slots.append(player)
@@ -261,6 +265,24 @@ def _date(value) -> date | None:
 def _overlaps(a_start, a_end, b_start, b_end) -> bool:
     a1, a2, b1, b2 = _date(a_start), _date(a_end), _date(b_start), _date(b_end)
     return bool(a1 and a2 and b1 and b2 and max(a1, b1) <= min(a2, b2))
+
+
+def official_dates_match(event_start, event_end, source_start, source_end) -> bool:
+    """Whether provider and ESPN spans describe the same event, not adjacent events.
+
+    ESPN includes qualifying while an official PDF can cover only the main draw, so exact
+    dates are too strict. Mere intersection is too weak: Toronto and Cincinnati 2026 shared
+    three calendar days and 72 players, which attached Toronto's source id 806 to Cincinnati.
+    Requiring at least half of the shorter inclusive span preserves nested main-draw windows
+    while rejecting a small boundary overlap between consecutive tournaments.
+    """
+    a1, a2 = _date(event_start), _date(event_end or event_start)
+    b1, b2 = _date(source_start), _date(source_end or source_start)
+    if not (a1 and a2 and b1 and b2) or a2 < a1 or b2 < b1:
+        return False
+    overlap = (min(a2, b2) - max(a1, b1)).days + 1
+    shorter = min((a2 - a1).days + 1, (b2 - b1).days + 1)
+    return overlap > 0 and overlap / shorter >= _MIN_DATE_OVERLAP_RATIO
 
 
 def _reconcile_slots(slots: list, seeds: dict, evidence_players) -> tuple[list, dict, int]:
@@ -430,9 +452,10 @@ def fetch_official_draw(tour: str, year: int, meta: dict, registry_entry: dict |
         if not draw:
             rejected.append(f"{tour}:{source_id} malformed draw geometry")
             continue
-        if not span or not _overlaps(meta.get("start"), meta.get("end") or meta.get("start"),
-                                     span[0].isoformat(), span[1].isoformat()):
-            rejected.append(f"{tour}:{source_id} calendar does not overlap ESPN event")
+        if not span or not official_dates_match(
+                meta.get("start"), meta.get("end") or meta.get("start"),
+                span[0].isoformat(), span[1].isoformat()):
+            rejected.append(f"{tour}:{source_id} calendar overlap is too small for ESPN event")
             continue
         slots, seeds, shared = _reconcile_slots(draw["slots"], draw["seeds"], evidence_players)
         required = max(2, math.ceil(evidence_total * 0.75))

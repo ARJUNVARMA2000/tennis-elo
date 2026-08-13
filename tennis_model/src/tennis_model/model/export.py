@@ -417,7 +417,8 @@ def build_brackets_payload(tournaments: list) -> list:
         brackets.append({
             "name": t.get("name"), "surface": t.get("surface"), "level": t.get("level"),
             "bestOf": t.get("bestOf"), "start": t.get("start"), "end": t.get("end"),
-            "status": t.get("status"), "drawSize": t.get("drawSize"), "bracketSize": size,
+            "status": t.get("status"), "espnId": t.get("espnId"),
+            "drawSize": t.get("drawSize"), "bracketSize": size,
             "champion": t.get("champion"), "runnerUp": t.get("runnerUp"),
             "drawSource": source, "drawSourceId": source_id, "drawSourceUrl": source_url,
             "drawSourceStart": source_start, "drawSourceEnd": source_end,

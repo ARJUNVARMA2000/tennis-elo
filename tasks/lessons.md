@@ -151,3 +151,9 @@ New lesson → append the entry to the matching topic file and add its lead line
 - Zero-age revalidation still stores CDN entries; mutable content that must always be fresh can
   require `no-cache, no-store` to avoid stuck cache keys. See
   [`lessons/ci-and-deploy.md`](lessons/ci-and-deploy.md).
+
+## Official draw identity addition (2026-08-12)
+
+- Shared fields plus a boundary date overlap can still join adjacent events; require substantial
+  calendar agreement and revalidate retained attachments. See
+  [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md).

@@ -303,3 +303,16 @@ Indexed in [`../lessons.md`](../lessons.md).
   rules make a good hand-check: same-person claims were confirmed against `played_each_other`,
   stable ids, and record membership before touching `PLAYER_ALIASES`, rather than on the
   strength of two spellings looking alike.
+
+- **Near-complete shared fields plus any date overlap still do not identify adjacent tour
+  events; require substantial calendar agreement, and revalidate cached attachments.**
+  (2026-08-12, Cincinnati attached Toronto source 806) Toronto and Cincinnati shared 72 of
+  Cincinnati's 83 observed players and overlapped for three boundary days, so the official
+  resolver's 75% player rule accepted the wrong draw and persisted its provider id. The next
+  runs treated that accepted record as immutable before rechecking identity, freezing the
+  mistake in cache. Cincinnati's correct PDF also introduced glued `Q/LL` codes and a `ﬁ`
+  ligature, so parser rejection made the wrong fallback likelier. **How to apply:** field
+  evidence and dates are complementary—require a material fraction of the shorter event span,
+  not one shared day; apply the same contract to fresh candidates, retained cache, and the
+  shipping gate; preserve `espnId` beside provider provenance and reject one provider draw
+  attached to multiple ESPN events. Parser evolution must retain distinct unresolved seats.

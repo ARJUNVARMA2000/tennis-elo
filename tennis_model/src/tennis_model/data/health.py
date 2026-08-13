@@ -715,11 +715,13 @@ def _check_brackets(out: list, tour: str, brackets: list, tournaments) -> None:
     forward and joining results (sim/bracket.py); the failure classes are a fold that
     doesn't halve, a winner not fed to the next round, a live event whose final is already
     decided, a prob out of range, or a champion that disagrees with tournaments.json."""
+    from ..data.draws_official import official_dates_match
     from ..data.results import _name_key
     from ..sim.draws import SIZE_NAME
     tmap = ({_norm_name(t.get("name")): t for t in tournaments
              if isinstance(t, dict) and t.get("name")} if isinstance(tournaments, list) else {})
     seen: set = set()
+    official_attachments: dict[tuple[str, str], set[tuple[str, str]]] = {}
     for ev in brackets:
         if not isinstance(ev, dict):
             out.append(f"{tour}: brackets.json has a non-object entry")
@@ -750,6 +752,12 @@ def _check_brackets(out: list, tour: str, brackets: list, tournaments) -> None:
             out.append(f"{tour}: bracket {name!r} drawSource {source!r} has URL host "
                        f"{host!r} (expected {_DRAW_SOURCE_HOSTS[source]!r})")
         if source in ("atp", "wta"):
+            espn_id = str(ev.get("espnId") or "")
+            if not espn_id:
+                out.append(f"{tour}: bracket {name!r} official draw is missing espnId provenance")
+            elif source_id:
+                official_attachments.setdefault((source, str(source_id)), set()).add(
+                    (espn_id, str(name)))
             if source != tour:
                 out.append(f"{tour}: bracket {name!r} uses the other tour's official source {source!r}")
             evidence = ev.get("drawEvidencePlayers")
@@ -758,13 +766,10 @@ def _check_brackets(out: list, tour: str, brackets: list, tournaments) -> None:
                     or field_evidence < 2 or evidence < 2 or evidence * 4 < field_evidence * 3):
                 out.append(f"{tour}: bracket {name!r} official draw matches only "
                            f"{evidence!r}/{field_evidence!r} event players (minimum 75%)")
-            event_start = pd.to_datetime(ev.get("start"), errors="coerce")
-            event_end = pd.to_datetime(ev.get("end") or ev.get("start"), errors="coerce")
-            source_start = pd.to_datetime(ev.get("drawSourceStart"), errors="coerce")
-            source_end = pd.to_datetime(ev.get("drawSourceEnd"), errors="coerce")
-            if (pd.isna(event_start) or pd.isna(event_end) or pd.isna(source_start)
-                    or pd.isna(source_end) or max(event_start, source_start) > min(event_end, source_end)):
-                out.append(f"{tour}: bracket {name!r} official draw calendar does not overlap "
+            if not official_dates_match(
+                    ev.get("start"), ev.get("end") or ev.get("start"),
+                    ev.get("drawSourceStart"), ev.get("drawSourceEnd")):
+                out.append(f"{tour}: bracket {name!r} official draw calendar overlap is too small for "
                            f"the tournament ({ev.get('drawSourceStart')}..{ev.get('drawSourceEnd')} "
                            f"vs {ev.get('start')}..{ev.get('end')})")
 
@@ -852,6 +857,12 @@ def _check_brackets(out: list, tour: str, brackets: list, tournaments) -> None:
         _flag_placeholders(out, tour, f"bracket {name!r}",
                            (p for rnd in rounds for m in (rnd.get("matches") or [])
                             for p in (m.get("a"), m.get("b"))))
+
+    for (source, source_id), attachments in official_attachments.items():
+        if len(attachments) > 1:
+            detail = ", ".join(f"{espn_id} ({name})" for espn_id, name in sorted(attachments))
+            out.append(f"{tour}: official draw {source}:{source_id} is attached to multiple ESPN "
+                       f"events: {detail}")
 
     # cross-presence: hasBracket <=> a brackets.json entry (both directions)
     if isinstance(tournaments, list):

@@ -80,13 +80,14 @@ def load_tournament_draws(tour: str) -> dict:
 
 
 def _draw_is_settled(entry: dict | None) -> bool:
-    """Every entrant is a real player and the recorded entrant count reconciles."""
+    """Every entrant is a distinct real player and the recorded count reconciles."""
     from ..sim.bracket import is_real
     if not isinstance(entry, dict):
         return False
     slots = entry.get("slots") or []
     named = [slot for slot in slots if slot is not None]
-    if not named or not all(is_real(slot) for slot in named):
+    if (not named or not all(is_real(slot) for slot in named)
+            or len(set(named)) != len(named)):
         return False
     try:
         return len(named) == int(entry.get("drawSize"))
@@ -95,11 +96,16 @@ def _draw_is_settled(entry: dict | None) -> bool:
 
 
 def _official_evidence_is_valid(entry: dict | None, tour: str) -> bool:
+    from .draws_official import official_dates_match
+
     if not isinstance(entry, dict) or entry.get("source") != tour:
         return False
     matched, field = entry.get("evidencePlayers"), entry.get("evidenceFieldPlayers")
     return (isinstance(matched, int) and isinstance(field, int) and field >= 2
-            and matched >= 2 and matched * 4 >= field * 3)
+            and matched >= 2 and matched * 4 >= field * 3
+            and official_dates_match(
+                entry.get("start"), entry.get("end") or entry.get("start"),
+                entry.get("sourceStart"), entry.get("sourceEnd")))
 
 
 def _retained(entry: dict, cutoff: str) -> bool:

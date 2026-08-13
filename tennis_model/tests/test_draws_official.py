@@ -56,6 +56,23 @@ def test_parse_official_text_numbers_repeated_unresolved_qualifier_slots():
     assert len(set(slot for slot in draw["slots"] if slot is not None)) == 96
 
 
+def test_parse_current_wta_glued_qll_ligature_as_distinct_qualifiers():
+    """Cincinnati 2026 uses `3Q/LL Qualiﬁer/LL` with a glued entry code and ﬁ ligature."""
+    lines = ["Cincinnati Open", "August 13-23 2026", "Main Draw Singles"]
+    for i in range(1, 9):
+        if i in (3, 6):
+            lines.append(f"{i}Q/LL   Qualiﬁer/LL")
+        else:
+            lines.append(f" {i}       PLAYER {i}, Test          USA")
+
+    draw = official.parse_official_text("\n".join(lines))
+
+    assert draw is not None
+    assert draw["slots"][2] == "Qualifier 1"
+    assert draw["slots"][5] == "Qualifier 2"
+    assert len(set(draw["slots"])) == 8
+
+
 def test_clipped_surname_without_comma_is_a_slot_and_reconciles_to_live_field():
     assert official._slot_line(" 17       6   VAN DE ZANDSCHULP…           NED") == (
         17, "Van De Zandschulp…", 6)
@@ -80,6 +97,15 @@ def test_provider_date_parser_handles_both_dialects_and_implicit_cross_month():
     assert official.parse_date_span("DC\nJuly 27- August 2, 2026", 2026)[0].isoformat() == "2026-07-27"
 
 
+def test_official_dates_require_substantial_overlap_not_adjacent_boundary():
+    assert official.official_dates_match("2026-08-01", "2026-08-14",
+                                         "2026-08-01", "2026-08-13")
+    assert official.official_dates_match("2026-08-11", "2026-08-24",
+                                         "2026-08-13", "2026-08-23")
+    assert not official.official_dates_match("2026-08-11", "2026-08-24",
+                                             "2026-08-01", "2026-08-13")
+
+
 def test_candidate_selection_rejects_adjacent_event_with_only_a_few_shared_players(monkeypatch, tmp_path):
     field = [f"Player {i}" for i in range(1, 29)]
     wrong = [*field[:5], *[f"Wrong {i}" for i in range(6, 33)]]
@@ -101,6 +127,32 @@ def test_candidate_selection_rejects_adjacent_event_with_only_a_few_shared_playe
     assert draw and draw["sourceId"] == "right"
     assert draw["evidencePlayers"] == 28 and draw["evidenceFieldPlayers"] == 28
     assert any("matches 5/28" in reason for reason in rejected)
+
+
+def test_candidate_selection_rejects_adjacent_event_despite_shared_player_field(monkeypatch, tmp_path):
+    """Toronto/Cincinnati share most entrants; a three-day boundary overlap is not identity."""
+    field = [f"Player {i}" for i in range(1, 9)]
+    texts = {
+        "806": _text("National Bank Open", "August 1-13 2026", field),
+        "1017": _text("Cincinnati Open", "August 13-23 2026", field),
+    }
+    monkeypatch.setattr(official, "wta_candidate_ids", lambda *args: [
+        {"id": "806"}, {"id": "1017"},
+    ])
+    monkeypatch.setattr(official, "live_dir", lambda tour: tmp_path)
+    monkeypatch.setattr(official, "_download", lambda url, cache: url.encode())
+    monkeypatch.setattr(official, "extract_pdf_text",
+                        lambda body: texts["806" if b"/806/" in body else "1017"])
+
+    draw, rejected = official.fetch_official_draw(
+        "wta", 2026,
+        {"name": "Cincinnati Open", "espnId": "718-2026",
+         "start": "2026-08-11", "end": "2026-08-24"},
+        {"sourceIds": {"wta": "806"}}, field,
+    )
+
+    assert draw and draw["sourceId"] == "1017"
+    assert any("wta:806 calendar overlap is too small" in reason for reason in rejected)
 
 
 def test_mifel_reviewed_locator_is_los_cabos_provider_id():

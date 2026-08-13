@@ -3855,3 +3855,41 @@ isolating the failure to stored Firebase CDN cache keys rather than the built ar
   passed; lint exited 0 with the same 13 existing React-hook warnings and no new warnings.
 - Final reconciliation: local `master` and `origin/master` both point to `7ac8aa9`; the worktree
   contains this uncommitted UI pass, its focused tests, and this task log.
+
+## WTA Cincinnati wrong official-draw attachment / blocked deploy (2026-08-12)
+
+- [x] Reject adjacent official draws whose date intersection is only a small fraction of the
+      event span, while preserving the existing real-player evidence requirement.
+- [x] Parse the WTA provider's current glued `Q/LL` entry code and `Qualiﬁer/LL` ligature label
+      as distinct unresolved qualifying seats so Cincinnati source `1017` can be selected.
+- [x] Carry `espnId` into bracket provenance and block one tour-provider draw id from being
+      attached to multiple ESPN events; add regression coverage for the Toronto/Cincinnati case.
+- [x] Run the focused parser/draw/health tests, the full Python suite and Ruff, then replay the
+      current WTA live draw acquisition in isolation and record the completed review.
+
+### Review
+
+- Runs 31631055085 through 31645393461 were blocked before deploy because Cincinnati exported
+  95 unique entrants beside 96 round-0 slots. An isolated replay proved Cincinnati had inherited
+  Toronto's provider id `806`: the events shared 72/83 observed players and three boundary days.
+- Official attachment now requires at least half of the shorter inclusive calendar span on fresh
+  candidates and retained cache. A settled cached draw must contain distinct real entrants, so
+  the already-poisoned Actions cache is re-evaluated instead of remaining immutable.
+- The provider parser accepts glued `Q/LL` entry codes and normalizes `Qualiﬁer/LL` ligatures into
+  unique numbered seats. The real source `1017` PDF parses as 128 slots, 96 non-byes, 96 unique
+  entrants and 13 unresolved qualifiers.
+- Bracket payloads now retain `espnId`; the pre-upload health gate applies the same substantial
+  date contract and blocks one official source id attached to multiple ESPN events.
+- Verification: 129 focused draw/export/health tests passed; all 559 Python tests passed; Ruff
+  and `git diff --check` passed. A poisoned-cache replay corrected Cincinnati `806` -> `1017`,
+  left `806` only on Toronto, updated the registry, rebuilt WTA artifacts, and produced a clean
+  WTA output gate.
+- Final reconciliation: local and remote `master` remain at `51849cf`; these fixes and records
+  are uncommitted, and no production-triggering push was made.
+
+### Deployment execution (2026-08-13)
+
+- Latest refresh run `31724714753` reproduced the same Cincinnati 95/96 integrity failure on
+  remote tip `51849cf`; no new failure class appeared.
+- Production push approved after diagnosis. Pre-push verification passed: 129 focused tests,
+  all 559 Python tests, Ruff, and `git diff --check`.
