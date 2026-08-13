@@ -316,3 +316,13 @@ Indexed in [`../lessons.md`](../lessons.md).
   not one shared day; apply the same contract to fresh candidates, retained cache, and the
   shipping gate; preserve `espnId` beside provider provenance and reject one provider draw
   attached to multiple ESPN events. Parser evolution must retain distinct unresolved seats.
+
+- **Placeholder uniqueness starts with semantic classification, not numbering.**
+  (2026-08-13, ATP Cincinnati source 422) The WTA repair numbered `Q/LL` and
+  `Qualiﬁer/LL`, but ATP expressed the same unresolved seat as the spaced, full-word
+  `Qualifier / Lucky Loser`. Because that spelling missed the placeholder vocabulary, all
+  13 occurrences survived as one repeated apparent player: the ordered bracket still had
+  96 non-byes, while its set-backed tournament field collapsed to 84 entrants. **How to
+  apply:** normalize ligatures, internal whitespace, and slash spacing before classifying a
+  provider label; then number every unresolved occurrence before any set/map consumer. Test
+  the exact source dialect and assert uniqueness, not just the expected label text.

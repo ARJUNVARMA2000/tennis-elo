@@ -37,7 +37,7 @@ PDF_UA = "Mozilla/5.0 (compatible; Deuce tennis draw monitor)"
 _ENTRY_CODES = frozenset({"A", "ALT", "JE", "JR", "LL", "NG", "PR", "Q", "Q/LL", "SE", "WC"})
 _UNRESOLVED_SLOT_LABELS = frozenset({
     "alt", "alternate", "ll", "lucky loser", "q", "qualifier", "qualifier/ll",
-    "tba", "tbd", "wc", "wildcard",
+    "qualifier/lucky loser", "tba", "tbd", "wc", "wildcard",
 })
 _GENERIC_EVENT_TOKENS = frozenset({"atp", "by", "championships", "classic", "ladies",
                                    "men", "open", "presented", "tennis", "the", "wta", "women"})
@@ -196,8 +196,9 @@ def parse_official_text(text: str, best_of: int = 3) -> dict | None:
     placeholder = 0
     for i in range(1, size + 1):
         player, seed = rows[i]
-        unresolved = (player.strip().casefold().replace("ﬁ", "fi")
+        unresolved = (" ".join(player.strip().casefold().replace("ﬁ", "fi").split())
                       if isinstance(player, str) else "")
+        unresolved = re.sub(r"\s*/\s*", "/", unresolved)
         if unresolved in _UNRESOLVED_SLOT_LABELS:
             placeholder += 1
             player = f"Qualifier {placeholder}"

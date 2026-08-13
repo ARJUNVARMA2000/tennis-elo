@@ -157,3 +157,9 @@ New lesson → append the entry to the matching topic file and add its lead line
 - Shared fields plus a boundary date overlap can still join adjacent events; require substantial
   calendar agreement and revalidate retained attachments. See
   [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md).
+
+## Provider placeholder vocabulary addition (2026-08-13)
+
+- Normalize semantic placeholder variants before numbering them; an unrecognized repeated label
+  becomes one fake player in set-backed consumers. See
+  [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md).

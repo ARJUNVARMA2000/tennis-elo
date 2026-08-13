@@ -73,6 +73,21 @@ def test_parse_current_wta_glued_qll_ligature_as_distinct_qualifiers():
     assert len(set(draw["slots"])) == 8
 
 
+def test_parse_current_atp_spaced_qualifier_lucky_loser_as_distinct_seats():
+    """Cincinnati 2026 repeats `Qualifier / Lucky Loser` for unresolved main-draw seats."""
+    lines = ["Cincinnati Open", "13 August — 23 August 2026", "Main Draw Singles"]
+    for i in range(1, 9):
+        player = "Qualifier / Lucky Loser" if i in (3, 6) else f"PLAYER {i}, Test"
+        lines.append(f" {i}       {player}          USA")
+
+    draw = official.parse_official_text("\n".join(lines))
+
+    assert draw is not None
+    assert draw["slots"][2] == "Qualifier 1"
+    assert draw["slots"][5] == "Qualifier 2"
+    assert len(set(draw["slots"])) == 8
+
+
 def test_clipped_surname_without_comma_is_a_slot_and_reconciles_to_live_field():
     assert official._slot_line(" 17       6   VAN DE ZANDSCHULP…           NED") == (
         17, "Van De Zandschulp…", 6)

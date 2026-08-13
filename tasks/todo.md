@@ -3893,3 +3893,23 @@ isolating the failure to stored Firebase CDN cache keys rather than the built ar
   remote tip `51849cf`; no new failure class appeared.
 - Production push approved after diagnosis. Pre-push verification passed: 129 focused tests,
   all 559 Python tests, Ruff, and `git diff --check`.
+
+## ATP Cincinnati repeated qualifying-seat labels / blocked deploy (2026-08-13)
+
+Run 31725933581 proved the WTA attachment fix but exposed the ATP half of Cincinnati: the
+official 96-entrant PDF repeats `Qualifier / Lucky Loser` for 13 unresolved seats, and the
+parser preserved that shared string. The tournament field's set collapsed those seats into
+one (83 named players + one label = 84), while the ordered bracket retained all 96 non-byes.
+
+- [x] Normalize spaced/full-word provider qualifying labels before set-backed consumers and
+      number every occurrence as a distinct unresolved seat.
+- [x] Add an exact ATP-PDF parser regression and retain the existing 96-seat integrity gate.
+- [ ] Reparse official Cincinnati source 422, run focused/full verification, commit, push,
+      and monitor the replacement deploy through live Firebase verification.
+
+### Review
+
+- Production source 422 now parses as a 128-slot bracket with 96 non-byes, 96 unique entrants,
+  13 uniquely numbered qualifying seats, and no repeated non-null entrant.
+- Verification before the replacement commit: 11 parser tests, 191 broader draw/tournament/
+  export/health tests, all 560 Python tests, Ruff, and `git diff --check` passed.
