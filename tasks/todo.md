@@ -3913,3 +3913,30 @@ one (83 named players + one label = 84), while the ordered bracket retained all 
   13 uniquely numbered qualifying seats, and no repeated non-null entrant.
 - Verification before the replacement commit: 11 parser tests, 191 broader draw/tournament/
   export/health tests, all 560 Python tests, Ruff, and `git diff --check` passed.
+
+## ATP Cincinnati Griekspoor withdrawal / blocked deploy (2026-08-14)
+
+Runs 31817797668 and 31822996593 were blocked before deploy because the retained official
+Cincinnati draw still names Tallon Griekspoor after ESPN and the now-updated ATP source replaced
+him with Shang Juncheng. The generic evidence derivation cannot act until the replacement plays,
+which is the documented escape-hatch case for an event-scoped withdrawal override.
+
+- [x] Add the `718-2026` ATP withdrawal substitution from Tallon Griekspoor to Shang Juncheng.
+- [x] Add an exact event-scoping regression that proves the cached draw substitutes Shang, removes
+      Griekspoor from the projection, and clears `drawnNotInField` before Shang has played.
+- [x] Run focused tournament/health coverage, the full Python suite, Ruff, the pre-deploy gate,
+      and `git diff --check`; then record the review before any production-triggering push.
+
+### Review
+
+- The override is keyed only to ESPN edition `718-2026` and replaces Griekspoor with Shang in the
+  retained ordered draw until match evidence can establish the same substitution automatically.
+- The exact regression starts from the stale draw and current ESPN field before either player has
+  a result; Shang occupies Griekspoor's slot against Lorenzo Sonego, enters the projection, and
+  `drawnNotInField` clears.
+- Verification: 143 focused tournament/health tests and all 561 Python tests passed; Ruff and
+  `git diff --check` passed. The local integrity command ran but correctly rejected this checkout's
+  nine-day-old generated artifacts; the pushed refresh will validate against the current Actions
+  cache before any Firebase deploy.
+- Final pre-push reconciliation: local `master` and `origin/master` both point to `0accd3c`; only
+  the scoped config change, its regression, and this task record are modified.

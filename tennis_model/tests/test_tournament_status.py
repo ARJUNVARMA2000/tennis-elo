@@ -17,7 +17,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from tennis_model.config import MAX_DERIVED_WITHDRAWALS
+from tennis_model.config import EVENT_WITHDRAWN_PLAYERS, MAX_DERIVED_WITHDRAWALS
 from tennis_model.sim.bracket import is_real
 from tennis_model.sim.tournaments import (
     _date_basis,
@@ -908,6 +908,35 @@ def test_an_explained_withdrawal_is_not_reported_twice():
     assert out["drawnNotInField"] == [], out["drawnNotInField"]
     assert "P0" not in {p["name"] for p in out["projection"]}
     print("ok test_an_explained_withdrawal_is_not_reported_twice")
+
+
+def test_cincinnati_override_substitutes_shang_before_either_player_has_played(monkeypatch):
+    """2026-08-14: the retained release draw still named Griekspoor after ATP source 422
+    and ESPN replaced him with Shang. No result from that slot existed yet, so the generic
+    evidence derivation had nothing it could safely use and the pre-deploy gate blocked.
+    The event-scoped escape hatch must repair both the live population and ordered bracket."""
+    slots = ["Tallon Griekspoor", "Lorenzo Sonego"] + [f"P{i}" for i in range(2, 8)]
+    field = ["Shang Juncheng", "Lorenzo Sonego"] + [f"P{i}" for i in range(2, 8)]
+    from tennis_model.sim import tournaments as tournament_module
+    monkeypatch.setattr(tournament_module, "EVENT_WITHDRAWN_PLAYERS", EVENT_WITHDRAWN_PLAYERS)
+    pred = _Pred({name: 2500.0 if name == "Shang Juncheng" else 1500.0
+                  for name in field + ["Tallon Griekspoor"]})
+    g = pd.DataFrame([dict(tourney_name="Cincinnati Open", date=pd.Timestamp("2026-08-14"),
+                           round="R64", winner_name="P2", loser_name="P3", score="6-2 6-2",
+                           surface_b="Hard", best_of=3, tourney_level="M")])
+    out = project_tournament(
+        pred, "Cincinnati Open", g, "atp", known=set(), top_set=None,
+        espn_fields={"Cincinnati Open": {"field": field, "eliminated": ["P3"]}},
+        resolve=lambda n: n, matchups=[],
+        tournament_draw={"slots": slots, "bestOf": 3},
+        espn_id="718-2026", n_sims=200, seed=1)
+
+    projected = {p["name"] for p in out["projection"]}
+    assert "Shang Juncheng" in projected and "Tallon Griekspoor" not in projected, projected
+    assert out["drawnNotInField"] == [], out["drawnNotInField"]
+    slot = out["bracket"][0]["matches"][0]
+    assert (slot["a"], slot["b"]) == ("Shang Juncheng", "Lorenzo Sonego"), slot
+    print("ok test_cincinnati_override_substitutes_shang_before_either_player_has_played")
 
 
 def test_a_short_field_indicts_nobody():

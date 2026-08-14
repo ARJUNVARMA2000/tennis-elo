@@ -610,14 +610,20 @@ MAX_DERIVED_WITHDRAWALS = 4
 # event carries the replacement and drops the withdrawn player, so both the substitution and
 # the walkover are derivable without a hand-maintained list. Keyed by ESPN edition id, never
 # by name — see the events-join rule in AGENTS.md.
-# EMPTY IS THE EXPECTED STATE. `sim/tournaments._derive_withdrawals` now works this out from
-# evidence, and was checked against both cases that used to be listed here: it reproduces
-# Auger-Aliassime -> Jaime Faria at Toronto and Jeline Vandromme -> Marcelina Podlinska at
-# Warsaw with this table empty. An entry belongs here only when the evidence genuinely cannot
-# settle a case — two candidates that both fit, or a replacement whose results never joined —
-# and `drawnNotInField` will name the event and player when that happens.
+# EMPTY IS THE USUAL STATE. `sim/tournaments._derive_withdrawals` works this out from evidence,
+# and was checked against both cases that used to be listed here: it reproduces Auger-Aliassime
+# -> Jaime Faria at Toronto and Jeline Vandromme -> Marcelina Podlinska at Warsaw without an
+# override. An entry belongs here only when the evidence genuinely cannot settle a case — two
+# candidates that both fit, or a replacement whose results have not joined yet — and
+# `drawnNotInField` will name the event and player when that happens.
 EVENT_WITHDRAWN_PLAYERS: dict[str, dict[str, dict[str, str | None]]] = {
-    "atp": {},
+    "atp": {
+        # 2026 Cincinnati (ESPN 718-2026): the retained release draw still named Griekspoor,
+        # while ESPN and ATP source 422 replaced him with Shang before either played. With no
+        # result from the vacated slot yet, evidence derivation correctly cannot prove the
+        # substitution; scope the temporary bridge to this exact event edition.
+        "718-2026": {"Tallon Griekspoor": "Shang Juncheng"},
+    },
     "wta": {},
 }
 
