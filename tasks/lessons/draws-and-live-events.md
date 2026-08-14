@@ -326,3 +326,15 @@ Indexed in [`../lessons.md`](../lessons.md).
   apply:** normalize ligatures, internal whitespace, and slash spacing before classifying a
   provider label; then number every unresolved occurrence before any set/map consumer. Test
   the exact source dialect and assert uniqueness, not just the expected label text.
+
+- **A geometrically settled official draw is immutable only after the event; active provider
+  PDFs can be re-seated after withdrawals.** (2026-08-14, ATP Cincinnati source 422) The cached
+  draw had 96 distinct real entrants, so `_draw_is_settled` froze it even after the ATP replaced
+  Griekspoor and re-seated multiple positions. ESPN exposed the membership drift and the health
+  gate blocked the phantom entrant, but treating it as a one-for-one substitution duplicated a
+  player who already occupied another cached slot and collapsed the field to 95. The updated PDF
+  was already correct; the cache policy prevented reading it. **How to apply:** during an active
+  event, compare a settled official draw's canonical membership with the current full field. Reuse
+  it when they agree, but re-fetch and revalidate the whole ordered artifact when they differ;
+  freeze completed-event caches, and never infer a slot replacement from one changed adjacency
+  when the provider may have re-seated the draw.

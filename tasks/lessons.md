@@ -163,3 +163,9 @@ New lesson → append the entry to the matching topic file and add its lead line
 - Normalize semantic placeholder variants before numbering them; an unrecognized repeated label
   becomes one fake player in set-backed consumers. See
   [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md).
+
+## Active official-draw revision addition (2026-08-14)
+
+- Settled geometry does not make an active official draw immutable; field drift must refresh the
+  whole provider artifact because withdrawals can re-seat several slots. See
+  [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md).

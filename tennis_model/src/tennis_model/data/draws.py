@@ -142,6 +142,19 @@ def _field_evidence(tour: str, name: str, meta: dict) -> list[str]:
     return [str(player) for player in entry.get("field") or [] if player]
 
 
+def _field_membership_matches(entry: dict, evidence_players) -> bool:
+    """Whether a settled cached draw still names ESPN's current full event field.
+
+    Official PDFs are revised after withdrawals and seed re-ordering. A normalized draw can
+    therefore be geometrically settled yet stale; compare canonical name keys so harmless
+    punctuation/accent differences do not turn every refresh into a provider request.
+    """
+    from .results import _name_key
+    drawn = {_name_key(player) for player in entry.get("slots") or [] if player}
+    current = {_name_key(player) for player in evidence_players or [] if player}
+    return bool(drawn) and drawn == current
+
+
 def _wiki_draw(name: str, year: int, tour: str, meta: dict) -> dict | None:
     from .draws_wiki import fetch_draw
     raw = fetch_draw(name, year, tour, meta)
@@ -154,11 +167,12 @@ def _resolve_one(tour: str, name: str, meta: dict, registry_entry: dict,
     """Provider first, then Wikipedia/cache fallback for one registered event."""
     from .draws_official import fetch_official_draw
 
-    # A settled first-party artifact is immutable. Update only its event-facing metadata.
+    # Attachment evidence is permanent; field membership is not. Official PDFs can be revised
+    # after a withdrawal and seed re-ordering, so an ACTIVE settled artifact is reused only while
+    # ESPN's full field still agrees with it. Cincinnati 2026 otherwise retained Griekspoor after
+    # ATP source 422 had re-seated the draw around his withdrawal.
     if previous and previous.get("source") == tour and not _official_evidence_is_valid(previous, tour):
         previous = None  # generated/legacy official entry without strong attachment evidence
-    if previous and _official_evidence_is_valid(previous, tour) and _draw_is_settled(previous):
-        return _with_event(previous, name, meta), []
 
     # Do not spend provider requests upgrading a settled fallback after its event is over.
     # New/live draws move to first-party; retained historical brackets remain valid Wikipedia
@@ -170,6 +184,10 @@ def _resolve_one(tour: str, name: str, meta: dict, registry_entry: dict,
 
     year = int(str(meta.get("start") or datetime.now(UTC).year)[:4])
     evidence = _field_evidence(tour, name, meta)
+    if (previous and _official_evidence_is_valid(previous, tour)
+            and _draw_is_settled(previous)
+            and _field_membership_matches(previous, evidence)):
+        return _with_event(previous, name, meta), []
     if len(evidence) >= 2:
         official, rejected = fetch_official_draw(
             tour, year, {**meta, "name": name}, registry_entry, evidence)

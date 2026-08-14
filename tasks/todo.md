@@ -3940,3 +3940,28 @@ which is the documented escape-hatch case for an event-scoped withdrawal overrid
   cache before any Firebase deploy.
 - Final pre-push reconciliation: local `master` and `origin/master` both point to `0accd3c`; only
   the scoped config change, its regression, and this task record are modified.
+
+### Re-plan after replacement run 31824513915
+
+The override cleared the original missing-player signal but duplicated Shang, who already occupied
+another slot in the retained draw, producing a 95-player field. The ATP PDF had re-seated the draw,
+so a one-for-one substitution was not valid; the stale official cache itself must be refreshed.
+
+- [x] Remove the incorrect event override and its substitution regression.
+- [x] Revalidate an active settled official draw when its membership differs from ESPN's current
+      full field, while retaining the cache for unchanged active fields and completed events.
+- [x] Add cache-contract regressions and rerun focused/full verification before the correction push.
+- [ ] Commit, push, and monitor the next refresh through the integrity gate, Firebase deploy, and
+      live verifier.
+
+#### Corrected review
+
+- Active settled official draws now compare canonical membership with ESPN's current full field.
+  A match remains cache-only; a drift re-fetches and revalidates the whole provider artifact; an
+  ended event remains frozen. This lets current source 422 replace the stale re-seated draw.
+- Two cache-contract regressions prove the drift and no-drift branches. Verification: 159 focused
+  draw/parser/tournament/health tests and all 562 Python tests passed; Ruff and `git diff --check`
+  passed.
+- Run 31824513915 proved the original Griekspoor signal cleared but rejected the guessed override's
+  95-player duplicate, so nothing deployed. This correction removes that override rather than
+  weakening either geometry gate.

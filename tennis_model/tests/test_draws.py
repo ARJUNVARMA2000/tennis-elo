@@ -47,6 +47,61 @@ def test_settled_draw_requires_distinct_entrants():
          "drawSize": 8})
 
 
+def _official_draw(players, *, end="2099-08-23"):
+    return {
+        "name": "Cincinnati Open", "espnId": "718-2099", "source": "atp",
+        "sourceId": "422", "sourceUrl": "https://example.test/422.pdf",
+        "slots": list(players), "seeds": {}, "bestOf": 3,
+        "drawSize": len(players), "bracketSize": len(players),
+        "start": "2099-08-13", "end": end,
+        "sourceStart": "2099-08-13", "sourceEnd": end,
+        "evidencePlayers": len(players), "evidenceFieldPlayers": len(players),
+    }
+
+
+def test_active_settled_official_draw_refreshes_when_field_membership_changes(monkeypatch):
+    """Cincinnati 2026 source 422 was revised after Griekspoor withdrew and the draw was
+    re-seated. Geometry stayed settled, so field drift must invalidate immutability."""
+    from tennis_model.data import draws_official
+
+    stale = _official_draw(["Tallon Griekspoor", *[f"Player {i}" for i in range(1, 8)]])
+    current_players = ["Replacement Player", *[f"Player {i}" for i in range(1, 8)]]
+    current = _official_draw(current_players)
+    monkeypatch.setattr(draws, "_field_evidence", lambda tour, name, meta: current_players)
+    calls = []
+
+    def fetch(tour, year, meta, registry, evidence):
+        calls.append((tour, year, meta["espnId"], evidence))
+        return current, []
+
+    monkeypatch.setattr(draws_official, "fetch_official_draw", fetch)
+    resolved, rejected = draws._resolve_one(
+        "atp", "Cincinnati Open",
+        {"espnId": "718-2099", "start": "2099-08-13", "end": "2099-08-23"},
+        {"sourceIds": {"atp": "422"}}, stale)
+
+    assert calls == [("atp", 2099, "718-2099", current_players)]
+    assert resolved["slots"] == current_players and rejected == []
+
+
+def test_active_settled_official_draw_skips_provider_when_field_is_unchanged(monkeypatch):
+    from tennis_model.data import draws_official
+
+    players = [f"Player {i}" for i in range(8)]
+    cached = _official_draw(players)
+    monkeypatch.setattr(draws, "_field_evidence", lambda tour, name, meta: players)
+    monkeypatch.setattr(
+        draws_official, "fetch_official_draw",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("provider called")))
+
+    resolved, rejected = draws._resolve_one(
+        "atp", "Cincinnati Open",
+        {"espnId": "718-2099", "start": "2099-08-13", "end": "2099-08-23"},
+        {"sourceIds": {"atp": "422"}}, cached)
+
+    assert resolved["slots"] == players and rejected == []
+
+
 def test_upcoming_rows_use_entry_name_and_stable_event_id():
     payload = {"424-2026": {
         "name": "Mifel Tennis Open", "espnId": "424-2026", "start": "2026-08-01",

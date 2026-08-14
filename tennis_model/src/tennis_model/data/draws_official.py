@@ -56,7 +56,8 @@ def _download(url: str, cache_path: Path | None = None, retries: int = 1) -> byt
     """Bounded binary fetch with a last-good raw artifact fallback.
 
     Fetch first so an early qualifier PDF can evolve, but retain the previous valid bytes on a
-    provider outage/rate limit. A settled normalized draw never calls this again.
+    provider outage/rate limit. A settled normalized draw calls this again only when its active
+    event field drifts, so withdrawal revisions can replace stale bytes without hourly churn.
     """
     cached = None
     if cache_path and cache_path.exists():
