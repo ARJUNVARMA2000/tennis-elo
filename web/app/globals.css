@@ -70,9 +70,11 @@ body {
   letter-spacing: -0.011em;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  overflow-x: hidden;
-  overscroll-behavior: none;
 }
+
+/* Keep overflow containment on the root. `overflow-x: hidden` makes body a scroll container
+   (`overflow-y` computes to auto); pairing that with body overscroll containment traps wheel
+   and trackpad deltas before they reach the document scroller. */
 
 /* Edge-to-edge viewport padding. max() preserves the normal gutter away from a notch. */
 .safe-x {

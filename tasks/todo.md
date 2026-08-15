@@ -3965,3 +3965,35 @@ so a one-for-one substitution was not valid; the stale official cache itself mus
 - Run 31824513915 proved the original Griekspoor signal cleared but rejected the guessed override's
   95-player duplicate, so nothing deployed. This correction removes that override rather than
   weakening either geometry gate.
+
+## Global wheel scrolling and mobile player overflow (2026-08-15)
+
+- [x] Restore wheel/trackpad scrolling by removing the non-scrolling `body` overflow trap while
+      keeping intentional root-level horizontal clipping and boundary behavior.
+- [x] Make every player dossier grid child shrink to the mobile content width and adapt the
+      fixed-width identity sparkline/surface row so `/player/` has no clipped right edge at 390px.
+- [x] Replace the source-only scroll assertions with behavioral regressions for wheel scrolling,
+      mobile document width, and the player dossier's viewport containment; extend the live-serving
+      gate with a stable shell contract for this user-visible failure class.
+- [x] Run focused tests, the full web test/lint/build suite, `git diff --check`, then verify every
+      route plus desktop and 390px scorecard/player interactions in a real browser and record the
+      review against the current Git tip.
+
+### Review
+
+- Root-only overflow containment restores the normal document scroll chain: on the local scorecard
+  a 600px wheel gesture now moves `scrollY` from 0 to 600 while body computes to
+  `overflow-y: visible` / `overscroll-behavior: auto`.
+- Every player dossier grid child can shrink, and the identity row stacks below `sm`; at 390px the
+  root and body both remain 380px wide, all five panels stay inside the viewport, and a 500px wheel
+  gesture advances the page by 500px. The scorecard forest plot still scrolls horizontally.
+- Verification now runs real wheel input at desktop and mobile widths on all 17 routes, checks
+  mobile root/body width everywhere, and checks player-panel containment plus the scorecard's
+  horizontal plot. All 34 route/viewport interaction checks passed. The harness's existing global
+  console-error rule still reported local ESPN CORS and the absent ignored `market.json` fixture;
+  neither affected a route or scrolling assertion.
+- Verification: 240 web tests passed; production build, the emitted-CSS deploy contract and
+  `git diff --check` passed. Lint exited 0 with the same 13 existing React-hook warnings.
+- Final pre-deploy reconciliation: local `master` was fast-forwarded over the non-overlapping daily
+  ledger commit and now matches `origin/master` at `fdb2252`; only this scoped web fix, regressions,
+  lesson and task record are modified.

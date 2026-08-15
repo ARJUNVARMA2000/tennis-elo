@@ -38,7 +38,7 @@ describe("mobile browser shell", () => {
     expect(css).toContain("min-height: 100svh");
     expect(css).toContain("min-height: 100dvh");
     expect(css).toContain("overflow-x: clip");
-    expect(css.match(/overscroll-behavior: none/g)).toHaveLength(2);
+    expect(css.match(/overscroll-behavior: none/g)).toHaveLength(1);
     expect(css).toContain("touch-action: manipulation");
     expect(css).toContain("user-select: none");
     expect(css.indexOf(".panel-link:hover")).toBeGreaterThan(hoverGate);
@@ -57,5 +57,14 @@ describe("mobile browser shell", () => {
     expect(rankings).not.toContain('className="panel overflow-hidden"');
     expect(css).toContain(".data-scroll");
     expect(css).toContain("overflow-x: auto");
+  });
+
+  it("lets the player dossier shrink within a narrow viewport", () => {
+    const player = readWebSource("app/player/page.tsx");
+
+    expect(player).toContain('className="mt-6 grid min-w-0 gap-5 lg:grid-cols-3"');
+    expect(player).toContain("flex min-w-0 flex-col gap-4 sm:flex-row");
+    expect(player.match(/className="panel min-w-0/g)).toHaveLength(5);
+    expect(player).toContain("single-radar+mobile-contained-v2");
   });
 });

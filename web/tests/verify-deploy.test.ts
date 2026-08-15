@@ -15,6 +15,7 @@ import {
   sitemapCoverageProblems,
   coverageProblems,
   hasProfileContract,
+  scrollShellProblems,
   canonicalRouteProblems,
   fetchWithRetry,
   mutableCacheControlOk,
@@ -329,13 +330,38 @@ describe("coverageProblems", () => {
 });
 
 describe("hasProfileContract", () => {
-  it("requires the deployed player page to advertise fail-closed links and the dossier radar", () => {
+  it("requires the deployed player page to advertise fail-closed links and a mobile-contained dossier", () => {
     expect(hasProfileContract(
-      `<main><div data-profile-contract="fail-closed-links+single-radar-v1"></div></main>`,
+      `<main><div data-profile-contract="fail-closed-links+single-radar+mobile-contained-v2"></div></main>`,
     )).toBe(true);
     expect(hasProfileContract(`<main><div class="profiles"></div></main>`)).toBe(false);
     expect(hasProfileContract(
-      `<div data-profile-contract="fail-open-links+single-radar-v1"></div>`,
+      `<div data-profile-contract="fail-closed-links+single-radar-v1"></div>`,
     )).toBe(false);
+  });
+});
+
+describe("scrollShellProblems", () => {
+  it("accepts root-owned horizontal clipping without making body a scroll container", () => {
+    expect(scrollShellProblems(`
+      html { overflow-x: clip; overscroll-behavior: none; }
+      body { min-height: 100dvh; }
+    `)).toEqual([]);
+  });
+
+  it("rejects the deployed body overflow/overscroll combination that swallowed wheel input", () => {
+    expect(scrollShellProblems(
+      `html{overflow-x:clip}body{overflow-x:hidden;overscroll-behavior:none}`,
+    )).toEqual([
+      "body creates an overflow scroll container",
+      "body blocks vertical overscroll chaining",
+    ]);
+  });
+
+  it("rejects missing root clipping and vertical longhand containment", () => {
+    expect(scrollShellProblems(`@layer base { body { overscroll-behavior-y: contain; } }`)).toEqual([
+      "html is missing overflow-x: clip",
+      "body blocks vertical overscroll chaining",
+    ]);
   });
 });

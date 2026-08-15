@@ -28,7 +28,7 @@ type Profile = RadarProfile & {
 export default function Players() {
   const { tour } = useTour();
   return (
-    <div className="pb-16" data-profile-contract="fail-closed-links+single-radar-v1">
+    <div className="pb-16" data-profile-contract="fail-closed-links+single-radar+mobile-contained-v2">
       <PageHead eyebrow={`${tour.toUpperCase()} · player dossier`} title="Profiles" />
       {/* useSearchParams (deep links) requires its own Suspense boundary under static export */}
       <Suspense fallback={<Loading />}>
@@ -119,18 +119,20 @@ function PlayersInner() {
               variants={stagger(0.07, 0.05)}
               initial="hidden"
               animate="show"
-              className="mt-6 grid gap-5 lg:grid-cols-3"
+              className="mt-6 grid min-w-0 gap-5 lg:grid-cols-3"
             >
               {/* identity + elo line */}
-              <motion.div variants={fadeUp} className="panel p-6 lg:col-span-2">
-                <div className="flex items-start justify-between">
-                  <div>
+              <motion.div variants={fadeUp} className="panel min-w-0 p-6 lg:col-span-2">
+                <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
                     <div className="display text-3xl">{p.name}</div>
                     <div className="mono mt-2 text-sm text-[var(--color-muted)]">
                       Elo {p.elo} · {p.matches} matches{p.hand ? ` · ${p.hand}-handed` : ""}{p.rankPoints ? ` · ${p.rankPoints} pts` : ""}
                     </div>
                   </div>
-                  <Spark points={p.history.map((h) => h[1])} w={200} color="var(--color-accent)" />
+                  <div className="max-w-full shrink-0 overflow-hidden sm:overflow-visible">
+                    <Spark points={p.history.map((h) => h[1])} w={200} color="var(--color-accent)" />
+                  </div>
                 </div>
                 <div className="mt-5 grid grid-cols-3 gap-3">
                   {SURFACES.map((s) => (
@@ -147,7 +149,7 @@ function PlayersInner() {
               </motion.div>
 
               {/* style fingerprint */}
-              <motion.div variants={fadeUp} className="panel p-6">
+              <motion.div variants={fadeUp} className="panel min-w-0 p-6">
                 <div className="eyebrow mb-3">Playing style</div>
                 {Object.entries(STYLE_LABEL).map(([k, label]) => {
                   const v = p.style[k];
@@ -162,7 +164,7 @@ function PlayersInner() {
               </motion.div>
 
               {/* same tour-relative spider chart used by the two-player comparison */}
-              <motion.div variants={fadeUp} className="panel p-4 sm:p-6 lg:col-span-3">
+              <motion.div variants={fadeUp} className="panel min-w-0 p-4 sm:p-6 lg:col-span-3">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <div className="eyebrow">Style profile</div>
@@ -183,7 +185,7 @@ function PlayersInner() {
               </motion.div>
 
               {/* recent form */}
-              <motion.div variants={fadeUp} className="panel p-6 lg:col-span-2">
+              <motion.div variants={fadeUp} className="panel min-w-0 p-6 lg:col-span-2">
                 <div className="eyebrow mb-3">Recent matches</div>
                 <div className="divide-y divide-[var(--color-line)]/40">
                   {p.recent.slice(0, 10).map((m, i) => (
@@ -198,7 +200,7 @@ function PlayersInner() {
               </motion.div>
 
               {/* h2h */}
-              <motion.div variants={fadeUp} className="panel p-6">
+              <motion.div variants={fadeUp} className="panel min-w-0 p-6">
                 <div className="eyebrow mb-3">Head-to-head</div>
                 {p.h2h.slice(0, 8).map((h) => (
                   <div key={h.opp} className="flex items-center justify-between py-1.5 text-sm">

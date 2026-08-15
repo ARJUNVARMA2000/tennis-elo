@@ -22,6 +22,7 @@ import {
   extractGoogleSiteVerification,
   sitemapCoverageProblems,
   hasProfileContract,
+  scrollShellProblems,
   healthArtifactOk,
   fetchWithRetry,
   mutableCacheControlOk,
@@ -182,6 +183,16 @@ await check("MIME: js/css/json not falling through to html", async () => {
   return `js${css ? "/css" : ""}/json MIME ok`;
 });
 
+await check("scroll shell: wheel input reaches the document scroller", async () => {
+  const css = extractHashedAsset(homeHtml, "css");
+  must(css, "no hashed /_next/static css asset found in home HTML");
+  const res = await fetchT(BASE + css, { cache: "no-store" });
+  must(res.status === 200, `${css} -> ${res.status}`);
+  const problems = scrollShellProblems(await res.text());
+  must(problems.length === 0, problems.join("; "));
+  return "root-owned vertical scroll contract";
+});
+
 await check(
   EXPECT_GENERATED_AT ? `freshness: live generatedAt == ${EXPECT_GENERATED_AT}` : "freshness: live health.json ok",
   async () => {
@@ -226,12 +237,12 @@ await check("coverage: every begun event is on the live site exactly once", asyn
   throw new Error(last.join("; "));
 });
 
-await check("player profiles: fail-closed links + dossier radar contract", async () => {
+await check("player profiles: fail-closed links + responsive dossier contract", async () => {
   const res = await fetchT(BASE + "/player/", { cache: "no-store" });
   must(res.status === 200, `/player/ -> ${res.status}`);
   const html = await res.text();
   must(hasProfileContract(html), "player profile contract marker missing (stale or partial deploy)");
-  return "fail-closed-links+single-radar-v1";
+  return "fail-closed-links+single-radar+mobile-contained-v2";
 });
 
 await check("meta: og:image absolute + on origin", async () => {

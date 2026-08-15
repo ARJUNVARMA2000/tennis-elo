@@ -207,8 +207,50 @@ export function coverageProblems(health, tour, tournaments) {
  */
 export function hasProfileContract(html) {
   return String(html || "").includes(
-    'data-profile-contract="fail-closed-links+single-radar-v1"',
+    'data-profile-contract="fail-closed-links+single-radar+mobile-contained-v2"',
   );
+}
+
+/**
+ * Validate the emitted global CSS contract that keeps the document element as the sole vertical
+ * scroller. A body `overflow-x` scroll container plus body-level vertical overscroll containment
+ * swallows wheel/trackpad deltas before they can chain to the document.
+ *
+ * @param {string|null|undefined} css
+ * @returns {string[]}
+ */
+export function scrollShellProblems(css) {
+  const compact = String(css || "")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\s+/g, "")
+    .toLowerCase();
+  const blocks = (selector) => [
+    ...compact.matchAll(new RegExp(`(?:^|[{}])${selector}\\{([^}]*)\\}`, "g")),
+  ].map((match) => match[1]);
+  const html = blocks("html");
+  const body = blocks("body");
+  const problems = [];
+
+  if (!html.some((rule) => /(?:^|;)overflow-x:clip(?:;|$)/.test(rule))) {
+    problems.push("html is missing overflow-x: clip");
+  }
+  if (body.some((rule) => /(?:^|;)overflow(?:-x)?:(hidden|auto|scroll)(?:;|$)/.test(rule))) {
+    problems.push("body creates an overflow scroll container");
+  }
+  if (body.some((rule) => /(?:^|;)overscroll-behavior-y:(none|contain)(?:;|$)/.test(rule))) {
+    problems.push("body blocks vertical overscroll chaining");
+  }
+  for (const rule of body) {
+    const shorthand = rule.match(/(?:^|;)overscroll-behavior:([^;]+)(?:;|$)/)?.[1];
+    if (!shorthand) continue;
+    const values = shorthand.split(/\s+/);
+    const vertical = values[1] ?? values[0];
+    if (vertical === "none" || vertical === "contain") {
+      problems.push("body blocks vertical overscroll chaining");
+      break;
+    }
+  }
+  return [...new Set(problems)];
 }
 
 /**

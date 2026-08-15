@@ -122,3 +122,13 @@ Indexed in [`../lessons.md`](../lessons.md).
   Slams, Tour Finals, 1000s, and Olympics follow the live surface with the complete hero-style
   round-by-round table; only lower-tier upcoming events stay compact. Encode this as a tier rule,
   never a one-off tournament-name exception, so the same presentation applies to future events.
+
+- **Axis-only overflow on `body` can create a hidden scroll container; body overscroll containment
+  then swallows document wheel input.** (2026-08-15, every long route stopped responding to
+  wheel/trackpad gestures) `overflow-x: hidden` makes the body's computed `overflow-y` become
+  `auto`. The body grew to its content instead of owning the vertical scroll range, but
+  `overscroll-behavior: none` stopped the wheel delta from chaining to the root scroller. Keep
+  viewport clipping/overscroll policy on `html`, leave body out of the scroll-container chain, and
+  exercise real wheel input in browser verification; CSS substring assertions encoded the broken
+  combination as an invariant. At narrow widths, also assert both root and body scroll widths —
+  root clipping can hide an over-wide grid child without making the clipped content reachable.

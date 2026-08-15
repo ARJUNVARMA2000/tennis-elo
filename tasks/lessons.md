@@ -169,3 +169,8 @@ New lesson → append the entry to the matching topic file and add its lead line
 - Settled geometry does not make an active official draw immutable; field drift must refresh the
   whole provider artifact because withdrawals can re-seat several slots. See
   [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md).
+
+## Browser scroll-chain addition (2026-08-15)
+
+- Axis-only body overflow plus body overscroll containment can trap wheel input before the root;
+  verify scrolling behavior and body width, not CSS substrings. See [`lessons/web.md`](lessons/web.md).
