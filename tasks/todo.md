@@ -4085,6 +4085,14 @@ so a one-for-one substitution was not valid; the stale official cache itself mus
   new counts were cached, so the next hourly run can clear the transient advisory; the deployed
   artifacts themselves passed both the pre-deploy and post-deploy gates.
 
+#### Automatic recovery confirmation
+
+- The already-queued scheduled refresh `32051806233` then ran the fixed producer from the saved
+  baseline and completed successfully end to end: integrity gate, health scan, Firebase deploy and
+  live verification all passed. The deployed `health.json` is `ok: true` with no ATP or WTA output
+  problems. Subsequent `tasks/**` review commits are ignored by the refresh workflow; deployed
+  producer code remains `638d02c`.
+
 ### Population-baseline review
 
 - Production run `32050687617` isolated the only red state to the run-over-run match-count advisory;
