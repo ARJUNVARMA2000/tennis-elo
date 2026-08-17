@@ -338,3 +338,15 @@ Indexed in [`../lessons.md`](../lessons.md).
   it when they agree, but re-fetch and revalidate the whole ordered artifact when they differ;
   freeze completed-event caches, and never infer a slot replacement from one changed adjacency
   when the provider may have re-seated the draw.
+
+- **A bye-heavy draw's opening-round match count is only a lower bound; every numbered stage
+  constrains the bracket size.** (2026-08-17, Cincinnati) A 96-player field in a 128-slot bracket
+  has 32 opening matches and 32 second-round matches. Taking twice the largest raw count inferred
+  64 and shifted every ESPN round one stage late. **How to apply:** round id `r` with `n` matches
+  requires at least `2*n*2^(r-1)` slots; take the largest implication across all populated stages,
+  then round to a power of two. Test 28-, 32-, 96-, and 128-player shapes, not only full openings.
+
+- **A UTC match instant is not the tournament's result date.** (2026-08-17, Cincinnati) ESPN's
+  Sunday-night matches crossed midnight UTC and shipped as Monday, preventing exact-date source
+  reconciliation. **How to apply:** resolve the venue through a committed IANA-timezone table and
+  convert aware timestamps before taking the date; unknown venues retain an explicit UTC fallback.

@@ -706,6 +706,15 @@ PLAYER_ALIASES: dict[str, str] = {
     # https://www.wtatennis.com/players/322417/ye-xin-ma
     # https://www.itftennis.com/en/players/yexin-ma/800439388/chn/wt/D/overview/
     "ma yexin": "Ye Xin Ma",
+    # 2026-08-17 Cincinnati duplicates: the stable WTA feed and ESPN record the same
+    # opponents, dates and scores under family-name-first vs western order. Keep these
+    # explicit: general token reversal would merge unrelated people.
+    "zhang shuai": "Shuai Zhang",
+    "wang xiyu": "Xiyu Wang",
+    "wang xinyu": "Xinyu Wang",
+    # The same cross-source Cincinnati evidence uses ESPN's full name for the stable/archive
+    # nickname. Keep the 133-match historical spelling, not the five-match live fragment.
+    "catherine mcnally": "Caty Mcnally",
 }
 
 

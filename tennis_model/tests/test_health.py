@@ -1089,6 +1089,75 @@ def test_output_upcoming_and_fixtures_consistency():
     print("ok test_output_upcoming_and_fixtures_consistency")
 
 
+def test_output_duplicate_fixture_result_is_blocking():
+    """The 2026 Cincinnati WTA board shipped stable-source and ESPN copies of the
+    same result under different event/round spellings, so /results counted it twice."""
+    d = _healthy_data()
+    d["fixtures"] = [
+        {"date": "2026-08-16", "event": "Cincinnati", "round": "R64",
+         "winner": "Shuai Zhang", "loser": "Opponent", "score": "7-6(5) 6-3",
+         "modelProb": 0.6, "upset": False},
+        {"date": "2026-08-16", "event": "Cincinnati Open", "round": "R32",
+         "winner": "Zhang Shuai", "loser": "Opponent", "score": "7-6 6-3",
+         "modelProb": 0.6, "upset": False},
+    ]
+    out = health.output_problems("wta", _oc(data=d), NOW)
+    hit = [p for p in out if "duplicates one completed fixture" in p]
+    assert hit and health._gate_blocks(hit[0]), out
+
+    d["fixtures"][1]["date"] = "2026-08-17"
+    assert not any("duplicates one completed fixture" in p
+                   for p in health.output_problems("wta", _oc(data=d), NOW))
+
+    # Archive sources can stamp a round-robin meeting and final rematch with the same
+    # event start date. Distinct rounds within one stable event remain legitimate.
+    d["fixtures"][1].update(date="2026-08-16", event="Cincinnati", round="F")
+    assert not any("duplicates one completed fixture" in p
+                   for p in health.output_problems("wta", _oc(data=d), NOW))
+    print("ok test_output_duplicate_fixture_result_is_blocking")
+
+
+def test_output_upcoming_round_must_match_its_bracket_slot():
+    """When stable event identity and the exact player pair locate a bracket match,
+    its round is factual. Cincinnati upcoming rows said R16 while the official bracket
+    placed those same pairs in R32, and the old gate checked neither artifact together."""
+    d = _healthy_data()
+    d["upcoming"][0].update(espnId="1-2026", round="R16", playerA="Xiyu Wang")
+    d["brackets"][0]["espnId"] = "1-2026"
+    d["brackets"][0]["rounds"][0]["matches"][0].update(a="Wang Xiyu", b="P1")
+
+    out = health.output_problems("atp", _oc(data=d), NOW)
+    hit = [p for p in out if "upcoming round R16 disagrees with bracket round SF" in p]
+    assert hit and health._gate_blocks(hit[0]), out
+
+    d["upcoming"][0]["round"] = "SF"
+    assert not any("upcoming round" in p and "disagrees with bracket round" in p
+                   for p in health.output_problems("atp", _oc(data=d), NOW))
+    print("ok test_output_upcoming_round_must_match_its_bracket_slot")
+
+
+def test_output_fixture_round_must_match_its_bracket_slot():
+    """A future completed-result round regression is independently visible because
+    exported fixtures retain their event id and the bracket check gates the mismatch."""
+    d = _healthy_data()
+    d["fixtures"] = [{
+        "date": "2026-08-16", "event": "Cincinnati", "espnId": "1-2026",
+        "round": "R16", "winner": "P0", "loser": "P1", "score": "6-4 6-3",
+        "modelProb": 0.6, "upset": False,
+    }]
+    d["brackets"][0]["espnId"] = "1-2026"
+    d["brackets"][0]["rounds"][0]["matches"][0].update(a="P0", b="P1")
+
+    out = health.output_problems("atp", _oc(data=d), NOW)
+    hit = [p for p in out if "fixture round R16 disagrees with bracket round SF" in p]
+    assert hit and health._gate_blocks(hit[0]), out
+
+    d["fixtures"][0]["round"] = "SF"
+    assert not any("fixture round" in p and "disagrees with bracket round" in p
+                   for p in health.output_problems("atp", _oc(data=d), NOW))
+    print("ok test_output_fixture_round_must_match_its_bracket_slot")
+
+
 def test_output_surface_must_be_canonical_and_month_guess_is_advisory():
     """A non-canonical surface is a builder bug (the card, the per-surface Elo blend and
     /style all key off this exact string) -> blocking. A month-of-year GUESS is advisory:

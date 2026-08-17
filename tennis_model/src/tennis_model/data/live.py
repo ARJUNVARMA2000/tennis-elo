@@ -21,7 +21,9 @@ from datetime import UTC, datetime, timedelta
 
 import pandas as pd
 
-from ..config import TOURS, live_dir
+from ..config import PLAYER_ALIASES, TOURS, live_dir
+from .names import name_key
+from .timezones import local_date
 
 # `site.web.api`, NOT the `site.api` host this used until 2026-08-04. That edge began
 # 403-ing every request carrying a custom User-Agent — it now admits only the default a
@@ -41,11 +43,17 @@ class ScoreboardUnavailable(RuntimeError):
 
 
 def _athlete_name(c: dict | None) -> str | None:
-    """Competitor -> athlete displayName, or None for draw placeholders like 'TBD'."""
+    """Competitor -> canonical athlete name, or None for placeholders like 'TBD'.
+
+    Applying verified aliases at the common ESPN boundary keeps results, live fields and
+    upcoming matchups on one identity. Results-only normalization is too late: once a saved
+    predictor correctly drops the short-lived duplicate identity, an unnormalized upcoming
+    row can no longer resolve to that player's rating and silently disappears.
+    """
     nm = ((c or {}).get("athlete") or {}).get("displayName")
     if not isinstance(nm, str) or nm.strip().lower() in _PLACEHOLDER_NAMES:
         return None
-    return nm
+    return PLAYER_ALIASES.get(name_key(nm), nm)
 
 
 def _round_label(disp: str) -> str | None:
@@ -82,17 +90,26 @@ def _draw_size(comps: list) -> int:
 
     ESPN numbers main-draw rounds from 1 (id 1 = the opening, most-populous round) and always
     tags QF/SF/F as ids 5/6/7 — so the *label* "Round 2" is R64 at a 128-draw Slam but R16 at
-    a 32-draw event; only the draw size disambiguates. We take it as the next power of two
-    >= 2 x (largest numbered round's match count): the opening round ships complete when the
-    draw is published, so it fixes the size even mid-event, and the power-of-two rounding
-    absorbs byes (a 28-player field brackets as 32)."""
+    a 32-draw event; only the draw size disambiguates. The bracket must be large enough to
+    contain EVERY populated numbered stage: round id ``r`` with ``n`` matches requires at
+    least ``2 * n * 2**(r-1)`` slots. This matters for bye-heavy draws: Cincinnati's
+    96-player field has 32 matches in both rounds 1 and 2; round 2 proves a 128-slot bracket
+    even though round 1 alone looks like a 64-draw. Power-of-two rounding still absorbs a
+    smaller bye field (12 opening matches -> 32 slots)."""
     from collections import Counter
     per_round: Counter = Counter()
     for c in comps:
         rid = (c.get("round") or {}).get("id")
         if isinstance(rid, str) and rid.isdigit() and 1 <= int(rid) <= 4:
             per_round[int(rid)] += 1
-    return _next_pow2(2 * max(per_round.values())) if per_round else 0
+    required = [2 * count * (2 ** (rid - 1)) for rid, count in per_round.items()]
+    return _next_pow2(max(required)) if required else 0
+
+
+def _event_venue(ev: dict, name: str | None) -> str | None:
+    """Best available location string for the offline timezone resolver."""
+    venue = ev.get("venue") or {}
+    return venue.get("displayName") or venue.get("fullName") or name
 
 
 def _round_code(rnd: dict, draw: int) -> str | None:
@@ -140,6 +157,7 @@ def parse_events(events: list, gender: str) -> pd.DataFrame:
     rows = []
     for ev in events:
         name = ev.get("shortName") or ev.get("name")
+        venue = _event_venue(ev, name)
         for grp in ev.get("groupings", []) or []:
             slug = (grp.get("grouping") or {}).get("slug", "")
             if slug != keep_slug:                           # skip doubles + the other tour
@@ -167,7 +185,7 @@ def parse_events(events: list, gender: str) -> pd.DataFrame:
                     # The stable identity beside the display name: `tourney_name` is a
                     # sponsor title that churns mid-event, `espn_id` does not.
                     "espn_id": ev.get("id"),
-                    "tourney_date": (comp.get("date") or "")[:10],   # YYYY-MM-DD
+                    "tourney_date": local_date(comp.get("date"), venue),
                     "round": rnd,
                     "best_of": None, "surface": None, "tourney_level": None,
                     "winner_name": wn, "loser_name": ln,
@@ -267,6 +285,7 @@ def parse_upcoming(events: list, gender: str) -> pd.DataFrame:
     rows = []
     for ev in events:
         name = ev.get("shortName") or ev.get("name")
+        venue = _event_venue(ev, name)
         for grp in ev.get("groupings", []) or []:
             if (grp.get("grouping") or {}).get("slug", "") != keep:
                 continue
@@ -285,7 +304,7 @@ def parse_upcoming(events: list, gender: str) -> pd.DataFrame:
                     continue
                 rows.append({
                     "tourney_name": name, "espn_id": ev.get("id"),
-                    "tourney_date": (comp.get("date") or "")[:10],   # YYYY-MM-DD
+                    "tourney_date": local_date(comp.get("date"), venue),
                     "round": rnd, "playerA": names[0], "playerB": names[1],
                 })
     df = pd.DataFrame(rows)
@@ -305,10 +324,11 @@ def parse_event_meta(events: list) -> dict:
         name = ev.get("shortName") or ev.get("name")
         if not name or name in out:
             continue
+        venue = _event_venue(ev, name)
         out[str(name)] = {
             "espnId": ev.get("id"),
-            "start": (ev.get("date") or "")[:10],
-            "end": (ev.get("endDate") or ev.get("date") or "")[:10],
+            "start": local_date(ev.get("date"), venue),
+            "end": local_date(ev.get("endDate") or ev.get("date"), venue),
         }
     return out
 

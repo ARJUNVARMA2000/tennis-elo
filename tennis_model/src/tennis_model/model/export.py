@@ -243,7 +243,9 @@ def build_fixtures(df, predictor, n=60) -> list:
         mp = round(p, 3)
         out.append({
             "date": pd.Timestamp(r.date).strftime("%Y-%m-%d"),
-            "event": r.tourney_name, "surface": r.surface_b, "round": r.round,
+            "event": r.tourney_name,
+            "espnId": getattr(r, "espn_id", None),
+            "surface": r.surface_b, "round": r.round,
             "winner": r.winner_name, "loser": r.loser_name, "score": r.score,
             "modelProb": mp, "upset": bool(mp < 0.5),
         })

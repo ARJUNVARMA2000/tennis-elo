@@ -1,0 +1,332 @@
+city_key,timezone
+abu dhabi,Asia/Dubai
+acapulco,America/Mexico_City
+adelaide,Australia/Adelaide
+albuquerque,America/Denver
+almaty,Asia/Almaty
+amelia island,America/New_York
+amersfoort,Europe/Amsterdam
+amsterdam,Europe/Amsterdam
+antalya,Europe/Istanbul
+antwerp,Europe/Brussels
+astana,Asia/Almaty
+athens,Europe/Athens
+athens olympics,Europe/Athens
+atlanta,America/New_York
+atlanta olympics,America/New_York
+atp cup,Australia/Sydney
+auckland,Pacific/Auckland
+austin,America/Chicago
+australian open,Australia/Melbourne
+bad gastein,Europe/Vienna
+bad homburg,Europe/Berlin
+bahia,America/Bahia
+baku,Asia/Baku
+bali,Asia/Makassar
+bangalore,Asia/Kolkata
+bangkok,Asia/Bangkok
+banja luka,Europe/Sarajevo
+barcelona,Europe/Madrid
+barcelona olympics,Europe/Madrid
+basel,Europe/Zurich
+bastad,Europe/Stockholm
+bayonne,Europe/Paris
+beijing,Asia/Shanghai
+beijing olympics,Asia/Shanghai
+belgrade,Europe/Belgrade
+berlin,Europe/Berlin
+bermuda,Atlantic/Bermuda
+biel,Europe/Zurich
+birmingham,Europe/London
+boca raton,America/New_York
+bogota,America/Bogota
+bol,Europe/Zagreb
+bologna,Europe/Rome
+bolzano,Europe/Rome
+bordeaux,Europe/Paris
+boston,America/New_York
+bournemouth,Europe/London
+brasilia,America/Sao_Paulo
+bratislava,Europe/Bratislava
+brescia,Europe/Rome
+brighton,Europe/London
+brisbane,Australia/Brisbane
+brussels,Europe/Brussels
+bucharest,Europe/Bucharest
+budapest,Europe/Budapest
+buenos aires,America/Argentina/Buenos_Aires
+buzios,America/Sao_Paulo
+cabo san lucas,America/Mazatlan
+cagliari,Europe/Rome
+calvia,Europe/Madrid
+canada masters,America/Toronto
+canadian open,America/Toronto
+canberra,Australia/Sydney
+cancun finals,America/Cancun
+cardiff,Europe/London
+carlsbad,America/Los_Angeles
+casablanca,Africa/Casablanca
+charleston,America/New_York
+charlotte,America/New_York
+chengdu,Asia/Shanghai
+chennai,Asia/Kolkata
+chicago,America/Chicago
+cincinnati,America/New_York
+cincinnati masters,America/New_York
+cleveland,America/New_York
+cluj napoca,Europe/Bucharest
+cologne,Europe/Berlin
+copenhagen,Europe/Copenhagen
+coral springs,America/New_York
+cordoba,America/Argentina/Cordoba
+costa do sauipe,America/Bahia
+courmayeur,Europe/Rome
+dallas,America/Chicago
+delray beach,America/New_York
+doha,Asia/Qatar
+dubai,Asia/Dubai
+durban,Africa/Johannesburg
+dusseldorf,Europe/Berlin
+east hanover,America/New_York
+eastbourne,Europe/London
+essen,Europe/Berlin
+estoril,Europe/Lisbon
+fes,Africa/Casablanca
+figueira da foz,Europe/Lisbon
+filderstadt,Europe/Berlin
+florence,Europe/Rome
+florianopolis,America/Sao_Paulo
+forest hills,America/New_York
+fort worth finals,America/Chicago
+gdynia,Europe/Warsaw
+geneva,Europe/Zurich
+genova,Europe/Rome
+german open,Europe/Berlin
+gijon,Europe/Madrid
+gippsland trophy,Australia/Melbourne
+gold coast,Australia/Brisbane
+grampians trophy,Australia/Melbourne
+granby,America/Toronto
+great ocean road open,Australia/Melbourne
+gstaad,Europe/Zurich
+guadalajara,America/Mexico_City
+guadalajara finals,America/Mexico_City
+guangzhou,Asia/Shanghai
+guaruja,America/Sao_Paulo
+halle,Europe/Berlin
+hamburg,Europe/Berlin
+hamburg masters,Europe/Berlin
+hangzhou,Asia/Shanghai
+hanover,Europe/Berlin
+hasselt,Europe/Brussels
+helsinki,Europe/Helsinki
+hilton head,America/New_York
+hilversum,Europe/Amsterdam
+hiroshima,Asia/Tokyo
+ho chi minh city,Asia/Ho_Chi_Minh
+hobart,Australia/Hobart
+hong kong,Asia/Hong_Kong
+hope island,Australia/Brisbane
+houston,America/Chicago
+hua hin,Asia/Bangkok
+hyderabad,Asia/Kolkata
+iasi,Europe/Bucharest
+ibaraki,Asia/Tokyo
+indian wells,America/Los_Angeles
+indian wells masters,America/Los_Angeles
+indianapolis,America/Indiana/Indianapolis
+istanbul,Europe/Istanbul
+jakarta,Asia/Jakarta
+japan open,Asia/Tokyo
+japan open tokyo,Asia/Tokyo
+jeddah,Asia/Riyadh
+jiujiang,Asia/Shanghai
+johannesburg,Africa/Johannesburg
+jurmala,Europe/Riga
+kaohsiung,Asia/Taipei
+katowice,Europe/Warsaw
+key biscayne,America/New_York
+kitzbuhel,Europe/Vienna
+knokke heist,Europe/Brussels
+kolkata,Asia/Kolkata
+kremlin cup,Europe/Moscow
+kuala lumpur,Asia/Kuala_Lumpur
+kugayama,Asia/Tokyo
+las vegas,America/Los_Angeles
+lausanne,Europe/Zurich
+leipzig,Europe/Berlin
+lexington,America/New_York
+liege,Europe/Brussels
+limoges,Europe/Paris
+linz,Europe/Vienna
+london,Europe/London
+london olympics,Europe/London
+long island,America/New_York
+los angeles,America/Los_Angeles
+los cabos,America/Mazatlan
+lucerne,Europe/Zurich
+lugano,Europe/Zurich
+luxembourg,Europe/Luxembourg
+lyon,Europe/Paris
+m rida,America/Merida
+maceio,America/Maceio
+madrid,Europe/Madrid
+madrid masters,Europe/Madrid
+mallorca,Europe/Madrid
+manchester,Europe/London
+manhattan beach,America/Los_Angeles
+marbella,Europe/Madrid
+maria lankowitz,Europe/Vienna
+marrakech,Africa/Casablanca
+marseille,Europe/Paris
+melbourne,Australia/Melbourne
+memphis,America/Chicago
+merano,Europe/Rome
+merida,America/Merida
+metz,Europe/Paris
+mexico city,America/Mexico_City
+miami,America/New_York
+miami masters,America/New_York
+milan,Europe/Rome
+monastir,Africa/Tunis
+monte carlo,Europe/Monaco
+monte carlo masters,Europe/Monaco
+monterrey,America/Monterrey
+montevideo,America/Montevideo
+montpellier,Europe/Paris
+montreal,America/Toronto
+moscow,Europe/Moscow
+mumbai,Asia/Kolkata
+munich,Europe/Berlin
+murray river open,Australia/Melbourne
+nanchang,Asia/Shanghai
+naples,Europe/Rome
+new delhi,Asia/Kolkata
+new haven,America/New_York
+new york,America/New_York
+new york open,America/New_York
+newport,America/New_York
+nice,Europe/Paris
+ningbo,Asia/Shanghai
+nottingham,Europe/London
+nur sultan,Asia/Almaty
+nuremberg,Europe/Berlin
+nurnberg,Europe/Berlin
+oahu,Pacific/Honolulu
+oakland,America/Los_Angeles
+oeiras,Europe/Lisbon
+oklahoma,America/New_York
+oporto,Europe/Lisbon
+orlando,America/New_York
+osaka,Asia/Tokyo
+ostrava,Europe/Prague
+palermo,Europe/Rome
+palm springs,America/Los_Angeles
+paris,Europe/Paris
+paris masters,Europe/Paris
+paris olympics,Europe/Paris
+parma,Europe/Rome
+pattaya,Asia/Bangkok
+philadelphia,America/New_York
+phillip island trophy,Australia/Melbourne
+pinehurst,America/New_York
+poertschach,Europe/Vienna
+ponte vedra beach,America/New_York
+portoroz,Europe/Ljubljana
+prague,Europe/Prague
+pune,Asia/Kolkata
+quebec city,America/Toronto
+queen s club,Europe/London
+queens,Europe/London
+queens club,Europe/London
+quito,America/Guayaquil
+rabat,Africa/Casablanca
+rio de janeiro,America/Sao_Paulo
+rio olympics,America/Sao_Paulo
+riyadh,Asia/Riyadh
+roland garros,Europe/Paris
+rome,Europe/Rome
+rome masters,Europe/Rome
+rosmalen,Europe/Amsterdam
+rotterdam,Europe/Amsterdam
+rouen,Europe/Paris
+s hertogenbosch,Europe/Amsterdam
+salvador,America/Bahia
+san antonio,America/Chicago
+san diego,America/Los_Angeles
+san francisco,America/Los_Angeles
+san jose,America/Los_Angeles
+san juan,America/Puerto_Rico
+san marino,Europe/San_Marino
+santiago,America/Santiago
+sao paulo,America/Sao_Paulo
+sarasota,America/New_York
+sardinia,Europe/Rome
+schenectady,America/New_York
+scottsdale,America/Phoenix
+seoul,Asia/Seoul
+serbia,Europe/Belgrade
+shanghai,Asia/Shanghai
+shanghai masters,Asia/Shanghai
+shenzhen,Asia/Shanghai
+shenzhen finals,Asia/Shanghai
+singapore,Asia/Singapore
+sofia,Europe/Sofia
+sopot,Europe/Warsaw
+split,Europe/Zagreb
+st petersburg,Europe/Moscow
+st poelten,Europe/Vienna
+stanford,America/New_York
+stockholm,Europe/Stockholm
+stockholm masters,Europe/Stockholm
+strasbourg,Europe/Paris
+stratton mountain,America/New_York
+stuttgart,Europe/Berlin
+stuttgart indoor,Europe/Berlin
+stuttgart masters,Europe/Berlin
+stuttgart outdoor,Europe/Berlin
+styria,Europe/Vienna
+sun city,Africa/Johannesburg
+surabaya,Asia/Jakarta
+sydney,Australia/Sydney
+sydney indoor,Australia/Sydney
+sydney olympics,Australia/Sydney
+sydney outdoor,Australia/Sydney
+taipei,Asia/Taipei
+tallinn,Europe/Tallinn
+tampa,America/New_York
+taranto,Europe/Rome
+tashkent,Asia/Tashkent
+tel aviv,Asia/Jerusalem
+tenerife,Atlantic/Canary
+tianjin,Asia/Shanghai
+tokyo,Asia/Tokyo
+tokyo indoor,Asia/Tokyo
+tokyo japan open,Asia/Tokyo
+tokyo nichirei,Asia/Tokyo
+tokyo olympics,Asia/Tokyo
+tokyo outdoor,Asia/Tokyo
+tokyo pan pacific,Asia/Tokyo
+toronto,America/Toronto
+toulouse,Europe/Paris
+umag,Europe/Zagreb
+united cup,Australia/Sydney
+us open,America/New_York
+valencia,Europe/Madrid
+vienna,Europe/Vienna
+vina del mar,America/Santiago
+waikoloa,Pacific/Honolulu
+warrnambool,Australia/Melbourne
+warsaw,Europe/Warsaw
+washington,America/New_York
+washington dc,America/New_York
+wellington,Pacific/Auckland
+wimbledon,Europe/London
+winston salem,America/New_York
+wuhan,Asia/Shanghai
+yarra valley classic,Australia/Melbourne
+zagreb,Europe/Zagreb
+zaragoza,Europe/Madrid
+zhengzhou,Asia/Shanghai
+zhuhai,Asia/Shanghai
+zurich,Europe/Zurich

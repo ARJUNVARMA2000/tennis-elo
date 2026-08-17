@@ -174,3 +174,11 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - Axis-only body overflow plus body overscroll containment can trap wheel input before the root;
   verify scrolling behavior and body width, not CSS substrings. See [`lessons/web.md`](lessons/web.md).
+
+## Live result integrity addition (2026-08-17)
+
+- A green health artifact proves only its existing invariants: compare live artifacts with an
+  independent current source, infer bye-heavy rounds from every stage, and treat UTC instants as
+  venue-local dates. See [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md),
+  [`lessons/data-sources.md`](lessons/data-sources.md), and
+  [`lessons/gates-and-health.md`](lessons/gates-and-health.md).

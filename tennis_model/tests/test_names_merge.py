@@ -117,6 +117,51 @@ def test_canonicalize_maps_a_three_spelling_cluster_directly_to_one_name():
     print("ok test_canonicalize_maps_a_three_spelling_cluster_directly_to_one_name")
 
 
+def test_canonicalize_merges_verified_cincinnati_wta_variants():
+    """The stable WTA result feed and ESPN described the same Cincinnati matches with
+    family-name-first and western order (plus Caty/Catherine). These are explicit identity
+    facts, not a general token-reordering heuristic."""
+    df = pd.DataFrame({
+        "winner_name": ["Zhang Shuai", "Wang Xiyu", "Wang Xinyu", "Catherine McNally"],
+        "loser_name": ["Opponent One", "Opponent Two", "Opponent Three", "Opponent Four"],
+        "__src": [3, 3, 3, 3],
+    })
+    out = results._canonicalize_names(df.copy())
+    assert list(out["winner_name"]) == [
+        "Shuai Zhang", "Xiyu Wang", "Xinyu Wang", "Caty Mcnally"]
+    print("ok test_canonicalize_merges_verified_cincinnati_wta_variants")
+
+
+def test_cincinnati_stable_and_espn_result_collapse_to_one_row(tmp_path, monkeypatch):
+    """Production-shaped replay: date/event/title/tiebreak/name spelling differ, but the
+    corrected round and explicit identity make these two sources one result. The stable
+    row wins and inherits ESPN's event id for downstream event joins."""
+    dirs = {name: tmp_path / name for name in ("historical", "stats", "fresh", "live", "lower")}
+    for path in dirs.values():
+        path.mkdir()
+    monkeypatch.setattr(results, "historical_dir", lambda tour: dirs["historical"])
+    monkeypatch.setattr(results, "stats_dir", lambda tour: dirs["stats"])
+    monkeypatch.setattr(results, "fresh_dir", lambda tour: dirs["fresh"])
+    monkeypatch.setattr(results, "live_dir", lambda tour: dirs["live"])
+    monkeypatch.setattr(results, "lower_dir", lambda tour: dirs["lower"])
+    monkeypatch.setattr(results, "wiki_categories_by_event_id",
+                        lambda tour: {"718-2026": "WTA 1000"})
+
+    _write_csv(dirs["fresh"] / "2026.csv",
+        "tourney_name,tourney_date,round,winner_name,loser_name,score\n"
+        "Cincinnati,2026/08/11,R64,Shuai Zhang,Kayla Day,2-6 6-2 6-2\n")
+    _write_csv(dirs["live"] / "live.csv",
+        "tourney_name,espn_id,tourney_date,round,winner_name,loser_name,score\n"
+        "Cincinnati Open,718-2026,2026-08-15,R64,Zhang Shuai,Kayla Day,2-6 6-2 6-2\n")
+
+    df = results.merge_sources("wta")
+    assert len(df) == 1, df[["tourney_name", "date", "round", "winner_name", "espn_id"]]
+    row = df.iloc[0]
+    assert row["tourney_name"] == "Cincinnati"
+    assert row["winner_name"] == "Shuai Zhang"
+    assert row["espn_id"] == "718-2026"
+
+
 def test_canonicalize_maps_the_live_espn_coleman_wong_name_to_his_history():
     """Los Cabos 2026 arrived under the full name while every prior row uses the short one.
 
@@ -213,6 +258,47 @@ def test_merge_dedup_prefers_stat_bearing_row():
     assert ((df["winner_name"] == "Casper Ruud")
             & (df["loser_name"] == "Novak Djokovic")).sum() == 1
     print("ok test_merge_dedup_prefers_stat_bearing_row")
+
+
+def test_merge_reconciles_cincinnati_round_disagreement_with_live_metadata():
+    """A stable stats row and ESPN can be the same match even when one source
+    mislabels a bye-heavy draw's round. Keep the stat-bearing row while applying the
+    corrected live identity/round; the output bracket gate independently verifies it."""
+    orig = (results.historical_dir, results.stats_dir, results.fresh_dir,
+            results.live_dir, results.lower_dir, results.wiki_categories_by_event_id)
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            dirs = {n: base / n for n in ("historical", "stats", "fresh", "live", "lower")}
+            for path in dirs.values():
+                path.mkdir(parents=True, exist_ok=True)
+            results.historical_dir = lambda tour: dirs["historical"]
+            results.stats_dir = lambda tour: dirs["stats"]
+            results.fresh_dir = lambda tour: dirs["fresh"]
+            results.live_dir = lambda tour: dirs["live"]
+            results.lower_dir = lambda tour: dirs["lower"]
+            results.wiki_categories_by_event_id = lambda tour: {"718-2026": "WTA 1000"}
+
+            _write_csv(dirs["stats"] / "2026.csv",
+                "tourney_name,tourney_date,round,winner_name,loser_name,score,w_svpt,l_svpt\n"
+                "Cincinnati,20260816,R64,Elina Svitolina,Tereza Valentova,"
+                "3-6 7-6(5) 6-0,91,88\n")
+            _write_csv(dirs["live"] / "live.csv",
+                "tourney_name,espn_id,tourney_date,round,winner_name,loser_name,score\n"
+                "Cincinnati Open,718-2026,2026-08-16,R32,Elina Svitolina,"
+                "Tereza Valentova,3-6 7-6 6-0\n")
+
+            df = results.merge_sources("wta")
+    finally:
+        (results.historical_dir, results.stats_dir, results.fresh_dir,
+         results.live_dir, results.lower_dir, results.wiki_categories_by_event_id) = orig
+
+    assert len(df) == 1, df[["tourney_name", "date", "round", "score", "espn_id"]]
+    stable = df.iloc[0]
+    assert stable["espn_id"] == "718-2026"
+    assert float(stable["w_svpt"]) == 91.0
+    assert stable["score"] == "3-6 7-6(5) 6-0" and stable["round"] == "R32"
+    print("ok test_merge_reconciles_cincinnati_round_disagreement_with_live_metadata")
 
 
 def test_espn_id_rides_along_without_changing_the_dedup_winner():

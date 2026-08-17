@@ -138,6 +138,12 @@ def test_draw_size():
     assert live._draw_size(_mens_round(1, "Round 1", 16) + _mens_round(2, "Round 2", 8)) == 32
     # byes: a 28-player field (12 opening matches) still brackets as 32
     assert live._draw_size(_mens_round(1, "Round 1", 12)) == 32
+    # Cincinnati's 96-player field occupies a 128-slot bracket: round 1 has only the
+    # 32 non-bye matches, while round 2 has 32 more. Looking only at the largest raw
+    # round count incorrectly calls this a 64-draw and shifts every label one round late.
+    cincy = (_mens_round(1, "Round 1", 32) + _mens_round(2, "Round 2", 32)
+             + _mens_round(3, "Round 3", 16))
+    assert live._draw_size(cincy) == 128
     # QF/SF/F ids never size the draw; no numbered rounds -> unknown (0)
     assert live._draw_size(_mens_round(5, "Quarterfinal", 4)) == 0
     assert live._draw_size([]) == 0
@@ -176,6 +182,21 @@ def test_parse_events_slam_rounds_not_all_r64():
     df = live.parse_events([ev], "mens")
     assert Counter(df["round"]) == {"R128": 64, "R64": 32, "R32": 16, "R16": 8, "QF": 4}
     print("ok test_parse_events_slam_rounds_not_all_r64")
+
+
+def test_parse_events_bye_heavy_draw_uses_every_numbered_stage():
+    """The 2026 Cincinnati payload has 32 matches in BOTH rounds 1 and 2. Round 2's
+    position proves a 128-slot bracket even though the 96-player field has only 32
+    opening-round matches; otherwise its current Round 3 ships as R16 instead of R32."""
+    from collections import Counter
+    comps = (_mens_round(1, "Round 1", 32) + _mens_round(2, "Round 2", 32)
+             + _mens_round(3, "Round 3", 16))
+    ev = {"id": "718-2026", "shortName": "Cincinnati Open",
+          "venue": {"displayName": "Cincinnati, USA"},
+          "groupings": [{"grouping": {"slug": "mens-singles"}, "competitions": comps}]}
+    df = live.parse_events([ev], "mens")
+    assert Counter(df["round"]) == {"R128": 32, "R64": 32, "R32": 16}
+    print("ok test_parse_events_bye_heavy_draw_uses_every_numbered_stage")
 
 
 def test_score_winner_perspective():
@@ -230,6 +251,30 @@ def test_parse_upcoming():
     print("ok test_parse_upcoming")
 
 
+def test_espn_timestamps_use_the_tournament_local_calendar_date():
+    """ESPN timestamps are UTC instants. Cincinnati's Sunday-night matches cross
+    midnight UTC, so slicing the ISO string displayed Monday for a Sunday result."""
+    completed = _completed("Final", "Aaron Ace", (6, 6), "Bob Baseline", (3, 4),
+                           date="2026-08-17T02:00Z")
+    pending = _pending("Final", "Carl Clay", "Dave Drop",
+                       date="2026-08-18T01:30Z")
+    ev = {"id": "718-2026", "shortName": "Cincinnati Open",
+          "venue": {"displayName": "Cincinnati, USA"},
+          "date": "2026-08-11T04:00Z", "endDate": "2026-08-24T03:59Z",
+          "groupings": [{"grouping": {"slug": "mens-singles"},
+                         "competitions": [completed, pending]}]}
+
+    assert live.parse_events([ev], "mens").iloc[0]["tourney_date"] == "2026-08-16"
+    assert live.parse_upcoming([ev], "mens").iloc[0]["tourney_date"] == "2026-08-17"
+    assert live.parse_event_meta([ev])["Cincinnati Open"] == {
+        "espnId": "718-2026", "start": "2026-08-11", "end": "2026-08-23"}
+
+    # An unknown venue stays deterministic and preserves the old UTC-date fallback.
+    unknown = dict(ev, id="999-2026", shortName="Unknown Open", venue={})
+    assert live.parse_events([unknown], "mens").iloc[0]["tourney_date"] == "2026-08-17"
+    print("ok test_espn_timestamps_use_the_tournament_local_calendar_date")
+
+
 def test_parse_fields():
     fields = live.parse_fields(_events(), "mens")
     # Test Open has < 8 known players -> only Big Slam qualifies as a live field
@@ -273,6 +318,11 @@ def test_placeholder_names_dropped():
     for nm in ("TBD", "tbd", " TBD ", "TBA", "Bye", "Qualifier"):
         assert live._athlete_name({"athlete": {"displayName": nm}}) is None, nm
     assert live._athlete_name({"athlete": {"displayName": "Aaron Ace"}}) == "Aaron Ace"
+    # Verified aliases apply at the common ESPN boundary, so upcoming/fields/results all
+    # resolve after the duplicate rating identity is removed by a full rebuild.
+    assert live._athlete_name({"athlete": {"displayName": "Zhang Shuai"}}) == "Shuai Zhang"
+    assert live._athlete_name({"athlete": {"displayName": "Wang Xiyu"}}) == "Xiyu Wang"
+    assert live._athlete_name({"athlete": {"displayName": "Catherine McNally"}}) == "Caty Mcnally"
     assert live._athlete_name({"athlete": {}}) is None
     assert live._athlete_name(None) is None
     print("ok test_placeholder_names_dropped")

@@ -200,3 +200,19 @@ Indexed in [`../lessons.md`](../lessons.md).
   the source answered and had nothing. When a source dies, check every tour/feed it serves
   before believing it is scoped to the one you noticed; a redundant path on the other tour
   will happily mask a shared outage.
+
+- **Normalize verified identity variants at the earliest shared feed boundary, not only in the
+  result merge.** (2026-08-17, Cincinnati) Family-name-first ESPN spellings and Catherine/Caty
+  variants split WTA ratings; fixing only completed results would then remove the duplicate rating
+  keys that raw upcoming rows still needed, making those matchups disappear from forecasts.
+  **How to apply:** keep aliases explicit and falsifiable, then apply them to ESPN results, fields
+  and upcoming players through the common athlete parser. General token reordering remains unsafe.
+
+- **A provider round is part of match identity until stronger one-to-one result evidence proves
+  the providers disagree.** (2026-08-17, Cincinnati) Keeping `round` in the ordinary de-dup key
+  correctly preserves real rematches, but also preserved one WTA result twice when the stable
+  feed called it R64 and ESPN called it R32. **How to apply:** bridge conflicting metadata only
+  when ordered canonical players, local date and games-only score agree, exactly one row exists
+  per source, and exactly one ESPN row supplies a stable event id. Then retain the stat-bearing
+  row while copying the live id/round. Any repeated source row makes the bucket ambiguous and
+  must remain separate for the output gate or a human to resolve.

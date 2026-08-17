@@ -243,3 +243,10 @@ Indexed in [`../lessons.md`](../lessons.md).
   absent/legacy markers stay fail-closed on the existing check. **How to apply:** a date is not
   a fact until its source semantics survive into the consumer that interprets it; put the
   exception at the producer and test both the exception and the ordinary path.
+
+- **`health.json: ok` means the known invariants passed, not that the live data is correct.**
+  (2026-08-17, Cincinnati) The deployment was reachable and green while WTA results contained 26
+  cross-source duplicates and both tours labeled official R32 pairings R16. **How to apply:** when
+  auditing current data, compare the public artifacts with an independent official source. When a
+  new shipped failure is found, encode it at the artifact boundary: reject duplicate completed
+  fixtures and compare an upcoming pair's round with the bracket under the same `espnId`.

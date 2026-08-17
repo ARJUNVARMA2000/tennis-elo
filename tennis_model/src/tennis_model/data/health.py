@@ -58,6 +58,7 @@ from ..config import (
     MATCH_POPULATION_VERSION,
     MAX_FUTURE_MATCH_DAYS,
     OUTPUT_DIR,
+    PLAYER_ALIASES,
     SURFACE_MAP,
     TOURS,
     WEB_DATA_DIR,
@@ -67,6 +68,7 @@ from ..config import (
 from ..model.features import FEATURES
 from ..sim.bracket import is_real
 from .charting import _GENDER, CHARTING_DIR
+from .names import name_key
 from .results import load_matches
 from .surface import LEVEL_VOCAB
 
@@ -929,6 +931,12 @@ def _norm_name(name: str) -> str:
     return " ".join(str(name).split()).casefold()
 
 
+def _player_identity_key(name: object) -> str:
+    """Name key after the same explicit identity aliases used by result ingestion."""
+    key = name_key(name)
+    return name_key(PLAYER_ALIASES.get(key, name))
+
+
 def cross_tour_problems(outputs: dict) -> list[str]:
     """Problems only visible with BOTH tours' boards in hand.
 
@@ -1285,8 +1293,24 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
         _check_event_coverage(out, tour, coverage, ts)
 
     br = data.get("brackets")
+    bracket_rounds: dict[tuple[str, frozenset[str]], set[str]] = {}
     if isinstance(br, list):
         _check_brackets(out, tour, br, ts if isinstance(ts, list) else None)
+        # One stable event id + exact real-player pair locates a factual bracket round.
+        # Build this once for both scheduled and completed-match cross-artifact checks.
+        for event in br:
+            if not isinstance(event, dict) or not event.get("espnId"):
+                continue
+            eid = str(event["espnId"])
+            for rnd in event.get("rounds") or []:
+                round_name = str(rnd.get("round") or "")
+                for match in rnd.get("matches") or []:
+                    a, b = match.get("a"), match.get("b")
+                    if not (_is_real_name(a) and _is_real_name(b)):
+                        continue
+                    pair = frozenset((_player_identity_key(a), _player_identity_key(b)))
+                    if len(pair) == 2:
+                        bracket_rounds.setdefault((eid, pair), set()).add(round_name)
 
     up = data.get("upcoming")
     if isinstance(up, list):
@@ -1300,14 +1324,64 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
         _flag_placeholders(out, tour, "upcoming.json",
                            (n for m in up for n in (m.get("playerA"), m.get("playerB"))))
 
+        # The complete bracket and scoreboard upcoming feed are independent artifacts,
+        # joined only on stable ESPN event identity. When an exact real-player pair appears
+        # once in that event's bracket, its bracket round is factual. This catches draw-size
+        # inference shifts such as Cincinnati 2026 (R16 shipped for an R32 pairing).
+        if bracket_rounds:
+            for match in up:
+                eid = str(match.get("espnId") or "")
+                a, b = match.get("playerA"), match.get("playerB")
+                if not eid or not (_is_real_name(a) and _is_real_name(b)):
+                    continue
+                rounds = bracket_rounds.get(
+                    (eid, frozenset((_player_identity_key(a), _player_identity_key(b)))))
+                if rounds and len(rounds) == 1:
+                    bracket_round = next(iter(rounds))
+                    upcoming_round = str(match.get("round") or "")
+                    if upcoming_round and upcoming_round != bracket_round:
+                        out.append(f"{tour}: upcoming round {upcoming_round} disagrees with "
+                                   f"bracket round {bracket_round} for {a!r} vs {b!r} "
+                                   f"(espnId {eid})")
+
     fx = data.get("fixtures")
     if isinstance(fx, list):
+        seen_fixtures: dict[tuple[str, str, str], list[dict]] = {}
         for f in fx:
             mp = f.get("modelProb")
             if not _is_prob(mp):
                 out.append(f"{tour}: fixtures.json modelProb={mp!r} out of [0,1]")
             elif bool(f.get("upset")) != (mp < 0.5):
                 out.append(f"{tour}: fixtures.json upset flag disagrees with modelProb ({mp})")
+            # Cross-source copies can disagree on sponsor title, round, score and tiebreak
+            # detail. The same ordered pair cannot complete twice on one calendar date
+            # unless a round-robin event legitimately rematches them in a later round. Keep
+            # that one exception explicit: same event name, distinct known rounds.
+            date, winner, loser = f.get("date"), f.get("winner"), f.get("loser")
+            key = (str(date or ""), _player_identity_key(winner), _player_identity_key(loser))
+            priors = seen_fixtures.setdefault(key, []) if all(key) else []
+            prior = next((old for old in priors
+                          if not (_norm_name(old.get("event")) == _norm_name(f.get("event"))
+                                  and old.get("round") and f.get("round")
+                                  and old.get("round") != f.get("round"))), None)
+            if prior is not None:
+                out.append(f"{tour}: fixtures.json duplicates one completed fixture "
+                           f"({winner!r} d. {loser!r} on {date}; "
+                           f"{prior.get('event')!r} and {f.get('event')!r})")
+            if all(key):
+                priors.append(f)
+            eid = str(f.get("espnId") or "")
+            if eid and _is_real_name(winner) and _is_real_name(loser):
+                rounds = bracket_rounds.get(
+                    (eid, frozenset((_player_identity_key(winner),
+                                     _player_identity_key(loser)))))
+                if rounds and len(rounds) == 1:
+                    bracket_round = next(iter(rounds))
+                    fixture_round = str(f.get("round") or "")
+                    if fixture_round and fixture_round != bracket_round:
+                        out.append(f"{tour}: fixture round {fixture_round} disagrees with "
+                                   f"bracket round {bracket_round} for {winner!r} vs "
+                                   f"{loser!r} (espnId {eid})")
 
     fc = oc.get("forecast")
     if fc is not None and isinstance(prev.get("forecast_lines"), int) and fc["lines"] < prev["forecast_lines"]:

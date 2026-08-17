@@ -153,6 +153,45 @@ def _canonicalize_names(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def _reconcile_exact_live_result(df: pd.DataFrame) -> pd.DataFrame:
+    """Carry ESPN event identity and round across an exact result disagreement.
+
+    A round is normally part of match identity because the same opponents can meet
+    twice at one event.  It cannot be trusted as the *only* separator across providers,
+    though: a bye-heavy draw can make one provider call the same match R64 and another
+    R32.  The safe bridge is deliberately narrow: same ordered players, local calendar
+    date and games-only score; exactly one row per source; and exactly one live ESPN row
+    carrying the stable event id.  More than one row from any source makes the bucket
+    ambiguous (for example a round-robin/final rematch), so it is left untouched.
+
+    The live round is safe to apply only at this seam because ``live._draw_size`` has
+    already resolved it from every populated stage.  ``fixtures.json`` carries the same
+    ``espn_id`` afterward, and the output gate independently checks its round against the
+    authoritative shipped bracket.  Thus an exact conflict heals automatically when all
+    three agree and still blocks before deploy if the live inference is ever wrong again.
+    """
+    if df.empty or not {"__src", "espn_id", "date"}.issubset(df.columns):
+        return df
+    score_key = df["score"].map(_score_key)
+    usable = score_key.ne("")
+    evidence = (df["winner_name"].astype(str) + "|" + df["loser_name"].astype(str)
+                + "|" + df["date"].astype(str) + "|" + score_key)
+    out = df.copy()
+    for _, group in out.loc[usable].groupby(evidence.loc[usable], sort=False):
+        if len(group) < 2 or group["__src"].nunique() != len(group):
+            continue
+        live_rows = group[(group["__src"] == 3) & group["espn_id"].notna()]
+        ids = group["espn_id"].dropna().astype(str).str.strip()
+        if len(live_rows) != 1 or ids.nunique() != 1 or not ids.iloc[0]:
+            continue
+        out.loc[group.index, "espn_id"] = ids.iloc[0]
+        raw_round = live_rows.iloc[0].get("round")
+        live_round = raw_round.strip().upper() if isinstance(raw_round, str) else ""
+        if live_round:
+            out.loc[group.index, "round"] = live_round
+    return out
+
+
 def _stamp_draw_level(df: pd.DataFrame) -> pd.DataFrame:
     """Mark every row main / chall / qual, deriving from CONTENT before provenance.
 
@@ -282,6 +321,7 @@ def merge_sources(tour: str) -> pd.DataFrame:
     df = _repair_corrupt_final_years(df)
     df = _drop_impossible_dates(df)
     df = _canonicalize_names(df)
+    df = _reconcile_exact_live_result(df)
 
     def _fill_espn_id(frame: pd.DataFrame, k: pd.Series) -> pd.DataFrame:
         """Carry `espn_id` onto every row of a match BEFORE a dedup picks its survivor.

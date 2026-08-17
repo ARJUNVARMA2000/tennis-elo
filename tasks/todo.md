@@ -3997,3 +3997,58 @@ so a one-for-one substitution was not valid; the stale official cache itself mus
 - Final pre-deploy reconciliation: local `master` was fast-forwarded over the non-overlapping daily
   ledger commit and now matches `origin/master` at `fdb2252`; only this scoped web fix, regressions,
   lesson and task record are modified.
+
+## Cincinnati live-result identity, round and date integrity (2026-08-17)
+
+- [x] Reproduce the deployed Cincinnati defects with production-shaped fixtures: a 96-entrant /
+      128-slot draw whose ESPN numbered rounds are currently one stage too deep, WTA stable-source
+      plus ESPN copies of the same result, and a late Ohio match whose UTC day differs from the
+      tournament-local day.
+- [x] Infer ESPN numbered rounds from every populated numbered stage (including post-bye rounds),
+      so 96-entrant Masters events resolve Round 1/2/3 as R128/R64/R32 without regressing 28-, 32-,
+      64-, or 128-slot draws.
+- [x] Normalize the verified WTA player-name variants that split the current cross-source matches,
+      then make the merge collapse the stable-source and ESPN copies while retaining the preferred
+      stat-bearing row and propagating the event's `espnId`.
+- [x] Convert ESPN competition timestamps to tournament-local calendar dates from a committed,
+      offline venue-to-IANA-timezone table, with an explicit UTC fallback for unknown venues.
+- [x] Extend `output_problems()` and its blocking regressions to reject duplicate fixture matches
+      and any upcoming matchup whose round disagrees with the same pair in the shipped bracket.
+- [x] Run focused parser/merge/health/export tests, the full Python suite and Ruff, replay the
+      current Cincinnati payload through the corrected seams, run the real output gate and
+      `git diff --check`, then append a review reconciled against the latest Git tip.
+
+### Review
+
+- ESPN draw sizing now uses the positional evidence from every populated numbered stage. Replaying
+  the current `718-2026` payload yields 32 R128 and 32 R64 completed matches plus 16 R32 upcoming
+  matches on each tour; its Sunday-night Ohio results remain on Sunday.
+- A committed 331-venue / 84-IANA-zone table localizes ESPN competition and event boundaries with
+  a deterministic UTC fallback. Verified WTA aliases now enter through the shared ESPN athlete
+  parser, so results, fields and upcoming forecasts use the same historical identity.
+- Exact cross-source matches collapse after the producer correction and retain the preferred
+  stat-bearing row plus `espnId`. A residual provider round disagreement is not guessed away:
+  event identity propagates, both rows survive, and the blocking fixture invariant exposes it.
+- The new gate catches all 26 duplicate fixtures in the deployed WTA payload (including reordered
+  and Catherine/Caty names), 15 pair-exact upcoming/bracket R16-vs-R32 disagreements, and future
+  completed-fixture round drift through the `espnId` now retained in `fixtures.json`.
+- Verification: 573 Python tests and Ruff passed; 240 web tests passed; web lint exited 0 with the
+  same 13 existing React-hook warnings; `git diff --check` passed. The real local output gate was
+  also exercised, but the repository's 12-day-old generated snapshot remains red on 13 pre-existing
+  stale Toronto/Montreal and legacy bracket-provenance failures, so it is not evidence for or
+  against this fresh-data fix.
+- Final pre-publish reconciliation: local `master` and `origin/master` both remain at `6c2fe48`;
+  the approved direct push to production is the next step.
+
+#### Final verification addendum
+
+- Exact one-to-one cross-provider result evidence now resolves a round disagreement before the
+  ordinary de-dup pass: the stat-bearing row survives with ESPN's `espnId` and factual live round,
+  while a bucket containing more than one row from any source remains untouched as ambiguous.
+- A fresh all-tour quick replay rebuilt model state for the new aliases and exported 60 unique
+  fixtures per tour. ATP exposed 16 predictable Cincinnati matchups and WTA 15; every exported
+  Cincinnati matchup is R32, and neither fixture file has a repeated local-date/player-pair key.
+- The refreshed real output passed `python -m tennis_model.data.health --gate`. Replay-only
+  forecast/Kalshi appends were removed after verification; no user-authored work was discarded.
+- Final verification: 572 Python tests and Ruff passed; 240 web tests passed; web lint exited 0
+  with the same 13 existing React-hook warnings; `git diff --check` passed.

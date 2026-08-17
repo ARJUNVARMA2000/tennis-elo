@@ -100,6 +100,15 @@ def test_clipped_surname_without_comma_is_a_slot_and_reconciles_to_live_field():
     assert seeds == {"Botic Van De Zandschulp": 6} and shared == 2
 
 
+def test_official_slot_reconciles_family_name_first_to_canonical_live_identity():
+    """Verified aliases canonicalize the ESPN field before official draw attachment.
+    Token evidence must still map the provider's family-name-first spelling to it."""
+    slots, seeds, shared = official._reconcile_slots(
+        ["Wang Xiyu", "Zhang Shuai"], {}, ["Xiyu Wang", "Shuai Zhang"])
+    assert slots == ["Xiyu Wang", "Shuai Zhang"]
+    assert seeds == {} and shared == 2
+
+
 def test_slot_line_accepts_glued_provider_entry_code():
     """Toronto's published WTA draw glues slot 124 to its wildcard marker (`124WC`)."""
     assert official._slot_line("124WC    CROSS, Kayla                        CAN") == (

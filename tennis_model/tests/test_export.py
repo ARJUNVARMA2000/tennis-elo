@@ -371,6 +371,7 @@ def test_fixtures_upset_flag_agrees_with_the_rounded_prob_it_ships():
         "completed": [True] * n,
         "date": pd.date_range("2026-07-01", periods=n),
         "tourney_name": ["Umag"] * n,
+        "espn_id": [f"439-{i}" for i in range(n)],
         "surface_b": ["Clay"] * n,
         "round": ["R32"] * n,
         "winner_name": [f"W{i}" for i in range(n)],
@@ -381,6 +382,7 @@ def test_fixtures_upset_flag_agrees_with_the_rounded_prob_it_ships():
 
     out = export.build_fixtures(df, _Stub(), n=n)
     assert len(out) == n
+    assert [f["espnId"] for f in out] == [f"439-{i}" for i in reversed(range(n))]
     for f in out:
         mp = f["modelProb"]
         # the exact predicate health.output_problems re-derives the flag with
