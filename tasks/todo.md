@@ -4084,3 +4084,16 @@ so a one-for-one substitution was not valid; the stale official cache itself mus
   129065 -> 128923), then GitHub's Issues API returned 503 after all three reporter retries. The
   new counts were cached, so the next hourly run can clear the transient advisory; the deployed
   artifacts themselves passed both the pre-deploy and post-deploy gates.
+
+### Population-baseline review
+
+- Production run `32050687617` isolated the only red state to the run-over-run match-count advisory;
+  both suites, the integrity gate, data build, Firebase deploy, and live verifier had passed.
+- `MATCH_POPULATION_VERSION` is now 4 for the alias-driven canonicalization. A deterministic alias
+  fingerprint regression makes future alias edits advance that contract deliberately, while the
+  existing health regression continues to reject a greater-than-50-row drop inside one version.
+- Verification: 129 focused health/export/pipeline tests passed, the full Python suite passed with
+  574 tests, Ruff passed, and `git diff --check` passed.
+- The deployed Cincinnati payload was independently fetched after the first deploy: both upcoming
+  files contain only R32 for event `718-2026`, each fixture file has 60 unique rows, WTA fixtures
+  all retain `espnId`, and the site responds HTTP 200 with `no-cache, no-store`.

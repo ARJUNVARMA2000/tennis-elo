@@ -9,6 +9,8 @@ Runnable directly (`python tests/test_pipeline_guard.py`) or under pytest.
 
 from __future__ import annotations
 
+import hashlib
+import json
 import sys
 from contextlib import contextmanager
 from pathlib import Path
@@ -16,7 +18,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import tennis_model.pipeline as pipeline
-from tennis_model.config import MATCH_POPULATION_VERSION
+from tennis_model.config import MATCH_POPULATION_VERSION, PLAYER_ALIASES
 from tennis_model.model.features import FEATURES, FeatureParams
 from tennis_model.model.predict import TennisPredictor
 
@@ -88,6 +90,18 @@ def test_predictor_player_alias_guard():
     del legacy.player_aliases
     assert not pipeline._predictor_current(legacy, "atp")
     print("ok test_predictor_player_alias_guard")
+
+
+def test_player_aliases_are_versioned_with_the_match_population():
+    """Changing a canonical identity can collapse rows across sources. Make that change
+    advance the explicit population boundary so health does not compare the rebuilt count
+    with an incompatible pre-alias deploy (while same-version drops remain alarmed)."""
+    payload = json.dumps(sorted(PLAYER_ALIASES.items()), ensure_ascii=True, separators=(",", ":"))
+    fingerprint = hashlib.sha256(payload.encode()).hexdigest()
+    assert (MATCH_POPULATION_VERSION, fingerprint) == (
+        4,
+        "3d7719b3cfe88de5e1ff43b8a0c53b6e8555863046ef1589776a746fb1af6261",
+    ), "PLAYER_ALIASES changed: advance MATCH_POPULATION_VERSION and update this contract"
 
 
 def test_predictor_match_population_guard():

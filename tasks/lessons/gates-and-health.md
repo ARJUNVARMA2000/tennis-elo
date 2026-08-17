@@ -250,3 +250,11 @@ Indexed in [`../lessons.md`](../lessons.md).
   auditing current data, compare the public artifacts with an independent official source. When a
   new shipped failure is found, encode it at the artifact boundary: reject duplicate completed
   fixtures and compare an upcoming pair's round with the bracket under the same `espnId`.
+
+- **An identity alias is a match-population change, even when the model already knows to rebuild.**
+  (2026-08-17, Cincinnati) The alias-aware quick guard correctly rebuilt both predictors and
+  collapsed duplicate identities, but `MATCH_POPULATION_VERSION` stayed unchanged. The post-deploy
+  sentinel therefore compared the intentional lower counts with the incompatible pre-alias
+  baseline and reddened an otherwise verified release. **How to apply:** advance the population
+  version whenever aliases change and snapshot the alias table against that version in a test;
+  this resets the count comparison exactly once while preserving same-version loss detection.

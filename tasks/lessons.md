@@ -182,3 +182,9 @@ New lesson → append the entry to the matching topic file and add its lead line
   venue-local dates. See [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md),
   [`lessons/data-sources.md`](lessons/data-sources.md), and
   [`lessons/gates-and-health.md`](lessons/gates-and-health.md).
+
+## Population-baseline addition (2026-08-17)
+
+- Canonical identity changes alter the historical match population, so advance the explicit
+  population version in the same commit; a predictor rebuild alone does not reset the health
+  baseline. See [`lessons/gates-and-health.md`](lessons/gates-and-health.md).
