@@ -215,4 +215,6 @@ Indexed in [`../lessons.md`](../lessons.md).
   when ordered canonical players, local date and games-only score agree, exactly one row exists
   per source, and exactly one ESPN row supplies a stable event id. Then retain the stat-bearing
   row while copying the live id/round. Any repeated source row makes the bucket ambiguous and
-  must remain separate for the output gate or a human to resolve.
+  must remain separate for the output gate or a human to resolve. Carry that stable id into the
+  completed fixture too, and make the pre-deploy gate independently compare its player pair and
+  round with the shipped bracket; auto-repair without an independent check is still guessing.

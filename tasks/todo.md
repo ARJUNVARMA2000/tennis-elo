@@ -4052,3 +4052,35 @@ so a one-for-one substitution was not valid; the stale official cache itself mus
   forecast/Kalshi appends were removed after verification; no user-authored work was discarded.
 - Final verification: 572 Python tests and Ruff passed; 240 web tests passed; web lint exited 0
   with the same 13 existing React-hook warnings; `git diff --check` passed.
+
+#### Fixture-round safety addendum
+
+- Completed fixtures now retain `espnId`, and the pre-deploy gate independently compares each
+  uniquely located player pair's fixture round with the shipped bracket. This preserves automatic
+  correction while ensuring a future bad live-round inference still blocks publication.
+- The final suite count is 573 Python tests (the fixture/bracket regression added after the prior
+  572-test note); Ruff, 240 web tests, web lint and `git diff --check` all pass.
+- `638d02c` is now the tip of both local and remote `master`; this supersedes the earlier review
+  note that described the production push as the next step.
+
+## Cincinnati population-baseline follow-up (2026-08-17)
+
+- [ ] Reproduce the production health failure and confirm that only the run-over-run match-count
+      sentinel is red after the integrity gate, build, deploy, and live verifier all passed.
+- [ ] Advance the explicit match-population contract for the intentional alias-driven
+      canonicalization change, retaining same-version count-drop detection.
+- [ ] Run the focused population/health/pipeline tests plus the full Python suite and Ruff.
+- [ ] Push the follow-up to `master`, monitor the production workflow through the live verifier,
+      and verify the deployed health report and Cincinnati JSON online.
+
+#### Production verification addendum
+
+- Push run `32050687617` passed both test jobs, regenerated both tours, passed the blocking
+  pre-deploy integrity gate, built and deployed Firebase, and passed live-site verification.
+- The public payload has 60 unique date/winner/loser fixture keys out of 60 rows on each tour;
+  every predictable Cincinnati upcoming match is R32, and Tiafoe-Sonego is dated 2026-08-16/R64.
+- The overall Actions run ended red only in the post-deploy advisory reporter: removing duplicate
+  match rows caused the expected one-run population-drop sentinel (ATP 284513 -> 284429; WTA
+  129065 -> 128923), then GitHub's Issues API returned 503 after all three reporter retries. The
+  new counts were cached, so the next hourly run can clear the transient advisory; the deployed
+  artifacts themselves passed both the pre-deploy and post-deploy gates.
