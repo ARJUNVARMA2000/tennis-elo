@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useMemo } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
@@ -10,6 +10,8 @@ import {
   buildRadarScalers,
   profileRadarSeries,
   resolveProfileSelection,
+  type ProfileDetail,
+  type ProfileIndex,
   type RadarProfile,
 } from "@/lib/profile";
 import { playerHref, setSearchParam } from "@/lib/url";
@@ -40,35 +42,47 @@ export default function Players() {
 
 function PlayersInner() {
   const { tour } = useTour();
-  const { data, loading } = useData<Record<string, Profile>>("profiles.json");
+  const { data: index, loading: indexLoading } = useData<ProfileIndex>("profile-index.json");
+  const { data: roster, loading: rosterLoading } = useData<Array<{
+    name: string; elo: number; eloHard: number; eloClay: number; eloGrass: number;
+    eloRank?: number; servePct: number; returnPct: number; rankPoints: number | null;
+    matches: number; hand: string | null;
+  }>>("players.json");
   const router = useRouter();
   const pathname = usePathname();
   const urlName = useSearchParams().get("p");
-  const names = useMemo(() => (data ? Object.keys(data) : []), [data]);
+  const summaries = useMemo(() => Object.fromEntries(
+    (index?.profiles ?? []).map((profile) => [profile.name, profile]),
+  ), [index]);
+  const names = useMemo(() => (index?.profiles ?? []).map((profile) => profile.name), [index]);
   const options: DropdownOption[] = useMemo(
     () =>
       names.map((n) => ({
         value: n,
         label: n,
-        sublabel: data?.[n]?.eloRank != null ? `#${data[n].eloRank}` : undefined,
+        sublabel: summaries[n]?.eloRank != null ? `#${summaries[n].eloRank}` : undefined,
       })),
-    [names, data],
+    [names, summaries],
   );
-  const [sel, setSel] = useState("");
+  const sel = resolveProfileSelection(names, urlName, "");
+  const selectedSummary = summaries[sel];
+  const { data: detail, loading: detailLoading } = useData<ProfileDetail>(selectedSummary?.file ?? "");
 
   // URL is the source of truth for the selection. An explicit unknown ?p= is an
   // honest not-found state; only the bare /player page defaults to the top player.
-  useEffect(() => {
-    if (!names.length) return;
-    const next = resolveProfileSelection(names, urlName, sel);
-    if (next !== sel) setSel(next);
-  }, [names, urlName, sel]);
   const notFound = !!urlName && names.length > 0 && !names.includes(urlName);
-  const p = data?.[sel];
+  const current = roster?.find((player) => player.name === sel);
+  const p = useMemo(
+    () => selectedSummary && detail?.name === sel && current
+      ? ({ ...selectedSummary, ...detail, ...current } as Profile)
+      : null,
+    [selectedSummary, detail, sel, current],
+  );
+  const loading = indexLoading || rosterLoading || (!!selectedSummary && detailLoading);
   const profileRoster = useMemo(() => new Set(names), [names]);
   const radarScalers = useMemo(
-    () => buildRadarScalers(data ? Object.values(data) : []),
-    [data],
+    () => buildRadarScalers(index?.profiles ?? []),
+    [index],
   );
   const radarSeries = useMemo(
     () => p ? profileRadarSeries(p, radarScalers, "var(--color-accent)") : [],
@@ -88,13 +102,13 @@ function PlayersInner() {
     <>
       {loading && <Loading />}
 
-      {!loading && (!data || names.length === 0) && (
+      {!loading && names.length === 0 && (
         <div className="mono mt-10 text-sm text-[var(--color-faint)]">
           No {tour.toUpperCase()} player profiles available right now — the data may be refreshing, so check back shortly.
         </div>
       )}
 
-      {data && names.length > 0 && (
+      {names.length > 0 && (
         <>
           <Reveal>
             <Dropdown

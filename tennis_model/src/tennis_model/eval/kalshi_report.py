@@ -53,9 +53,13 @@ def load_ledger(tour: str) -> pd.DataFrame:
 
 def scored_set(df: pd.DataFrame, include_retired: bool = False) -> pd.DataFrame:
     ok_result = ["completed", "retired"] if include_retired else ["completed"]
+    pred_source = df.get("pred_source", pd.Series(index=df.index, dtype="object"))
     m = ((df["match_status"] == "matched") & df["result_type"].isin(ok_result)
          & (df["price_kind"] == "candle") & df["p_model"].notna()
-         & df["p_kalshi"].notna() & (df["spread_max"] <= MAX_SPREAD))
+         & df["p_kalshi"].notna() & (df["spread_max"] <= MAX_SPREAD)
+         # First-sighting forecasts can precede the market quote by days. Keep them in
+         # coverage, but never mix them into the time-aligned model-vs-market headline.
+         & (pred_source != "live"))
     out = df[m].copy()
     won = out["a_won"] == 1
     out["p_model_w"] = np.where(won, out["p_model"], 1.0 - out["p_model"])
@@ -99,7 +103,7 @@ def segment_masks(s: pd.DataFrame) -> list[tuple[str, pd.Series]]:
     fav = np.maximum(s["p_kalshi"], 1.0 - s["p_kalshi"])
     dis = (s["p_model"] - s["p_kalshi"]).abs()
     segs: list[tuple[str, pd.Series]] = [
-        ("pred_source: live", s["pred_source"] == "live"),
+        ("pred_source: live aligned", s["pred_source"] == "live_aligned"),
         ("pred_source: backtest", s["pred_source"] == "backtest"),
         ("top-20 involved", best <= 20),
         ("no top-20 player", best > 20),
@@ -151,6 +155,8 @@ def _coverage(df: pd.DataFrame) -> dict:
         "walkovers": int((df["result_type"] == "walkover").sum()),
         "retirements": int((df["result_type"] == "retired").sum()),
         "no_price": int((df["price_kind"] != "candle").sum()),
+        "model_unaligned": int((df.get("pred_source", pd.Series(index=df.index, dtype="object"))
+                                 == "live").sum()),
         "date_range": [df["match_date"].min() or None, df["match_date"].max() or None]
         if len(df) else [None, None],
     }
@@ -268,7 +274,9 @@ def build_report(tours=TOURS) -> dict:
         f"start timestamps mutate on settled markets and cannot be trusted), from "
         f"1-min candlesticks; markets with spread > {MAX_SPREAD:.2f} excluded. Do "
         "not compare these numbers to the closing-line scorecard "
-        "(market.json): different price time, different match mix._", "",
+        "(market.json): different price time, different match mix. Live model forecasts "
+        "are the latest saved snapshot at or before that quote; legacy first-sighting-only "
+        "rows remain in coverage but are excluded from scoring._", "",
         "## Coverage", "",
         "| tour | events | matched | pending | unmatched | cancelled | ambiguous "
         "| walkovers | retirements | no price | range |",
@@ -287,7 +295,7 @@ def build_report(tours=TOURS) -> dict:
     headline: dict = {}
     slices = [("pooled", s_all)] + [(t, scored_set(df)) for t, df in ledgers.items()]
     slices += [(f"pooled/{src}", s_all[s_all["pred_source"] == src])
-               for src in ("live", "backtest")] if len(s_all) else []
+               for src in ("live_aligned", "backtest")] if len(s_all) else []
     for label, s in slices:
         blk = paired_block(s["p_model_w"].to_numpy(), s["p_kalshi_w"].to_numpy()) \
             if len(s) else {"n": 0}

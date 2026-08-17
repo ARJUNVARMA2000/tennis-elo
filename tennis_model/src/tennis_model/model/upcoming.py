@@ -108,11 +108,20 @@ def enrich_upcoming(predictor, df: pd.DataFrame, up_df: pd.DataFrame | None, tou
             continue
         event_id = getattr(r, "espn_id", None)
         surface, bo = _surface_best_of(df, r.tourney_name, r.tourney_date, tour)
-        p = float(predictor.win_prob(a, b, surface=surface, best_of=bo, event=str(r.tourney_name)))
+        if hasattr(predictor, "prediction_components"):
+            components = predictor.prediction_components(
+                a, b, surface=surface, best_of=bo, event=str(r.tourney_name))
+            p = float(components["combiner"])
+            component_payload = {k: round(float(v), 4) for k, v in components.items()}
+        else:  # lightweight test doubles and legacy foreign predictors
+            p = float(predictor.win_prob(
+                a, b, surface=surface, best_of=bo, event=str(r.tourney_name)))
+            component_payload = None
         out.append({
             "event": str(r.tourney_name), "date": str(r.tourney_date), "round": r.round,
             "surface": surface, "best_of": bo, "playerA": a, "playerB": b, "pA": p,
             "level": resolve_level(tour, str(r.tourney_name), event_id=event_id),
             "espnId": event_id,
+            "components": component_payload,
         })
     return out

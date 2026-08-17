@@ -9,9 +9,10 @@ Every probability is re-oriented to that convention at write time — the foreca
 log's A/B order, Kalshi's listing order and the winner/loser order are inputs to
 re-orient FROM, never the row's identity.
 
-Where p_model comes from (precedence: live > backtest > blank):
-  live      forecast_log/{tour}.jsonl — the probability frozen at first sighting,
-            before the result existed (eval/track.py).
+Where p_model comes from (precedence: live_aligned > live > backtest > blank):
+  live_aligned  the latest hourly pending-match snapshot at or before the market quote.
+  live      the first-sighting forecast, retained as a backward-compatible unaligned
+            fallback for matches captured before hourly snapshots existed.
   backtest  walk-forward OOS p_combiner — used to backfill the pre-log era
             (Kalshi history starts 2026-04-30; the log starts 2026-06-29). Honest
             walk-forward, but computed with TODAY'S model code — the report must
@@ -144,7 +145,7 @@ def _forecast_index(tour: str) -> dict:
     """frozenset(pair) -> [{as_of, playerA, p, model_version}] from the forecast log."""
     idx: dict = defaultdict(list)
     for r in _read_log(FORECAST_DIR / f"{tour}.jsonl"):
-        if r.get("type") != "match" or "p" not in r:
+        if r.get("type") not in ("match", "match_snapshot") or "p" not in r:
             continue
         ka, kb = name_key(r.get("playerA")), name_key(r.get("playerB"))
         if ka and kb and ka != kb:
@@ -207,12 +208,37 @@ def _match_result(cands: list[dict], occ: date, rules: dict,
     return valid[0], False
 
 
-def _pick_forecast(cands: list[dict], occ: date) -> dict | None:
-    """Earliest in-window forecast-log record (first sighting = genuinely pre-match)."""
-    valid = [r for r in cands
-             if FORECAST_MIN_D <= (occ - date.fromisoformat(str(r["as_of"]))).days
-             <= FORECAST_MAX_D]
-    return min(valid, key=lambda r: str(r["as_of"])) if valid else None
+def _forecast_ts(value: object) -> pd.Timestamp:
+    return pd.to_datetime(value, utc=True, errors="coerce")
+
+
+def _pick_forecast(cands: list[dict], occ: date,
+                   quote_ts: object = None) -> tuple[dict | None, bool]:
+    """Return (forecast, is_quote_aligned).
+
+    Hourly snapshots are selected latest-at-or-before the quote. Date-only historical
+    first-sighting rows remain a fallback, but are labelled ``live`` rather than
+    ``live_aligned`` so the scorecard cannot silently describe them as time-matched.
+    """
+    valid = []
+    for r in cands:
+        ts = _forecast_ts(r.get("as_of"))
+        if pd.isna(ts):
+            continue
+        gap = (occ - ts.date()).days
+        if FORECAST_MIN_D <= gap <= FORECAST_MAX_D:
+            valid.append((r, ts))
+    if not valid:
+        return None, False
+    quote = _forecast_ts(quote_ts)
+    if pd.isna(quote):
+        quote = pd.Timestamp(occ, tz="UTC") + pd.Timedelta(hours=8)
+    aligned = [(r, ts) for r, ts in valid
+               if r.get("type") == "match_snapshot" and ts <= quote]
+    if aligned:
+        return max(aligned, key=lambda item: item[1])[0], True
+    first = [(r, ts) for r, ts in valid if r.get("type") == "match"] or valid
+    return min(first, key=lambda item: item[1])[0], False
 
 
 def _rank_for(res: dict | None, key: str, live_ranks: dict) -> tuple[str, str]:
@@ -376,11 +402,13 @@ def build_rows(tour: str, snaps: dict, df: pd.DataFrame,
 
         # our probability: frozen live forecast first, walk-forward backfill second
         p_model = src = version = as_of = ""
-        fc = _pick_forecast(fc_idx.get(frozenset((ka, kb)), []), occ)
+        fc, aligned = _pick_forecast(
+            fc_idx.get(frozenset((ka, kb)), []), occ, price.get("ts"))
         if fc is not None:
             p = float(fc["p"])
             p_model = _f(p if name_key(fc["playerA"]) == ka else 1.0 - p)
-            src, version, as_of = "live", str(fc.get("model_version", "")), str(fc["as_of"])
+            src = "live_aligned" if aligned else "live"
+            version, as_of = str(fc.get("model_version", "")), str(fc["as_of"])
         elif res is not None:
             p = oos_idx.get((name_key(res["winner"]), name_key(res["loser"]),
                              res["date"].date()))
@@ -453,11 +481,13 @@ def upsert(tour: str, rows: list[dict], healed: set[str] | None = None) -> dict:
                 row = {**row, **{c: prev[c] for c in _FROZEN_PRICE if c in prev}}
             if prev.get("match_status") == "matched":
                 row = {**row, **{c: prev[c] for c in _FROZEN_MATCH if c in prev}}
-            # p_model is write-once (the ledger is a record, not a live estimate);
-            # the only allowed upgrade is backtest -> live (in practice never fires)
+            # p_model is write-once except for a strictly stronger provenance upgrade:
+            # backtest/first-sighting -> quote-aligned live snapshot.
             prev_src = prev.get("pred_source")
-            if prev_src and not (prev_src == "backtest"
-                                 and row.get("pred_source") == "live"):
+            next_src = row.get("pred_source")
+            upgrade = (prev_src == "backtest" and next_src in ("live", "live_aligned")) \
+                or (prev_src == "live" and next_src == "live_aligned")
+            if prev_src and not upgrade:
                 row = {**row, **{c: prev[c] for c in _FROZEN_PRED if c in prev}}
         merged[row["event_ticker"]] = {c: row.get(c, "") for c in LEDGER_COLUMNS}
 

@@ -136,6 +136,15 @@ def test_build_players_enrichment_fields():
     # ctx=None (foreign pickle on the quick path) keeps the export alive
     rows_no_ctx = export.build_players(elo, srv, meta, {}, ctx=None)
     assert all(r["winRate10"] is None for r in rows_no_ctx)
+    # A quick run reloads profile-index.json, where sanitised missing values are None
+    # rather than pandas NaN. Both representations must remain nullable, never crash.
+    rows_cached = export.build_players(
+        elo, srv, meta,
+        {export.name_key("A"): {"style_aggression": None, "style_serve_dom": None}},
+        ctx=ctx,
+    )
+    cached_a = next(r for r in rows_cached if r["name"] == "A")
+    assert cached_a["aggression"] is None and cached_a["serveDom"] is None
     print("ok test_build_players_enrichment_fields")
 
 
@@ -416,6 +425,42 @@ def test_build_upcoming_preserves_stable_event_id(monkeypatch):
     rows = export.build_upcoming(object(), pd.DataFrame(), "atp")
     assert rows[0]["event"] == "Montreal"   # ATP 421-2026 is the Montreal edition
     assert rows[0]["espnId"] == "421-2026"
+
+
+def test_matrix_and_profile_exports_are_generation_aware_shards():
+    """Indexes stay light and every referenced file carries the same model generation."""
+    import numpy as np
+
+    class _Predictor:
+        def prediction_matrices(self, names, surface="Hard", best_of=3):
+            n = len(names)
+            matrix = np.full((n, n), 0.5)
+            if n > 1:
+                matrix[0, 1], matrix[1, 0] = 0.6, 0.4
+            return {key: matrix.copy() for key in ("eloBlend", "pointModel", "combiner")}
+
+    players = [{"name": "A"}, {"name": "B"}]
+    index, shards = export.build_matrix_shards(_Predictor(), players, "atp", "generation-1")
+    assert index["generation"] == "generation-1"
+    assert len(shards) == 6
+    assert set(index["surfaces"]) == set(export.SURFACES)
+    assert all(shard["generation"] == "generation-1" for shard in shards.values())
+    assert all(set(shard["components"]) == {"eloBlend", "pointModel", "combiner"}
+               for shard in shards.values())
+
+    profiles = {
+        "A": {"name": "A", "eloRank": 1, "style": {"style_aggression": 0.2},
+              "history": [["2026-01", 1800]], "recent": [{"won": True}], "h2h": []},
+        "B": {"name": "B", "eloRank": 2, "style": {},
+              "history": [], "recent": [], "h2h": [{"opp": "A", "w": 0, "l": 1}]},
+    }
+    profile_index, profile_shards = export.build_profile_shards(profiles, "generation-1")
+    assert [row["name"] for row in profile_index["profiles"]] == ["A", "B"]
+    assert len(profile_shards) == 2
+    assert all("history" not in row for row in profile_index["profiles"])
+    for row in profile_index["profiles"]:
+        shard = profile_shards[row["file"]]
+        assert shard["name"] == row["name"] and shard["generation"] == "generation-1"
 
 
 if __name__ == "__main__":

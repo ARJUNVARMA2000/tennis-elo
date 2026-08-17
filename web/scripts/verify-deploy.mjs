@@ -24,6 +24,7 @@ import {
   hasProfileContract,
   scrollShellProblems,
   healthArtifactOk,
+  artifactIndexRefs,
   fetchWithRetry,
   mutableCacheControlOk,
 } from "./verify-deploy-lib.mjs";
@@ -235,6 +236,43 @@ await check("coverage: every begun event is on the live site exactly once", asyn
     if (i < FRESH_TRIES - 1) await sleep(FRESH_DELAY_MS);
   }
   throw new Error(last.join("; "));
+});
+
+await check("sharded artifacts: every index reference is served at one generation", async () => {
+  let checked = 0;
+  for (const tour of ["atp", "wta"]) {
+    const matrixRes = await fetchT(BASE + `/data/${tour}/matrix-index.json`, { cache: "no-store" });
+    const profileRes = await fetchT(BASE + `/data/${tour}/profile-index.json`, { cache: "no-store" });
+    must(matrixRes.status === 200, `${tour}/matrix-index.json -> ${matrixRes.status}`);
+    must(profileRes.status === 200, `${tour}/profile-index.json -> ${profileRes.status}`);
+    const matrix = await matrixRes.json();
+    const profiles = await profileRes.json();
+    const { problems, files } = artifactIndexRefs(matrix, profiles);
+    must(problems.length === 0, `${tour}: ${problems.join("; ")}`);
+    for (let start = 0; start < files.length; start += 24) {
+      const batch = files.slice(start, start + 24);
+      const responses = await Promise.all(batch.map(async (ref) => {
+        const path = `/data/${tour}/${ref.file}`;
+        const res = await fetchT(BASE + path, { cache: "no-store" });
+        if (res.status !== 200) return `${path} -> ${res.status}`;
+        if (!contentTypeOk(res.headers.get("content-type"), path)) {
+          return `${path} served as ${res.headers.get("content-type")}`;
+        }
+        const payload = await res.json();
+        if (payload?.generation !== ref.generation) return `${path} generation mismatch`;
+        if (ref.kind === "profile" && payload?.name !== ref.name) return `${path} player mismatch`;
+        if (ref.kind === "matrix") {
+          const components = Object.keys(payload?.components || {}).sort().join(",");
+          if (components !== "combiner,eloBlend,pointModel") return `${path} component set ${components}`;
+        }
+        return "";
+      }));
+      const bad = responses.filter(Boolean);
+      must(bad.length === 0, bad.join("; "));
+      checked += batch.length;
+    }
+  }
+  return `${checked} referenced shard(s)`;
 });
 
 await check("player profiles: fail-closed links + responsive dossier contract", async () => {

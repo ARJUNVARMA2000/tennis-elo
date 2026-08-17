@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useData, useTour, type Tour } from "@/lib/tour";
@@ -11,24 +11,36 @@ import {
   matchContext,
   rosterName,
   winProb,
-  type Matrix,
   type PlayerRow,
   type RawLiveMatch,
   type TournamentInfo,
 } from "@/lib/live";
+import { useMatrixShard } from "@/lib/matrix";
 
-const BASE = process.env.NEXT_PUBLIC_BASE_PATH || "";
 const POLL_MS = 60_000;
 
 /** "Live now" strip — real ESPN scores polled from the browser every minute,
     paired with the model's win probability. Hides itself entirely when there
     are no live matches (or ESPN is unreachable). */
-export default function LiveTicker() {
+export default function LiveTicker({ standalone = false }: { standalone?: boolean }) {
   const { tour } = useTour();
   const { data: players } = useData<PlayerRow[]>("players.json");
   const { data: tournaments } = useData<TournamentInfo[]>("tournaments.json");
-  const [matches, setMatches] = useState<RawLiveMatch[]>([]);
-  const [matrix, setMatrix] = useState<{ tour: string; m: Matrix } | null>(null);
+  const [liveState, setLiveState] = useState<{
+    tour: Tour;
+    matches: RawLiveMatch[];
+    loading: boolean;
+    error: boolean;
+  }>({ tour, matches: [], loading: true, error: false });
+  const { matches, loading, error } = liveState.tour === tour
+    ? liveState
+    : { matches: [] as RawLiveMatch[], loading: true, error: false };
+  const [liveEvent, setLiveEvent] = useState("all");
+  const events = useMemo(() => [...new Set(matches.map((match) => match.event))].sort(), [matches]);
+  const activeEvent = events.includes(liveEvent) ? liveEvent : "all";
+  const shownMatches = activeEvent === "all"
+    ? matches
+    : matches.filter((match) => match.event === activeEvent);
 
   // poll ESPN while the tab is visible; abort in-flight work on unmount/switch
   useEffect(() => {
@@ -40,12 +52,17 @@ export default function LiveTicker() {
       ctrl = new AbortController();
       try {
         const m = await fetchLiveMatches(tour, ctrl.signal);
-        if (alive) setMatches(m);
+        if (alive) {
+          setLiveState({ tour, matches: m, loading: false, error: false });
+        }
       } catch {
-        /* keep last good data; first failure leaves the strip hidden */
+        if (alive) {
+          setLiveState((previous) => previous.tour === tour
+            ? { ...previous, loading: false, error: true }
+            : { tour, matches: [], loading: false, error: true });
+        }
       }
     };
-    setMatches([]);
     poll(true); // first fetch always runs (later polls pause while hidden)
     const id = setInterval(() => poll(), POLL_MS);
     const onVis = () => {
@@ -60,34 +77,41 @@ export default function LiveTicker() {
     };
   }, [tour]);
 
-  // the pairwise matrix is ~1.5 MB — fetch it only once live matches exist
-  useEffect(() => {
-    if (!matches.length || matrix?.tour === tour) return;
-    let alive = true;
-    fetch(`${BASE}/data/${tour}/matrix.json`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((m) => alive && m && setMatrix({ tour, m }))
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, [matches.length, tour, matrix?.tour]);
-
-  if (!matches.length) return null;
-  const mtx = matrix?.tour === tour ? matrix.m : null;
+  if (!matches.length && !standalone) return null;
 
   return (
-    <motion.section aria-label="Live matches" variants={stagger(0.06)} initial="hidden" animate="show" className="mt-8">
-      <div className="mb-2.5 flex items-center gap-2">
+    <motion.section aria-label="Live matches" variants={stagger(0.06)} initial="hidden" animate="show" className={standalone ? "mt-6" : "mt-8"}>
+      <div className="mb-2.5 flex flex-wrap items-center gap-2">
         <span className="live-dot inline-block h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]" />
         <span className="eyebrow !text-[var(--color-text)]">Live now</span>
         <span className="text-[11px] text-[var(--color-faint)]">
           ESPN scores · model win odds · refreshes every minute
         </span>
+        {standalone && events.length > 1 && (
+          <label className="mono ml-auto flex items-center gap-2 text-[10px] uppercase tracking-wider text-[var(--color-faint)]">
+            Event
+            <select
+              aria-label="Live tournament filter"
+              value={activeEvent}
+              onChange={(event) => setLiveEvent(event.target.value)}
+              className="rounded-md border border-[var(--color-line)] bg-[var(--color-panel)] px-2 py-1.5 text-[11px] normal-case tracking-normal text-[var(--color-text)]"
+            >
+              <option value="all">All events</option>
+              {events.map((name) => <option key={name} value={name}>{name}</option>)}
+            </select>
+          </label>
+        )}
       </div>
-      <ul role="list" className="flex gap-3 overflow-x-auto pb-2">
-        {matches.map((m) => (
-          <LiveCard key={m.id} m={m} players={players} tournaments={tournaments} matrix={mtx} tour={tour} />
+      {standalone && loading && <div className="panel-inset p-6 text-sm text-[var(--color-muted)]">Checking live courts…</div>}
+      {standalone && !loading && error && !matches.length && (
+        <div className="panel-inset p-6 text-sm text-[var(--color-muted)]">Live scores are temporarily unavailable. Upcoming and final calls remain available in the other tabs.</div>
+      )}
+      {standalone && !loading && !error && !matches.length && (
+        <div className="panel-inset p-6 text-sm text-[var(--color-muted)]">No main-draw matches are live right now.</div>
+      )}
+      <ul role="list" className={standalone ? "grid gap-3 sm:grid-cols-2" : "flex gap-3 overflow-x-auto pb-2"}>
+        {shownMatches.map((m) => (
+          <LiveCard key={m.id} m={m} players={players} tournaments={tournaments} tour={tour} standalone={standalone} />
         ))}
       </ul>
     </motion.section>
@@ -98,17 +122,18 @@ function LiveCard({
   m,
   players,
   tournaments,
-  matrix,
   tour,
+  standalone,
 }: {
   m: RawLiveMatch;
   players: PlayerRow[] | null;
   tournaments: TournamentInfo[] | null;
-  matrix: Matrix | null;
   tour: Tour;
+  standalone: boolean;
 }) {
   const { surface, bestOf } = matchContext(m.event, tournaments);
-  const { p } = winProb(m.a, m.b, surface, bestOf, players, matrix, tour);
+  const { shard } = useMatrixShard(surface, bestOf);
+  const { p } = winProb(m.a, m.b, surface, bestOf, players, shard, tour);
   const currentSet = m.sets.length - 1;
 
   // ESPN names resolved to canonical roster names — the /player and /style deep
@@ -166,7 +191,7 @@ function LiveCard({
     <motion.li
       variants={fadeUp}
       aria-label={`${m.a} vs ${m.b} — ${m.event}, ${m.round || m.detail}, live`}
-      className={`panel relative min-w-[280px] shrink-0 p-3 ${matchupHref ? "panel-link" : ""}`}
+      className={`panel relative ${standalone ? "min-w-0" : "min-w-[280px] shrink-0"} p-3 ${matchupHref ? "panel-link" : ""}`}
     >
       <div className="flex items-center justify-between gap-2">
         <span className="truncate text-[11px] text-[var(--color-faint)]">

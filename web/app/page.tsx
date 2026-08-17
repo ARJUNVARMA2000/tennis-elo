@@ -93,17 +93,56 @@ export function ReachRow({
 /** Shared round-by-round table shell. Callers supply their leading player/Elo cells while
     the rounds, heat treatment, and responsive scroll behavior stay identical. */
 export function ReachStrip({
-  players, cols, headerPrefix, rowPrefix, roundHeader, minWidth = "min-w-[430px]",
+  players, cols, headerPrefix, rowPrefix, mobileName, roundHeader, minWidth = "min-w-[430px]",
 }: {
   players: Proj[];
   cols: string[];
   headerPrefix: ReactNode;
   rowPrefix: (player: Proj, index: number) => ReactNode;
+  mobileName?: (player: Proj, index: number) => ReactNode;
   roundHeader?: (round: string) => ReactNode;
   minWidth?: string;
 }) {
   return (
-    <div className="-mx-1 overflow-x-auto" data-reach-strip>
+    <div data-reach-strip>
+      <div className="space-y-1.5 sm:hidden" data-mobile-title-odds>
+        {players.map((player, index) => {
+          const reach = reachOf(player);
+          const detail = cols.filter((round) => round !== "Champion"
+            && reach[round] != null && reach[round] < 0.9995);
+          const headline = (
+            <>
+                <span className="mono w-4 text-right text-[10px] text-[var(--color-faint)]">{index + 1}</span>
+                <span className="min-w-0 flex-1 truncate text-[13px]">
+                  {mobileName ? mobileName(player, index) : player.name}
+                </span>
+                <span className="mono text-[10px] uppercase tracking-wider text-[var(--color-faint)]">title</span>
+                <span className="mono w-11 text-right text-[13px] font-semibold text-[var(--color-champ)]">
+                  {pct(reach.Champion ?? player.champion, 0)}
+                </span>
+                <span aria-hidden="true" className="text-[10px] text-[var(--color-faint)]">{detail.length ? "▾" : ""}</span>
+            </>
+          );
+          const classes = "rounded-lg border border-[var(--color-line)] bg-[var(--color-panel2)]/35 px-3 py-2";
+          if (!detail.length) {
+            return <div key={player.name} className={classes}><div className="flex items-center gap-3">{headline}</div></div>;
+          }
+          return (
+            <details key={player.name} className={classes}>
+              <summary className="flex cursor-pointer list-none items-center gap-3">{headline}</summary>
+                <div className="ml-7 mt-2 grid grid-cols-3 gap-1.5 border-t border-[var(--color-line)] pt-2">
+                  {detail.map((round) => (
+                    <div key={round} className="rounded bg-white/[0.03] px-2 py-1.5 text-center">
+                      <div className="mono text-[9px] uppercase text-[var(--color-faint)]">{ROUND_LABEL[round]}</div>
+                      <div className="mono text-[11px]">{pct(reach[round], 0)}</div>
+                    </div>
+                  ))}
+                </div>
+            </details>
+          );
+        })}
+      </div>
+      <div className="-mx-1 hidden overflow-x-auto sm:block">
       <table className={`w-full border-collapse ${minWidth}`}>
         <thead>
           <tr className="mono text-[10px] uppercase tracking-wider text-[var(--color-faint)]">
@@ -126,6 +165,7 @@ export function ReachStrip({
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }
@@ -513,6 +553,9 @@ function SlamHero({
         players={shown}
         cols={cols}
         minWidth="min-w-[620px]"
+        mobileName={(p) => (
+          <PlayerProfileLink name={p.name} profileRoster={profileRoster} linkClassName="hover:text-[var(--color-accent)] hover:underline" />
+        )}
         headerPrefix={(
           <>
             <th className="px-1 pb-2 text-right font-normal">#</th>
@@ -749,6 +792,9 @@ export function Card({
             <ReachStrip
               players={shown}
               cols={reachCols}
+              mobileName={(p) => (
+                <PlayerProfileLink name={p.name} profileRoster={profileRoster} linkClassName="hover:text-[var(--color-accent)] hover:underline" />
+              )}
               headerPrefix={(
                 <>
                   <th className="px-1 pb-2 text-right font-normal">#</th>

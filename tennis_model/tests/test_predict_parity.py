@@ -187,6 +187,48 @@ def test_home_flag_threads_event():
     print("ok test_home_flag_threads_event")
 
 
+def test_component_matrices_batch_once_and_preserve_pair_orientation():
+    """The sharded export asks for three matrices, but feature construction and the
+    combiner batch must run once per context. Every component remains a proper
+    P(i beats j) matrix rather than an independently rounded reverse prediction."""
+    class _Clf:
+        calls = 0
+
+        def predict_proba(self, frame):
+            self.calls += 1
+            p = np.clip(0.5 + frame["elo_diff"].to_numpy() / 1000.0, 0.01, 0.99)
+            return np.column_stack((1.0 - p, p))
+
+    class _Iso:
+        def predict(self, values):
+            return np.asarray(values)
+
+    meta = {name: {"age": 25.0, "ht": 185.0, "hand": "R", "rank_points": 1000}
+            for name in ("Alfa One", "Bravo Two")}
+    pred = _predictor(meta)
+    pred.clf, pred.iso = _Clf(), _Iso()
+    profile_loads = 0
+    original = predict.build_profiles
+    try:
+        def _profiles(_tour):
+            nonlocal profile_loads
+            profile_loads += 1
+            return {}
+        predict.build_profiles = _profiles
+        matrices = pred.prediction_matrices(["Alfa One", "Bravo Two"])
+    finally:
+        predict.build_profiles = original
+
+    assert pred.clf.calls == 1
+    assert profile_loads == 1
+    assert set(matrices) == {"eloBlend", "pointModel", "combiner"}
+    for matrix in matrices.values():
+        assert matrix.shape == (2, 2)
+        assert np.allclose(np.diag(matrix), 0.5)
+        assert np.isclose(matrix[0, 1] + matrix[1, 0], 1.0)
+    assert np.allclose(pred.win_prob_matrix(["Alfa One", "Bravo Two"]), matrices["combiner"])
+
+
 if __name__ == "__main__":
     test_feature_dict_keys_match_FEATURES()
     test_missing_bio_matches_training_semantics()

@@ -49,7 +49,6 @@ def _healthy_bracket() -> dict:
 
 
 def _healthy_data() -> dict:
-    m = [[0.5 if i == j else (0.6 if i < j else 0.4) for j in range(3)] for i in range(3)]
     return {
         "meta": {"matches": 300_000, "activePlayers": 3, "features": ["f"] * len(FEATURES),
                  "matchPopulationVersion": health.MATCH_POPULATION_VERSION,
@@ -63,7 +62,15 @@ def _healthy_data() -> dict:
                      "servePctHard": 0.64, "servePctClay": 0.61, "servePctGrass": 0.66,
                      "returnPctHard": 0.36, "returnPctClay": 0.39, "returnPctGrass": 0.34}
                     for i in range(3)],
-        "matrix": {"players": ["P0", "P1", "P2"], "formats": [3], "surfaces": {"Hard": {"3": m}}},
+        "matrix-index": {"generation": "2026-07-08T04:30:00Z",
+                         "players": ["P0", "P1", "P2"], "formats": [3],
+                         "surfaces": {"Hard": {"3": "matrix-hard-bo3.json"}}},
+        "profile-index": {"generation": "2026-07-08T04:30:00Z", "profiles": [
+            {"name": f"P{i}", "file": f"profile-{i}.json", "eloRank": i + 1,
+             "servePct": 0.64, "returnPct": 0.36, "eloHard": 2000 - i,
+             "eloClay": 2000 - i, "eloGrass": 2000 - i, "style": {}}
+            for i in range(3)
+        ]},
         "tournaments": [{"name": "Test Open", "surface": "Grass", "level": "ATP 250",
                          "bestOf": 3, "status": "live",
                          "drawStatus": "real", "drawSize": 128, "aliveCount": 7, "champion": None,
@@ -104,9 +111,26 @@ def _healthy_data() -> dict:
     }
 
 
-def _oc(data=None, missing=None, corrupt=None, forecast=("keep",), kalshi_ledger=None) -> dict:
+def _healthy_shards() -> dict:
+    m = [[0.5 if i == j else (0.6 if i < j else 0.4) for j in range(3)] for i in range(3)]
+    generation = "2026-07-08T04:30:00Z"
+    return {
+        "matrix-hard-bo3.json": {"generation": generation, "players": ["P0", "P1", "P2"],
+                                 "surface": "Hard", "bestOf": 3,
+                                 "components": {key: copy.deepcopy(m)
+                                                for key in ("eloBlend", "pointModel", "combiner")}},
+        **{f"profile-{i}.json": {"generation": generation, "name": f"P{i}",
+                                    "history": [], "recent": [], "h2h": []}
+           for i in range(3)},
+    }
+
+
+def _oc(data=None, missing=None, corrupt=None, forecast=("keep",), kalshi_ledger=None,
+        shards=None, missing_files=None, corrupt_files=None) -> dict:
     return {"data": _healthy_data() if data is None else data,
             "missing": missing or [], "corrupt": corrupt or [],
+            "shards": _healthy_shards() if shards is None else shards,
+            "missing_files": missing_files or [], "corrupt_files": corrupt_files or [],
             "forecast": {"lines": 200, "max_as_of": "2026-07-09"} if forecast == ("keep",) else forecast,
             "kalshi_ledger": kalshi_ledger}
 
@@ -345,6 +369,38 @@ def test_tour_health_empty_frame_reports_none():
     print("ok test_tour_health_empty_frame_reports_none")
 
 
+def test_pipeline_health_manifest_reuses_only_the_same_input_fingerprint(monkeypatch, tmp_path):
+    """The standalone health pass may skip the expensive merge only for the exact
+    source-file generation the pipeline summarized; a changed input falls back."""
+    frame = pd.DataFrame({
+        "date": pd.to_datetime(["2026-07-08"]),
+        "completed": [True],
+        "has_stats": [True],
+    })
+    fallback = pd.DataFrame({
+        "date": pd.to_datetime(["2026-07-08", "2026-07-09"]),
+        "completed": [True, True],
+        "has_stats": [True, True],
+    })
+    fingerprint = {"value": "source-a"}
+    loads = []
+    monkeypatch.setattr(health, "OUTPUT_DIR", tmp_path)
+    monkeypatch.setattr(health, "_health_input_fingerprint", lambda tour: fingerprint["value"])
+    monkeypatch.setattr(health, "fresh_date_max", lambda tour, now=None: pd.Timestamp("2026-07-09"))
+    monkeypatch.setattr(health, "fresh_future_date_max", lambda tour, now=None: None)
+    monkeypatch.setattr(health, "charting_date_max", lambda tour: pd.Timestamp("2026-07-09"))
+    monkeypatch.setattr(health, "load_matches", lambda tour: loads.append(tour) or fallback)
+    now = pd.Timestamp("2026-07-09")
+
+    health.write_health_manifest("atp", frame, now)
+    assert health.tour_health("atp", now)["matches"] == 1
+    assert loads == []
+
+    fingerprint["value"] = "source-b"
+    assert health.tour_health("atp", now)["matches"] == 2
+    assert loads == ["atp"]
+
+
 def test_main_strict_exit_code_and_report():
     from datetime import UTC, datetime
     today = pd.Timestamp(datetime.now(UTC).date())
@@ -512,6 +568,17 @@ def test_output_missing_and_corrupt_files():
     assert any("meta.json missing" in p for p in out)
     assert any("matrix.json is present but unparseable" in p for p in out)
     print("ok test_output_missing_and_corrupt_files")
+
+
+def test_output_malformed_shard_indexes_fail_closed_without_crashing():
+    d = _healthy_data()
+    d["matrix-index"]["surfaces"] = ["not", "a", "mapping"]
+    d["profile-index"]["generation"] = ""
+    out = health.output_problems("atp", _oc(data=d), NOW)
+    assert any("matrix-index.json surfaces is missing/malformed" in problem for problem in out)
+    assert any("profile-index.json is missing generation" in problem for problem in out)
+    assert all(health._gate_blocks(problem) for problem in out
+               if "matrix-index" in problem or "profile-index" in problem)
 
 
 def test_output_feature_schema_drift():
@@ -923,10 +990,30 @@ def test_output_projection_none_round_is_tolerated():
 
 
 def test_output_matrix_antisymmetry():
-    d = _healthy_data()
-    d["matrix"]["surfaces"]["Hard"]["3"][1][0] = 0.6               # now 0.6 + 0.6 != 1
-    assert any("antisymmetric" in p for p in health.output_problems("atp", _oc(data=d), NOW))
+    shards = _healthy_shards()
+    shards["matrix-hard-bo3.json"]["components"]["combiner"][1][0] = 0.6
+    assert any("antisymmetric" in p for p in health.output_problems(
+        "atp", _oc(shards=shards), NOW))
     print("ok test_output_matrix_antisymmetry")
+
+
+def test_output_blocks_matches_outside_stable_event_bounds():
+    d = _healthy_data()
+    d["tournaments"][0].update({
+        "espnId": "718-2026", "start": "2026-08-01", "end": "2026-08-10",
+    })
+    d["upcoming"] = [{
+        "event": "Test Open", "espnId": "718-2026", "date": "2026-08-11",
+        "playerA": "P0", "playerB": "P1", "pA": 0.7,
+    }]
+    d["fixtures"] = [{
+        "event": "Test Open", "espnId": "718-2026", "date": "2026-07-31",
+        "winner": "P0", "loser": "P1", "modelProb": 0.6, "upset": False,
+    }]
+    problems = health.output_problems("atp", _oc(data=d), NOW)
+    hits = [problem for problem in problems if "outside 'Test Open' event bounds" in problem]
+    assert len(hits) == 2 and all(health._gate_blocks(problem) for problem in hits)
+    print("ok test_output_blocks_matches_outside_stable_event_bounds")
 
 
 def test_output_placeholder_name_leak():
@@ -1720,16 +1807,19 @@ def test_read_outputs_flags_nan_as_corrupt():
             root = Path(d)
             (root / "atp").mkdir()
             (root / "atp" / "meta.json").write_text('{"matches": 1}')
+            (root / "atp" / "profile-index.json").write_text(
+                '{"generation":"g","profiles":[{"name":"P","file":"profile-p.json"}]}')
             # a real scoreless-match row, exactly as json.dump would have emitted it
-            (root / "atp" / "profiles.json").write_text('{"P": {"recent": [{"score": NaN}]}}')
+            (root / "atp" / "profile-p.json").write_text(
+                '{"generation":"g","name":"P","recent":[{"score": NaN}]}')
             health.output_dir = lambda tour: root / tour
             health.DATA_DIR = root
             oc = health.read_outputs("atp")
     finally:
         health.output_dir, health.DATA_DIR = orig
-    assert "profiles" in oc["corrupt"] and "profiles" not in oc["data"]
+    assert "profile-p.json" in oc["corrupt_files"] and "profile-p.json" not in oc["shards"]
     # and output_problems surfaces it through the existing unparseable channel
-    assert any("profiles.json is present but unparseable" in p
+    assert any("profile-p.json" in p and "unparseable" in p
                for p in health.output_problems("atp", oc, NOW))
     print("ok test_read_outputs_flags_nan_as_corrupt")
 

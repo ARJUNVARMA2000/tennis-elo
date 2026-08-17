@@ -192,6 +192,32 @@ def test_alias_stale_quick_rebuild_defers_kalshi_to_shared_budget(monkeypatch):
     assert ledgers == [("atp", frame, None, True)]
 
 
+def test_current_quick_export_reuses_model_bound_artifacts(monkeypatch):
+    """The hourly path republishes only volatile outputs when its cached predictor is
+    current; daily matrices/profiles/draws stay untouched behind ``full=False``."""
+    frame = object()
+    predictor = _pred(_Clf(list(FEATURES)), "atp")
+    predictor.elo, predictor.srv, predictor.meta = "elo", "srv", "meta"
+    calls = []
+
+    monkeypatch.setattr(pipeline, "load_matches", lambda tour: frame)
+    monkeypatch.setattr(pipeline, "_health_manifest", lambda tour, df: calls.append(("health", tour, df)))
+    monkeypatch.setattr(pipeline.TennisPredictor, "load", lambda tour: predictor)
+    monkeypatch.setattr(
+        pipeline,
+        "export_all",
+        lambda *args, **kwargs: calls.append(("export", args, kwargs)),
+    )
+    monkeypatch.setattr(pipeline, "_track", lambda *args: None)
+    monkeypatch.setattr(pipeline, "_mirror", lambda *args: None)
+
+    assert pipeline.build_tour_quick("atp") is frame
+    export_call = next(call for call in calls if call[0] == "export")
+    assert export_call[2]["full"] is False
+    assert export_call[2]["oos"] is None
+    assert ("health", "atp", frame) in calls
+
+
 def test_quick_kalshi_uses_one_budget_and_never_requotes(monkeypatch):
     import tennis_model.data.kalshi as kalshi
     import tennis_model.eval.kalshi_ledger as kalshi_ledger

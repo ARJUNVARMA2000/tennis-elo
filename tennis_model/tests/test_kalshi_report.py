@@ -33,7 +33,7 @@ def _row(**kw):
         "rank_a": "5", "rank_b": "30", "rank_src": "results",
         "mid_a": "0.6500", "mid_b": "0.3500", "p_kalshi": "0.6500",
         "p_kalshi_t30": "0.6400", "spread_max": "0.0200", "price_kind": "candle",
-        "p_model": "0.7000", "pred_source": "live",
+        "p_model": "0.7000", "pred_source": "live_aligned",
         "match_status": "matched", "result_type": "completed",
         "winner": "A Player", "a_won": "1", "kalshi_result_a": "yes",
     })

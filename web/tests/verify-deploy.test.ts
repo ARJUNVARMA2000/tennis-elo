@@ -19,7 +19,29 @@ import {
   canonicalRouteProblems,
   fetchWithRetry,
   mutableCacheControlOk,
+  artifactIndexRefs,
 } from "@/scripts/verify-deploy-lib.mjs";
+
+describe("artifactIndexRefs", () => {
+  it("returns every safe matrix and profile shard reference", () => {
+    const result = artifactIndexRefs(
+      { generation: "g", surfaces: { Hard: { 3: "matrix-hard-bo3.json" } } },
+      { generation: "g", profiles: [{ name: "A", file: "profile-a1.json" }] },
+    );
+    expect(result.problems).toEqual([]);
+    expect(result.files.map((ref: { file: string }) => ref.file)).toEqual([
+      "matrix-hard-bo3.json", "profile-a1.json",
+    ]);
+  });
+
+  it("rejects unsafe, duplicate, and empty index references", () => {
+    const unsafe = artifactIndexRefs(
+      { generation: "g", surfaces: { Hard: { 3: "../matrix.json" } } },
+      { generation: "", profiles: [] },
+    );
+    expect(unsafe.problems.join(" ")).toMatch(/unsafe|generation|no shards/);
+  });
+});
 
 describe("fetchWithRetry", () => {
   it("recovers from a transient aborted request", async () => {

@@ -1,4 +1,5 @@
 import type { Tour } from "@/lib/tour";
+import type { MatrixShard } from "@/lib/matrix";
 import { blendedElo } from "@/lib/ui";
 
 /* Client-side ESPN live scores — mirrors the parsing rules of
@@ -46,11 +47,13 @@ export type PlayerRow = {
   eloGrass?: number;
 };
 
-export type Matrix = {
+type LegacyMatrix = {
   players: string[];
   formats: number[];
   surfaces: Record<string, Record<string, number[][]>>;
 };
+
+export type Matrix = LegacyMatrix | MatrixShard;
 
 /** In-progress singles matches for a tour. Throws on network/HTTP failure —
     the caller hides the ticker. */
@@ -163,8 +166,10 @@ export function winProb(
     const i = keys.indexOf(ka);
     const j = keys.indexOf(kb);
     if (i >= 0 && j >= 0 && i !== j) {
-      const surf = matrix.surfaces[surface] || matrix.surfaces.Hard;
-      const grid = surf?.[String(bestOf)] || surf?.["3"];
+      const grid = "components" in matrix
+        ? matrix.components.combiner
+        : ((matrix.surfaces[surface] || matrix.surfaces.Hard)?.[String(bestOf)]
+          || (matrix.surfaces[surface] || matrix.surfaces.Hard)?.["3"]);
       const p = grid?.[i]?.[j];
       if (typeof p === "number") return { p, source: "matrix" };
     }

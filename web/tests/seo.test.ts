@@ -18,6 +18,7 @@ describe("search discovery metadata", () => {
       "/rankings/",
       "/results/",
       "/schedule/",
+      "/matches/",
       "/bracket/",
       "/scorecard/",
       "/predict/",

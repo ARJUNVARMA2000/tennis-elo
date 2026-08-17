@@ -74,6 +74,29 @@ def _load_upcoming(tour: str) -> dict:
     return out
 
 
+def _load_upcoming_bounds(tour: str) -> dict:
+    """Competition-date evidence keyed by stable ESPN event id (name fallback retained)."""
+    from ..model.upcoming import load_upcoming
+    df = load_upcoming(tour)
+    out: dict = {}
+    if df.empty:
+        return out
+    for r in df.itertuples(index=False):
+        day = pd.to_datetime(r.tourney_date, errors="coerce")
+        if pd.isna(day):
+            continue
+        eid = getattr(r, "espn_id", None)
+        key = (str(eid) if eid is not None and str(eid) not in ("", "nan")
+               else str(r.tourney_name))
+        entry = out.setdefault(key, {
+            "espnId": key if is_event_id(key) else None,
+            "name": str(r.tourney_name), "start": str(day.date()), "end": str(day.date()),
+        })
+        entry["start"] = min(entry["start"], str(day.date()))
+        entry["end"] = max(entry["end"], str(day.date()))
+    return out
+
+
 def _split_by_key(mapping: dict) -> tuple[dict, dict]:
     """Split a cache into ``(by_id, by_name)``, classifying EVERY key independently.
 
@@ -256,6 +279,26 @@ def _scheduled_end(eid: str | None, name: str, resolver,
         return str(end)
     draw = _lookup(draws_by_id, draws_by_name, eid, name) or {}
     return str(draw.get("end") or "") or None
+
+
+def _event_bounds(eid: str | None, name: str, resolver,
+                  draws_by_id: dict, draws_by_name: dict,
+                  upcoming_by_id: dict, upcoming_by_name: dict) -> tuple[str | None, str | None]:
+    """Union calendar/provider bounds with real competition dates for one stable event."""
+    entry = (resolver.entry(eid) if (resolver and eid) else None) or {}
+    draw = _lookup(draws_by_id, draws_by_name, eid, name) or {}
+    upcoming = _lookup(upcoming_by_id, upcoming_by_name, eid, name) or {}
+    starts = [str(src.get("start")) for src in (entry, draw, upcoming) if src.get("start")]
+    ends = [str(src.get("end")) for src in (entry, draw, upcoming) if src.get("end")]
+    return (min(starts) if starts else None, max(ends) if ends else None)
+
+
+def _card_bounds(g: pd.DataFrame, event_start: str | None,
+                 event_end: str | None) -> tuple[str, str]:
+    observed_start = str(g["date"].min().date())
+    observed_end = str(g["date"].max().date())
+    return (min(observed_start, event_start) if event_start else observed_start,
+            max(observed_end, event_end) if event_end else observed_end)
 
 
 def _fields_view(by_id: dict, by_name: dict, eid: str | None, name: str) -> dict | None:
@@ -620,7 +663,7 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
                        espn_fields: dict | None = None, resolve=None,
                        matchups: list | None = None, tournament_draw: dict | None = None,
                        archive_hint: str | None = None, espn_id: str | None = None,
-                       event_end: str | None = None, dmax=None,
+                       event_start: str | None = None, event_end: str | None = None, dmax=None,
                        n_sims: int = 8000, seed: int = 11) -> dict | None:
     # The ratings frame can include qualifying matches for state updates. Tournament
     # projections, however, describe the main draw only. ``draw_level`` filters modern lower-
@@ -628,6 +671,7 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
     # matches were default-labelled "main". Once a Slam final appears, neither class may leak
     # into a >128-player completed field and pad it to an impossible 256-slot bracket.
     main = _one_match_per_player_round(_main_draw_ko_rows(g))
+    card_start, card_end = _card_bounds(g, event_start, event_end)
     display_name = _display_name(
         name, known or set(), tour=tour, event_id=espn_id,
         identity_names=_known_names(g) - {name},
@@ -815,8 +859,8 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
                 "surface": surface,
                 "level": level,
                 "bestOf": best_of,
-                "start": str(g["date"].min().date()),
-                "end": str(g["date"].max().date()),
+                "start": card_start,
+                "end": card_end,
                 "dateBasis": _date_basis(g),
                 "status": "completed",
                 "drawStatus": "final",
@@ -874,7 +918,7 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
 
     return {
         "name": display_name, "surface": surface, "level": level, "bestOf": best_of,
-        "start": str(g["date"].min().date()), "end": str(g["date"].max().date()),
+        "start": card_start, "end": card_end,
         "dateBasis": _date_basis(g),
         "status": "completed" if completed else "live", "drawStatus": draw_state,
         "espnId": espn_id, "surfaceSource": surface_src,
@@ -977,6 +1021,8 @@ def _price_event_bracket(predictor, t: dict, match_lines: list) -> None:
         if not pa or not pb or p is None:
             continue
         as_of = pd.to_datetime(r.get("as_of"), errors="coerce")
+        if pd.notna(as_of) and as_of.tzinfo is not None:
+            as_of = as_of.tz_convert(None)
         if lo is not None and pd.notna(as_of) and (as_of < lo or as_of > hi):
             continue                                     # a rematch in another window can't collide
         index.setdefault(frozenset((_name_key(pa), _name_key(pb))), (pa, p))
@@ -997,6 +1043,7 @@ def build_tournaments(predictor, df: pd.DataFrame, tour: str, **kw) -> list:
     top_set = set(sorted(predictor.elo.overall, key=predictor.elo.elo, reverse=True)[:100])
     espn_fields = _load_fields(tour)
     upcoming = _load_upcoming(tour)
+    upcoming_bounds = _load_upcoming_bounds(tour)
     draws = _load_tournament_draws(tour)
     # map ESPN player names onto the predictor's canonical spellings (accent/punct-insensitive)
     canon: dict = {}
@@ -1016,10 +1063,13 @@ def build_tournaments(predictor, df: pd.DataFrame, tour: str, **kw) -> list:
     draws_by_id, draws_by_name = _split_by_key(draws)
     fields_by_id, fields_by_name = _split_by_key(espn_fields)
     up_by_id, up_by_name = _split_by_key(upcoming)
+    bounds_by_id, bounds_by_name = _split_by_key(upcoming_bounds)
     out = []
     for name, g, eid in _coalesce_groups(recent_tournaments(df), resolver):
         matchups = [(resolve(a), resolve(b))
                     for a, b in (_lookup(up_by_id, up_by_name, eid, name) or [])]
+        event_start, event_end = _event_bounds(
+            eid, name, resolver, draws_by_id, draws_by_name, bounds_by_id, bounds_by_name)
         try:
             t = project_tournament(predictor, name, g, tour, known=known, top_set=top_set,
                                    espn_fields=_fields_view(fields_by_id, fields_by_name,
@@ -1028,8 +1078,7 @@ def build_tournaments(predictor, df: pd.DataFrame, tour: str, **kw) -> list:
                                    tournament_draw=_lookup(draws_by_id, draws_by_name, eid, name),
                                    archive_hint=_archive_attrs(df, name)[0],
                                    espn_id=eid,
-                                   event_end=_scheduled_end(eid, name, resolver,
-                                                            draws_by_id, draws_by_name),
+                                   event_start=event_start, event_end=event_end,
                                    dmax=df["date"].max() if not df.empty else None, **kw)
         except ValueError as e:
             # One unprojectable event must not cost the whole board. The >128-slot guard
@@ -1065,7 +1114,15 @@ def build_tournaments(predictor, df: pd.DataFrame, tour: str, **kw) -> list:
         end = pd.to_datetime(wd.get("end") or wd.get("start"), errors="coerce")
         if dmax is not None and pd.notna(end) and end < dmax - pd.Timedelta(days=2):
             continue                         # already finished (its card is a completed one)
-        t = project_upcoming(predictor, name, wd, tour, df, known, resolve,
+        bound_start, bound_end = _event_bounds(
+            wd_id, name, resolver, draws_by_id, draws_by_name,
+            bounds_by_id, bounds_by_name)
+        bounded = {**wd}
+        if bound_start:
+            bounded["start"] = min(str(wd.get("start") or bound_start), bound_start)
+        if bound_end:
+            bounded["end"] = max(str(wd.get("end") or bound_end), bound_end)
+        t = project_upcoming(predictor, name, bounded, tour, df, known, resolve,
                              espn_id=wd_id or resolver.id_of(name), **kw)
         if t:
             out.append(t)

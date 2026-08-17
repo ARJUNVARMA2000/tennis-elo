@@ -9,12 +9,8 @@ import { setSearchParam } from "@/lib/url";
 import { PageHead, Loading, SurfacePill, Reveal, ProbBar, AnimatedNumber } from "@/components/bits";
 import Dropdown, { type DropdownOption } from "@/components/Dropdown";
 import { SPRING, stagger, pop } from "@/lib/motion";
-
-type Matrix = {
-  players: string[];
-  formats: number[];
-  surfaces: Record<string, Record<string, number[][]>>;
-};
+import { matrixProbability, useMatrixShard } from "@/lib/matrix";
+import type { Upcoming } from "@/lib/upcoming";
 
 export default function Predict() {
   const { tour } = useTour();
@@ -35,8 +31,8 @@ export default function Predict() {
 
 function PredictInner() {
   const { tour } = useTour();
-  const { data, loading } = useData<Matrix>("matrix.json");
   const { data: roster } = useData<{ name: string; eloRank: number }[]>("players.json");
+  const { data: upcoming } = useData<Upcoming[]>("upcoming.json");
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
@@ -46,6 +42,7 @@ function PredictInner() {
   const [b, setB] = useState(1);
   const [surface, setSurface] = useState("Hard");
   const [bo, setBo] = useState(3);
+  const { index: data, shard, format, loading } = useMatrixShard(surface, bo);
 
   const players = useMemo(() => data?.players || [], [data]);
   const formats = useMemo(() => data?.formats || [3], [data]);
@@ -92,11 +89,36 @@ function PredictInner() {
 
   const p = useMemo(() => {
     if (!data || a === b) return null;
-    const m = data.surfaces[surface]?.[String(formats.includes(bo) ? bo : formats[0])];
-    return m ? m[a][b] : null;
-  }, [data, a, b, surface, bo, formats]);
+    return matrixProbability(shard, "combiner", a, b);
+  }, [data, shard, a, b]);
 
-  const dist = p != null ? scoreDist(p, formats.includes(bo) ? bo : formats[0]) : [];
+  const components = useMemo(() => {
+    if (!shard || a === b) return null;
+    return {
+      eloBlend: matrixProbability(shard, "eloBlend", a, b),
+      pointModel: matrixProbability(shard, "pointModel", a, b),
+      combiner: matrixProbability(shard, "combiner", a, b),
+    };
+  }, [shard, a, b]);
+
+  const movement = useMemo(() => {
+    const row = (upcoming ?? []).find((m) =>
+      m.surface === surface && m.bestOf === format
+      && ((m.playerA === players[a] && m.playerB === players[b])
+        || (m.playerA === players[b] && m.playerB === players[a]))
+      && m.forecast,
+    );
+    if (!row?.forecast) return null;
+    if (row.playerA === players[a]) return row.forecast;
+    return {
+      ...row.forecast,
+      first: 1 - row.forecast.first,
+      current: 1 - row.forecast.current,
+      delta: -row.forecast.delta,
+    };
+  }, [upcoming, surface, format, players, a, b]);
+
+  const dist = p != null ? scoreDist(p, format) : [];
 
   return (
     <>
@@ -123,7 +145,7 @@ function PredictInner() {
                   onClick={() => setBo(f)}
                   className="mono relative rounded-[5px] px-3 py-1 text-[11px]"
                 >
-                  {bo === f && (
+                  {format === f && (
                     <motion.span
                       layoutId="bo-thumb"
                       className="absolute inset-0 rounded-[5px] bg-[var(--color-text)]"
@@ -132,7 +154,7 @@ function PredictInner() {
                   )}
                   <span
                     className="relative z-10 transition-colors"
-                    style={{ color: bo === f ? "var(--color-on-accent)" : "var(--color-muted)" }}
+                    style={{ color: format === f ? "var(--color-on-accent)" : "var(--color-muted)" }}
                   >
                     Bo{f}
                   </span>
@@ -169,6 +191,28 @@ function PredictInner() {
                   <ProbBar p={p} w={"100%" as any} />
                 </div>
 
+                {components && (
+                  <details className="panel-inset mt-6 p-4">
+                    <summary className="cursor-pointer select-none text-sm font-medium text-[var(--color-text)]">
+                      Why this prediction?
+                    </summary>
+                    <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                      <ComponentReadout label="Elo blend" value={components.eloBlend} />
+                      <ComponentReadout label="Point model" value={components.pointModel} />
+                      <ComponentReadout label="Final combiner" value={components.combiner} accent />
+                    </div>
+                    {movement && (
+                      <div className="mono mt-3 text-[11px] text-[var(--color-muted)]">
+                        Scheduled-match movement since first sighting: {movement.delta >= 0 ? "+" : ""}
+                        {(movement.delta * 100).toFixed(1)} pp across {movement.snapshots} saved snapshot{movement.snapshots === 1 ? "" : "s"}.
+                      </div>
+                    )}
+                    <p className="mt-3 text-[11px] leading-relaxed text-[var(--color-faint)]">
+                      These component probabilities show agreement or disagreement between model inputs. They are not causal feature attribution or SHAP values.
+                    </p>
+                  </details>
+                )}
+
                 <div className="panel-inset mt-8 p-3 sm:p-4">
                   <div className="mono text-[11px] uppercase tracking-wider text-[var(--color-faint)]">
                     Most likely set scores
@@ -200,6 +244,17 @@ function PredictInner() {
         </>
       )}
     </>
+  );
+}
+
+function ComponentReadout({ label, value, accent = false }: { label: string; value: number | null; accent?: boolean }) {
+  return (
+    <div className="rounded-md border border-[var(--color-line)] px-3 py-2">
+      <div className="mono text-[10px] uppercase tracking-wider text-[var(--color-faint)]">{label}</div>
+      <div className="mono mt-1 text-base" style={{ color: accent ? "var(--color-accent)" : "var(--color-text)" }}>
+        {value == null ? "—" : pct(value, 1)}
+      </div>
+    </div>
   );
 }
 

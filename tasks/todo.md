@@ -4105,3 +4105,96 @@ so a one-for-one substitution was not valid; the stale official cache itself mus
 - The deployed Cincinnati payload was independently fetched after the first deploy: both upcoming
   files contain only R32 for event `718-2026`, each fixture file has 60 unique rows, WTA fixtures
   all retain `espnId`, and the site responds HTTP 200 with `no-cache, no-store`.
+
+## Priority correctness, efficiency, and product round (2026-08-17)
+
+### Phase 1 — correctness and evaluation contracts
+
+- [ ] Reproduce the event-boundary contradiction with production-shaped fixtures, correct event
+      bounds at the stable-`espnId` producer seam, and add a blocking output invariant plus
+      regression coverage for upcoming/fixture dates that fall outside their event contract.
+- [ ] Extend the append-only forecast ledger with idempotent, timestamped pending-match snapshots;
+      retain first-sighting evaluation unchanged, and have the Kalshi comparison select the latest
+      model snapshot at or before the market quote timestamp so the displayed edge is time-aligned.
+
+### Phase 2 — refresh and payload efficiency
+
+- [ ] Benchmark the current quick-refresh seams, then reuse a fingerprinted pipeline health
+      manifest (falling back to standalone recomputation when inputs differ) so the hourly workflow
+      does not perform the same normalized data merge twice or weaken the independent health gate.
+- [ ] Split full/model-bound exports from quick volatile exports, including workflow/cache/mirror
+      wiring, so daily-only projections and predictor artifacts are not rebuilt every hour.
+- [ ] Replace the monolithic predictor/profile downloads with generation-aware surface/format and
+      per-player shards, a shared URL-keyed in-memory request cache with in-flight deduplication,
+      and explicit invalidation when tour metadata advances; retain the host's `no-store` contract.
+- [ ] Extend pre-upload health and post-deploy serving verification for shard indexes, referenced
+      artifacts, generation parity, and stale/missing-file failure modes, with negative controls.
+
+### Phase 3 — product and responsive UI
+
+- [ ] Add a `/matches` Match Center with Live, Upcoming, and Final tabs, event filters, frozen
+      pre-match calls where available, shared match-card primitives, and complete loading, empty,
+      error, metadata, search, navigation, and accessibility states.
+- [ ] Redesign the mobile tournament table around player and title odds, collapse achieved 100%
+      stages and secondary ratings into expandable detail, and preserve the information-dense
+      desktop presentation.
+- [ ] Replace the mobile chip strip with Home, Matches, Players, and Predictor primary actions plus
+      an accessible grouped More sheet that keeps every route reachable and marks active state.
+- [ ] Export honest component-level prediction context (Elo blend, point model, and final combiner)
+      and scheduled-match forecast movement; add “Why this prediction?” UI without presenting the
+      component comparison as causal/SHAP attribution, and omit movement when no history exists.
+
+### Verification and review
+
+- [ ] Run focused producer/gate/evaluation/export tests, the full Python suite and Ruff through
+      `uv`, the web test/lint/build suite, real-artifact gate replay, and `git diff --check`.
+- [ ] Re-run timing measurements, then browser-test every route and interaction at desktop and
+      mobile viewports, including direct loads, keyboard behavior, horizontal overflow, and errors.
+- [ ] Reconcile the final diff with the current git tip and append a review summarizing behavior,
+      measurements, gate coverage, and any deliberately retained compatibility path.
+
+### Priority round review
+
+- [x] Correctness contracts now agree on stable ESPN event identity: tournament bounds union
+      calendar, draw, scheduled-competition, and observed-result evidence. The generated ATP
+      Cincinnati card spans 2026-08-11..23 while its R32 schedule (Aug 17/18) and latest R64
+      fixtures (Aug 16) all pass the new blocking cross-artifact invariant.
+- [x] The forecast log retains first sighting for grading and adds one idempotent pending-match
+      snapshot per UTC hour. Kalshi rows upgrade only to the latest snapshot at or before the
+      frozen quote; legacy unaligned `live` rows remain visible in coverage but are excluded from
+      the aligned headline. UTC-aware snapshot compatibility is pinned at both grading and bracket
+      pricing consumers.
+- [x] A same-input, same-day source-health manifest reduced the measured standalone health pass
+      from about 308s (ATP 180s + WTA 128s) to 0.82s; the independent output gate passed in 0.70s.
+      Fingerprint/date drift still forces the original standalone merge.
+- [x] With static artifacts already present, the measured two-tour quick forecast export fell from
+      about 401s (ATP 233.5s + WTA 167.6s) to 112.69s and reported `[volatile only]` for both tours.
+      A missing/legacy static set deliberately triggers a one-time full-artifact compatibility build.
+- [x] Route payloads now load a generation index plus the selected context/dossier. ATP predictor
+      initial JSON is 654,530 bytes versus roughly 1.4 MB previously; WTA is 654,227 bytes versus
+      roughly 722 KB. A selected profile is about 106-109 KB including the index versus roughly
+      1.1-1.3 MB. Total hosted matrix storage grows to 3.91 MB ATP / 1.96 MB WTA because all three
+      honest component matrices are retained, but no route downloads every shard and the home page
+      requests none when there is no live card.
+- [x] Pre-upload health follows every shard reference and blocks unsafe/missing/corrupt files,
+      malformed indexes, component/context/order drift, and model-generation disagreement. The
+      post-deploy verifier independently follows every served reference, checks MIME and generation,
+      and validates the profile name / exact matrix component contract.
+- [x] Product work shipped `/matches` (Live/Upcoming/Final, keyboard tabs, event filters, frozen
+      calls and shared explanations), mobile title-first tournament cards, a four-action + More
+      mobile nav with focus trapping/restoration, and honest Elo/point/final + movement disclosures.
+- [x] Verification against git tip `b461549`: 586 Python tests and Ruff passed; 247 web tests,
+      ESLint (0 errors; 9 retained existing effect warnings), and the 24-route production build
+      passed; the real-artifact output gate passed; `git diff --check` passed. The route sweep rendered
+      36/36 desktop/mobile route checks without overflow. Its final local-only console audit still
+      reports ESPN's localhost CORS refusal and the intentionally absent local market.json; the
+      in-app browser independently exercised live cards, tab-arrow navigation, ATP/WTA shard swaps,
+      and both explanation disclosures successfully.
+- [x] Retained compatibility is explicit: legacy date-only first-sighting rows keep grading, the
+      legacy in-memory `build_matrix` caller remains, and quick mode self-heals a missing shard set.
+      No commit, push, or production deploy was performed in this round.
+
+#### Publication addendum
+
+- The user subsequently authorized direct publication to the repository's default production
+  branch. The review above records the validated pre-publication state.

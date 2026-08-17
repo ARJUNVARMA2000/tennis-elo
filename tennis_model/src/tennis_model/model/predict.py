@@ -18,7 +18,6 @@ import pandas as pd
 from ..config import MATCH_POPULATION_VERSION, PLAYER_ALIASES, output_dir
 from ..data.charting import STYLE_FEATURES, build_profiles, name_key
 from ..points.markov import match_win_prob, score_distribution
-from ..ratings.elo import expected_score
 from .features import DEFAULT_FEAT_PARAMS, FEATURES, build_predictor_inputs, feat_params_for
 from .train import train_final
 
@@ -168,7 +167,13 @@ class TennisPredictor:
             "log1p_h2h_total": math.log1p(h2a + h2b),
         }
         # MCP tactical-style diffs (0 unless both players are profiled)
-        profiles = build_profiles(self.tour)
+        # Matrix export calls this thousands of times. MCP profiles are immutable during one
+        # predictor lifetime, so loading/parsing them per pair made the old matrix build spend
+        # most of its time repeating identical work.
+        profiles = getattr(self, "_style_profiles_cache", None)
+        if profiles is None:
+            profiles = build_profiles(self.tour)
+            self._style_profiles_cache = profiles
         ka, kb = name_key(a), name_key(b)
         row["has_style"] = int(ka in profiles and kb in profiles)
         for s in STYLE_FEATURES:
@@ -191,6 +196,58 @@ class TennisPredictor:
         raw = self.clf.predict_proba(self.features(a, b, **kw))[:, 1]
         return float(self.iso.predict(raw)[0])
 
+    @staticmethod
+    def _prob_from_logit(value: float) -> float:
+        return 1.0 / (1.0 + math.exp(-float(value)))
+
+    def prediction_components(self, a: str, b: str, surface: str = "Hard",
+                              best_of: int = 3, indoor: bool = False,
+                              tier_k: float = 1.0, round_order: int = 3,
+                              event: str | None = None) -> dict[str, float]:
+        """The two model inputs and calibrated combiner for one matchup.
+
+        These are component probabilities, not feature attribution: they show where the
+        independently useful Elo and point models land before the combiner uses them with
+        the remaining context features.
+        """
+        row = self._feature_dict(a, b, surface, best_of, indoor, tier_k, round_order,
+                                 event=event)
+        X = pd.DataFrame([[row[c] for c in FEATURES]], columns=FEATURES)
+        raw = self.clf.predict_proba(X)[:, 1]
+        return {
+            "eloBlend": self._prob_from_logit(row["logit_p_blend"]),
+            "pointModel": self._prob_from_logit(row["logit_p_point"]),
+            "combiner": float(self.iso.predict(raw)[0]),
+        }
+
+    def prediction_matrices(self, players: list, surface: str = "Hard", best_of: int = 3,
+                            indoor: bool = False, tier_k: float = 1.0,
+                            round_order: int = 3, event: str | None = None):
+        """Batched antisymmetric matrices for Elo, point model, and final combiner."""
+        n = len(players)
+        out = {name: np.full((n, n), 0.5)
+               for name in ("eloBlend", "pointModel", "combiner")}
+        if n < 2:
+            return out
+        ii, jj, rows = [], [], []
+        for i in range(n):
+            for j in range(i + 1, n):
+                rows.append(self._feature_dict(players[i], players[j], surface, best_of,
+                                               indoor, tier_k, round_order, event=event))
+                ii.append(i)
+                jj.append(j)
+        X = pd.DataFrame(rows, columns=FEATURES)
+        values = {
+            "eloBlend": np.array([self._prob_from_logit(r["logit_p_blend"]) for r in rows]),
+            "pointModel": np.array([self._prob_from_logit(r["logit_p_point"]) for r in rows]),
+            "combiner": self.iso.predict(self.clf.predict_proba(X)[:, 1]),
+        }
+        ia, ja = np.array(ii), np.array(jj)
+        for name, probs in values.items():
+            out[name][ia, ja] = probs
+            out[name][ja, ia] = 1.0 - probs
+        return out
+
     def win_prob_matrix(self, players: list, surface: str = "Hard", best_of: int = 3,
                         indoor: bool = False, tier_k: float = 1.0, round_order: int = 3,
                         event: str | None = None):
@@ -199,30 +256,20 @@ class TennisPredictor:
         Builds the upper triangle in one batched prediction (the hot path for the
         Monte Carlo draw simulator).
         """
-        n = len(players)
-        ii, jj, rows = [], [], []
-        for i in range(n):
-            for j in range(i + 1, n):
-                rows.append(self._feature_dict(players[i], players[j], surface, best_of,
-                                               indoor, tier_k, round_order, event=event))
-                ii.append(i); jj.append(j)
-        X = pd.DataFrame(rows, columns=FEATURES)
-        p = self.iso.predict(self.clf.predict_proba(X)[:, 1])
-        P = np.full((n, n), 0.5)
-        P[np.array(ii), np.array(jj)] = p
-        P[np.array(jj), np.array(ii)] = 1.0 - p
-        return P
+        return self.prediction_matrices(
+            players, surface=surface, best_of=best_of, indoor=indoor,
+            tier_k=tier_k, round_order=round_order, event=event,
+        )["combiner"]
 
     def predict(self, a: str, b: str, surface: str = "Hard", best_of: int = 3, **kw) -> dict:
-        p = self.win_prob(a, b, surface=surface, best_of=best_of, **kw)
-        pa, pb = self.srv.point_probs(a, b, surface, event=kw.get("event"))
+        components = self.prediction_components(a, b, surface=surface, best_of=best_of, **kw)
+        p = components["combiner"]
         dist = score_distribution(p, best_of)          # consistent with the combiner prob
         return {
             "a": a, "b": b, "surface": surface, "best_of": best_of,
             "p_a": round(p, 4), "p_b": round(1 - p, 4),
-            "p_blend": round(expected_score(self.elo.blended(a, surface),
-                                            self.elo.blended(b, surface)), 4),
-            "p_point": round(match_win_prob(pa, pb, best_of), 4),
+            "p_blend": round(components["eloBlend"], 4),
+            "p_point": round(components["pointModel"], 4),
             "set_dist": {k: round(v, 3) for k, v in dist.items()},
         }
 

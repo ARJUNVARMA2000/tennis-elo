@@ -27,7 +27,13 @@ def _mirror(tour: str) -> None:
     """Copy a tour's JSON outputs into the web app's public dir."""
     src, dst = output_dir(tour), WEB_DATA_DIR / tour
     dst.mkdir(parents=True, exist_ok=True)
+    names = {j.name for j in src.glob("*.json") if j.name != "health-source.json"}
+    for old in dst.glob("*.json"):
+        if old.name not in names:
+            old.unlink()
     for j in src.glob("*.json"):
+        if j.name == "health-source.json":
+            continue
         shutil.copy(j, dst / j.name)
 
 
@@ -39,6 +45,15 @@ def _track(tour: str, predictor, df) -> None:
         log_and_grade(tour, predictor, df)
     except Exception as e:                                   # noqa: BLE001 — never fatal
         print(f"  track/{tour}: skipped ({e})")
+
+
+def _health_manifest(tour: str, df) -> None:
+    """Let the later standalone health command reuse this exact normalized frame."""
+    try:
+        from .data.health import write_health_manifest
+        write_health_manifest(tour, df)
+    except Exception as e:  # noqa: BLE001 — health command safely recomputes on a miss
+        print(f"  health-manifest/{tour}: skipped ({e})")
 
 
 @contextmanager
@@ -120,6 +135,7 @@ def build_tour(tour: str, do_backtest: bool, *, run_kalshi: bool = True):
     caller can keep both tours under the shared hourly benchmark budget."""
     print(f"\n=== {tour.upper()} === loading matches + building features...")
     df = load_matches(tour)
+    _health_manifest(tour, df)
     feat, elo, srv, ctx, meta = build_predictor_inputs(df)
     feat = main_rows(feat)   # combiner never sees lower-tier rows (A5 ratings-only)
 
@@ -206,12 +222,14 @@ def build_tour_quick(tour: str):
     to persist from the last full run (the workflow caches data/output)."""
     print(f"\n=== {tour.upper()} [quick] === live refresh from saved model...")
     df = load_matches(tour)
+    _health_manifest(tour, df)
     predictor = TennisPredictor.load(tour)
     if not _predictor_current(predictor, tour):
         print("  quick: saved predictor is stale (feature schema, FeatureParams, match "
               "population, or player aliases) -> full rebuild")
         return build_tour(tour, do_backtest=False, run_kalshi=False)
-    export_all(tour, df, predictor.elo, predictor.srv, predictor.meta, predictor, oos=None)
+    export_all(tour, df, predictor.elo, predictor.srv, predictor.meta, predictor,
+               oos=None, full=False)
     _track(tour, predictor, df)
     _mirror(tour)
     return df

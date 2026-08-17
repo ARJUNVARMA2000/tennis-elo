@@ -11,6 +11,19 @@ export type Upcoming = {
   playerB: string;
   pA: number;
   level?: string;
+  components?: {
+    eloBlend: number;
+    pointModel: number;
+    combiner: number;
+  } | null;
+  forecast?: {
+    first: number;
+    current: number;
+    delta: number;
+    firstAsOf?: string;
+    latestAsOf?: string;
+    snapshots: number;
+  } | null;
 };
 
 import { tournamentTier } from "./ui";

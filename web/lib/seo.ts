@@ -44,6 +44,10 @@ const PAGE_META: Record<string, { title: string; description: string }> = {
     title: "Schedule",
     description: "Model win probabilities for every scheduled ATP & WTA match, by surface and round.",
   },
+  matches: {
+    title: "Match Center",
+    description: "Live tennis scores, scheduled model forecasts, and completed point-in-time calls in one match center.",
+  },
   player: {
     title: "Profiles",
     description: "Elo history, surface splits, serve/return stats and head-to-heads for every ranked player.",

@@ -185,7 +185,9 @@ jobs:
         run: |
           for tour in atp wta; do
             mkdir -p "web/public/data/$tour"
-            cp tennis_model/data/output/$tour/*.json "web/public/data/$tour/"
+            find "web/public/data/$tour" -maxdepth 1 -type f -name '*.json' -delete
+            find "tennis_model/data/output/$tour" -maxdepth 1 -type f -name '*.json' \
+              ! -name 'health-source.json' -exec cp {} "web/public/data/$tour/" \;
           done
 
       # Durably persist the append-only forecast log (the data cache is evictable, so

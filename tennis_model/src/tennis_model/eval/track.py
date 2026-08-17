@@ -10,10 +10,13 @@ plus a grader that scores them once the actual results arrive.
   data/output/<tour>/track.json    derived scorecard — regenerated every run, mirrored
                                    to the web app like every other artifact.
 
-Two line types in the log:
+Three line types in the log:
   match       one upcoming matchup + P(playerA wins), logged once at first sighting so
               the probability is a genuine pre-result forecast (the model has not yet
               trained on the outcome).
+  match_snapshot  an hourly, idempotent pending-match snapshot. The first-sighting record
+              remains the grading contract; these snapshots power forecast movement and
+              let market comparisons select the model state available at the quote time.
   tournament  a daily snapshot of an in-progress event's title odds (odds evolve as the
               draw thins, so we keep one snapshot per event per day).
 
@@ -72,7 +75,12 @@ def _match_key(r: dict) -> str:
 
 
 def _tourn_key(r: dict) -> str:
-    return f"{_norm_event(r.get('event'))}|{r.get('season')}|{r.get('as_of')}"
+    return f"{_norm_event(r.get('event'))}|{r.get('season')}|{str(r.get('as_of'))[:10]}"
+
+
+def _snapshot_key(r: dict) -> str:
+    """One snapshot per matchup per UTC hour, even when a job is retried."""
+    return f"{_match_key(r)}|{str(r.get('as_of'))[:13]}"
 
 
 def _read_log(path) -> list:
@@ -107,26 +115,36 @@ def log_forecasts(tour: str, predictor, df: pd.DataFrame,
     path = FORECAST_DIR / f"{tour}.jsonl"
     existing = _read_log(path)
     seen_match = {_match_key(r) for r in existing if r.get("type") == "match"}
+    seen_snap = {_snapshot_key(r) for r in existing if r.get("type") == "match_snapshot"}
     seen_tourn = {_tourn_key(r) for r in existing if r.get("type") == "tournament"}
 
     new: list = []
     # match forecasts: one locked P(playerA wins) per scheduled matchup (first sighting).
     # Name-resolution / surface inference / pricing live in model.upcoming.enrich_upcoming,
     # shared with the web schedule board so the two can never disagree on a matchup.
-    for row in enrich_upcoming(predictor, df, upcoming, tour):
-        rec = {
-            "type": "match", "as_of": as_of, "tour": tour,
-            "event": row["event"], "round": row["round"],
+    enriched = enrich_upcoming(predictor, df, upcoming, tour)
+    for row in enriched:
+        base = {
+            "as_of": as_of, "tour": tour,
+            "event": row["event"], "espnId": row.get("espnId"), "round": row["round"],
             "surface": row["surface"], "best_of": row["best_of"],
             "season": _season(row["date"], as_of),
-            "playerA": row["playerA"], "playerB": row["playerB"], "model_version": __version__,
+            "playerA": row["playerA"], "playerB": row["playerB"],
+            "model_version": __version__, "p": round(row["pA"], 4),
+        }
+        rec = {
+            **base,
+            "type": "match", "as_of": as_of, "tour": tour,
         }
         k = _match_key(rec)
-        if k in seen_match:
-            continue
-        rec["p"] = round(row["pA"], 4)
-        seen_match.add(k)
-        new.append(rec)
+        if k not in seen_match:
+            seen_match.add(k)
+            new.append(rec)
+        snap = {**base, "type": "match_snapshot"}
+        sk = _snapshot_key(snap)
+        if sk not in seen_snap:
+            seen_snap.add(sk)
+            new.append(snap)
 
     # tournament snapshots: reuse the title odds already computed for tournaments.json
     # (status == "live" only — completed events have no pre-result odds to log).
@@ -154,6 +172,42 @@ def log_forecasts(tour: str, predictor, df: pd.DataFrame,
     return len(new)
 
 
+def movement_for_upcoming(tour: str, rows: list[dict]) -> dict[str, dict]:
+    """Movement summaries keyed by the shared matchup key for enriched upcoming rows."""
+    history: dict[str, list[dict]] = defaultdict(list)
+    for rec in _read_log(FORECAST_DIR / f"{tour}.jsonl"):
+        if rec.get("type") in ("match", "match_snapshot") and rec.get("p") is not None:
+            history[_match_key(rec)].append(rec)
+    out: dict[str, dict] = {}
+    for row in rows:
+        probe = {
+            **row,
+            "season": _season(row.get("date")),
+        }
+        key = _match_key(probe)
+        records = history.get(key) or []
+        if not records:
+            continue
+        records = sorted(records, key=lambda r: str(r.get("as_of") or ""))
+        first = next((r for r in records if r.get("type") == "match"), records[0])
+        current = float(row["pA"])
+        initial = float(first["p"])
+        out[key] = {
+            "first": round(initial, 4),
+            "current": round(current, 4),
+            "delta": round(current - initial, 4),
+            "firstAsOf": first.get("as_of"),
+            "latestAsOf": records[-1].get("as_of"),
+            "snapshots": len(records),
+        }
+    return out
+
+
+def movement_key(row: dict) -> str:
+    """Public key helper for consumers decorating the same enriched upcoming rows."""
+    return _match_key({**row, "season": _season(row.get("date"))})
+
+
 # ---------------------------------------------------------------------------
 # Grading
 # ---------------------------------------------------------------------------
@@ -172,6 +226,11 @@ def _grade_matches(matches: list, df: pd.DataFrame) -> list:
         if not cands:
             continue                                        # not resolved yet -> pending
         as_of = pd.Timestamp(r["as_of"])
+        # New hourly records carry an explicit UTC offset; historical result frames are
+        # intentionally date-only/naive. Compare calendar instants on the same basis so
+        # enabling snapshots cannot disable the entire best-effort tracker.
+        if as_of.tzinfo is not None:
+            as_of = as_of.tz_convert(None)
         valid = [c for c in cands if -1 <= (c[0] - as_of).days <= JOIN_WINDOW_DAYS]
         if not valid:
             continue
@@ -358,7 +417,9 @@ def grade(tour: str, df: pd.DataFrame) -> dict:
 
 def log_and_grade(tour: str, predictor, df: pd.DataFrame) -> dict:
     """Pipeline entry point: log today's forecasts, then (re)grade the whole log."""
-    as_of = datetime.now(UTC).date().isoformat()
+    # Hour-granular timestamps make snapshot retries idempotent while retaining the exact
+    # quote-time ordering the Kalshi ledger needs. Older date-only lines remain valid.
+    as_of = datetime.now(UTC).replace(minute=0, second=0, microsecond=0).isoformat()
     n = log_forecasts(tour, predictor, df, load_upcoming(tour), as_of)
     out = grade(tour, df)
     mf = out["matchForecasts"]

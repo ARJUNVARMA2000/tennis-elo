@@ -5,6 +5,7 @@ import { PageHead, Loading, Reveal, CallCard, FilterChip } from "@/components/bi
 import { surfaceColor, SURFACES, tournamentTier } from "@/lib/ui";
 import { filterUpcoming, groupByEvent, hasMatchupProfiles, upcomingCard, type Upcoming } from "@/lib/upcoming";
 import Dropdown from "@/components/Dropdown";
+import PredictionWhy from "@/components/PredictionWhy";
 import { useMemo, useState } from "react";
 
 export default function Schedule() {
@@ -119,12 +120,15 @@ export default function Schedule() {
                 <div className="grid gap-2.5 sm:grid-cols-2">
                   {g.matches.map((m, i) => (
                     <Reveal key={`${m.playerA}-${m.playerB}-${i}`} delay={Math.min(gi * 0.02 + i * 0.01, 0.2)}>
-                      <CallCard
-                        tone="projection"
-                        {...upcomingCard(m)}
-                        matchup={hasMatchupProfiles(m, rated)}
-                        profileRoster={rated}
-                      />
+                      <div>
+                        <CallCard
+                          tone="projection"
+                          {...upcomingCard(m)}
+                          matchup={hasMatchupProfiles(m, rated)}
+                          profileRoster={rated}
+                        />
+                        <PredictionWhy match={m} />
+                      </div>
                     </Reveal>
                   ))}
                 </div>

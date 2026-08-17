@@ -199,6 +199,24 @@ def test_live_forecast_beats_backtest(env):
     assert (row["pred_source"], row["p_model"]) == ("live", "0.3200")
 
 
+def test_latest_snapshot_at_or_before_quote_is_time_aligned(env):
+    _write_log(env, [
+        {"type": "match", "as_of": "2026-07-06", "playerA": "Flavio Cobolli",
+         "playerB": "Arthur Fery", "p": 0.68, "model_version": "0.1.0"},
+        {"type": "match_snapshot", "as_of": "2026-07-08T07:00:00+00:00",
+         "playerA": "Flavio Cobolli", "playerB": "Arthur Fery", "p": 0.60,
+         "model_version": "0.1.0"},
+        {"type": "match_snapshot", "as_of": "2026-07-08T13:00:00+00:00",
+         "playerA": "Flavio Cobolli", "playerB": "Arthur Fery", "p": 0.90,
+         "model_version": "0.1.0"},
+    ])
+    row = build_rows(TOUR, _snaps(_snap_event()), _df(WIMBLEDON))[0]
+    # Alphabetical A is Arthur, so the 0.60 Cobolli snapshot orients to 0.40. The
+    # 13:00 snapshot is after the 12:55 quote and must be invisible.
+    assert (row["pred_source"], row["p_model"]) == ("live_aligned", "0.4000")
+    assert row["model_as_of"] == "2026-07-08T07:00:00+00:00"
+
+
 def test_backtest_fills_pre_log_era(env):
     oos = pd.DataFrame({"date": [pd.Timestamp("2026-06-29")],
                         "winner_name": ["Flavio Cobolli"], "loser_name": ["Arthur Fery"],
@@ -246,6 +264,28 @@ def test_upsert_freezes_candle_price_and_matched_result(env):
     row = kl._read_ledger(kl.KALSHI_LEDGER_DIR / f"{TOUR}.csv")["KXATPMATCH-26JUL08COBFER"]
     assert row["price_kind"] == "candle" and row["mid_a"] == "0.3100"
     assert row["match_status"] == "matched" and row["winner"] == "Flavio Cobolli"
+
+
+def test_upsert_allows_only_stronger_quote_alignment_provenance(env):
+    legacy = {"type": "match", "as_of": "2026-07-06", "playerA": "Flavio Cobolli",
+              "playerB": "Arthur Fery", "p": 0.68, "model_version": "0.1.0"}
+    _write_log(env, [legacy])
+    upsert(TOUR, build_rows(TOUR, _snaps(_snap_event()), _df(WIMBLEDON)))
+
+    aligned = {"type": "match_snapshot", "as_of": "2026-07-08T07:00:00+00:00",
+               "playerA": "Flavio Cobolli", "playerB": "Arthur Fery",
+               "p": 0.60, "model_version": "0.1.0"}
+    _write_log(env, [legacy, aligned])
+    upsert(TOUR, build_rows(TOUR, _snaps(_snap_event()), _df(WIMBLEDON)))
+    path = kl.KALSHI_LEDGER_DIR / f"{TOUR}.csv"
+    row = kl._read_ledger(path)["KXATPMATCH-26JUL08COBFER"]
+    assert (row["pred_source"], row["p_model"]) == ("live_aligned", "0.4000")
+
+    # A later partial input cannot downgrade the time-aligned frozen record.
+    _write_log(env, [legacy])
+    upsert(TOUR, build_rows(TOUR, _snaps(_snap_event()), _df(WIMBLEDON)))
+    row = kl._read_ledger(path)["KXATPMATCH-26JUL08COBFER"]
+    assert (row["pred_source"], row["p_model"]) == ("live_aligned", "0.4000")
 
 
 def test_refresh_ledger_counts(env, monkeypatch):

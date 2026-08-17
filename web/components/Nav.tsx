@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTour } from "@/lib/tour";
 import { withTour } from "@/lib/url";
-import { NAV_GROUPS, NAV_ITEMS } from "@/lib/navigation";
+import { NAV_GROUPS } from "@/lib/navigation";
 import { SPRING } from "@/lib/motion";
 import { GitHubIcon } from "@/components/bits";
 import Freshness from "@/components/Freshness";
@@ -15,6 +15,12 @@ import CommandSearch from "@/components/CommandSearch";
 const GITHUB_URL = "https://github.com/ARJUNVARMA2000/tennis-elo";
 
 const isActive = (path: string, href: string) => (href === "/" ? path === "/" : path.startsWith(href));
+const MOBILE_PRIMARY = [
+  { href: "/", label: "Home", paths: ["/"] },
+  { href: "/matches", label: "Matches", paths: ["/matches", "/schedule", "/results", "/bracket"] },
+  { href: "/rankings", label: "Players", paths: ["/rankings", "/player", "/style", "/strength", "/explorer", "/trends"] },
+  { href: "/predict", label: "Predictor", paths: ["/predict"] },
+];
 
 function Chevron({ open }: { open: boolean }) {
   return (
@@ -36,12 +42,61 @@ export default function Nav() {
   const path = usePathname();
   const { tour, setTour } = useTour();
   const [open, setOpen] = useState<string | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const navRef = useRef<HTMLElement>(null);
+  const moreRef = useRef<HTMLButtonElement>(null);
+  const mobilePanelRef = useRef<HTMLDivElement>(null);
   const btnRefs = useRef(new Map<string, HTMLButtonElement>());
   const panelRefs = useRef(new Map<string, HTMLDivElement>());
 
   // close any dropdown when the route changes
-  useEffect(() => setOpen(null), [path]);
+  useEffect(() => {
+    setOpen(null);
+    setMobileOpen(false);
+  }, [path]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    requestAnimationFrame(() => {
+      mobilePanelRef.current?.querySelector<HTMLElement>("[data-mobile-sheet-close]")?.focus();
+    });
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMobileOpen(false);
+        moreRef.current?.focus();
+        return;
+      }
+      if (event.key === "Tab" && mobilePanelRef.current) {
+        const focusable = Array.from(
+          mobilePanelRef.current.querySelectorAll<HTMLElement>(
+            'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+          ),
+        );
+        if (!focusable.length) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [mobileOpen]);
+
+  const closeMobile = (restoreFocus = false) => {
+    setMobileOpen(false);
+    if (restoreFocus) requestAnimationFrame(() => moreRef.current?.focus());
+  };
 
   // outside click closes the open dropdown
   useEffect(() => {
@@ -242,12 +297,12 @@ export default function Nav() {
         </div>
       </div>
 
-      {/* mobile: flat scrollable chip strip */}
-      <nav aria-label="Primary (mobile)" className="mobile-nav safe-x flex gap-1.5 overflow-x-auto border-t border-[var(--color-line)] py-2 text-[12px] text-[var(--color-muted)] lg:hidden">
-        {NAV_ITEMS.map(({ href, label }) => {
-          const a = isActive(path, href);
+      {/* Mobile: four stable destinations plus an accessible grouped route sheet. */}
+      <nav aria-label="Primary (mobile)" className="mobile-nav safe-x grid grid-cols-5 gap-1 border-t border-[var(--color-line)] py-1.5 text-[11px] text-[var(--color-muted)] lg:hidden">
+        {MOBILE_PRIMARY.map(({ href, label, paths }) => {
+          const a = paths.some((candidate) => isActive(path, candidate));
           return (
-            <Link key={href} href={withTour(href, tour)} className="relative whitespace-nowrap rounded-md px-2.5 py-1">
+            <Link key={href} href={withTour(href, tour)} className="relative rounded-md px-1 py-2 text-center">
               {a && (
                 <motion.span
                   layoutId="nav-pill-mobile"
@@ -261,7 +316,88 @@ export default function Nav() {
             </Link>
           );
         })}
+        <button
+          ref={moreRef}
+          type="button"
+          onClick={() => setMobileOpen((value) => !value)}
+          aria-haspopup="dialog"
+          aria-expanded={mobileOpen}
+          aria-controls="mobile-more-sheet"
+          className="relative rounded-md px-1 py-2 text-center"
+          style={{ color: mobileOpen ? "var(--color-text)" : undefined }}
+        >
+          More
+        </button>
       </nav>
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            id="mobile-more-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label="All pages"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-x-0 bottom-0 top-[105px] z-50 lg:hidden"
+          >
+            <button
+              type="button"
+              aria-label="Close navigation"
+              onClick={() => closeMobile(true)}
+              className="absolute inset-0 bg-black/60"
+            />
+            <motion.div
+              ref={mobilePanelRef}
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 20, opacity: 0 }}
+              className="safe-x absolute inset-x-0 bottom-0 max-h-[78vh] overflow-y-auto rounded-t-2xl border-t border-[var(--color-line)] bg-[rgba(15,16,17,0.98)] pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 shadow-[var(--shadow-pop)]"
+            >
+              <div className="mb-3 flex items-center justify-between">
+                <span className="eyebrow">All pages</span>
+                <button
+                  type="button"
+                  data-mobile-sheet-close
+                  onClick={() => closeMobile(true)}
+                  className="mono rounded-md px-3 py-1 text-xs text-[var(--color-muted)]"
+                >
+                  close
+                </button>
+              </div>
+              <div className="space-y-5">
+                {NAV_GROUPS.map((group) => {
+                  const items = group.href
+                    ? [{ href: group.href, label: group.label, desc: "Current tournament forecasts" }]
+                    : group.items ?? [];
+                  return (
+                    <section key={group.label}>
+                      <h2 className="mono mb-2 text-[10px] uppercase tracking-wider text-[var(--color-faint)]">{group.label}</h2>
+                      <div className="grid gap-1 sm:grid-cols-2">
+                        {items.map((item) => {
+                          const active = isActive(path, item.href);
+                          return (
+                            <Link
+                              key={item.href}
+                              href={withTour(item.href, tour)}
+                              aria-current={active ? "page" : undefined}
+                              className="rounded-lg border border-[var(--color-line)] px-3 py-2.5"
+                              style={{ background: active ? "var(--color-accent-dim)" : undefined }}
+                            >
+                              <span className="block text-sm" style={{ color: active ? "var(--color-accent)" : "var(--color-text)" }}>{item.label}</span>
+                              <span className="block text-[11px] text-[var(--color-faint)]">{item.desc}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 }

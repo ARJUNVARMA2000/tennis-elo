@@ -55,7 +55,6 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
     const t = resolveTour(param, localStorage.getItem("tour"));
     setTourState(t);
     if (param === "atp" || param === "wta") localStorage.setItem("tour", param);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const set = (t: Tour) => {
     setTourState(t);
@@ -74,41 +73,129 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
 
 export const useTour = () => useContext(Ctx);
 
-function useJson<T>(url: string): { data: T | null; loading: boolean; error: boolean } {
-  const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+type CacheEntry = {
+  data?: unknown;
+  promise?: Promise<unknown>;
+  fetchedAt: number;
+};
+
+const jsonCache = new Map<string, CacheEntry>();
+const tourGenerations = new Map<Tour, string>();
+const META_MAX_AGE_MS = 60_000;
+
+function invalidateTour(tour: Tour, keep: string) {
+  const prefix = `${BASE}/data/${tour}/`;
+  for (const key of jsonCache.keys()) {
+    if (key.startsWith(prefix) && key !== keep) jsonCache.delete(key);
+  }
+}
+
+function loadJson(url: string, maxAge = Number.POSITIVE_INFINITY): Promise<unknown> {
+  const cached = jsonCache.get(url);
+  if (cached?.data !== undefined && Date.now() - cached.fetchedAt <= maxAge) {
+    return Promise.resolve(cached.data);
+  }
+  if (cached?.promise) return cached.promise;
+  const promise = fetch(url)
+    .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+    .then((data) => {
+      jsonCache.set(url, { data, fetchedAt: Date.now() });
+      return data;
+    })
+    .catch((error) => {
+      jsonCache.delete(url);
+      throw error;
+    });
+  jsonCache.set(url, { data: cached?.data, fetchedAt: cached?.fetchedAt ?? 0, promise });
+  return promise;
+}
+
+type Meta = { lastUpdated?: string } & Record<string, unknown>;
+
+function useTourMeta(tour: Tour): { data: Meta | null; loading: boolean; error: boolean; generation: string } {
+  const [state, setState] = useState<{ tour: Tour; data: Meta | null; loading: boolean; error: boolean; generation: string }>({
+    tour,
+    data: null,
+    loading: true,
+    error: false,
+    generation: tourGenerations.get(tour) ?? "",
+  });
   useEffect(() => {
     let live = true;
-    setLoading(true);
-    setError(false);
-    fetch(url)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+    const url = `${BASE}/data/${tour}/meta.json`;
+    const check = () => {
+      loadJson(url, META_MAX_AGE_MS)
+        .then((raw) => {
+          if (!live) return;
+          const data = raw as Meta;
+          const generation = String(data.lastUpdated ?? "unversioned");
+          const previous = tourGenerations.get(tour);
+          if (previous && previous !== generation) invalidateTour(tour, url);
+          tourGenerations.set(tour, generation);
+          setState({ tour, data, loading: false, error: false, generation });
+        })
+        .catch(() => live && setState((s) => ({ ...s, loading: false, error: true })));
+    };
+    check();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") check();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      live = false;
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [tour]);
+  if (state.tour !== tour) {
+    return { data: null, loading: true, error: false, generation: tourGenerations.get(tour) ?? "" };
+  }
+  return state;
+}
+
+function useJson<T>(url: string, enabled = true, generation = ""): { data: T | null; loading: boolean; error: boolean } {
+  const requestKey = enabled && url ? `${url}\u0000${generation}` : "";
+  const [state, setState] = useState<{ key: string; data: T | null; error: boolean }>({
+    key: "",
+    data: null,
+    error: false,
+  });
+  useEffect(() => {
+    if (!requestKey) return;
+    let live = true;
+    loadJson(url)
       .then((j) => {
-        if (live) {
-          setData(j);
-          setLoading(false);
-        }
+        if (live) setState({ key: requestKey, data: j as T, error: false });
       })
       .catch(() => {
-        if (live) {
-          setData(null);
-          setError(true);
-          setLoading(false);
-        }
+        if (live) setState({ key: requestKey, data: null, error: true });
       });
     return () => {
       live = false;
     };
-  }, [url]);
-  return { data, loading, error };
+  }, [url, requestKey]);
+  if (!requestKey) return { data: null, loading: false, error: false };
+  if (state.key !== requestKey) return { data: null, loading: true, error: false };
+  return { data: state.data, loading: false, error: state.error };
 }
 
 /** Fetch a JSON artifact for the active tour from /data/<tour>/<file>.
     `error` flips on HTTP failure or a rejected fetch (pages may ignore it). */
 export function useData<T>(file: string): { data: T | null; loading: boolean; error: boolean } {
   const { tour } = useTour();
-  return useJson<T>(`${BASE}/data/${tour}/${file}`);
+  const meta = useTourMeta(tour);
+  const artifact = useJson<T>(
+    file ? `${BASE}/data/${tour}/${file}` : "",
+    !!file && !!meta.generation,
+    meta.generation,
+  );
+  if (file === "meta.json") {
+    return { data: meta.data as T | null, loading: meta.loading, error: meta.error };
+  }
+  return {
+    data: artifact.data,
+    loading: meta.loading || artifact.loading,
+    error: meta.error || artifact.error,
+  };
 }
 
 /** Fetch a JSON artifact by path under /data/, tour-agnostic — "health.json" for the

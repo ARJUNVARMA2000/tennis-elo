@@ -27,7 +27,26 @@ describe("mobile browser shell", () => {
     expect(layout).toMatch(/<main className="[^"]*safe-x/);
     expect(layout).toMatch(/<footer className="[^"]*safe-bottom[^"]*safe-x/);
     expect(nav).toMatch(/<header className="[^"]*safe-top/);
-    expect(nav.match(/safe-x/g)).toHaveLength(2);
+    expect(nav.match(/safe-x/g)).toHaveLength(3);
+  });
+
+  it("uses four stable mobile destinations and a grouped accessible More sheet", () => {
+    const nav = readWebSource("components/Nav.tsx");
+    expect(nav).toContain("MOBILE_PRIMARY");
+    expect(nav).toContain('aria-haspopup="dialog"');
+    expect(nav).toContain('role="dialog"');
+    expect(nav).toContain('aria-modal="true"');
+    expect(nav).toContain('event.key === "Tab"');
+    expect(nav).toContain("mobilePanelRef");
+    expect(nav).toContain("moreRef.current?.focus()");
+    expect(nav).not.toContain("overflow-x-auto border-t");
+  });
+
+  it("keeps title odds visible while round and rating detail collapses on mobile", () => {
+    const home = readWebSource("app/page.tsx");
+    expect(home).toContain("data-mobile-title-odds");
+    expect(home).toContain('reach[round] < 0.9995');
+    expect(home).toContain('className="-mx-1 hidden overflow-x-auto sm:block"');
   });
 
   it("pins touch interaction and dynamic-height invariants", () => {

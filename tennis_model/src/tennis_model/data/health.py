@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import csv
 import glob
+import hashlib
 import itertools
 import json
 import os
@@ -63,7 +64,11 @@ from ..config import (
     TOURS,
     WEB_DATA_DIR,
     fresh_dir,
+    historical_dir,
+    live_dir,
+    lower_dir,
     output_dir,
+    stats_dir,
 )
 from ..model.features import FEATURES
 from ..sim.bracket import is_real
@@ -157,8 +162,24 @@ def fresh_future_date_max(tour: str, now: pd.Timestamp | None = None):
     return m if pd.notna(m) else None
 
 
-def tour_health(tour: str, now: pd.Timestamp) -> dict:
-    df = load_matches(tour)
+def _health_input_fingerprint(tour: str) -> str:
+    """Cheap same-run identity for every file the source-health summary reads."""
+    files = []
+    for root in (historical_dir(tour), stats_dir(tour), fresh_dir(tour),
+                 lower_dir(tour), live_dir(tour)):
+        files.extend(root.glob("*.csv"))
+    files.append(CHARTING_DIR / f"charting-{_GENDER[tour]}-stats-Overview.csv")
+    rows = []
+    for path in sorted(set(files)):
+        try:
+            st = path.stat()
+        except OSError:
+            continue
+        rows.append(f"{path}:{st.st_size}:{st.st_mtime_ns}")
+    return hashlib.sha256("\n".join(rows).encode()).hexdigest()
+
+
+def _tour_health_from_frame(tour: str, df: pd.DataFrame, now: pd.Timestamp) -> dict:
     completed = df[df["completed"]]
     stats_rows = df[df["has_stats"]]
     cur = df[df["date"].dt.year == now.year]
@@ -182,6 +203,41 @@ def tour_health(tour: str, now: pd.Timestamp) -> dict:
         "charting_date_max": str(ch_max.date()) if ch_max is not None else None,
         "charting_age_days": int((now - ch_max).days) if ch_max is not None else None,
     }
+
+
+def write_health_manifest(tour: str, df: pd.DataFrame,
+                          now: pd.Timestamp | None = None) -> dict:
+    """Persist the source summary from the pipeline's already-normalized frame."""
+    now = now if now is not None else pd.Timestamp(datetime.now(UTC).date())
+    health = _tour_health_from_frame(tour, df, now)
+    payload = {
+        "schema": 1,
+        "asOfDate": str(now.date()),
+        "inputFingerprint": _health_input_fingerprint(tour),
+        "health": health,
+    }
+    path = OUTPUT_DIR / tour / "health-source.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    os.replace(tmp, path)
+    return health
+
+
+def tour_health(tour: str, now: pd.Timestamp) -> dict:
+    manifest = OUTPUT_DIR / tour / "health-source.json"
+    if manifest.exists():
+        try:
+            payload = json.loads(manifest.read_text(encoding="utf-8"))
+            if (payload.get("schema") == 1
+                    and payload.get("asOfDate") == str(now.date())
+                    and payload.get("inputFingerprint") == _health_input_fingerprint(tour)
+                    and isinstance(payload.get("health"), dict)):
+                print(f"  health/{tour}: reused pipeline source manifest")
+                return payload["health"]
+        except (OSError, ValueError):
+            pass
+    return _tour_health_from_frame(tour, load_matches(tour), now)
 
 
 def source_checks(tour: str, h: dict, now: pd.Timestamp) -> list[dict]:
@@ -306,8 +362,8 @@ def problems(tour: str, h: dict, now: pd.Timestamp) -> list[str]:
 # ---------------------------------------------------------------------------
 # The web reads these per tour; the first group must always exist and parse, the second
 # is best-effort (accuracy is backtest-only, track needs graded forecasts).
-_REQUIRED_OUTPUTS = ("meta", "players", "tournaments", "event_coverage", "brackets", "upcoming", "matrix",
-                     "ratings_history", "profiles", "draws", "fixtures", "method")
+_REQUIRED_OUTPUTS = ("meta", "players", "tournaments", "event_coverage", "brackets", "upcoming",
+                     "matrix-index", "ratings_history", "profile-index", "draws", "fixtures", "method")
 _OPTIONAL_OUTPUTS = ("accuracy", "track", "market")
 _PLACEHOLDER_NAMES = {"tbd", "tba", "bye", "qualifier"}   # mirror data/live.py
 
@@ -437,6 +493,34 @@ def read_outputs(tour: str) -> dict:
             data[stem] = json.loads(f.read_text(), parse_constant=_reject_nonfinite)
         except (ValueError, OSError):
             corrupt.append(stem)
+    shards, missing_files, corrupt_files = {}, [], []
+    refs = []
+    matrix_index = data.get("matrix-index")
+    if isinstance(matrix_index, dict):
+        surfaces = matrix_index.get("surfaces")
+        if isinstance(surfaces, dict):
+            refs.extend(name for byfmt in surfaces.values()
+                        if isinstance(byfmt, dict) for name in byfmt.values())
+    profile_index = data.get("profile-index")
+    if isinstance(profile_index, dict):
+        refs.extend(p.get("file") for p in (profile_index.get("profiles") or [])
+                    if isinstance(p, dict))
+    for filename in sorted(set(refs), key=str):
+        safe = (isinstance(filename, str) and filename.endswith(".json")
+                and "/" not in filename and "\\" not in filename
+                and filename not in (".", ".."))
+        if not safe:
+            missing_files.append(str(filename))
+            continue
+        path = d / filename
+        if not path.exists():
+            missing_files.append(filename)
+            continue
+        try:
+            shards[filename] = json.loads(
+                path.read_text(), parse_constant=_reject_nonfinite)
+        except (ValueError, OSError):
+            corrupt_files.append(filename)
     forecast = None
     fc = DATA_DIR / "forecast_log" / f"{tour}.jsonl"
     if fc.exists():
@@ -461,6 +545,8 @@ def read_outputs(tour: str) -> dict:
         except OSError:
             ledger = None
     return {"data": data, "missing": missing, "corrupt": corrupt,
+            "shards": shards, "missing_files": missing_files,
+            "corrupt_files": corrupt_files,
             "forecast": forecast, "kalshi_ledger": ledger}
 
 
@@ -515,8 +601,12 @@ def _check_matrix(out: list, tour: str, mx: dict) -> None:
         if not isinstance(byfmt, dict):
             continue
         for fmt, m in byfmt.items():
-            if not isinstance(m, list) or len(m) != n or any(len(r) != n for r in m):
+            if (not isinstance(m, list) or len(m) != n
+                    or any(not isinstance(r, list) or len(r) != n for r in m)):
                 out.append(f"{tour}: matrix[{surf}][{fmt}] is not {n}x{n}")
+                continue
+            if n == 0:
+                out.append(f"{tour}: matrix[{surf}][{fmt}] has no players")
                 continue
             # sample corners + the top-left 2x2 — enough to catch a systemic break
             # (all-out-of-range, transposed, un-normalised) without scanning ~14k cells
@@ -529,6 +619,85 @@ def _check_matrix(out: list, tour: str, mx: dict) -> None:
                 if abs(m[0][1] + m[1][0] - 1.0) > 1e-3:
                     out.append(f"{tour}: matrix[{surf}][{fmt}] not antisymmetric "
                                f"({m[0][1]}+{m[1][0]})")
+
+
+def _check_matrix_shards(out: list, tour: str, index: dict, shards: dict) -> None:
+    players = index.get("players")
+    generation = index.get("generation")
+    expected_components = {"eloBlend", "pointModel", "combiner"}
+    if not generation:
+        out.append(f"{tour}: matrix-index.json is missing generation")
+    if not isinstance(players, list) or not players or any(not p for p in players):
+        out.append(f"{tour}: matrix-index.json has an empty/malformed player roster")
+        players = players if isinstance(players, list) else []
+    elif len(set(players)) != len(players):
+        out.append(f"{tour}: matrix-index.json has duplicate players")
+    formats = index.get("formats")
+    if not isinstance(formats, list) or not formats:
+        out.append(f"{tour}: matrix-index.json has no formats")
+    surfaces = index.get("surfaces")
+    if not isinstance(surfaces, dict) or not surfaces:
+        # Avoid the generic advisory marker "is empty": a shard index with no context
+        # makes the predictor unusable and must block, unlike a quiet schedule feed.
+        out.append(f"{tour}: matrix-index.json surfaces is missing/malformed")
+        return
+    for surface, byfmt in surfaces.items():
+        if not isinstance(byfmt, dict):
+            out.append(f"{tour}: matrix-index {surface!r} format map is malformed")
+            continue
+        for fmt, filename in byfmt.items():
+            shard = shards.get(filename)
+            if not isinstance(shard, dict):
+                continue  # missing/corrupt has its own exact-file problem
+            if shard.get("generation") != generation:
+                out.append(f"{tour}: {filename} generation disagrees with matrix-index.json")
+            if shard.get("players") != players:
+                out.append(f"{tour}: {filename} player order disagrees with matrix-index.json")
+            if shard.get("surface") != surface or str(shard.get("bestOf")) != str(fmt):
+                out.append(f"{tour}: {filename} context disagrees with matrix-index.json")
+            components = shard.get("components")
+            if not isinstance(components, dict):
+                out.append(f"{tour}: {filename} components is malformed")
+                continue
+            if set(components) != expected_components:
+                out.append(f"{tour}: {filename} component set {sorted(components)} "
+                           f"!= {sorted(expected_components)}")
+            for component, matrix in components.items():
+                _check_matrix(out, tour, {
+                    "players": players,
+                    "surfaces": {surface: {f"{fmt}/{component}": matrix}},
+                })
+
+
+def _check_profile_shards(out: list, tour: str, index: dict, shards: dict,
+                          players: list | None) -> None:
+    rows = index.get("profiles") or []
+    if not isinstance(rows, list):
+        out.append(f"{tour}: profile-index.json profiles is not a list")
+        return
+    names = [p.get("name") for p in rows if isinstance(p, dict)]
+    files = [p.get("file") for p in rows if isinstance(p, dict)]
+    if len(set(names)) != len(names) or any(not name for name in names):
+        out.append(f"{tour}: profile-index.json has duplicate/null player names")
+    if len(set(files)) != len(files) or any(not filename for filename in files):
+        out.append(f"{tour}: profile-index.json has duplicate/null shard files")
+    if isinstance(players, list) and names != [p.get("name") for p in players]:
+        out.append(f"{tour}: profile-index.json roster/order disagrees with players.json")
+    generation = index.get("generation")
+    if not generation:
+        out.append(f"{tour}: profile-index.json is missing generation")
+    for summary in rows:
+        if not isinstance(summary, dict):
+            continue
+        filename = summary.get("file")
+        shard = shards.get(filename)
+        if not isinstance(shard, dict):
+            continue
+        if shard.get("generation") != generation:
+            out.append(f"{tour}: {filename} generation disagrees with profile-index.json")
+        if shard.get("name") != summary.get("name"):
+            out.append(f"{tour}: {filename} names {shard.get('name')!r}, expected "
+                       f"{summary.get('name')!r}")
 
 
 def _check_projection(out: list, tour: str, name, proj: list) -> None:
@@ -1152,6 +1321,10 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
         out.append(f"{tour}: {stem}.json missing")
     for stem in oc.get("corrupt", []):
         out.append(f"{tour}: {stem}.json is present but unparseable")
+    for filename in oc.get("missing_files", []):
+        out.append(f"{tour}: referenced artifact {filename!r} missing or unsafe")
+    for filename in oc.get("corrupt_files", []):
+        out.append(f"{tour}: referenced artifact {filename!r} is unparseable")
     offseason = _offseason(now)
 
     meta = data.get("meta")
@@ -1243,11 +1416,21 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
                 out.append(f"{tour}: {frac:.0%} of top players have no liveRank "
                            f"(max {HEALTH_MAX_LIVERANK_NULL_FRAC:.0%}) — rankings source may have drifted")
 
-    mx = data.get("matrix")
-    if isinstance(mx, dict):
-        _check_matrix(out, tour, mx)
+    matrix_index = data.get("matrix-index")
+    if isinstance(matrix_index, dict):
+        _check_matrix_shards(out, tour, matrix_index, oc.get("shards") or {})
+        if (isinstance(meta, dict) and meta.get("modelTrainedAt")
+                and matrix_index.get("generation") != meta.get("modelTrainedAt")):
+            out.append(f"{tour}: matrix-index.json generation disagrees with meta.modelTrainedAt")
+    profile_index = data.get("profile-index")
+    if isinstance(profile_index, dict):
+        _check_profile_shards(out, tour, profile_index, oc.get("shards") or {}, players)
+        if (isinstance(meta, dict) and meta.get("modelTrainedAt")
+                and profile_index.get("generation") != meta.get("modelTrainedAt")):
+            out.append(f"{tour}: profile-index.json generation disagrees with meta.modelTrainedAt")
 
     ts = data.get("tournaments")
+    event_ranges: dict[str, tuple[pd.Timestamp, pd.Timestamp, str]] = {}
     if isinstance(ts, list):
         if not ts and not offseason:
             out.append(f"{tour}: tournaments.json is empty")
@@ -1271,6 +1454,13 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
                 shown = ", ".join(repr(n) for n in names)
                 out.append(f"{tour}: espnId {eid} ships on {len(names)} cards ({shown}) — "
                            f"one event projected twice, so at least one is a partial record")
+        for t in ts:
+            if not isinstance(t, dict) or not t.get("espnId"):
+                continue
+            start = pd.to_datetime(t.get("start"), errors="coerce")
+            end = pd.to_datetime(t.get("end"), errors="coerce")
+            if pd.notna(start) and pd.notna(end):
+                event_ranges[str(t["espnId"])] = (start, end, str(t.get("name") or ""))
         # A live event that HAD a bracket and now doesn't: the cached complete draw pinning
         # its field has gone. That is the 2026-07-27 Wimbledon class — the draw aged out of
         # the ESPN discovery window, the field fell back to a noisy results union and padded
@@ -1321,6 +1511,14 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
                 out.append(f"{tour}: upcoming.json row has identical players ({m.get('playerA')!r})")
             if not _is_prob(m.get("pA")):
                 out.append(f"{tour}: upcoming.json pA={m.get('pA')!r} out of [0,1]")
+            eid = str(m.get("espnId") or "")
+            day = pd.to_datetime(m.get("date"), errors="coerce")
+            if eid in event_ranges and pd.notna(day):
+                start, end, event_name = event_ranges[eid]
+                if day < start or day > end:
+                    out.append(f"{tour}: upcoming match on {m.get('date')} falls outside "
+                               f"{event_name!r} event bounds {start.date()}..{end.date()} "
+                               f"(espnId {eid})")
         _flag_placeholders(out, tour, "upcoming.json",
                            (n for m in up for n in (m.get("playerA"), m.get("playerB"))))
 
@@ -1371,6 +1569,13 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
             if all(key):
                 priors.append(f)
             eid = str(f.get("espnId") or "")
+            day = pd.to_datetime(f.get("date"), errors="coerce")
+            if eid in event_ranges and pd.notna(day):
+                start, end, event_name = event_ranges[eid]
+                if day < start or day > end:
+                    out.append(f"{tour}: completed fixture on {f.get('date')} falls outside "
+                               f"{event_name!r} event bounds {start.date()}..{end.date()} "
+                               f"(espnId {eid})")
             if eid and _is_real_name(winner) and _is_real_name(loser):
                 rounds = bracket_rounds.get(
                     (eid, frozenset((_player_identity_key(winner),

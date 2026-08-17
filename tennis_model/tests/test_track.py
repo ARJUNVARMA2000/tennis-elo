@@ -108,6 +108,16 @@ def test_match_grading_and_brier():
         print("ok test_match_grading_and_brier")
 
 
+def test_hourly_utc_forecast_grades_against_date_only_results():
+    """Hourly snapshots added an offset-aware timestamp while normalized match dates
+    remain naive; the first-sighting grading contract must continue to resolve."""
+    with tempfile.TemporaryDirectory() as d:
+        _setup(Path(d))
+        _write_log([_match("Alice", "Bob", 0.7, as_of="2026-06-01T08:00:00+00:00")])
+        out = track.grade("atp", _results_df([("Alice", "Bob", "2026-06-03", "Hard")]))
+        assert out["matchForecasts"]["graded"] == 1
+
+
 def test_pending_outside_window():
     with tempfile.TemporaryDirectory() as d:
         _setup(Path(d))
@@ -139,10 +149,27 @@ def test_dedup_idempotent():
                             "round": "QF", "playerA": "Alice", "playerB": "Bob"}])
         df = _results_df([("Zeta", "Yan", "2026-06-01", "Hard")])  # unrelated
         n1 = track.log_forecasts("atp", pred, df, up, "2026-06-01")
-        n2 = track.log_forecasts("atp", pred, df, up, "2026-06-02")  # same matchup, next day
+        n2 = track.log_forecasts("atp", pred, df, up, "2026-06-01")  # same hour retry
+        n3 = track.log_forecasts("atp", pred, df, up, "2026-06-02")  # later snapshot
         lines = track._read_log(track.FORECAST_DIR / "atp.jsonl")
-        assert n1 == 1 and n2 == 0 and len(lines) == 1, (n1, n2, len(lines))
+        assert n1 == 2 and n2 == 0 and n3 == 1 and len(lines) == 3
+        assert sum(r["type"] == "match" for r in lines) == 1
+        assert sum(r["type"] == "match_snapshot" for r in lines) == 2
         print("ok test_dedup_idempotent")
+
+
+def test_movement_keeps_first_sighting_and_current_probability():
+    with tempfile.TemporaryDirectory() as d:
+        _setup(Path(d))
+        first = _match("Alice", "Bob", 0.55, as_of="2026-06-01T08:00:00+00:00")
+        snap = {**first, "type": "match_snapshot", "as_of": "2026-06-02T08:00:00+00:00",
+                "p": 0.61}
+        _write_log([first, snap])
+        row = {"event": "TestOpen", "date": "2026-06-03", "round": "QF",
+               "playerA": "Alice", "playerB": "Bob", "pA": 0.64}
+        movement = track.movement_for_upcoming("atp", [row])[track.movement_key(row)]
+        assert movement["first"] == 0.55 and movement["current"] == 0.64
+        assert movement["delta"] == 0.09 and movement["snapshots"] == 2
 
 
 def test_tournament_grading():

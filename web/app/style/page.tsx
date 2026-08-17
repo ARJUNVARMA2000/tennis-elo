@@ -9,6 +9,7 @@ import {
   buildRadarScalers,
   profileRadarSeries,
   readRadarValue,
+  type ProfileIndex,
   type RadarProfile,
 } from "@/lib/profile";
 import { setSearchParam } from "@/lib/url";
@@ -45,19 +46,22 @@ export default function Style() {
 
 function StyleInner() {
   const { tour } = useTour();
-  const { data, loading } = useData<Record<string, Profile>>("profiles.json");
+  const { data: index, loading } = useData<ProfileIndex>("profile-index.json");
+  const data = useMemo(() => Object.fromEntries(
+    (index?.profiles ?? []).map((profile) => [profile.name, profile as Profile]),
+  ) as Record<string, Profile>, [index]);
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
   const urlA = sp.get("a");
   const urlB = sp.get("b");
-  const names = useMemo(() => (data ? Object.keys(data) : []), [data]);
+  const names = useMemo(() => Object.keys(data), [data]);
   const options: DropdownOption[] = useMemo(
     () =>
       names.map((n) => ({
         value: n,
         label: n,
-        sublabel: data?.[n]?.eloRank != null ? `#${data[n].eloRank}` : undefined,
+        sublabel: data[n]?.eloRank != null ? `#${data[n].eloRank}` : undefined,
       })),
     [names, data],
   );
@@ -96,11 +100,11 @@ function StyleInner() {
 
   // One percentile scaler per axis, built from the whole field for the active tour.
   const scalers = useMemo(() => {
-    return buildRadarScalers(data ? Object.values(data) : []);
+    return buildRadarScalers(Object.values(data));
   }, [data]);
 
-  const pa = data?.[a];
-  const pb = data?.[b];
+  const pa = data[a];
+  const pb = data[b];
 
   const series = useMemo(() => {
     if (!pa || !pb || !scalers.length) return [];
@@ -114,13 +118,13 @@ function StyleInner() {
     <>
       {loading && <Loading />}
 
-      {!loading && (!data || names.length === 0) && (
+      {!loading && names.length === 0 && (
         <div className="mono mt-10 text-sm text-[var(--color-faint)]">
           No {tour.toUpperCase()} style profiles available right now — the data may be refreshing, so check back shortly.
         </div>
       )}
 
-      {data && names.length > 0 && (
+      {names.length > 0 && (
         <>
           <Reveal>
             <div className="mt-8 grid gap-3 sm:grid-cols-2">

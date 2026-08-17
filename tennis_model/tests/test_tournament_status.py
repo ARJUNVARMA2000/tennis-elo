@@ -22,6 +22,7 @@ from tennis_model.sim.bracket import is_real
 from tennis_model.sim.tournaments import (
     _date_basis,
     _dedup_by_display_name,
+    _price_event_bracket,
     build_tournaments,
     project_tournament,
     project_upcoming,
@@ -55,6 +56,10 @@ class _Pred:
                     d = self.elo.r.get(players[i], 1500.0) - self.elo.r.get(players[j], 1500.0)
                     P[i, j] = 1.0 / (1.0 + 10.0 ** (-d / 400.0))
         return P
+
+    def win_prob(self, a, b, **_kwargs):
+        d = self.elo.r.get(a, 1500.0) - self.elo.r.get(b, 1500.0)
+        return 1.0 / (1.0 + 10.0 ** (-d / 400.0))
 
 
 _PRED = _Pred(_R)
@@ -99,6 +104,37 @@ def test_date_basis_marks_repeated_multi_round_stamps_only():
     one_round = repeated[repeated["round"] == "R64"]
     assert _date_basis(one_round) == "match"
     print("ok test_date_basis_marks_repeated_multi_round_stamps_only")
+
+
+def test_card_bounds_union_calendar_and_competition_evidence():
+    """A card may not end on the last completed result while its stable event still has
+    scheduled competition dates. This is the production Cincinnati contradiction class."""
+    card = project_tournament(
+        _PRED, "Test Open", _g(), "atp", known=set(), top_set=None,
+        espn_fields=None, resolve=lambda name: name, matchups=[("P0", "P1")],
+        espn_id="718-2026", event_start="2026-08-01", event_end="2026-08-12",
+        n_sims=20, seed=1,
+    )
+    assert card["start"] == "2026-08-01"
+    assert card["end"] == "2026-08-12"
+    print("ok test_card_bounds_union_calendar_and_competition_evidence")
+
+
+def test_bracket_pricing_accepts_hourly_utc_forecast_timestamps():
+    event = {
+        "name": "Test Open", "surface": "Hard", "bestOf": 3,
+        "start": "2026-08-01", "end": "2026-08-12",
+        "bracket": [{"round": "F", "matches": [
+            {"a": "P0", "b": "P1", "winner": "a", "score": "6-4 6-4"},
+        ]}],
+    }
+    lines = [{
+        "type": "match", "as_of": "2026-08-05T14:00:00+00:00",
+        "playerA": "P0", "playerB": "P1", "p": 0.61,
+    }]
+    _price_event_bracket(_PRED, event, lines)
+    match = event["bracket"][0]["matches"][0]
+    assert match["p"] == 0.61 and match["probSource"] == "logged"
 
 
 def test_live_and_upcoming_tier_resolution_receive_stable_id(monkeypatch):

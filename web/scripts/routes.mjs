@@ -7,6 +7,7 @@ export const INDEXABLE_ROUTES = [
   "/rankings/",
   "/results/",
   "/schedule/",
+  "/matches/",
   "/bracket/",
   "/scorecard/",
   "/predict/",

@@ -11,6 +11,24 @@ export type RadarProfile = {
   style: Record<string, number | null>;
 };
 
+export type ProfileSummary = RadarProfile & {
+  file: string;
+  eloRank?: number;
+};
+
+export type ProfileIndex = {
+  generation: string;
+  profiles: ProfileSummary[];
+};
+
+export type ProfileDetail = {
+  generation: string;
+  name: string;
+  history: [string, number][];
+  recent: { date: string; opp: string; surface: string; won: boolean; score: string; event: string }[];
+  h2h: { opp: string; w: number; l: number }[];
+};
+
 export type RadarScaler = (value: number) => number;
 
 export function readRadarValue(profile: RadarProfile, axis: RadarAxis): number | null {

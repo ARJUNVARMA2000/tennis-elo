@@ -2,9 +2,11 @@
 
 Kept separate from pipeline orchestration so the export surface is easy to scan:
   players.json          ranking board (Elo + surface + serve/return + style)
-  matrix.json           top-N pairwise win probs per surface x format (powers /predict)
+  matrix-index.json     surface/format shard map for pairwise component probabilities
+  matrix-*.json         one prediction matrix context per file (powers /predict + live)
   ratings_history.json   monthly Elo trajectories (powers /trends)
-  profiles.json         per-player detail: splits, style, recent form, H2H, Elo line
+  profile-index.json    light all-player profile/style summaries
+  profile-*.json        one player's history, recent form, and H2H dossier
   draws.json            current-top-field tournament projections per surface
   tournaments.json      latest real events: title odds + actual result (powers home)
   event_coverage.json   independent begun-event set + exact shipped membership
@@ -18,6 +20,7 @@ Kept separate from pipeline orchestration so the export surface is easy to scan:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import re
@@ -80,6 +83,16 @@ def _current_age(m: dict, ref) -> int | None:
     return int(age)
 
 
+def _rounded_finite(mapping: dict, key: str, digits: int = 3) -> float | None:
+    """Round an optional numeric field from either pandas data or strict JSON.
+
+    Full exports see NaN for missing charting values; quick exports reload the same
+    summaries after JSON has correctly converted those values to null/None.
+    """
+    value = mapping.get(key)
+    return round(float(value), digits) if isinstance(value, (int, float)) and math.isfinite(value) else None
+
+
 def _with_token_order_keys(rankings: dict) -> dict:
     """Also index each ranked player by alphabetically-sorted name tokens, so
     surname-first source forms still join (Xinyu Wang vs the model's Wang Xinyu).
@@ -138,8 +151,8 @@ def build_players(elo, srv, meta, profiles, rankings=None, ctx=None, top=TOP_PRO
             "age": _current_age(m, elo.last_date),
             "country": m.get("ioc") if isinstance(m.get("ioc"), str) else None,
             "lastPlayed": pd.Timestamp(elo.last_played[name]).strftime("%Y-%m-%d"),
-            "aggression": round(st["style_aggression"], 3) if st.get("style_aggression") == st.get("style_aggression") and "style_aggression" in st else None,
-            "serveDom": round(st["style_serve_dom"], 3) if st.get("style_serve_dom") == st.get("style_serve_dom") and "style_serve_dom" in st else None,
+            "aggression": _rounded_finite(st, "style_aggression"),
+            "serveDom": _rounded_finite(st, "style_serve_dom"),
             **_live_rank_fields(name, rankings),
         })
     rows.sort(key=lambda r: -r["elo"])
@@ -149,6 +162,7 @@ def build_players(elo, srv, meta, profiles, rankings=None, ctx=None, top=TOP_PRO
 
 
 def build_matrix(predictor, players: list, tour: str) -> dict:
+    """Legacy in-memory shape retained for callers; new exports use per-context shards."""
     names = [p["name"] for p in players[:TOP_MATRIX]]
     formats = [3, 5] if tour == "atp" else [3]
     surfaces = {}
@@ -158,6 +172,32 @@ def build_matrix(predictor, players: list, tour: str) -> dict:
             P = predictor.win_prob_matrix(names, surface=surf, best_of=bo)
             surfaces[surf][str(bo)] = np.round(P, 3).tolist()
     return {"players": names, "formats": formats, "surfaces": surfaces}
+
+
+def build_matrix_shards(predictor, players: list, tour: str,
+                        generation: str) -> tuple[dict, dict[str, dict]]:
+    """Small index + one surface/format shard carrying all honest model components."""
+    names = [p["name"] for p in players[:TOP_MATRIX]]
+    formats = [3, 5] if tour == "atp" else [3]
+    refs: dict[str, dict[str, str]] = {}
+    shards: dict[str, dict] = {}
+    for surf in SURFACES:
+        refs[surf] = {}
+        for bo in formats:
+            filename = f"matrix-{surf.lower()}-bo{bo}.json"
+            matrices = predictor.prediction_matrices(names, surface=surf, best_of=bo)
+            shards[filename] = {
+                "generation": generation,
+                "players": names,
+                "surface": surf,
+                "bestOf": bo,
+                "components": {
+                    key: np.round(value, 3).tolist() for key, value in matrices.items()
+                },
+            }
+            refs[surf][str(bo)] = filename
+    return ({"generation": generation, "players": names, "formats": formats,
+             "surfaces": refs}, shards)
 
 
 def build_history(elo, players: list) -> dict:
@@ -209,6 +249,47 @@ def build_profiles_json(df, elo, srv, meta, mcp, players: list) -> dict:
             "h2h": h2h.get(name, []),
         }
     return out
+
+
+def _profile_filename(name: str) -> str:
+    digest = hashlib.sha256(name.encode("utf-8")).hexdigest()[:16]
+    return f"profile-{digest}.json"
+
+
+def build_profile_shards(profiles: dict, generation: str) -> tuple[dict, dict[str, dict]]:
+    """A light all-player style index plus one dossier file per player."""
+    summaries, shards = [], {}
+    for name, profile in profiles.items():
+        filename = _profile_filename(name)
+        summaries.append({
+            "name": name,
+            "file": filename,
+            "eloRank": profile.get("eloRank"),
+            "servePct": profile.get("servePct"),
+            "returnPct": profile.get("returnPct"),
+            "eloHard": profile.get("eloHard"),
+            "eloClay": profile.get("eloClay"),
+            "eloGrass": profile.get("eloGrass"),
+            "style": profile.get("style") or {},
+        })
+        shards[filename] = {
+            "generation": generation,
+            "name": name,
+            "history": profile.get("history") or [],
+            "recent": profile.get("recent") or [],
+            "h2h": profile.get("h2h") or [],
+        }
+    return {"generation": generation, "profiles": summaries}, shards
+
+
+def _write_shards(tour: str, prefix: str, shards: dict[str, dict]) -> None:
+    out = output_dir(tour)
+    expected = set(shards)
+    for old in out.glob(f"{prefix}-*.json"):
+        if old.name != f"{prefix}-index.json" and old.name not in expected:
+            old.unlink()
+    for filename, payload in shards.items():
+        _write(tour, filename, payload)
 
 
 def build_draws(predictor, players: list, tour: str) -> dict:
@@ -265,13 +346,18 @@ def build_upcoming(predictor, df, tour: str) -> list:
     from ..sim.tournaments import _display_name, _known_names
     from .upcoming import enrich_upcoming, load_upcoming
     known = _known_names(df)
+    enriched = enrich_upcoming(predictor, df, load_upcoming(tour), tour)
+    from ..eval.track import movement_for_upcoming, movement_key
+    movements = movement_for_upcoming(tour, enriched)
     rows = [{
         "event": _display_name(r["event"], known, tour=tour, event_id=r.get("espnId")),
         "espnId": r.get("espnId"),
         "date": r["date"], "round": r["round"],
         "surface": r["surface"], "bestOf": r["best_of"], "level": r["level"],
         "playerA": r["playerA"], "playerB": r["playerB"], "pA": round(r["pA"], 4),
-    } for r in enrich_upcoming(predictor, df, load_upcoming(tour), tour)]
+        "components": r.get("components"),
+        "forecast": movements.get(movement_key(r)),
+    } for r in enriched]
     rows.sort(key=lambda m: (m["date"], _ROUND_DEPTH.get(m["round"], 9), m["event"]))
     return rows
 
@@ -448,14 +534,44 @@ def build_event_outputs(predictor, df: pd.DataFrame, tour: str) -> tuple[dict, l
     return coverage, cards
 
 
-def export_all(tour, df, elo, srv, meta, predictor, oos=None) -> None:
+def _static_outputs_present(tour: str) -> bool:
+    out = output_dir(tour)
+    required = ("matrix-index.json", "profile-index.json", "ratings_history.json",
+                "draws.json", "method.json")
+    if any(not (out / name).exists() for name in required):
+        return False
+    try:
+        matrix = json.loads((out / "matrix-index.json").read_text())
+        profiles = json.loads((out / "profile-index.json").read_text())
+        refs = [f for byfmt in (matrix.get("surfaces") or {}).values()
+                for f in (byfmt or {}).values()]
+        refs += [p.get("file") for p in (profiles.get("profiles") or [])]
+        return all(isinstance(name, str) and (out / name).exists() for name in refs)
+    except (OSError, ValueError, TypeError):
+        return False
+
+
+def _cached_profile_styles(tour: str) -> dict:
+    path = output_dir(tour) / "profile-index.json"
+    if not path.exists():
+        return {}
+    try:
+        payload = json.loads(path.read_text())
+    except (OSError, ValueError):
+        return {}
+    return {name_key(p.get("name")): p.get("style") or {}
+            for p in payload.get("profiles") or [] if p.get("name")}
+
+
+def export_all(tour, df, elo, srv, meta, predictor, oos=None, *, full: bool = True) -> None:
     """Write every frontend JSON for one tour.
 
     Works in two modes: a full run passes a fresh walk-forward `oos` (rebuilds
     accuracy.json); a quick refresh passes oos=None and reuses the saved predictor's
     states (elo/srv/meta) — accuracy.json is left to persist from the last full run.
     """
-    mcp = build_profiles(tour)
+    static = full or not _static_outputs_present(tour)
+    mcp = build_profiles(tour) if static else _cached_profile_styles(tour)
     rankings = load_rankings(tour)
     players = build_players(elo, srv, meta, mcp, rankings, ctx=getattr(predictor, "ctx", None))
     if rankings:   # drift tripwire: a sudden drop in CI logs = source name-format change
@@ -464,10 +580,23 @@ def export_all(tour, df, elo, srv, meta, predictor, oos=None) -> None:
     accuracy = build_accuracy(oos) if oos is not None else {}
 
     _write(tour, "players.json", players)
-    _write(tour, "matrix.json", build_matrix(predictor, players, tour))
-    _write(tour, "ratings_history.json", build_history(elo, players))
-    _write(tour, "profiles.json", build_profiles_json(df, elo, srv, meta, mcp, players))
-    _write(tour, "draws.json", build_draws(predictor, players, tour))
+    if static:
+        generation = getattr(predictor, "trained_at", None) or datetime.now(UTC).strftime(
+            "%Y-%m-%dT%H:%M:%SZ")
+        matrix_index, matrix_shards = build_matrix_shards(
+            predictor, players, tour, generation)
+        _write(tour, "matrix-index.json", matrix_index)
+        _write_shards(tour, "matrix", matrix_shards)
+        _write(tour, "ratings_history.json", build_history(elo, players))
+        profiles = build_profiles_json(df, elo, srv, meta, mcp, players)
+        profile_index, profile_shards = build_profile_shards(profiles, generation)
+        _write(tour, "profile-index.json", profile_index)
+        _write_shards(tour, "profile", profile_shards)
+        _write(tour, "draws.json", build_draws(predictor, players, tour))
+        for legacy in ("matrix.json", "profiles.json"):
+            path = output_dir(tour) / legacy
+            if path.exists():
+                path.unlink()
     coverage, ts = build_event_outputs(predictor, df, tour)
     _write(tour, "brackets.json", build_brackets_payload(ts))   # pops bracket/size/url, stamps hasBracket
     _write(tour, "tournaments.json", ts)
@@ -483,5 +612,7 @@ def export_all(tour, df, elo, srv, meta, predictor, oos=None) -> None:
         getattr(predictor, "trained_at", None),
         getattr(predictor, "_match_population_version", None),
     ))
-    _write(tour, "method.json", build_method(tour))
-    print(f"  exported JSON for {tour} ({len(players)} players){'' if accuracy else ' [quick]'}")
+    if static:
+        _write(tour, "method.json", build_method(tour))
+    print(f"  exported JSON for {tour} ({len(players)} players)"
+          f"{' [full artifacts]' if static else ' [volatile only]'})")

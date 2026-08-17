@@ -164,6 +164,37 @@ export function healthArtifactOk(health, expected) {
     && freshnessOk(health.generatedAt, expected));
 }
 
+/** Validate shard indexes before the verifier follows their references. */
+export function artifactIndexRefs(matrix, profiles) {
+  const problems = [];
+  const files = [];
+  const safe = (value) => typeof value === "string"
+    && /^[a-z0-9-]+\.json$/i.test(value)
+    && !value.includes("..");
+  if (!matrix || typeof matrix !== "object" || !matrix.generation) {
+    problems.push("matrix-index generation missing");
+  }
+  for (const byFormat of Object.values(matrix?.surfaces || {})) {
+    for (const file of Object.values(byFormat || {})) {
+      if (!safe(file)) problems.push(`unsafe matrix shard reference ${String(file)}`);
+      else files.push({ file, generation: matrix.generation, kind: "matrix" });
+    }
+  }
+  if (!profiles || typeof profiles !== "object" || !profiles.generation) {
+    problems.push("profile-index generation missing");
+  }
+  for (const profile of profiles?.profiles || []) {
+    const file = profile?.file;
+    if (!profile?.name || !safe(file)) problems.push(`invalid profile shard reference ${String(file)}`);
+    else files.push({ file, generation: profiles.generation, kind: "profile", name: profile.name });
+  }
+  if (!files.some((ref) => ref.kind === "matrix")) problems.push("matrix-index has no shards");
+  if (!files.some((ref) => ref.kind === "profile")) problems.push("profile-index has no shards");
+  const names = files.map((ref) => ref.file);
+  if (new Set(names).size !== names.length) problems.push("duplicate shard reference");
+  return { problems, files };
+}
+
 /**
  * Compare one live tournaments.json payload with the membership recorded by the same
  * freshly-built health.json. Expected keys must occur exactly once; the complete shipped

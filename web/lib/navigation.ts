@@ -7,6 +7,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Matches",
     items: [
+      { href: "/matches", label: "Match Center", desc: "Live, upcoming and final calls" },
       { href: "/schedule", label: "Schedule", desc: "Win odds for scheduled matches" },
       { href: "/results", label: "Results", desc: "Model calls on recent results" },
       { href: "/bracket", label: "Brackets", desc: "Real draws, round by round" },
