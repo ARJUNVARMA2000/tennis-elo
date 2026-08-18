@@ -89,6 +89,24 @@ def test_event_offset_learns_court_speed():
     print("ok test_event_offset_learns_court_speed")
 
 
+def test_main_baseline_freezes_priors_against_later_state_rows():
+    """A lower row added years later may update state from that date onward, but it
+    cannot change the league prior used for already-played main rows."""
+    main = _df([
+        ("A", "B", "Main One", 0.55, "2015-01-01"),
+        ("C", "D", "Main Two", 0.65, "2015-02-01"),
+    ])
+    lower = _df([("E", "F", "Lower", 0.85, "2016-01-01")])
+    combined = pd.concat([main, lower], ignore_index=True)
+
+    _, baseline = run_serve_return(main)
+    _, controlled = run_serve_return(combined, baseline_df=main)
+    _, global_prior = run_serve_return(combined)
+
+    pd.testing.assert_frame_equal(baseline, controlled.iloc[:len(main)])
+    assert not baseline["pa_serve"].equals(global_prior.iloc[:len(main)]["pa_serve"])
+
+
 if __name__ == "__main__":
     test_event_off_is_bit_identical()
     test_event_offset_learns_court_speed()

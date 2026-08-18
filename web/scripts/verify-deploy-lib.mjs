@@ -164,8 +164,12 @@ export function healthArtifactOk(health, expected) {
     && freshnessOk(health.generatedAt, expected));
 }
 
-/** Validate shard indexes before the verifier follows their references. */
-export function artifactIndexRefs(matrix, profiles) {
+/** Validate shard indexes before the verifier follows their references.
+ * @param {object} matrix
+ * @param {object} profiles
+ * @param {object|null} scenarios
+ */
+export function artifactIndexRefs(matrix, profiles, scenarios = null) {
   const problems = [];
   const files = [];
   const safe = (value) => typeof value === "string"
@@ -187,6 +191,16 @@ export function artifactIndexRefs(matrix, profiles) {
     const file = profile?.file;
     if (!profile?.name || !safe(file)) problems.push(`invalid profile shard reference ${String(file)}`);
     else files.push({ file, generation: profiles.generation, kind: "profile", name: profile.name });
+  }
+  if (scenarios !== null) {
+    if (!scenarios || typeof scenarios !== "object" || scenarios.schemaVersion !== 1 || !scenarios.generation) {
+      problems.push("scenario-index schema/generation missing");
+    }
+    for (const event of scenarios?.events || []) {
+      const file = event?.file;
+      if (!event?.name || !safe(file)) problems.push(`invalid scenario shard reference ${String(file)}`);
+      else files.push({ file, generation: scenarios.generation, kind: "scenario", name: event.name });
+    }
   }
   if (!files.some((ref) => ref.kind === "matrix")) problems.push("matrix-index has no shards");
   if (!files.some((ref) => ref.kind === "profile")) problems.push("profile-index has no shards");
@@ -238,8 +252,53 @@ export function coverageProblems(health, tour, tournaments) {
  */
 export function hasProfileContract(html) {
   return String(html || "").includes(
-    'data-profile-contract="fail-closed-links+single-radar+mobile-contained-v2"',
+    'data-profile-contract="fail-closed-links+single-radar+mobile-contained+expectation-v3"',
   );
+}
+
+/**
+ * The match-center route emits this marker only when eligible upcoming cards opt into the
+ * shared whole-card Playing Style drill-in. The live gate catches an old route bundle after
+ * deploy, while source/unit tests pin the rated-roster guard that keeps unavailable pairs plain.
+ * @param {string} html
+ */
+export function hasMatchCenterContract(html) {
+  return String(html || "").includes(
+    'data-match-center-contract="upcoming-style-links+forecast-history+watch+evidence-v3"',
+  );
+}
+
+/** Static route marker for the seven-group, explicitly non-causal model explanation. */
+export function hasPredictionExplanationContract(html) {
+  return String(html || "").includes(
+    'data-prediction-explanation-contract="grouped-evidence-not-causation-v2"',
+  );
+}
+
+/** Static route marker for the three-view exact bracket lab. */
+export function hasBracketLabContract(html) {
+  return String(html || "").includes(
+    'data-bracket-lab-contract="actual+forecast+scenario-exact-v1"',
+  );
+}
+
+/** Compact live-artifact arithmetic checks, complementary to the deep pre-upload gate. */
+export function performanceArtifactProblems(performance) {
+  if (!performance || typeof performance !== "object" || !Number.isInteger(performance.window)
+      || !Array.isArray(performance.players)) return ["performance.json malformed"];
+  const problems = [];
+  const names = new Set();
+  for (const row of performance.players) {
+    if (!row?.name || names.has(row.name)) problems.push(`duplicate/missing performance player ${row?.name}`);
+    names.add(row?.name);
+    if (!Number.isInteger(row?.n) || row.n < 0 || row.n > performance.window
+        || !Number.isInteger(row?.wins) || row.wins < 0 || row.wins > row.n
+        || typeof row?.expectedWins !== "number" || row.expectedWins < 0 || row.expectedWins > row.n
+        || typeof row?.delta !== "number" || Math.abs(row.delta - (row.wins - row.expectedWins)) > .002) {
+      problems.push(`inconsistent performance summary ${row?.name}`);
+    }
+  }
+  return problems;
 }
 
 /**

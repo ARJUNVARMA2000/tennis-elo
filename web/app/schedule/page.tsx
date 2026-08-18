@@ -121,12 +121,14 @@ export default function Schedule() {
                   {g.matches.map((m, i) => (
                     <Reveal key={`${m.playerA}-${m.playerB}-${i}`} delay={Math.min(gi * 0.02 + i * 0.01, 0.2)}>
                       <div>
-                        <CallCard
-                          tone="projection"
-                          {...upcomingCard(m)}
-                          matchup={hasMatchupProfiles(m, rated)}
-                          profileRoster={rated}
-                        />
+                        <div className="relative">
+                          <CallCard
+                            tone="projection"
+                            {...upcomingCard(m)}
+                            matchup={hasMatchupProfiles(m, rated)}
+                            profileRoster={rated}
+                          />
+                        </div>
                         <PredictionWhy match={m} />
                       </div>
                     </Reveal>

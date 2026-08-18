@@ -278,11 +278,10 @@ export type RadarAxis = {
 };
 
 const styleFmt = (v: number) => (v * 100).toFixed(0);
-const clutchFmt = (v: number) => (v >= 0 ? "+" : "") + (v * 100).toFixed(0);
 const eloFmt = (v: number) => String(Math.round(v));
 
 /**
- * The 13 radar axes in circle order: serve cluster → rally → return → surface skill.
+ * The 10 radar axes in circle order: serve cluster → rally → return → overall skill.
  * Style features come from profile.style; skill stats are top-level profile fields.
  */
 export const RADAR_AXES: RadarAxis[] = [
@@ -293,12 +292,9 @@ export const RADAR_AXES: RadarAxis[] = [
   { key: "style_net", label: "Net freq.", source: "style", fmt: styleFmt },
   { key: "style_fhbh", label: "Forehand bias", source: "style", fmt: styleFmt },
   { key: "style_aggression", label: "Aggression", source: "style", fmt: styleFmt },
-  { key: "style_bp_clutch", label: "BP clutch", source: "style", fmt: clutchFmt },
   { key: "returnPct", label: "Return %", source: "top", fmt: (v) => pct(v, 0) },
   { key: "style_return_depth", label: "Return depth", source: "style", fmt: styleFmt },
-  { key: "eloHard", label: "Hard Elo", source: "top", fmt: eloFmt },
-  { key: "eloClay", label: "Clay Elo", source: "top", fmt: eloFmt },
-  { key: "eloGrass", label: "Grass Elo", source: "top", fmt: eloFmt },
+  { key: "elo", label: "Overall Elo", source: "top", fmt: eloFmt },
 ];
 
 /** Row shape the explorer reads from players.json. The enrichment fields

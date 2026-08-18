@@ -92,6 +92,13 @@ def _read_lower(tour: str) -> pd.DataFrame:
         if f.endswith("_atp_quali.csv"):
             df["draw_level"] = "qual"
             df["tourney_level"] = "Q"
+        elif f.endswith("_wta_lower.csv"):
+            # The first-party WTA file intentionally mixes WTA 125 main draws and
+            # tour/125 qualifying.  Its content-level stamp is authoritative; never
+            # flatten the latter into ``chall`` merely because they share a file.
+            stamped = df.get("draw_level", pd.Series(pd.NA, index=df.index))
+            df["draw_level"] = stamped.where(stamped.isin(("chall", "qual")), "chall")
+            df.loc[df["draw_level"].eq("qual"), "tourney_level"] = "Q"
         else:
             df["draw_level"] = "chall"
         frames.append(df)
@@ -309,11 +316,17 @@ def merge_sources(tour: str) -> pd.DataFrame:
     hist["__src"], stats["__src"], fresh["__src"], live["__src"] = 0, 1, 2, 3
     frames = [hist, stats, fresh, live]
     from .. import config as _cfg
-    if _cfg.INCLUDE_CHALLENGERS:               # read at call time (patchable A/Bs)
-        low = _read_lower(tour)
-        if len(low):
-            low["__src"] = 4
-            frames.append(low)
+    include_lower = ((_cfg.INCLUDE_CHALLENGERS and tour == "atp")
+                     or (_cfg.INCLUDE_WTA_LOWER_STATE and tour == "wta"))
+    # Always read lower files as population CLASSIFICATION evidence.  A higher-priority
+    # archive copy of the same match may be stamped as main; if the lower copy is omitted
+    # entirely when the state flag is off, that mislabeled survivor leaks into the baseline
+    # combiner/eval set.  Unique lower rows are filtered after dedup unless include_lower is
+    # enabled, so evidence does not imply state admission.
+    low = _read_lower(tour)
+    if len(low):
+        low["__src"] = 4
+        frames.append(low)
     df = pd.concat(frames, ignore_index=True)
     df = _stamp_draw_level(df)
     df["date"] = _parse_dates(df["tourney_date"])
@@ -363,6 +376,16 @@ def merge_sources(tour: str) -> pd.DataFrame:
     by_group = round_key.groupby(base_key).transform(_only_round)
     round_key = round_key.mask(round_key.eq("") & by_group.ne(""), by_group)
     df["__key"] = base_key + "|" + round_key
+    # Content-level lower provenance must survive source-preference deduplication.  The
+    # lower overlay loses to the historical/stats copy by design, but its role/tier is a
+    # fact about the match population rather than a source-quality field.
+    role_rank = df["draw_level"].map({"main": 0, "chall": 1, "qual": 2}).fillna(0)
+    group_role = role_rank.groupby(df["__key"]).transform("max").map(
+        {0: "main", 1: "chall", 2: "qual"})
+    lower_tier = df["tourney_level"].where(df["draw_level"].ne("main"))
+    lower_tier = lower_tier.groupby(df["__key"]).transform("first")
+    df["draw_level"] = group_role
+    df["tourney_level"] = df["tourney_level"].where(group_role.eq("main"), lower_tier)
     # prefer rows that have stats, then the earlier (cleaner) source
     df = _fill_espn_id(df, df["__key"])
     df = df.assign(__hs=has_stats.astype(int)).sort_values(["__hs", "__src"], ascending=[False, True])
@@ -400,6 +423,8 @@ def merge_sources(tour: str) -> pd.DataFrame:
     }
     df = df.loc[~excluded].drop(
         columns=["__hs", "__key", "__src", "__policy_excluded"], errors="ignore")
+    if not include_lower:
+        df = df[df["draw_level"].eq("main")]
     df.attrs.update(policy_audit)
     return df
 

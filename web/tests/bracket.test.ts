@@ -124,6 +124,11 @@ describe("event + reach resolution", () => {
     expect(resolveEventIndex(events, null)).toBe(0);
   });
 
+  it("prefers stable provider identity for shareable event URLs", () => {
+    const identified = [mkEvent(32, "Sponsor Title", { espnId: "401234" })];
+    expect(resolveEventIndex(identified, "401234")).toBe(0);
+  });
+
   it("joins reach odds + title contenders from tournaments.json by name", () => {
     const tournaments: TournamentLite[] = [{
       name: "Wimbledon",

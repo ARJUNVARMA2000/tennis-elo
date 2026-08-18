@@ -58,7 +58,7 @@ const PAGE_META: Record<string, { title: string; description: string }> = {
   },
   style: {
     title: "Playing Style",
-    description: "13-axis style radar — eight Match Charting style dimensions plus serve/return and surface-Elo percentiles — compare any two players.",
+    description: "10-axis style radar — seven Match Charting style dimensions plus serve, return, and overall Elo percentiles — compare any two players.",
   },
   strength: {
     title: "Strength Map",

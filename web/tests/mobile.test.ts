@@ -83,7 +83,7 @@ describe("mobile browser shell", () => {
 
     expect(player).toContain('className="mt-6 grid min-w-0 gap-5 lg:grid-cols-3"');
     expect(player).toContain("flex min-w-0 flex-col gap-4 sm:flex-row");
-    expect(player.match(/className="panel min-w-0/g)).toHaveLength(5);
-    expect(player).toContain("single-radar+mobile-contained-v2");
+    expect(player.match(/className="panel min-w-0/g)).toHaveLength(7);
+    expect(player).toContain("single-radar+mobile-contained+expectation-v3");
   });
 });

@@ -15,6 +15,10 @@ import {
   sitemapCoverageProblems,
   coverageProblems,
   hasProfileContract,
+  hasMatchCenterContract,
+  hasPredictionExplanationContract,
+  hasBracketLabContract,
+  performanceArtifactProblems,
   scrollShellProblems,
   canonicalRouteProblems,
   fetchWithRetry,
@@ -32,6 +36,16 @@ describe("artifactIndexRefs", () => {
     expect(result.files.map((ref: { file: string }) => ref.file)).toEqual([
       "matrix-hard-bo3.json", "profile-a1.json",
     ]);
+  });
+
+  it("includes safe event scenario shards at the same generation", () => {
+    const result = artifactIndexRefs(
+      { generation: "g", surfaces: { Hard: { 3: "matrix-hard-bo3.json" } } },
+      { generation: "g", profiles: [{ name: "A", file: "profile-a1.json" }] },
+      { schemaVersion: 1, generation: "g", events: [{ name: "Open", file: "scenario-open.json" }] },
+    );
+    expect(result.problems).toEqual([]);
+    expect(result.files.at(-1)).toMatchObject({ kind: "scenario", file: "scenario-open.json" });
   });
 
   it("rejects unsafe, duplicate, and empty index references", () => {
@@ -354,12 +368,49 @@ describe("coverageProblems", () => {
 describe("hasProfileContract", () => {
   it("requires the deployed player page to advertise fail-closed links and a mobile-contained dossier", () => {
     expect(hasProfileContract(
-      `<main><div data-profile-contract="fail-closed-links+single-radar+mobile-contained-v2"></div></main>`,
+      `<main><div data-profile-contract="fail-closed-links+single-radar+mobile-contained+expectation-v3"></div></main>`,
     )).toBe(true);
     expect(hasProfileContract(`<main><div class="profiles"></div></main>`)).toBe(false);
     expect(hasProfileContract(
       `<div data-profile-contract="fail-closed-links+single-radar-v1"></div>`,
     )).toBe(false);
+  });
+});
+
+describe("hasMatchCenterContract", () => {
+  it("requires the deployed match center to advertise upcoming Playing Style drill-ins", () => {
+    expect(hasMatchCenterContract(
+      `<main><div data-match-center-contract="upcoming-style-links+forecast-history+watch+evidence-v3"></div></main>`,
+    )).toBe(true);
+    expect(hasMatchCenterContract(`<main><div class="matches"></div></main>`)).toBe(false);
+    expect(hasMatchCenterContract(
+      `<div data-match-center-contract="match-tabs-v1"></div>`,
+    )).toBe(false);
+  });
+
+  it("pins the grouped, non-causal prediction-evidence route", () => {
+    expect(hasPredictionExplanationContract(
+      `<div data-prediction-explanation-contract="grouped-evidence-not-causation-v2"></div>`,
+    )).toBe(true);
+    expect(hasPredictionExplanationContract(`<div data-model-evidence="legacy"></div>`)).toBe(false);
+  });
+});
+
+describe("new forecast surface contracts", () => {
+  it("pins the exact three-view bracket lab", () => {
+    expect(hasBracketLabContract(
+      `<div data-bracket-lab-contract="actual+forecast+scenario-exact-v1"></div>`,
+    )).toBe(true);
+    expect(hasBracketLabContract(`<div data-bracket-lab-contract="actual-v1"></div>`)).toBe(false);
+  });
+
+  it("validates compact performance arithmetic", () => {
+    expect(performanceArtifactProblems({ window: 10, players: [
+      { name: "A", n: 2, wins: 1, expectedWins: 1.2, delta: -0.2 },
+    ] })).toEqual([]);
+    expect(performanceArtifactProblems({ window: 10, players: [
+      { name: "A", n: 2, wins: 1, expectedWins: 1.2, delta: 0.8 },
+    ] }).join(" ")).toContain("inconsistent performance summary");
   });
 });
 

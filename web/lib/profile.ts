@@ -3,6 +3,8 @@ import { percentileScaler, RADAR_AXES, type RadarAxis } from "@/lib/ui";
 /** The subset of profiles.json consumed by both the comparison and dossier radars. */
 export type RadarProfile = {
   name: string;
+  /** Optional because cached profile indexes created before the 10-axis radar omit it. */
+  elo?: number | null;
   servePct: number;
   returnPct: number;
   eloHard: number;
@@ -14,6 +16,31 @@ export type RadarProfile = {
 export type ProfileSummary = RadarProfile & {
   file: string;
   eloRank?: number;
+  performance?: PerformanceSummary | null;
+};
+
+export type PerformanceSummary = {
+  n: number;
+  wins: number;
+  expectedWins: number;
+  delta: number;
+};
+
+export type PerformanceDecision = {
+  matchId: string;
+  date: string;
+  event: string;
+  round: string;
+  surface: string;
+  opponent: string;
+  p: number;
+  won: boolean;
+  residual: number;
+};
+
+export type PlayerPerformance = PerformanceSummary & {
+  name: string;
+  recent: PerformanceDecision[];
 };
 
 export type ProfileIndex = {
@@ -27,9 +54,24 @@ export type ProfileDetail = {
   history: [string, number][];
   recent: { date: string; opp: string; surface: string; won: boolean; score: string; event: string }[];
   h2h: { opp: string; w: number; l: number }[];
+  performance?: PlayerPerformance | null;
 };
 
 export type RadarScaler = (value: number) => number;
+
+/** Add the current overall rating from players.json to cached profile summaries.
+    The roster is the rollout-safe source because web-only deploys can reuse an older
+    profile-index.json that contains only surface Elo fields. */
+export function withOverallElo(
+  profiles: RadarProfile[],
+  players: { name: string; elo?: number | null }[],
+): RadarProfile[] {
+  const ratings = new Map(players.map((player) => [player.name, player.elo]));
+  return profiles.map((profile) => {
+    const elo = ratings.get(profile.name);
+    return typeof elo === "number" && Number.isFinite(elo) ? { ...profile, elo } : profile;
+  });
+}
 
 export function readRadarValue(profile: RadarProfile, axis: RadarAxis): number | null {
   const value = axis.source === "style"

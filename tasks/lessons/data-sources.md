@@ -218,3 +218,12 @@ Indexed in [`../lessons.md`](../lessons.md).
   must remain separate for the output gate or a human to resolve. Carry that stable id into the
   completed fixture too, and make the pre-deploy gate independently compare its player pair and
   round with the shipped bracket; auto-repair without an independent check is still guessing.
+
+- **Source preference decides payload quality, not match-population truth.** (2026-08-17, WTA
+  lower-state backfill) A historical copy of a WTA 125 match outranked the new first-party lower
+  copy and survived dedup with a generic main-tour tier; simply enabling the lower file therefore
+  discarded the correct `draw_level` and left the match in the baseline combiner population.
+  **How to apply:** always read lower files as classification evidence, propagate their role/tier
+  across the exact dedup group before choosing a source survivor, and only then filter lower rows
+  when state admission is off. Enabling state may add rows; it must never change which rows the two
+  arms call main draw.

@@ -7,6 +7,7 @@ import { setSearchParam } from "@/lib/url";
 import { PageHead, Loading, Reveal, SurfacePill } from "@/components/bits";
 import Dropdown, { type DropdownOption } from "@/components/Dropdown";
 import BracketTree from "@/components/BracketTree";
+import ForecastBracket from "@/components/ForecastBracket";
 import { tournamentTier, heat } from "@/lib/ui";
 import {
   type BracketEvent,
@@ -17,13 +18,19 @@ import {
   sectionLabels,
   titleContenders,
 } from "@/lib/bracket";
+import {
+  type ScenarioArtifact,
+  decodeScenario,
+  encodeScenario,
+  exactScenario,
+} from "@/lib/scenario";
 
 type PlayerRow = { name: string };
 
 export default function Bracket() {
   const { tour } = useTour();
   return (
-    <div className="pb-16">
+    <div className="pb-16" data-bracket-lab-contract="actual+forecast+scenario-exact-v1">
       <PageHead
         eyebrow={`${tour.toUpperCase()} · draws`}
         title="Brackets"
@@ -52,6 +59,22 @@ function BracketInner() {
   const idx = resolveEventIndex(events, eParam);
   const ev = events[idx];
   const [section, setSection] = useState(0);
+  const [copied, setCopied] = useState(false);
+  const scenarioFile = ev?.scenario?.file ?? ev?.scenarioFile ?? "";
+  const scenarioState = useData<ScenarioArtifact>(scenarioFile);
+  const requestedMode = sp.get("mode");
+  const mode = requestedMode === "forecast" || requestedMode === "scenario" ? requestedMode : "actual";
+  const forced = useMemo(() => decodeScenario(sp.get("p")), [sp]);
+  const scenarioResult = useMemo(() => {
+    const artifact = scenarioState.data;
+    if (!artifact) return null;
+    return mode === "scenario"
+      ? exactScenario(
+        artifact.rounds, artifact.players, artifact.matrices.combiner, forced,
+        artifact.event.espnId,
+      )
+      : artifact.base;
+  }, [scenarioState.data, mode, forced]);
 
   useEffect(() => {
     setSection(0);
@@ -60,7 +83,8 @@ function BracketInner() {
   // A stale ?e= (event dropped from the feed after a refresh) is stripped so the URL stays
   // shareable and the page falls back to the first (most relevant) event.
   useEffect(() => {
-    if (eParam && events.length && !events.some((e) => e.name.toLowerCase() === eParam.toLowerCase())) {
+    if (eParam && events.length && !events.some((e) => String(e.espnId ?? "") === eParam
+      || e.name.toLowerCase() === eParam.toLowerCase())) {
       router.replace(`${pathname}${setSearchParam(window.location.search, "e", null)}`, { scroll: false });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -69,14 +93,30 @@ function BracketInner() {
   const options: DropdownOption[] = useMemo(
     () =>
       events.map((e) => ({
-        value: e.name,
+        value: String(e.espnId || e.name),
         label: e.name,
         sublabel: `${tournamentTier(e.level, e.name).short} · ${e.status}`,
       })),
     [events],
   );
-  const pick = (name: string) =>
-    router.replace(`${pathname}${setSearchParam(window.location.search, "e", name)}`, { scroll: false });
+  const replaceParams = (changes: Record<string, string | null>) => {
+    let search = window.location.search;
+    for (const [key, value] of Object.entries(changes)) search = setSearchParam(search, key, value);
+    router.replace(`${pathname}${search}`, { scroll: false });
+  };
+  const pick = (eventKey: string) => replaceParams({ e: eventKey, mode: null, p: null });
+  const setMode = (next: "actual" | "forecast" | "scenario") =>
+    replaceParams({ mode: next === "actual" ? null : next, p: next === "scenario" ? sp.get("p") : null });
+  const setForced = (key: string, name: string | null) => {
+    const next = { ...forced };
+    delete next[key];
+    if (name) next[key] = name;
+    replaceParams({ mode: "scenario", p: encodeScenario(next) });
+  };
+  const undoForced = () => {
+    const latest = Object.keys(forced).at(-1);
+    if (latest) setForced(latest, null);
+  };
 
   if (loading) return <Loading variant="forecast" />;
   if (error || !data)
@@ -93,6 +133,8 @@ function BracketInner() {
   const contenders = titleContenders(tournaments ?? null, ev.name);
   const labels = sectionLabels(ev.bracketSize);
   const tier = tournamentTier(ev.level, ev.name);
+  const canForecast = !!scenarioFile;
+  const eventKey = String(ev.espnId || ev.name);
 
   return (
     <>
@@ -100,7 +142,7 @@ function BracketInner() {
         <div className="mt-8 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
           <div>
             <div className="eyebrow mb-2">Tournament</div>
-            <Dropdown searchable label="Tournament" value={ev.name} onChange={pick} options={options} />
+            <Dropdown searchable label="Tournament" value={eventKey} onChange={pick} options={options} />
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <SurfacePill s={ev.surface} />
@@ -140,7 +182,52 @@ function BracketInner() {
         </div>
       </Reveal>
 
-      {sectionCount(ev.bracketSize) > 1 && (
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Bracket view">
+          {([[
+            "actual", "Actual draw",
+          ], ["forecast", "Forecast path"], ["scenario", "Scenario"]] as const).map(([value, label]) => (
+            <button
+              key={value}
+              onClick={() => setMode(value)}
+              disabled={value !== "actual" && !canForecast}
+              aria-pressed={mode === value}
+              className="chip transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+              style={mode === value ? { background: "var(--color-accent)", color: "var(--color-on-accent)", borderColor: "var(--color-accent)" } : undefined}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {mode === "scenario" && canForecast && (
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={undoForced}
+              disabled={!Object.keys(forced).length}
+              className="mono text-[10px] uppercase text-[var(--color-muted)] hover:underline disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Undo latest
+            </button>
+            <button onClick={() => replaceParams({ p: null })} className="mono text-[10px] uppercase text-[var(--color-muted)] hover:underline">
+              Reset
+            </button>
+            <button
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(window.location.href);
+                  setCopied(true);
+                  window.setTimeout(() => setCopied(false), 1600);
+                } catch { setCopied(false); }
+              }}
+              className="chip"
+            >
+              {copied ? "Copied" : "Share scenario"}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {mode === "actual" && sectionCount(ev.bracketSize) > 1 && (
         <div className="mt-4 flex flex-wrap gap-1.5">
           {labels.map((lab, i) => (
             <button
@@ -163,14 +250,36 @@ function BracketInner() {
       <Reveal delay={0.1}>
         <div className="panel mt-4 p-2 sm:p-3">
           <div className="panel-inset overflow-hidden p-1 sm:p-2">
-            <BracketTree ev={ev} section={section} tour={tour} roster={roster} />
+            {mode === "actual" ? (
+              <BracketTree ev={ev} section={section} tour={tour} roster={roster} />
+            ) : scenarioState.loading ? (
+              <Loading variant="forecast" />
+            ) : scenarioState.error || !scenarioState.data || !scenarioResult ? (
+              <div className="mono p-6 text-xs text-[var(--color-faint)]">
+                Forecast-path data is unavailable for this settled or unresolved draw.
+              </div>
+            ) : (
+              <ForecastBracket
+                artifact={scenarioState.data}
+                result={scenarioResult}
+                interactive={mode === "scenario"}
+                forced={forced}
+                onPick={setForced}
+                tour={tour}
+              />
+            )}
           </div>
         </div>
       </Reveal>
 
       <div className="mono mt-3 text-[10px] leading-relaxed text-[var(--color-faint)]">
-        Win % is P(top player). Completed matches show the forecast logged before play;
-        &quot;retro&quot; marks a retrospective estimate. Byes and unreleased qualifiers are unpriced.
+        {mode === "actual" ? (
+          <>Win % is P(top player). Completed matches show the forecast logged before play;
+          &quot;retro&quot; marks a retrospective estimate. Byes and unreleased qualifiers are unpriced.</>
+        ) : (
+          <>Reach and title odds are exact conditional probabilities through the ordered draw.
+          Confirmed results stay fixed; scenario picks describe what-if paths and never enter model evaluation.</>
+        )}
         {ev.drawSourceUrl && (
           <>
             {" · "}

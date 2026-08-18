@@ -32,7 +32,7 @@ def _with_dirs(fn):
     lower files pre-written (same redirection pattern as test_names_merge)."""
     orig = (results.historical_dir, results.stats_dir, results.fresh_dir,
             results.live_dir, results.lower_dir)
-    orig_flag = config.INCLUDE_CHALLENGERS
+    orig_flags = (config.INCLUDE_CHALLENGERS, config.INCLUDE_WTA_LOWER_STATE)
     try:
         with tempfile.TemporaryDirectory() as d:
             base = Path(d)
@@ -64,7 +64,7 @@ def _with_dirs(fn):
     finally:
         (results.historical_dir, results.stats_dir, results.fresh_dir,
          results.live_dir, results.lower_dir) = orig
-        config.INCLUDE_CHALLENGERS = orig_flag
+        config.INCLUDE_CHALLENGERS, config.INCLUDE_WTA_LOWER_STATE = orig_flags
 
 
 def test_gate_off_excludes_lower_rows():
@@ -167,6 +167,55 @@ def test_draw_level_derives_from_content_not_the_directory():
     bare = results._stamp_draw_level(pd.DataFrame({"winner_name": ["A", "B"]}))
     assert list(bare["draw_level"]) == ["main", "main"]
     print("ok test_draw_level_derives_from_content_not_the_directory")
+
+
+def test_atp_lower_flag_cannot_accidentally_enable_wta_state_rows():
+    """WTA lower files now exist even before adoption. The already-true ATP A5 flag
+    must not make those rows enter WTA state through a shared generic condition."""
+    def check(base: Path):
+        for path in (base / "lower").glob("*.csv"):
+            path.unlink()
+        _write_csv(base / "lower" / "2025_wta_lower.csv",
+            _HDR_FULL.replace("score,w_svpt", "score,draw_level,w_svpt")
+            + "2025-W99,Lower Open,20250101,A Lower,B Lower,Q1,Q,6-4 6-4,qual,60,55\n")
+        config.INCLUDE_CHALLENGERS = True
+        config.INCLUDE_WTA_LOWER_STATE = False
+        off = results.merge_sources("wta")
+        assert "A Lower" not in set(off["winner_name"])
+
+        config.INCLUDE_WTA_LOWER_STATE = True
+        on = results.merge_sources("wta")
+        lower = on[on["winner_name"] == "A Lower"].iloc[0]
+        assert lower["draw_level"] == "qual" and lower["tourney_level"] == "Q"
+    _with_dirs(check)
+
+
+def test_lower_role_evidence_reclassifies_higher_priority_archive_duplicate():
+    """A historical copy can outrank the new lower source while carrying a generic
+    main-tour level.  The lower population fact must survive dedup in the state arm,
+    and the same match must be absent—not scored as main—in the baseline arm."""
+    def check(base: Path):
+        for dirname in ("historical", "stats", "fresh", "live", "lower"):
+            for path in (base / dirname).glob("*.csv"):
+                path.unlink()
+        _write_csv(base / "historical" / "2025.csv",
+            _HDR_FULL
+            + "2025-W99,Lower Open,20250101,A Lower,B Lower,R32,A,6-4 6-4,60,55\n")
+        _write_csv(base / "lower" / "2025_wta_lower.csv",
+            _HDR_FULL.replace("score,w_svpt", "score,draw_level,w_svpt")
+            + "2025-W99,Lower Open,20250101,A Lower,B Lower,R32,WTA125,6-4 6-4,chall,60,55\n")
+
+        config.INCLUDE_WTA_LOWER_STATE = False
+        off = results.merge_sources("wta")
+        assert off.empty, off[["winner_name", "draw_level", "tourney_level"]]
+
+        config.INCLUDE_WTA_LOWER_STATE = True
+        on = results.merge_sources("wta")
+        assert len(on) == 1
+        row = on.iloc[0]
+        assert row["draw_level"] == "chall" and row["tourney_level"] == "WTA125"
+
+    _with_dirs(check)
 
 
 def test_download_lower_writes_basenames():

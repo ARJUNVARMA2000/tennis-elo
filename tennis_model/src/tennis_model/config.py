@@ -106,6 +106,14 @@ INCLUDE_CHALLENGERS = True
 # covers the 2010-19 tune window, so a 125 experiment is gate-untestable — same
 # regime problem the original A5 had).
 INCLUDE_WTA_125 = False
+# First-party WTA qualifying/125 rows are acquired into a separate lower-tier overlay,
+# but remain OUT of production rating state until the state-only walk-forward arbiter
+# passes.  This is deliberately independent of INCLUDE_WTA_125: that older flag owns
+# ESPN event/result population policy, not research-data admission.
+INCLUDE_WTA_LOWER_STATE = False
+# Earliest season for which the first-party WTA lower source produced usable state
+# rows.  The A/B harness requires bit-identical predictions before this boundary.
+WTA_LOWER_STATE_FIRST_YEAR = 2016
 # Increment only when an intentional ingestion-policy change makes meta.matches
 # incomparable with the prior deploy. Health requires this exact value and resets its
 # run-over-run monotonic baseline only across a version boundary; the following run is
@@ -125,7 +133,7 @@ def stats_dir(tour: str) -> Path:
 
 
 def lower_dir(tour: str) -> Path:
-    return RAW_DIR / tour / "lower"     # challenger + qualifying overlay (A5, gated)
+    return RAW_DIR / tour / "lower"     # ATP challenger/quali or WTA 125/quali (state-gated)
 
 
 FIRST_YEAR = 1980          # Elo warm-up era; serve stats begin ~1991

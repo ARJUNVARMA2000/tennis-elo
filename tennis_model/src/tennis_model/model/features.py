@@ -33,10 +33,14 @@ class H2HState:
     """Final context store (head-to-head, surface H2H, recent form) for inference."""
 
     def __init__(self, h2h: dict, h2h_surface: dict | None = None,
-                 last10: dict | None = None):
+                 last10: dict | None = None, recent_work: dict | None = None):
         self._h2h = h2h
         self._h2h_surface = h2h_surface or {}
         self._last10 = last10 or {}
+        # player -> [(match_date, games_played)].  Stored in the predictor pickle so a
+        # scheduled inference can mirror the walk-time fatigue window instead of forcing
+        # every live matchup to a neutral zero.
+        self._recent_work = recent_work or {}
 
     def record(self, a: str, b: str) -> tuple[int, int]:
         """(a_wins, b_wins) between a and b."""
@@ -61,6 +65,17 @@ class H2HState:
         The deque's length is the tour's tuned winrate_window (23 on WTA), so
         display consumers wanting an honest "last 10" must slice [-10:] themselves."""
         return list(getattr(self, "_last10", {}).get(name) or [])
+
+    def workload(self, name: str, as_of, window_days: float) -> float:
+        """Games played strictly before ``as_of`` inside the tuned fatigue window."""
+        when = np.datetime64(pd.Timestamp(as_of).to_datetime64())
+        total = 0.0
+        for date, games in getattr(self, "_recent_work", {}).get(name, ()):
+            day = np.datetime64(pd.Timestamp(date).to_datetime64())
+            age = float((when - day) / _DAY)
+            if 0.0 <= age <= float(window_days):
+                total += float(games)
+        return total
 
 # MCP tactical-style diffs (anti-symmetric); 0 when a player lacks a charted profile.
 STYLE_DIFFS = [s + "_diff" for s in STYLE_FEATURES]
@@ -187,27 +202,34 @@ def run_context(df: pd.DataFrame,
         rec[idx] += 1
         rec_s[idx] += 1
 
-    return H2HState(dict(h2h), dict(h2h_s), dict(last10)), pd.DataFrame(out, index=df.index)
+    return H2HState(
+        dict(h2h), dict(h2h_s), dict(last10),
+        {name: list(matches) for name, matches in recent.items()},
+    ), pd.DataFrame(out, index=df.index)
 
 
-def _run_all(df: pd.DataFrame):
+def _run_all(df: pd.DataFrame, state_only_lower: bool = False):
     """Run the three chronological passes and assemble features; keep the states."""
     from ..points.serve_return import sr_params_for
     from ..ratings.elo import params_for
     tour = str(df["tour"].iloc[0]) if "tour" in df and len(df) else "atp"
     fp = feat_params_for(tour)
     elo_state, elo = run_elo(df, params=params_for(tour))
-    srv_state, srv = run_serve_return(df, params=sr_params_for(tour))
+    serve_baseline = (df[df["draw_level"].eq("main")]
+                      if state_only_lower and "draw_level" in df else None)
+    srv_state, srv = run_serve_return(
+        df, params=sr_params_for(tour), baseline_df=serve_baseline)
     ctx_state, ctx = run_context(df, params=fp)
     d = df.join(elo).join(srv).join(ctx)
     return _assemble(d, params=fp), elo_state, srv_state, ctx_state
 
 
-def build_feature_frame(df: pd.DataFrame | None = None, tour: str = "atp") -> pd.DataFrame:
+def build_feature_frame(df: pd.DataFrame | None = None, tour: str = "atp",
+                        state_only_lower: bool = False) -> pd.DataFrame:
     """Run all passes and produce the winner-oriented feature frame (+ id columns)."""
     if df is None:
         df = load_matches(tour)
-    return _run_all(df)[0]
+    return _run_all(df, state_only_lower=state_only_lower)[0]
 
 
 def main_rows(feat: pd.DataFrame) -> pd.DataFrame:
@@ -347,6 +369,11 @@ def _assemble(d: pd.DataFrame,
     f["p_point"] = d["p_point"]
     f["winner_name"] = d["winner_name"]
     f["loser_name"] = d["loser_name"]
+    # Audit-only population metadata.  These are deliberately not in FEATURES:
+    # they let the data arbiter report lower-ranked/Kalshi slices without giving
+    # the combiner a new signal or changing the paired prediction population.
+    f["winner_rank"] = pd.to_numeric(d.get("winner_rank"), errors="coerce")
+    f["loser_rank"] = pd.to_numeric(d.get("loser_rank"), errors="coerce")
     # main/qual/chall marker (A5): lower-tier rows feed the walks but are excluded
     # from the arbiter's scored eval set, which must be identical across arms
     f["draw_level"] = d.get("draw_level", "main")

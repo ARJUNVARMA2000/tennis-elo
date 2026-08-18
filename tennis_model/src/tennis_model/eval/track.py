@@ -52,6 +52,8 @@ from .metrics import EPS, calibration_table, score
 FORECAST_DIR = DATA_DIR / "forecast_log"
 JOIN_WINDOW_DAYS = 21          # max gap between forecast and the result it grades
 RECENT_N = 60                  # graded decisions surfaced for the UI table
+PERFORMANCE_N = 10             # genuine first-sighting decisions in a player's scorecard
+MATCH_ID_VERSION = "v2"
 
 
 # ---------------------------------------------------------------------------
@@ -69,18 +71,234 @@ def _season(*candidates) -> int:
     return datetime.now(UTC).year
 
 
-def _match_key(r: dict) -> str:
+def _clean_id(value: object) -> str | None:
+    """Normalize registry IDs without turning pandas' missing values into real IDs."""
+    if value is None or pd.isna(value):
+        return None
+    value = str(value).strip()
+    return value if value and value.lower() not in {"nan", "none", "null"} else None
+
+
+def match_identity(r: dict) -> str:
+    """Versioned, orientation-safe identity shared by forecast-log consumers.
+
+    ESPN's event registry ID is the event key whenever it exists. The normalized display
+    name is only a legacy fallback for old/non-ESPN schedules; it must never displace a
+    real ID because sponsor titles can change while an event is live.
+    """
     a, b = sorted((nkey(r["playerA"]), nkey(r["playerB"])))
-    return f"{a}|{b}|{_norm_event(r.get('event'))}|{r.get('round')}|{r.get('season')}"
+    event_id = _clean_id(r.get("espnId", r.get("espn_id")))
+    event = f"espn:{event_id}" if event_id else f"legacy:{_norm_event(r.get('event'))}"
+    season = _season(r.get("season"), r.get("date"), r.get("as_of"))
+    rnd = re.sub(r"[^A-Z0-9]", "", str(r.get("round") or "").upper()) or "?"
+    return f"{MATCH_ID_VERSION}|{event}|{season}|{rnd}|{a}|{b}"
+
+
+def _match_key(r: dict) -> str:
+    """Read an explicit ID when present; derive it for legacy append-only records."""
+    return str(r.get("match_id") or match_identity(r))
+
+
+def _bridge_evidence_key(r: dict) -> tuple[str, str, int, str]:
+    """Non-name evidence used only to migrate pre-ID append-only records.
+
+    Event display names are deliberately absent. A bridge needs the same real players,
+    season, and round, then a unique nearby ESPN event ID before it is accepted.
+    """
+    a, b = sorted((nkey(r.get("playerA")), nkey(r.get("playerB"))))
+    season = _season(r.get("season"), r.get("date"), r.get("as_of"))
+    rnd = re.sub(r"[^A-Z0-9]", "", str(r.get("round") or "").upper()) or "?"
+    return a, b, season, rnd
+
+
+def _legacy_match_bridges(records: list[dict]) -> dict[str, str]:
+    """Map an unambiguous pre-v2 match key to its later registry-backed identity.
+
+    The old log predates ``espnId``. We retain its immutable first forecast only when
+    exactly one legacy first-sighting and one distinct explicit event ID share the
+    player/season/round evidence inside the grading window. Ambiguity fails closed.
+    """
+    legacy: dict[tuple[str, str, int, str], list[dict]] = defaultdict(list)
+    explicit: dict[tuple[str, str, int, str], list[dict]] = defaultdict(list)
+    for rec in records:
+        if rec.get("type") not in ("match", "match_snapshot"):
+            continue
+        evidence = _bridge_evidence_key(rec)
+        event_id = _clean_id(rec.get("espnId", rec.get("espn_id")))
+        if event_id:
+            explicit[evidence].append(rec)
+        elif rec.get("type") == "match" and not rec.get("match_id"):
+            legacy[evidence].append(rec)
+
+    bridges: dict[str, str] = {}
+    for evidence, old_matches in legacy.items():
+        candidates = explicit.get(evidence) or []
+        event_ids = {
+            _clean_id(r.get("espnId", r.get("espn_id"))) for r in candidates
+        } - {None}
+        if len(old_matches) != 1 or len(event_ids) != 1:
+            continue
+        old = old_matches[0]
+        try:
+            old_time = pd.Timestamp(old.get("as_of"))
+            candidate_times = [pd.Timestamp(r.get("as_of")) for r in candidates]
+            if old_time.tzinfo is not None:
+                old_time = old_time.tz_convert(None)
+            candidate_times = [
+                t.tz_convert(None) if t.tzinfo is not None else t for t in candidate_times
+            ]
+            delta_days = (min(candidate_times) - old_time).total_seconds() / 86400
+        except (TypeError, ValueError):
+            continue
+        if not 0 <= delta_days <= JOIN_WINDOW_DAYS:
+            continue
+        explicit_id = match_identity(candidates[0])
+        bridges[_match_key(old)] = explicit_id
+    return bridges
+
+
+def _effective_match_id(r: dict, bridges: dict[str, str]) -> str:
+    return bridges.get(_match_key(r), _match_key(r))
+
+
+def _event_id_from_match_id(match_id: str) -> str | None:
+    prefix = f"{MATCH_ID_VERSION}|espn:"
+    if not match_id.startswith(prefix):
+        return None
+    return match_id[len(prefix):].split("|", 1)[0] or None
 
 
 def _tourn_key(r: dict) -> str:
     return f"{_norm_event(r.get('event'))}|{r.get('season')}|{str(r.get('as_of'))[:10]}"
 
 
-def _snapshot_key(r: dict) -> str:
+def _snapshot_key(r: dict, bridges: dict[str, str] | None = None) -> str:
     """One snapshot per matchup per UTC hour, even when a job is retried."""
-    return f"{_match_key(r)}|{str(r.get('as_of'))[:13]}"
+    match_id = _effective_match_id(r, bridges or {})
+    return f"{match_id}|{str(r.get('as_of'))[:13]}"
+
+
+def _oriented_probability(rec: dict, player_a: object) -> float | None:
+    """P(player_a wins) regardless of the orientation used by a stored record."""
+    try:
+        p = float(rec["p"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    key = nkey(player_a)
+    if key == nkey(rec.get("playerA")):
+        return p
+    if key == nkey(rec.get("playerB")):
+        return 1.0 - p
+    return None
+
+
+def _oriented_components(rec: dict, player_a: object) -> dict | None:
+    components = rec.get("components")
+    if not isinstance(components, dict):
+        return None
+    flip = nkey(player_a) == nkey(rec.get("playerB"))
+    out = {}
+    for name, value in components.items():
+        if isinstance(value, (int, float)) and np.isfinite(value):
+            out[name] = round(1.0 - float(value) if flip else float(value), 4)
+    return out or None
+
+
+def _oriented_evidence(rec: dict, player_a: object) -> dict | None:
+    """Return recorded evidence with its signed sensitivities oriented to ``player_a``."""
+    evidence = rec.get("evidence")
+    if not isinstance(evidence, dict):
+        return None
+    # JSON round-trip is an inexpensive defensive copy for this compact payload and keeps
+    # the append-only record immutable while a reversed feed orientation is normalized.
+    out = json.loads(json.dumps(evidence))
+    if nkey(player_a) != nkey(rec.get("playerB")):
+        return out
+    out["playerA"], out["playerB"] = out.get("playerB"), out.get("playerA")
+    if isinstance(out.get("probabilityA"), (int, float)):
+        out["probabilityA"] = round(1.0 - float(out["probabilityA"]), 4)
+    for signal in out.get("signals") or []:
+        if isinstance(signal.get("impactPp"), (int, float)):
+            signal["impactPp"] = round(-float(signal["impactPp"]), 2)
+        facts = signal.get("facts") or {}
+        for left, right in (
+            ("a", "b"), ("form90A", "form90B"),
+            ("recentWinRateA", "recentWinRateB"),
+            ("daysSinceA", "daysSinceB"), ("workloadA", "workloadB"),
+            ("winsA", "winsB"), ("surfaceWinsA", "surfaceWinsB"),
+            ("playerAHome", "playerBHome"),
+        ):
+            if left in facts or right in facts:
+                facts[left], facts[right] = facts.get(right), facts.get(left)
+        if isinstance(facts.get("pointProbabilityA"), (int, float)):
+            facts["pointProbabilityA"] = round(1.0 - float(facts["pointProbabilityA"]), 4)
+        for signed in ("gap", "serveEdge", "returnEdge", "diff"):
+            if isinstance(facts.get(signed), (int, float)):
+                facts[signed] = -facts[signed]
+        for contrast in facts.get("contrasts") or []:
+            contrast["a"], contrast["b"] = contrast.get("b"), contrast.get("a")
+            if isinstance(contrast.get("diff"), (int, float)):
+                contrast["diff"] = -contrast["diff"]
+    return out
+
+
+def _history_index(records: list[dict], bridges: dict[str, str] | None = None) -> dict[str, list[dict]]:
+    bridges = bridges or _legacy_match_bridges(records)
+    history: dict[str, list[dict]] = defaultdict(list)
+    for rec in records:
+        if rec.get("type") in ("match", "match_snapshot") and rec.get("p") is not None:
+            history[_effective_match_id(rec, bridges)].append(rec)
+    return history
+
+
+def _forecast_history(records: list[dict], player_a: object,
+                      current: float | None = None) -> dict | None:
+    """Normalize one match's append-only records into a de-duplicated timeline."""
+    if not records:
+        return None
+    records = sorted(records, key=lambda r: str(r.get("as_of") or ""))
+    first = next((r for r in records if r.get("type") == "match"), records[0])
+    initial = _oriented_probability(first, player_a)
+    if initial is None:
+        return None
+
+    # The first run writes a `match` provenance row and a same-hour snapshot. They are
+    # one observation in the graph, not two apparent model changes.
+    buckets: dict[str, list[dict]] = defaultdict(list)
+    for rec in records:
+        buckets[str(rec.get("as_of") or "")[:13]].append(rec)
+    timeline = []
+    for bucket in sorted(buckets):
+        recs = buckets[bucket]
+        rec = recs[-1]
+        p = _oriented_probability(rec, player_a)
+        if p is None:
+            continue
+        item = {
+            "asOf": rec.get("as_of"),
+            "p": round(p, 4),
+            "modelVersion": rec.get("model_version"),
+            "firstSighting": any(r is first for r in recs),
+        }
+        components = _oriented_components(rec, player_a)
+        if components:
+            item["components"] = components
+        evidence = _oriented_evidence(rec, player_a)
+        if evidence:
+            item["evidence"] = evidence
+        timeline.append(item)
+
+    now = float(current) if current is not None else (
+        float(timeline[-1]["p"]) if timeline else initial)
+    return {
+        "first": round(initial, 4),
+        "current": round(now, 4),
+        "delta": round(now - initial, 4),
+        "firstAsOf": first.get("as_of"),
+        "latestAsOf": timeline[-1].get("asOf") if timeline else first.get("as_of"),
+        "snapshots": len(timeline),
+        "timeline": timeline,
+    }
 
 
 def _read_log(path) -> list:
@@ -114,15 +332,11 @@ def log_forecasts(tour: str, predictor, df: pd.DataFrame,
     FORECAST_DIR.mkdir(parents=True, exist_ok=True)
     path = FORECAST_DIR / f"{tour}.jsonl"
     existing = _read_log(path)
-    seen_match = {_match_key(r) for r in existing if r.get("type") == "match"}
-    seen_snap = {_snapshot_key(r) for r in existing if r.get("type") == "match_snapshot"}
-    seen_tourn = {_tourn_key(r) for r in existing if r.get("type") == "tournament"}
-
-    new: list = []
     # match forecasts: one locked P(playerA wins) per scheduled matchup (first sighting).
     # Name-resolution / surface inference / pricing live in model.upcoming.enrich_upcoming,
     # shared with the web schedule board so the two can never disagree on a matchup.
     enriched = enrich_upcoming(predictor, df, upcoming, tour)
+    bases = []
     for row in enriched:
         base = {
             "as_of": as_of, "tour": tour,
@@ -131,17 +345,37 @@ def log_forecasts(tour: str, predictor, df: pd.DataFrame,
             "season": _season(row["date"], as_of),
             "playerA": row["playerA"], "playerB": row["playerB"],
             "model_version": __version__, "p": round(row["pA"], 4),
+            "components": row.get("components"),
+            "evidence": row.get("evidence"),
         }
+        base["match_id"] = match_identity(base)
+        bases.append(base)
+
+    # Include today's registry-backed probes when deriving the one-time legacy bridge.
+    # This prevents the first run that learns an espnId from appending a second immutable
+    # first-sighting for the same real match.
+    probes = [{**base, "type": "match_snapshot"} for base in bases]
+    bridges = _legacy_match_bridges(existing + probes)
+    seen_match = {
+        _effective_match_id(r, bridges) for r in existing if r.get("type") == "match"
+    }
+    seen_snap = {
+        _snapshot_key(r, bridges) for r in existing if r.get("type") == "match_snapshot"
+    }
+    seen_tourn = {_tourn_key(r) for r in existing if r.get("type") == "tournament"}
+
+    new: list = []
+    for base in bases:
         rec = {
             **base,
             "type": "match", "as_of": as_of, "tour": tour,
         }
-        k = _match_key(rec)
+        k = _effective_match_id(rec, bridges)
         if k not in seen_match:
             seen_match.add(k)
             new.append(rec)
         snap = {**base, "type": "match_snapshot"}
-        sk = _snapshot_key(snap)
+        sk = _snapshot_key(snap, bridges)
         if sk not in seen_snap:
             seen_snap.add(sk)
             new.append(snap)
@@ -174,32 +408,22 @@ def log_forecasts(tour: str, predictor, df: pd.DataFrame,
 
 def movement_for_upcoming(tour: str, rows: list[dict]) -> dict[str, dict]:
     """Movement summaries keyed by the shared matchup key for enriched upcoming rows."""
-    history: dict[str, list[dict]] = defaultdict(list)
-    for rec in _read_log(FORECAST_DIR / f"{tour}.jsonl"):
-        if rec.get("type") in ("match", "match_snapshot") and rec.get("p") is not None:
-            history[_match_key(rec)].append(rec)
+    records = _read_log(FORECAST_DIR / f"{tour}.jsonl")
+    bridges = _legacy_match_bridges(records)
+    history = _history_index(records, bridges)
     out: dict[str, dict] = {}
     for row in rows:
         probe = {
             **row,
             "season": _season(row.get("date")),
         }
-        key = _match_key(probe)
+        key = _effective_match_id(probe, bridges)
         records = history.get(key) or []
         if not records:
             continue
-        records = sorted(records, key=lambda r: str(r.get("as_of") or ""))
-        first = next((r for r in records if r.get("type") == "match"), records[0])
-        current = float(row["pA"])
-        initial = float(first["p"])
-        out[key] = {
-            "first": round(initial, 4),
-            "current": round(current, 4),
-            "delta": round(current - initial, 4),
-            "firstAsOf": first.get("as_of"),
-            "latestAsOf": records[-1].get("as_of"),
-            "snapshots": len(records),
-        }
+        normalized = _forecast_history(records, row["playerA"], current=float(row["pA"]))
+        if normalized:
+            out[key] = normalized
     return out
 
 
@@ -217,7 +441,16 @@ def _grade_matches(matches: list, df: pd.DataFrame) -> list:
     index: dict = defaultdict(list)
     for row in comp.itertuples(index=False):
         wk, lk = nkey(row.winner_name), nkey(row.loser_name)
-        index[frozenset((wk, lk))].append((pd.Timestamp(row.date), row.winner_name, row.loser_name))
+        walkover = getattr(row, "walkover", False)
+        walkover = bool(walkover) if not pd.isna(walkover) else False
+        index[frozenset((wk, lk))].append({
+            "date": pd.Timestamp(row.date),
+            "winner": row.winner_name,
+            "loser": row.loser_name,
+            "espnId": _clean_id(getattr(row, "espn_id", None)),
+            "round": getattr(row, "round", None),
+            "walkover": walkover,
+        })
 
     graded = []
     for r in matches:
@@ -231,19 +464,65 @@ def _grade_matches(matches: list, df: pd.DataFrame) -> list:
         # enabling snapshots cannot disable the entire best-effort tracker.
         if as_of.tzinfo is not None:
             as_of = as_of.tz_convert(None)
-        valid = [c for c in cands if -1 <= (c[0] - as_of).days <= JOIN_WINDOW_DAYS]
+        valid = [c for c in cands if -1 <= (c["date"] - as_of).days <= JOIN_WINDOW_DAYS]
         if not valid:
             continue
-        date, winner, _loser = min(valid, key=lambda c: abs((c[0] - as_of).days))
+        event_id = _clean_id(r.get("espnId", r.get("espn_id")))
+        if event_id:
+            same_event = [c for c in valid if c["espnId"] == event_id]
+            if same_event:
+                valid = same_event
+        # A pair can meet twice inside the 21-day safety window. Without registry evidence,
+        # guessing which result belongs to the forecast would silently corrupt both the
+        # benchmark and expectation scorecard, so leave ambiguous records pending.
+        if len(valid) != 1:
+            continue
+        result = valid[0]
+        date, winner = result["date"], result["winner"]
         a_won = nkey(winner) == nkey(r["playerA"])
         p_a = float(r["p"])
         graded.append({
             **r, "date": date.strftime("%Y-%m-%d"), "actualWinner": winner,
+            "match_id": _match_key(r), "walkover": result["walkover"],
             "p_a": p_a, "a_won": a_won,
             "p_winner": p_a if a_won else 1.0 - p_a,        # winner-oriented (metrics.score)
             "hit": (p_a > 0.5) == a_won,
         })
     return graded
+
+
+def _player_performance(graded: list[dict]) -> list[dict]:
+    """Last-N actual wins versus first-sighting expected wins, per player.
+
+    This is a descriptive evaluation surface, not a model feature. Only immutable `match`
+    records reach `graded`; walkovers are excluded because no competitive win occurred.
+    """
+    rows: dict[str, list[dict]] = defaultdict(list)
+    for g in graded:
+        if g.get("walkover"):
+            continue
+        for player, opponent, p, won in (
+            (g["playerA"], g["playerB"], float(g["p_a"]), bool(g["a_won"])),
+            (g["playerB"], g["playerA"], 1.0 - float(g["p_a"]), not bool(g["a_won"])),
+        ):
+            rows[player].append({
+                "matchId": _match_key(g),
+                "date": g["date"], "event": g.get("event"), "round": g.get("round"),
+                "surface": g.get("surface"), "opponent": opponent,
+                "p": round(p, 4), "won": won, "residual": round((1.0 if won else 0.0) - p, 4),
+            })
+
+    out = []
+    for name, decisions in rows.items():
+        recent = sorted(decisions, key=lambda r: (r["date"], r["matchId"]), reverse=True)[:PERFORMANCE_N]
+        expected = sum(r["p"] for r in recent)
+        actual = sum(1 for r in recent if r["won"])
+        out.append({
+            "name": name, "n": len(recent), "wins": actual,
+            "expectedWins": round(expected, 3), "delta": round(actual - expected, 3),
+            "recent": recent,
+        })
+    return sorted(out, key=lambda r: (-r["delta"], -r["n"], r["name"]))
 
 
 def _grade_tournaments(tourns: list, tour: str) -> dict:
@@ -369,9 +648,26 @@ def _drift_block(graded: list, baseline: dict | None,
 def grade(tour: str, df: pd.DataFrame) -> dict:
     """Read the log, score it against `df`'s results, write + return track.json."""
     log = _read_log(FORECAST_DIR / f"{tour}.jsonl")
-    matches = [r for r in log if r.get("type") == "match"]
+    bridges = _legacy_match_bridges(log)
+    # A pre-v2 first-sighting and the later ID-backed migration row are one decision.
+    # Keep the earliest provenance once and recover its registry ID from later evidence.
+    first_matches: dict[str, dict] = {}
+    for rec in sorted(
+        (r for r in log if r.get("type") == "match"),
+        key=lambda r: str(r.get("as_of") or ""),
+    ):
+        match_id = _effective_match_id(rec, bridges)
+        if match_id in first_matches:
+            continue
+        normalized = {**rec, "match_id": match_id}
+        event_id = _event_id_from_match_id(match_id)
+        if event_id and not _clean_id(normalized.get("espnId")):
+            normalized["espnId"] = event_id
+        first_matches[match_id] = normalized
+    matches = list(first_matches.values())
     tourns = [r for r in log if r.get("type") == "tournament"]
     graded = _grade_matches(matches, df)
+    histories = _history_index(log, bridges)
 
     cal = []
     if graded:
@@ -391,11 +687,23 @@ def grade(tour: str, df: pd.DataFrame) -> dict:
         by_month[g["date"][:7]].append(g["p_winner"])
     by_month_out = [{"month": m, **_score_or_empty(v)} for m, v in sorted(by_month.items())]
 
-    recent = [{
-        "date": g["date"], "event": g["event"], "round": g["round"], "surface": g["surface"],
-        "playerA": g["playerA"], "playerB": g["playerB"], "p": round(g["p_a"], 3),
-        "actualWinner": g["actualWinner"], "hit": g["hit"],
-    } for g in sorted(graded, key=lambda x: x["date"], reverse=True)[:RECENT_N]]
+    recent = []
+    for g in sorted(graded, key=lambda x: x["date"], reverse=True)[:RECENT_N]:
+        recent.append({
+            "matchId": _match_key(g),
+            "date": g["date"], "event": g["event"], "round": g["round"], "surface": g["surface"],
+            "playerA": g["playerA"], "playerB": g["playerB"], "p": round(g["p_a"], 3),
+            "actualWinner": g["actualWinner"], "hit": g["hit"],
+            "forecast": _forecast_history(histories.get(_match_key(g)) or [], g["playerA"]),
+        })
+
+    performance = {
+        "tour": tour,
+        "lastUpdated": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "window": PERFORMANCE_N,
+        "method": "actual wins minus first-sighting expected wins; walkovers excluded",
+        "players": _player_performance(graded),
+    }
 
     out = {
         "tour": tour,
@@ -412,6 +720,8 @@ def grade(tour: str, df: pd.DataFrame) -> dict:
     out_path = output_dir(tour) / "track.json"
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
+    (output_dir(tour) / "performance.json").write_text(
+        json.dumps(performance, ensure_ascii=False, indent=2), encoding="utf-8")
     return out
 
 

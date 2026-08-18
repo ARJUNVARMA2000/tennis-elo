@@ -4198,3 +4198,511 @@ so a one-for-one substitution was not valid; the stale official cache itself mus
 
 - The user subsequently authorized direct publication to the repository's default production
   branch. The review above records the validated pre-publication state.
+
+## WTA coverage and lower-ranked state research (2026-08-17)
+
+### Baseline and source findings
+
+- [ ] Preserve the reproduced baseline in the research record: the current production-shaped
+      frame has 2025 WTA serve-stat coverage 80.51% and 2026 coverage 86.48%, versus the current
+      2026 ATP manifest at 98.62%; WTA 2026 coverage is 95.30% when both players are top 50 but
+      only 84.08% when someone is outside the top 50.
+- [ ] Record the upstream boundary before changing ingestion: current first-party WTA endpoints
+      expose non-zero Montreal/Cincinnati 2026 serve totals and WTA 125 detail from 2016 onward,
+      but the probed 2015 125 endpoint has no match detail and the 2025 Slam stats endpoint returns
+      zero totals despite official WTA match pages displaying those stats.
+
+### Resumable one-year WTA acquisition
+
+- [ ] Refactor the WTA scraper to classify main draw, qualifying, and both legacy `125K` and current
+      `WTA 125` vocabularies from content; keep main-draw rows in `stats/` and write qualifying/125
+      rows to a distinct WTA lower-tier overlay with explicit `draw_level` and challenger-strength
+      tier semantics.
+- [ ] Make completed-season acquisition resumable and non-regressive at match/event granularity,
+      preserve source match IDs, reject zero/inconsistent stat payloads, and enforce exactly one
+      requested backfill year per command so API throttling cannot turn a multi-year run into a
+      silent partial archive.
+- [ ] Repair the current season incrementally, then backfill exactly one completed WTA year per run
+      (starting with 2025 and proceeding backward only after the prior year's census is accepted),
+      recording main/lower row counts, event holes, rank-band coverage, hard failures, and cache
+      reuse after every year rather than treating a successful process exit as proof of coverage.
+
+### State-only experiment and admission boundary
+
+- [ ] Separate WTA lower-state inclusion from the existing event/display policy, and make the
+      production combiner training boundary enforce main-draw admission by default. Lower rows may
+      update Elo, serve/return, experience, and context states; allowing them into combiner fitting
+      must require an explicit research-only opt-in and a production-shaped regression test.
+- [ ] Extend the data A/B harness with a WTA lower-state experiment: baseline and arm must score the
+      identical main-draw rows, the arm alone walks qualifying/125 history, and reporting must cover
+      tune 2010-19, validation 2020+, every affected year, top-50 involvement, and the frozen Kalshi
+      subset involving players outside the top 50.
+- [ ] Adopt state-only ingestion only if the full walk-forward arbiter passes, affected-year deltas
+      are stable rather than bidirectional many-SE swings, and the lower-ranked/Kalshi slices do not
+      reveal a concentrated regression. Do not admit lower rows to combiner training in this round;
+      a later full-distribution experiment would need its own gate and explicit approval.
+
+### Verification and review
+
+- [ ] Add parser, pagination/cache/resume, legacy-level, partial-event, row-labelling, state-update,
+      combiner-exclusion, population-audit, and real-census regressions; run focused tests, the full
+      Python suite and Ruff through `uv`, source health, output health, and `git diff --check`.
+- [ ] Re-run `git log` before finalizing metrics or adoption claims, append the measured coverage and
+      A/B results plus retained upstream holes to this round, and leave all plan items explicitly
+      checked or rejected with evidence.
+
+## Radar Elo simplification (2026-08-17)
+
+- [x] Replace the shared Hard/Clay/Grass Elo radar axes with one overall Elo axis and remove
+      break-point clutch from the radar, so the player dossier and comparison share 10 axes.
+- [x] Thread overall Elo into the shared radar population from `players.json` in both consumers;
+      keep the change compatible with the cached `profile-index.json` used by web-only deploys.
+- [x] Update every user-facing 13-axis/surface-Elo reference in the Playing Style page, navigation,
+      route metadata, tests, and README screenshot to the new 10-axis contract.
+- [x] Add focused regressions that pin the single overall-Elo axis and reject the three
+      surface-specific axes, then run the relevant web tests, lint, and production build.
+- [x] Visually verify both radar consumers at desktop and mobile widths, re-run `git log`, and append
+      a review with the final category decision, measured checks, and any retained compatibility path.
+
+### Radar Elo simplification review
+
+- Both radar consumers now render 10 axes: seven durable playing-style dimensions, overall
+  serve/return strength, and one Overall Elo percentile. Break-point clutch was removed from the
+  radar and comparison stat lines because it is noisy and outcome-like, but remains available in
+  the dossier's separate Match Charting stat list.
+- Overall Elo is joined from the current `players.json` roster before building either tour-relative
+  percentile field. This deliberately supports the cached pre-change `profile-index.json` reused by
+  a web-only deploy, so the new spoke cannot silently collapse to a missing-value zero.
+- Against git tip `8abe7d7`, all 249 web tests and the 24-route production build passed; ESLint
+  completed with 0 errors and the same 9 existing effect warnings; `git diff --check` passed.
+  Browser checks covered both consumers at 1440px and 390px, found 10/10 expected labels, no
+  horizontal overflow, and no console errors. `docs/style.png` now shows the 10-axis chart.
+  No commit, push, or production deploy was performed.
+
+## Upcoming match style links (2026-08-17)
+
+- [x] Give eligible upcoming cards on `/matches` the same whole-card Playing Style drill-in as
+      live cards and the legacy `/schedule` board, while preserving individual player links and
+      leaving unrated matchups unlinked.
+- [x] Extend the match-center regression contract and run focused web tests, lint, and
+      `git diff --check`.
+- [x] Re-check the deployed-shaped interaction locally, reconcile with the current git tip, and
+      append a concise review with the verification result.
+
+### Upcoming match style links review
+
+- Eligible `/matches` upcoming cards now use the shared `CallCard` matchup link guarded by the
+  rated-player roster. Individual name links remain above the stretched card link, and a real
+  unprofiled Jannik Sinner–Clement Tabur card remained plain in browser verification.
+- The post-deploy gate now requires `upcoming-style-links-v1` in the served `/matches/` HTML, with
+  unit coverage for present, missing, and stale markers. The match-center source contract pins the
+  guarded `hasMatchupProfiles(match, roster)` wiring.
+- Against git tip `8abe7d7`, all 248 web tests and the 24-route production build passed; ESLint
+  completed with 0 errors and the same 9 existing effect warnings; `git diff --check` passed.
+  A local card click opened `/style/?a=Rafael+Jodar&b=Alejandro+Tabilo`, and both Playing Style
+  selectors resolved to those exact players. No commit, push, or production deploy was performed.
+
+## Interactive scenarios, forecast timelines, and expectation-adjusted form (2026-08-17)
+
+Implementation begins only after the user approves this plan. The three features share a forecast-
+history identity layer, but scenario calculations remain separate from the append-only evaluation
+ledger: user-selected outcomes are hypothetical UI state and must never enter grading or model state.
+
+### Product contracts and shared foundations
+
+- [ ] Define one versioned, orientation-safe match identity for new forecast records: stable
+      `espnId` when present plus season, round, and the canonical unordered player pair; retain a
+      unique legacy fallback for old name-keyed rows, reject ambiguous same-pair rematches, and
+      never join on an event display name when a stable id exists.
+- [ ] Add a pure forecast-history builder that reads the append-only ledger, normalizes every
+      probability to a declared subject player, deduplicates the first-sighting record and its
+      same-hour snapshot into one observation, preserves the immutable first-sighting forecast for
+      grading, and exposes distinct pending timelines and graded per-player evidence.
+- [ ] Extend new hourly snapshots with the already-computed Elo/point/final components and explicit
+      model/data provenance where available. Legacy snapshots remain valid with a final probability
+      only; no copy may infer a causal reason for a movement the ledger did not record.
+- [ ] Refactor the refresh order so event/upcoming artifacts exist, the current hour is logged and
+      graded, and then the volatile forecast-derived artifacts are written and mirrored in the same
+      run. Quick and full paths must use the same post-track producer and must not leave the newest
+      point one refresh behind.
+
+### Feature 1 — interactive bracket scenario lab
+
+- [ ] Add a deterministic exact-probability propagation engine for a fixed single-elimination
+      bracket, using the model's pairwise probabilities while preserving real bracket adjacency,
+      byes, settled results, unresolved unique seats, withdrawals, and the current live frontier.
+      Use it for real-event reach/title odds so the published baseline and interactive recalculation
+      cannot disagree through Monte Carlo sampling noise; retain Monte Carlo for the separate
+      hypothetical-field simulator unless a later scope explicitly replaces it.
+- [ ] Export a lazy event-scoped scenario index and shard keyed by `espnId`, containing version and
+      model generation, ordered bracket geometry, deterministic round/match ids, immutable settled
+      winners, scenario-eligible unresolved matches, and the complete event-field pairwise matrix.
+      Fail closed when event identity, geometry, or model coverage is insufficient; display names
+      and provider ids are never scenario keys.
+- [ ] Build a TypeScript mirror of the exact propagation engine and pin it to Python fixtures for
+      8-, 28/32-, 48/64-, 96/128-, and 128-player shapes, including byes, placeholders, mixed
+      decided/pending rounds, orientation swaps, and a locked underdog result. Baseline reach/title
+      odds must match the producer within serialized rounding.
+- [ ] Add a Scenario mode to `/bracket`: users can choose the winner of any currently unresolved
+      real matchup, see title/reach odds and the largest beneficiaries update immediately, undo the
+      latest choice, reset all choices, and distinguish hypothetical locks from actual results by
+      text/icon as well as color. Settled matches and unresolved placeholder-vs-unknown matches are
+      not editable.
+- [ ] Make scenarios shareable with compact URL state based on event id plus deterministic match
+      ids, not player names. Apply URL-to-state only on navigation, canonicalize legacy event-name
+      links without breaking them, discard stale/impossible locks after a data refresh, and support
+      keyboard selection, focus restoration, reduced motion, and a complete mobile layout.
+- [ ] Add an impact summary for each scenario: title-odds delta for the selected winner, the largest
+      beneficiary elsewhere in the draw, and updated most-likely semifinal/final paths. Label all
+      deltas “if selected results occur”; never write them into the forecast ledger or track record.
+
+### Feature 2 — point-in-time forecast timeline
+
+- [ ] Export the full unique-hour probability series for every live/upcoming match and recent
+      tracked final, oriented to the player shown on the card. Include first/latest timestamps,
+      first/current/delta, unique observation count, and optional component values without changing
+      the first-sighting grading contract.
+- [ ] Decorate `upcoming.json` and the recent `fixtures.json` rows after the current snapshot is
+      logged, using the shared stable identity. Handle player-order reversal, sponsor-title changes,
+      legacy date-only rows, missing component history, a single observation, and an ambiguous
+      rematch by either producing the correct series or omitting it explicitly—never attaching the
+      wrong match's history.
+- [ ] Replace the current movement-only disclosure on Match Center cards with an accessible chart
+      and compact table showing timestamp, player-oriented probability, and change in percentage
+      points; keep the first/current summary visible when collapsed. Reuse the same component on the
+      Match Predictor when its selected pair/surface/format resolves to a scheduled match.
+- [ ] Give completed matches a frozen final timeline on the Final tab, mark the published pre-match
+      call separately from later pending snapshots, and state that movement records model/data
+      refreshes rather than market movement or a causal explanation.
+
+### Feature 3 — performance versus model expectation
+
+- [ ] Derive the metric only from graded, genuine first-sighting `match` records: for each player,
+      over their latest ten eligible tracked calls, expected wins are `sum(P(player wins))`, actual
+      wins are observed wins, and performance versus expectation is `actual - expected`. Hourly
+      snapshots, retro estimates, walkovers, unresolved/ambiguous joins, and hypothetical scenarios
+      are excluded.
+- [ ] Produce a compact tour-level expectation index plus per-player detail in the existing lazy
+      dossier flow. Each detail row carries date, event, opponent, surface, pre-match probability,
+      result, and signed residual; every aggregate carries its exact `n` and as-of time. Preserve
+      profiles with no eligible calls and never present fewer observations as a ten-match sample.
+- [ ] Add a “Performance vs expectation” card and evidence list to `/player`: for example,
+      “7 wins from 5.4 expected across 10 tracked forecasts (+1.6).” Use neutral above/below wording,
+      emphasize sample size, and explicitly say this is descriptive live-track performance rather
+      than proof of luck, clutch ability, or a new predictive model feature.
+- [ ] Add an expectation-based section to `/trends` only for players meeting a pinned minimum
+      sample. Rank comparable latest-ten residuals, keep raw Elo risers/fallers as a separate concept,
+      and provide an honest insufficient-history state while the ledger continues to accrue.
+- [ ] Keep expectation-adjusted form out of `FEATURES`, predictor state, and simulation inputs in
+      this round. Any later proposal to feed the residual back into the model requires its own
+      leakage-free walk, prediction-time mirror, paired-SE validation, and full walk-forward arbiter.
+
+### Integrity gates and compatibility
+
+- [ ] Extend the pre-upload output gate for scenario shard references, event/model generation
+      parity, bracket membership and geometry, matrix bounds/diagonal/antisymmetry, probability
+      conservation, reach monotonicity, and locks that contradict settled results. Exercise the
+      legitimate calendar shapes and messy draw states rather than only the current event.
+- [ ] Extend post-deploy verification to follow every scenario index reference and validate strict
+      JSON, served generation, event identity, and the route's scenario/timeline contracts. Forecast
+      timeline and expectation products should degrade to explicit unavailable/insufficient states
+      when the best-effort ledger is absent, while any produced invalid probability or mismatched
+      identity remains blocking.
+- [ ] Preserve legacy forecast logs, legacy bracket event-name URLs, cached pre-component snapshots,
+      quick-mode static profile shards, and tours/events with no complete draw. Add migrations or
+      read-time adapters rather than rewriting the append-only historical ledger.
+
+### Verification and review
+
+- [ ] Add focused Python tests for exact conditional bracket math, Python/TypeScript parity fixtures,
+      snapshot idempotency/orientation/dedup, rematch ambiguity, first-sighting immutability,
+      expectation aggregation/exclusions, post-track refresh ordering, shard generation, and every
+      new health invariant. Run the full Python suite and Ruff through `uv`.
+- [ ] Add focused web tests for scenario reducer/URL state, locked-versus-settled presentation,
+      probability conservation, timeline rendering and tabular fallback, player expectation copy,
+      insufficient states, keyboard/focus behavior, and tour/event navigation. Run all web tests,
+      ESLint, the production build, post-deploy verifier tests, and `git diff --check`.
+- [ ] Rebuild real ATP and WTA artifacts and audit at least one full draw, one bye-heavy draw, one
+      active partial frontier, one sponsor-renamed event, one single-point timeline, one orientation-
+      reversed timeline, and player dossiers above/below/without expectation history. Browser-test
+      `/bracket`, `/matches`, `/predict`, `/player`, and `/trends` at desktop and mobile widths.
+- [ ] Before finalizing facts or screenshots, re-run `git log`, compare exact-propagation baselines
+      with the previously published Monte Carlo outputs to confirm changes are sampling-only, replay
+      the real-artifact pre-upload gate, and append a review with payload sizes, performance timings,
+      coverage counts, verification results, and any deliberately retained degradation path.
+
+### Full bracket presentation addendum — GAFFER reference (2026-08-17)
+
+The reference is `ARJUNVARMA2000/wc-2026-gaffer` `/bracket`: a symmetric connected tree with
+settled scores, open-match odds, forward-filled likely winners, candidate-occupancy tooltips, a
+centered final/champion card, and an advancement funnel. DEUCE already owns the harder factual
+inputs—ordered 28/32/48/56/64/96/128 draws, live results, frozen pre-match calls, and current title
+odds—so this round adapts that presentation without confusing projections with confirmed entrants.
+
+- [ ] Evolve the existing `/bracket` page rather than create a competing route. Add explicit
+      `Actual draw`, `Forecast path`, and `Scenario` modes: Actual preserves the source-faithful
+      sectioned bracket and never fills unknown future participants; Forecast renders the model's
+      most likely connected path; Scenario starts from that same forecast tree and applies the
+      user's hypothetical locks.
+- [ ] In Forecast/Scenario modes, render a GAFFER-style symmetric tree with the final and projected
+      champion centered. Completed matches show the real score, winner, upset mark, and frozen call;
+      known open matches show head-to-head odds that sum to 100%; future slots show a visibly
+      projected leading occupant and that slot's reach/occupancy probability—not a mislabeled
+      head-to-head probability.
+- [ ] Export top candidate distributions for every projected downstream slot, not only one chalk
+      name. Hover, focus, or tap reveals who could occupy the slot and at what conditional
+      probability; the chosen projection is highlighted, Escape dismisses, and every tooltip has
+      equivalent screen-reader text and a non-hover mobile interaction.
+- [ ] Adapt the 32-team reference to tennis draw scale deliberately: keep early 48/56/96/128 draws
+      in the current detailed section navigator, add a compact whole-draw progress/minimap, and add
+      a consolidated `Finals picture` that forward-fills the eight QF branches into one centered
+      QF→SF→F→Champion tree. As actual play reaches a 32-player-or-smaller frontier, allow the full
+      surviving tree to use the symmetric forecast presentation directly.
+- [ ] Add a round-by-round advancement funnel below the tree, driven by the same reach distribution
+      as the bracket. Selecting or focusing a player traces their route in both surfaces; filters
+      cover alive players, seeds, and surface specialists, while negligible rows use a documented
+      display threshold without changing probability totals.
+- [ ] Reuse one match-card semantic contract across the three modes, but keep confirmed,
+      model-projected, and user-forced states distinct by label/icon as well as color. Player names
+      retain dossier links, eligible known matchups retain Playing Style links, and interactive
+      winner controls must not be masked by stretched navigation links.
+- [ ] Pin presentation/data parity against the reference-inspired contracts: in-order tree geometry,
+      left/right feeder adjacency, a+b open-match odds = 1, candidate slot occupancy sums within
+      serialized tolerance, settled winners advance exactly, forecast winners are reversible, and
+      Actual mode contains no projected entrant. Browser-verify a 96/128 draw, a 32 draw, a live
+      partial frontier, a completed event, keyboard tooltips, touch disclosure, horizontal scrolling,
+      and mobile section/finals navigation.
+- [ ] When a slot tooltip truncates its candidate list for readability, export and display the
+      residual “other paths” mass; assert shown candidates plus that residual equals the full slot
+      occupancy probability so the compact list never implies that a partial ranking is exhaustive.
+
+## Matches worth watching and prediction evidence 2.0 addendum (2026-08-17)
+
+Implementation still begins only after the user approves the expanded round. Feature 5 consumes the
+exact conditional title distributions from Feature 1, while Feature 6 extends the same versioned
+match/evidence record used by upcoming cards, forecast timelines, and the predictor matrix shards.
+
+### Feature 5 — matches worth watching
+
+- [ ] Add a pure, versioned watch-score contract for every predictable upcoming match. Pin a
+      transparent 100-point weighting—30 closeness, 25 player quality, 15 style contrast,
+      15 tournament stakes, and 15 title-odds leverage—and ship each 0–100 factor, the total,
+      evidence-coverage flags, and deterministic tie-break fields. Call this a product ranking,
+      not a forecast of entertainment quality, and keep the underlying win probability unchanged.
+- [ ] Define the factors from stable model/data facts: closeness is the bounded distance from
+      50/50; quality uses both players' surface-blended Elo percentiles rather than public rank;
+      style contrast is tour-relative distance across the model's durable charting dimensions only
+      when both profiles have adequate coverage; stakes combines the normalized tournament tier and
+      knockout round; missing optional evidence contributes no bonus and remains visibly unavailable
+      rather than being silently imputed as average.
+- [ ] Compute title-odds leverage from Feature 1's exact engine as the total-variation distance
+      between the complete conditional champion distributions when player A versus player B is
+      locked as the winner. Join only through `espnId` plus the scenario match id/generation; never
+      attach leverage by event title or player pair alone, never reuse a stale generation, and mark
+      it unavailable when ordered geometry or model coverage is insufficient.
+- [ ] Decorate `upcoming.json` after event/scenario outputs exist, preserving its current
+      soonest-first source order for schedule consumers while adding `watchRank` and the factor
+      breakdown. Give equal totals a stable order by date, event id, round depth, and canonical
+      unordered pair so hourly refreshes do not reshuffle ties.
+- [ ] Add a ranked “Matches worth watching” surface to the Upcoming tab on `/matches`, with the top
+      cross-event cards first and the complete event-by-event chronological schedule retained below.
+      Each ranked card exposes its five-factor breakdown, missing-evidence state, current model call,
+      style/predictor links, and scheduled time; replace the home page's closeness-only insight with
+      the same top-ranked contract so two definitions of “match to watch” cannot drift.
+- [ ] Keep ranking distinct from chronology and lifecycle: never promote a completed/in-progress
+      row as upcoming, never hide an eligible scheduled row because it lacks style or bracket data,
+      and do not let a marquee tier override all other factors. Verify keyboard order, compact factor
+      disclosure, touch behavior, long names, and narrow-screen horizontal bounds.
+
+### Feature 6 — prediction explanation 2.0
+
+- [ ] First restore prediction-time parity for the evidence this feature names. Carry the context
+      walk's recent dated workload into `H2HState`, pass the scheduled match date/as-of through the
+      real-upcoming path, and mirror training's days-since, clipped rest, fatigue, layoff, form, H2H,
+      surface H2H, event/host, tier, and round inputs. Hypothetical predictor contexts without an
+      event retain an explicit neutral/unavailable home signal; legacy pickles fail the existing
+      quick-mode compatibility guard and rebuild rather than fabricating context.
+- [ ] Add one orientation-safe `prediction_evidence` primitive over the exact row sent to the
+      combiner. Group the named signals into surface Elo, serve/return, form, rest/workload, home
+      advantage, H2H, and style; for each group ship player-oriented source facts, availability,
+      direction, and signed probability-point sensitivity obtained by neutralizing that input group
+      while holding the other model inputs fixed. Rank by absolute sensitivity, but never claim the
+      groups are independent, additive, causal, or SHAP explanations.
+- [ ] Make each evidence row interpretable without reverse engineering a score: surface-blended Elo
+      and its gap; point-model probability plus serve/return skill edges; 90-day Elo form and recent
+      win rate; days since play and recent workload; identified host player; overall/surface H2H
+      records with sample counts; and the largest available charting-style contrasts. Withhold a
+      category when its prerequisites are missing rather than turning missing data into a narrative.
+- [ ] Extend scheduled-match payloads and new forecast snapshots with the compact evidence schema.
+      Extend lazy matrix shards with the seven signed sensitivity matrices needed for arbitrary
+      `/predict` pairs, generated in batches from the same feature rows; keep detailed source facts
+      in the smaller player/profile indices or selected upcoming row so the static app does not ship
+      per-pair prose. Record schema/model generation and preserve legacy component-only snapshots.
+- [ ] Replace `PredictionWhy` and the predictor's current three-number disclosure with one shared,
+      accessible “Model evidence” component: lead with the strongest available signals, allow all
+      seven categories to expand, show which player each signal supports and by how many model
+      percentage points, retain Elo/point/final component agreement, and provide a compact semantic
+      table fallback. The standing label says these are model sensitivities/evidence, not reasons an
+      athlete will win and not claims about real-world causation.
+- [ ] Keep historical honesty: a completed or earlier timeline point may show only evidence actually
+      recorded at that time; do not recompute it with today's ratings, form, H2H, style data, or model.
+      Single-observation, component-only legacy, absent-style, neutral-home, and orientation-reversed
+      matches all receive explicit, non-misleading states.
+
+### Addendum integrity, verification, and review
+
+- [ ] Extend the pre-upload gate for finite/bounded watch totals and factors, complete unique ranks,
+      exact score recomputation, eligible-upcoming membership, stable tie ordering, scenario
+      generation/match identity, title-leverage conditional distributions, evidence group vocabulary,
+      signed orientation, and source-fact bounds. Extend post-deploy verification with the served
+      watch/evidence schema markers; unavailable optional evidence degrades, while wrong identity,
+      impossible probabilities, stale generations, or internally inconsistent totals block.
+- [ ] Add focused Python tests for every factor boundary, missing-evidence behavior, style coverage,
+      tier/round stakes, exact title-leverage math, stable ordering, train/inference rest and fatigue
+      parity, date orientation, grouped neutralization, bagged/calibrated prediction behavior, and
+      legacy predictor/log compatibility. Add TypeScript tests for ranking/filter preservation,
+      player-order reversal, evidence sorting/copy, unavailable categories, keyboard disclosure, and
+      the shared home/match-center/predictor contract.
+- [ ] Measure full and quick export time plus lazy-shard and `upcoming.json` byte growth before
+      accepting the schema. Run the full Python suite and Ruff through `uv`; run web tests, ESLint,
+      production build, deploy-verifier tests, and `git diff --check`; rebuild both tours and audit
+      at least one high-leverage late-round match, one close lower-tier match, one style-covered pair,
+      one uncharted pair, one home player, one id-less/no-bracket event, and one reversed orientation.
+      Browser-test the ranked list and evidence component at desktop/mobile widths, re-run `git log`,
+      and append a review with score distribution, factor coverage, payload/timing measurements, and
+      retained degradation paths.
+
+## Interactive scenario, forecast timeline, and expectation implementation review (2026-08-17)
+
+- [x] Shipped a versioned, orientation-safe forecast identity and immutable legacy adapter. New
+      records prefer `espnId`; a pre-ID row is bridged only by one real-player/season/round candidate,
+      one nearby registry ID, and the 21-day evidence window. Sponsor names never participate, and
+      ambiguous pair rematches still fail closed. Hourly histories retain recorded Elo/point/final
+      components and evidence, deduplicate same-hour provenance, and keep the first call unchanged.
+- [x] Shipped exact fixed-draw propagation in Python and TypeScript, event-scoped lazy scenario
+      shards, stable match IDs, settled-result protection, exact conditional title leverage, URL-
+      shareable picks, reset/undo behavior, and a GAFFER-inspired connected QF→SF→F→Champion view.
+      Actual draw remains source-faithful; Forecast and Scenario label projected and user-forced
+      states separately, expose candidate/residual occupancy, and share the same reach funnel.
+- [x] Shipped the saved forecast timeline on upcoming and completed Match Center cards and on the
+      Predictor when its selected context matches a scheduled call. The semantic table records time,
+      probability, components, version, and first-call status; copy states that movement represents
+      model/data refreshes, not a market move or causal event.
+- [x] Shipped latest-ten actual-minus-expected performance from genuine graded first sightings only,
+      excluding walkovers, snapshots, ambiguous/pending results, and scenarios. Compact tour indices
+      and lazy player details power dossier evidence and minimum-sample Trends lists. The display is
+      explicitly descriptive and the residual is absent from training features and simulation state.
+- [x] Extended both release gates. Pre-upload validation now follows scenario references and checks
+      identity/generation, matrix complementarity, exact baseline conservation, geometry, timelines,
+      and performance arithmetic. Post-deploy contracts follow scenario/profile artifacts and require
+      the bracket, Match Center, evidence, and dossier route markers. Regression tests cover JSON-list
+      matrices and the legacy-ID migration failure that real WTA history exposed.
+- [x] Rebuilt real ATP and WTA outputs. Each tour currently publishes one live Cincinnati 96-player /
+      128-slot, seven-round scenario with 14 editable real matchups. Exact champion mass is within
+      serialized tolerance of 1.0 and agrees with the tournament display to four decimals. Lazy shard
+      sizes are 949,103 bytes ATP and 943,292 bytes WTA; compact performance indices are 23,436 and
+      23,694 bytes. They cover 183 ATP and 185 WTA players. Upcoming timelines cover 75/75 ATP rows
+      and 72/72 WTA rows; WTA also exercises the honest single-observation state.
+- [x] Real-data browser QA covered the connected bracket and a shareable underdog lock, candidate
+      tooltips/residual mass, desktop and narrow mobile containment, Match Center disclosure and
+      frozen timeline table, and above/below expectation dossier and Trends states. It also exposed
+      and fixed stretched whole-card links intercepting the adjacent evidence disclosure.
+- [x] Final verification against git tip `8abe7d7`: `622 passed` in the full Python suite; Ruff passed;
+      `260 passed` across 21 web files; ESLint completed with zero errors and the same nine existing
+      React effect warnings; all 24 static routes built successfully; the real-artifact
+      `data.health --gate` passed; and `git diff --check` passed. Quick real-data export took 75.2s
+      ATP and 53.3s WTA after shared acquisition.
+
+Retained fail-closed paths: an event without a stable registry ID, complete ordered geometry, or full
+model coverage receives no Scenario shard and keeps Actual draw; a legacy/ambiguous forecast receives
+no guessed timeline; insufficient player history is labelled as such; scenarios can lock only currently
+known unresolved matchups and never projected future pairings. No commit, push, or production deploy was
+performed, and unrelated in-progress WTA coverage and other local workspace changes were preserved.
+
+## Matches worth watching and prediction explanation 2.0 implementation review (2026-08-17)
+
+- [x] Shipped `watch-v1` on every predictable upcoming row with the pinned 30/25/15/15/15
+      weighting, stable ranks, explicit factor availability, and no change to match probabilities or
+      chronological schedule order. The Match Center and home page share the same ranking contract;
+      copy identifies it as a product ranking rather than a prediction of entertainment quality.
+- [x] Shipped exact title-odds leverage through the scenario generation and stable match identity,
+      plus bounded closeness, surface-Elo quality, charted style contrast, and tier/round stakes.
+      Missing style or scenario coverage contributes no bonus and remains unavailable. On the real
+      artifacts, ATP scores span 34.8–67.2 (mean 53.2) and WTA scores span 27.0–66.9 (mean 51.5).
+      Style is available for 52/75 ATP and 53/72 WTA matches; exact title leverage is available for
+      the 13 ATP and 12 WTA known open matches that join to the released Cincinnati geometry.
+- [x] Shipped `evidence-v1` over the exact inference row, grouped into surface Elo, serve/return,
+      form, rest/workload, home advantage, H2H, and style. Each group carries availability, oriented
+      facts, supporting player, and signed neutralization sensitivity. The shared UI leads with the
+      strongest signals and permanently labels them model evidence—not causal or additive reasons.
+- [x] Restored prediction-time context parity for dated workload/rest/form, H2H, host country,
+      tournament tier, and round. New forecast snapshots freeze evidence at first sighting; historical
+      cards do not recompute it. All real upcoming rows have Elo, point, form, rest, and home evidence;
+      H2H covers 69/75 ATP and 66/72 WTA, while style follows the 52/75 and 53/72 charting coverage.
+- [x] Added compact upper-triangle basis-point evidence arrays to lazy predictor shards with
+      orientation-safe browser decoding. Final hard-Bo3 matrix shards are 457,454 bytes ATP and
+      466,253 bytes WTA, replacing the initial roughly 2.8 MB pretty-printed prototype and remaining
+      below the earlier component-only predictor payload noted in this log. Upcoming payloads are
+      601,582 bytes ATP and 588,474 bytes WTA; scenario and performance payload sizes remain 949,103 /
+      943,292 and 23,436 / 23,694 bytes respectively.
+- [x] Extended the pre-upload and post-deploy contracts for ranking arithmetic, factor bounds,
+      identity/generation joins, seven-group evidence vocabulary/orientation, scenario conservation,
+      timelines, and performance arithmetic. Real ATP/WTA outputs pass `data.health --gate`; malformed
+      or stale identity, probability, evidence, and score states fail closed, while missing optional
+      style/bracket inputs degrade honestly.
+- [x] Final verification against git tip `8abe7d7`: 624 Python tests passed; Ruff passed; 261 web
+      tests passed; ESLint completed with zero errors and the same nine React effect warnings; all 24
+      static routes built; and `git diff --check` passed. Browser QA covered desktop and 390px Match
+      Center ranking/evidence, arbitrary Predictor evidence, exact Scenario locking/URL/undo impact,
+      player and Trends performance, and found no horizontal overflow or browser console errors.
+
+No commit, push, or production deploy was performed. Generated forecast and Kalshi ledger verification
+diffs were removed after the real-artifact audit, and unrelated in-progress workspace changes remain
+untouched.
+
+## WTA coverage and lower-ranked state research review (2026-08-17)
+
+- [x] Reproduced the starting gap and repaired current-season acquisition. WTA 2026 moved from
+      86.48% serve-stat coverage to 95.78% (1,817/1,897), versus ATP's current 98.59%; the
+      non-both-top-50 population moved from 84.08% to 95.36%. WTA 2025 remains 80.51%
+      (2,008/2,494; non-both-top-50 80.34%) because the first-party API still returns zero usable
+      totals for Australian Open, Roland Garros and Wimbledon rows despite official match pages
+      displaying stats. The retained 2025 holes are AO 127, RG 127 and Wimbledon 64 matches.
+- [x] Refactored first-party WTA acquisition around one explicit year and main/lower/all scope.
+      It now handles legacy/current level vocabularies, qualifying versus WTA 125 roles, the
+      provider account header, stable source match IDs, zero/inconsistent payload rejection,
+      response-cache resume, deterministic-404 versus transport failure, non-regressive match
+      union and atomic year writes. A retry-exhausted outage aborts the year; a historical cached
+      404 remains a measured source hole rather than manufacturing an outage.
+- [x] Backfilled and individually censused 2016–25 lower data, one completed year per process:
+      564, 1,104, 1,152, 1,247, 652, 1,337, 1,731, 1,970, 2,207 and 2,786 rows respectively.
+      The ten files contain 14,750 raw rows / 14,561 stable source identities; the production-shaped
+      arm retains 14,560 rows (9,009 qualifying, 5,551 WTA 125) after exact boundary dedup and
+      cleaning. Every written row has a positive serve total and nonblank unique event/source ID.
+      The 2016–19 API is increasingly patchy, and 2015 WTA 125 detail remains unavailable, so 2016
+      is the honest start boundary.
+- [x] Hardened population admission. Lower files are always read as classification evidence so a
+      higher-priority historical duplicate cannot survive as falsely-main, but their unique rows
+      enter state only behind the WTA-specific flag. Baseline and state arms contain the identical
+      128,822 main rows. Walk-forward and final training centrally filter to main by default; lower
+      combiner fitting requires an explicit research-only `allow_lower=True`. Production
+      `INCLUDE_WTA_LOWER_STATE` remains false.
+- [x] Made the state A/B genuinely chronological. The first run changed 2010 predictions because
+      serve league/surface priors were aggregated over the whole augmented frame. The corrected arm
+      freezes those priors on the identical main population and now hard-fails unless every
+      pre-2016 prediction is bit-identical; final 2010–15 deltas are exactly zero.
+- [x] The corrected combined qualifying+125 state arm formally passes the headline arbiter:
+      tune d=+0.00012±0.00030, validation d=+0.00127±0.00086 and full d=+0.00054±0.00037.
+      Affected outside-top-50 matches improve +0.00164±0.00076 and the frozen Kalshi/outside-50
+      subset improves +0.00391±0.00507 (n=351), but both-top-50 matches regress
+      -0.00169±0.00055. Qualifying-only adds negligible target benefit (+0.00023±0.00064) and
+      worsens the Kalshi slice; WTA-125-only improves the target slice but fails tune
+      (d=-0.00001±0.00015). Because the only passing combined arm has a concentrated ~3-SE
+      top-50 regression, state ingestion is not adopted globally and no lower rows are admitted to
+      combiner training. A later targeted/dual-state design needs its own full gate.
+- [x] Verification against git tip `8abe7d7`: 627 Python tests passed; repository-wide Ruff passed;
+      WTA source health reports results/stats through 2026-08-17 with 95.78% current-season stats
+      and zero output problems; the independent pre-upload output gate passed; `git diff --check`
+      passed. Raw WTA lower CSVs and response caches remain local/ignored research data. No commit,
+      push, release-asset mutation or production deploy was performed; unrelated concurrent
+      scenario/watch/evidence changes were preserved.

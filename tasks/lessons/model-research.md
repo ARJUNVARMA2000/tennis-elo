@@ -146,3 +146,12 @@ Indexed in [`../lessons.md`](../lessons.md).
   edit — and for a producer whose output ships, regenerate a real artefact and assert on its
   TYPES, not only that the pipeline ran. A one-line `isinstance(t["surface"], str)` over
   rebuilt cards is worth more than another unit test of the helper.
+
+- **A chronological state experiment can still leak backward through full-frame priors.**
+  (2026-08-17, WTA qualifying/125 A/B) The first lower rows were in 2016, yet the initial arm
+  changed 2010 predictions because the serve/return walk computed its league and surface priors
+  from the entire augmented frame before walking. The headline gate passed, but it was not a
+  state-only result. **How to apply:** compute shared aggregate priors from the identical admitted
+  main population, let experimental rows affect only chronological updates, and hard-fail unless
+  predictions before the first intervention row are bit-identical. A plausible d±SE table is not a
+  substitute for a negative-control period.

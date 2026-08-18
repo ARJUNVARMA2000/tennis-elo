@@ -363,9 +363,17 @@ def problems(tour: str, h: dict, now: pd.Timestamp) -> list[str]:
 # The web reads these per tour; the first group must always exist and parse, the second
 # is best-effort (accuracy is backtest-only, track needs graded forecasts).
 _REQUIRED_OUTPUTS = ("meta", "players", "tournaments", "event_coverage", "brackets", "upcoming",
-                     "matrix-index", "ratings_history", "profile-index", "draws", "fixtures", "method")
+                     "matrix-index", "ratings_history", "profile-index", "draws", "fixtures", "method",
+                     "scenario-index", "performance")
 _OPTIONAL_OUTPUTS = ("accuracy", "track", "market")
 _PLACEHOLDER_NAMES = {"tbd", "tba", "bye", "qualifier"}   # mirror data/live.py
+_EVIDENCE_KEYS = (
+    "surfaceElo", "serveReturn", "form", "rest", "home", "h2h", "style",
+)
+_WATCH_WEIGHTS = {
+    "closeness": 30, "quality": 25, "styleContrast": 15,
+    "stakes": 15, "titleLeverage": 15,
+}
 
 
 def _is_real_name(x: object) -> bool:
@@ -505,6 +513,10 @@ def read_outputs(tour: str) -> dict:
     if isinstance(profile_index, dict):
         refs.extend(p.get("file") for p in (profile_index.get("profiles") or [])
                     if isinstance(p, dict))
+    scenario_index = data.get("scenario-index")
+    if isinstance(scenario_index, dict):
+        refs.extend(e.get("file") for e in (scenario_index.get("events") or [])
+                    if isinstance(e, dict))
     for filename in sorted(set(refs), key=str):
         safe = (isinstance(filename, str) and filename.endswith(".json")
                 and "/" not in filename and "\\" not in filename
@@ -667,6 +679,119 @@ def _check_matrix_shards(out: list, tour: str, index: dict, shards: dict) -> Non
                     "players": players,
                     "surfaces": {surface: {f"{fmt}/{component}": matrix}},
                 })
+            _check_matrix_evidence(out, tour, str(filename), shard.get("evidence"), len(players))
+
+
+def _square_matrix(value: object, n: int) -> bool:
+    return (isinstance(value, list) and len(value) == n
+            and all(isinstance(row, list) and len(row) == n for row in value))
+
+
+def _finite_between(value: object, low: float, high: float) -> bool:
+    return (isinstance(value, (int, float)) and not isinstance(value, bool)
+            and low <= float(value) <= high)
+
+
+def _check_matrix_evidence(out: list, tour: str, filename: str,
+                           evidence: object, n: int) -> None:
+    """Arbitrary-pair evidence must share the matrix roster and signed orientation."""
+    if not isinstance(evidence, dict) or evidence.get("schema") != "evidence-v1":
+        out.append(f"{tour}: {filename} evidence-v1 payload is missing/malformed")
+        return
+    effects = evidence.get("effects")
+    if not isinstance(effects, dict) or set(effects) != set(_EVIDENCE_KEYS):
+        out.append(f"{tour}: {filename} evidence signal set is malformed")
+        return
+    packed = evidence.get("encoding") == "upper-triangle-bps-v1"
+    packed_size = n * (n - 1) // 2
+    for key, matrix in effects.items():
+        if packed:
+            if (not isinstance(matrix, list) or len(matrix) != packed_size
+                    or any(not isinstance(value, int) or isinstance(value, bool)
+                           or not -10_000 <= value <= 10_000 for value in matrix)):
+                out.append(f"{tour}: {filename} packed evidence[{key}] is malformed")
+            continue
+        if not _square_matrix(matrix, n):
+            out.append(f"{tour}: {filename} evidence[{key}] is not {n}x{n}")
+            continue
+        bad = False
+        for i in range(n):
+            if not _finite_between(matrix[i][i], 0.0, 0.0):
+                bad = True
+                break
+            for j in range(i + 1, n):
+                if (not _finite_between(matrix[i][j], -1.0, 1.0)
+                        or not _finite_between(matrix[j][i], -1.0, 1.0)
+                        or abs(float(matrix[i][j]) + float(matrix[j][i])) > 2e-4):
+                    bad = True
+                    break
+            if bad:
+                break
+        if bad:
+            out.append(f"{tour}: {filename} evidence[{key}] is non-finite/non-antisymmetric")
+    available = evidence.get("available")
+    if not isinstance(available, dict) or set(available) != {"h2h", "style"}:
+        out.append(f"{tour}: {filename} conditional evidence availability is malformed")
+    else:
+        for key, matrix in available.items():
+            if packed:
+                valid = (isinstance(matrix, list) and len(matrix) == packed_size
+                         and all(value in (0, 1) for value in matrix))
+            else:
+                valid = (_square_matrix(matrix, n) and all(
+                    value in (0, 1) for row in matrix for value in row))
+            if not valid:
+                out.append(f"{tour}: {filename} evidence availability[{key}] is malformed")
+    if evidence.get("homeAvailable") is not False:
+        out.append(f"{tour}: {filename} generic matchup evidence claims home context")
+
+
+def _check_prediction_evidence(out: list, tour: str, label: str, evidence: object,
+                               player_a: object = None, player_b: object = None,
+                               probability_a: object = None) -> None:
+    """Validate the seven grouped signals and their explicit non-causal contract."""
+    if not isinstance(evidence, dict) or evidence.get("schema") != "evidence-v1":
+        out.append(f"{tour}: {label} prediction evidence is missing/malformed")
+        return
+    a, b = evidence.get("playerA"), evidence.get("playerB")
+    if player_a is not None and (a != player_a or b != player_b):
+        out.append(f"{tour}: {label} evidence orientation disagrees with matchup")
+    if not _is_prob(evidence.get("probabilityA")):
+        out.append(f"{tour}: {label} evidence probability is outside [0,1]")
+    elif _is_prob(probability_a) and abs(float(evidence["probabilityA"]) - float(probability_a)) > 1e-4:
+        out.append(f"{tour}: {label} evidence probability disagrees with published call")
+    note = str(evidence.get("note") or "").lower()
+    if "evidence" not in note or "not causation" not in note:
+        out.append(f"{tour}: {label} evidence omits the non-causal disclaimer")
+    signals = evidence.get("signals")
+    if not isinstance(signals, list) or len(signals) != len(_EVIDENCE_KEYS):
+        out.append(f"{tour}: {label} evidence signal list is malformed")
+        return
+    keys = [signal.get("key") for signal in signals if isinstance(signal, dict)]
+    if len(keys) != len(signals) or set(keys) != set(_EVIDENCE_KEYS):
+        out.append(f"{tour}: {label} evidence signal keys are missing/duplicated")
+        return
+    available_strengths = []
+    unavailable_seen = False
+    for signal in signals:
+        available = signal.get("available")
+        impact = signal.get("impactPp")
+        supports = signal.get("supports")
+        if not isinstance(available, bool) or not _finite_between(impact, -100.0, 100.0):
+            out.append(f"{tour}: {label} evidence signal {signal.get('key')} has invalid availability/impact")
+        if supports not in (None, a, b):
+            out.append(f"{tour}: {label} evidence signal {signal.get('key')} supports an unknown player")
+        if not isinstance(signal.get("facts"), dict):
+            out.append(f"{tour}: {label} evidence signal {signal.get('key')} facts are malformed")
+        if available:
+            if unavailable_seen:
+                out.append(f"{tour}: {label} strongest evidence is not ranked before unavailable signals")
+            if _finite_between(impact, -100.0, 100.0):
+                available_strengths.append(abs(float(impact)))
+        else:
+            unavailable_seen = True
+    if available_strengths != sorted(available_strengths, reverse=True):
+        out.append(f"{tour}: {label} available evidence is not strongest-first")
 
 
 def _check_profile_shards(out: list, tour: str, index: dict, shards: dict,
@@ -698,6 +823,292 @@ def _check_profile_shards(out: list, tour: str, index: dict, shards: dict,
         if shard.get("name") != summary.get("name"):
             out.append(f"{tour}: {filename} names {shard.get('name')!r}, expected "
                        f"{summary.get('name')!r}")
+
+
+def _check_forecast_history(out: list, tour: str, label: str, forecast: object,
+                            current: object | None = None) -> None:
+    """A visible timeline must be ordered, de-duplicated, and agree with its summary."""
+    if not isinstance(forecast, dict):
+        return
+    timeline = forecast.get("timeline")
+    if not isinstance(timeline, list) or not timeline:
+        out.append(f"{tour}: {label} forecast timeline is missing/empty")
+        return
+    stamps = [str(point.get("asOf") or "") for point in timeline if isinstance(point, dict)]
+    hours = [stamp[:13] for stamp in stamps]
+    if len(stamps) != len(timeline) or any(not stamp for stamp in stamps):
+        out.append(f"{tour}: {label} forecast timeline has a missing timestamp")
+    elif stamps != sorted(stamps) or len(hours) != len(set(hours)):
+        out.append(f"{tour}: {label} forecast timeline is unordered or repeats a UTC hour")
+    probs = [point.get("p") for point in timeline if isinstance(point, dict)]
+    if any(not _is_prob(p) for p in probs):
+        out.append(f"{tour}: {label} forecast timeline has probability outside [0,1]")
+        return
+    if forecast.get("snapshots") != len(timeline):
+        out.append(f"{tour}: {label} forecast snapshots={forecast.get('snapshots')!r} "
+                   f"but timeline has {len(timeline)} observations")
+    if probs and isinstance(forecast.get("first"), (int, float)) \
+            and abs(float(forecast["first"]) - float(probs[0])) > 1e-4:
+        out.append(f"{tour}: {label} forecast first disagrees with timeline")
+    expected_current = current if _is_prob(current) else forecast.get("current")
+    if probs and _is_prob(expected_current) and abs(float(expected_current) - float(probs[-1])) > 1e-4:
+        out.append(f"{tour}: {label} current probability disagrees with latest saved observation")
+    if _is_prob(forecast.get("first")) and _is_prob(forecast.get("current")):
+        delta = float(forecast["current"]) - float(forecast["first"])
+        if not isinstance(forecast.get("delta"), (int, float)) or abs(delta - float(forecast["delta"])) > 1e-4:
+            out.append(f"{tour}: {label} forecast delta disagrees with first/current")
+    for index, point in enumerate(timeline):
+        if isinstance(point, dict) and point.get("evidence") is not None:
+            evidence = point["evidence"]
+            _check_prediction_evidence(
+                out, tour, f"{label} timeline point {index}", evidence,
+                evidence.get("playerA") if isinstance(evidence, dict) else None,
+                evidence.get("playerB") if isinstance(evidence, dict) else None,
+                point.get("p"),
+            )
+
+
+def _check_performance(out: list, tour: str, performance: dict, profile_index: object,
+                       shards: dict) -> None:
+    rows, window = performance.get("players"), performance.get("window")
+    if not isinstance(rows, list) or not isinstance(window, int) or window < 1:
+        out.append(f"{tour}: performance.json players/window is malformed")
+        return
+    names = [row.get("name") for row in rows if isinstance(row, dict)]
+    if len(names) != len(rows) or len(names) != len(set(names)) or any(not name for name in names):
+        out.append(f"{tour}: performance.json has malformed/duplicate player names")
+    by_name = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        name, n, wins, expected, delta = (row.get(k) for k in
+                                          ("name", "n", "wins", "expectedWins", "delta"))
+        if not (isinstance(n, int) and 0 <= n <= window and isinstance(wins, int)
+                and 0 <= wins <= n and isinstance(expected, (int, float)) and 0 <= expected <= n
+                and isinstance(delta, (int, float)) and abs(float(delta) - (wins - float(expected))) <= 0.002):
+            out.append(f"{tour}: performance.json summary for {name!r} is inconsistent")
+            continue
+        by_name[name] = row
+    if not isinstance(profile_index, dict):
+        return
+    for summary in profile_index.get("profiles") or []:
+        if not isinstance(summary, dict):
+            continue
+        perf = by_name.get(summary.get("name"))
+        shipped_summary = summary.get("performance")
+        expected_summary = ({k: perf.get(k) for k in ("n", "wins", "expectedWins", "delta")}
+                            if perf else None)
+        if shipped_summary != expected_summary:
+            out.append(f"{tour}: profile expectation summary disagrees for {summary.get('name')!r}")
+        detail = shards.get(summary.get("file"))
+        if not isinstance(detail, dict):
+            continue
+        detail_perf = detail.get("performance")
+        if not perf:
+            if detail_perf is not None:
+                out.append(f"{tour}: profile expectation detail exists without summary for "
+                           f"{summary.get('name')!r}")
+            continue
+        if not isinstance(detail_perf, dict):
+            out.append(f"{tour}: profile expectation detail missing for {summary.get('name')!r}")
+            continue
+        if any(detail_perf.get(k) != perf.get(k) for k in ("n", "wins", "expectedWins", "delta")):
+            out.append(f"{tour}: profile expectation detail disagrees for {summary.get('name')!r}")
+        decisions = detail_perf.get("recent")
+        if not isinstance(decisions, list) or len(decisions) != perf["n"]:
+            out.append(f"{tour}: profile expectation evidence count disagrees for {summary.get('name')!r}")
+            continue
+        ids = [decision.get("matchId") for decision in decisions if isinstance(decision, dict)]
+        if len(ids) != len(set(ids)) or any(not str(match_id).startswith("v2|") for match_id in ids):
+            out.append(f"{tour}: profile expectation evidence has duplicate/legacy match IDs for "
+                       f"{summary.get('name')!r}")
+        for decision in decisions:
+            if not isinstance(decision, dict) or not _is_prob(decision.get("p")):
+                out.append(f"{tour}: profile expectation evidence probability is invalid")
+                break
+            expected_residual = (1.0 if decision.get("won") is True else 0.0) - decision["p"]
+            if not isinstance(decision.get("residual"), (int, float)) \
+                    or abs(expected_residual - decision["residual"]) > 1e-4:
+                out.append(f"{tour}: profile expectation residual is inconsistent")
+                break
+
+
+def _check_scenarios(out: list, tour: str, index: dict, shards: dict,
+                     brackets: object) -> None:
+    from ..sim.exact import propagate_rounds, validate_matrix
+    from ..sim.scenarios import exact_bracket
+
+    generation = index.get("generation")
+    if (index.get("schema") != "scenario-v1" or index.get("schemaVersion") != 1
+            or not generation or not isinstance(index.get("events"), list)):
+        out.append(f"{tour}: scenario-index.json schema/events is malformed")
+        return
+    refs_by_file = {
+        entry.get("file"): entry for entry in index["events"] if isinstance(entry, dict)
+    }
+    refs = set(refs_by_file)
+    event_ids = [str(entry.get("espnId") or "") for entry in index["events"]
+                 if isinstance(entry, dict)]
+    if (len(refs) != len(index["events"]) or None in refs
+            or len(event_ids) != len(set(event_ids)) or any(not event_id for event_id in event_ids)):
+        out.append(f"{tour}: scenario-index.json repeats or omits shard files")
+    if any(entry.get("generation") != generation for entry in refs_by_file.values()):
+        out.append(f"{tour}: scenario-index.json event generation is inconsistent")
+    bracket_refs = {
+        ((event.get("scenario") or {}).get("file") or event.get("scenarioFile"))
+        for event in (brackets or []) if isinstance(event, dict)
+        and event.get("status") in ("live", "upcoming")
+        and ((event.get("scenario") or {}).get("file") or event.get("scenarioFile"))
+    }
+    if bracket_refs != refs:
+        out.append(f"{tour}: scenario-index.json files disagree with unsettled brackets")
+    for filename in refs:
+        shard = shards.get(filename)
+        if not isinstance(shard, dict):
+            continue
+        ref = refs_by_file[filename]
+        players, matrices, rounds = shard.get("players"), shard.get("matrices"), shard.get("rounds")
+        event = shard.get("event") or {}
+        event_id = str(event.get("espnId") or "")
+        if (shard.get("schema") != "scenario-v1" or shard.get("schemaVersion") != 1
+                or shard.get("generation") != generation
+                or event_id != str(ref.get("espnId") or "")
+                or shard.get("modelGeneration") != ref.get("modelGeneration")
+                or not isinstance(players, list) or len(set(players)) != len(players) \
+                or not isinstance(matrices, dict) or not isinstance(rounds, list) or not rounds):
+            out.append(f"{tour}: {filename} scenario structure is malformed")
+            continue
+        n = len(players)
+        bad_matrix = False
+        for component in ("eloBlend", "pointModel", "combiner"):
+            matrix = matrices.get(component)
+            if not _square_matrix(matrix, n):
+                bad_matrix = True
+                break
+            for i in range(n):
+                for j in range(n):
+                    if (not _is_prob(matrix[i][j])
+                            or abs(float(matrix[i][j]) + float(matrix[j][i]) - 1.0) > 2e-5):
+                        bad_matrix = True
+                        break
+        if bad_matrix:
+            out.append(f"{tour}: {filename} scenario matrices are malformed/non-antisymmetric")
+            continue
+        if shard.get("matrix") != matrices["combiner"]:
+            out.append(f"{tour}: {filename} authoritative matrix disagrees with combiner")
+            continue
+        try:
+            validate_matrix(players, shard["matrix"], atol=2e-5)
+            expected_baseline = propagate_rounds(
+                rounds, players, shard["matrix"], event_id=event_id)
+        except (TypeError, ValueError) as exc:
+            out.append(f"{tour}: {filename} exact scenario contract failed ({exc})")
+            continue
+        if shard.get("baseline") != expected_baseline:
+            out.append(f"{tour}: {filename} baseline disagrees with exact propagation")
+        expected_legacy = exact_bracket(rounds, players, matrices["combiner"])
+        if shard.get("base") != expected_legacy:
+            out.append(f"{tour}: {filename} base forecast disagrees with exact propagation")
+        geometry = shard.get("geometry")
+        expected_ids = [match["id"] for rnd in expected_baseline["rounds"] for match in rnd["matches"]]
+        geometry_ids = [match.get("id") for rnd in geometry or []
+                        for match in (rnd.get("matches") or []) if isinstance(match, dict)]
+        if not isinstance(geometry, list) or geometry_ids != expected_ids:
+            out.append(f"{tour}: {filename} stable match geometry is malformed")
+        lockable = set(expected_baseline["lockableMatchIds"])
+        if ref.get("lockableMatches") != len(lockable):
+            out.append(f"{tour}: {filename} lockable-match count disagrees with scenario index")
+        leverage = shard.get("titleLeverage")
+        if not isinstance(leverage, dict) or set(leverage) != lockable:
+            out.append(f"{tour}: {filename} title-leverage keys disagree with real unresolved matches")
+        else:
+            for match_id, row in leverage.items():
+                if (not isinstance(row, dict) or not _is_prob(row.get("value"))
+                        or not row.get("playerA") or not row.get("playerB")):
+                    out.append(f"{tour}: {filename} title leverage {match_id} is malformed")
+                    break
+
+
+def _check_watch_ranking(out: list, tour: str, upcoming: list,
+                         scenario_index: object, shards: dict) -> None:
+    """Pin the transparent score math and its stable exact-leverage join."""
+    expected_leverage = {}
+    if isinstance(scenario_index, dict):
+        generation = scenario_index.get("generation")
+        for ref in scenario_index.get("events") or []:
+            if not isinstance(ref, dict) or ref.get("generation") != generation:
+                continue
+            shard = shards.get(ref.get("file"))
+            if not isinstance(shard, dict) or shard.get("generation") != generation:
+                continue
+            rounds = {
+                match.get("id"): str(rnd.get("round") or "")
+                for rnd in shard.get("geometry") or [] if isinstance(rnd, dict)
+                for match in rnd.get("matches") or [] if isinstance(match, dict)
+            }
+            for match_id, row in (shard.get("titleLeverage") or {}).items():
+                if not isinstance(row, dict) or not _is_prob(row.get("value")):
+                    continue
+                pair = frozenset((_player_identity_key(row.get("playerA")),
+                                  _player_identity_key(row.get("playerB"))))
+                expected_leverage[(str(ref.get("espnId") or ""), pair,
+                                   rounds.get(match_id, ""))] = float(row["value"]) * 100.0
+
+    ranks = []
+    for match in upcoming:
+        label = f"upcoming {match.get('playerA')!r} vs {match.get('playerB')!r}"
+        watch, rank = match.get("watch"), match.get("watchRank")
+        if not isinstance(watch, dict) or watch.get("schema") != "watch-v1":
+            out.append(f"{tour}: {label} watch-v1 score is missing/malformed")
+            continue
+        if not isinstance(rank, int) or isinstance(rank, bool):
+            out.append(f"{tour}: {label} watchRank is missing/malformed")
+        else:
+            ranks.append((rank, watch.get("score")))
+        if watch.get("weights") != _WATCH_WEIGHTS:
+            out.append(f"{tour}: {label} watch weights disagree with watch-v1")
+        factors = watch.get("factors")
+        if not isinstance(factors, dict) or set(factors) != set(_WATCH_WEIGHTS):
+            out.append(f"{tour}: {label} watch factors are missing/duplicated")
+            continue
+        available_count = 0
+        weighted = 0.0
+        for key, weight in _WATCH_WEIGHTS.items():
+            factor = factors.get(key)
+            if (not isinstance(factor, dict) or not isinstance(factor.get("available"), bool)
+                    or not _finite_between(factor.get("score"), 0.0, 100.0)):
+                out.append(f"{tour}: {label} watch factor {key} is invalid")
+                continue
+            available_count += int(factor["available"])
+            weighted += weight * float(factor["score"]) / 100.0
+            if key in ("closeness", "quality", "stakes") and not factor["available"]:
+                out.append(f"{tour}: {label} required watch factor {key} is unavailable")
+            if not factor["available"] and float(factor["score"]) != 0.0:
+                out.append(f"{tour}: {label} unavailable watch factor {key} received a bonus")
+        if watch.get("coverage") != available_count:
+            out.append(f"{tour}: {label} watch coverage disagrees with available factors")
+        if (not _finite_between(watch.get("score"), 0.0, 100.0)
+                or abs(float(watch["score"]) - weighted) > 0.11):
+            out.append(f"{tour}: {label} watch score disagrees with weighted factors")
+
+        pair = frozenset((_player_identity_key(match.get("playerA")),
+                          _player_identity_key(match.get("playerB"))))
+        leverage = expected_leverage.get((str(match.get("espnId") or ""), pair,
+                                          str(match.get("round") or "")))
+        title = factors.get("titleLeverage")
+        if isinstance(title, dict):
+            if leverage is None and title.get("available"):
+                out.append(f"{tour}: {label} title leverage lacks same-generation exact evidence")
+            elif leverage is not None and (not title.get("available")
+                                           or abs(float(title.get("score", -1)) - leverage) > 0.11):
+                out.append(f"{tour}: {label} title leverage disagrees with exact scenario")
+    if len(ranks) == len(upcoming):
+        ordered = sorted(ranks)
+        if [rank for rank, _ in ordered] != list(range(1, len(upcoming) + 1)):
+            out.append(f"{tour}: upcoming watchRank is not contiguous 1..{len(upcoming)}")
+        scores = [float(score) for _, score in ordered if _finite_between(score, 0.0, 100.0)]
+        if len(scores) == len(ordered) and scores != sorted(scores, reverse=True):
+            out.append(f"{tour}: upcoming watchRank is not score-descending")
 
 
 def _check_projection(out: list, tour: str, name, proj: list) -> None:
@@ -1333,6 +1744,10 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
         nfeat = len(feats) if isinstance(feats, list) else None
         if nfeat != len(FEATURES):
             out.append(f"{tour}: meta.features has {nfeat} entries (expected {len(FEATURES)})")
+        if isinstance(feats, list) and any(
+                any(token in str(feature).lower() for token in ("expect", "performance", "residual"))
+                for feature in feats):
+            out.append(f"{tour}: display-only expectation metric leaked into meta.features")
         n = meta.get("matches")
         population_version = meta.get("matchPopulationVersion")
         if population_version != MATCH_POPULATION_VERSION:
@@ -1502,6 +1917,10 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
                     if len(pair) == 2:
                         bracket_rounds.setdefault((eid, pair), set()).add(round_name)
 
+    scenario_index = data.get("scenario-index")
+    if isinstance(scenario_index, dict):
+        _check_scenarios(out, tour, scenario_index, oc.get("shards") or {}, br)
+
     up = data.get("upcoming")
     if isinstance(up, list):
         if not up and not offseason:
@@ -1511,6 +1930,21 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
                 out.append(f"{tour}: upcoming.json row has identical players ({m.get('playerA')!r})")
             if not _is_prob(m.get("pA")):
                 out.append(f"{tour}: upcoming.json pA={m.get('pA')!r} out of [0,1]")
+            components = m.get("components")
+            if (not isinstance(components, dict)
+                    or set(components) != {"eloBlend", "pointModel", "combiner"}
+                    or any(not _is_prob(value) for value in components.values())):
+                out.append(f"{tour}: upcoming prediction components are missing/malformed")
+            elif abs(float(components["combiner"]) - float(m.get("pA", -1))) > 1e-4:
+                out.append(f"{tour}: upcoming combiner component disagrees with pA")
+            _check_prediction_evidence(
+                out, tour, f"upcoming {m.get('playerA')!r} vs {m.get('playerB')!r}",
+                m.get("evidence"), m.get("playerA"), m.get("playerB"), m.get("pA"),
+            )
+            if m.get("forecast") is not None:
+                _check_forecast_history(
+                    out, tour, f"upcoming {m.get('playerA')!r} vs {m.get('playerB')!r}",
+                    m.get("forecast"), current=m.get("pA"))
             eid = str(m.get("espnId") or "")
             day = pd.to_datetime(m.get("date"), errors="coerce")
             if eid in event_ranges and pd.notna(day):
@@ -1521,6 +1955,7 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
                                f"(espnId {eid})")
         _flag_placeholders(out, tour, "upcoming.json",
                            (n for m in up for n in (m.get("playerA"), m.get("playerB"))))
+        _check_watch_ranking(out, tour, up, scenario_index, oc.get("shards") or {})
 
         # The complete bracket and scoreboard upcoming feed are independent artifacts,
         # joined only on stable ESPN event identity. When an exact real-player pair appears
@@ -1612,6 +2047,11 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
         g, p, lg = mf.get("graded"), mf.get("pending"), mf.get("logged")
         if all(isinstance(x, int) for x in (g, p, lg)) and g + p != lg:
             out.append(f"{tour}: track.json graded+pending ({g}+{p}) != logged ({lg})")
+        for call in mf.get("recent") or []:
+            if isinstance(call, dict) and call.get("forecast") is not None:
+                _check_forecast_history(
+                    out, tour, f"completed {call.get('playerA')!r} vs {call.get('playerB')!r}",
+                    call.get("forecast"))
         # Model-decay advisory: track.py owns the thresholds (config DRIFT_*) and ships the
         # verdict; we only surface it. Advisory, never deploy-blocking — like market lag,
         # a re-tune recommendation is a benchmark signal, not a build dependency.
@@ -1621,7 +2061,12 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
                        f"({dr.get('windowDays')}d): live logloss {dr.get('logloss')} vs "
                        f"self-expected {dr.get('expectedLogloss')} (d=+{dr.get('d')}, "
                        f"t={dr.get('t')}) — model scoring worse than its stated confidence; "
-                       f"re-tune recommended")
+                           f"re-tune recommended")
+
+    performance = data.get("performance")
+    if isinstance(performance, dict):
+        _check_performance(out, tour, performance, data.get("profile-index"),
+                           oc.get("shards") or {})
 
     mk = data.get("market")
     if isinstance(mk, dict):

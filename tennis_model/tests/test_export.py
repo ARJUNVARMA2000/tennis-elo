@@ -73,6 +73,16 @@ def test_write_output_is_browser_strict_parseable():
     print("ok test_write_output_is_browser_strict_parseable")
 
 
+def test_matrix_shards_use_compact_strict_json(monkeypatch, tmp_path):
+    monkeypatch.setattr(export, "output_dir", lambda tour: tmp_path / tour)
+    export._write_shards("atp", "matrix", {"matrix-hard-bo3.json": {
+        "players": ["A", "B"], "components": {"combiner": [[0.5, 0.6], [0.4, 0.5]]},
+    }})
+    text = (tmp_path / "atp" / "matrix-hard-bo3.json").read_text(encoding="utf-8")
+    assert "\n" not in text
+    assert _strict_load(text)["components"]["combiner"][0][1] == 0.6
+
+
 def _synthetic_states():
     """Minimal real state objects for build_players: two active players, tuned
     WTA-style windows (form_days=65, a 23-long results deque) so the test fails
@@ -439,6 +449,15 @@ def test_matrix_and_profile_exports_are_generation_aware_shards():
                 matrix[0, 1], matrix[1, 0] = 0.6, 0.4
             return {key: matrix.copy() for key in ("eloBlend", "pointModel", "combiner")}
 
+        def prediction_evidence_matrices(self, names, surface="Hard", best_of=3):
+            import tennis_model.model.predict as predict
+
+            n = len(names)
+            return {
+                "effects": {key: np.zeros((n, n)) for key in predict.EVIDENCE_GROUPS},
+                "available": {key: np.zeros((n, n)) for key in predict.EVIDENCE_GROUPS},
+            }
+
     players = [{"name": "A"}, {"name": "B"}]
     index, shards = export.build_matrix_shards(_Predictor(), players, "atp", "generation-1")
     assert index["generation"] == "generation-1"
@@ -446,6 +465,9 @@ def test_matrix_and_profile_exports_are_generation_aware_shards():
     assert set(index["surfaces"]) == set(export.SURFACES)
     assert all(shard["generation"] == "generation-1" for shard in shards.values())
     assert all(set(shard["components"]) == {"eloBlend", "pointModel", "combiner"}
+               for shard in shards.values())
+    assert all(shard["evidence"]["encoding"] == "upper-triangle-bps-v1"
+               and len(shard["evidence"]["effects"]["surfaceElo"]) == 1
                for shard in shards.values())
 
     profiles = {
@@ -461,6 +483,53 @@ def test_matrix_and_profile_exports_are_generation_aware_shards():
     for row in profile_index["profiles"]:
         shard = profile_shards[row["file"]]
         assert shard["name"] == row["name"] and shard["generation"] == "generation-1"
+
+
+def test_released_draw_exports_stable_exact_scenario_contract():
+    import numpy as np
+
+    names = ["A", "B", "C", "D"]
+    matrix = np.array([
+        [0.5, 0.6, 0.7, 0.8], [0.4, 0.5, 0.55, 0.65],
+        [0.3, 0.45, 0.5, 0.6], [0.2, 0.35, 0.4, 0.5],
+    ])
+
+    class _Elo:
+        overall = {name: 1 for name in names}
+
+    class _Predictor:
+        elo = _Elo()
+        trained_at = "model-generation"
+
+        def prediction_matrices(self, players, **kwargs):
+            assert players == names
+            return {key: matrix.copy() for key in ("eloBlend", "pointModel", "combiner")}
+
+    event = {
+        "name": "Exact Open", "espnId": "event-9", "status": "live",
+        "surface": "Hard", "bestOf": 3, "drawSize": 4, "bracketSize": 4,
+        "rounds": [
+            {"round": "SF", "matches": [
+                {"a": "A", "b": "B", "winner": None},
+                {"a": "C", "b": "D", "winner": None},
+            ]},
+            {"round": "F", "matches": [{"a": None, "b": None, "winner": None}]},
+        ],
+    }
+    tournament = {"name": "Exact Open", "espnId": "event-9"}
+    index, shards = export.build_scenario_shards(
+        _Predictor(), [event], [tournament], "build-generation",
+    )
+    ref = index["events"][0]
+    shard = shards[ref["file"]]
+    assert index["schema"] == "scenario-v1"
+    assert ref["espnId"] == "event-9" and ref["lockableMatches"] == 2
+    assert shard["geometry"][0]["matches"][0]["id"] == "event-9:r0:m0"
+    assert shard["matrix"] == shard["matrices"]["combiner"]
+    assert sum(shard["baseline"]["champion"].values()) == 1.0
+    assert set(shard["titleLeverage"]) == {"event-9:r0:m0", "event-9:r0:m1"}
+    assert event["scenario"]["file"] == ref["file"]
+    assert tournament["scenario"]["modelGeneration"] == "model-generation"
 
 
 if __name__ == "__main__":

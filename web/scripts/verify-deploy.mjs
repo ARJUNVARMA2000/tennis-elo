@@ -22,6 +22,10 @@ import {
   extractGoogleSiteVerification,
   sitemapCoverageProblems,
   hasProfileContract,
+  hasMatchCenterContract,
+  hasPredictionExplanationContract,
+  hasBracketLabContract,
+  performanceArtifactProblems,
   scrollShellProblems,
   healthArtifactOk,
   artifactIndexRefs,
@@ -243,11 +247,14 @@ await check("sharded artifacts: every index reference is served at one generatio
   for (const tour of ["atp", "wta"]) {
     const matrixRes = await fetchT(BASE + `/data/${tour}/matrix-index.json`, { cache: "no-store" });
     const profileRes = await fetchT(BASE + `/data/${tour}/profile-index.json`, { cache: "no-store" });
+    const scenarioRes = await fetchT(BASE + `/data/${tour}/scenario-index.json`, { cache: "no-store" });
     must(matrixRes.status === 200, `${tour}/matrix-index.json -> ${matrixRes.status}`);
     must(profileRes.status === 200, `${tour}/profile-index.json -> ${profileRes.status}`);
+    must(scenarioRes.status === 200, `${tour}/scenario-index.json -> ${scenarioRes.status}`);
     const matrix = await matrixRes.json();
     const profiles = await profileRes.json();
-    const { problems, files } = artifactIndexRefs(matrix, profiles);
+    const scenarios = await scenarioRes.json();
+    const { problems, files } = artifactIndexRefs(matrix, profiles, scenarios);
     must(problems.length === 0, `${tour}: ${problems.join("; ")}`);
     for (let start = 0; start < files.length; start += 24) {
       const batch = files.slice(start, start + 24);
@@ -261,6 +268,7 @@ await check("sharded artifacts: every index reference is served at one generatio
         const payload = await res.json();
         if (payload?.generation !== ref.generation) return `${path} generation mismatch`;
         if (ref.kind === "profile" && payload?.name !== ref.name) return `${path} player mismatch`;
+        if (ref.kind === "scenario" && payload?.event?.name !== ref.name) return `${path} event mismatch`;
         if (ref.kind === "matrix") {
           const components = Object.keys(payload?.components || {}).sort().join(",");
           if (components !== "combiner,eloBlend,pointModel") return `${path} component set ${components}`;
@@ -280,7 +288,40 @@ await check("player profiles: fail-closed links + responsive dossier contract", 
   must(res.status === 200, `/player/ -> ${res.status}`);
   const html = await res.text();
   must(hasProfileContract(html), "player profile contract marker missing (stale or partial deploy)");
-  return "fail-closed-links+single-radar+mobile-contained-v2";
+  return "fail-closed-links+single-radar+mobile-contained+expectation-v3";
+});
+
+await check("match center: upcoming Playing Style drill-in contract", async () => {
+  const html = routeHtml.get("/matches/");
+  if (!html) return "route unavailable (covered by route check)";
+  must(hasMatchCenterContract(html), "match-center contract marker missing (stale or partial deploy)");
+  return "upcoming-style-links+forecast-history+watch+evidence-v3";
+});
+
+await check("prediction explanation: grouped evidence is explicitly non-causal", async () => {
+  const html = routeHtml.get("/predict/");
+  if (!html) return "route unavailable (covered by route check)";
+  must(hasPredictionExplanationContract(html), "prediction-explanation contract marker missing (stale or partial deploy)");
+  return "grouped-evidence-not-causation-v2";
+});
+
+await check("bracket lab: actual draw + exact forecast/scenario contract", async () => {
+  const html = routeHtml.get("/bracket/");
+  if (!html) return "route unavailable (covered by route check)";
+  must(hasBracketLabContract(html), "bracket lab contract marker missing (stale or partial deploy)");
+  return "actual+forecast+scenario-exact-v1";
+});
+
+await check("expectation artifacts: live summary arithmetic", async () => {
+  const problems = [];
+  for (const tour of ["atp", "wta"]) {
+    const path = `/data/${tour}/performance.json`;
+    const res = await fetchT(BASE + path, { cache: "no-store" });
+    if (res.status !== 200) problems.push(`${path} -> ${res.status}`);
+    else problems.push(...performanceArtifactProblems(await res.json()).map((problem) => `${tour}: ${problem}`));
+  }
+  must(problems.length === 0, problems.join("; "));
+  return "ATP/WTA performance summaries consistent";
 });
 
 await check("meta: og:image absolute + on origin", async () => {

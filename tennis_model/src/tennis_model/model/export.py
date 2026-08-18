@@ -11,6 +11,8 @@ Kept separate from pipeline orchestration so the export surface is easy to scan:
   tournaments.json      latest real events: title odds + actual result (powers home)
   event_coverage.json   independent begun-event set + exact shipped membership
   brackets.json         the actual ordered draw round-by-round, priced (powers /bracket)
+  scenario-index.json   stable event IDs -> lazy exact scenario shards
+  scenario-*.json       geometry, pairwise matrix, baseline and title leverage
   upcoming.json         scheduled matches + the model's current win prob (powers /schedule)
   fixtures.json         latest results with the model's pre-match call + upset flags
   accuracy.json         walk-forward metrics, calibration, per-surface breakdown
@@ -59,11 +61,12 @@ def _finite(x):
     return x
 
 
-def _write(tour: str, name: str, data) -> None:
+def _write(tour: str, name: str, data, *, compact: bool = False) -> None:
     out = output_dir(tour)
     out.mkdir(parents=True, exist_ok=True)
     with open(out / name, "w", encoding="utf-8") as f:
-        json.dump(_finite(data), f, ensure_ascii=False, indent=2)
+        options = {"separators": (",", ":")} if compact else {"indent": 2}
+        json.dump(_finite(data), f, ensure_ascii=False, **options)
 
 
 def _active(elo) -> list:
@@ -186,6 +189,9 @@ def build_matrix_shards(predictor, players: list, tour: str,
         for bo in formats:
             filename = f"matrix-{surf.lower()}-bo{bo}.json"
             matrices = predictor.prediction_matrices(names, surface=surf, best_of=bo)
+            evidence = (predictor.prediction_evidence_matrices(
+                names, surface=surf, best_of=bo)
+                if hasattr(predictor, "prediction_evidence_matrices") else None)
             shards[filename] = {
                 "generation": generation,
                 "players": names,
@@ -195,6 +201,27 @@ def build_matrix_shards(predictor, players: list, tour: str,
                     key: np.round(value, 3).tolist() for key, value in matrices.items()
                 },
             }
+            if evidence:
+                upper = np.triu_indices(len(names), 1)
+                shards[filename]["evidence"] = {
+                    "schema": "evidence-v1",
+                    "encoding": "upper-triangle-bps-v1",
+                    "effects": {
+                        # Signed integer basis points: the upper triangle implies the
+                        # antisymmetric lower half and avoids making a lazy predictor
+                        # shard carry seven redundant square float matrices.
+                        key: np.rint(np.asarray(value)[upper] * 10_000).astype(int).tolist()
+                        for key, value in evidence["effects"].items()
+                    },
+                    # Only conditional availability needs a matrix. Surface Elo,
+                    # serve/return, form and rest exist for every rated pair; a generic
+                    # predictor has no event, so home is explicitly unavailable.
+                    "available": {
+                        key: np.asarray(evidence["available"][key], dtype=np.uint8)[upper].tolist()
+                        for key in ("h2h", "style")
+                    },
+                    "homeAvailable": False,
+                }
             refs[surf][str(bo)] = filename
     return ({"generation": generation, "players": names, "formats": formats,
              "surfaces": refs}, shards)
@@ -289,7 +316,9 @@ def _write_shards(tour: str, prefix: str, shards: dict[str, dict]) -> None:
         if old.name != f"{prefix}-index.json" and old.name not in expected:
             old.unlink()
     for filename, payload in shards.items():
-        _write(tour, filename, payload)
+        # Matrix shards are machine-read numeric arrays. Pretty-printing adds nearly a
+        # megabyte of indentation per selected context without improving inspectability.
+        _write(tour, filename, payload, compact=prefix == "matrix")
 
 
 def build_draws(predictor, players: list, tour: str) -> dict:
@@ -336,6 +365,24 @@ def build_fixtures(df, predictor, n=60) -> list:
 _ROUND_DEPTH = {r: i for i, r in enumerate(["R128", "R64", "R32", "R16", "QF", "SF", "F"])}
 
 
+def _load_scenario_products(tour: str) -> tuple[dict | None, dict[str, dict]]:
+    out = output_dir(tour)
+    try:
+        index = json.loads((out / "scenario-index.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError):
+        return None, {}
+    shards = {}
+    for ref in index.get("events") or []:
+        filename = ref.get("file")
+        if not isinstance(filename, str):
+            continue
+        try:
+            shards[filename] = json.loads((out / filename).read_text(encoding="utf-8"))
+        except (OSError, ValueError, TypeError):
+            continue
+    return index, shards
+
+
 def build_upcoming(predictor, df, tour: str) -> list:
     """Scheduled / in-progress matches with the model's current win prob (schedule board).
 
@@ -356,10 +403,60 @@ def build_upcoming(predictor, df, tour: str) -> list:
         "surface": r["surface"], "bestOf": r["best_of"], "level": r["level"],
         "playerA": r["playerA"], "playerB": r["playerB"], "pA": round(r["pA"], 4),
         "components": r.get("components"),
+        "evidence": r.get("evidence"),
         "forecast": movements.get(movement_key(r)),
     } for r in enriched]
     rows.sort(key=lambda m: (m["date"], _ROUND_DEPTH.get(m["round"], 9), m["event"]))
-    return rows
+    from .watch import rank_upcoming
+    scenario_index, scenario_shards = _load_scenario_products(tour)
+    return rank_upcoming(
+        rows, predictor, tour,
+        scenario_index=scenario_index, scenario_shards=scenario_shards,
+    )
+
+
+def export_forecast_products(tour: str, predictor, df) -> None:
+    """Refresh products whose source of truth is written after the main export.
+
+    `log_and_grade` appends the current hourly observation and writes performance.json.
+    Rebuilding these small artifacts afterward prevents the schedule from remaining one
+    refresh behind and joins expectation detail into the already-lazy profile dossiers.
+    """
+    _write(tour, "upcoming.json", build_upcoming(predictor, df, tour))
+
+    out = output_dir(tour)
+    perf_path, index_path = out / "performance.json", out / "profile-index.json"
+    if not perf_path.exists() or not index_path.exists():
+        return
+    try:
+        performance = json.loads(perf_path.read_text(encoding="utf-8"))
+        index = json.loads(index_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError):
+        return
+    by_name = {p.get("name"): p for p in performance.get("players") or [] if p.get("name")}
+    for profile_summary in index.get("profiles") or []:
+        perf = by_name.get(profile_summary.get("name"))
+        profile_summary["performance"] = ({
+            k: perf[k] for k in ("n", "wins", "expectedWins", "delta")
+        } if perf else None)
+        filename = profile_summary.get("file")
+        if not isinstance(filename, str):
+            continue
+        path = out / filename
+        try:
+            detail = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError, TypeError):
+            continue
+        detail["performance"] = perf
+        _write(tour, filename, detail)
+    _write(tour, "profile-index.json", index)
+    _write(tour, "performance.json", {
+        **{k: performance.get(k) for k in ("tour", "lastUpdated", "window", "method")},
+        "players": [
+            {k: row.get(k) for k in ("name", "n", "wins", "expectedWins", "delta")}
+            for row in performance.get("players") or []
+        ],
+    })
 
 
 def build_accuracy(oos: pd.DataFrame) -> dict:
@@ -512,9 +609,130 @@ def build_brackets_payload(tournaments: list) -> list:
             "drawSourceStart": source_start, "drawSourceEnd": source_end,
             "drawEvidencePlayers": evidence_players,
             "drawEvidenceFieldPlayers": evidence_field_players,
+            "scenario": t.get("scenario"),
+            "scenarioFile": t.pop("scenarioFile", None),  # pre-v1 compatibility
             "rounds": rounds,
         })
     return brackets
+
+
+def build_scenario_shards(predictor, brackets: list, tournaments: list,
+                          generation: str) -> tuple[dict, dict[str, dict]]:
+    """Build lazy exact-scenario payloads for safely identified released draws.
+
+    A missing stable event ID, unresolved placeholder, or unrated entrant withholds only
+    that optional shard.  The factual bracket remains available; an interactive matrix is
+    never guessed from a display name or a default-rated ghost.
+    """
+    import re
+
+    from ..sim.bracket import is_real
+    from ..sim.exact import (
+        SCENARIO_SCHEMA,
+        propagate_rounds,
+        rounds_players,
+        title_leverage,
+    )
+    from ..sim.scenarios import exact_bracket as legacy_exact_bracket
+
+    model_generation = getattr(predictor, "trained_at", None)
+    rated = set(getattr(predictor.elo, "overall", {}))
+    by_id = {str(t.get("espnId")): t for t in tournaments if t.get("espnId")}
+    refs = []
+    shards: dict[str, dict] = {}
+    for event in brackets:
+        event_id = str(event.get("espnId") or "").strip()
+        rounds = event.get("rounds") or event.get("bracket") or []
+        players = rounds_players(rounds)
+        if event.get("status") == "completed" or not event_id or not rounds or not players:
+            continue
+        if any(not is_real(player) or player not in rated for player in players):
+            continue
+        try:
+            matrices = predictor.prediction_matrices(
+                players,
+                surface=event.get("surface") or "Hard",
+                best_of=int(event.get("bestOf") or 3),
+                event=event.get("name"),
+            )
+            # The rounded matrix is the public scenario contract. Propagate from those
+            # exact values so Python exports, the browser runtime, and the integrity gate
+            # cannot disagree at the sixth decimal after serialization.
+            matrices = {
+                key: np.round(np.asarray(value, dtype=float), 6)
+                for key, value in matrices.items()
+            }
+            matrix = matrices["combiner"]
+            baseline = propagate_rounds(
+                rounds, players, matrix, event_id=event_id)
+            leverage = title_leverage(
+                rounds, players, matrix, event_id=event_id)
+        except (KeyError, TypeError, ValueError):
+            continue
+
+        safe_id = re.sub(r"[^A-Za-z0-9._-]+", "-", event_id).strip("-")
+        if not safe_id:
+            continue
+        filename = f"scenario-{safe_id}.json"
+        geometry = []
+        for round_index, round_row in enumerate(rounds):
+            geometry.append({
+                "round": round_row.get("round"),
+                "matches": [
+                    {
+                        **match,
+                        "id": f"{event_id}:r{round_index}:m{match_index}",
+                        "settledWinner": (
+                            match.get("a") if match.get("winner") == "a"
+                            else match.get("b") if match.get("winner") == "b"
+                            else None
+                        ),
+                    }
+                    for match_index, match in enumerate(round_row.get("matches") or [])
+                ],
+            })
+        shard = {
+            "schema": SCENARIO_SCHEMA,
+            "schemaVersion": 1,
+            "generation": generation,
+            "modelGeneration": model_generation,
+            "event": {
+                "espnId": event_id, "name": event.get("name"),
+                "surface": event.get("surface"), "bestOf": event.get("bestOf"),
+                "status": event.get("status"), "drawSize": event.get("drawSize"),
+                "bracketSize": event.get("bracketSize"),
+            },
+            "players": players,
+            "matrix": matrix.tolist(),
+            # Compatibility fields consumed by the first forecast/scenario UI. The
+            # stable v1 fields above/below are authoritative for new consumers.
+            "matrices": {
+                key: value.tolist()
+                for key, value in matrices.items()
+            },
+            "rounds": rounds,
+            "base": legacy_exact_bracket(
+                rounds, players, matrix.tolist()),
+            "geometry": geometry,
+            "baseline": baseline,
+            "titleLeverage": leverage,
+        }
+        shards[filename] = shard
+        event["scenario"] = {
+            "file": filename, "generation": generation,
+            "modelGeneration": model_generation,
+        }
+        event["scenarioFile"] = filename
+        refs.append({
+            "espnId": event_id, "name": event.get("name"), "file": filename,
+            "generation": generation, "modelGeneration": model_generation,
+            "lockableMatches": len(baseline.get("lockableMatchIds") or []),
+        })
+        tournament = by_id.get(event_id)
+        if tournament is not None:
+            tournament["scenario"] = dict(event["scenario"])
+    return ({"schema": SCENARIO_SCHEMA, "schemaVersion": 1,
+             "generation": generation, "events": refs}, shards)
 
 
 def build_event_outputs(predictor, df: pd.DataFrame, tour: str) -> tuple[dict, list]:
@@ -571,6 +789,7 @@ def export_all(tour, df, elo, srv, meta, predictor, oos=None, *, full: bool = Tr
     states (elo/srv/meta) — accuracy.json is left to persist from the last full run.
     """
     static = full or not _static_outputs_present(tour)
+    build_generation = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     mcp = build_profiles(tour) if static else _cached_profile_styles(tour)
     rankings = load_rankings(tour)
     players = build_players(elo, srv, meta, mcp, rankings, ctx=getattr(predictor, "ctx", None))
@@ -581,8 +800,7 @@ def export_all(tour, df, elo, srv, meta, predictor, oos=None, *, full: bool = Tr
 
     _write(tour, "players.json", players)
     if static:
-        generation = getattr(predictor, "trained_at", None) or datetime.now(UTC).strftime(
-            "%Y-%m-%dT%H:%M:%SZ")
+        generation = getattr(predictor, "trained_at", None) or build_generation
         matrix_index, matrix_shards = build_matrix_shards(
             predictor, players, tour, generation)
         _write(tour, "matrix-index.json", matrix_index)
@@ -598,6 +816,10 @@ def export_all(tour, df, elo, srv, meta, predictor, oos=None, *, full: bool = Tr
             if path.exists():
                 path.unlink()
     coverage, ts = build_event_outputs(predictor, df, tour)
+    scenario_index, scenario_shards = build_scenario_shards(
+        predictor, ts, ts, build_generation)
+    _write(tour, "scenario-index.json", scenario_index)
+    _write_shards(tour, "scenario", scenario_shards)
     _write(tour, "brackets.json", build_brackets_payload(ts))   # pops bracket/size/url, stamps hasBracket
     _write(tour, "tournaments.json", ts)
     _write(tour, "event_coverage.json", coverage)

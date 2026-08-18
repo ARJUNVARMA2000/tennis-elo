@@ -18,7 +18,13 @@ import pandas as pd
 from ..config import MATCH_POPULATION_VERSION, PLAYER_ALIASES, output_dir
 from ..data.charting import STYLE_FEATURES, build_profiles, name_key
 from ..points.markov import match_win_prob, score_distribution
-from .features import DEFAULT_FEAT_PARAMS, FEATURES, build_predictor_inputs, feat_params_for
+from .features import (
+    DEFAULT_FEAT_PARAMS,
+    FEATURES,
+    STYLE_DIFFS,
+    build_predictor_inputs,
+    feat_params_for,
+)
 from .train import train_final
 
 
@@ -39,6 +45,17 @@ def _num(x, default=np.nan) -> float:
         return default
 
 
+EVIDENCE_GROUPS: dict[str, tuple[str, ...]] = {
+    "surfaceElo": ("elo_diff", "elo_overall_diff", "elo_surface_diff", "logit_p_blend"),
+    "serveReturn": ("logit_p_point", "serve_skill_diff", "return_skill_diff"),
+    "form": ("form90_diff", "winrate10_diff"),
+    "rest": ("rest_diff", "fatigue_diff", "log_days_since_diff", "layoff_flag_diff"),
+    "home": ("home_flag_diff",),
+    "h2h": ("h2h_diff", "h2h_surface_diff", "log1p_h2h_total"),
+    "style": tuple(STYLE_DIFFS),
+}
+
+
 class TennisPredictor:
     def __init__(self, clf, iso, elo, srv, ctx, meta, tour="atp", fp=None):
         self.clf, self.iso = clf, iso
@@ -56,6 +73,9 @@ class TennisPredictor:
         # refresh may reuse it only while that population contract is unchanged; otherwise
         # the cached model must be rebuilt before its outputs can claim the new version.
         self.match_population_version = MATCH_POPULATION_VERSION
+        # Bump when prediction-time state/semantics change without changing FEATURES.
+        # Quick mode must not reuse a pickle whose context lacks the rest/fatigue mirror.
+        self.inference_schema_version = 2
         # When this model was trained. Derived here rather than at the call sites (both of
         # them construct straight out of train_final) so no path can ship an unstamped
         # pickle — same reasoning as `fp` above. It rides INSIDE the pickle on purpose: the
@@ -83,28 +103,36 @@ class TennisPredictor:
         """None for legacy pickles, which deliberately makes the quick guard rebuild."""
         return getattr(self, "match_population_version", None)
 
-    def _home_flag(self, a: str, b: str, event: str | None) -> float:
-        """home_flag_diff for a real match at a known event (0 for hypotheticals)."""
+    @property
+    def _inference_schema_version(self) -> int | None:
+        return getattr(self, "inference_schema_version", None)
+
+    def _home_context(self, a: str, b: str, event: str | None, as_of=None) -> dict:
+        """Host evidence for a real match; hypotheticals remain explicitly unavailable."""
         if not event:
-            return 0.0
+            return {"available": False, "hostIoc": None, "playerAHome": False,
+                    "playerBHome": False, "diff": 0.0}
         from ..data.geo import IOC_ALIAS, host_ioc
-        asof = self.elo.last_date
-        # year-dependent hosts (Olympics, Tour Finals) resolve with the data's
-        # newest year — correct for live forecasts, approximate only across a
-        # year boundary for a year-keyed event (negligible in practice)
-        year = pd.Timestamp(asof).year if asof is not None else pd.Timestamp.now().year
+        ref = as_of if as_of is not None else self.elo.last_date
+        year = pd.Timestamp(ref).year if ref is not None else pd.Timestamp.now().year
         host = host_ioc(str(event), int(year), self.tour)
         if host is None:
-            return 0.0
+            return {"available": False, "hostIoc": None, "playerAHome": False,
+                    "playerBHome": False, "diff": 0.0}
         ia = self.meta.get(a, {}).get("ioc")
         ib = self.meta.get(b, {}).get("ioc")
         ia, ib = IOC_ALIAS.get(ia, ia), IOC_ALIAS.get(ib, ib)
-        return float(int(host == ia) - int(host == ib))
+        a_home, b_home = host == ia, host == ib
+        return {"available": True, "hostIoc": host, "playerAHome": a_home,
+                "playerBHome": b_home, "diff": float(int(a_home) - int(b_home))}
+
+    def _home_flag(self, a: str, b: str, event: str | None, as_of=None) -> float:
+        return float(self._home_context(a, b, event, as_of)["diff"])
 
     # -- feature construction (must mirror features._assemble, winner-slot = A) ----
     def _feature_dict(self, a: str, b: str, surface: str, best_of: int,
                       indoor: bool, tier_k: float, round_order: int,
-                      event: str | None = None) -> dict:
+                      event: str | None = None, as_of=None) -> dict:
         elo, srv, ctx, meta = self.elo, self.srv, self.ctx, self.meta
         ma, mb = meta.get(a, {}), meta.get(b, {})
 
@@ -116,12 +144,16 @@ class TennisPredictor:
         h2a, h2b = ctx.record(a, b)
         h2sa, h2sb = ctx.record_surface(a, b, surface)
 
-        # layoff/form relative to the newest match in the data (~today in production)
-        asof = elo.last_date
+        # A scheduled match supplies its competition date; generic matrix/predictor calls
+        # use the rating walk's latest factual date. This mirrors the training row's date.
+        asof = np.datetime64(pd.Timestamp(as_of if as_of is not None else elo.last_date).to_datetime64())
         def _days_since(name):
             last = elo.last_played.get(name)
-            return float((asof - last) / np.timedelta64(1, "D")) if last is not None else 365.0
+            return max(0.0, float((asof - last) / np.timedelta64(1, "D"))) if last is not None else 365.0
         da, db = _days_since(a), _days_since(b)
+        workload = getattr(ctx, "workload", None)
+        wa = float(workload(a, asof, self._fp.fatigue_window_days)) if workload else 0.0
+        wb = float(workload(b, asof, self._fp.fatigue_window_days)) if workload else 0.0
         age_a, age_b = _num(ma.get("age")), _num(mb.get("age"))
         ht_a, ht_b = _num(ma.get("ht")), _num(mb.get("ht"))
         fp = self._fp
@@ -142,8 +174,8 @@ class TennisPredictor:
             "age_diff": age_a - age_b if np.isfinite(age_a) and np.isfinite(age_b) else 0.0,
             "ht_diff": ht_a - ht_b if np.isfinite(ht_a) and np.isfinite(ht_b) else 0.0,
             "hand_matchup": int(ma.get("hand") == "L") - int(mb.get("hand") == "L"),
-            "rest_diff": 0.0,
-            "fatigue_diff": 0.0,
+            "rest_diff": float(np.clip(da - db, -60, 60)),
+            "fatigue_diff": wa - wb,
             "h2h_diff": h2a - h2b,
             "log_days_since_diff": math.log1p(da) - math.log1p(db),
             "layoff_flag_diff": int(da > fp.layoff_days) - int(db > fp.layoff_days),
@@ -152,7 +184,7 @@ class TennisPredictor:
             "h2h_surface_diff": h2sa - h2sb,
             "entry_q_diff": 0.0,               # entry method unknown for hypotheticals
             # neutral for hypotheticals; real matches pass event= for the venue
-            "home_flag_diff": self._home_flag(a, b, event),
+            "home_flag_diff": self._home_flag(a, b, event, asof),
             "peak_age_dev_diff": (abs(age_a - fp.peak_age) - abs(age_b - fp.peak_age)
                                   if np.isfinite(age_a) and np.isfinite(age_b) else 0.0),
             "best_of": best_of,
@@ -186,9 +218,9 @@ class TennisPredictor:
 
     def features(self, a: str, b: str, surface: str = "Hard", best_of: int = 3,
                  indoor: bool = False, tier_k: float = 1.0, round_order: int = 3,
-                 event: str | None = None) -> pd.DataFrame:
+                 event: str | None = None, as_of=None) -> pd.DataFrame:
         row = self._feature_dict(a, b, surface, best_of, indoor, tier_k, round_order,
-                                 event=event)
+                                 event=event, as_of=as_of)
         return pd.DataFrame([[row[c] for c in FEATURES]], columns=FEATURES)
 
     # -- predictions ---------------------------------------------------------------
@@ -203,7 +235,7 @@ class TennisPredictor:
     def prediction_components(self, a: str, b: str, surface: str = "Hard",
                               best_of: int = 3, indoor: bool = False,
                               tier_k: float = 1.0, round_order: int = 3,
-                              event: str | None = None) -> dict[str, float]:
+                              event: str | None = None, as_of=None) -> dict[str, float]:
         """The two model inputs and calibrated combiner for one matchup.
 
         These are component probabilities, not feature attribution: they show where the
@@ -211,7 +243,7 @@ class TennisPredictor:
         the remaining context features.
         """
         row = self._feature_dict(a, b, surface, best_of, indoor, tier_k, round_order,
-                                 event=event)
+                                 event=event, as_of=as_of)
         X = pd.DataFrame([[row[c] for c in FEATURES]], columns=FEATURES)
         raw = self.clf.predict_proba(X)[:, 1]
         return {
@@ -220,9 +252,117 @@ class TennisPredictor:
             "combiner": float(self.iso.predict(raw)[0]),
         }
 
+    def prediction_evidence(self, a: str, b: str, surface: str = "Hard",
+                            best_of: int = 3, indoor: bool = False,
+                            tier_k: float = 1.0, round_order: int = 3,
+                            event: str | None = None, as_of=None) -> dict:
+        """Grouped local model sensitivities plus the facts that produced them.
+
+        Each signed value is ``P(A) - P(A with that input group neutralised)`` under
+        the actual calibrated ensemble. It is model evidence, not a causal explanation;
+        groups interact and their values are deliberately not presented as additive.
+        """
+        row = self._feature_dict(
+            a, b, surface, best_of, indoor, tier_k, round_order,
+            event=event, as_of=as_of,
+        )
+        frame = pd.DataFrame([[row[c] for c in FEATURES]], columns=FEATURES)
+        base = float(self.iso.predict(self.clf.predict_proba(frame)[:, 1])[0])
+        ref = np.datetime64(pd.Timestamp(
+            as_of if as_of is not None else self.elo.last_date).to_datetime64())
+
+        def days_since(name: str) -> float | None:
+            last = self.elo.last_played.get(name)
+            return max(0.0, float((ref - last) / np.timedelta64(1, "D"))) if last is not None else None
+
+        h2a, h2b = self.ctx.record(a, b)
+        h2sa, h2sb = self.ctx.record_surface(a, b, surface)
+        workload = getattr(self.ctx, "workload", None)
+        work_a = float(workload(a, ref, self._fp.fatigue_window_days)) if workload else None
+        work_b = float(workload(b, ref, self._fp.fatigue_window_days)) if workload else None
+        home = self._home_context(a, b, event, ref)
+        profiles = getattr(self, "_style_profiles_cache", None)
+        if profiles is None:
+            profiles = build_profiles(self.tour)
+            self._style_profiles_cache = profiles
+        profile_a, profile_b = profiles.get(name_key(a)), profiles.get(name_key(b))
+        contrasts = []
+        if profile_a and profile_b:
+            for key in STYLE_FEATURES:
+                va, vb = profile_a.get(key), profile_b.get(key)
+                if isinstance(va, (int, float)) and isinstance(vb, (int, float)) \
+                        and np.isfinite(va) and np.isfinite(vb):
+                    contrasts.append({"key": key, "a": round(float(va), 4),
+                                      "b": round(float(vb), 4),
+                                      "diff": round(float(va) - float(vb), 4)})
+            contrasts.sort(key=lambda item: (-abs(item["diff"]), item["key"]))
+
+        facts = {
+            "surfaceElo": {
+                "surface": surface,
+                "a": round(float(self.elo.blended(a, surface)), 1),
+                "b": round(float(self.elo.blended(b, surface)), 1),
+                "gap": round(float(row["elo_diff"]), 1),
+            },
+            "serveReturn": {
+                "pointProbabilityA": round(self._prob_from_logit(row["logit_p_point"]), 4),
+                "serveEdge": round(float(row["serve_skill_diff"]), 4),
+                "returnEdge": round(float(row["return_skill_diff"]), 4),
+            },
+            "form": {
+                "form90A": round(float(self.elo.form_delta(a, ref)), 2),
+                "form90B": round(float(self.elo.form_delta(b, ref)), 2),
+                "recentWinRateA": round(float(self.ctx.winrate10(a)), 3),
+                "recentWinRateB": round(float(self.ctx.winrate10(b)), 3),
+            },
+            "rest": {
+                "daysSinceA": round(days_since(a), 1) if days_since(a) is not None else None,
+                "daysSinceB": round(days_since(b), 1) if days_since(b) is not None else None,
+                "workloadA": round(work_a, 1) if work_a is not None else None,
+                "workloadB": round(work_b, 1) if work_b is not None else None,
+            },
+            "home": home,
+            "h2h": {
+                "winsA": int(h2a), "winsB": int(h2b),
+                "surfaceWinsA": int(h2sa), "surfaceWinsB": int(h2sb),
+            },
+            "style": {"contrasts": contrasts[:3]},
+        }
+        available = {
+            "surfaceElo": True,
+            "serveReturn": True,
+            "form": True,
+            "rest": days_since(a) is not None and days_since(b) is not None,
+            "home": bool(home["available"]),
+            "h2h": (h2a + h2b) > 0,
+            "style": bool(row["has_style"] and contrasts),
+        }
+        signals = []
+        for key, columns in EVIDENCE_GROUPS.items():
+            neutral = frame.copy()
+            neutral.loc[:, list(columns)] = 0.0
+            without = float(self.iso.predict(self.clf.predict_proba(neutral)[:, 1])[0])
+            delta_pp = (base - without) * 100.0
+            signals.append({
+                "key": key,
+                "available": bool(available[key]),
+                "supports": a if delta_pp > 0.005 else b if delta_pp < -0.005 else None,
+                "impactPp": round(delta_pp, 2),
+                "facts": facts[key],
+            })
+        signals.sort(key=lambda item: (-abs(item["impactPp"]) if item["available"] else 1.0,
+                                       item["key"]))
+        return {
+            "schema": "evidence-v1",
+            "playerA": a, "playerB": b, "asOf": str(pd.Timestamp(ref).date()),
+            "probabilityA": round(base, 4),
+            "signals": signals,
+            "note": "Grouped model sensitivity; evidence, not causation; groups need not add up.",
+        }
+
     def prediction_matrices(self, players: list, surface: str = "Hard", best_of: int = 3,
                             indoor: bool = False, tier_k: float = 1.0,
-                            round_order: int = 3, event: str | None = None):
+                            round_order: int = 3, event: str | None = None, as_of=None):
         """Batched antisymmetric matrices for Elo, point model, and final combiner."""
         n = len(players)
         out = {name: np.full((n, n), 0.5)
@@ -233,7 +373,8 @@ class TennisPredictor:
         for i in range(n):
             for j in range(i + 1, n):
                 rows.append(self._feature_dict(players[i], players[j], surface, best_of,
-                                               indoor, tier_k, round_order, event=event))
+                                               indoor, tier_k, round_order, event=event,
+                                               as_of=as_of))
                 ii.append(i)
                 jj.append(j)
         X = pd.DataFrame(rows, columns=FEATURES)
@@ -247,6 +388,47 @@ class TennisPredictor:
             out[name][ia, ja] = probs
             out[name][ja, ia] = 1.0 - probs
         return out
+
+    def prediction_evidence_matrices(self, players: list, surface: str = "Hard",
+                                     best_of: int = 3, indoor: bool = False,
+                                     tier_k: float = 1.0, round_order: int = 3,
+                                     event: str | None = None, as_of=None) -> dict:
+        """Batched signed group sensitivities for the static arbitrary-pair predictor."""
+        n = len(players)
+        effects = {key: np.zeros((n, n), dtype=float) for key in EVIDENCE_GROUPS}
+        availability = {key: np.zeros((n, n), dtype=float) for key in EVIDENCE_GROUPS}
+        if n < 2:
+            return {"effects": effects, "available": availability}
+        ii, jj, rows = [], [], []
+        for i in range(n):
+            for j in range(i + 1, n):
+                rows.append(self._feature_dict(
+                    players[i], players[j], surface, best_of, indoor, tier_k,
+                    round_order, event=event, as_of=as_of,
+                ))
+                ii.append(i)
+                jj.append(j)
+        frame = pd.DataFrame(rows, columns=FEATURES)
+        base = self.iso.predict(self.clf.predict_proba(frame)[:, 1])
+        ia, ja = np.asarray(ii), np.asarray(jj)
+        for key, columns in EVIDENCE_GROUPS.items():
+            neutral = frame.copy()
+            neutral.loc[:, list(columns)] = 0.0
+            without = self.iso.predict(self.clf.predict_proba(neutral)[:, 1])
+            delta = np.asarray(base) - np.asarray(without)
+            effects[key][ia, ja] = delta
+            effects[key][ja, ia] = -delta
+            if key == "style":
+                avail = frame["has_style"].to_numpy(dtype=float)
+            elif key == "h2h":
+                avail = (frame["log1p_h2h_total"].to_numpy() > 0).astype(float)
+            elif key == "home":
+                avail = np.full(len(frame), float(bool(event)))
+            else:
+                avail = np.ones(len(frame), dtype=float)
+            availability[key][ia, ja] = avail
+            availability[key][ja, ia] = avail
+        return {"effects": effects, "available": availability}
 
     def win_prob_matrix(self, players: list, surface: str = "Hard", best_of: int = 3,
                         indoor: bool = False, tier_k: float = 1.0, round_order: int = 3,

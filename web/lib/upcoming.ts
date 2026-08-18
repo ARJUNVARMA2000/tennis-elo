@@ -1,5 +1,30 @@
+import { orientEvidence, type PredictionEvidenceData } from "./evidence";
+
 /** One scheduled match with the model's current win probability, as written by the
     pipeline's build_upcoming (mirrored to /data/<tour>/upcoming.json). pA = P(playerA wins). */
+export type ForecastPoint = {
+  asOf?: string;
+  p: number;
+  modelVersion?: string | null;
+  firstSighting?: boolean;
+  components?: {
+    eloBlend?: number;
+    pointModel?: number;
+    combiner?: number;
+  };
+  evidence?: PredictionEvidenceData;
+};
+
+export type ForecastHistory = {
+  first: number;
+  current: number;
+  delta: number;
+  firstAsOf?: string;
+  latestAsOf?: string;
+  snapshots: number;
+  timeline?: ForecastPoint[];
+};
+
 export type Upcoming = {
   event: string;
   espnId?: string | null;
@@ -16,15 +41,40 @@ export type Upcoming = {
     pointModel: number;
     combiner: number;
   } | null;
-  forecast?: {
-    first: number;
-    current: number;
-    delta: number;
-    firstAsOf?: string;
-    latestAsOf?: string;
-    snapshots: number;
-  } | null;
+  evidence?: PredictionEvidenceData | null;
+  forecast?: ForecastHistory | null;
+  watch?: {
+    schema: "watch-v1";
+    score: number;
+    weights: Record<string, number>;
+    factors: Record<
+      "closeness" | "quality" | "styleContrast" | "stakes" | "titleLeverage",
+      { score: number; available: boolean; detail?: unknown }
+    >;
+    coverage: number;
+  };
+  watchRank?: number;
 };
+
+/** Orient a stored history to the player shown first without mutating source data. */
+export function orientForecast(forecast: ForecastHistory, flip: boolean): ForecastHistory {
+  if (!flip) return forecast;
+  const invert = (value: number) => Math.round((1 - value) * 1_000_000) / 1_000_000;
+  return {
+    ...forecast,
+    first: invert(forecast.first),
+    current: invert(forecast.current),
+    delta: -forecast.delta,
+    timeline: forecast.timeline?.map((point) => ({
+      ...point,
+      p: invert(point.p),
+      components: point.components && Object.fromEntries(
+        Object.entries(point.components).map(([key, value]) => [key, value == null ? value : invert(value)]),
+      ),
+      evidence: point.evidence ? orientEvidence(point.evidence, true) : undefined,
+    })),
+  };
+}
 
 import { tournamentTier } from "./ui";
 
@@ -99,6 +149,14 @@ export function closestUpcomingMatch(rows: Upcoming[]): Upcoming | undefined {
     if (!best) return row;
     return Math.abs(row.pA - 0.5) < Math.abs(best.pA - 0.5) ? row : best;
   }, undefined);
+}
+
+/** Product-ranked view without mutating the chronology-preserving schedule payload. */
+export function worthWatching(rows: Upcoming[], limit = 5): Upcoming[] {
+  return rows
+    .filter((row) => row.watch && typeof row.watchRank === "number")
+    .sort((a, b) => (a.watchRank ?? Infinity) - (b.watchRank ?? Infinity))
+    .slice(0, Math.max(0, limit));
 }
 
 /** UI-only filtering within one upcoming payload; this is not an event join. */

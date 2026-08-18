@@ -8,8 +8,9 @@ A hybrid forecasting system for men's and women's professional tennis. It pairs
 **surface Elo with cross-surface transfer**, an **opponent-adjusted serve/return
 point model**, **Match-Charting style features**, and context signals (rest, fatigue,
 H2H, home advantage), fused by a **seed-bagged, Platt-calibrated XGBoost combiner**.
-Outputs calibrated match win probabilities, full set-score distributions, Monte Carlo
-draw projections, and a live web app — data refreshed **hourly**, retrained daily, for
+Outputs calibrated match win probabilities, full set-score distributions, exact live-draw
+scenario odds plus Monte Carlo field projections, and a live web app — data refreshed
+**hourly**, retrained daily, for
 **both tours**, with a real-time ESPN live-score ticker on the site.
 
 🌐 Live site: **https://deuce-forecast.web.app/**
@@ -18,7 +19,7 @@ draw projections, and a live web app — data refreshed **hourly**, retrained da
 
 | Slam forecast + live ticker | Rankings | Playing-style radar |
 |---|---|---|
-| ![Home — round-by-round slam forecast](docs/home.png) | ![Rankings — Elo board with official live ranks](docs/rankings.png) | ![Playing style — 13-axis radar comparison](docs/style.png) |
+| ![Home — round-by-round slam forecast](docs/home.png) | ![Rankings — Elo board with official live ranks](docs/rankings.png) | ![Playing style — 10-axis radar comparison](docs/style.png) |
 
 ## Why this design
 
@@ -72,7 +73,7 @@ data ─┬─ surface Elo + cross-surface transfer (dynamic K, margin-of-victor
                          │
       seed-bagged XGBoost combiner (5×) ──Platt──> calibrated P(A beats B) + set distribution
             ┌────────────┴────────────┐
-     match predictor            Monte Carlo draw simulator
+     match predictor       exact bracket lab + Monte Carlo field simulator
                                       ↑
                     validated ATP/WTA draw → Wikipedia fallback → ESPN partial frontier
 ```
@@ -122,14 +123,14 @@ can never clobber good data.
 ```
 tennis_model/        Python model + pipeline (see tennis_model/README.md)
   src/tennis_model/  config · data · ratings · points · model · sim · eval
-web/                 Next.js 16 app (14 views, ATP/WTA toggle, static export)
+web/                 Next.js 16 app (ATP/WTA toggle, static export)
 .github/workflows/   hourly refresh + daily retrain + weekly snapshot; CI on every push
 ```
 
 ## Engineering quality
 
-- **318 tests green on every push** — 222 pytest (model, data, geo, parity) + 96 vitest
-  (lib math, UI logic), plus ruff + eslint and a type-checked static-export build in CI
+- **Python and TypeScript suites green on every push** — model/data/identity/parity tests plus
+  exact scenario and UI-contract tests, Ruff, ESLint, and a type-checked static-export build in CI
   ([`.github/workflows/test.yml`](.github/workflows/test.yml)).
 - **Cross-language contract tests**: player-name canonicalisation (`name_key`) is
   implemented in both Python and TypeScript and pinned to shared fixtures, so the site
@@ -156,14 +157,11 @@ PYTHONPATH=src uv run --with-requirements requirements.txt python -m tennis_mode
 cd ../web && npm install && npm run dev
 ```
 
-## The fourteen views
+## The web app
 
-Slam-focus home (round-by-round title forecast + **live ESPN score ticker with model
-win odds, polled straight from the browser**) · Rankings (Elo board with **official
-live ranks** and an age filter) · Match Predictor · Draw Simulator · Upcoming matches
-(model win probabilities for every scheduled match) · Latest results (with model
-calls) · Player profiles (Elo history, surface splits, serve/return + style
-fingerprint, H2H) · Playing-style radar · Serve/return strength map · Trends &
-movers · Accuracy vs market · Scorecard (the full out-of-sample report, incl. paired
-Kalshi/Pinnacle comparisons) · Track record · Method — all with an ATP/WTA toggle, a
-Linear-style dark UI, and an "updated Xm ago" freshness pill.
+The live app includes the slam-focus home and ESPN score ticker; official-rank/Elo boards;
+a match predictor; a connected **Forecast path** bracket plus shareable **Scenario** mode;
+the hypothetical-field simulator; a Match Center with watch rankings, model evidence, and
+saved forecast timelines; player dossiers with performance versus tracked model expectation;
+style and strength comparisons; trends, market accuracy, scorecard, track record, and method
+views. Every surface supports ATP/WTA and an hourly freshness indicator.

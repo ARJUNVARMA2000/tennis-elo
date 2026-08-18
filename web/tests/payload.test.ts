@@ -37,8 +37,11 @@ describe("match center contract", () => {
     expect(matches).toContain('keyboardEvent.key !== "ArrowLeft"');
     expect(matches).toContain('label="Tournament filter"');
     expect(live).toContain('aria-label="Live tournament filter"');
-    expect(matches).toContain('note="frozen pre-match call"');
+    expect(matches).toContain('note="frozen first-sighting call"');
+    expect(matches).toContain("<ForecastTimeline");
+    expect(matches).toContain("matchup={hasMatchupProfiles(match, roster)}");
     expect(matches).toContain("<PredictionWhy match={match} />");
-    expect(why).toContain("not causal/SHAP attribution");
+    expect(why).toContain("Model evidence");
+    expect(why).toContain("<ForecastTimeline");
   });
 });

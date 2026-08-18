@@ -25,10 +25,11 @@ from .features import FEATURES, build_feature_frame, make_oriented_xy
 
 
 def _cache_path(tour: str):
-    from ..config import INCLUDE_CHALLENGERS  # read at call time (patchable)
+    from ..config import INCLUDE_CHALLENGERS, INCLUDE_WTA_LOWER_STATE  # patchable
     # regime-keyed: a cache built without lower-tier rows must never silently
     # serve a run that expects them (and vice versa)
-    suffix = "_lower" if INCLUDE_CHALLENGERS else ""
+    lower = INCLUDE_CHALLENGERS if tour == "atp" else INCLUDE_WTA_LOWER_STATE
+    suffix = "_lower" if lower else ""
     return OUTPUT_DIR / f"_features_{tour}{suffix}.pkl"
 
 
@@ -236,12 +237,27 @@ def _stacked_predict(clf, cal_rows: pd.DataFrame, raw: np.ndarray,
     return stk.predict(_cols(raw, test, np.zeros(len(raw), dtype=bool)))
 
 
+def _combiner_rows(feat: pd.DataFrame, *, allow_lower: bool = False) -> pd.DataFrame:
+    """The single admission boundary for combiner fitting/scoring.
+
+    Sequential rating/serve/context walks happen before this function and may consume
+    lower-tier rows.  Production combiner callers must not remember to filter them at
+    each call site: lower-row training is available only through the explicit research
+    opt-in used by the full-distribution A/B arm.
+    """
+    if allow_lower:
+        return feat
+    from .features import main_rows
+    return main_rows(feat)
+
+
 def walk_forward(feat: pd.DataFrame, start_test: int = BACKTEST_START_YEAR,
                  end_test: int | None = None, min_train_year: int = 1991,
                  cal: str = "platt", pooled_cal: bool = False,
                  xgb_overrides: dict | None = None, verbose: bool = True,
                  n_bag: int | None = None,
-                 weight_halflife: float | None = None) -> pd.DataFrame:
+                 weight_halflife: float | None = None,
+                 allow_lower: bool = False) -> pd.DataFrame:
     """Out-of-sample predictions for every test season, winner-oriented.
 
     `n_bag=None` reads config.N_BAG (production = bagged; sweeps pass 1 for speed).
@@ -254,6 +270,7 @@ def walk_forward(feat: pd.DataFrame, start_test: int = BACKTEST_START_YEAR,
         n_bag = N_BAG
     if end_test is None:
         end_test = int(feat["year"].max())
+    feat = _combiner_rows(feat, allow_lower=allow_lower)
     feat = feat[feat["completed"]].copy()
     chunks, importances = [], []
     for ty in range(start_test, end_test + 1):
@@ -316,7 +333,8 @@ def report(oos: pd.DataFrame) -> None:
 
 def train_final(feat: pd.DataFrame, min_train_year: int = 1991, cal_days: int = 365,
                 cal: str = "platt", oos: pd.DataFrame | None = None,
-                xgb_overrides: dict | None = None, n_bag: int | None = None):
+                xgb_overrides: dict | None = None, n_bag: int | None = None,
+                allow_lower: bool = False):
     """Train the production combiner on all data. Calibrates on the walk-forward's
     pooled OOS predictions when provided (honest, large), else on the most recent
     ~12 months (a robust holdout — the partial current season alone is too small).
@@ -324,6 +342,7 @@ def train_final(feat: pd.DataFrame, min_train_year: int = 1991, cal_days: int = 
     if n_bag is None:
         from ..config import N_BAG
         n_bag = N_BAG
+    feat = _combiner_rows(feat, allow_lower=allow_lower)
     feat = feat[feat["completed"] & (feat["year"] >= min_train_year)]
     cutoff = feat["date"].max() - np.timedelta64(cal_days, "D")
     core = feat[feat["date"] < cutoff]

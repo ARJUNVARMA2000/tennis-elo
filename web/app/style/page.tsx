@@ -9,6 +9,7 @@ import {
   buildRadarScalers,
   profileRadarSeries,
   readRadarValue,
+  withOverallElo,
   type ProfileIndex,
   type RadarProfile,
 } from "@/lib/profile";
@@ -34,7 +35,7 @@ export default function Style() {
       <PageHead
         eyebrow={`${tour.toUpperCase()} · playing style`}
         title="Playing Style"
-        sub="Two players across 13 serve, rally, return and surface metrics. Each axis is a percentile vs the field — further out means higher than more of the tour. Raw values are listed alongside."
+        sub="Two players across 10 serve, rally, return and overall-strength metrics. Each axis is a percentile vs the field — further out means higher than more of the tour. Raw values are listed alongside."
       />
       {/* useSearchParams (shareable ?a=&b= pair links) needs a Suspense boundary under static export */}
       <Suspense fallback={<Loading />}>
@@ -46,10 +47,13 @@ export default function Style() {
 
 function StyleInner() {
   const { tour } = useTour();
-  const { data: index, loading } = useData<ProfileIndex>("profile-index.json");
+  const { data: index, loading: indexLoading } = useData<ProfileIndex>("profile-index.json");
+  const { data: roster, loading: rosterLoading } = useData<{ name: string; elo: number }[]>("players.json");
   const data = useMemo(() => Object.fromEntries(
-    (index?.profiles ?? []).map((profile) => [profile.name, profile as Profile]),
-  ) as Record<string, Profile>, [index]);
+    withOverallElo(index?.profiles ?? [], roster ?? [])
+      .map((profile) => [profile.name, profile as Profile]),
+  ) as Record<string, Profile>, [index, roster]);
+  const loading = indexLoading || rosterLoading;
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();

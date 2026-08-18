@@ -10,8 +10,10 @@ import {
   buildRadarScalers,
   profileRadarSeries,
   resolveProfileSelection,
+  withOverallElo,
   type ProfileDetail,
   type ProfileIndex,
+  type PlayerPerformance,
   type RadarProfile,
 } from "@/lib/profile";
 import { playerHref, setSearchParam } from "@/lib/url";
@@ -25,12 +27,13 @@ type Profile = RadarProfile & {
   history: [string, number][];
   recent: { date: string; opp: string; surface: string; won: boolean; score: string; event: string }[];
   h2h: { opp: string; w: number; l: number }[];
+  performance?: PlayerPerformance | null;
 };
 
 export default function Players() {
   const { tour } = useTour();
   return (
-    <div className="pb-16" data-profile-contract="fail-closed-links+single-radar+mobile-contained-v2">
+    <div className="pb-16" data-profile-contract="fail-closed-links+single-radar+mobile-contained+expectation-v3">
       <PageHead eyebrow={`${tour.toUpperCase()} · player dossier`} title="Profiles" />
       {/* useSearchParams (deep links) requires its own Suspense boundary under static export */}
       <Suspense fallback={<Loading />}>
@@ -81,8 +84,8 @@ function PlayersInner() {
   const loading = indexLoading || rosterLoading || (!!selectedSummary && detailLoading);
   const profileRoster = useMemo(() => new Set(names), [names]);
   const radarScalers = useMemo(
-    () => buildRadarScalers(index?.profiles ?? []),
-    [index],
+    () => buildRadarScalers(withOverallElo(index?.profiles ?? [], roster ?? [])),
+    [index, roster],
   );
   const radarSeries = useMemo(
     () => p ? profileRadarSeries(p, radarScalers, "var(--color-accent)") : [],
@@ -197,6 +200,52 @@ function PlayersInner() {
                   ariaLabel={`${p.name} style profile percentile radar`}
                 />
               </motion.div>
+
+              {p.performance ? (
+                <motion.div variants={fadeUp} className="panel min-w-0 p-4 sm:p-6 lg:col-span-3">
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                      <div className="eyebrow">Performance vs expectation</div>
+                      <div className="mt-1 text-xs text-[var(--color-faint)]">
+                        Actual wins minus the model&apos;s first-sighting expected wins over {p.performance.n} graded match{p.performance.n === 1 ? "" : "es"}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="display text-2xl" style={{ color: p.performance.delta >= 0 ? "var(--color-win)" : "var(--color-loss)" }}>
+                        {p.performance.delta >= 0 ? "+" : ""}{p.performance.delta.toFixed(2)} wins
+                      </div>
+                      <div className="mono text-[10px] text-[var(--color-faint)]">
+                        {p.performance.wins} actual · {p.performance.expectedWins.toFixed(2)} expected
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+                    {p.performance.recent.map((match) => (
+                      <div key={match.matchId} className="rounded-lg border border-[var(--color-line)] p-3" title={`${match.event} · ${match.round} · ${match.date}`}>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="mono" style={{ color: match.won ? "var(--color-win)" : "var(--color-loss)" }}>{match.won ? "W" : "L"}</span>
+                          <span className="mono text-[10px] text-[var(--color-muted)]">{(match.p * 100).toFixed(0)}% expected</span>
+                        </div>
+                        <div className="mt-1 truncate text-xs">vs {opp(match.opponent)}</div>
+                        <div className="mono mt-1 text-[9px]" style={{ color: match.residual >= 0 ? "var(--color-win)" : "var(--color-loss)" }}>
+                          {match.residual >= 0 ? "+" : ""}{match.residual.toFixed(2)} residual
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-3 text-[10px] leading-relaxed text-[var(--color-faint)]">
+                    Descriptive evaluation only. It rewards wins more when the matchup was difficult and does not feed back into player ratings or predictions. Walkovers and retrospective estimates are excluded.
+                  </p>
+                </motion.div>
+              ) : (
+                <motion.div variants={fadeUp} className="panel min-w-0 p-4 sm:p-6 lg:col-span-3">
+                  <div className="eyebrow">Performance vs expectation</div>
+                  <p className="mt-2 text-xs leading-relaxed text-[var(--color-faint)]">
+                    Not enough graded first-sighting calls are available for this player yet.
+                    Walkovers and retrospective estimates are excluded; no value is inferred from missing history.
+                  </p>
+                </motion.div>
+              )}
 
               {/* recent form */}
               <motion.div variants={fadeUp} className="panel min-w-0 p-6 lg:col-span-2">

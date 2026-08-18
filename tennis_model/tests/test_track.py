@@ -64,8 +64,9 @@ def _write_log(records):
 
 
 def _match(a, b, p, as_of="2026-06-01", surface="Hard", event="TestOpen", rnd="QF",
-           version="test"):
+           version="test", espn_id=None):
     return {"type": "match", "as_of": as_of, "tour": "atp", "event": event,
+            "espnId": espn_id,
             "round": rnd, "surface": surface, "best_of": 3, "season": 2026,
             "playerA": a, "playerB": b, "p": p, "model_version": version}
 
@@ -170,6 +171,89 @@ def test_movement_keeps_first_sighting_and_current_probability():
         movement = track.movement_for_upcoming("atp", [row])[track.movement_key(row)]
         assert movement["first"] == 0.55 and movement["current"] == 0.64
         assert movement["delta"] == 0.09 and movement["snapshots"] == 2
+
+
+def test_match_identity_and_timeline_are_orientation_safe():
+    with tempfile.TemporaryDirectory() as d:
+        _setup(Path(d))
+        first = _match("Alice", "Bob", 0.7, as_of="2026-06-01T08:00:00+00:00",
+                       event="Sponsor Open", espn_id="123")
+        same_hour = {**first, "type": "match_snapshot", "components": {"combiner": 0.7}}
+        later = {**first, "type": "match_snapshot", "as_of": "2026-06-01T12:00:00+00:00",
+                 "p": 0.66, "components": {"combiner": 0.66}}
+        _write_log([first, same_hour, later])
+        # Feed orientation and sponsor title both changed; espnId makes this the same match.
+        row = {"event": "City Open", "espnId": "123", "date": "2026-06-02", "round": "QF",
+               "playerA": "Bob", "playerB": "Alice", "pA": 0.36}
+        movement = track.movement_for_upcoming("atp", [row])[track.movement_key(row)]
+        assert movement["first"] == 0.3 and movement["current"] == 0.36
+        assert movement["snapshots"] == 2  # first + same-hour snapshot is one observation
+        assert movement["timeline"][1]["p"] == 0.34
+        assert movement["timeline"][1]["components"]["combiner"] == 0.34
+
+
+def test_legacy_first_sighting_bridges_to_unique_registry_match():
+    with tempfile.TemporaryDirectory() as d:
+        _setup(Path(d))
+        legacy = _match(
+            "Alice", "Bob", 0.55, as_of="2026-06-01T08:00:00+00:00",
+            event="Sponsor Open",
+        )
+        identified = {
+            **legacy, "type": "match_snapshot", "event": "City Open", "espnId": "123",
+            "as_of": "2026-06-02T08:00:00+00:00", "p": 0.61,
+        }
+        migration_duplicate = {
+            **identified, "type": "match", "as_of": "2026-06-02T12:00:00+00:00", "p": 0.63,
+        }
+        _write_log([legacy, identified, migration_duplicate])
+
+        row = {"event": "Another Title", "espnId": "123", "date": "2026-06-03",
+               "round": "QF", "playerA": "Alice", "playerB": "Bob", "pA": 0.64}
+        movement = track.movement_for_upcoming("atp", [row])[track.movement_key(row)]
+        assert movement["first"] == 0.55 and movement["current"] == 0.64
+        assert sum(point["firstSighting"] for point in movement["timeline"]) == 1
+
+        result = track.grade(
+            "atp", _results_df([("Alice", "Bob", "2026-06-03", "Hard")])
+        )["matchForecasts"]
+        assert result["logged"] == 1 and result["graded"] == 1
+        assert result["recent"][0]["matchId"].startswith("v2|espn:123|")
+        assert result["recent"][0]["forecast"]["first"] == 0.55
+
+
+def test_legacy_bridge_fails_closed_when_evidence_is_ambiguous():
+    legacy_a = _match("Alice", "Bob", 0.55, event="Sponsor Open")
+    legacy_b = _match("Alice", "Bob", 0.57, event="City Open")
+    explicit = {**legacy_a, "type": "match_snapshot", "espnId": "123",
+                "as_of": "2026-06-02"}
+    assert track._legacy_match_bridges([legacy_a, legacy_b, explicit]) == {}
+
+    explicit_other = {**explicit, "espnId": "456"}
+    assert track._legacy_match_bridges([legacy_a, explicit, explicit_other]) == {}
+
+
+def test_ambiguous_pair_rematch_is_not_guessed_without_event_id():
+    with tempfile.TemporaryDirectory() as d:
+        _setup(Path(d))
+        _write_log([_match("Alice", "Bob", 0.7)])
+        df = _results_df([
+            ("Alice", "Bob", "2026-06-03", "Hard"),
+            ("Bob", "Alice", "2026-06-10", "Hard"),
+        ])
+        assert track.grade("atp", df)["matchForecasts"]["graded"] == 0
+
+
+def test_performance_uses_first_sightings_and_excludes_walkovers():
+    graded = [
+        {**_match("Alice", "Bob", 0.7), "date": "2026-06-03", "p_a": 0.7,
+         "a_won": True, "walkover": False},
+        {**_match("Alice", "Cara", 0.4), "date": "2026-06-04", "p_a": 0.4,
+         "a_won": False, "walkover": True},
+    ]
+    perf = {r["name"]: r for r in track._player_performance(graded)}
+    assert perf["Alice"]["n"] == 1 and perf["Alice"]["delta"] == 0.3
+    assert "Cara" not in perf
 
 
 def test_tournament_grading():

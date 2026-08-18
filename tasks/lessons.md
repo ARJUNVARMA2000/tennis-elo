@@ -188,3 +188,11 @@ New lesson → append the entry to the matching topic file and add its lead line
 - Canonical identity changes alter the historical match population, so advance the explicit
   population version in the same commit; a predictor rebuild alone does not reset the health
   baseline. See [`lessons/gates-and-health.md`](lessons/gates-and-health.md).
+
+## WTA lower-state research addition (2026-08-17)
+
+- Lower-tier role is population evidence and must survive source-preference dedup even while state
+  admission is disabled. State-only A/Bs must also freeze any full-frame priors and prove exact
+  prediction parity before the first intervention row. See
+  [`lessons/data-sources.md`](lessons/data-sources.md) and
+  [`lessons/model-research.md`](lessons/model-research.md).

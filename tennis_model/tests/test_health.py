@@ -24,6 +24,35 @@ NOW = pd.Timestamp("2026-07-09")   # mid-season, deterministic (July)
 
 
 # --- synthetic healthy produced-output builders --------------------------------------
+def _healthy_evidence(a="P0", b="P1", p=0.7) -> dict:
+    return {
+        "schema": "evidence-v1", "playerA": a, "playerB": b,
+        "probabilityA": p,
+        "signals": [
+            {"key": key, "available": key not in ("home", "h2h", "style"),
+             "supports": a if key == "surfaceElo" else None,
+             "impactPp": 2.0 if key == "surfaceElo" else 0.0, "facts": {}}
+            for key in health._EVIDENCE_KEYS
+        ],
+        "note": "Grouped model sensitivity; evidence, not causation; groups need not add up.",
+    }
+
+
+def _healthy_watch() -> dict:
+    return {
+        "schema": "watch-v1", "score": 45.5,
+        "weights": copy.deepcopy(health._WATCH_WEIGHTS),
+        "factors": {
+            "closeness": {"score": 60.0, "available": True},
+            "quality": {"score": 80.0, "available": True},
+            "styleContrast": {"score": 0.0, "available": False},
+            "stakes": {"score": 50.0, "available": True},
+            "titleLeverage": {"score": 0.0, "available": False},
+        },
+        "coverage": 3,
+    }
+
+
 def _healthy_bracket() -> dict:
     """A clean 4-player completed bracket (SF -> F) consistent with the 'Mini Open'
     tournaments entry: rounds halve, winners feed forward, champion agrees, probs in range."""
@@ -92,7 +121,14 @@ def _healthy_data() -> dict:
                            ], "shippedKeys": ["espn:1-2026", "espn:2-2026"],
                            "shellKeys": []},
         "brackets": [_healthy_bracket()],
-        "upcoming": [{"event": "Test Open", "playerA": "P0", "playerB": "P1", "pA": 0.7}],
+        "scenario-index": {"schema": "scenario-v1", "schemaVersion": 1,
+                           "generation": "2026-07-08T04:30:00Z", "events": []},
+        "performance": {"tour": "atp", "window": 10, "players": []},
+        "upcoming": [{"event": "Test Open", "playerA": "P0", "playerB": "P1",
+                      "pA": 0.7, "components": {"eloBlend": 0.68, "pointModel": 0.72,
+                                                    "combiner": 0.7},
+                      "evidence": _healthy_evidence(), "watch": _healthy_watch(),
+                      "watchRank": 1}],
         "fixtures": [{"modelProb": 0.6, "upset": False}, {"modelProb": 0.4, "upset": True}],
         "track": {"matchForecasts": {"logged": 10, "graded": 6, "pending": 4,
                                      "drift": {"status": "ok", "windowDays": 90, "n": 400,
@@ -113,12 +149,21 @@ def _healthy_data() -> dict:
 
 def _healthy_shards() -> dict:
     m = [[0.5 if i == j else (0.6 if i < j else 0.4) for j in range(3)] for i in range(3)]
+    z = [0, 0, 0]  # packed upper triangle for a three-player roster
+    availability = [0, 0, 0]
     generation = "2026-07-08T04:30:00Z"
     return {
         "matrix-hard-bo3.json": {"generation": generation, "players": ["P0", "P1", "P2"],
                                  "surface": "Hard", "bestOf": 3,
                                  "components": {key: copy.deepcopy(m)
-                                                for key in ("eloBlend", "pointModel", "combiner")}},
+                                                for key in ("eloBlend", "pointModel", "combiner")},
+                                 "evidence": {"schema": "evidence-v1",
+                                              "encoding": "upper-triangle-bps-v1",
+                                              "effects": {key: copy.deepcopy(z)
+                                                          for key in health._EVIDENCE_KEYS},
+                                              "available": {"h2h": copy.deepcopy(availability),
+                                                            "style": copy.deepcopy(availability)},
+                                              "homeAvailable": False}},
         **{f"profile-{i}.json": {"generation": generation, "name": f"P{i}",
                                     "history": [], "recent": [], "h2h": []}
            for i in range(3)},
@@ -146,6 +191,86 @@ def _ledger_row(**over) -> dict:
            "kalshi_result_a": "no", "a_won": "0"}
     row.update(over)
     return row
+
+
+def test_visible_forecast_timeline_must_be_current_and_hour_deduped():
+    d = _healthy_data()
+    d["upcoming"][0]["forecast"] = {
+        "first": 0.6, "current": 0.7, "delta": 0.1, "snapshots": 2,
+        "timeline": [
+            {"asOf": "2026-07-09T08:00:00Z", "p": 0.6, "firstSighting": True},
+            {"asOf": "2026-07-09T08:30:00Z", "p": 0.65},
+        ],
+    }
+    problems = health.output_problems("atp", _oc(data=d), NOW)
+    assert any("repeats a UTC hour" in problem for problem in problems)
+    assert any("current probability disagrees" in problem for problem in problems)
+
+
+def test_expectation_summary_arithmetic_is_a_blocking_invariant():
+    d, shards = _healthy_data(), _healthy_shards()
+    d["performance"]["players"] = [{
+        "name": "P0", "n": 1, "wins": 1, "expectedWins": 0.7, "delta": 0.9,
+    }]
+    d["profile-index"]["profiles"][0]["performance"] = {
+        "n": 1, "wins": 1, "expectedWins": 0.7, "delta": 0.9,
+    }
+    shards["profile-0.json"]["performance"] = {
+        "name": "P0", "n": 1, "wins": 1, "expectedWins": 0.7, "delta": 0.9,
+        "recent": [{"matchId": "v2|espn:1|2026|F|p0|p1", "p": 0.7,
+                    "won": True, "residual": 0.3}],
+    }
+    problems = health.output_problems("atp", _oc(data=d, shards=shards), NOW)
+    problem = next(problem for problem in problems if "performance.json summary" in problem)
+    assert health._gate_blocks(problem)
+
+
+def test_scenario_base_must_equal_exact_propagation():
+    from tennis_model.sim.exact import propagate_rounds, title_leverage
+    from tennis_model.sim.scenarios import exact_bracket
+
+    rounds = [{"round": "F", "matches": [{"a": "P0", "b": "P1", "winner": None}]}]
+    matrix = [[0.5, 0.7], [0.3, 0.5]]
+    baseline = propagate_rounds(rounds, ["P0", "P1"], matrix, event_id="event-1")
+    shard = {
+        "schema": "scenario-v1", "schemaVersion": 1, "generation": "g",
+        "modelGeneration": "mg", "event": {"espnId": "event-1"},
+        "players": ["P0", "P1"], "rounds": rounds, "matrix": matrix,
+        "matrices": {key: copy.deepcopy(matrix) for key in ("eloBlend", "pointModel", "combiner")},
+        "geometry": [{"round": "F", "matches": [{"id": "event-1:r0:m0"}]}],
+        "baseline": baseline,
+        "titleLeverage": title_leverage(rounds, ["P0", "P1"], matrix, event_id="event-1"),
+        "base": exact_bracket(rounds, ["P0", "P1"], matrix),
+    }
+    shard["base"]["champion"][0]["p"] = 0.9
+    out = []
+    health._check_scenarios(
+        out, "atp", {"schema": "scenario-v1", "schemaVersion": 1, "generation": "g",
+                       "events": [{"file": "scenario-test.json", "espnId": "event-1",
+                                   "generation": "g", "modelGeneration": "mg",
+                                   "lockableMatches": 1}]},
+        {"scenario-test.json": shard},
+        [{"status": "live", "scenarioFile": "scenario-test.json"}],
+    )
+    assert any("disagrees with exact propagation" in problem for problem in out)
+
+
+def test_prediction_evidence_requires_seven_ranked_noncausal_signals():
+    d = _healthy_data()
+    d["upcoming"][0]["evidence"]["note"] = "This caused the prediction."
+    d["upcoming"][0]["evidence"]["signals"].reverse()
+    problems = health.output_problems("atp", _oc(data=d), NOW)
+    assert any("non-causal disclaimer" in problem for problem in problems)
+    assert any("strongest evidence" in problem for problem in problems)
+
+
+def test_watch_score_and_matrix_evidence_are_blocking_invariants():
+    d, shards = _healthy_data(), _healthy_shards()
+    d["upcoming"][0]["watch"]["score"] = 99.0
+    shards["matrix-hard-bo3.json"]["evidence"]["effects"]["form"][0] = 10_001
+    problems = health.output_problems("atp", _oc(data=d, shards=shards), NOW)
+    assert any("watch score disagrees" in problem for problem in problems)
+    assert any("packed evidence[form] is malformed" in problem for problem in problems)
 
 
 def test_begun_event_missing_from_tournaments_is_a_blocking_output_problem():

@@ -88,13 +88,13 @@ def test_cache_enabled_only_for_completed_full_backfills(
         tmp_path, monkeypatch, year_offset, incremental, expect_cache):
     seen = {}
 
-    def fake_scrape(year, since=None):
+    def fake_scrape(year, since=None, **kwargs):
         seen["cache"] = ws._CACHE
         import pandas as pd
-        return pd.DataFrame(columns=ws.CANON)
+        return pd.DataFrame(columns=[*ws.CANON, "draw_level"])
 
     monkeypatch.setattr(ws, "scrape_year", fake_scrape)
-    monkeypatch.setattr(ws, "write_year", lambda y, df: 0)
+    monkeypatch.setattr(ws, "write_year", lambda y, df, **kwargs: 0)
     monkeypatch.setattr(ws, "stats_dir", lambda tour: tmp_path)
     from datetime import UTC, datetime
     y = datetime.now(UTC).year + year_offset

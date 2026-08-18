@@ -15,6 +15,13 @@ export type MatrixShard = {
   surface: string;
   bestOf: number;
   components: Record<PredictionComponent, number[][]>;
+  evidence?: {
+    schema: "evidence-v1";
+    encoding?: "upper-triangle-bps-v1";
+    effects: Record<string, number[][] | number[]>;
+    available?: Record<string, number[][] | number[]>;
+    homeAvailable?: boolean;
+  };
 };
 
 export function useMatrixShard(surface: string, bestOf: number) {

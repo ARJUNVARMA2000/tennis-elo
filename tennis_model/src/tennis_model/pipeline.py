@@ -18,7 +18,8 @@ from datetime import UTC
 from .config import MATCH_POPULATION_VERSION, PLAYER_ALIASES, TOURS, WEB_DATA_DIR, output_dir
 from .data.results import load_matches
 from .model.export import export_all
-from .model.features import FEATURES, build_predictor_inputs, feat_params_for, main_rows
+from .model.features import FEATURES, build_predictor_inputs, feat_params_for
+from .model.features import main_rows as main_rows  # noqa: F401 — compatibility seam for guard tests
 from .model.predict import TennisPredictor
 from .model.train import train_final, walk_forward, xgb_params_for
 
@@ -45,6 +46,15 @@ def _track(tour: str, predictor, df) -> None:
         log_and_grade(tour, predictor, df)
     except Exception as e:                                   # noqa: BLE001 — never fatal
         print(f"  track/{tour}: skipped ({e})")
+
+
+def _forecast_products(tour: str, predictor, df) -> None:
+    """Publish history/performance decorations after the current snapshot is logged."""
+    try:
+        from .model.export import export_forecast_products
+        export_forecast_products(tour, predictor, df)
+    except Exception as e:                                   # noqa: BLE001 — tracking UI is non-fatal
+        print(f"  forecast-products/{tour}: skipped ({e})")
 
 
 def _health_manifest(tour: str, df) -> None:
@@ -137,7 +147,6 @@ def build_tour(tour: str, do_backtest: bool, *, run_kalshi: bool = True):
     df = load_matches(tour)
     _health_manifest(tour, df)
     feat, elo, srv, ctx, meta = build_predictor_inputs(df)
-    feat = main_rows(feat)   # combiner never sees lower-tier rows (A5 ratings-only)
 
     oos = None
     if do_backtest:
@@ -164,6 +173,7 @@ def build_tour(tour: str, do_backtest: bool, *, run_kalshi: bool = True):
     if oos is not None:
         _market_scorecard(tour, oos)
     _track(tour, predictor, df)                  # logs upcoming forecasts first, so
+    _forecast_products(tour, predictor, df)      # this run's snapshot reaches the same deploy
     if run_kalshi:
         _kalshi(tour, df, oos)                         # daily historical benchmark repair
     _mirror(tour)
@@ -211,6 +221,11 @@ def _predictor_current(predictor, tour: str) -> bool:
     except Exception:                                        # noqa: BLE001 — legacy/foreign pickle: rebuild
         return False
     try:
+        if predictor._inference_schema_version != 2:
+            return False
+    except Exception:                                        # noqa: BLE001 — legacy context mirror: rebuild
+        return False
+    try:
         return predictor._player_aliases == tuple(sorted(PLAYER_ALIASES.items()))
     except Exception:                                        # noqa: BLE001 — legacy/foreign pickle: rebuild
         return False
@@ -231,6 +246,7 @@ def build_tour_quick(tour: str):
     export_all(tour, df, predictor.elo, predictor.srv, predictor.meta, predictor,
                oos=None, full=False)
     _track(tour, predictor, df)
+    _forecast_products(tour, predictor, df)
     _mirror(tour)
     return df
 

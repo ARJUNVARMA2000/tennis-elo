@@ -10,7 +10,7 @@ import { nameKey, type PlayerRow } from "@/lib/live";
 import LiveTicker from "@/components/LiveTicker";
 import Link from "next/link";
 import { pairHref } from "@/lib/url";
-import { closestUpcomingMatch, matchesForTournament, type Upcoming } from "@/lib/upcoming";
+import { closestUpcomingMatch, matchesForTournament, worthWatching, type Upcoming } from "@/lib/upcoming";
 
 export type Proj = { name: string; champion: number; final: number | null; sf: number | null; reach?: Record<string, number> };
 export type Tournament = {
@@ -317,7 +317,7 @@ function OverviewInsights({
     (best, player) => (!best || player.champion > best.champion ? player : best),
     undefined,
   );
-  const closest = closestUpcomingMatch(matches);
+  const closest = worthWatching(matches, 1)[0] ?? closestUpcomingMatch(matches);
   const live = events.filter((event) => event.status === "live");
   const active = live.length ? live : events.filter((event) => event.status === "upcoming");
   if (!primary && !closest) return null;
@@ -374,9 +374,9 @@ function OverviewInsights({
           {closest && (
             <article className="panel min-w-0 p-4">
               <div className="flex items-center justify-between gap-3">
-                <span className="eyebrow !text-[10px]">Closest next match</span>
+                <span className="eyebrow !text-[10px]">{closest.watch ? "Match to watch" : "Closest next match"}</span>
                 <span className="mono text-[13px] text-[var(--color-accent)]">
-                  {pct(Math.max(closest.pA, 1 - closest.pA), 0)}–{pct(Math.min(closest.pA, 1 - closest.pA), 0)}
+                  {closest.watch ? `${closest.watch.score.toFixed(0)} / 100` : `${pct(Math.max(closest.pA, 1 - closest.pA), 0)}–${pct(Math.min(closest.pA, 1 - closest.pA), 0)}`}
                 </span>
               </div>
               <Link

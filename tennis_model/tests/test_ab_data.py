@@ -7,7 +7,12 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from tennis_model.eval.ab_data import _verdict  # noqa: E402
+from tennis_model.eval.ab_data import (  # noqa: E402
+    _assert_unaffected_parity,
+    _focused_wta_slices,
+    _kalshi_outside_top50_keys,
+    _verdict,
+)
 
 
 def _frames():
@@ -42,3 +47,43 @@ def test_verdict_gate_line_format(capsys):
     out = capsys.readouterr().out
     assert "GATE: d_tune=-0.00500  d_val=+0.06000" in out
     assert "-> REJECT" in out
+
+
+def test_wta_focused_slices_use_ranks_and_frozen_kalshi_membership(capsys):
+    base = pd.DataFrame({
+        "winner_name": ["Alpha One", "Charlie Three", "Echo Five"],
+        "loser_name": ["Bravo Two", "Delta Four", "Foxtrot Six"],
+        "date": pd.to_datetime(["2025-01-01", "2025-01-02", "2025-01-03"]),
+        "year": [2025, 2025, 2025],
+        "winner_rank": [10, 51, np.nan], "loser_rank": [20, 7, 60],
+        "p_combiner": [0.5, 0.5, 0.5],
+    })
+    arm = base.copy()
+    arm["p_combiner"] = [0.51, 0.52, 0.53]
+    frozen = pd.DataFrame({
+        "player_a": ["Delta Four", "Alpha One"],
+        "player_b": ["Charlie Three", "Bravo Two"],
+        "result_date": ["2025-01-02", "2025-01-01"],
+        "rank_a": [7, 10], "rank_b": [51, 20],
+    })
+
+    keys = _kalshi_outside_top50_keys(frozen)
+    assert len(keys) == 1
+    _focused_wta_slices(base, arm, kalshi=frozen)
+    out = capsys.readouterr().out
+    assert "both players inside top 50            n=    1" in out
+    assert "someone outside top 50                n=    2" in out
+    assert "frozen Kalshi + outside top 50        n=    1" in out
+
+
+def test_state_only_parity_guard_rejects_pre_effect_drift():
+    base = pd.DataFrame({"year": [2015, 2016], "p_combiner": [0.6, 0.7]})
+    same_pre = pd.DataFrame({"year": [2015, 2016], "p_combiner": [0.6, 0.71]})
+    _assert_unaffected_parity(base, same_pre, 2016)
+
+    drift = pd.DataFrame({"year": [2015, 2016], "p_combiner": [0.6001, 0.71]})
+    try:
+        _assert_unaffected_parity(base, drift, 2016)
+        raise AssertionError("expected pre-effect parity failure")
+    except AssertionError as exc:
+        assert "pre-2016" in str(exc)

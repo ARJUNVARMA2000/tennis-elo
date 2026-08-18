@@ -17,6 +17,39 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 import tennis_model.data.wta_stats as ws
 
 
+def _event(*, level="WTA500", draw_level="main"):
+    return {"id": 99, "name": "Test Open", "year": 2025, "level": level,
+            "draw_level": draw_level, "surface": "Hard", "indoor": "O",
+            "start": "2025-01-01", "end": "2025-01-07", "draw": 32}
+
+
+def _match(*, draw="Q", round_id="1", match_id="RS001"):
+    return {
+        "DrawMatchType": "S", "DrawLevelType": draw, "MatchState": "F",
+        "MatchID": match_id, "RoundID": round_id, "Winner": "2",
+        "PlayerNameFirstA": "Alice", "PlayerNameLastA": "Ace",
+        "PlayerNameFirstB": "Bobbi", "PlayerNameLastB": "Backhand",
+        "PlayerCountryA": "USA", "PlayerCountryB": "CAN",
+        "PlayerIDA": "1", "PlayerIDB": "2", "EntryTypeA": "", "EntryTypeB": "",
+        "SeedA": "", "SeedB": "", "MatchTimeStamp": "2025-01-02T10:00:00Z",
+        "ScoreSet1A": "6", "ScoreSet1B": "4", "ScoreSet2A": "6", "ScoreSet2B": "3",
+        "ScoreSet3A": "", "ScoreSet3B": "", "ScoreSet4A": "", "ScoreSet4B": "",
+        "ScoreSet5A": "", "ScoreSet5B": "", "ScoreTbSet1": "", "ScoreTbSet2": "",
+    }
+
+
+def _stats():
+    return {
+        "setnum": 0,
+        "totservplayeda": 60, "ptsplayed1stserva": 36, "ptswon1stserva": 25,
+        "ptstotwonserva": 40, "acesa": 3, "dblflta": 2, "servgamesplayeda": 9,
+        "breakptsconva": 2, "breakptsplayeda": 4,
+        "totservplayedb": 58, "ptsplayed1stservb": 34, "ptswon1stservb": 20,
+        "ptstotwonservb": 31, "acesb": 1, "dblfltb": 3, "servgamesplayedb": 9,
+        "breakptsconvb": 3, "breakptsplayedb": 5,
+    }
+
+
 def test_round_label():
     assert ws._round_label("1", 32) == "R32"
     assert ws._round_label("Q", 32) == "QF"
@@ -24,6 +57,57 @@ def test_round_label():
     assert ws._round_label("F", 32) == "F"
     assert ws._round_label("0", 32) is None
     print("ok test_round_label")
+
+
+def test_legacy_and_current_125_levels_share_lower_role():
+    assert ws._normalized_level("125K") == ("WTA125", "chall")
+    assert ws._normalized_level("WTA 125") == ("WTA125", "chall")
+    assert ws._normalized_level("Premier Mandatory") == ("WTA1000", "main")
+    assert ws._normalized_level("ITF") is None
+
+
+def test_fetch_scope_keeps_main_events_for_qualifying_and_deduplicates():
+    items = [
+        {"level": "WTA 500", "tournamentGroup": {"id": 1, "name": "Tour"},
+         "year": 2025, "surface": "Hard", "inOutdoor": "O", "startDate": "2025-01-01",
+         "endDate": "2025-01-07", "singlesDrawSize": 32},
+        {"level": "WTA 500", "tournamentGroup": {"id": 1, "name": "Tour duplicate"},
+         "year": 2025, "surface": "Hard", "inOutdoor": "O", "startDate": "2025-01-01",
+         "endDate": "2025-01-07", "singlesDrawSize": 32},
+        {"level": "125K", "tournamentGroup": {"id": 2, "name": "Lower"},
+         "year": 2025, "surface": "Clay", "inOutdoor": "O", "startDate": "2025-02-01",
+         "endDate": "2025-02-07", "singlesDrawSize": 32},
+    ]
+    orig = ws._paged
+    try:
+        ws._paged = lambda *args, **kwargs: items
+        assert [e["id"] for e in ws.fetch_tournaments(2025, scope="main")] == [1]
+        lower_scope = ws.fetch_tournaments(2025, scope="lower")
+    finally:
+        ws._paged = orig
+    assert {e["id"] for e in lower_scope} == {1, 2}  # tour event retained for its Q draw
+    assert {e["id"]: e["draw_level"] for e in lower_scope} == {1: "main", 2: "chall"}
+
+
+def test_qualifying_row_is_explicit_state_only_schema():
+    row = ws._stats_row(_event(), _match(), _stats(), "qual")
+    assert row is not None
+    assert row["draw_level"] == "qual" and row["tourney_level"] == "Q"
+    assert row["round"] == "Q1" and row["source_match_id"] == "RS001"
+    assert row["w_svpt"] == 60 and row["l_svpt"] == 58
+
+
+def test_resume_key_skips_existing_match_before_stats_request():
+    ev, match = _event(), _match()
+    key = ws._match_key(ev, match, "qual")
+    orig = (ws._paged, ws._get)
+    try:
+        ws._paged = lambda *args, **kwargs: [match]
+        ws._get = lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("stats endpoint called despite known row"))
+        assert ws.scrape_tournament(ev, scope="lower", known_keys={key}) == []
+    finally:
+        ws._paged, ws._get = orig
 
 
 def test_paged_stops_on_paging_blind_endpoint():
@@ -91,7 +175,7 @@ def test_write_year_merges_and_is_atomic():
                                 "winner_name": ["A", "B"], "loser_name": ["X", "Y"],
                                 "score": ["6-1 6-1", "6-2 6-2"]})
             old.to_csv(base / "stats" / "2026.csv", index=False)
-            # refreshed scrape of W2 replaces its rows; W1 is kept
+            # refreshed scrape of the same W2 pair replaces its row; W1 is kept
             new = pd.DataFrame({"tourney_id": ["2026-W2"], "winner_name": ["B"],
                                 "loser_name": ["Y"], "score": ["6-3 6-3"]})
             n = ws.write_year(2026, new)
@@ -107,6 +191,44 @@ def test_write_year_merges_and_is_atomic():
     print("ok test_write_year_merges_and_is_atomic")
 
 
+def test_write_year_routes_lower_rows_and_never_shrinks_old_event():
+    orig = (ws.stats_dir, ws.lower_dir, ws.fresh_dir, ws.historical_dir)
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            for name in ("stats", "lower", "fresh", "historical"):
+                (base / name).mkdir()
+            ws.stats_dir = lambda tour: base / "stats"
+            ws.lower_dir = lambda tour: base / "lower"
+            ws.fresh_dir = lambda tour: base / "fresh"
+            ws.historical_dir = lambda tour: base / "historical"
+            old = pd.DataFrame({
+                "tourney_id": ["2025-W99"], "winner_name": ["Keep Me"],
+                "loser_name": ["Old Row"], "round": ["Q1"], "score": ["6-4 6-4"],
+                "draw_level": ["qual"], "tourney_level": ["Q"],
+            })
+            old.to_csv(base / "lower" / "2025_wta_lower.csv", index=False)
+            new = pd.DataFrame({
+                "tourney_id": ["2025-W99"], "winner_name": ["New Row"],
+                "loser_name": ["Another"], "round": ["Q2"], "score": ["6-3 6-3"],
+                "draw_level": ["qual"], "tourney_level": ["Q"],
+            })
+            assert ws.write_year(2025, new, lower=True) == 2
+            out = pd.read_csv(base / "lower" / "2025_wta_lower.csv")
+    finally:
+        ws.stats_dir, ws.lower_dir, ws.fresh_dir, ws.historical_dir = orig
+    assert set(out["winner_name"]) == {"Keep Me", "New Row"}
+    assert not (base / "stats" / "2025.csv").exists()
+
+
+def test_backfill_rejects_multiple_years():
+    try:
+        ws._one_year([2024, 2025])
+        raise AssertionError("expected singular-year guard")
+    except ValueError as exc:
+        assert "exactly one year" in str(exc)
+
+
 def test_scrape_year_tolerates_minority_dead_endpoints():
     """Old seasons carry a few permanently-404 event endpoints; a minority must be
     skipped loudly (additive merge), while a majority still raises (real outage)."""
@@ -117,9 +239,9 @@ def test_scrape_year_tolerates_minority_dead_endpoints():
 
     orig = (ws.fetch_tournaments, ws.scrape_tournament)
     try:
-        ws.fetch_tournaments = lambda year: events(10)
+        ws.fetch_tournaments = lambda year, **kwargs: events(10)
         # 2 dead endpoints out of 10 -> tolerated (max(2, 10//5) = 2 threshold... 2 is not > 2)
-        def two_dead(ev):
+        def two_dead(ev, **kwargs):
             if ev["id"] < 2:
                 raise RuntimeError("dead endpoint")
             return [{"tourney_id": f"2016-W{ev['id']}", "winner_name": "A",
@@ -129,7 +251,7 @@ def test_scrape_year_tolerates_minority_dead_endpoints():
         assert len(df) == 8, len(df)
 
         # 5 dead out of 10 -> majority-ish: must raise, not silently produce a husk
-        def five_dead(ev):
+        def five_dead(ev, **kwargs):
             if ev["id"] < 5:
                 raise RuntimeError("dead endpoint")
             return [{"tourney_id": f"2016-W{ev['id']}", "winner_name": "A",
@@ -143,6 +265,45 @@ def test_scrape_year_tolerates_minority_dead_endpoints():
     finally:
         ws.fetch_tournaments, ws.scrape_tournament = orig
     print("ok test_scrape_year_tolerates_minority_dead_endpoints")
+
+
+def test_scrape_year_aborts_immediately_on_transport_failure():
+    """A throttle/outage is season-wide: do not misclassify it as a dead event and
+    march on to manufacture a partial successful year."""
+    events = [_event(), {**_event(), "id": 100, "name": "Never Reached"}]
+    calls = []
+    orig = (ws.fetch_tournaments, ws.scrape_tournament)
+    try:
+        ws.fetch_tournaments = lambda year, **kwargs: events
+
+        def throttled(ev, **kwargs):
+            calls.append(ev["id"])
+            raise ws.WtaTransportError("429 wall")
+
+        ws.scrape_tournament = throttled
+        try:
+            ws.scrape_year(2025, scope="lower")
+            raise AssertionError("expected transport failure")
+        except ws.WtaTransportError:
+            pass
+    finally:
+        ws.fetch_tournaments, ws.scrape_tournament = orig
+    assert calls == [99]
+
+
+def test_scrape_year_does_not_call_deterministic_404s_an_outage():
+    """Even a patchy historical season may have many cached 404 catalogue rows;
+    unlike malformed/pagination failures, they must not trip the outage threshold."""
+    events = [{**_event(), "id": i, "name": f"Missing {i}"} for i in range(10)]
+    orig = (ws.fetch_tournaments, ws.scrape_tournament)
+    try:
+        ws.fetch_tournaments = lambda year, **kwargs: events
+        ws.scrape_tournament = lambda ev, **kwargs: (_ for _ in ()).throw(
+            ws.WtaMissingRecordError("cached 404"))
+        out = ws.scrape_year(2019, scope="lower")
+    finally:
+        ws.fetch_tournaments, ws.scrape_tournament = orig
+    assert out.empty
 
 
 def test_enrich_inherits_from_historical_archive():

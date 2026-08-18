@@ -19,6 +19,8 @@ from tennis_model.model.train import (
     IdentityCalibrator,
     IsotonicCalibrator,
     PlattCalibrator,
+    _cache_path,
+    _combiner_rows,
     _fit_fold,
     _orient_for_cal,
 )
@@ -79,6 +81,24 @@ def test_orient_for_cal_alternating_flip():
     assert np.allclose(p, [0.8, 0.2, 0.8, 0.2])
     assert list(y) == [1, 0, 1, 0]
     print("ok test_orient_for_cal_alternating_flip")
+
+
+def test_combiner_admission_is_main_only_unless_research_opted_in():
+    feat = pd.DataFrame({"draw_level": ["main", "qual", "chall"], "x": [1, 2, 3]})
+    kept = _combiner_rows(feat)
+    assert list(kept["x"]) == [1]
+    assert _combiner_rows(feat, allow_lower=True) is feat
+
+
+def test_feature_cache_is_keyed_by_the_tours_own_lower_state_flag(monkeypatch):
+    from tennis_model import config
+
+    monkeypatch.setattr(config, "INCLUDE_CHALLENGERS", True)
+    monkeypatch.setattr(config, "INCLUDE_WTA_LOWER_STATE", False)
+    assert _cache_path("atp").name == "_features_atp_lower.pkl"
+    assert _cache_path("wta").name == "_features_wta.pkl"
+    monkeypatch.setattr(config, "INCLUDE_WTA_LOWER_STATE", True)
+    assert _cache_path("wta").name == "_features_wta_lower.pkl"
 
 
 def _synthetic_feat(n=2200, seed=3) -> pd.DataFrame:

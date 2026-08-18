@@ -25,6 +25,7 @@ export type BracketRound = { round: string; matches: BracketMatch[] };
 
 export type BracketEvent = {
   name: string;
+  espnId?: string | null;
   surface: string;
   level: string;
   bestOf: number;
@@ -42,6 +43,12 @@ export type BracketEvent = {
   drawSourceEnd?: string | null;
   drawEvidencePlayers?: number | null;
   drawEvidenceFieldPlayers?: number | null;
+  scenario?: {
+    file: string;
+    generation: string;
+    modelGeneration?: string | null;
+  } | null;
+  scenarioFile?: string | null;
   rounds: BracketRound[];
 };
 
@@ -141,7 +148,8 @@ export function sectionLabels(bracketSize: number): string[] {
     (build order is live → upcoming → completed, so index 0 is the most relevant). */
 export function resolveEventIndex(events: BracketEvent[], eParam: string | null): number {
   if (!eParam) return 0;
-  const i = events.findIndex((e) => norm(e.name) === norm(eParam));
+  const i = events.findIndex((e) => String(e.espnId ?? "") === eParam
+    || norm(e.name) === norm(eParam));
   return i >= 0 ? i : 0;
 }
 

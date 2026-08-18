@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { byTournamentTier, closestUpcomingMatch, filterUpcoming, groupByEvent, hasMatchupProfiles, matchesForTournament, upcomingCard, type Upcoming } from "@/lib/upcoming";
+import { byTournamentTier, closestUpcomingMatch, filterUpcoming, groupByEvent, hasMatchupProfiles, matchesForTournament, orientForecast, upcomingCard, type Upcoming } from "@/lib/upcoming";
 
 const mk = (event: string, round: string, a: string, b: string, pA: number, surface = "Hard"): Upcoming => ({
   event,
@@ -193,5 +193,22 @@ describe("schedule discovery helpers", () => {
     expect(filterUpcoming(rows, "Hard", "all")).toHaveLength(2);
     expect(filterUpcoming(rows, "All", "Bastad").map((row) => row.playerA)).toEqual(["E"]);
     expect(filterUpcoming(rows, "Clay", "Montreal")).toEqual([]);
+  });
+});
+
+describe("forecast orientation", () => {
+  it("flips every probability and component while preserving provenance", () => {
+    const source = {
+      first: 0.7, current: 0.6, delta: -0.1, snapshots: 2,
+      timeline: [{ asOf: "2026-07-10T10:00:00Z", p: 0.7, firstSighting: true,
+        components: { eloBlend: 0.65, pointModel: 0.8, combiner: 0.7 } }],
+    };
+    const flipped = orientForecast(source, true);
+    expect(flipped.first).toBeCloseTo(0.3);
+    expect(flipped.current).toBeCloseTo(0.4);
+    expect(flipped.delta).toBeCloseTo(0.1);
+    expect(flipped.timeline?.[0]).toMatchObject({ p: 0.3, firstSighting: true,
+      components: { eloBlend: 0.35, pointModel: 0.2, combiner: 0.3 } });
+    expect(source.timeline[0].p).toBe(0.7);
   });
 });

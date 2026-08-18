@@ -42,6 +42,7 @@ def _joined_frame() -> pd.DataFrame:
         "l_selo": 1560.0, "p_blend": 0.62, "p_point": 0.58,
         "serve_skill_diff": 0.013, "return_skill_diff": -0.007,
         "winner_rank_points": 3200.0, "loser_rank_points": 900.0,
+        "winner_rank": 12.0, "loser_rank": 71.0,
         "w_n": 210, "l_n": 145, "winner_age": 24.5, "loser_age": 29.0,
         "winner_ht": 185.0, "loser_ht": 191.0, "winner_hand": "R", "loser_hand": "L",
         "w_days_since": 7.0, "l_days_since": 21.0, "w_fat": 3.0, "l_fat": 1.0,
@@ -57,6 +58,7 @@ def _joined_frame() -> pd.DataFrame:
     r1 = dict(r0)
     for w, l in (("w_elo", "l_elo"), ("w_selo", "l_selo"),
                  ("winner_rank_points", "loser_rank_points"), ("w_n", "l_n"),
+                 ("winner_rank", "loser_rank"),
                  ("winner_age", "loser_age"), ("winner_ht", "loser_ht"),
                  ("winner_hand", "loser_hand"), ("w_days_since", "l_days_since"),
                  ("w_fat", "l_fat"), ("w_h2h", "l_h2h"), ("w_form90", "l_form90"),
@@ -87,6 +89,8 @@ def test_assemble_orientation_contract():
     for c in SYMMETRIC:
         assert np.isclose(a[c], b[c], atol=1e-9), (c, a[c], b[c])
     assert a["has_style"] == 0 and a["style_net_diff"] == 0.0
+    assert a["winner_rank"] == 12 and a["loser_rank"] == 71
+    assert b["winner_rank"] == 71 and b["loser_rank"] == 12
     print("ok test_assemble_orientation_contract")
 
 

@@ -188,9 +188,17 @@ class ServeReturnState:
 
 
 def run_serve_return(df: pd.DataFrame,
-                     params: ServeReturnParams | None = None) -> tuple[ServeReturnState, pd.DataFrame]:
-    """Chronological pass: record pre-match (surface) skills + point-model probability."""
-    avg, base = serve_averages(df)
+                     params: ServeReturnParams | None = None,
+                     baseline_df: pd.DataFrame | None = None,
+                     ) -> tuple[ServeReturnState, pd.DataFrame]:
+    """Chronological pass: record pre-match skills + point-model probability.
+
+    ``baseline_df`` controls only the league/surface serve priors.  Data-side state
+    experiments pass their identical main-draw population here, so adding later lower
+    rows cannot retroactively change pre-experiment predictions through a full-frame
+    aggregate; the lower rows still update every player accumulator in ``df``.
+    """
+    avg, base = serve_averages(df if baseline_df is None else baseline_df)
     st = ServeReturnState(avg=avg, base=base, params=params or DEFAULT_SR_PARAMS)
     n = len(df)
     cols = ["w_serve_skill", "l_serve_skill", "w_return_skill", "l_return_skill",

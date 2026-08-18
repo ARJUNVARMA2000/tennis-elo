@@ -18,7 +18,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/rankings", label: "Rankings", desc: "Live Elo top 100" },
       { href: "/player", label: "Profiles", desc: "History, splits & H2H" },
-      { href: "/style", label: "Playing style", desc: "13-axis fingerprints" },
+      { href: "/style", label: "Playing style", desc: "10-axis fingerprints" },
       { href: "/strength", label: "Strength map", desc: "Serve vs return" },
       { href: "/explorer", label: "Explorer", desc: "Any stat vs any stat" },
       { href: "/trends", label: "Risers & fallers", desc: "Recent Elo movers" },

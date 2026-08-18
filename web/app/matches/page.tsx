@@ -5,8 +5,9 @@ import { CallCard, Loading, PageHead, Reveal } from "@/components/bits";
 import Dropdown from "@/components/Dropdown";
 import LiveTicker from "@/components/LiveTicker";
 import PredictionWhy from "@/components/PredictionWhy";
+import ForecastTimeline from "@/components/ForecastTimeline";
 import { useData, useTour } from "@/lib/tour";
-import { groupByEvent, upcomingCard, type Upcoming } from "@/lib/upcoming";
+import { groupByEvent, hasMatchupProfiles, upcomingCard, worthWatching, type ForecastHistory, type Upcoming } from "@/lib/upcoming";
 
 type Tab = "live" | "upcoming" | "final";
 type TrackCall = {
@@ -19,6 +20,7 @@ type TrackCall = {
   p: number;
   actualWinner: string;
   hit: boolean;
+  forecast?: ForecastHistory | null;
 };
 type Track = { matchForecasts?: { recent?: TrackCall[] } };
 const TABS = ["live", "upcoming", "final"] as const;
@@ -44,6 +46,7 @@ export default function MatchCenter() {
     return [...new Set(source)].sort();
   }, [tab, upcoming, finals]);
   const shownUpcoming = event === "all" ? upcoming : upcoming.filter((row) => row.event === event);
+  const watchlist = useMemo(() => worthWatching(shownUpcoming, 5), [shownUpcoming]);
   const shownFinals = event === "all" ? finals : finals.filter((row) => row.event === event);
   const switchTab = (next: Tab) => {
     setTab(next);
@@ -60,7 +63,10 @@ export default function MatchCenter() {
   };
 
   return (
-    <div className="pb-16">
+    <div
+      className="pb-16"
+      data-match-center-contract="upcoming-style-links+forecast-history+watch+evidence-v3"
+    >
       <PageHead
         eyebrow={`${tour.toUpperCase()} · match center`}
         title="Matches"
@@ -111,6 +117,7 @@ export default function MatchCenter() {
         {tab === "upcoming" && (
           <MatchSection loading={upcomingState.loading} error={upcomingState.error} empty={!shownUpcoming.length}>
             <div className="mt-7 space-y-8">
+              {watchlist.length > 0 && <Watchlist matches={watchlist} roster={roster} />}
               {groupByEvent(shownUpcoming).map((group) => (
                 <section key={group.event}>
                   <div className="mb-3 flex items-baseline gap-3">
@@ -121,7 +128,14 @@ export default function MatchCenter() {
                     {group.matches.map((match, index) => (
                       <Reveal key={`${match.playerA}-${match.playerB}-${index}`} delay={Math.min(index * 0.02, 0.16)}>
                         <div>
-                          <CallCard tone="projection" {...upcomingCard(match)} profileRoster={roster} />
+                          <div className="relative">
+                            <CallCard
+                              tone="projection"
+                              {...upcomingCard(match)}
+                              matchup={hasMatchupProfiles(match, roster)}
+                              profileRoster={roster}
+                            />
+                          </div>
                           <PredictionWhy match={match} />
                         </div>
                       </Reveal>
@@ -142,16 +156,23 @@ export default function MatchCenter() {
                 const winnerP = aWon ? call.p : 1 - call.p;
                 return (
                   <Reveal key={`${call.date}-${call.playerA}-${call.playerB}-${index}`} delay={Math.min(index * 0.015, 0.18)}>
-                    <CallCard
-                      glow
-                      surface={call.surface}
-                      meta={`${call.event} · ${call.round} · ${call.date}`}
-                      top={{ name: winner, prob: winnerP, won: true }}
-                      bottom={{ name: loser, prob: 1 - winnerP, won: false }}
-                      note="frozen pre-match call"
-                      verdict={{ label: call.hit ? "called it ✓" : "missed ✗", good: call.hit }}
-                      profileRoster={roster}
-                    />
+                    <div>
+                      <CallCard
+                        glow
+                        surface={call.surface}
+                        meta={`${call.event} · ${call.round} · ${call.date}`}
+                        top={{ name: winner, prob: winnerP, won: true }}
+                        bottom={{ name: loser, prob: 1 - winnerP, won: false }}
+                        note="frozen first-sighting call"
+                        verdict={{ label: call.hit ? "called it ✓" : "missed ✗", good: call.hit }}
+                        profileRoster={roster}
+                      />
+                      {call.forecast && (
+                        <div className="mx-2 rounded-b-lg border border-t-0 border-[var(--color-line)] px-3 py-2">
+                          <ForecastTimeline forecast={call.forecast} player={call.playerA} />
+                        </div>
+                      )}
+                    </div>
                   </Reveal>
                 );
               })}
@@ -160,6 +181,60 @@ export default function MatchCenter() {
         )}
       </div>
     </div>
+  );
+}
+
+const WATCH_LABELS = {
+  closeness: "Close",
+  quality: "Quality",
+  styleContrast: "Style",
+  stakes: "Stakes",
+  titleLeverage: "Title swing",
+} as const;
+
+function Watchlist({ matches, roster }: { matches: Upcoming[]; roster: ReadonlySet<string> }) {
+  return (
+    <section aria-label="Matches worth watching" data-watch-ranking="watch-v1">
+      <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <h2 className="display text-2xl">Matches worth watching</h2>
+          <p className="mt-1 text-[11px] text-[var(--color-faint)]">
+            Product ranking—not a prediction of entertainment quality. The full schedule remains chronological below.
+          </p>
+        </div>
+        <span className="mono text-[10px] text-[var(--color-faint)]">30 close · 25 quality · 15 each style / stakes / title swing</span>
+      </div>
+      <div className="grid gap-3 lg:grid-cols-2">
+        {matches.map((match) => (
+          <article key={`${match.espnId}-${match.round}-${match.playerA}-${match.playerB}`} className="panel p-3">
+            <div className="mb-2 flex items-center justify-between gap-3 px-1">
+              <span className="eyebrow">#{match.watchRank} to watch</span>
+              <span className="mono text-sm text-[var(--color-accent)]">{match.watch?.score.toFixed(1)} / 100</span>
+            </div>
+            <div className="relative">
+              <CallCard
+                tone="projection"
+                {...upcomingCard(match, { showEvent: true })}
+                matchup={hasMatchupProfiles(match, roster)}
+                profileRoster={roster}
+              />
+            </div>
+            <div className="mt-2 grid grid-cols-5 gap-1">
+              {Object.entries(WATCH_LABELS).map(([key, label]) => {
+                const factor = match.watch?.factors[key as keyof typeof WATCH_LABELS];
+                return (
+                  <div key={key} className="min-w-0 rounded border border-[var(--color-line)] px-1 py-1.5 text-center">
+                    <div className="mono truncate text-[8px] uppercase text-[var(--color-faint)]">{label}</div>
+                    <div className="mono mt-0.5 text-[10px]">{factor?.available ? factor.score.toFixed(0) : "—"}</div>
+                  </div>
+                );
+              })}
+            </div>
+            <PredictionWhy match={match} />
+          </article>
+        ))}
+      </div>
+    </section>
   );
 }
 

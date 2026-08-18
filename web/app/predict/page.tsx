@@ -10,12 +10,15 @@ import { PageHead, Loading, SurfacePill, Reveal, ProbBar, AnimatedNumber } from 
 import Dropdown, { type DropdownOption } from "@/components/Dropdown";
 import { SPRING, stagger, pop } from "@/lib/motion";
 import { matrixProbability, useMatrixShard } from "@/lib/matrix";
-import type { Upcoming } from "@/lib/upcoming";
+import { orientForecast, type Upcoming } from "@/lib/upcoming";
+import ForecastTimeline from "@/components/ForecastTimeline";
+import PredictionEvidence from "@/components/PredictionEvidence";
+import { matrixEvidence, orientEvidence } from "@/lib/evidence";
 
 export default function Predict() {
   const { tour } = useTour();
   return (
-    <div className="pb-16">
+    <div className="pb-16" data-prediction-explanation-contract="grouped-evidence-not-causation-v2">
       <PageHead
         eyebrow={`${tour.toUpperCase()} · head to head`}
         title="Match Predictor"
@@ -101,22 +104,23 @@ function PredictInner() {
     };
   }, [shard, a, b]);
 
-  const movement = useMemo(() => {
-    const row = (upcoming ?? []).find((m) =>
+  const scheduled = useMemo(() => (upcoming ?? []).find((m) =>
       m.surface === surface && m.bestOf === format
       && ((m.playerA === players[a] && m.playerB === players[b])
-        || (m.playerA === players[b] && m.playerB === players[a]))
-      && m.forecast,
-    );
+        || (m.playerA === players[b] && m.playerB === players[a])),
+  ), [upcoming, surface, format, players, a, b]);
+
+  const movement = useMemo(() => {
+    const row = scheduled;
     if (!row?.forecast) return null;
-    if (row.playerA === players[a]) return row.forecast;
-    return {
-      ...row.forecast,
-      first: 1 - row.forecast.first,
-      current: 1 - row.forecast.current,
-      delta: -row.forecast.delta,
-    };
-  }, [upcoming, surface, format, players, a, b]);
+    return orientForecast(row.forecast, row.playerA !== players[a]);
+  }, [scheduled, players, a]);
+  const evidence = useMemo(
+    () => scheduled?.evidence
+      ? orientEvidence(scheduled.evidence, scheduled.playerA !== players[a])
+      : matrixEvidence(shard, a, b),
+    [scheduled, players, a, shard, b],
+  );
 
   const dist = p != null ? scoreDist(p, format) : [];
 
@@ -191,25 +195,15 @@ function PredictInner() {
                   <ProbBar p={p} w={"100%" as any} />
                 </div>
 
-                {components && (
+                {(components || evidence) && (
                   <details className="panel-inset mt-6 p-4">
                     <summary className="cursor-pointer select-none text-sm font-medium text-[var(--color-text)]">
-                      Why this prediction?
+                      Model evidence
                     </summary>
-                    <div className="mt-4 grid gap-2 sm:grid-cols-3">
-                      <ComponentReadout label="Elo blend" value={components.eloBlend} />
-                      <ComponentReadout label="Point model" value={components.pointModel} />
-                      <ComponentReadout label="Final combiner" value={components.combiner} accent />
-                    </div>
+                    <div className="mt-4"><PredictionEvidence evidence={evidence} components={components} /></div>
                     {movement && (
-                      <div className="mono mt-3 text-[11px] text-[var(--color-muted)]">
-                        Scheduled-match movement since first sighting: {movement.delta >= 0 ? "+" : ""}
-                        {(movement.delta * 100).toFixed(1)} pp across {movement.snapshots} saved snapshot{movement.snapshots === 1 ? "" : "s"}.
-                      </div>
+                      <ForecastTimeline forecast={movement} player={players[a]} />
                     )}
-                    <p className="mt-3 text-[11px] leading-relaxed text-[var(--color-faint)]">
-                      These component probabilities show agreement or disagreement between model inputs. They are not causal feature attribution or SHAP values.
-                    </p>
                   </details>
                 )}
 
@@ -244,17 +238,6 @@ function PredictInner() {
         </>
       )}
     </>
-  );
-}
-
-function ComponentReadout({ label, value, accent = false }: { label: string; value: number | null; accent?: boolean }) {
-  return (
-    <div className="rounded-md border border-[var(--color-line)] px-3 py-2">
-      <div className="mono text-[10px] uppercase tracking-wider text-[var(--color-faint)]">{label}</div>
-      <div className="mono mt-1 text-base" style={{ color: accent ? "var(--color-accent)" : "var(--color-text)" }}>
-        {value == null ? "—" : pct(value, 1)}
-      </div>
-    </div>
   );
 }
 

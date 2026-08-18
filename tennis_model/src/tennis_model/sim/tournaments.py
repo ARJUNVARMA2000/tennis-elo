@@ -37,7 +37,6 @@ from ..data.results import _name_key
 from ..data.surface import resolve_level, resolve_surface_info
 from .bracket import bracket_is_meaningful, bracket_rounds, is_real, oriented_logged, price_bracket
 from .draws import advance_slots, draw_status, live_draw, standard_seed_draw
-from .simulate import simulate_tournament
 
 _KO_ROUNDS = {"R128", "R64", "R32", "R16", "QF", "SF", "F"}
 ROUND_COLS = ["R128", "R64", "R32", "R16", "QF", "SF", "F", "Champion"]  # reach-prob columns, entry -> title
@@ -486,26 +485,38 @@ def projection_is_meaningful(field_pool) -> bool:
 
 def _simulate_projection(predictor, slots: list, surface: str, best_of: int,
                          name: str, n_sims: int, seed: int) -> tuple[list, str | None]:
-    """Simulate a bracket -> (projection rows, model favourite). The odds-formatting shared
-    by the live/completed and pre-start complete-draw paths, so it lives in one place.
+    """Integrate a fixed bracket exactly -> (projection rows, model favourite).
+
+    ``n_sims`` and ``seed`` remain in the compatibility signature for callers/tests, but a
+    released draw no longer depends on either: exact propagation removes refresh-to-refresh
+    sampling jitter and is the same probability core used by interactive scenarios.
 
     Placeholder entrants stay IN the simulation — they occupy real draw slots and a real
     player's path genuinely runs through them — but are never PUBLISHED as rows: a
     "Qualifier 13" line with title odds is not a fact about anybody. Odds are not
     renormalised over the survivors; each published number is still that player's true
     marginal given what the draw currently knows."""
-    sim = simulate_tournament(predictor, slots, surface=surface, best_of=best_of,
-                              n_sims=n_sims, seed=seed, event=name)
-    cols = set(sim.columns)
-    sim = sim[[is_real(p) for p in sim["player"]]] if "player" in sim.columns else sim
-    proj = [{
-        "name": r.player,
-        "champion": round(float(r.Champion), 4),
-        "final": round(float(r.F), 4) if "F" in cols else None,
-        "sf": round(float(r.SF), 4) if "SF" in cols else None,
-        # per-round reach odds (entry -> title) for the round-by-round forecast table
-        "reach": {c: round(float(getattr(r, c)), 4) for c in ROUND_COLS if c in cols},
-    } for r in sim.head(TOP_PROJECTION).itertuples(index=False)]
+    del n_sims, seed
+    from .exact import exact_from_slots
+
+    players = list(dict.fromkeys(player for player in slots if player is not None))
+    matrix = predictor.win_prob_matrix(
+        players, surface=surface, best_of=best_of, event=name)
+    exact = exact_from_slots(slots, players, matrix)
+    rows = []
+    for player in players:
+        if not is_real(player):
+            continue
+        reach = exact["reach"].get(player, {})
+        rows.append({
+            "name": player,
+            "champion": round(float(reach.get("Champion", 0.0)), 4),
+            "final": round(float(reach["F"]), 4) if "F" in reach else None,
+            "sf": round(float(reach["SF"]), 4) if "SF" in reach else None,
+            "reach": {c: round(float(reach[c]), 4) for c in ROUND_COLS if c in reach},
+        })
+    rows.sort(key=lambda row: (-row["champion"], row["name"]))
+    proj = rows[:TOP_PROJECTION]
     return proj, (proj[0]["name"] if proj else None)
 
 
