@@ -23,6 +23,7 @@ import {
   sitemapCoverageProblems,
   hasProfileContract,
   hasMatchCenterContract,
+  hasLiveScheduleContract,
   hasPredictionExplanationContract,
   hasBracketLabContract,
   performanceArtifactProblems,
@@ -295,7 +296,16 @@ await check("match center: upcoming Playing Style drill-in contract", async () =
   const html = routeHtml.get("/matches/");
   if (!html) return "route unavailable (covered by route check)";
   must(hasMatchCenterContract(html), "match-center contract marker missing (stale or partial deploy)");
-  return "upcoming-style-links+forecast-history+watch+evidence-v3";
+  return "upcoming-style-links+forecast-history+watch+evidence+live-dedupe-v4";
+});
+
+await check("live/scheduled state: active matches excluded from upcoming surfaces", async () => {
+  const missing = ["/", "/matches/"].filter((route) => {
+    const html = routeHtml.get(route);
+    return html && !hasLiveScheduleContract(html);
+  });
+  must(missing.length === 0, `live-schedule contract marker missing on ${missing.join(", ")}`);
+  return "exact event id + unordered player pair on overview/match center";
 });
 
 await check("prediction explanation: grouped evidence is explicitly non-causal", async () => {

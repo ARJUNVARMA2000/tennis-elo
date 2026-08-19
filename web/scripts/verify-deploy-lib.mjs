@@ -264,7 +264,18 @@ export function hasProfileContract(html) {
  */
 export function hasMatchCenterContract(html) {
   return String(html || "").includes(
-    'data-match-center-contract="upcoming-style-links+forecast-history+watch+evidence-v3"',
+    'data-match-center-contract="upcoming-style-links+forecast-history+watch+evidence+live-dedupe-v4"',
+  );
+}
+
+/** Both live-score surfaces emit this only when their scheduled rows share the browser-polled
+ * live state and exclude exact event/player-pair overlaps. Checking both routes prevents a
+ * partial deploy from repairing the match center while leaving the overview stale.
+ * @param {string} html
+ */
+export function hasLiveScheduleContract(html) {
+  return String(html || "").includes(
+    'data-live-schedule-contract="exact-event-unordered-pair-v1"',
   );
 }
 

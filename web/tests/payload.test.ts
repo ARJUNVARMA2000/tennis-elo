@@ -40,6 +40,8 @@ describe("match center contract", () => {
     expect(matches).toContain('note="frozen first-sighting call"');
     expect(matches).toContain("<ForecastTimeline");
     expect(matches).toContain("matchup={hasMatchupProfiles(match, roster)}");
+    expect(matches).toContain("excludeLiveMatches(upcomingState.data ?? [], live.matches)");
+    expect(matches).toContain('data-live-schedule-contract="exact-event-unordered-pair-v1"');
     expect(matches).toContain("<PredictionWhy match={match} />");
     expect(why).toContain("Model evidence");
     expect(why).toContain("<ForecastTimeline");

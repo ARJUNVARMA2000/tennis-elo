@@ -1,4 +1,6 @@
 import { orientEvidence, type PredictionEvidenceData } from "./evidence";
+import { nameKey, type RawLiveMatch } from "./live";
+import { tournamentTier } from "./ui";
 
 /** One scheduled match with the model's current win probability, as written by the
     pipeline's build_upcoming (mirrored to /data/<tour>/upcoming.json). pA = P(playerA wins). */
@@ -76,11 +78,32 @@ export function orientForecast(forecast: ForecastHistory, flip: boolean): Foreca
   };
 }
 
-import { tournamentTier } from "./ui";
-
 export type EventGroup = { event: string; surface: string; level?: string; matches: Upcoming[] };
 
 const TOURNAMENT_CARD_MATCH_LIMIT = 3;
+
+function eventPairKey(espnId: string | null | undefined, a: string, b: string): string | null {
+  const eventId = String(espnId ?? "").trim();
+  const players = [nameKey(a), nameKey(b)].sort();
+  if (!eventId || players.some((player) => !player)) return null;
+  return `${eventId}\u0000${players[0]}\u0000${players[1]}`;
+}
+
+/** Hide a scheduled forecast once that exact match is live. Tournament identity stays strict:
+    sponsor-title aliases never participate, and a same-player pair under another event id remains
+    scheduled. Player order and ESPN spelling accents are normalized because neither is identity. */
+export function excludeLiveMatches(rows: Upcoming[], liveMatches: RawLiveMatch[]): Upcoming[] {
+  const liveKeys = new Set(
+    liveMatches
+      .map((match) => eventPairKey(match.espnId, match.a, match.b))
+      .filter((key): key is string => key !== null),
+  );
+  if (!liveKeys.size) return rows;
+  return rows.filter((row) => {
+    const key = eventPairKey(row.espnId, row.playerA, row.playerB);
+    return key === null || !liveKeys.has(key);
+  });
+}
 
 /** Scheduled matches belonging to one live tournament card. Identity is deliberately exact:
     sponsor titles and familiar city labels can differ even within one refresh, so display names

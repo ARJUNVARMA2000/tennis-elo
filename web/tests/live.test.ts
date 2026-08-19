@@ -216,6 +216,7 @@ describe("fetchLiveMatches", () => {
   const payload = {
     events: [
       {
+        id: "718-2026",
         name: "The Championships, Wimbledon presented by Sponsor",
         shortName: "Wimbledon",
         groupings: [
@@ -246,6 +247,7 @@ describe("fetchLiveMatches", () => {
     expect(out).toHaveLength(1);
     const m = out[0];
     expect(m.id).toBe("101");
+    expect(m.espnId).toBe("718-2026");
     expect(m.event).toBe("Wimbledon"); // shortName preferred over name
     expect(m.round).toBe("3rd Round");
     expect(m.detail).toBe("Set 2");

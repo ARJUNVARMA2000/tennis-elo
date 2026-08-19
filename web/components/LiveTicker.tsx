@@ -19,30 +19,22 @@ import { useMatrixShard } from "@/lib/matrix";
 
 const POLL_MS = 60_000;
 
-/** "Live now" strip — real ESPN scores polled from the browser every minute,
-    paired with the model's win probability. Hides itself entirely when there
-    are no live matches (or ESPN is unreachable). */
-export default function LiveTicker({ standalone = false }: { standalone?: boolean }) {
-  const { tour } = useTour();
-  const { data: players } = useData<PlayerRow[]>("players.json");
-  const { data: tournaments } = useData<TournamentInfo[]>("tournaments.json");
-  const [liveState, setLiveState] = useState<{
-    tour: Tour;
-    matches: RawLiveMatch[];
-    loading: boolean;
-    error: boolean;
-  }>({ tour, matches: [], loading: true, error: false });
-  const { matches, loading, error } = liveState.tour === tour
-    ? liveState
-    : { matches: [] as RawLiveMatch[], loading: true, error: false };
-  const [liveEvent, setLiveEvent] = useState("all");
-  const events = useMemo(() => [...new Set(matches.map((match) => match.event))].sort(), [matches]);
-  const activeEvent = events.includes(liveEvent) ? liveEvent : "all";
-  const shownMatches = activeEvent === "all"
-    ? matches
-    : matches.filter((match) => match.event === activeEvent);
+export type LiveMatchesState = {
+  matches: RawLiveMatch[];
+  loading: boolean;
+  error: boolean;
+};
 
-  // poll ESPN while the tab is visible; abort in-flight work on unmount/switch
+/** One browser poll shared by the live ticker and every scheduled-match surface on its page. */
+export function useLiveMatches(tour: Tour): LiveMatchesState {
+  const [state, setState] = useState<LiveMatchesState & { tour: Tour }>({
+    tour,
+    matches: [],
+    loading: true,
+    error: false,
+  });
+
+  // Poll ESPN while the tab is visible; abort in-flight work on unmount/switch.
   useEffect(() => {
     let alive = true;
     let ctrl: AbortController | null = null;
@@ -51,19 +43,17 @@ export default function LiveTicker({ standalone = false }: { standalone?: boolea
       ctrl?.abort();
       ctrl = new AbortController();
       try {
-        const m = await fetchLiveMatches(tour, ctrl.signal);
-        if (alive) {
-          setLiveState({ tour, matches: m, loading: false, error: false });
-        }
+        const matches = await fetchLiveMatches(tour, ctrl.signal);
+        if (alive) setState({ tour, matches, loading: false, error: false });
       } catch {
         if (alive) {
-          setLiveState((previous) => previous.tour === tour
+          setState((previous) => previous.tour === tour
             ? { ...previous, loading: false, error: true }
             : { tour, matches: [], loading: false, error: true });
         }
       }
     };
-    poll(true); // first fetch always runs (later polls pause while hidden)
+    poll(true);
     const id = setInterval(() => poll(), POLL_MS);
     const onVis = () => {
       if (document.visibilityState === "visible") poll();
@@ -76,6 +66,32 @@ export default function LiveTicker({ standalone = false }: { standalone?: boolea
       document.removeEventListener("visibilitychange", onVis);
     };
   }, [tour]);
+
+  return state.tour === tour
+    ? state
+    : { matches: [], loading: true, error: false };
+}
+
+/** "Live now" strip — real ESPN scores polled from the browser every minute,
+    paired with the model's win probability. Hides itself entirely when there
+    are no live matches (or ESPN is unreachable). */
+export default function LiveTicker({
+  live,
+  standalone = false,
+}: {
+  live: LiveMatchesState;
+  standalone?: boolean;
+}) {
+  const { tour } = useTour();
+  const { data: players } = useData<PlayerRow[]>("players.json");
+  const { data: tournaments } = useData<TournamentInfo[]>("tournaments.json");
+  const { matches, loading, error } = live;
+  const [liveEvent, setLiveEvent] = useState("all");
+  const events = useMemo(() => [...new Set(matches.map((match) => match.event))].sort(), [matches]);
+  const activeEvent = events.includes(liveEvent) ? liveEvent : "all";
+  const shownMatches = activeEvent === "all"
+    ? matches
+    : matches.filter((match) => match.event === activeEvent);
 
   if (!matches.length && !standalone) return null;
 

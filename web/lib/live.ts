@@ -23,6 +23,7 @@ export function nameKey(name: string): string {
 
 export type RawLiveMatch = {
   id: string;
+  espnId: string; // stable tournament identity (for exact live/scheduled joins)
   event: string; // ESPN event name (may carry a sponsor title)
   round: string; // e.g. "3rd Round"
   detail: string; // e.g. "Set 2"
@@ -66,6 +67,7 @@ export async function fetchLiveMatches(tour: Tour, signal?: AbortSignal): Promis
   const seen = new Set<string>();
   for (const ev of data?.events ?? []) {
     const evName: string = ev?.shortName || ev?.name || "";
+    const espnId = String(ev?.id ?? "").trim();
     for (const grp of ev?.groupings ?? []) {
       if ((grp?.grouping?.slug ?? "") !== slug) continue;
       for (const comp of grp?.competitions ?? []) {
@@ -88,7 +90,7 @@ export async function fetchLiveMatches(tour: Tour, signal?: AbortSignal): Promis
           const gb = Number(lb[k]?.value);
           sets.push([isFinite(ga) ? Math.round(ga) : 0, isFinite(gb) ? Math.round(gb) : 0]);
         }
-        out.push({ id, event: evName, round, detail: st?.shortDetail || "", a: an, b: bn, sets });
+        out.push({ id, espnId, event: evName, round, detail: st?.shortDetail || "", a: an, b: bn, sets });
       }
     }
   }

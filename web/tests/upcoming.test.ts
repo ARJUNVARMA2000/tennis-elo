@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { byTournamentTier, closestUpcomingMatch, filterUpcoming, groupByEvent, hasMatchupProfiles, matchesForTournament, orientForecast, upcomingCard, type Upcoming } from "@/lib/upcoming";
+import { byTournamentTier, closestUpcomingMatch, excludeLiveMatches, filterUpcoming, groupByEvent, hasMatchupProfiles, matchesForTournament, orientForecast, upcomingCard, type Upcoming } from "@/lib/upcoming";
+import type { RawLiveMatch } from "@/lib/live";
 
 const mk = (event: string, round: string, a: string, b: string, pA: number, surface = "Hard"): Upcoming => ({
   event,
@@ -76,6 +77,47 @@ describe("matchesForTournament", () => {
     expect(matchesForTournament(
       { name: "Toronto", status: "live", espnId: null }, [row("Toronto", "725-2026", "A")],
     )).toEqual([]);
+  });
+});
+
+describe("excludeLiveMatches", () => {
+  const scheduled = (espnId: string | null, a: string, b: string): Upcoming => ({
+    ...mk("Cincinnati", "R16", a, b, 0.6),
+    espnId,
+  });
+  const live = (espnId: string, a: string, b: string): RawLiveMatch => ({
+    id: "competition-1",
+    espnId,
+    event: "Cincinnati Open presented by Sponsor",
+    round: "Round 4",
+    detail: "1st Set",
+    a,
+    b,
+    sets: [[3, 2]],
+  });
+
+  it("removes an exact same-event pair regardless of player order or accents", () => {
+    const rows = [
+      scheduled("718-2026", "Félix Auger-Aliassime", "Jannik Sinner"),
+      scheduled("718-2026", "Coco Gauff", "Iga Swiatek"),
+    ];
+    expect(excludeLiveMatches(
+      rows,
+      [live("718-2026", "Jannik Sinner", "Felix Auger Aliassime")],
+    )).toEqual([rows[1]]);
+  });
+
+  it("never joins on player names alone when the stable event id differs or is missing", () => {
+    const rows = [
+      scheduled("other-2026", "A", "B"),
+      scheduled(null, "A", "B"),
+    ];
+    expect(excludeLiveMatches(rows, [live("718-2026", "B", "A")])).toEqual(rows);
+  });
+
+  it("returns the original schedule when the live feed has no joinable identity", () => {
+    const rows = [scheduled("718-2026", "A", "B")];
+    expect(excludeLiveMatches(rows, [live("", "A", "B")])).toBe(rows);
   });
 });
 

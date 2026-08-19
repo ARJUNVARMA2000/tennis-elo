@@ -196,3 +196,9 @@ New lesson → append the entry to the matching topic file and add its lead line
   prediction parity before the first intervention row. See
   [`lessons/data-sources.md`](lessons/data-sources.md) and
   [`lessons/model-research.md`](lessons/model-research.md).
+
+## Live/scheduled state addition (2026-08-19)
+
+- Browser-polled live scores and hourly scheduled forecasts must share lifecycle state; exclude an
+  overlap only on stable event id plus the unordered normalized player pair. See
+  [`lessons/web.md`](lessons/web.md).

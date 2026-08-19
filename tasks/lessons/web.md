@@ -132,3 +132,13 @@ Indexed in [`../lessons.md`](../lessons.md).
   exercise real wheel input in browser verification; CSS substring assertions encoded the broken
   combination as an invariant. At narrow widths, also assert both root and body scroll widths —
   root clipping can hide an over-wide grid child without making the clipped content reachable.
+
+- **Two independently refreshed lifecycle surfaces need one shared state, and their join still
+  requires stable event identity.** (2026-08-19, a live Cincinnati match also appeared under
+  “Next up” with stale pre-match odds) The live ticker polled ESPN every minute inside its own
+  component while the surrounding page rendered an hourly `upcoming.json`; neither could see the
+  other's state. Preserve ESPN's event id in the browser parser, lift the poll so both consumers
+  share it, and exclude only the same `espnId` plus the same unordered normalized player pair.
+  Player names alone are insufficient because the event registry's identity contract still
+  applies. Pin the pure overlap predicate and both deployed route markers: a component-level live
+  badge and a scheduled card can each be correct while their combined page is contradictory.

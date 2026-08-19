@@ -4706,3 +4706,36 @@ untouched.
       passed. Raw WTA lower CSVs and response caches remain local/ignored research data. No commit,
       push, release-asset mutation or production deploy was performed; unrelated concurrent
       scenario/watch/evidence changes were preserved.
+
+## Live/upcoming overlap repair (2026-08-19)
+
+Status: implemented; pre-push verification complete, with live verification required after the
+production push.
+
+- [x] Preserve ESPN's stable event id on browser-polled live matches and share one live-match state
+      between the live ticker and the surrounding page.
+- [x] Remove only exact same-event, same-player-pair live matches from scheduled/"Next up" views;
+      keep the hourly pre-match forecast available as history rather than showing it as still next.
+- [x] Add focused unit coverage for event-id and unordered-player-pair matching, update the deployed
+      UI contract so an old bundle cannot pass verification, and run web tests, lint, and the live
+      deployment verifier after the production push.
+- [x] Add a review section with the observed root cause, files changed, verification results, and
+      any residual timing risk before committing or deploying.
+
+### Review
+
+- Root cause: `LiveTicker` owned a minute-polled ESPN state that the hourly scheduled surfaces could
+  not observe, and `fetchLiveMatches()` discarded the event's stable ESPN id. The same active pair
+  could therefore remain in `upcoming.json` and render with its stale pre-match probability.
+- Repair: the page owns one `useLiveMatches()` poll; ESPN's `espnId` survives parsing; the overview,
+  tournament footer, match-center schedule, and watchlist all use `excludeLiveMatches()`, which
+  requires the same exact event id and unordered normalized player pair. The source forecast stays
+  in the artifact for point-in-time/final history.
+- Gate: both affected routes now advertise `exact-event-unordered-pair-v1`, the match-center contract
+  advanced to `live-dedupe-v4`, and the post-deploy verifier rejects an old or partial bundle.
+- Verification before push: 111 focused tests and all 265 web tests passed; the production build
+  passed; ESLint reported zero errors and nine unchanged warnings in unrelated files. Local browser
+  checks confirmed both route contracts, no active pair in the Upcoming tab, and no console errors.
+- Residual risk: if ESPN is unavailable on first load, the schedule remains visible because there is
+  no authoritative live state to join; a later successful visibility/poll refresh removes overlaps.
+  The existing live-score error state remains explicit on the match center.

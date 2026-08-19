@@ -16,6 +16,7 @@ import {
   coverageProblems,
   hasProfileContract,
   hasMatchCenterContract,
+  hasLiveScheduleContract,
   hasPredictionExplanationContract,
   hasBracketLabContract,
   performanceArtifactProblems,
@@ -378,13 +379,22 @@ describe("hasProfileContract", () => {
 });
 
 describe("hasMatchCenterContract", () => {
-  it("requires the deployed match center to advertise upcoming Playing Style drill-ins", () => {
+  it("requires the deployed match center to advertise live/scheduled de-duplication", () => {
     expect(hasMatchCenterContract(
-      `<main><div data-match-center-contract="upcoming-style-links+forecast-history+watch+evidence-v3"></div></main>`,
+      `<main><div data-match-center-contract="upcoming-style-links+forecast-history+watch+evidence+live-dedupe-v4"></div></main>`,
     )).toBe(true);
     expect(hasMatchCenterContract(`<main><div class="matches"></div></main>`)).toBe(false);
     expect(hasMatchCenterContract(
-      `<div data-match-center-contract="match-tabs-v1"></div>`,
+      `<div data-match-center-contract="upcoming-style-links+forecast-history+watch+evidence-v3"></div>`,
+    )).toBe(false);
+  });
+
+  it("pins the shared exact-event live/scheduled filter on each affected route", () => {
+    expect(hasLiveScheduleContract(
+      `<div data-live-schedule-contract="exact-event-unordered-pair-v1"></div>`,
+    )).toBe(true);
+    expect(hasLiveScheduleContract(
+      `<div data-live-schedule-contract="player-pair-only-v0"></div>`,
     )).toBe(false);
   });
 

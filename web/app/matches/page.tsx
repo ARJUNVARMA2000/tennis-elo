@@ -3,11 +3,11 @@
 import { useMemo, useState } from "react";
 import { CallCard, Loading, PageHead, Reveal } from "@/components/bits";
 import Dropdown from "@/components/Dropdown";
-import LiveTicker from "@/components/LiveTicker";
+import LiveTicker, { useLiveMatches } from "@/components/LiveTicker";
 import PredictionWhy from "@/components/PredictionWhy";
 import ForecastTimeline from "@/components/ForecastTimeline";
 import { useData, useTour } from "@/lib/tour";
-import { groupByEvent, hasMatchupProfiles, upcomingCard, worthWatching, type ForecastHistory, type Upcoming } from "@/lib/upcoming";
+import { excludeLiveMatches, groupByEvent, hasMatchupProfiles, upcomingCard, worthWatching, type ForecastHistory, type Upcoming } from "@/lib/upcoming";
 
 type Tab = "live" | "upcoming" | "final";
 type TrackCall = {
@@ -30,13 +30,17 @@ export default function MatchCenter() {
   const upcomingState = useData<Upcoming[]>("upcoming.json");
   const trackState = useData<Track>("track.json");
   const rosterState = useData<{ name: string }[]>("players.json");
+  const live = useLiveMatches(tour);
   const [tab, setTab] = useState<Tab>("live");
   const [event, setEvent] = useState("all");
   const roster = useMemo(
     () => new Set((rosterState.data ?? []).map((player) => player.name)),
     [rosterState.data],
   );
-  const upcoming = useMemo(() => upcomingState.data ?? [], [upcomingState.data]);
+  const upcoming = useMemo(
+    () => excludeLiveMatches(upcomingState.data ?? [], live.matches),
+    [upcomingState.data, live.matches],
+  );
   const finals = useMemo(
     () => trackState.data?.matchForecasts?.recent ?? [],
     [trackState.data],
@@ -65,7 +69,8 @@ export default function MatchCenter() {
   return (
     <div
       className="pb-16"
-      data-match-center-contract="upcoming-style-links+forecast-history+watch+evidence-v3"
+      data-match-center-contract="upcoming-style-links+forecast-history+watch+evidence+live-dedupe-v4"
+      data-live-schedule-contract="exact-event-unordered-pair-v1"
     >
       <PageHead
         eyebrow={`${tour.toUpperCase()} · match center`}
@@ -113,7 +118,7 @@ export default function MatchCenter() {
       </div>
 
       <div id="match-tabpanel" role="tabpanel" aria-labelledby={`match-tab-${tab}`}>
-        {tab === "live" && <LiveTicker standalone />}
+        {tab === "live" && <LiveTicker live={live} standalone />}
         {tab === "upcoming" && (
           <MatchSection loading={upcomingState.loading} error={upcomingState.error} empty={!shownUpcoming.length}>
             <div className="mt-7 space-y-8">

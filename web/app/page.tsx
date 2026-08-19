@@ -7,10 +7,10 @@ import { pct, surfaceColor, heat, eloKey, blendedElo, tournamentTier, drawCaveat
 import { PageHead, Loading, Reveal, PlayerProfileLink } from "@/components/bits";
 import { SPRING_SOFT } from "@/lib/motion";
 import { nameKey, type PlayerRow } from "@/lib/live";
-import LiveTicker from "@/components/LiveTicker";
+import LiveTicker, { useLiveMatches } from "@/components/LiveTicker";
 import Link from "next/link";
 import { pairHref } from "@/lib/url";
-import { closestUpcomingMatch, matchesForTournament, worthWatching, type Upcoming } from "@/lib/upcoming";
+import { closestUpcomingMatch, excludeLiveMatches, matchesForTournament, worthWatching, type Upcoming } from "@/lib/upcoming";
 
 export type Proj = { name: string; champion: number; final: number | null; sf: number | null; reach?: Record<string, number> };
 export type Tournament = {
@@ -191,6 +191,11 @@ export default function Tournaments() {
   const { data, loading } = useData<Tournament[]>("tournaments.json");
   const { data: scheduled } = useData<Upcoming[]>("upcoming.json");
   const { data: players } = useData<PlayerRow[]>("players.json");
+  const live = useLiveMatches(tour);
+  const scheduledMatches = useMemo(
+    () => excludeLiveMatches(scheduled || [], live.matches),
+    [scheduled, live.matches],
+  );
   const profileRoster = useMemo(() => new Set((players ?? []).map((player) => player.name)), [players]);
 
   // Lifecycle owns the page before prestige: live events remain primary, but the next top-tier
@@ -203,7 +208,7 @@ export default function Tournaments() {
   if (hero) {
     const tier = tournamentTier(hero.level, hero.name);
     return (
-      <div className="pb-16">
+      <div className="pb-16" data-live-schedule-contract="exact-event-unordered-pair-v1">
         <PageHead
           eyebrow={`${tour.toUpperCase()} · ${tier.short} · round-by-round forecast`}
           title={hero.name}
@@ -214,19 +219,19 @@ export default function Tournaments() {
         <OverviewInsights
           events={data || []}
           primary={primary}
-          matches={scheduled || []}
+          matches={scheduledMatches}
           profileRoster={profileRoster}
         />
-        <LiveTicker />
+        <LiveTicker live={live} />
         <Reveal>
-          <SlamHero t={hero} players={players} profileRoster={profileRoster} upcomingMatches={scheduled || []} />
+          <SlamHero t={hero} players={players} profileRoster={profileRoster} upcomingMatches={scheduledMatches} />
         </Reveal>
         {other.length > 0 && (
           <CompactEvents
             events={other}
             title={hero.status === "live" ? "Also live" : "Also coming up"}
             profileRoster={profileRoster}
-            upcomingMatches={scheduled || []}
+            upcomingMatches={scheduledMatches}
           />
         )}
         {featuredUpcoming.length > 0 && (
@@ -234,7 +239,7 @@ export default function Tournaments() {
             events={featuredUpcoming}
             players={players}
             profileRoster={profileRoster}
-            upcomingMatches={scheduled || []}
+            upcomingMatches={scheduledMatches}
           />
         )}
         {upcoming.length > 0 && (
@@ -242,16 +247,16 @@ export default function Tournaments() {
             events={upcoming}
             title={featuredUpcoming.length ? "More coming up" : "Coming up"}
             profileRoster={profileRoster}
-            upcomingMatches={scheduled || []}
+            upcomingMatches={scheduledMatches}
           />
         )}
-        {recent.length > 0 && <CompactEvents events={recent} title="Recently finished" profileRoster={profileRoster} upcomingMatches={scheduled || []} />}
+        {recent.length > 0 && <CompactEvents events={recent} title="Recently finished" profileRoster={profileRoster} upcomingMatches={scheduledMatches} />}
       </div>
     );
   }
 
   return (
-    <div className="pb-16">
+    <div className="pb-16" data-live-schedule-contract="exact-event-unordered-pair-v1">
       <PageHead
         eyebrow={`${tour.toUpperCase()} · the current swing`}
         title="Latest Tournaments"
@@ -262,11 +267,11 @@ export default function Tournaments() {
         <OverviewInsights
           events={data}
           primary={primary}
-          matches={scheduled || []}
+          matches={scheduledMatches}
           profileRoster={profileRoster}
         />
       )}
-      <LiveTicker />
+      <LiveTicker live={live} />
       {loading && <Loading variant="forecast" />}
       {data && !hero && grid.length === 0 && featuredUpcoming.length === 0 && upcoming.length === 0 && recent.length === 0 && (
         <div className="mono mt-10 text-sm text-[var(--color-faint)]">No current tournaments in the data yet.</div>
@@ -275,7 +280,7 @@ export default function Tournaments() {
       <div className="mt-8 grid gap-4 lg:grid-cols-2">
         {grid.map((t, i) => (
           <Reveal key={t.name + t.start} delay={Math.min(i * 0.04, 0.3)}>
-            <Card t={t} profileRoster={profileRoster} upcomingMatches={scheduled || []} />
+            <Card t={t} profileRoster={profileRoster} upcomingMatches={scheduledMatches} />
           </Reveal>
         ))}
       </div>
@@ -284,7 +289,7 @@ export default function Tournaments() {
           events={featuredUpcoming}
           players={players}
           profileRoster={profileRoster}
-          upcomingMatches={scheduled || []}
+          upcomingMatches={scheduledMatches}
         />
       )}
       {upcoming.length > 0 && (
@@ -292,10 +297,10 @@ export default function Tournaments() {
           events={upcoming}
           title={featuredUpcoming.length ? "More coming up" : "Coming up"}
           profileRoster={profileRoster}
-          upcomingMatches={scheduled || []}
+          upcomingMatches={scheduledMatches}
         />
       )}
-      {recent.length > 0 && <CompactEvents events={recent} title="Recently finished" profileRoster={profileRoster} upcomingMatches={scheduled || []} />}
+      {recent.length > 0 && <CompactEvents events={recent} title="Recently finished" profileRoster={profileRoster} upcomingMatches={scheduledMatches} />}
     </div>
   );
 }
