@@ -428,18 +428,23 @@ def test_problems_fresh_overlay_freeze_flagged():
     print("ok test_problems_fresh_overlay_freeze_flagged")
 
 
-def test_problems_charting_freeze_flagged():
-    """A charting lag past the configured limit means the source moved/froze; a missing
-    file means style features are silently gone. Threshold-relative so re-tuning the
-    limit (or a temporary drill) never breaks the test."""
+def test_charting_coverage_age_is_context_not_a_source_failure():
+    """MCP match age cannot diagnose its transport: the volunteer source's official
+    Overview commits have landed 145-200 days apart. Keep old coverage visible as a
+    note, but alarm when no charting data can be loaded at all."""
     now = pd.Timestamp("2026-07-01")
-    lim = health.HEALTH_MAX_CHARTING_AGE_DAYS
-    assert any("charted match" in p
-               for p in health.problems("atp", _h(charting_age=lim + 30), now))
-    assert health.problems("atp", _h(charting_age=max(0, lim - 10)), now) == []
+    lim = health.HEALTH_CHARTING_COVERAGE_NOTE_DAYS
+    stale = _h(charting_age=lim + 110)
+    rows = {r["key"]: r for r in health.source_checks("atp", stale, now)}
+    assert rows["charting"]["ok"]
+    assert "volunteer batch source" in rows["charting"]["note"]
+    assert not any("charting" in p for p in health.problems("atp", stale, now))
+    current = {r["key"]: r for r in health.source_checks(
+        "atp", _h(charting_age=max(0, lim - 10)), now)}
+    assert current["charting"]["note"] is None
     assert any("charting files missing" in p
                for p in health.problems("atp", _h(charting_age=None), now))
-    print("ok test_problems_charting_freeze_flagged")
+    print("ok test_charting_coverage_age_is_context_not_a_source_failure")
 
 
 def test_source_checks_structure_and_consistency():
@@ -2124,7 +2129,7 @@ if __name__ == "__main__":
     test_problems_missing_results_is_a_problem()
     test_problems_coverage_gate_needs_volume()
     test_problems_fresh_overlay_freeze_flagged()
-    test_problems_charting_freeze_flagged()
+    test_charting_coverage_age_is_context_not_a_source_failure()
     test_source_checks_structure_and_consistency()
     test_tour_health_empty_frame_reports_none()
     test_main_strict_exit_code_and_report()

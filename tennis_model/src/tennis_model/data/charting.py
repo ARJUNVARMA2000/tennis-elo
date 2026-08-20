@@ -15,8 +15,13 @@ backhand balance, return depth, and break-point serving clutch.
 from __future__ import annotations
 
 import glob
+import io
 import math
+import os
+import subprocess
+import urllib.request
 from functools import lru_cache
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -30,32 +35,71 @@ _CHARTING_FILES = ["matches", "stats-Overview", "stats-ServeBasics", "stats-Serv
                    "stats-NetPoints", "stats-SnV", "stats-ReturnDepth", "stats-KeyPointsServe"]
 
 
-def download_charting() -> int:
-    """Fetch the MCP stats files used for style profiles (both tours). Returns count."""
-    import subprocess
-    import urllib.request
+def _via_https(filename: str) -> bytes | None:
+    try:
+        url = f"https://raw.githubusercontent.com/{_CHARTING_REPO}/master/{filename}"
+        req = urllib.request.Request(url, headers={"User-Agent": "tennis_model"})
+        with urllib.request.urlopen(req, timeout=60) as response:
+            return response.read()
+    except Exception:  # noqa: BLE001 — authenticated GitHub API is the fallback transport
+        return None
+
+
+def _via_gh(filename: str) -> bytes | None:
+    try:
+        out = subprocess.run(
+            ["gh", "api", "-H", "Accept: application/vnd.github.raw",
+             f"repos/{_CHARTING_REPO}/contents/{filename}"],
+            capture_output=True, timeout=90,
+        )
+        return out.stdout if out.returncode == 0 else None
+    except Exception:  # noqa: BLE001 — caller reports the exhausted transport chain
+        return None
+
+
+def _valid_charting_csv(data: bytes | None, filename: str) -> bool:
+    """Reject HTML/error payloads before they can replace the last good style input."""
+    if not data or len(data) < 100:
+        return False
+    try:
+        head = pd.read_csv(io.BytesIO(data), encoding="utf-8-sig", nrows=5)
+    except Exception:  # noqa: BLE001 — an unparseable payload is not a charting CSV
+        return False
+    required = (
+        {"match_id", "Player 1", "Player 2"}
+        if filename.endswith("-matches.csv")
+        else {"match_id", "player"}
+    )
+    return required.issubset(head.columns)
+
+
+def _atomic_write(path: Path, data: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_bytes(data)
+    os.replace(tmp, path)
+
+
+def download_charting() -> tuple[list[str], list[str]]:
+    """Fetch MCP style inputs, returning exact (downloaded, failed) filenames."""
     CHARTING_DIR.mkdir(parents=True, exist_ok=True)
-    ok = 0
+    done, failed = [], []
     for g in ("m", "w"):
         for f in _CHARTING_FILES:
             fn = f"charting-{g}-{f}.csv"
-            data = None
-            try:
-                url = f"https://raw.githubusercontent.com/{_CHARTING_REPO}/master/{fn}"
-                with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "tennis_model"}), timeout=60) as r:
-                    data = r.read()
-            except Exception:  # noqa: BLE001 — raw HTTPS blocked/failed: try the gh transport
-                try:
-                    out = subprocess.run(["gh", "api", "-H", "Accept: application/vnd.github.raw",
-                                          f"repos/{_CHARTING_REPO}/contents/{fn}"], capture_output=True, timeout=90)
-                    data = out.stdout if out.returncode == 0 else None
-                except Exception:  # noqa: BLE001 — last transport: give up on this one file
-                    data = None
-            if data and len(data) > 100:
-                (CHARTING_DIR / fn).write_bytes(data)
-                ok += 1
-    print(f"  charting: downloaded {ok} files")
-    return ok
+            for fetch in (_via_https, _via_gh):
+                data = fetch(fn)
+                if _valid_charting_csv(data, fn):
+                    _atomic_write(CHARTING_DIR / fn, data)
+                    done.append(fn)
+                    break
+            else:
+                failed.append(fn)
+    msg = f"  charting: downloaded {len(done)} file(s)"
+    if failed:
+        msg += f", FAILED {len(failed)}: {failed}"
+    print(msg)
+    return done, failed
 
 # the eight style features (anti-symmetric A-B diffs once paired up)
 STYLE_FEATURES = [

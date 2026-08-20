@@ -4739,3 +4739,45 @@ production push.
 - Residual risk: if ESPN is unavailable on first load, the schedule remains visible because there is
   no authoritative live state to join; a later successful visibility/poll refresh removes overlaps.
   The existing live-score error state remains explicit on the match center.
+
+## MCP charting health false-alarm repair (2026-08-19)
+
+Status: implemented and verified locally; approved for production deployment.
+
+- [x] Reclassify an old newest-charted-match date as an informational coverage note, while keeping
+      missing or unreadable charting files as a data-health failure. The MCP career-style input is
+      volunteer batch-updated, and its official file history includes 145–200 day update gaps, so
+      match age cannot establish that its repository moved or froze.
+- [x] Make the daily full-source download report incomplete MCP fetches through the existing
+      post-deploy source-download failure path, so an actually moved, renamed, unreachable, or
+      malformed source is detected directly without preventing deployment of the last good data.
+- [x] Replace the threshold-relative false-positive test with focused coverage for stale-but-usable
+      charting data, absent data, and incomplete MCP downloads; run the relevant Python, workflow,
+      integrity, and formatting checks.
+- [x] Record the gate-design lesson, add a review section with the observed root cause and evidence,
+      commit only the repair paths, push to production, and verify the resulting workflow and live
+      health artifact are green.
+
+### Review
+
+- Root cause: `HEALTH_MAX_CHARTING_AGE_DAYS = 90` treated the newest match date inside MCP as a
+  repository liveness signal. The official repository was still on `master` with the same files;
+  Overview commits on 2025-06-14, 2025-12-31, and 2026-05-25 prove that 145–200 day batch gaps are
+  normal. The latest workflow deployed successfully and passed all live-serving checks, then its
+  advisory health step failed only when ATP coverage crossed 91 days.
+- Repair: charting coverage older than 90 days remains visible as a healthy note; only missing or
+  unreadable local charting data is a health problem. The daily full downloader now validates each
+  MCP CSV, falls back from invalid HTTPS payloads to the authenticated GitHub transport, writes
+  atomically, preserves the last good file, and reports every exhausted filename through the
+  existing non-blocking source-download alert.
+- Gate: the old threshold-relative test was replaced with explicit stale-note and absent-data
+  behavior. Downloader coverage proves invalid-payload fallback, exact failure reporting, and
+  last-good preservation; the strict-source policy now treats any named MCP failure as actionable.
+- Verification before push: 124 focused and all 628 Python tests passed; repository-wide Ruff and
+  `git diff --check` passed; the real MCP fetch validated all 16 files; regenerated health is green
+  with zero output problems and the ATP 91-day row rendered as a note; the pre-deploy integrity
+  gate passed. All 265 web tests and the production build passed; ESLint reported zero errors and
+  nine unchanged warnings in unrelated files.
+- Residual risk: MCP can stop publishing new charted matches without failing transport, but there is
+  no upstream freshness contract that makes such a delay actionable. Coverage age remains visible
+  on `/health`; an actual path, payload, or availability failure alerts on the next daily full run.

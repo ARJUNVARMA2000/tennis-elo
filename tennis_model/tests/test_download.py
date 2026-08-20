@@ -10,6 +10,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
+import tennis_model.data.charting as charting
 import tennis_model.data.download as dl
 
 
@@ -23,6 +24,7 @@ def test_strict_fatal_rules():
         "atp/fresh": [2026],
         "atp/stats": ["2018.csv"],
         "wta/stats": ["WTA API unreachable after 5 retries"],
+        "charting": ["charting-m-stats-Overview.csv"],
     }
     out = dl.strict_fatal(fails, this_year=2026)
     assert "wta/historical:2026" in out
@@ -30,8 +32,34 @@ def test_strict_fatal_rules():
     assert "atp/fresh:2026" in out
     assert "atp/stats:2018.csv" in out               # stats overlay: always fatal
     assert any(s.startswith("wta/stats:") for s in out)
+    assert "charting:charting-m-stats-Overview.csv" in out
     assert dl.strict_fatal({}, 2026) == []
     print("ok test_strict_fatal_rules")
+
+
+def test_charting_download_validates_falls_back_and_reports_failures(monkeypatch, tmp_path):
+    """A 200-with-garbage must fall through to GitHub, while an exhausted file is named
+    for the daily source-download alert and cannot clobber its last good copy."""
+    good = (b"match_id,player,set,serve_pts\n"
+            + b"20260521-M-Test-R1-A-B,A,Total,50\n" * 4)
+    garbage = b"<html><body>upstream error page</body></html>" * 4
+    monkeypatch.setattr(charting, "CHARTING_DIR", tmp_path)
+    monkeypatch.setattr(charting, "_CHARTING_FILES", ["stats-Overview"])
+    monkeypatch.setattr(charting, "_via_https", lambda filename: garbage)
+    monkeypatch.setattr(
+        charting, "_via_gh",
+        lambda filename: good if filename.startswith("charting-m-") else garbage,
+    )
+    old = tmp_path / "charting-w-stats-Overview.csv"
+    old.write_bytes(b"last-good")
+
+    done, failed = charting.download_charting()
+
+    assert done == ["charting-m-stats-Overview.csv"]
+    assert failed == ["charting-w-stats-Overview.csv"]
+    assert (tmp_path / done[0]).read_bytes() == good
+    assert old.read_bytes() == b"last-good"
+    print("ok test_charting_download_validates_falls_back_and_reports_failures")
 
 
 def test_valid_csv_schema_gate():
@@ -243,6 +271,7 @@ def test_download_retry_budget_bounds_a_dead_archive():
 
 if __name__ == "__main__":
     test_strict_fatal_rules()
+    # pytest supplies monkeypatch/tmp_path for the charting downloader regression.
     test_valid_csv_schema_gate()
     test_lfs_pointer_is_recognised_and_not_mistaken_for_data()
     test_lfs_media_url_derives_from_the_raw_url()

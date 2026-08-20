@@ -427,11 +427,11 @@ HEALTH_MAX_FRESH_AGE_DAYS = 14      # TennisCourtLog overlay updates ~weekly; 14
                                     # and a frozen-but-shadowed source (TennisCourtLog's ATP
                                     # file, 2026-06-22) is a standing red no local action
                                     # can clear — see health.problems().
-HEALTH_MAX_CHARTING_AGE_DAYS = 90   # MCP is volunteer batch-updated (a 50d mid-season lag is
-                                    # normal); 90 targets the real failure class — repo
-                                    # moved/renamed/frozen. Exceeds the longest seasonal gap
-                                    # (mid-Nov Finals -> AO chartings landing ~Feb), so no
-                                    # off-season term needed.
+HEALTH_CHARTING_COVERAGE_NOTE_DAYS = 90
+                                    # MCP is volunteer batch-updated: official Overview-file
+                                    # commits have arrived 145-200d apart, so match age is
+                                    # coverage context, not evidence that the transport froze.
+                                    # Actual fetch failures are reported by download --strict.
 HEALTH_MAX_FORECAST_AGE_DAYS = 5    # forecast_log max(as_of) — the log appends on every run
                                     # while any upcoming match exists (in-season gaps run
                                     # 2-3d); catches a silently-failing track step within a

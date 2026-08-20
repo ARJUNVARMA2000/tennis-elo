@@ -41,8 +41,8 @@ import pandas as pd
 
 from ..config import (
     DATA_DIR,
+    HEALTH_CHARTING_COVERAGE_NOTE_DAYS,
     HEALTH_MAX_BUILD_AGE_DAYS,
-    HEALTH_MAX_CHARTING_AGE_DAYS,
     HEALTH_MAX_FORECAST_AGE_DAYS,
     HEALTH_MAX_FRESH_AGE_DAYS,
     HEALTH_MAX_FUTURE_DATE_DAYS,
@@ -343,13 +343,14 @@ def source_checks(tour: str, h: dict, now: pd.Timestamp) -> list[dict]:
               f"season where the bracket topology proves the year" if fr_future else None)))
     ch_age = h["charting_age_days"]
     rows.append(row(
-        "charting", "Match charting (MCP)", ch_age, HEALTH_MAX_CHARTING_AGE_DAYS,
+        "charting", "Match charting (MCP)", ch_age, HEALTH_CHARTING_COVERAGE_NOTE_DAYS,
         date=h.get("charting_date_max"),
+        note=(f"volunteer batch source; newest charted match is {ch_age}d old "
+              f"(coverage note after {HEALTH_CHARTING_COVERAGE_NOTE_DAYS}d)"
+              if ch_age is not None and ch_age > HEALTH_CHARTING_COVERAGE_NOTE_DAYS
+              else None),
         problem=(f"{tour}: charting files missing/unreadable (style features degraded)"
-                 if ch_age is None
-                 else f"{tour}: newest charted match is {ch_age}d old "
-                 f"(max {HEALTH_MAX_CHARTING_AGE_DAYS}) — the MCP source may have moved/frozen"
-                 if ch_age > HEALTH_MAX_CHARTING_AGE_DAYS else None)))
+                 if ch_age is None else None)))
     return rows
 
 

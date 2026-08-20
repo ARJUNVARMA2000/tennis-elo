@@ -322,7 +322,9 @@ def download_all(tours=("atp", "wta")) -> dict[str, list]:
     from .rankings import download_rankings
     download_rankings(tours)             # official live ranks (best-effort, not strict-fatal)
     from .charting import download_charting
-    download_charting()
+    _, f = download_charting()
+    if f:
+        failures["charting"] = f
     return failures
 
 
@@ -331,7 +333,8 @@ def strict_fatal(failures: dict[str, list], this_year: int) -> list[str]:
     plus current-year files from other sources — frozen archive years are immutable
     and covered by the release-asset snapshot."""
     return [f"{src}:{i}" for src, items in failures.items()
-            for i in items if "stats" in src or str(this_year) in str(i)]
+            for i in items
+            if src == "charting" or "stats" in src or str(this_year) in str(i)]
 
 
 if __name__ == "__main__":

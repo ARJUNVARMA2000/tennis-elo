@@ -258,3 +258,14 @@ Indexed in [`../lessons.md`](../lessons.md).
   baseline and reddened an otherwise verified release. **How to apply:** advance the population
   version whenever aliases change and snapshot the alias table against that version in a test;
   this resets the count comparison exactly once while preserving same-version loss detection.
+
+- **Content age cannot diagnose transport failure when the upstream has no delivery cadence.**
+  (2026-08-19, MCP false alarm) The 90-day charting check claimed the Match Charting Project might
+  have moved or frozen when ATP coverage reached 91 days, even though the official repository and
+  paths were unchanged. Its recent Overview updates landed on 2025-06-14, 2025-12-31, and
+  2026-05-25 — gaps of 200 and 145 days — because the volunteer source publishes batches. The
+  observed match date described feature COVERAGE; it said nothing about whether today's fetch
+  worked. **How to apply:** match a gate predicate to the failure it claims. Keep unscheduled
+  coverage age visible as a note, detect a moved/unreachable/malformed source from the actual
+  download result, validate before atomically replacing the last good input, and test both signals
+  independently.
