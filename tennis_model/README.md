@@ -70,12 +70,14 @@ data ─┬─ surface Elo + cross-surface transfer  (per-surface ratings, every
 
 ## Data
 
-Each tour merges up to five sources — full-schema historical, a daily serve-stats
-overlay, fresh weekly results, hourly ESPN live scores, and (ATP only) a Challenger +
-qualifying overlay (2005+/2007+, feeding the rating walks only) — plus Match-Charting
-style features, official live rankings, and a Tennis-Data.co.uk odds benchmark (never
-a model input). The full sourcing story, including fallbacks for upstreams that keep
-disappearing, is in the [root README](../README.md). Module map: `data/download.py`
+Production data combines full-schema history, a daily serve-stats overlay, fresh weekly
+results, hourly ESPN live scores, and an ATP Challenger + qualifying overlay
+(2005+/2007+, feeding the rating walks only), plus Match-Charting style features,
+official live rankings, and a Tennis-Data.co.uk odds benchmark (never a model input).
+The first-party WTA downloader also acquires qualifying/125 rows into a separate research
+overlay, but those rows remain out of production rating state until the state-only arbiter
+passes. The full sourcing story, including fallbacks for upstreams that keep disappearing,
+is in the [root README](../README.md). Module map: `data/download.py`
 (schema-validated atomic downloads), `data/results.py` (merge + dedup),
 `data/names.py` (cross-source name canonicalisation, contract-tested against the
 site's TypeScript copy), `data/wta_stats.py` (wtatennis.com API scraper),
@@ -134,13 +136,13 @@ PYTHONPATH=src uv run --with-requirements requirements.txt python -m tennis_mode
 PYTHONPATH=src uv run --with-requirements requirements.txt python -m tennis_model.eval.tune --tour wta --group xgb --trials 200
 PYTHONPATH=src uv run --with-requirements requirements.txt python -m tennis_model.eval.tune --tour wta --group xgb --validate
 
-# data-health sentinel — checks BOTH source freshness (stalled scrapers) AND the
+# data-health sentinel — checks contracted source coverage/freshness AND the
 # produced JSON the web reads (counts, tournaments, matches, predictions make sense).
 # Writes data/output/health.json; --strict exits non-zero on any problem.
 PYTHONPATH=src uv run --with-requirements requirements.txt python -m tennis_model.data.health --strict
 ```
 
-Every CI run — daily full and hourly quick — invokes this without `--strict`, then reads
+Every refresh run — daily full and hourly quick — invokes this without `--strict`, then reads
 `health.json` and, on any problem, opens (or comments on, and later auto-closes) a single
 **`data-health` GitHub issue** listing the exact problems plus a ready-to-paste prompt
 for a fresh session — and reds the run so GitHub also emails the owner. Quick runs red
@@ -193,11 +195,12 @@ PYTHONPATH=src uv run --with-requirements requirements.txt python -m tennis_mode
 
 ## Limitations / future work
 
-- **WTA 125s / lower-tier WTA events** aren't ingested — no source covers them across
-  the 2010–19 tune window, so their effect can't be gated honestly. ATP Challengers +
-  qualifying (2005+/2007+) were adopted 2026-07-05 in ratings-only form: they feed the
-  Elo/point/context walks, while the combiner still trains, calibrates and scores on
-  main draws only (see the A5 note in the tuning logs).
+- **WTA qualifying/125 rows** are acquired into a separate research overlay but are not
+  admitted to production rating state — the source begins in 2016 and cannot support a
+  comparable 2010–19 tuning-window decision. ATP Challengers + qualifying (2005+/2007+)
+  were adopted 2026-07-05 in ratings-only form: they feed the Elo/point/context walks,
+  while the combiner still trains, calibrates and scores on main draws only (see the A5
+  note in the tuning logs).
 - The **draw simulator uses current ratings**, ideal for projecting *upcoming* events;
   a true historical sim backtest would need as-of-date ratings.
 - **Event-speed serve baselines and Elo-level home bonuses** were built, gated, and

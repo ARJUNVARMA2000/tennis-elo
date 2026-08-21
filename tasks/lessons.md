@@ -208,3 +208,9 @@ New lesson → append the entry to the matching topic file and add its lead line
 - Unscheduled content age describes coverage, not transport availability; detect source breakage
   from validated download results and preserve the last good input atomically. See
   [`lessons/gates-and-health.md`](lessons/gates-and-health.md).
+
+## Portfolio documentation addition (2026-08-20)
+
+- A portfolio README should make operational depth legible, not secondary: retain concrete data,
+  deployment, monitoring, and reproducibility details while improving hierarchy. See
+  [`lessons/documentation.md`](lessons/documentation.md).
