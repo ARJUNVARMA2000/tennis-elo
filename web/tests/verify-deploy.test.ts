@@ -17,6 +17,7 @@ import {
   hasProfileContract,
   hasMatchCenterContract,
   hasLiveScheduleContract,
+  hasHomeBracketEntryContract,
   hasPredictionExplanationContract,
   hasBracketLabContract,
   performanceArtifactProblems,
@@ -395,6 +396,15 @@ describe("hasMatchCenterContract", () => {
     )).toBe(true);
     expect(hasLiveScheduleContract(
       `<div data-live-schedule-contract="player-pair-only-v0"></div>`,
+    )).toBe(false);
+  });
+
+  it("pins the registry-backed home-to-bracket discovery contract", () => {
+    expect(hasHomeBracketEntryContract(
+      `<div data-home-bracket-entry-contract="stable-event-id+actual+forecast+scenario-v1"></div>`,
+    )).toBe(true);
+    expect(hasHomeBracketEntryContract(
+      `<div data-home-bracket-entry-contract="event-name+actual-v0"></div>`,
     )).toBe(false);
   });
 

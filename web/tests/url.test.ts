@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pairHref, playerHref, resolveTour, setSearchParam, setSearchTour, withTour } from "@/lib/url";
+import { bracketHref, pairHref, playerHref, resolveTour, setSearchParam, setSearchTour, withTour } from "@/lib/url";
 
 describe("resolveTour", () => {
   it("prefers a valid URL param over the saved preference", () => {
@@ -59,6 +59,24 @@ describe("playerHref / pairHref", () => {
     expect(href.startsWith("/style/?")).toBe(true);
     expect(sp.get("a")).toBe("Aryna Sabalenka");
     expect(sp.get("b")).toBe("Iga Swiatek");
+    expect(sp.get("tour")).toBe("wta");
+  });
+});
+
+describe("bracketHref", () => {
+  it("keys every bracket-lab mode by stable event id", () => {
+    expect(bracketHref("718-2026", "atp")).toBe("/bracket/?e=718-2026");
+    expect(bracketHref("718-2026", "atp", "forecast"))
+      .toBe("/bracket/?e=718-2026&mode=forecast");
+    expect(bracketHref("718-2026", "atp", "scenario"))
+      .toBe("/bracket/?e=718-2026&mode=scenario");
+  });
+
+  it("preserves WTA selection alongside event and mode", () => {
+    const href = bracketHref("718-2026", "wta", "scenario");
+    const sp = new URLSearchParams(href.split("?")[1]);
+    expect(sp.get("e")).toBe("718-2026");
+    expect(sp.get("mode")).toBe("scenario");
     expect(sp.get("tour")).toBe("wta");
   });
 });

@@ -337,6 +337,34 @@ describe("tournament grid card", () => {
       expect(html).not.toContain("Next up");
     }
   });
+
+  it("makes every available bracket-lab view an event-specific tournament action", () => {
+    const html = renderToStaticMarkup(createElement(Card, {
+      t: {
+        ...cardTournament(8),
+        espnId: "718-2026",
+        scenario: { file: "scenario-718-2026.json" },
+      },
+    }));
+    expect(html).toContain('data-tournament-bracket-actions="actual+forecast+scenario"');
+    expect(html).toContain('href="/bracket?e=718-2026"');
+    expect(html).toContain('href="/bracket?e=718-2026&amp;mode=forecast"');
+    expect(html).toContain('href="/bracket?e=718-2026&amp;mode=scenario"');
+    expect(html).toContain("Actual draw");
+    expect(html).toContain("Forecast path");
+    expect(html).toContain("Try what-if");
+  });
+
+  it("fails closed without registry-backed complete draw coverage", () => {
+    for (const tournament of [
+      { ...cardTournament(8), espnId: null },
+      { ...cardTournament(8), espnId: "718-2026", drawStatus: "partial" as const },
+    ]) {
+      const html = renderToStaticMarkup(createElement(Card, { t: tournament }));
+      expect(html).not.toContain("data-tournament-bracket-actions");
+      expect(html).not.toContain("/bracket/");
+    }
+  });
 });
 
 describe("scoreDist", () => {

@@ -44,3 +44,13 @@ export function playerHref(name: string, tour: Tour): string {
 export function pairHref(base: "/style/" | "/predict/", a: string, b: string, tour: Tour): string {
   return `${base}${setSearchTour(setSearchParam(setSearchParam("", "a", a), "b", b), tour)}`;
 }
+
+export type BracketMode = "actual" | "forecast" | "scenario";
+
+/** Deep link to one registry-backed tournament in the bracket lab. Display names never become
+    event keys: callers without ESPN's stable event id must withhold the link. */
+export function bracketHref(espnId: string, tour: Tour, mode: BracketMode = "actual"): string {
+  let search = setSearchParam("", "e", espnId);
+  if (mode !== "actual") search = setSearchParam(search, "mode", mode);
+  return `/bracket/${setSearchTour(search, tour)}`;
+}

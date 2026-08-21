@@ -9,7 +9,7 @@ import { SPRING_SOFT } from "@/lib/motion";
 import { nameKey, type PlayerRow } from "@/lib/live";
 import LiveTicker, { useLiveMatches } from "@/components/LiveTicker";
 import Link from "next/link";
-import { pairHref } from "@/lib/url";
+import { bracketHref, pairHref } from "@/lib/url";
 import { closestUpcomingMatch, excludeLiveMatches, matchesForTournament, worthWatching, type Upcoming } from "@/lib/upcoming";
 
 export type Proj = { name: string; champion: number; final: number | null; sf: number | null; reach?: Record<string, number> };
@@ -22,6 +22,7 @@ export type Tournament = {
   champion: string | null; runnerUp: string | null;
   modelFavorite: string | null; favoritePicked: boolean;
   projection: Proj[];
+  scenario?: { file?: string | null } | null;
 };
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -186,6 +187,53 @@ function DrawCaveat({ t, compact = false }: { t: Tournament; compact?: boolean }
   );
 }
 
+function hasCompleteBracket(t: Tournament): t is Tournament & { espnId: string } {
+  return Boolean(t.espnId && (t.drawStatus === "real" || t.drawStatus === "final"));
+}
+
+function hasScenario(t: Tournament): t is Tournament & { espnId: string } {
+  return hasCompleteBracket(t) && Boolean(t.scenario?.file);
+}
+
+/** Event-specific entrances into the three bracket-lab views. Links fail closed without the
+    registry id and complete draw that the destination uses to resolve the same tournament. */
+export function TournamentBracketActions({ t, compact = false }: { t: Tournament; compact?: boolean }) {
+  const { tour } = useTour();
+  if (!hasCompleteBracket(t)) return null;
+  const scenarioReady = hasScenario(t);
+  return (
+    <div
+      className={`mt-4 flex flex-wrap items-center gap-2 ${compact ? "border-t border-[var(--color-line)] pt-3" : ""}`}
+      data-tournament-bracket-actions={scenarioReady ? "actual+forecast+scenario" : "actual"}
+    >
+      <span className="eyebrow mr-1 !text-[9px]">Explore tournament</span>
+      <Link
+        href={bracketHref(t.espnId, tour)}
+        className="chip transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+      >
+        Actual draw
+      </Link>
+      {scenarioReady && (
+        <>
+          <Link
+            href={bracketHref(t.espnId, tour, "forecast")}
+            className="chip transition-opacity hover:opacity-85"
+            style={{ background: "var(--color-accent)", borderColor: "var(--color-accent)", color: "var(--color-on-accent)" }}
+          >
+            Forecast path
+          </Link>
+          <Link
+            href={bracketHref(t.espnId, tour, "scenario")}
+            className="chip transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+          >
+            Try what-if
+          </Link>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function Tournaments() {
   const { tour } = useTour();
   const { data, loading } = useData<Tournament[]>("tournaments.json");
@@ -208,7 +256,11 @@ export default function Tournaments() {
   if (hero) {
     const tier = tournamentTier(hero.level, hero.name);
     return (
-      <div className="pb-16" data-live-schedule-contract="exact-event-unordered-pair-v1">
+      <div
+        className="pb-16"
+        data-live-schedule-contract="exact-event-unordered-pair-v1"
+        data-home-bracket-entry-contract="stable-event-id+actual+forecast+scenario-v1"
+      >
         <PageHead
           eyebrow={`${tour.toUpperCase()} · ${tier.short} · round-by-round forecast`}
           title={hero.name}
@@ -256,7 +308,11 @@ export default function Tournaments() {
   }
 
   return (
-    <div className="pb-16" data-live-schedule-contract="exact-event-unordered-pair-v1">
+    <div
+      className="pb-16"
+      data-live-schedule-contract="exact-event-unordered-pair-v1"
+      data-home-bracket-entry-contract="stable-event-id+actual+forecast+scenario-v1"
+    >
       <PageHead
         eyebrow={`${tour.toUpperCase()} · the current swing`}
         title="Latest Tournaments"
@@ -325,6 +381,9 @@ function OverviewInsights({
   const closest = worthWatching(matches, 1)[0] ?? closestUpcomingMatch(matches);
   const live = events.filter((event) => event.status === "live");
   const active = live.length ? live : events.filter((event) => event.status === "upcoming");
+  const primaryBracketHref = primary && hasCompleteBracket(primary)
+    ? bracketHref(primary.espnId, tour, hasScenario(primary) ? "forecast" : "actual")
+    : null;
   if (!primary && !closest) return null;
 
   return (
@@ -348,6 +407,14 @@ function OverviewInsights({
                 {active.length} {active.length === 1 ? "event" : "events"} {live.length ? "live" : "with a released draw"}
                 {primary.aliveCount != null && primary.status === "live" ? ` · ${primary.aliveCount} players left` : ""}
               </div>
+              {primaryBracketHref && (
+                <Link
+                  href={primaryBracketHref}
+                  className="mono mt-3 inline-flex items-center rounded-md bg-[var(--color-accent)] px-3 py-2 text-[10px] uppercase tracking-wider text-[var(--color-on-accent)] transition-opacity hover:opacity-85"
+                >
+                  {hasScenario(primary) ? "Open forecast & what-if" : "Open tournament bracket"} →
+                </Link>
+              )}
             </article>
           )}
 
@@ -513,6 +580,7 @@ function SlamHero({
         )}
       </div>
 
+      <TournamentBracketActions t={t} />
       <DrawCaveat t={t} />
 
       {/* champion banner (completed) — who lifted the trophy, and whether the model favoured them */}
@@ -752,6 +820,7 @@ export function Card({
         )}
       </div>
 
+      <TournamentBracketActions t={t} compact={compact} />
       <DrawCaveat t={t} compact />
 
       {/* champion banner (completed) */}

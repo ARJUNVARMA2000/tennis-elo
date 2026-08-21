@@ -279,6 +279,14 @@ export function hasLiveScheduleContract(html) {
   );
 }
 
+/** The overview advertises this only when current tournament discovery uses registry-backed
+ * deep links into all supported bracket-lab modes. */
+export function hasHomeBracketEntryContract(html) {
+  return String(html || "").includes(
+    'data-home-bracket-entry-contract="stable-event-id+actual+forecast+scenario-v1"',
+  );
+}
+
 /** Static route marker for the seven-group, explicitly non-causal model explanation. */
 export function hasPredictionExplanationContract(html) {
   return String(html || "").includes(

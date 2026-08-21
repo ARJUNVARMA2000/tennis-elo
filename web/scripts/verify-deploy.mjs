@@ -24,6 +24,7 @@ import {
   hasProfileContract,
   hasMatchCenterContract,
   hasLiveScheduleContract,
+  hasHomeBracketEntryContract,
   hasPredictionExplanationContract,
   hasBracketLabContract,
   performanceArtifactProblems,
@@ -306,6 +307,12 @@ await check("live/scheduled state: active matches excluded from upcoming surface
   });
   must(missing.length === 0, `live-schedule contract marker missing on ${missing.join(", ")}`);
   return "exact event id + unordered player pair on overview/match center";
+});
+
+await check("home discovery: current tournaments open the bracket lab", async () => {
+  if (!homeHtml) return "route unavailable (covered by route check)";
+  must(hasHomeBracketEntryContract(homeHtml), "home bracket-entry contract marker missing (stale or partial deploy)");
+  return "stable event id + actual/forecast/scenario links";
 });
 
 await check("prediction explanation: grouped evidence is explicitly non-causal", async () => {

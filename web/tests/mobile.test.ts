@@ -33,6 +33,7 @@ describe("mobile browser shell", () => {
   it("uses four stable mobile destinations and a grouped accessible More sheet", () => {
     const nav = readWebSource("components/Nav.tsx");
     expect(nav).toContain("MOBILE_PRIMARY");
+    expect(nav).toContain('{ href: "/bracket", label: "Brackets", paths: ["/bracket"] }');
     expect(nav).toContain('aria-haspopup="dialog"');
     expect(nav).toContain('role="dialog"');
     expect(nav).toContain('aria-modal="true"');

@@ -17,9 +17,9 @@ const GITHUB_URL = "https://github.com/ARJUNVARMA2000/tennis-elo";
 const isActive = (path: string, href: string) => (href === "/" ? path === "/" : path.startsWith(href));
 const MOBILE_PRIMARY = [
   { href: "/", label: "Home", paths: ["/"] },
-  { href: "/matches", label: "Matches", paths: ["/matches", "/schedule", "/results", "/bracket"] },
+  { href: "/matches", label: "Matches", paths: ["/matches", "/schedule", "/results"] },
   { href: "/rankings", label: "Players", paths: ["/rankings", "/player", "/style", "/strength", "/explorer", "/trends"] },
-  { href: "/predict", label: "Predictor", paths: ["/predict"] },
+  { href: "/bracket", label: "Brackets", paths: ["/bracket"] },
 ];
 
 function Chevron({ open }: { open: boolean }) {

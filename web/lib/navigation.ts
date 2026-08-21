@@ -10,7 +10,6 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/matches", label: "Match Center", desc: "Live, upcoming and final calls" },
       { href: "/schedule", label: "Schedule", desc: "Win odds for scheduled matches" },
       { href: "/results", label: "Results", desc: "Model calls on recent results" },
-      { href: "/bracket", label: "Brackets", desc: "Real draws, round by round" },
     ],
   },
   {
@@ -27,6 +26,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Forecasts",
     items: [
+      { href: "/bracket", label: "Brackets", desc: "Actual draws, forecast paths & what-if scenarios" },
       { href: "/predict", label: "Predictor", desc: "Any matchup, any surface" },
       { href: "/simulator", label: "Draw simulator", desc: "Monte Carlo title odds" },
     ],
