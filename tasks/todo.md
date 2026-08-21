@@ -4781,3 +4781,40 @@ Status: implemented and verified locally; approved for production deployment.
 - Residual risk: MCP can stop publishing new charted matches without failing transport, but there is
   no upstream freshness contract that makes such a delay actionable. Coverage age remains visible
   on `/health`; an actual path, payload, or availability failure alerts on the next daily full run.
+
+## Home-to-bracket discovery (2026-08-20)
+
+Status: implemented, deployed, and verified in production.
+
+- [x] Re-home Brackets from the Matches navigation group to Forecasts, and make Brackets a primary
+      mobile destination so the feature is not hidden behind the all-pages sheet.
+- [x] Add one event-specific bracket URL helper that prefers the stable `espnId`, preserves the ATP/
+      WTA tour, and selects Actual, Forecast path, or Scenario without joining on a display name.
+- [x] Put an obvious bracket-lab entry on the home page's current-tournament glance card and add
+      explicit Actual draw, Forecast path, and What-if actions to current/released tournament cards.
+      Open Forecast path from the primary one-click entry when a scenario shard exists, fall back to
+      Actual draw otherwise, and fail closed when no complete bracket is available.
+- [x] Add focused URL, navigation, and rendered-card coverage; run the full web tests, lint, and
+      production build; browser-check ATP and WTA at desktop and mobile widths; reconcile recent git
+      history; then append a review with the exact behavior and verification results.
+
+### Review
+
+- Discovery: the current tournament's above-the-fold glance card now opens its event-specific
+  Forecast path when exact scenario data exists, while every complete-draw card exposes Actual draw,
+  Forecast path, and Try what-if actions as coverage permits. Brackets moved from Matches to
+  Forecasts on desktop and replaced Predictor as a primary mobile destination.
+- Identity and degradation: every link uses the stable `espnId` and preserves the tour. A complete
+  draw without a scenario shard gets Actual only; missing ids and partial/seeded draws get no guessed
+  bracket link.
+- Gate: the deployed home route now advertises
+  `stable-event-id+actual+forecast+scenario-v1`, and post-deploy verification rejects an old or
+  partial bundle that omits the new discovery contract.
+- Verification: 271 web tests passed; the production build generated all 24 routes; ESLint reported
+  zero errors and nine unchanged warnings. Desktop and 390px browser QA covered ATP/WTA home links,
+  the Forecasts menu, all three card actions, exact Cincinnati event selection, WTA tour state, no
+  console errors, and no horizontal overflow.
+- Deployment: commit `0a58938` was pushed to `master`; production workflow run `32444147592` passed
+  tests, integrity, Firebase deploy, live verification, data-health, and deploy-health. An independent
+  production verifier passed 20/20 checks, and the live WTA home CTA opened Cincinnati Open in
+  Forecast path mode with the correct event id.
