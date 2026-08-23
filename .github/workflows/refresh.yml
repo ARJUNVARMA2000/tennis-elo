@@ -3,7 +3,7 @@ name: refresh
 # Three triggers on one workflow:
 #   * 06:00 UTC daily -> FULL: download everything, retrain both tours, rebuild all JSON.
 #   * hourly at :17   -> QUICK: re-pull ESPN live results and regenerate JSON from the
-#     saved model (no retrain, ~1-2 min). The data cache carries the historical archive
+#     saved model (no retrain; warm-cache tour exports run in parallel). The data cache carries
 #     and the trained predictor.pkl + accuracy.json between runs. (:17 dodges the
 #     top-of-hour Actions scheduling congestion; the 06:00 hour belongs to the full run.)
 #   * push to master  -> QUICK: redeploy the site immediately with the cached data/model.
@@ -54,6 +54,11 @@ jobs:
     needs: tests
     if: ${{ always() && (github.event_name != 'push' || needs.tests.result == 'success') }}
     runs-on: ubuntu-latest
+    outputs:
+      pipeline_health_handled: ${{ steps.reportpipeline.outputs.handled }}
+      pipeline_health_state: ${{ steps.reportpipeline.outputs.state }}
+      selected_mode: ${{ steps.mode.outputs.mode }}
+      selected_scope: ${{ steps.scope.outputs.scope }}
     # Backstop. GitHub's default job timeout is 6 HOURS, and the deploy concurrency group
     # serialises runs — so one wedged step freezes every subsequent refresh behind it. On
     # 2026-07-27 run 30227056240 sat 4h in the hourly quick refresh (unbounded Kalshi
@@ -65,7 +70,9 @@ jobs:
       name: production
       url: ${{ env.SITE_URL }}
     steps:
-      - uses: actions/checkout@v7
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@v7
         with:
           # Push classification compares the complete pushed range, which can contain
           # more than one commit. A shallow parent guess silently misclassifies that case.
@@ -79,18 +86,22 @@ jobs:
           CURRENT_SHA: ${{ github.sha }}
         run: bash .github/scripts/decide-push-scope.sh
 
-      - uses: actions/setup-python@v7
+      - name: Set up Python
+        id: setup_python
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: tennis_model/requirements.txt
       - name: Install Python deps
+        id: install_python
         run: pip install -r tennis_model/requirements.txt
 
       # Carries data/raw (historical archive) + data/output (predictor.pkl, accuracy.json,
       # JSON) across runs so quick runs have a model to refresh from. A new cache is saved
       # each run (unique key) and the most recent is restored (restore-keys prefix).
       - name: Restore data cache
+        id: restore_data
         uses: actions/cache/restore@v6
         with:
           path: tennis_model/data
@@ -100,6 +111,7 @@ jobs:
       # If the cache was evicted, bootstrap the immutable archive from the release
       # snapshot instead of hammering (increasingly disappearing) upstreams.
       - name: Bootstrap from release snapshot (cache miss only)
+        id: bootstrap
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -143,6 +155,7 @@ jobs:
           python -m tennis_model.data.odds --tour all || true
 
       - name: Full retrain (re-walk ratings + refit combiner, both tours)
+        id: retrain
         if: steps.mode.outputs.mode == 'full'
         working-directory: tennis_model
         env:
@@ -158,6 +171,7 @@ jobs:
           python -m tennis_model.pipeline --tour all --backtest
 
       - name: Quick refresh (live results + regenerate from saved model)
+        id: quick
         if: steps.mode.outputs.mode == 'quick' && steps.scope.outputs.scope != 'web'
         working-directory: tennis_model
         env:
@@ -172,15 +186,17 @@ jobs:
       # job stops before build/deploy, so the last good deploy stays live rather than shipping
       # a wrong one. This is why quick runs (live-draw pairings) are covered too, not just full.
       - name: Pre-deploy integrity gate
+        id: gate
         working-directory: tennis_model
         env:
           PYTHONPATH: src
-        run: python -m tennis_model.data.health --gate
+        run: python -m tennis_model.data.health --gate --gate-report "$RUNNER_TEMP/predeploy-gate.json"
 
       # A web-only push deliberately reuses the most recent cached producer output. The
       # gate above runs FIRST because red jobs also save caches; only validated JSON is
       # allowed to cross into the static site's public tree.
       - name: Mirror validated cached data (web-only push)
+        id: mirror
         if: steps.mode.outputs.mode == 'quick' && steps.scope.outputs.scope == 'web'
         run: |
           for tour in atp wta; do
@@ -230,17 +246,21 @@ jobs:
       # check noticed). The ALERTING on this report stays post-deploy ("Report data
       # health", last) so it can never cost a deploy.
       - name: Data health check
+        id: health
         working-directory: tennis_model
         env:
           PYTHONPATH: src
         run: python -m tennis_model.data.health
 
-      - uses: actions/setup-node@v7
+      - name: Set up Node
+        id: setup_node
+        uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
           cache-dependency-path: web/package-lock.json
       - name: Restore Next build cache
+        id: restore_next
         uses: actions/cache@v6
         with:
           path: web/.next/cache
@@ -251,6 +271,7 @@ jobs:
       # basePath stays unset (the plumbing in next.config.ts defaults to "" and is kept
       # for portability). NEXT_PUBLIC_SITE_URL feeds metadataBase -> absolute og:image.
       - name: Build static site
+        id: build
         working-directory: web
         env:
           NEXT_PUBLIC_SITE_URL: ${{ env.SITE_URL }}
@@ -300,6 +321,7 @@ jobs:
       # to a rolling release asset — upstream disappearance can then never break a
       # bootstrap. Runs after deploy: a snapshot hiccup must not block the site.
       - name: Snapshot raw data to release
+        id: snapshot
         if: steps.mode.outputs.mode == 'full'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -312,11 +334,11 @@ jobs:
           fi
           if [ "$(date -u +%u)" = "1" ] || [ -n "$FORCE" ]; then
             cd tennis_model/data
-            DIRS=""
+            DIRS=()
             for d in raw/atp/historical raw/atp/stats raw/wta/historical raw/wta/stats raw/atp/live raw/wta/live raw/charting raw/odds raw/kalshi; do
-              [ -d "$d" ] && DIRS="$DIRS $d"
+              [ -d "$d" ] && DIRS+=("$d")
             done
-            tar -czf /tmp/raw-archive.tar.gz $DIRS
+            tar -czf /tmp/raw-archive.tar.gz "${DIRS[@]}"
             gh release upload data-archive /tmp/raw-archive.tar.gz --clobber
             echo "snapshot uploaded ($(du -h /tmp/raw-archive.tar.gz | cut -f1))"
           else
@@ -333,6 +355,7 @@ jobs:
       # tennis_model/tests/test_workflow_alerts.py. Only the health.json read stays here.
       # A GITHUB_TOKEN-authenticated issue write can't re-trigger this workflow, so no loop.
       - name: Report data health
+        id: reportdata
         working-directory: tennis_model
         env:
           PYTHONPATH: src
@@ -357,6 +380,7 @@ jobs:
       # tennis_model/tests/test_workflow_alerts.py. if: always() so it runs even when an
       # earlier alert step redded, and so a never-ran verification is seen and no-op'd.
       - name: Report deploy health
+        id: reportdeploy
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
@@ -378,6 +402,7 @@ jobs:
       # cache/save errors on a key that already exists. The restore step's `restore-keys:
       # tennis-data-` prefix still finds it, so attempt 2 picks up attempt 1's work.
       - name: Save data cache
+        id: savecache
         if: always()
         uses: actions/cache/save@v6
         with:
@@ -388,6 +413,7 @@ jobs:
       # deploy + sentinel have had their chance, so a failing push alerts without
       # ever costing a deploy or a health report.
       - name: Fail if forecast-log push failed
+        id: failpersist
         if: steps.mode.outputs.mode == 'full' && steps.persist.outcome == 'failure'
         run: |
           echo "::error::forecast-log push failed after retries (see the Persist forecast log step)"
@@ -397,9 +423,82 @@ jobs:
       # run on the data we had, the site got to deploy, and only then does the run go red
       # so the incomplete-source failure is still impossible to miss.
       - name: Fail if source downloads were incomplete
+        id: faildownload
         if: steps.mode.outputs.mode == 'full' && steps.download.outcome == 'failure'
         run: |
           echo "::error::--strict reported failed source download(s) (see the Download sources step)."
           echo "::error::The retrain still ran on the data already on disk, so ratings are current"
           echo "::error::as of the last successful download — not frozen — but a source is broken."
           exit 1
+
+      # Last-resort ownership for failures that neither the data-health nor deploy-health
+      # reporter owns. It runs after the unconditional cache save and the two escalation
+      # steps, writes a mode-keyed incident, and exposes `handled` to the terminal job.
+      - name: Report pipeline health
+        id: reportpipeline
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPORT_CONTEXT: refresh
+          MODE: ${{ steps.mode.outputs.mode }}
+          PUSH_SCOPE: ${{ steps.scope.outputs.scope }}
+          DATA_REPRESENTED: ${{ steps.reportdata.outputs.represented }}
+          DEPLOY_REPRESENTED: ${{ steps.reportdeploy.outputs.represented }}
+          GATE_REPORT: ${{ runner.temp }}/predeploy-gate.json
+          GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          STAGE_OUTCOMES: |
+            checkout=${{ steps.checkout.outcome }}
+            scope=${{ steps.scope.outcome }}
+            setup_python=${{ steps.setup_python.outcome }}
+            install_python=${{ steps.install_python.outcome }}
+            restore_data=${{ steps.restore_data.outcome }}
+            bootstrap=${{ steps.bootstrap.outcome }}
+            mode=${{ steps.mode.outcome }}
+            download=${{ steps.download.outcome }}
+            retrain=${{ steps.retrain.outcome }}
+            quick=${{ steps.quick.outcome }}
+            gate=${{ steps.gate.outcome }}
+            mirror=${{ steps.mirror.outcome }}
+            persist=${{ steps.persist.outcome }}
+            health=${{ steps.health.outcome }}
+            setup_node=${{ steps.setup_node.outcome }}
+            restore_next=${{ steps.restore_next.outcome }}
+            build=${{ steps.build.outcome }}
+            deploy=${{ steps.deploy.outcome }}
+            verifydeploy=${{ steps.verifydeploy.outcome }}
+            snapshot=${{ steps.snapshot.outcome }}
+            reportdata=${{ steps.reportdata.outcome }}
+            reportdeploy=${{ steps.reportdeploy.outcome }}
+            savecache=${{ steps.savecache.outcome }}
+            failpersist=${{ steps.failpersist.outcome }}
+            faildownload=${{ steps.faildownload.outcome }}
+        run: bash .github/scripts/report-pipeline-health.sh
+
+  # `refresh` cannot report its own checkout failure, timeout, or missing tail step. This
+  # always-running dependent job owns those cases and push-test failures. It uses the exact
+  # same mode-keyed reporter, so a successful quick run cannot close a broken full path.
+  report-workflow-health:
+    needs: [tests, refresh]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout reporter
+        uses: actions/checkout@v7
+
+      - name: Report terminal workflow health
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPORT_CONTEXT: workflow
+          EVENT_NAME: ${{ github.event_name }}
+          TESTS_RESULT: ${{ needs.tests.result }}
+          REFRESH_RESULT: ${{ needs.refresh.result }}
+          IN_JOB_HANDLED: ${{ needs.refresh.outputs.pipeline_health_handled }}
+          IN_JOB_STATE: ${{ needs.refresh.outputs.pipeline_health_state }}
+          MODE: ${{ needs.refresh.outputs.selected_mode }}
+          PUSH_SCOPE: ${{ needs.refresh.outputs.selected_scope }}
+          GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: bash .github/scripts/report-pipeline-health.sh

@@ -106,14 +106,21 @@ INCLUDE_CHALLENGERS = True
 # covers the 2010-19 tune window, so a 125 experiment is gate-untestable — same
 # regime problem the original A5 had).
 INCLUDE_WTA_125 = False
-# First-party WTA qualifying/125 rows are acquired into a separate lower-tier overlay,
-# but remain OUT of production rating state until the state-only walk-forward arbiter
-# passes.  This is deliberately independent of INCLUDE_WTA_125: that older flag owns
-# ESPN event/result population policy, not research-data admission.
+# The legacy all-or-nothing lower-state switch remains false: admitting every WTA
+# qualifying/125 row into one global state regressed both-top-50 matches.  Production's
+# adopted dual-state path loads the overlay explicitly and gates it per matchup, leaving
+# the default/display/main-only population unchanged.  This flag stays available for the
+# reproducible global-arm A/B and lower-ingestion tests.
 INCLUDE_WTA_LOWER_STATE = False
 # Earliest season for which the first-party WTA lower source produced usable state
 # rows.  The A/B harness requires bit-identical predictions before this boundary.
 WTA_LOWER_STATE_FIRST_YEAR = 2016
+# Adopted gated dual state (2026-08-22): use the lower-enriched Elo/serve/context bundle
+# only when either player has fewer than this many PRE-match main-draw matches.  The
+# threshold was selected on 2010-19 (d=+0.00042) then passed 2020+ (+0.00098±0.00066),
+# outside-top-50 (+0.00145±0.00059), and top-50 safety (-0.00007±0.00012).  ``None``
+# disables it without changing the model feature schema or main-draw combiner population.
+WTA_DUAL_STATE_GATE_THRESHOLD = 32
 # Increment only when an intentional ingestion-policy change makes meta.matches
 # incomparable with the prior deploy. Health requires this exact value and resets its
 # run-over-run monotonic baseline only across a version boundary; the following run is
@@ -544,6 +551,21 @@ WIKI_TITLE_OVERRIDES: dict[str, str] = {
     # page is not necessarily a singles-bracket page, which is why draw location now belongs
     # to the first-party/source-neutral architecture instead of reusing this alias.
     "Mifel Tennis Open by Telcel Oppo": "Los Cabos Open",
+}
+
+# Exact Wikipedia SINGLES-DRAW locators. This is deliberately separate from the main-article
+# metadata aliases above: a surface/tier article is not evidence for an ordered draw. Events
+# whose ESPN name has no distinctive search anchor must appear here or resolve to no draw.
+# Key by the stable edition id rather than the display name so combined-tour gender and annual
+# article identity stay explicit. A locator may safely precede the page: a missing page yields
+# no bracket until Wikipedia publishes it.
+WIKI_DRAW_TITLE_OVERRIDES: dict[str, dict[str, str]] = {
+    "atp": {
+        "189-2026": "2026 US Open – Men's singles",
+    },
+    "wta": {
+        "189-2026": "2026 US Open – Women's singles",
+    },
 }
 
 # Provider tournament ids are source locators, never event join keys. Normal events resolve

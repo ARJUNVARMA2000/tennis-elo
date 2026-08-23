@@ -7,6 +7,7 @@ venv/
 # Generated data (re-downloaded + rebuilt by the pipeline / CI)
 tennis_model/data/raw/
 tennis_model/data/output/
+tennis_model/data/cache/
 web/public/data/
 
 # Node / Next

@@ -71,13 +71,14 @@ data ─┬─ surface Elo + cross-surface transfer  (per-surface ratings, every
 ## Data
 
 Production data combines full-schema history, a daily serve-stats overlay, fresh weekly
-results, hourly ESPN live scores, and an ATP Challenger + qualifying overlay
-(2005+/2007+, feeding the rating walks only), plus Match-Charting style features,
+results, hourly ESPN live scores, and lower-tier state overlays, plus Match-Charting style features,
 official live rankings, and a Tennis-Data.co.uk odds benchmark (never a model input).
-The first-party WTA downloader also acquires qualifying/125 rows into a separate research
-overlay, but those rows remain out of production rating state until the state-only arbiter
-passes. The full sourcing story, including fallbacks for upstreams that keep disappearing,
-is in the [root README](../README.md). Module map: `data/download.py`
+The first-party WTA downloader also acquires qualifying/125 rows into a separate secondary-state
+overlay. ATP Challenger + qualifying rows (2005+/2007+) feed every rating walk while remaining
+out of combiner training. WTA qualifying/125 rows (2016+) feed a separate secondary state,
+selected only when either player has fewer than 32 prior main-draw matches; established matchups
+retain the main-only state exactly. The full sourcing story, including fallbacks for upstreams that
+keep disappearing, is in the [root README](../README.md). Module map: `data/download.py`
 (schema-validated atomic downloads), `data/results.py` (merge + dedup),
 `data/names.py` (cross-source name canonicalisation, contract-tested against the
 site's TypeScript copy), `data/wta_stats.py` (wtatennis.com API scraper),
@@ -195,12 +196,11 @@ PYTHONPATH=src uv run --with-requirements requirements.txt python -m tennis_mode
 
 ## Limitations / future work
 
-- **WTA qualifying/125 rows** are acquired into a separate research overlay but are not
-  admitted to production rating state — the source begins in 2016 and cannot support a
-  comparable 2010–19 tuning-window decision. ATP Challengers + qualifying (2005+/2007+)
-  were adopted 2026-07-05 in ratings-only form: they feed the Elo/point/context walks,
-  while the combiner still trains, calibrates and scores on main draws only (see the A5
-  note in the tuning logs).
+- **Lower-tier state is deliberately asymmetric by tour.** ATP Challengers + qualifying
+  (2005+/2007+) feed every Elo/point/context walk. WTA qualifying/125 history begins only in
+  2016, so it feeds a second state bundle selected by the frozen 32-main-match cold-start gate;
+  protected WTA matchups remain bit-identical to the main-only baseline. Both combiners still
+  train, calibrate and score on main draws only.
 - The **draw simulator uses current ratings**, ideal for projecting *upcoming* events;
   a true historical sim backtest would need as-of-date ratings.
 - **Event-speed serve baselines and Elo-level home bonuses** were built, gated, and

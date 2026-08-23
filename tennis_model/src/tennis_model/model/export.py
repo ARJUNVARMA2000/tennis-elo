@@ -13,7 +13,9 @@ Kept separate from pipeline orchestration so the export surface is easy to scan:
   brackets.json         the actual ordered draw round-by-round, priced (powers /bracket)
   scenario-index.json   stable event IDs -> lazy exact scenario shards
   scenario-*.json       geometry, pairwise matrix, baseline and title leverage
-  upcoming.json         scheduled matches + the model's current win prob (powers /schedule)
+  upcoming-index.json   compact home highlights + references to lazy upcoming shards
+  upcoming-event-*.json compact scheduled rows grouped by stable event identity
+  upcoming-evidence-*.json prediction evidence + forecast history loaded on demand
   fixtures.json         latest results with the model's pre-match call + upset flags
   accuracy.json         walk-forward metrics, calibration, per-surface breakdown
   meta.json             metadata + headline backtest
@@ -37,6 +39,7 @@ from ..config import MATCH_POPULATION_VERSION, SURFACES, output_dir
 from ..data.charting import build_profiles, name_key
 from ..data.rankings import load_rankings
 from ..data.results import summary
+from ..timing import timed
 from .features import FEATURES, STYLE_FEATURES
 
 ACTIVE_DAYS = 550
@@ -321,6 +324,12 @@ def _write_shards(tour: str, prefix: str, shards: dict[str, dict]) -> None:
         _write(tour, filename, payload, compact=prefix == "matrix")
 
 
+def _clear_upcoming_outputs(tour: str) -> None:
+    """Prevent a failed refresh from laundering the previous schedule as current."""
+    for path in output_dir(tour).glob("upcoming*.json"):
+        path.unlink()
+
+
 def build_draws(predictor, players: list, tour: str) -> dict:
     """Project a 32-player current-top field on each surface (Slam format for the tour)."""
     from ..sim.simulate import project_field
@@ -383,7 +392,7 @@ def _load_scenario_products(tour: str) -> tuple[dict | None, dict[str, dict]]:
     return index, shards
 
 
-def build_upcoming(predictor, df, tour: str) -> list:
+def build_upcoming(predictor, df, tour: str, *, enriched: list[dict] | None = None) -> list:
     """Scheduled / in-progress matches with the model's current win prob (schedule board).
 
     Sourced from the live feed's upcoming.csv through the shared enricher (model.upcoming) —
@@ -391,9 +400,10 @@ def build_upcoming(predictor, df, tour: str) -> list:
     Event names are de-sponsored like the home board; rows are ordered soonest-first, then
     by round depth within a day."""
     from ..sim.tournaments import _display_name, _known_names
-    from .upcoming import enrich_upcoming, load_upcoming
     known = _known_names(df)
-    enriched = enrich_upcoming(predictor, df, load_upcoming(tour), tour)
+    if enriched is None:
+        from .upcoming import enrich_upcoming, load_upcoming
+        enriched = enrich_upcoming(predictor, df, load_upcoming(tour), tour)
     from ..eval.track import movement_for_upcoming, movement_key
     movements = movement_for_upcoming(tour, enriched)
     rows = [{
@@ -415,14 +425,126 @@ def build_upcoming(predictor, df, tour: str) -> list:
     )
 
 
-def export_forecast_products(tour: str, predictor, df) -> None:
+UPCOMING_SCHEMA = "upcoming-v2"
+UPCOMING_EVENT_SCHEMA = "upcoming-event-v1"
+UPCOMING_EVIDENCE_SCHEMA = "upcoming-evidence-v1"
+_UPCOMING_DETAIL_KEYS = ("components", "evidence", "forecast")
+
+
+def _upcoming_match_id(row: dict) -> str:
+    from ..eval.track import match_identity
+    return match_identity(row)
+
+
+def _upcoming_event_token(rows: list[dict]) -> str:
+    event_id = str(rows[0].get("espnId") or "").strip()
+    if event_id:
+        safe = re.sub(r"[^A-Za-z0-9._-]+", "-", event_id).strip("-")
+        if safe:
+            return safe
+    evidence = "|".join((
+        str(rows[0].get("event") or ""),
+        str(rows[0].get("date") or ""),
+        str(rows[0].get("surface") or ""),
+    ))
+    return hashlib.sha256(evidence.encode()).hexdigest()[:12]
+
+
+def _upcoming_base_row(row: dict, *, highlight: bool = False) -> dict:
+    base = {key: value for key, value in row.items() if key not in _UPCOMING_DETAIL_KEYS}
+    base["matchId"] = _upcoming_match_id(row)
+    if highlight and isinstance(base.get("watch"), dict):
+        base["watch"] = {"score": base["watch"].get("score")}
+    return base
+
+
+def build_upcoming_shards(rows: list[dict], generation: str) -> tuple[dict, dict[str, dict]]:
+    """Split one decorated upcoming snapshot without changing its row semantics.
+
+    The home index carries only the next three rows per event plus the five highest watch
+    ranks. Full schedule rows live per event; the heavy components/evidence/timeline payload
+    is keyed separately by the exact match identity and fetched only when requested.
+    """
+    groups: dict[tuple[str, str], list[dict]] = {}
+    for row in rows:
+        key = (str(row.get("espnId") or ""), str(row.get("event") or ""))
+        groups.setdefault(key, []).append(row)
+
+    refs = []
+    shards: dict[str, dict] = {}
+    highlight_ids: set[str] = set()
+    for event_rows in groups.values():
+        token = _upcoming_event_token(event_rows)
+        event_file = f"upcoming-event-{token}.json"
+        evidence_file = f"upcoming-evidence-{token}.json"
+        base_rows = [_upcoming_base_row(row) for row in event_rows]
+        details = [{
+            "matchId": base["matchId"],
+            **{key: row.get(key) for key in _UPCOMING_DETAIL_KEYS},
+        } for row, base in zip(event_rows, base_rows)]
+        event_meta = {
+            "name": event_rows[0].get("event"),
+            "espnId": event_rows[0].get("espnId"),
+            "surface": event_rows[0].get("surface"),
+            "level": event_rows[0].get("level"),
+        }
+        shards[event_file] = {
+            "schema": UPCOMING_EVENT_SCHEMA,
+            "generation": generation,
+            "event": event_meta,
+            "matches": base_rows,
+        }
+        shards[evidence_file] = {
+            "schema": UPCOMING_EVIDENCE_SCHEMA,
+            "generation": generation,
+            "event": event_meta,
+            "details": details,
+        }
+        refs.append({
+            **event_meta,
+            "count": len(event_rows),
+            "file": event_file,
+            "evidenceFile": evidence_file,
+        })
+        highlight_ids.update(base["matchId"] for base in base_rows[:3])
+
+    watch = sorted(
+        (row for row in rows if isinstance(row.get("watchRank"), int)),
+        key=lambda row: row["watchRank"],
+    )[:5]
+    highlight_ids.update(_upcoming_match_id(row) for row in watch)
+    highlights = [
+        _upcoming_base_row(row, highlight=True)
+        for row in rows if _upcoming_match_id(row) in highlight_ids
+    ]
+    index = {
+        "schema": UPCOMING_SCHEMA,
+        "schemaVersion": 2,
+        "generation": generation,
+        "count": len(rows),
+        "events": refs,
+        "highlights": highlights,
+    }
+    return index, shards
+
+
+def export_forecast_products(tour: str, predictor, df, *,
+                             enriched: list[dict] | None = None) -> None:
     """Refresh products whose source of truth is written after the main export.
 
     `log_and_grade` appends the current hourly observation and writes performance.json.
     Rebuilding these small artifacts afterward prevents the schedule from remaining one
     refresh behind and joins expectation detail into the already-lazy profile dossiers.
     """
-    _write(tour, "upcoming.json", build_upcoming(predictor, df, tour))
+    generation = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    with timed(tour, "upcoming.decorate_and_shard"):
+        upcoming = build_upcoming(predictor, df, tour, enriched=enriched)
+        upcoming_index, upcoming_shards = build_upcoming_shards(upcoming, generation)
+        _write(tour, "upcoming-index.json", upcoming_index)
+        _write_shards(tour, "upcoming", upcoming_shards)
+        legacy = output_dir(tour) / "upcoming.json"
+        if legacy.exists():
+            legacy.unlink()
 
     out = output_dir(tour)
     perf_path, index_path = out / "performance.json", out / "profile-index.json"
@@ -478,7 +600,9 @@ def _surface_of(oos):  # oos lacks surface; return empty to skip gracefully
 
 
 def build_meta(df, players, accuracy, trained_at: str | None = None,
-               model_population_version: int | None = None) -> dict:
+               model_population_version: int | None = None,
+               dual_state_threshold: int | None = None,
+               dual_state_ready: bool = False) -> dict:
     """`lastUpdated` is when this JSON was written; `modelTrainedAt` is when the predictor
     behind it was trained. They diverge on every quick refresh — which republishes the
     saved pickle — so only the latter can reveal a daily retrain that has been failing.
@@ -495,6 +619,10 @@ def build_meta(df, players, accuracy, trained_at: str | None = None,
         # Unlike the data-policy version above, this comes from inside predictor.pkl.
         # Their equality proves cached rating state was walked over the rows now claimed.
         "modelPopulationVersion": model_population_version,
+        # Predictor-derived, unlike method.json's config declaration.  Their health-gate
+        # agreement proves a quick/full export actually carries the adopted secondary state.
+        "dualStateThreshold": dual_state_threshold,
+        "dualStateReady": bool(dual_state_ready),
         "matches": s["matches"], "players": s["players"], "activePlayers": len(players),
         # Audited by the pre-deploy gate. INCLUDE_WTA_125 is false; any non-zero value
         # means another ingestion path bypassed that adopted population policy.
@@ -532,6 +660,8 @@ def build_method(tour: str) -> dict:
         TIER_ANCHORS,
         TUNE_YEARS,
         VAL_START,
+        WTA_DUAL_STATE_GATE_THRESHOLD,
+        WTA_LOWER_STATE_FIRST_YEAR,
     )
     from ..data.results import tier_mults
     from ..points.markov import P_CLIP
@@ -555,6 +685,13 @@ def build_method(tour: str) -> dict:
         },
         "serveReturn": {**_camel(asdict(sr_params_for(tour))), "pClip": list(P_CLIP)},
         "context": _camel(asdict(feat_params_for(tour))),
+        "stateGate": {
+            "enabled": bool(tour == "wta" and WTA_DUAL_STATE_GATE_THRESHOLD is not None),
+            "minMainMatches": (WTA_DUAL_STATE_GATE_THRESHOLD if tour == "wta" else None),
+            "lowerStateFirstYear": (WTA_LOWER_STATE_FIRST_YEAR if tour == "wta" else None),
+            "trainingPopulation": "main-only",
+            "enrichedRows": ["qualifying", "wta125"] if tour == "wta" else [],
+        },
         "combiner": {
             "algorithm": "xgboost",
             "nBag": N_BAG,
@@ -745,10 +882,11 @@ def build_event_outputs(predictor, df: pd.DataFrame, tour: str) -> tuple[dict, l
     from ..data import event_coverage, results
     from ..sim import tournaments
 
-    event_df = results.event_match_view(df, tour)
-    coverage = event_coverage.build_event_coverage(event_df, tour)
-    cards = tournaments.build_tournaments(predictor, event_df, tour)
-    coverage = event_coverage.finalize_event_coverage(coverage, cards)
+    with timed(tour, "event_projection"):
+        event_df = results.event_match_view(df, tour)
+        coverage = event_coverage.build_event_coverage(event_df, tour)
+        cards = tournaments.build_tournaments(predictor, event_df, tour)
+        coverage = event_coverage.finalize_event_coverage(coverage, cards)
     return coverage, cards
 
 
@@ -788,6 +926,7 @@ def export_all(tour, df, elo, srv, meta, predictor, oos=None, *, full: bool = Tr
     accuracy.json); a quick refresh passes oos=None and reuses the saved predictor's
     states (elo/srv/meta) — accuracy.json is left to persist from the last full run.
     """
+    _clear_upcoming_outputs(tour)
     static = full or not _static_outputs_present(tour)
     build_generation = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     mcp = build_profiles(tour) if static else _cached_profile_styles(tour)
@@ -816,14 +955,14 @@ def export_all(tour, df, elo, srv, meta, predictor, oos=None, *, full: bool = Tr
             if path.exists():
                 path.unlink()
     coverage, ts = build_event_outputs(predictor, df, tour)
-    scenario_index, scenario_shards = build_scenario_shards(
-        predictor, ts, ts, build_generation)
+    with timed(tour, "scenario_generation"):
+        scenario_index, scenario_shards = build_scenario_shards(
+            predictor, ts, ts, build_generation)
     _write(tour, "scenario-index.json", scenario_index)
     _write_shards(tour, "scenario", scenario_shards)
     _write(tour, "brackets.json", build_brackets_payload(ts))   # pops bracket/size/url, stamps hasBracket
     _write(tour, "tournaments.json", ts)
     _write(tour, "event_coverage.json", coverage)
-    _write(tour, "upcoming.json", build_upcoming(predictor, df, tour))
     _write(tour, "fixtures.json", build_fixtures(df, predictor))
     if accuracy:
         _write(tour, "accuracy.json", accuracy)
@@ -833,6 +972,8 @@ def export_all(tour, df, elo, srv, meta, predictor, oos=None, *, full: bool = Tr
         df, players, accuracy,
         getattr(predictor, "trained_at", None),
         getattr(predictor, "_match_population_version", None),
+        getattr(predictor, "_dual_state_threshold", None),
+        getattr(predictor, "_has_lower_state", False),
     ))
     if static:
         _write(tour, "method.json", build_method(tour))

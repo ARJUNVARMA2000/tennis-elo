@@ -66,6 +66,12 @@ adopted improvement came from adding roughly 130,000 ATP Challenger and qualifyi
 rating walks while keeping lower-tier rows out of combiner training: validation improved by
 `d = +0.0076 ± 0.0010`, with all 17 evaluated years positive.
 
+WTA uses a stricter dual-state design because global lower-tier admission harmed established
+top-50 matchups. The model keeps main-only and qualifying/125-enriched state bundles, selecting the
+enriched bundle only when either player has fewer than 32 prior main-draw matches. The threshold was
+chosen on 2010–2019, then improved 2020+ paired log loss by +0.00098 ± 0.00066 and the
+outside-top-50 slice by +0.00145 ± 0.00059; gate-protected rows are bit-identical to baseline.
+
 ### How a model change ships
 
 Every candidate constant, feature, or training change must pass the same protocol:
@@ -124,8 +130,9 @@ fails:
   first-party wtatennis.com API, including a snapshot-preserved backfill.
 - **Lower-tier evidence:** ATP Challenger and qualifying rows feed rating, point, and context state
   from the 2005 warm-up boundary onward, while the combiner still trains and scores on main draws.
-  First-party WTA qualifying/125 rows are acquired into a separate research overlay but remain out
-  of production state until a state-only walk-forward arbiter passes.
+  First-party WTA qualifying/125 rows feed a separate secondary state from 2016 onward. A frozen
+  main-draw-experience gate uses it only for cold-start matchups; the main-only state is preserved
+  for established players and the combiner still trains solely on main draws.
 - **Fresh results:** `LuckyLoser91/TennisCourtLog` provides a weekly results overlay; ESPN supplies
   hourly scores, completed results, schedules, and the current event frontier.
 - **Rankings, style, and market benchmarks:** live-tennis.eu supplies display-only official ranks;
@@ -259,9 +266,9 @@ cd ../web && npm test && npm run lint && npx tsc --noEmit && npm run build
 
 ## Current limitations
 
-- WTA qualifying and 125-level history is collected but not admitted to production rating state;
-  the available source does not cover the full 2010–2019 tuning regime needed for a comparable
-  adoption decision.
+- WTA qualifying and 125-level history begins in 2016, so the adopted gate improves cold-start
+  players rather than providing the long warm-up that ATP Challenger history does. Established
+  matchups deliberately stay on the main-only state.
 - Hypothetical-field simulations use current ratings. A historically faithful tournament
   simulation would require reconstructing every player's rating state at the event date.
 - Match Charting is a volunteer, batch-updated dataset. Its age describes tactical-feature coverage,

@@ -10,7 +10,7 @@ import { nameKey, type PlayerRow } from "@/lib/live";
 import LiveTicker, { useLiveMatches } from "@/components/LiveTicker";
 import Link from "next/link";
 import { bracketHref, pairHref } from "@/lib/url";
-import { closestUpcomingMatch, excludeLiveMatches, matchesForTournament, worthWatching, type Upcoming } from "@/lib/upcoming";
+import { closestUpcomingMatch, excludeLiveMatches, matchesForTournament, useUpcomingHighlights, worthWatching, type Upcoming } from "@/lib/upcoming";
 
 export type Proj = { name: string; champion: number; final: number | null; sf: number | null; reach?: Record<string, number> };
 export type Tournament = {
@@ -237,7 +237,7 @@ export function TournamentBracketActions({ t, compact = false }: { t: Tournament
 export default function Tournaments() {
   const { tour } = useTour();
   const { data, loading } = useData<Tournament[]>("tournaments.json");
-  const { data: scheduled } = useData<Upcoming[]>("upcoming.json");
+  const { data: scheduled } = useUpcomingHighlights();
   const { data: players } = useData<PlayerRow[]>("players.json");
   const live = useLiveMatches(tour);
   const scheduledMatches = useMemo(

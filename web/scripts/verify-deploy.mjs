@@ -17,6 +17,7 @@ import {
   extractHashedAsset,
   isAbsoluteOnOrigin,
   coverageProblems,
+  drawSourceProblems,
   extractOgImage,
   canonicalRouteProblems,
   extractGoogleSiteVerification,
@@ -244,19 +245,40 @@ await check("coverage: every begun event is on the live site exactly once", asyn
   throw new Error(last.join("; "));
 });
 
+await check("bracket provenance: one draw source per ESPN event", async () => {
+  const problems = [];
+  let checked = 0;
+  for (const tour of ["atp", "wta"]) {
+    const path = `/data/${tour}/brackets.json`;
+    const res = await fetchT(BASE + path, { cache: "no-store" });
+    if (res.status !== 200) {
+      problems.push(`${path} -> ${res.status}`);
+      continue;
+    }
+    const brackets = await res.json();
+    problems.push(...drawSourceProblems(brackets).map((problem) => `${tour}: ${problem}`));
+    checked += Array.isArray(brackets) ? brackets.length : 0;
+  }
+  must(problems.length === 0, problems.join("; "));
+  return `${checked} bracket source attachment(s) unique`;
+});
+
 await check("sharded artifacts: every index reference is served at one generation", async () => {
   let checked = 0;
   for (const tour of ["atp", "wta"]) {
     const matrixRes = await fetchT(BASE + `/data/${tour}/matrix-index.json`, { cache: "no-store" });
     const profileRes = await fetchT(BASE + `/data/${tour}/profile-index.json`, { cache: "no-store" });
     const scenarioRes = await fetchT(BASE + `/data/${tour}/scenario-index.json`, { cache: "no-store" });
+    const upcomingRes = await fetchT(BASE + `/data/${tour}/upcoming-index.json`, { cache: "no-store" });
     must(matrixRes.status === 200, `${tour}/matrix-index.json -> ${matrixRes.status}`);
     must(profileRes.status === 200, `${tour}/profile-index.json -> ${profileRes.status}`);
     must(scenarioRes.status === 200, `${tour}/scenario-index.json -> ${scenarioRes.status}`);
+    must(upcomingRes.status === 200, `${tour}/upcoming-index.json -> ${upcomingRes.status}`);
     const matrix = await matrixRes.json();
     const profiles = await profileRes.json();
     const scenarios = await scenarioRes.json();
-    const { problems, files } = artifactIndexRefs(matrix, profiles, scenarios);
+    const upcoming = await upcomingRes.json();
+    const { problems, files } = artifactIndexRefs(matrix, profiles, scenarios, upcoming);
     must(problems.length === 0, `${tour}: ${problems.join("; ")}`);
     for (let start = 0; start < files.length; start += 24) {
       const batch = files.slice(start, start + 24);
@@ -271,6 +293,8 @@ await check("sharded artifacts: every index reference is served at one generatio
         if (payload?.generation !== ref.generation) return `${path} generation mismatch`;
         if (ref.kind === "profile" && payload?.name !== ref.name) return `${path} player mismatch`;
         if (ref.kind === "scenario" && payload?.event?.name !== ref.name) return `${path} event mismatch`;
+        if ((ref.kind === "upcoming-event" || ref.kind === "upcoming-evidence")
+            && payload?.event?.name !== ref.name) return `${path} upcoming event mismatch`;
         if (ref.kind === "matrix") {
           const components = Object.keys(payload?.components || {}).sort().join(",");
           if (components !== "combiner,eloBlend,pointModel") return `${path} component set ${components}`;

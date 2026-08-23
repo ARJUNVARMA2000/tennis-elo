@@ -673,11 +673,21 @@ if __name__ == "__main__":
         frame = load_matches(t)
         oos_frame = None
         if args.backfill:
-            from ..model.features import build_predictor_inputs, main_rows
-            from ..model.train import walk_forward, xgb_params_for
+            from ..config import WTA_DUAL_STATE_GATE_THRESHOLD
+            from ..model.features import build_dual_state_inputs, build_predictor_inputs, main_rows
+            from ..model.train import walk_forward, walk_forward_state_gate, xgb_params_for
             print(f"  kalshi-ledger/{t}: walk-forward for the backfill era...")
-            feat, *_ = build_predictor_inputs(frame)
             year = datetime.now(UTC).year
-            oos_frame = walk_forward(main_rows(feat), start_test=year, end_test=year,
-                                     xgb_overrides=xgb_params_for(t), verbose=False)
+            threshold = WTA_DUAL_STATE_GATE_THRESHOLD if t == "wta" else None
+            if threshold is not None:
+                enriched = load_matches(t, include_lower=True)
+                dual = build_dual_state_inputs(frame, enriched, tour=t)
+                oos_frame = walk_forward_state_gate(
+                    dual.base_features, dual.enriched_features, (threshold,),
+                    start_test=year, end_test=year,
+                    xgb_overrides=xgb_params_for(t), verbose=False)[threshold]
+            else:
+                feat, *_ = build_predictor_inputs(frame)
+                oos_frame = walk_forward(main_rows(feat), start_test=year, end_test=year,
+                                         xgb_overrides=xgb_params_for(t), verbose=False)
         refresh_ledger(t, frame, oos=oos_frame)

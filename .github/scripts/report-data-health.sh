@@ -34,6 +34,15 @@ set -e
 HEALTH_BODY_CMD="${HEALTH_BODY_CMD:-python -m tennis_model.data.health --issue-body}"
 GH_RETRY_SLEEP="${GH_RETRY_SLEEP:-3}"
 
+set_represented() {
+  if [ -n "${GITHUB_OUTPUT:-}" ]; then
+    printf 'represented=%s\n' "$1" >> "$GITHUB_OUTPUT"
+  fi
+}
+# Fail closed for ownership: only append true after the issue path was actually observed
+# and, where needed, created/commented. A body/gh crash leaves the final value false.
+set_represented false
+
 # A 504 from the GitHub API is not a data problem, and must not be reported as one.
 # `EXISTING=$(gh issue list ...)` used to run unguarded under `bash -e`, so one API blip
 # redded a run in which everything real had PASSED — run 30106835566: integrity gate
@@ -74,6 +83,7 @@ if [ "${OK:-}" = "True" ]; then
       --body "✅ Recovered: the data-health check passed on $(date -u +%F). Closing." || true
     gh issue close "$EXISTING" || true
   fi
+  [ "$LISTED" = "1" ] && set_represented true
   echo "data health OK"
   exit 0
 fi
@@ -91,6 +101,7 @@ $HEALTH_BODY_CMD > /tmp/health-body.md
 if [ -z "$EXISTING" ]; then
   gh issue create --label data-health \
     --title "Data-health check failed" --body-file /tmp/health-body.md
+  set_represented true
   echo "::error::data-health check failed — see the data-health issue"
   exit 1
 fi
@@ -98,6 +109,7 @@ if [ "${MODE:-}" = "full" ] || [ "${CHANGED:-}" = "True" ]; then
   gh issue comment "$EXISTING" --body-file /tmp/health-body.md
   echo "commented on existing data-health issue #$EXISTING"
 fi
+set_represented true
 if [ "${MODE:-}" = "full" ]; then
   echo "::error::data-health check failed — see the data-health issue"
   exit 1

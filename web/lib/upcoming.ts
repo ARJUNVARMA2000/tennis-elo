@@ -1,9 +1,12 @@
+"use client";
+
+import { useMemo } from "react";
+import { useData, useDataFiles } from "./tour";
 import { orientEvidence, type PredictionEvidenceData } from "./evidence";
 import { nameKey, type RawLiveMatch } from "./live";
 import { tournamentTier } from "./ui";
 
-/** One scheduled match with the model's current win probability, as written by the
-    pipeline's build_upcoming (mirrored to /data/<tour>/upcoming.json). pA = P(playerA wins). */
+/** One scheduled match with the model's current win probability. */
 export type ForecastPoint = {
   asOf?: string;
   p: number;
@@ -28,6 +31,7 @@ export type ForecastHistory = {
 };
 
 export type Upcoming = {
+  matchId?: string;
   event: string;
   espnId?: string | null;
   date: string;
@@ -46,17 +50,99 @@ export type Upcoming = {
   evidence?: PredictionEvidenceData | null;
   forecast?: ForecastHistory | null;
   watch?: {
-    schema: "watch-v1";
+    schema?: "watch-v1";
     score: number;
-    weights: Record<string, number>;
-    factors: Record<
+    weights?: Record<string, number>;
+    factors?: Record<
       "closeness" | "quality" | "styleContrast" | "stakes" | "titleLeverage",
       { score: number; available: boolean; detail?: unknown }
     >;
-    coverage: number;
+    coverage?: number;
   };
   watchRank?: number;
 };
+
+export type UpcomingEventRef = {
+  name: string;
+  espnId?: string | null;
+  surface: string;
+  level?: string | null;
+  count: number;
+  file: string;
+  evidenceFile: string;
+};
+
+export type UpcomingIndex = {
+  schema: "upcoming-v2";
+  schemaVersion: 2;
+  generation: string;
+  count: number;
+  events: UpcomingEventRef[];
+  highlights: Upcoming[];
+};
+
+type UpcomingEventShard = {
+  schema: "upcoming-event-v1";
+  generation: string;
+  matches: Upcoming[];
+};
+
+type UpcomingDetail = Pick<Upcoming, "components" | "evidence" | "forecast"> & { matchId: string };
+type UpcomingEvidenceShard = {
+  schema: "upcoming-evidence-v1";
+  generation: string;
+  details: UpcomingDetail[];
+};
+
+export function useUpcomingHighlights() {
+  const state = useData<UpcomingIndex>("upcoming-index.json");
+  return { ...state, data: state.data?.highlights ?? null, index: state.data };
+}
+
+/** Load compact per-event rows only when a route actually exposes its upcoming surface. */
+export function useUpcomingEvents(enabled = true) {
+  const indexState = useData<UpcomingIndex>("upcoming-index.json");
+  const files = useMemo(
+    () => (indexState.data?.events ?? []).map((event) => event.file),
+    [indexState.data],
+  );
+  const shardState = useDataFiles<UpcomingEventShard>(
+    files,
+    enabled && !indexState.loading && !indexState.error,
+  );
+  const data = useMemo(
+    () => shardState.data?.flatMap((shard) => shard.matches ?? []) ?? null,
+    [shardState.data],
+  );
+  return {
+    data,
+    index: indexState.data,
+    loading: indexState.loading || (enabled && shardState.loading),
+    error: indexState.error || (enabled && shardState.error),
+  };
+}
+
+/** Fetch the heavy evidence/history shard only after one matchup asks for it. */
+export function useUpcomingDetail(match: Upcoming | null | undefined, enabled = true) {
+  const indexState = useData<UpcomingIndex>("upcoming-index.json");
+  const ref = useMemo(() => (indexState.data?.events ?? []).find((event) => {
+    const eventId = String(event.espnId ?? "");
+    const matchEventId = String(match?.espnId ?? "");
+    return eventId && matchEventId ? eventId === matchEventId : event.name === match?.event;
+  }), [indexState.data, match?.espnId, match?.event]);
+  const detailState = useData<UpcomingEvidenceShard>(
+    enabled && match?.matchId ? ref?.evidenceFile ?? "" : "",
+  );
+  const detail = useMemo(
+    () => detailState.data?.details.find((row) => row.matchId === match?.matchId) ?? null,
+    [detailState.data, match?.matchId],
+  );
+  return {
+    data: detail,
+    loading: enabled && (indexState.loading || detailState.loading),
+    error: enabled && (indexState.error || detailState.error),
+  };
+}
 
 /** Orient a stored history to the player shown first without mutating source data. */
 export function orientForecast(forecast: ForecastHistory, flip: boolean): ForecastHistory {

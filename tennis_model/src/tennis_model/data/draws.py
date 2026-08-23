@@ -15,6 +15,7 @@ frontier when none of the complete sources succeeds.
 from __future__ import annotations
 
 import json
+import urllib.parse
 from datetime import UTC, datetime, timedelta
 
 from ..config import TOURNAMENT_DRAW_RETENTION_DAYS, TOURS, live_dir
@@ -108,6 +109,70 @@ def _official_evidence_is_valid(entry: dict | None, tour: str) -> bool:
                 entry.get("sourceStart"), entry.get("sourceEnd")))
 
 
+def _canonical_source_url(value: object) -> str:
+    """Stable comparison form for one draw source URL (query/fragment are not identity)."""
+    try:
+        parsed = urllib.parse.urlsplit(str(value or ""))
+    except ValueError:
+        return ""
+    if not parsed.scheme or not parsed.netloc:
+        return ""
+    path = urllib.parse.unquote(parsed.path).rstrip("/")
+    return urllib.parse.urlunsplit(
+        (parsed.scheme.lower(), parsed.netloc.lower(), path, "", ""))
+
+
+def _duplicate_source_groups(draws: dict) -> list[tuple[set[str], str]]:
+    """Cache keys and evidence for a source id/URL attached to distinct ESPN events."""
+    markers: dict[tuple[str, str, str], dict[str, set[str]]] = {}
+    for key, entry in draws.items():
+        if not isinstance(entry, dict):
+            continue
+        espn_id = str(entry.get("espnId") or "").strip()
+        source = str(entry.get("source") or "").strip().lower()
+        if not espn_id or not source:
+            continue
+        source_id = str(entry.get("sourceId") or "").strip()
+        source_url = _canonical_source_url(entry.get("sourceUrl"))
+        if source_id:
+            marker = ("drawSourceId", source, source_id.casefold())
+            markers.setdefault(marker, {}).setdefault(espn_id, set()).add(str(key))
+        if source_url:
+            # A URL names the artifact globally; source-label drift must not evade the check.
+            marker = ("drawSourceUrl", "", source_url)
+            markers.setdefault(marker, {}).setdefault(espn_id, set()).add(str(key))
+
+    # The same two bad rows normally collide on both id and URL. Merge those reasons into
+    # one finding so health output is actionable rather than duplicated.
+    grouped: dict[frozenset[str], list[str]] = {}
+    event_ids: dict[frozenset[str], set[str]] = {}
+    for (kind, source, value), by_event in markers.items():
+        if len(by_event) < 2:
+            continue
+        keys = frozenset(key for cache_keys in by_event.values() for key in cache_keys)
+        label = f"{kind} {source}:{value}" if source else f"{kind} {value}"
+        grouped.setdefault(keys, []).append(label)
+        event_ids.setdefault(keys, set()).update(by_event)
+
+    return [
+        (set(keys), f"{' and '.join(sorted(reasons))} attached to multiple ESPN events: "
+                    f"{', '.join(sorted(event_ids[keys]))}")
+        for keys, reasons in grouped.items()
+    ]
+
+
+def duplicate_draw_source_attachments(draws: dict) -> list[str]:
+    """Human-readable duplicate attachment findings for health/output validation."""
+    return [detail for _keys, detail in _duplicate_source_groups(draws)]
+
+
+def _quarantine_duplicate_sources(draws: dict) -> tuple[dict, list[str]]:
+    groups = _duplicate_source_groups(draws)
+    bad = {key for keys, _detail in groups for key in keys}
+    return ({key: entry for key, entry in draws.items() if str(key) not in bad},
+            [detail for _keys, detail in groups])
+
+
 def _retained(entry: dict, cutoff: str) -> bool:
     ref = str(entry.get("end") or entry.get("start") or entry.get("retrieved") or "")[:10]
     return not ref or ref >= cutoff
@@ -155,6 +220,27 @@ def _field_membership_matches(entry: dict, evidence_players) -> bool:
     return bool(drawn) and drawn == current
 
 
+def _wikipedia_evidence_is_valid(entry: dict | None, name: str, year: int,
+                                 tour: str, meta: dict) -> bool:
+    """Whether an active cached Wikipedia draw still resolves to this exact event.
+
+    Settled bracket geometry proves only that the cached page held a complete draw. It says
+    nothing about which event that page described. Re-resolve the current event under today's
+    year/anchor/gender/explicit-id contract before the settled-cache shortcut may reuse it.
+    """
+    from .draws_wiki import resolve_title
+
+    if not isinstance(entry, dict) or entry.get("source") != "wikipedia":
+        return False
+    expected = resolve_title(
+        name, year, tour, str(meta.get("espnId") or "") or None)
+    if not expected or str(entry.get("sourceId") or "").casefold() != expected.casefold():
+        return False
+    expected_url = "https://en.wikipedia.org/wiki/" + urllib.parse.quote(
+        expected.replace(" ", "_"))
+    return _canonical_source_url(entry.get("sourceUrl")) == _canonical_source_url(expected_url)
+
+
 def _wiki_draw(name: str, year: int, tour: str, meta: dict) -> dict | None:
     from .draws_wiki import fetch_draw
     raw = fetch_draw(name, year, tour, meta)
@@ -183,6 +269,17 @@ def _resolve_one(tour: str, name: str, meta: dict, registry_entry: dict,
         return _with_event(previous, name, meta), []
 
     year = int(str(meta.get("start") or datetime.now(UTC).year)[:4])
+    cache_rejected: list[str] = []
+    if previous and previous.get("source") == "wikipedia":
+        try:
+            valid_wiki = _wikipedia_evidence_is_valid(previous, name, year, tour, meta)
+        except Exception as exc:  # noqa: BLE001 - active cache must fail closed on uncertainty
+            valid_wiki = False
+            cache_rejected.append(f"wikipedia cache revalidation failed: {exc}")
+        if not valid_wiki:
+            cache_rejected.append("wikipedia cache identity does not match this active event")
+            previous = None
+
     evidence = _field_evidence(tour, name, meta)
     if (previous and _official_evidence_is_valid(previous, tour)
             and _draw_is_settled(previous)
@@ -193,11 +290,12 @@ def _resolve_one(tour: str, name: str, meta: dict, registry_entry: dict,
             tour, year, {**meta, "name": name}, registry_entry, evidence)
     else:
         official, rejected = None, [f"{tour}: official draw deferred; fewer than 2 live players"]
+    rejected = cache_rejected + rejected
     if official:
         return _with_event(official, name, meta), rejected
 
-    # A settled fallback cache is better than a fresh outage and cannot change. An incomplete
-    # entry is re-fetched so qualifiers/null holes can resolve.
+    # A settled fallback cache is reusable only after its active event identity was revalidated
+    # above. An incomplete entry is re-fetched so qualifiers/null holes can resolve.
     if previous and _draw_is_settled(previous):
         return _with_event(previous, name, meta), rejected
     try:
@@ -234,6 +332,9 @@ def download_tournament_draws(tours=TOURS,
         out: dict = {}
         official_count = wiki_count = kept_count = 0
         events = registry.get("events") or {}
+        current_ids = {str(event.get("espnId")) for event in meta.values()
+                       if event.get("espnId")}
+        current_names = {str(name).casefold() for name in meta}
 
         # Surface/tier metadata still comes from Wikipedia's main article, independently of
         # which source supplied the bracket.
@@ -267,7 +368,11 @@ def download_tournament_draws(tours=TOURS,
         for key, entry in cache.items():
             source = entry.get("source") if isinstance(entry, dict) else None
             invalid_official = source in ("atp", "wta") and not _official_evidence_is_valid(entry, source)
-            if key not in out and not invalid_official and _retained(entry, cutoff):
+            entry_id = str(entry.get("espnId") or key) if isinstance(entry, dict) else str(key)
+            entry_name = str(entry.get("name") or key).casefold() if isinstance(entry, dict) else str(key).casefold()
+            currently_tracked = entry_id in current_ids or entry_name in current_names
+            if (key not in out and not currently_tracked and not invalid_official
+                    and _retained(entry, cutoff)):
                 out[key] = entry
                 kept_count += 1
 
@@ -292,14 +397,18 @@ def download_tournament_draws(tours=TOURS,
             elif rejected:
                 print(f"  tournament-draws/{tour}: {name} backfill: " + "; ".join(rejected[:2]))
 
+        out, duplicate_findings = _quarantine_duplicate_sources(out)
+        for finding in duplicate_findings:
+            print(f"  tournament-draws/{tour}: quarantined duplicate source attachment: {finding}")
+
+        directory.mkdir(parents=True, exist_ok=True)
+        path = directory / CACHE_FILE
+        path.write_text(json.dumps(out), encoding="utf-8")
         if out:
-            directory.mkdir(parents=True, exist_ok=True)
-            path = directory / CACHE_FILE
-            path.write_text(json.dumps(out), encoding="utf-8")
             print(f"  tournament-draws/{tour}: {len(out)} draw(s) "
                   f"({official_count} official, {wiki_count} wikipedia, {kept_count} retained) -> {path}")
         else:
-            print(f"  tournament-draws/{tour}: no complete draws for {len(meta)} tracked event(s)")
+            print(f"  tournament-draws/{tour}: no complete draws for {len(meta)} tracked event(s) -> {path}")
 
 
 def _rows_from_draws(draws: dict, today: str | None = None) -> list[dict]:

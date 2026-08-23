@@ -179,6 +179,7 @@ def test_enrichment_propagates_to_profiles_and_parses_strict():
 def test_build_method_matches_accessors():
     """method.json states the EFFECTIVE production params — always equal to the
     *_params_for accessors (never literals), so a retune can't break this test."""
+    from tennis_model.config import WTA_DUAL_STATE_GATE_THRESHOLD
     from tennis_model.data.results import tier_mults
     from tennis_model.model.features import feat_params_for
     from tennis_model.model.train import effective_xgb_params
@@ -194,6 +195,10 @@ def test_build_method_matches_accessors():
         assert m["serveReturn"]["formHalflifeDays"] == sr_params_for(tour).form_halflife_days
         assert m["context"]["winrateWindow"] == feat_params_for(tour).winrate_window
         assert m["combiner"]["xgb"] == export._camel(effective_xgb_params(tour))
+        assert m["stateGate"]["enabled"] == (tour == "wta")
+        assert m["stateGate"]["minMainMatches"] == (
+            WTA_DUAL_STATE_GATE_THRESHOLD if tour == "wta" else None)
+        assert m["stateGate"]["trainingPopulation"] == "main-only"
         mults, default = tier_mults(tour)
         assert m["tiers"]["kMult"] == mults and m["tiers"]["default"] == default
     print("ok test_build_method_matches_accessors")
@@ -280,6 +285,7 @@ def test_build_meta_separates_build_time_from_model_time():
                              model_population_version=export.MATCH_POPULATION_VERSION)
     assert meta["modelTrainedAt"] == trained
     assert meta["modelPopulationVersion"] == export.MATCH_POPULATION_VERSION
+    assert meta["dualStateThreshold"] is None and meta["dualStateReady"] is False
     assert meta["lastUpdated"] != trained and meta["lastUpdated"].endswith("Z")
     # a pickle predating the stamp must export null, not crash or fake a fresh time
     assert export.build_meta(df, players=[], accuracy=None)["modelTrainedAt"] is None
@@ -435,6 +441,56 @@ def test_build_upcoming_preserves_stable_event_id(monkeypatch):
     rows = export.build_upcoming(object(), pd.DataFrame(), "atp")
     assert rows[0]["event"] == "Montreal"   # ATP 421-2026 is the Montreal edition
     assert rows[0]["espnId"] == "421-2026"
+
+
+def test_upcoming_v2_shards_round_trip_without_heavy_index_payload():
+    rows = []
+    for i in range(7):
+        rows.append({
+            "event": "Test Open", "espnId": "421-2026", "date": "2026-08-03",
+            "round": "R64", "surface": "Hard", "bestOf": 3, "level": "ATP 1000",
+            "playerA": f"A{i}", "playerB": f"B{i}", "pA": 0.55,
+            "components": {"eloBlend": 0.54, "pointModel": 0.56, "combiner": 0.55},
+            "evidence": {"schema": "evidence-v1", "signals": [{"large": "x" * 500}]},
+            "forecast": {"first": 0.5, "current": 0.55, "delta": 0.05,
+                         "snapshots": 1, "timeline": [{"p": 0.55, "large": "y" * 500}]},
+            "watch": {"schema": "watch-v1", "score": 90 - i, "weights": {},
+                      "factors": {}, "coverage": 1.0},
+            "watchRank": i + 1,
+        })
+    index, shards = export.build_upcoming_shards(rows, "generation-1")
+
+    assert index["schema"] == "upcoming-v2" and index["count"] == len(rows)
+    assert len(index["events"]) == 1
+    assert len(index["highlights"]) == 5  # next three union top five watch candidates
+    assert all(not any(key in row for key in ("components", "evidence", "forecast"))
+               for row in index["highlights"])
+    ref = index["events"][0]
+    event_rows = shards[ref["file"]]["matches"]
+    details = {row["matchId"]: row for row in shards[ref["evidenceFile"]]["details"]}
+    rebuilt = [{**row, **{key: details[row["matchId"]][key]
+                          for key in ("components", "evidence", "forecast")}}
+               for row in event_rows]
+    assert [{key: row[key] for key in rows[0]} for row in rebuilt] == rows
+    assert len(json.dumps(index)) < len(json.dumps(rows)) * 0.2
+
+
+def test_post_tracking_export_builds_upcoming_once_and_replaces_legacy(monkeypatch, tmp_path):
+    calls = []
+    out = tmp_path / "atp"
+    out.mkdir(parents=True)
+    (out / "upcoming.json").write_text("[]", encoding="utf-8")
+    monkeypatch.setattr(export, "output_dir", lambda tour: out)
+    monkeypatch.setattr(
+        export, "build_upcoming",
+        lambda predictor, df, tour, enriched=None: calls.append(enriched) or [],
+    )
+
+    enriched = [{"already": "priced"}]
+    export.export_forecast_products("atp", object(), pd.DataFrame(), enriched=enriched)
+    assert calls == [enriched]
+    assert (out / "upcoming-index.json").exists()
+    assert not (out / "upcoming.json").exists()
 
 
 def test_matrix_and_profile_exports_are_generation_aware_shards():

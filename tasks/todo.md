@@ -4707,6 +4707,71 @@ untouched.
       push, release-asset mutation or production deploy was performed; unrelated concurrent
       scenario/watch/evidence changes were preserved.
 
+## Branded domain and automated X publishing plan (2026-08-17)
+
+Status: proposed for owner approval; no domain purchase, account action, credential change, post, or
+production implementation has been performed.
+
+- [ ] Lock the public brand before social launch. Prefer `deuceforecast.com` (no RDAP registration
+      record found on 2026-08-17; the registrar checkout remains authoritative), keep DEUCE as the
+      product name, and check the matching X handle before purchase. Register the domain in the
+      owner's account with 2FA, WHOIS redaction, DNSSEC, auto-renew, and a recovery contact.
+- [ ] Attach the apex and `www` domain to the existing Firebase Hosting site rather than rebuilding
+      or migrating it. Choose one canonical hostname and redirect the other; keep the current
+      `web.app` address working. Update `SITE_URL`, metadata/canonicals, JSON-LD, OG/Twitter cards,
+      README links, sitemap/robots output, deployment environment URL, and the live verifier. Prove
+      the new origin, redirects, certificate, cache headers, deep links, and fresh data live before
+      using it in a post.
+- [ ] Create one official DEUCE X account and developer app. The profile should disclose that posts
+      are automated model forecasts, link the human operator through X's automated-account label,
+      and use matching avatar/header/bio assets. Store OAuth/API credentials only as scoped GitHub
+      Actions secrets; enable a developer-console spend cap and alerts.
+- [ ] Build a separate `social` publisher that can never delay or block the hourly model refresh.
+      It reads the latest successfully deployed public JSON—not training state—and posts only when
+      live `health.json` is green, its `generatedAt` matches the verified deploy, and every cited
+      event/player/probability is still present in that release.
+- [ ] Make fact selection deterministic. Candidate types are: morning ATP/WTA “matches worth
+      watching” slate; one match spotlight with probability and the strongest available evidence;
+      an exact title-race/scenario change when a connected draw exists; riser/faller or graded
+      track-record context; and an occasional model explainer. The model may phrase supplied facts
+      but may not invent, recalculate, browse for, or silently omit their provenance. Slate and
+      spotlight candidates must be imminent on the published schedule before watch rank or event
+      prestige is considered, so a future draw cannot crowd today's active tournament out.
+- [ ] Target up to two useful posts per day rather than forcing two near-duplicates: a morning slate
+      around 09:00 ET and an afternoon/evening spotlight around 17:30 ET, alternating ATP/WTA lead
+      position and skipping a slot when freshness, novelty, or coverage fails. Never auto-post on
+      trends, tag players, reply, like, follow, DM, or repost as an engagement tactic.
+- [ ] Add a constrained AI copy step in the isolated social workflow, reusing the existing
+      standard-library OpenRouter transport pattern. Require structured output, one truthful hook,
+      one canonical deep link with a campaign code, at most one relevant hashtag, an explicit
+      model/as-of cue, and ordinary-post length below 280 characters. Reject betting guarantees,
+      injury/news speculation, causal claims, harassment, clickbait, unsupported superlatives, and
+      any number/name absent from the source packet; use a tested deterministic template if the AI
+      call is unavailable or its output fails validation.
+- [ ] Render consistent, code-generated PNG graphics rather than fresh generative art: (1) a
+      matchup probability card, (2) a three-match daily slate, (3) a title-odds/scenario swing card,
+      and (4) a weekly calibration/track-record card. Use the site's typography and palette, a safe
+      single-image aspect ratio, large mobile-readable labels, non-color cues, an “as of” timestamp,
+      model-forecast labeling, and no unlicensed player photos, tour logos, or broadcaster assets.
+      Generate and attach concise alt text from the same validated fact packet.
+- [ ] Add at-most-once publication semantics. Serialize the workflow; build, render, and validate
+      before reserving a date/slot/content hash in a durable `social-state` branch; check the recent
+      account timeline before the write; and fail closed on an unavailable dedupe check or an
+      ambiguous API response. Record the exact source packet, copy, graphic hash, post ID/URL, model
+      response, validation result, and failure reason without recording secrets.
+- [ ] Gate the new user-facing channel with tests: malformed/stale health, missing matches, changed
+      probabilities, complement arithmetic, placeholder identities, bad deep links, repeated copy,
+      disallowed claims, character counting, graphic overflow and accessibility, OAuth signing,
+      media/post failures, duplicate/manual reruns, dry-run behavior, and deduplicated social-health
+      alerts. CI uses fixtures and a fake X server; it must never publish a real post.
+- [ ] Roll out in three explicit stages: seven days of artifact-only dry runs; fourteen days where a
+      human reviews the proposed copy/graphics before publication; then a separate owner decision to
+      enable autonomous posting. Keep a one-switch kill control and a manual preview/dispatch path.
+- [ ] Measure the pilot with per-slot UTM parameters and a weekly report covering posts attempted,
+      skips/failures, impressions, engagement rate, profile visits, and site clicks where available.
+      After 30 live days, compare content types and posting windows, keep only material differences,
+      and decide whether two posts per day is better than one high-quality post.
+
 ## Live/upcoming overlap repair (2026-08-19)
 
 Status: implemented; pre-push verification complete, with live verification required after the
@@ -4782,6 +4847,24 @@ Status: implemented and verified locally; approved for production deployment.
   no upstream freshness contract that makes such a delay actionable. Coverage age remains visible
   on `/health`; an actual path, payload, or availability failure alerts on the next daily full run.
 
+## Portfolio README audit (2026-08-20)
+
+Status: in progress.
+
+- [ ] Audit the root GitHub README against the current model, data pipeline, web experience,
+      workflows, and recent commits.
+- [ ] Reframe the README for portfolio readers: lead with the live product, measurable outcomes,
+      differentiating engineering decisions, and concise visual proof.
+- [ ] Correct stale source-health, WTA lower-tier, and product-surface claims without changing
+      measured model results unless the repository contains newer reproducible evidence.
+- [ ] Re-run the recent history check, validate links and commands, inspect the final diff, and add
+      a review section documenting what changed and how it was verified.
+
+Scope correction from owner: portfolio framing must preserve and clearly explain operational
+detail. The README should remain technically substantive about data acquisition, fallbacks,
+training cadence, deployment gates, monitoring, and reproducibility; improve the hierarchy rather
+than reducing those details to marketing copy.
+
 ## Home-to-bracket discovery (2026-08-20)
 
 Status: implemented, deployed, and verified in production.
@@ -4818,3 +4901,380 @@ Status: implemented, deployed, and verified in production.
   tests, integrity, Firebase deploy, live verification, data-health, and deploy-health. An independent
   production verifier passed 20/20 checks, and the live WTA home CTA opened Cincinnati Open in
   Forecast path mode with the correct event id.
+
+## Portfolio README audit review (2026-08-20)
+
+Status: complete; documentation-only changes, not committed or deployed.
+
+### Review
+
+- Audit result: the GitHub README was materially current through the August 17 product expansion,
+  but it still said no WTA lower-tier overlay existed, described MCP content age as a source outage
+  signal, omitted the current match-center/forecast products, and understated the production gates.
+- Portfolio update: the root README now leads with the live product and measurable results, then
+  explains the 42-feature hybrid, adoption protocol, source and identity strategy, hourly/daily
+  lifecycle, failure semantics, monitoring, repository structure, reproducible bootstrap, and
+  honest limitations. Operational detail remains concrete but is grouped for skimmability.
+- Technical-doc correction: `tennis_model/README.md` now distinguishes the acquired WTA lower-tier
+  research overlay from disabled production-state admission, and describes health checks by their
+  current source contracts.
+- Evidence: both shipped metadata files list 42 features; config pins five ensemble fits and keeps
+  WTA lower state disabled from its 2016 source boundary; package metadata confirms Next.js 16 and
+  React 19; workflow definitions confirm the :17 hourly refresh, 06:00 daily retrain, pre-deploy
+  gate, live verifier, weekly snapshot, issue reporters, and 26-hour watchdog. The final recent-log
+  pass included the August 19 live-overlap and MCP-health repairs.
+- Verification: all relative links in both READMEs resolve; `git diff --check` passes; the documented
+  downloader, pipeline, and CLI entry points all accept the shown arguments. Full test suites were
+  not rerun because no executable code changed. Unrelated concurrent navigation work and the
+  pre-existing task-log edits were left untouched.
+
+### Publication
+
+- Owner authorized commit and deployment. The path-scoped documentation commit was rebased onto the
+  latest remote `master` and published as `7bd5ebe` (`docs: refresh portfolio README`). The remote
+  README blob matches the verified local artifact. GitHub's README is live; the Firebase workflow
+  was intentionally not dispatched because no website artifact changed and documentation paths are
+  excluded by `refresh.yml`.
+
+## Gated WTA dual-state model (2026-08-22)
+
+Status: implemented and verified after owner authorization on 2026-08-22.
+
+Implementation authorized by owner on 2026-08-22.
+
+- [ ] Build a default-off dual-state research path over one canonical match population: preserve a
+  main-draw-only state bundle, build a lower-tier-enriched bundle, score the exact same main-draw
+  rows, freeze serve baselines, and assert bit-identical output before the 2016 lower-tier boundary.
+- [ ] Define one shared deterministic gate from pre-match main-draw evidence already available at
+  walk and prediction time. Pre-register a small main-match-count threshold grid, tune it on
+  2010-19 only, and select the enriched bundle only when either player lacks sufficient main-draw
+  history; do not use post-match information or inference-only rank data.
+- [ ] Freeze the selected gate and run the full bagged walk-forward arbiter on 2020+ validation.
+  Report overall, tune, validation, per-year, both-top-50, outside-top-50, gate-eligible count bands,
+  and frozen Kalshi deltas. Require the normal adoption gate, a positive target slice, and no
+  material both-top-50 regression before production admission.
+- [ ] If and only if the arbiter passes, wire the dual state into production: keep the feature schema
+  and main-draw combiner population unchanged, store both complete state bundles in the predictor,
+  use the same gate helper for walk time and inference, share main-only metadata, add a config
+  fingerprint, and bump the inference schema/staleness contract.
+- [ ] Add focused tests for row alignment, threshold boundaries, complete-bundle selection, player
+  orientation, unseen players, walk/inference parity, serialization/staleness, unchanged ATP output,
+  unchanged WTA scoring population, and the quick-refresh path.
+- [ ] Run focused and full Python tests via `uv`, lint/type checks that cover touched code, the full
+  WTA arbiter, pipeline/health checks if adopted, `git diff --check`, and a final recent-log review.
+  If the gate is rejected, remove production wiring and retain only the reproducible experiment
+  result required by the research ledger.
+
+Implementation authorized by owner on 2026-08-22. Starting with the default-off research path and
+shared walk/inference gate; production admission remains contingent on the frozen arbiter.
+
+### Review
+
+- [x] Built the row-exact dual-state harness over 128,822 unchanged WTA main-draw rows and 14,560
+  qualifying/125 state rows. Main-only pre-match counts own the orientation-safe gate; all 42 model
+  inputs plus component probabilities switch as one bundle, while identity/audit metadata remains
+  baseline-owned. Pre-2016 features and predictions are bit-identical.
+- [x] Pre-registered thresholds 8/16/32/64 and selected on 2010-19 only under production five-model
+  bagging. Tune deltas were +0.00021±0.00016, +0.00032±0.00020, +0.00042±0.00023, and
+  +0.00031±0.00025 respectively, freezing the 32-main-match threshold before validation.
+- [x] Rejected the first mixed-training implementation despite its normal gate pass: retraining one
+  shared combiner moved protected rows (-0.00089±0.00014) and retained a both-top-50 regression
+  (-0.00118±0.00025). Reworked the architecture so every fold fits/calibrates once on the unchanged
+  main-only frame and the gate changes eligible prediction inputs only; recorded the general lesson.
+- [x] The corrected frozen arbiter passed every admission condition: tune +0.00042±0.00023,
+  validation +0.00098±0.00066, full +0.00063±0.00028, outside-top-50 +0.00145±0.00059,
+  both-top-50 -0.00007±0.00012 (inside the safety SE), eligible rows +0.00329±0.00148, and
+  protected rows exactly +0.00000±0.00000. The frozen Kalshi/outside-50 slice was noisy and negative
+  (-0.00157±0.00359, n=352), so it remains a reported benchmark rather than an adoption veto.
+- [x] Adopted production threshold 32. The predictor now serializes main-only and enriched
+  Elo/serve/context bundles, shares main-only metadata, selects from main-state counts at inference,
+  and carries inference schema 3. Full/quick pipelines keep health/export match rows main-only;
+  walk-forward accuracy and standalone Kalshi backfills use the same baseline-combiner state gate.
+- [x] Extended staleness and integrity contracts. Quick mode rejects a missing/partial/drifted
+  secondary state; method.json publishes the gate; predictor-derived meta proves threshold/readiness;
+  the WTA output gate blocks a declaration/artifact mismatch without imposing the WTA contract on
+  independently stale ATP artifacts.
+- [x] Rebuilt the real WTA predictor and outputs. Artifact audit: threshold=32, all lower states
+  present, schema=3, quick guard current, 5,313 main-state players vs 6,047 enriched-state players,
+  public meta remains 128,822 matches / zero WTA-125 display rows. The 2016-26 production backtest
+  contains 26,038 matches (accuracy .6783, log loss .5936, Brier .2043). Forecast/Kalshi ledgers were
+  refreshed by the normal full pipeline (73 forecasts; 887 scoreable WTA market rows).
+- [x] Verification: 637 Python tests; 271 web tests; TypeScript; Next.js production build; ESLint with
+  zero errors (nine pre-existing effect warnings); compileall; git diff check; real WTA full + quick
+  builds; and the pre-deploy integrity gate. The only health output is the existing advisory that ATP
+  artifacts/model are five days old. Final recent-log reconciliation used HEAD/origin master
+  8519492 and confirmed the August 19-20 source-health, forecast, bracket, and README changes.
+
+## Hourly refresh latency + sharded upcoming feed (2026-08-22)
+
+Status: proposed; awaiting owner check-in before implementation.
+
+- [x] Establish a reproducible serial quick-export baseline, then add one low-overhead timing seam
+      with per-tour elapsed lines for `load_matches` (including merge/clean/sort detail), event
+      projection, scenario generation, upcoming enrichment, and tracking/log grading. Keep timings
+      observational: they must not change best-effort error behavior or become a deploy dependency.
+- [x] Cache each tour's schema-normalized historical source frame under the existing persisted
+      `tennis_model/data` cache. Key it by an explicit cache/schema version, source-file fingerprint,
+      Python/pandas compatibility, and any normalization inputs; write atomically, treat corrupt or
+      stale entries as misses, and prove cold/warm frames (including attrs/dtypes) are equivalent.
+- [x] Build the decorated upcoming snapshot once per export, after tracking has appended the current
+      hourly observation, instead of writing it once in `export_all` and rebuilding it in
+      `export_forecast_products`. Add focused call-count/order coverage so the latest movement still
+      reaches the same deploy and a tracking failure still degrades safely.
+- [x] Run ATP and WTA quick tour exports concurrently only after shared live/draw/ranking downloads
+      finish. Keep tour-local outputs, caches, logs, mirrors, and returned frames isolated; preserve
+      the single-tour path; make worker failures surface; and test real overlap plus serial/parallel
+      artifact parity before adopting the concurrent path.
+- [x] Replace the monolithic `upcoming.json` web contract with `upcoming-index.json`: compact home
+      highlights (the next few rows per event plus top watch candidates), stable per-event references,
+      counts, and generation metadata. Publish compact per-event match shards and separate per-event
+      evidence/history shards keyed by stable match identity; remove obsolete legacy/stale shards.
+      The home page must fetch only the index, schedule/match-center routes must fetch event rows only
+      when their upcoming surface is used, and evidence/history must load only for the selected or
+      expanded matchup. Preserve exact event-id joins and live-match exclusion behavior.
+- [x] Extend `read_outputs()` and `output_problems()` to require the index, reject unsafe/missing/
+      corrupt/duplicate shard references, reconstruct every full upcoming row, and run the existing
+      probability/component/evidence/history/watch/bracket invariants over that reconstruction. Add
+      producer, cache-invalidation, pipeline-concurrency, health-gate, client-loader, and payload
+      tests; run full Python and web suites, TypeScript, lint, production build, pre-deploy gate, and
+      cold/warm serial/parallel benchmarks. Target a current-feed home index below 50 KB raw and at
+      least a 90% raw-byte reduction versus the legacy payload, then append exact timings, sizes, and
+      verification results in a review after reconciling the recent git log.
+
+### Review
+
+- [x] Added stage timings for match fingerprint/cache/merge/clean/bios/sort/write, event projection,
+      scenario generation, upcoming enrichment/decorating, and forecast tracking. The owner-provided
+      last serial quick baseline was 595s (ATP 348s + WTA 216s); the first cold concurrent run
+      completed both tours in 237.6s, and the warm concurrent refresh completed in 34.49s: 94.2%
+      faster than baseline and about 17.3x the refresh throughput.
+- [x] Added atomic, compatibility- and content-fingerprinted historical and fully normalized match
+      caches under the ignored `data/cache` tree. Production-size ATP load went 58.237s cold to
+      0.250s warm (284,226 rows); WTA went 41.654s to 0.153s (128,822 rows). The real warm quick run
+      recorded 0.392s ATP and 0.106s WTA cache reads, with attrs/dtypes, invalidation, and corrupt-cache
+      fallbacks covered by tests.
+- [x] Upcoming enrichment is prepared once and reused for tracking and the post-tracking export;
+      quick all-tour exports run in a two-worker barrier after shared downloads, while single-tour
+      mode remains serial and worker failures propagate. The warm run overlapped 13.2s ATP and 13.3s
+      WTA tour exports rather than adding them.
+- [x] Replaced the legacy file with generation-bound index, event, and evidence shards. ATP's current
+      home payload fell from 601,582 to 3,644 raw bytes (770 gzip, 99.39% raw reduction); WTA's fell
+      from 10,703,909 to 5,247 raw bytes (966 gzip, 99.95%). The integrity gate reconstructs all rows
+      and re-runs the prior semantic invariants; the deploy verifier follows and validates every
+      referenced shard; stale legacy/shard files are removed before export.
+- [x] In-app browser verification proved both tour home pages fetch only `upcoming-index.json`, the
+      match center fetches event shards only after opening Upcoming, and one evidence shard appears
+      only after expanding Model evidence; ATP/WTA rendered without console errors. Verification also
+      passed 652 Python tests, 275 web tests, TypeScript, compileall, Next's 24-route production build,
+      ESLint with zero errors (nine unchanged warnings), the real pre-upload gate, and
+      `git diff --check`. The final log reconciliation used HEAD 8519492 and preserved the concurrent model and
+      draw/live-odds work already present in the dirty tree.
+
+## US Open draw identity + live-odds semantics (2026-08-23)
+
+Status: proposed; awaiting owner check-in before implementation.
+
+- [ ] Quarantine the false US Open attachments on both tours: WTA event `189-2026` currently points
+      to the 2026 Wimbledon women's draw, and ATP event `189-2026` points to the 2026 French Open
+      men's draw. Add exact per-tour, per-`espnId` Wikipedia draw locators for the not-yet-published
+      US Open articles so a missing article yields no complete bracket rather than a different Slam.
+- [ ] Make Wikipedia title resolution fail closed when an ESPN event name has no distinctive anchor
+      and no explicit draw locator. Keep metadata aliases and draw locators separate, and cover the
+      generic-only name, correct mapped title, wrong-gender result, and missing-page cases offline.
+- [ ] Revalidate a retained Wikipedia attachment while its event is live/upcoming before the settled
+      cache shortcut can return it. A cached source identity that cannot be proved against the current
+      event must be dropped; a validated completed-event cache may retain the existing immutable path.
+- [ ] Extend draw-source uniqueness from official PDFs to every published/cache source identity:
+      one `drawSourceId` or canonical `drawSourceUrl` may attach to only one ESPN event per tour.
+      Quarantine producer duplicates, add a blocking `output_problems()` invariant and regression,
+      and have the post-deploy verifier fetch both `brackets.json` files and enforce the same rule.
+- [ ] Relabel the live ticker and accessible probability text as **pre-match model odds**. Do not add
+      score-conditioned probabilities in this round: the current scoreboard/parser exposes set/game
+      totals but does not preserve a reliable server + point state for the existing Markov model.
+- [ ] Run focused draw/Wikipedia/health/live/verifier tests, then the full Python suite via `uv`, web
+      tests, TypeScript, lint, production build, pre-deploy gate, `git diff --check`, real artifact
+      regeneration, and a final live/recent-log reconciliation. Append a review with the quarantined
+      artifact evidence and verification results; do not overwrite the concurrent model/latency work.
+
+## Historical incident + one-off-fix automation audit (2026-08-22)
+
+Status: audit in progress; implementation awaits owner check-in.
+
+- [ ] Inventory every repository commit from inception through current HEAD, classifying routine
+      data/merge churn separately from substantive incidents, fixes, safeguards, and operational
+      changes; correlate repository evidence with GitHub issue and workflow-alert history.
+- [ ] For each failure class, record its root cause, original detection path, regression coverage,
+      present coverage in the pre-upload integrity gate or post-deploy verifier, and any remaining
+      interval where a bad artifact or stale service can look green.
+- [ ] Find repeated manual or one-off remedies that can become shared invariants, contract/parity
+      tests, deterministic registry proposals, state-machine checks, scheduled canaries, or reusable
+      CI alert helpers. Rank candidates by recurrence, user impact, detection latency, false-positive
+      risk, maintenance cost, and overlap with safeguards that already shipped later in history.
+- [ ] Reconcile the resulting recommendations with current uncommitted work and the latest git log,
+      then append a review containing the hash-backed incident map and a small implementation slate
+      with exact files/tests. Do not change production behavior until the owner approves that slate.
+
+### Review
+
+Audit status: complete; production implementation awaits owner check-in.
+
+- [x] Accounted for all 308 production commits through `origin/master` `b1b8579`: 128 in
+      `316a209..b220ed5`, four late-July-9 bridge commits, 110 from July 10-31, and 66 from
+      August 1-22. Routine data/docs/research/merge churn is separated from 186 substantive,
+      product, or hardening commits in the full audit.
+- [x] Reconciled all 20 closed GitHub issues, the #1/#16 PR-number gaps, and 96 failed workflow
+      runs. The three largest repeated gate-block episodes account for 27 failures; their output
+      never reached an actionable issue because the gate stopped before the health reporter.
+- [x] Verified the two highest-confidence open defects: issue #21 falsely recovered because the
+      run-over-run match baseline ratcheted down, and total ESPN acquisition failure is caught and
+      printed without a same-run health receipt.
+- [x] Ranked the remaining automation work without re-proposing safeguards that already shipped.
+      The immediate slate is: (1) tested pipeline/gate/workflow reporting plus watchdog extraction,
+      (2) a population-versioned high-water baseline, and (3) per-tour ESPN acquisition receipts.
+      Stable finding codes and production-shaped incident replay are the next consolidation round.
+- [x] Reconciled against the dirty tree. The active US Open work already covers exact draw locators,
+      fail-closed generic names, active cache revalidation, duplicate source quarantine, and both
+      pre/post-deploy invariants; the audit deliberately does not duplicate it. The stage-status
+      proposal should extend the active timing seam later.
+- [x] Full evidence, issue ledger, recurring-class map, ranked backlog, exact files/tests, and the
+      compact commit coverage ledger are in
+      [`tasks/history-audit-2026-08-22.md`](history-audit-2026-08-22.md). No executable behavior was
+      changed and no tests were required for this documentation-only audit.
+
+## US Open draw identity + live-odds semantics review (2026-08-23)
+
+Status: complete locally; implementation is not committed or deployed.
+
+- [x] Confirmed the bad attachment on both tours, not only WTA: ESPN event `189-2026` had retained
+      the 2026 French Open men's Wikipedia draw on ATP and the 2026 Wimbledon women's draw on WTA.
+      Both cached rows and both published brackets are now absent locally while the exact 2026 US
+      Open draw articles remain unavailable.
+- [x] Added exact per-tour, per-`espnId` draw locators and made generic-only Wikipedia resolution
+      fail closed. Active Wikipedia rows are re-resolved before the settled shortcut; a rejected
+      current row cannot return through retention, and quarantine can persist an empty cache.
+- [x] Quarantine any source id or canonical source URL attached to multiple ESPN events. The
+      producer removes every ambiguous attachment, the pre-upload gate inspects the raw cache as
+      well as published bracket payloads, and the post-deploy verifier checks both tour payloads.
+- [x] Changed the ticker and accessible probability copy to **pre-match model odds**. In-play odds
+      remain out of scope because the current ESPN scoreboard/parser does not preserve reliable
+      point and server state for the existing Markov model.
+- [x] Regenerated both draw caches and the mirrored web artifacts through the normal quick path.
+      Neither tour contains `189-2026`, and neither the raw caches nor published brackets contain a
+      duplicate source attachment. The local post-deploy helper reports zero source problems.
+- [x] Verification: 653 Python tests and 275 web tests pass; the 141 focused Python and 52 focused
+      web regressions pass; TypeScript, bytecode compilation, the production web build, and
+      `git diff --check` pass. ESLint reports zero errors and nine pre-existing warnings.
+- [x] Preserved concurrent model, latency, audit, and web work. The quick refresh also changed two
+      tracked ATP evaluation artifacts that were clean at task start; sandbox policy blocked their
+      restoration without explicit owner approval, so they remain visible in the working tree.
+
+## Historical reliability audit — Round 1 automation (2026-08-23)
+
+Status: implementation authorized by owner for Round 1A-1C; in progress.
+
+- [ ] Add an optional atomic structured report to `health --gate` without touching the sentinel's
+      deployed `health.json`. Give every load-bearing refresh stage a stable step id, then add a
+      tested `pipeline-health` reporter that records the exact failed stage, gate findings, mode,
+      and run URL while treating skipped/unknown outcomes explicitly.
+- [ ] Add a terminal `if: always()` workflow-health job so push-test failures, refresh jobs that
+      never start, timeouts, cancellations, and runner/setup failures reach the same deduplicated
+      incident path. Keep upstream pipeline failures separate from `deploy-health` and ensure a
+      successful complete run closes the standing pipeline issue.
+- [ ] Extract the watchdog's inline issue branching into a tested script, retain its 26-hour
+      last-resort liveness contract, and extend the no-inline-alert meta-test across every workflow.
+- [ ] Replace the one-run `meta.matches` comparator with a population-versioned high-water state.
+      A same-version drop must remain failing on repeated runs; only recovery to the accepted high
+      water or an explicit `MATCH_POPULATION_VERSION` transition may clear/reset it.
+- [ ] Persist an atomic per-tour ESPN acquisition receipt from the shared scoreboard sweep. Distinguish
+      successful-empty, partial-query degradation, total transport failure, and retained last-good
+      overlays; surface total failure on the same full or quick run without repeating the network
+      sweep or confusing an idle week with an outage.
+- [ ] Add negative and recovery controls for every reporter branch, gate-report schema/write
+      failure, high-water transition, and ESPN receipt state. Run focused tests first, then the full
+      Python suite via `uv`, workflow linter coverage, the real pre-deploy gate, web tests affected by
+      the health contract, `git diff --check`, and a final recent-log/worktree reconciliation before
+      appending the review.
+
+## Repository consolidation onto `master` (2026-08-23)
+
+Status: owner requested consolidation and branch cleanup; implementation awaits owner check-in.
+
+- [x] Inventory the worktree, stashes, worktrees, and every local/remote branch without mutating
+      history. Confirm which commits and uncommitted files are absent from `master`.
+- [ ] Preserve the complete dirty tree in a consolidation commit, integrate the two newer
+      `origin/master` evaluation-log commits, and resolve any overlap without dropping either side.
+- [ ] Run repository-level verification appropriate to the combined Python, workflow, and web
+      changes; record any remaining failure explicitly rather than hiding unfinished work.
+- [ ] Fast-forward local `master` to the verified consolidated history and delete the redundant
+      local `codex/fix-mcp-charting-health` branch.
+- [ ] With explicit deploy confirmation, push `master` (which triggers production), then delete the
+      stale remote `alias-proposer/30807596234` branch after verifying its two valid player aliases
+      already landed independently and its rejected tournament alias remains excluded.
+- [ ] Re-fetch/prune and verify that the tree is clean, `master` is the sole branch locally and on
+      `origin`, and local/remote `master` resolve to the same commit. Add the final review here.
+
+## Beautiful UI forecast-clarity pass (2026-08-23)
+
+Status: complete locally; implementation is not committed or deployed.
+
+- [x] Adapt the reference Fine-tune Card into an accessible prediction setup panel that groups
+      player, surface, and format controls without changing shareable URL state or keyboard behavior.
+- [x] Adapt the reference Recommendation Card into a factual prediction summary: name the favorite,
+      show calibrated win probability and model edge from 50%, and expose only existing DEUCE actions.
+- [x] Adapt the reference Context Cards into clearer model-evidence signals with visible availability,
+      direction, magnitude, and plain-language facts while preserving the non-causal explanation.
+- [x] Add focused UI/contracts, run the affected and full web checks, inspect desktop and 390px mobile
+      renders (including overflow/focus/scroll behavior), reconcile the latest git log and dirty tree,
+      then append a review without disturbing the concurrent reliability and consolidation work.
+
+### Review
+
+- [x] Reframed the predictor controls as one labelled fieldset with searchable player selectors,
+      accessible pressed-state surface/format controls, a compact live setup summary, and preserved
+      deep-link behavior. Desktop uses a balanced instrument panel; mobile stacks without hiding data.
+- [x] Added a factual model-call summary with favorite/even-match handling, calibrated probability,
+      a meter explicitly defined as distance from 50% (not market edge), and existing profile/style
+      drill-ins. Near-even calls resolve the neutral profile action deterministically.
+- [x] Reworked shared model evidence into indexed context cards with text-labelled support, neutral,
+      and unavailable states; bidirectional impact rails; higher-contrast facts; component probabilities;
+      and the existing non-causation warning. The shared lazy disclosure benefits Predictor, Schedule,
+      and Match Center without changing any payload contract.
+- [x] Verification: 18 focused tests and all 280 web tests pass; TypeScript and `git diff --check`
+      pass; ESLint exits with zero errors and the same nine pre-existing hook warnings; the production
+      build compiles and statically renders all 24 routes.
+- [x] Rendered QA covered desktop and 390×844 mobile, surface and format interactions, evidence-open
+      states, focus/pressed semantics, real scrolling, and root/body widths of 380px with no predictor
+      console errors. The full harness passed all 36 route/viewport geometry checks but retained its
+      non-zero exit for unrelated local ESPN CORS errors and the existing Scorecard 404 console request.
+- [x] Final reconciliation used HEAD `8519492`; the extensive pre-existing reliability, draw, model,
+      data, and sharded-feed edits remain intact. This round adds two new web files and scoped edits to
+      the predictor/evidence/shared-control tests and components; nothing was committed or deployed.
+
+## Historical reliability audit — Round 1 completion (2026-08-23)
+
+Status: Round 1A-1C complete locally; implementation is not committed or deployed.
+
+- [x] Added the atomic `predeploy-gate-v1` report, stable refresh step ids, exact stage/mode/scope
+      pipeline incidents, specialist-reporter ownership handshakes, and a terminal workflow backstop
+      for tests, jobs that never start, cancellation/timeout, runner/setup, and post-action failures.
+- [x] Extracted watchdog alert branching into a tested shell script, fixed exact elapsed-time boundary
+      handling and API-unknown behavior, added run/workflow links, and extended the no-inline-alert
+      invariant across all workflow YAML files.
+- [x] Replaced the ratcheting prior-run population comparator with a population-versioned durable
+      high-water. Repeated same-version deficits stay red; valid recovery or an explicit population
+      version transition is required to advance/reset the accepted baseline.
+- [x] Added atomic per-tour `espn-acquisition-v1` receipts and same-run health reporting for success,
+      successful-empty, partial degradation, total failure, processing failure, retained overlays, and
+      mixed generations. Majority-failed sweeps preserve the prior overlay and bypass draw handoff;
+      only a fully successful, fully updated acquisition advances `lastGoodAt`.
+- [x] Added negative, recovery, write-failure, legacy-migration, repeated-run, threshold, ownership,
+      API-unknown, and degraded-to-outage controls. Two adversarial review passes found no remaining
+      correctness gap after the final ESPN state-machine fix.
+- [x] Verification: all 698 Python tests and all 280 web tests pass; scoped Ruff, Actionlint,
+      ShellCheck, Bash syntax, `git diff --check`, and the real pre-deploy gate pass. ESLint exits with
+      zero errors and nine pre-existing warnings; the production build compiles and statically renders
+      all 24 routes.
+- [x] Final history reconciliation used HEAD `8519492` (306 commits); the local `origin/master`
+      tracking ref is `b1b8579` (308 commits, two evaluation-log commits ahead). The extensive dirty
+      concurrent worktree remains intact; no commit, branch change, push, issue mutation, or deploy
+      was performed.

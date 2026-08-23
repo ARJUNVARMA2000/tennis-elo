@@ -309,6 +309,91 @@ def walk_forward(feat: pd.DataFrame, start_test: int = BACKTEST_START_YEAR,
     return oos
 
 
+def walk_forward_state_gate(base_feat: pd.DataFrame, enriched_feat: pd.DataFrame,
+                            thresholds: tuple[int | None, ...],
+                            start_test: int = BACKTEST_START_YEAR,
+                            end_test: int | None = None,
+                            min_train_year: int = 1991,
+                            xgb_overrides: dict | None = None,
+                            verbose: bool = True,
+                            n_bag: int | None = None) -> dict[int | None, pd.DataFrame]:
+    """Score state-gated arms through ONE unchanged baseline combiner per fold.
+
+    The lower-tier intervention is prediction-time state enrichment, not a new
+    combiner-training population.  Every fold therefore fits and calibrates on the
+    main-only ``base_feat``.  Each requested threshold selects complete enriched
+    feature rows only for its eligible test matchups; ``None`` is the bit-identical
+    baseline arm.  Training once per fold also keeps a threshold sweep paired down
+    to the exact same fitted models.
+    """
+    from .features import select_dual_state_features
+
+    if not thresholds or len(set(thresholds)) != len(thresholds):
+        raise ValueError("state-gate thresholds must be a non-empty unique tuple")
+    if n_bag is None:
+        from ..config import N_BAG
+        n_bag = N_BAG
+    if end_test is None:
+        end_test = int(base_feat["year"].max())
+
+    base = _combiner_rows(base_feat)
+    arms = {
+        threshold: _combiner_rows(
+            select_dual_state_features(base_feat, enriched_feat, threshold))
+        for threshold in thresholds
+    }
+    base = base[base["completed"]].reset_index(drop=True)
+    arms = {
+        threshold: frame[frame["completed"]].reset_index(drop=True)
+        for threshold, frame in arms.items()
+    }
+    for threshold, frame in arms.items():
+        if len(frame) != len(base):
+            raise AssertionError(
+                f"state-gate arm {threshold} changed completed-row count: "
+                f"{len(frame)} vs {len(base)}")
+
+    chunks: dict[int | None, list[pd.DataFrame]] = {t: [] for t in thresholds}
+    importances = []
+    for ty in range(start_test, end_test + 1):
+        train = base[(base["year"] < ty) & (base["year"] >= min_train_year)]
+        test = base[base["year"] == ty]
+        if len(test) == 0 or len(train) < 5000:
+            continue
+        cal_year = ty - 1
+        core = train[train["year"] < cal_year]
+        cal_rows = train[train["year"] == cal_year]
+        if len(cal_rows) < 500 or len(core) < 2000:
+            core, cal_rows = train, train
+        clf, cal_model = _fit_fold(
+            core, cal_rows, seed=ty, calibrator="platt",
+            xgb_overrides=xgb_overrides, n_bag=n_bag)
+        importances.append(pd.Series(clf.feature_importances_, index=FEATURES))
+
+        for threshold, frame in arms.items():
+            test_arm = frame[frame["year"] == ty]
+            if len(test_arm) != len(test):
+                raise AssertionError(
+                    f"state-gate arm {threshold} changed {ty} test rows: "
+                    f"{len(test_arm)} vs {len(test)}")
+            raw = clf.predict_proba(test_arm[FEATURES])[:, 1]
+            p = cal_model.predict(raw)
+            chunks[threshold].append(test_arm.assign(p_combiner=p, p_raw=raw))
+        if verbose:
+            baseline = chunks[None][-1] if None in chunks else chunks[thresholds[0]][-1]
+            p = baseline["p_combiner"].to_numpy()
+            print(f"  {ty}: train={len(train):,} test={len(test):,}  combiner brier="
+                  f"{np.mean((1 - p) ** 2):.4f}")
+
+    if not any(chunks.values()):
+        raise ValueError(f"walk_forward_state_gate: no scoreable folds in "
+                         f"[{start_test}, {end_test}]")
+    walk_forward_state_gate.importances = (
+        pd.concat(importances, axis=1).mean(axis=1).sort_values(ascending=False))
+    return {threshold: pd.concat(parts, ignore_index=True)
+            for threshold, parts in chunks.items()}
+
+
 def report(oos: pd.DataFrame) -> None:
     from ..eval.metrics import calibration_table, score, winner_oriented
 

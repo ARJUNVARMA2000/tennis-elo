@@ -21,8 +21,11 @@ from tennis_model.model.features import (
     FEATURES,
     SYMMETRIC,
     FeatureParams,
+    dual_state_gate_mask,
     make_oriented_xy,
     run_context,
+    select_dual_state_features,
+    use_lower_state,
 )
 
 
@@ -91,7 +94,68 @@ def test_assemble_orientation_contract():
     assert a["has_style"] == 0 and a["style_net_diff"] == 0.0
     assert a["winner_rank"] == 12 and a["loser_rank"] == 71
     assert b["winner_rank"] == 71 and b["loser_rank"] == 12
+    assert a["winner_state_matches"] == 210 and a["loser_state_matches"] == 145
+    assert b["winner_state_matches"] == 145 and b["loser_state_matches"] == 210
     print("ok test_assemble_orientation_contract")
+
+
+def _dual_frames() -> tuple[pd.DataFrame, pd.DataFrame]:
+    n = 3
+    base = pd.DataFrame({c: np.arange(n, dtype=float) + i
+                         for i, c in enumerate(FEATURES)})
+    base["p_blend"] = [0.51, 0.52, 0.53]
+    base["p_point"] = [0.54, 0.55, 0.56]
+    base["date"] = pd.date_range("2024-01-01", periods=n)
+    base["year"] = 2024
+    base["completed"] = True
+    base["winner_name"] = ["A", "B", "C"]
+    base["loser_name"] = ["D", "E", "F"]
+    base["winner_rank"] = [10, 20, 30]
+    base["loser_rank"] = [40, 50, 60]
+    base["draw_level"] = "main"
+    base["winner_state_matches"] = [0, 16, 100]
+    base["loser_state_matches"] = [200, 16, 15]
+    enriched = base.copy()
+    enriched.loc[:, FEATURES] = enriched.loc[:, FEATURES] + 1000.0
+    enriched["round_order"] = base["round_order"]  # match identity, never state-derived
+    enriched[["p_blend", "p_point"]] += 0.1
+    enriched[["winner_state_matches", "loser_state_matches"]] += 50
+    return base, enriched
+
+
+def test_dual_state_gate_selects_complete_bundle_at_strict_boundary():
+    base, enriched = _dual_frames()
+    out = select_dual_state_features(base, enriched, threshold=16)
+    assert list(out["uses_lower_state"]) == [True, False, True]
+    state_columns = FEATURES + ["p_blend", "p_point"]
+    assert np.array_equal(out.loc[[0, 2], state_columns].to_numpy(),
+                          enriched.loc[[0, 2], state_columns].to_numpy())
+    assert np.array_equal(out.loc[[1], state_columns].to_numpy(),
+                          base.loc[[1], state_columns].to_numpy())
+    # Row identity, audit ranks and MAIN-only gate counts always remain baseline-owned.
+    for column in ("date", "winner_name", "loser_name", "winner_rank", "loser_rank",
+                   "winner_state_matches", "loser_state_matches"):
+        assert out[column].equals(base[column]), column
+
+
+def test_dual_state_gate_is_orientation_safe_and_handles_unseen_players():
+    assert use_lower_state(7, 200, 8)
+    assert use_lower_state(200, 7, 8)
+    assert not use_lower_state(8, 200, 8)  # threshold is strict: sufficient at 8
+    assert use_lower_state(np.nan, 200, 8)
+    assert not use_lower_state(0, 0, None)
+    base, _ = _dual_frames()
+    assert not dual_state_gate_mask(base, None).any()
+
+
+def test_dual_state_gate_rejects_row_identity_drift():
+    base, enriched = _dual_frames()
+    enriched.loc[1, "loser_name"] = "Wrong Player"
+    try:
+        select_dual_state_features(base, enriched, threshold=16)
+        raise AssertionError("expected dual-state identity mismatch")
+    except ValueError as exc:
+        assert "loser_name" in str(exc)
 
 
 def test_assemble_respects_feature_params():
@@ -198,6 +262,9 @@ def test_main_rows_is_audible_when_it_cannot_filter():
 if __name__ == "__main__":
     test_feature_partition_sane()
     test_assemble_orientation_contract()
+    test_dual_state_gate_selects_complete_bundle_at_strict_boundary()
+    test_dual_state_gate_is_orientation_safe_and_handles_unseen_players()
+    test_dual_state_gate_rejects_row_identity_drift()
     test_assemble_respects_feature_params()
     test_run_context_respects_params()
     test_make_oriented_xy_flip_contract()

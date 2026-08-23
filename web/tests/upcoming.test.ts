@@ -128,7 +128,7 @@ describe("byTournamentTier", () => {
   });
 
   it("leads with the marquee event, so a live slam surfaces over same-week 125s", () => {
-    // Mirrors the real upcoming.json order (soonest-first): the concurrent WTA 125s land before
+    // Mirrors the producer's upcoming order (soonest-first): the concurrent WTA 125s land before
     // the two Wimbledon SFs, which would otherwise be buried past the 6-card "Up next" cutoff.
     const rows = [
       row("Grand Est Open 88", "W125", "Selekhmeteva"),

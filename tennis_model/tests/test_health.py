@@ -82,6 +82,7 @@ def _healthy_data() -> dict:
         "meta": {"matches": 300_000, "activePlayers": 3, "features": ["f"] * len(FEATURES),
                  "matchPopulationVersion": health.MATCH_POPULATION_VERSION,
                  "modelPopulationVersion": health.MATCH_POPULATION_VERSION,
+                 "dualStateThreshold": None, "dualStateReady": False,
                  "wta125Matches": 0, "excludedWta125Matches": 0,
                  "excludedUnclassifiedWtaLiveMatches": 0,
                  "lastUpdated": "2026-07-09T00:00:00Z",
@@ -141,6 +142,8 @@ def _healthy_data() -> dict:
                            "surfaceBlend": 0.63, "movCap": 2.0},
                    "serveReturn": {"formHalflifeDays": 200.0},
                    "context": {"peakAge": 26.5},
+                   "stateGate": {"enabled": False, "minMainMatches": None,
+                                 "trainingPopulation": "main-only", "enrichedRows": []},
                    "tiers": {"kMult": {"grand_slam": 0.91, "atp250": 0.9}, "default": 0.9},
                    "combiner": {"featureCount": len(FEATURES), "nBag": 5},
                    "protocol": {"tuneYears": [2010, 2019], "valStartYear": 2020}},
@@ -171,11 +174,12 @@ def _healthy_shards() -> dict:
 
 
 def _oc(data=None, missing=None, corrupt=None, forecast=("keep",), kalshi_ledger=None,
-        shards=None, missing_files=None, corrupt_files=None) -> dict:
+        shards=None, missing_files=None, corrupt_files=None, draw_cache=None) -> dict:
     return {"data": _healthy_data() if data is None else data,
             "missing": missing or [], "corrupt": corrupt or [],
             "shards": _healthy_shards() if shards is None else shards,
             "missing_files": missing_files or [], "corrupt_files": corrupt_files or [],
+            "draw_cache": draw_cache,
             "forecast": {"lines": 200, "max_as_of": "2026-07-09"} if forecast == ("keep",) else forecast,
             "kalshi_ledger": kalshi_ledger}
 
@@ -299,6 +303,154 @@ def _h(result_age=1, stats_age=2, frac=0.9, n=500, fresh_age=3, charting_age=30)
     return {"result_age_days": result_age, "stats_age_days": stats_age,
             "cur_year_stats_fraction": frac, "cur_year_matches": n,
             "fresh_age_days": fresh_age, "charting_age_days": charting_age}
+
+
+def _espn_receipt(status="success", *, failed=0, overlay="updated") -> dict:
+    attempted = 28
+    return {
+        "schema": "espn-acquisition-v1", "tour": "atp",
+        "completedAt": "2026-07-09T12:00:00Z", "status": status,
+        "eventCount": 1 if status in ("success", "partial_query_failure") else 0,
+        "queries": {"attempted": attempted, "succeeded": attempted - failed,
+                    "failed": failed},
+        "overlay": {"status": overlay, "updatedFiles": [], "retainedFiles": [],
+                    "lastGoodAt": "2026-07-09T12:00:00Z"},
+    }
+
+
+def test_espn_acquisition_receipt_surfaces_same_run_transport_state():
+    clean = _h(); clean["espn_acquisition"] = _espn_receipt()
+    row = next(r for r in health.source_checks("atp", clean, NOW)
+               if r["key"] == "espn_acquisition")
+    assert row["ok"] and row["note"] is None
+
+    empty = _h(); empty["espn_acquisition"] = _espn_receipt("success_empty")
+    row = next(r for r in health.source_checks("atp", empty, NOW)
+               if r["key"] == "espn_acquisition")
+    assert row["ok"] and "0 events" in row["note"]
+
+    partial = _h(); partial["espn_acquisition"] = _espn_receipt(
+        "partial_query_failure", failed=1, overlay="partially_updated")
+    row = next(r for r in health.source_checks("atp", partial, NOW)
+               if r["key"] == "espn_acquisition")
+    assert row["ok"] and "27 of 28" in row["note"]
+
+    failed = _h(); failed["espn_acquisition"] = _espn_receipt(
+        "total_transport_failure", failed=28, overlay="retained_last_good")
+    problem = health.problems("atp", failed, NOW)[0]
+    assert problem == ("atp: ESPN scoreboard acquisition failed for all 28 queries — "
+                       "retained last-good live overlay")
+    # Attempt timestamps never enter the problem string, so hourly dedup cannot flap.
+    failed["espn_acquisition"]["completedAt"] = "2026-07-09T13:00:00Z"
+    assert health.problems("atp", failed, NOW) == [problem]
+
+
+def test_majority_failed_partial_acquisition_stays_failing():
+    degraded = _h()
+    receipt = _espn_receipt("partial_query_failure", failed=27,
+                            overlay="retained_last_good")
+    receipt["eventCount"] = 0
+    degraded["espn_acquisition"] = receipt
+    problem = next(p for p in health.problems("atp", degraded, NOW)
+                   if "ESPN scoreboard" in p)
+    assert problem == ("atp: ESPN scoreboard acquisition severely degraded "
+                       "(27 of 28 queries failed) — retained last-good live overlay")
+
+    # Older/foreign producers that did publish a degraded sweep must not be described as
+    # having no overlay at all; the red incident should state what actually happened.
+    degraded["espn_acquisition"]["overlay"]["status"] = "updated"
+    problem = next(p for p in health.problems("atp", degraded, NOW)
+                   if "ESPN scoreboard" in p)
+    assert problem == ("atp: ESPN scoreboard acquisition severely degraded "
+                       "(27 of 28 queries failed) — wrote a degraded live overlay")
+
+    # One bad day in an otherwise answered, genuinely idle window remains an amber note.
+    mostly_answered = _h()
+    receipt = _espn_receipt("partial_query_failure", failed=1,
+                            overlay="retained_last_good")
+    receipt["eventCount"] = 0
+    mostly_answered["espn_acquisition"] = receipt
+    row = next(r for r in health.source_checks("atp", mostly_answered, NOW)
+               if r["key"] == "espn_acquisition")
+    assert row["ok"] and "27 of 28" in row["note"] and "usable" not in row["note"]
+    assert row["unit"] == ""
+
+
+def test_partial_overlay_processing_failure_is_named_not_called_retained():
+    h = _h(); receipt = _espn_receipt()
+    receipt["overlay"].update(status="partially_updated", processingFailureType="OSError",
+                              updatedFiles=["live.csv"], retainedFiles=["fields.json"])
+    h["espn_acquisition"] = receipt
+    problem = next(p for p in health.problems("atp", h, NOW) if "ESPN live overlay" in p)
+    assert "explicitly partial overlay update" in problem
+    assert "retained last-good" not in problem
+
+
+def test_espn_receipt_missing_is_rollout_note_but_malformed_is_actionable():
+    missing = _h(); missing["espn_acquisition"] = {"status": "missing"}
+    row = next(r for r in health.source_checks("atp", missing, NOW)
+               if r["key"] == "espn_acquisition")
+    assert row["ok"] and "legacy cache" in row["note"]
+    malformed = _h(); malformed["espn_acquisition"] = {"status": "malformed"}
+    assert health.problems("atp", malformed, NOW) == [
+        "atp: ESPN scoreboard acquisition receipt is malformed/incompatible"]
+
+
+def test_espn_receipt_reader_rejects_contradictory_status_counts(tmp_path, monkeypatch):
+    monkeypatch.setattr(health, "live_dir", lambda tour: tmp_path)
+    path = tmp_path / "espn_acquisition.json"
+    path.write_text(json.dumps(_espn_receipt()), encoding="utf-8")
+    assert health._espn_acquisition("atp")["status"] == "success"
+    bad = _espn_receipt("success_empty")
+    bad["eventCount"] = 4
+    path.write_text(json.dumps(bad), encoding="utf-8")
+    assert health._espn_acquisition("atp") == {"status": "malformed"}
+
+
+def test_espn_receipt_changes_the_source_manifest_fingerprint(tmp_path, monkeypatch):
+    roots = {name: tmp_path / name for name in ("historical", "stats", "fresh", "lower", "live")}
+    for root in roots.values():
+        root.mkdir()
+    monkeypatch.setattr(health, "historical_dir", lambda tour: roots["historical"])
+    monkeypatch.setattr(health, "stats_dir", lambda tour: roots["stats"])
+    monkeypatch.setattr(health, "fresh_dir", lambda tour: roots["fresh"])
+    monkeypatch.setattr(health, "lower_dir", lambda tour: roots["lower"])
+    monkeypatch.setattr(health, "live_dir", lambda tour: roots["live"])
+    monkeypatch.setattr(health, "CHARTING_DIR", tmp_path / "charting")
+    before = health._health_input_fingerprint("atp")
+    (roots["live"] / "espn_acquisition.json").write_text(
+        json.dumps(_espn_receipt()), encoding="utf-8")
+    after = health._health_input_fingerprint("atp")
+    assert before != after
+
+
+def test_new_receipt_invalidates_and_reloads_a_same_day_source_manifest(tmp_path, monkeypatch):
+    roots = {name: tmp_path / name for name in ("historical", "stats", "fresh", "lower", "live")}
+    for root in roots.values():
+        root.mkdir()
+    monkeypatch.setattr(health, "historical_dir", lambda tour: roots["historical"])
+    monkeypatch.setattr(health, "stats_dir", lambda tour: roots["stats"])
+    monkeypatch.setattr(health, "fresh_dir", lambda tour: roots["fresh"])
+    monkeypatch.setattr(health, "lower_dir", lambda tour: roots["lower"])
+    monkeypatch.setattr(health, "live_dir", lambda tour: roots["live"])
+    monkeypatch.setattr(health, "CHARTING_DIR", tmp_path / "charting")
+    monkeypatch.setattr(health, "OUTPUT_DIR", tmp_path / "output")
+    monkeypatch.setattr(health, "fresh_date_max", lambda tour, now=None: NOW)
+    monkeypatch.setattr(health, "fresh_future_date_max", lambda tour, now=None: None)
+    monkeypatch.setattr(health, "charting_date_max", lambda tour: NOW)
+    frame = pd.DataFrame({"date": pd.to_datetime([NOW]), "completed": [True],
+                          "has_stats": [True]})
+    health.write_health_manifest("atp", frame, NOW)
+    receipt = _espn_receipt("total_transport_failure", failed=28,
+                            overlay="retained_last_good")
+    receipt["eventCount"] = 0
+    (roots["live"] / "espn_acquisition.json").write_text(
+        json.dumps(receipt), encoding="utf-8")
+    loads = []
+    monkeypatch.setattr(health, "load_matches", lambda tour: loads.append(tour) or frame)
+    current = health.tour_health("atp", NOW)
+    assert loads == ["atp"]
+    assert current["espn_acquisition"]["status"] == "total_transport_failure"
 
 
 def test_a_future_row_cannot_disable_the_fresh_overlay_freshness_gate(tmp_path, monkeypatch):
@@ -560,10 +712,14 @@ def test_main_strict_exit_code_and_report():
          health.TOURS, sys.argv) = orig
     assert rc_strict == 1 and report["ok"] is False and report["tours"]["atp"]["problems"]
     assert report["tours"]["atp"]["output"]["matches"] == 300_000   # output snapshot persisted
+    assert report["tours"]["atp"]["output"]["high_water_matches"] == 300_000
+    assert report["tours"]["atp"]["output"]["high_water_match_population_version"] == \
+        health.MATCH_POPULATION_VERSION
     assert rc_soft == 0                      # same problems, but only --strict reds the build
     # /health page contract: structured rows + precise stamp + forecast liveness detail
     assert [r["key"] for r in report["tours"]["atp"]["checks"]] == \
-        ["results", "future_dates", "stats", "coverage", "fresh", "fresh_future", "charting"]
+        ["results", "future_dates", "stats", "coverage", "fresh", "fresh_future", "charting",
+         "espn_acquisition"]
     assert report["generatedAt"].endswith("Z") and "T" in report["generatedAt"]
     assert report["eventCoverage"]["atp"] == {
         "expectedKeys": ["espn:1-2026"],
@@ -669,6 +825,93 @@ def test_gate_blocks_bad_output_without_writing_healthjson():
     assert not wrote_healthjson               # the gate leaves the post-deploy sentinel's file alone
     assert rc_ok == 0                         # a clean build deploys
     print("ok test_gate_blocks_bad_output_without_writing_healthjson")
+
+
+def test_gate_writes_an_atomic_structured_report_without_touching_sentinel():
+    from datetime import UTC, datetime
+    clean = _healthy_data()
+    clean["meta"]["lastUpdated"] = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    orig = (health.read_outputs, health.OUTPUT_DIR, health.TOURS, sys.argv)
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            health.OUTPUT_DIR = root
+            health.TOURS = ("atp",)
+            sentinel = root / "health.json"
+            sentinel.write_text('{"sentinel":true}', encoding="utf-8")
+            report_path = root / "ci" / "gate.json"
+            health.read_outputs = lambda tour: _oc(missing=["tournaments"])
+            sys.argv = ["health", "--gate", "--gate-report", str(report_path)]
+            rc = health.main()
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+            untouched = sentinel.read_text(encoding="utf-8")
+            health.read_outputs = lambda tour: _oc(data=clean)
+            sys.argv = ["health", "--gate", "--gate-report", str(report_path)]
+            rc_clean = health.main()
+            recovered = json.loads(report_path.read_text(encoding="utf-8"))
+    finally:
+        health.read_outputs, health.OUTPUT_DIR, health.TOURS, sys.argv = orig
+    assert rc == 1 and report["schema"] == "predeploy-gate-v1" and not report["ok"]
+    assert report["blocking"] == [{"scope": "atp", "problem": "atp: tournaments.json missing"}]
+    assert untouched == '{"sentinel":true}'
+    assert rc_clean == 0 and recovered["ok"] is True and recovered["blocking"] == []
+
+
+def test_gate_report_can_never_alias_health_json():
+    orig = (health.read_outputs, health.OUTPUT_DIR, health.TOURS, sys.argv)
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            health.OUTPUT_DIR = Path(d)
+            health.TOURS = ("atp",)
+            health.read_outputs = lambda tour: _oc()
+            target = Path(d) / "health.json"
+            target.write_text("sentinel", encoding="utf-8")
+            sys.argv = ["health", "--gate", "--gate-report", str(target)]
+            rc = health.main()
+            content = target.read_text(encoding="utf-8")
+    finally:
+        health.read_outputs, health.OUTPUT_DIR, health.TOURS, sys.argv = orig
+    assert rc == 1 and content == "sentinel"
+
+
+def test_gate_report_cannot_alias_the_deployed_health_mirror(monkeypatch, tmp_path):
+    output = tmp_path / "output"; web = tmp_path / "web"
+    target = web / "health.json"; target.parent.mkdir()
+    target.write_text("deployed-sentinel", encoding="utf-8")
+    monkeypatch.setattr(health, "OUTPUT_DIR", output)
+    monkeypatch.setattr(health, "WEB_DATA_DIR", web)
+    monkeypatch.setattr(health, "TOURS", ("atp",))
+    monkeypatch.setattr(health, "read_outputs", lambda tour: _oc())
+    monkeypatch.setattr(sys, "argv", ["health", "--gate", "--gate-report", str(target)])
+    assert health.main() == 1
+    assert target.read_text(encoding="utf-8") == "deployed-sentinel"
+
+
+def test_gate_fails_closed_when_structured_report_cannot_be_published(monkeypatch, tmp_path):
+    monkeypatch.setattr(health, "OUTPUT_DIR", tmp_path)
+    monkeypatch.setattr(health, "TOURS", ("atp",))
+    monkeypatch.setattr(health, "read_outputs", lambda tour: _oc())
+    monkeypatch.setattr(health, "_write_json_atomic",
+                        lambda path, payload: (_ for _ in ()).throw(OSError("disk full")))
+    monkeypatch.setattr(sys, "argv", ["health", "--gate", "--gate-report",
+                                      str(tmp_path / "gate.json")])
+    assert health.main() == 1
+    assert not (tmp_path / "gate.json").exists()
+
+
+def test_atomic_json_write_preserves_previous_report_on_replace_failure(monkeypatch, tmp_path):
+    target = tmp_path / "health.json"
+    target.write_bytes(b'{"old":true}')
+    monkeypatch.setattr(health.os, "replace",
+                        lambda src, dst: (_ for _ in ()).throw(OSError("replace failed")))
+    try:
+        health._write_json_atomic(target, {"new": True})
+    except OSError as exc:
+        assert "replace failed" in str(exc)
+    else:
+        raise AssertionError("atomic publication failure was swallowed")
+    assert target.read_bytes() == b'{"old":true}'
+    assert not list(tmp_path.glob(".*.tmp"))
 
 
 def test_gate_classifies_advisory_vs_blocking():
@@ -800,6 +1043,115 @@ def test_output_match_floor_and_drop():
     print("ok test_output_match_floor_and_drop")
 
 
+def test_match_population_high_water_does_not_ratchet_down_after_a_regression():
+    data = _healthy_data()
+    data["meta"]["matches"] = 299_948
+    legacy = {"matches": 300_000,
+              "match_population_version": health.MATCH_POPULATION_VERSION}
+    assert health._population_high_water("atp", data["meta"], legacy) == \
+        (300_000, health.MATCH_POPULATION_VERSION)
+    first = health.output_problems("atp", _oc(data=data), NOW, legacy)
+    assert any("dropped 300000 -> 299948" in problem for problem in first)
+
+    # Persisting the raw lower count must not make the identical bad output look recovered.
+    persisted = {
+        "matches": 299_948,
+        "match_population_version": health.MATCH_POPULATION_VERSION,
+        "high_water_matches": 300_000,
+        "high_water_match_population_version": health.MATCH_POPULATION_VERSION,
+    }
+    repeat = health.output_problems("atp", _oc(data=data), NOW, persisted)
+    assert any("dropped 300000 -> 299948" in problem for problem in repeat)
+
+    data["meta"]["matches"] = 300_000
+    assert not any("meta.matches dropped" in p
+                   for p in health.output_problems("atp", _oc(data=data), NOW, persisted))
+    data["meta"]["matches"] = 300_001
+    assert health._population_high_water("atp", data["meta"], persisted) == \
+        (300_001, health.MATCH_POPULATION_VERSION)
+
+
+def test_match_population_version_boundary_is_the_only_high_water_reset():
+    data = _healthy_data()
+    data["meta"]["matches"] = 299_920
+    previous = {
+        "matches": 300_000,
+        "match_population_version": health.MATCH_POPULATION_VERSION - 1,
+        "high_water_matches": 300_000,
+        "high_water_match_population_version": health.MATCH_POPULATION_VERSION - 1,
+    }
+    assert health._population_high_water("atp", data["meta"], previous) == \
+        (299_920, health.MATCH_POPULATION_VERSION)
+    assert not any("meta.matches dropped" in p
+                   for p in health.output_problems("atp", _oc(data=data), NOW, previous))
+
+    invalid = copy.deepcopy(data)
+    invalid["meta"]["modelPopulationVersion"] = health.MATCH_POPULATION_VERSION - 1
+    assert health._population_high_water("atp", invalid["meta"], previous) == \
+        (300_000, health.MATCH_POPULATION_VERSION - 1)
+
+
+def test_high_water_threshold_and_malformed_numeric_versions_are_pinned():
+    previous = {
+        "matches": 300_000,
+        "match_population_version": health.MATCH_POPULATION_VERSION,
+        "high_water_matches": 300_000,
+        "high_water_match_population_version": health.MATCH_POPULATION_VERSION,
+    }
+    within = _healthy_data(); within["meta"]["matches"] = 299_950
+    assert not any("meta.matches dropped" in p
+                   for p in health.output_problems("atp", _oc(data=within), NOW, previous))
+    outside = _healthy_data(); outside["meta"]["matches"] = 299_949
+    assert any("dropped 300000 -> 299949" in p
+               for p in health.output_problems("atp", _oc(data=outside), NOW, previous))
+
+    malformed = copy.deepcopy(outside)
+    malformed["meta"]["matchPopulationVersion"] = float(health.MATCH_POPULATION_VERSION)
+    malformed["meta"]["modelPopulationVersion"] = float(health.MATCH_POPULATION_VERSION)
+    assert health._population_high_water("atp", malformed["meta"], previous) == \
+        (300_000, health.MATCH_POPULATION_VERSION)
+    problems = health.output_problems("atp", _oc(data=malformed), NOW, previous)
+    assert any("matchPopulationVersion" in p for p in problems)
+    assert any("modelPopulationVersion" in p for p in problems)
+
+
+def test_main_persists_high_water_across_repeated_bad_runs(tmp_path, monkeypatch):
+    from datetime import UTC, datetime
+    today = pd.Timestamp(datetime.now(UTC).date())
+    fresh = pd.DataFrame({"date": pd.to_datetime([today]),
+                          "completed": [True], "has_stats": [True]})
+    data = _healthy_data()
+    data["meta"].update(matches=299_948,
+                        lastUpdated=datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                        modelTrainedAt=datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"))
+    monkeypatch.setattr(health, "load_matches", lambda tour: fresh)
+    monkeypatch.setattr(health, "read_outputs", lambda tour: _oc(
+        data=data, forecast={"lines": 200, "max_as_of": str(today.date())}))
+    monkeypatch.setattr(health, "fresh_date_max", lambda tour, now=None: today)
+    monkeypatch.setattr(health, "fresh_future_date_max", lambda tour, now=None: None)
+    monkeypatch.setattr(health, "charting_date_max", lambda tour: today)
+    monkeypatch.setattr(health, "OUTPUT_DIR", tmp_path)
+    monkeypatch.setattr(health, "WEB_DATA_DIR", tmp_path / "web")
+    monkeypatch.setattr(health, "TOURS", ("atp",))
+    monkeypatch.setattr(sys, "argv", ["health"])
+    (tmp_path / "health.json").write_text(json.dumps({"tours": {"atp": {"output": {
+        "matches": 300_000,
+        "match_population_version": health.MATCH_POPULATION_VERSION,
+    }}}}), encoding="utf-8")
+
+    assert health.main() == 0
+    first = json.loads((tmp_path / "health.json").read_text(encoding="utf-8"))
+    assert first["tours"]["atp"]["output"]["matches"] == 299_948
+    assert first["tours"]["atp"]["output"]["high_water_matches"] == 300_000
+    assert any("dropped 300000 -> 299948" in p
+               for p in first["tours"]["atp"]["output"]["problems"])
+    assert health.main() == 0
+    second = json.loads((tmp_path / "health.json").read_text(encoding="utf-8"))
+    assert second["tours"]["atp"]["output"]["high_water_matches"] == 300_000
+    assert any("dropped 300000 -> 299948" in p
+               for p in second["tours"]["atp"]["output"]["problems"])
+
+
 def test_output_wta_125_policy_is_a_blocking_invariant():
     leaked = _healthy_data(); leaked["meta"]["wta125Matches"] = 31
     out = health.output_problems("wta", _oc(data=leaked), NOW)
@@ -818,6 +1170,31 @@ def test_output_wta_125_policy_is_a_blocking_invariant():
            if "unclassified live match(es) withheld" in p]
     assert out and not any(health._gate_blocks(p) for p in out), out
     print("ok test_output_wta_125_policy_is_a_blocking_invariant")
+
+
+def test_output_wta_dual_state_contract_is_blocking():
+    threshold = health.WTA_DUAL_STATE_GATE_THRESHOLD
+    d = _healthy_data()
+    d["method"]["tour"] = "wta"
+    d["method"]["stateGate"] = {
+        "enabled": True, "minMainMatches": threshold,
+        "trainingPopulation": "main-only", "enrichedRows": ["qualifying", "wta125"],
+    }
+    d["meta"]["dualStateThreshold"] = threshold
+    d["meta"]["dualStateReady"] = True
+    clean = health.output_problems("wta", _oc(data=d), NOW)
+    assert not [p for p in clean if "dualState" in p or "stateGate" in p], clean
+
+    missing_state = copy.deepcopy(d)
+    missing_state["meta"]["dualStateReady"] = False
+    out = health.output_problems("wta", _oc(data=missing_state), NOW)
+    hits = [p for p in out if "dualStateReady" in p]
+    assert hits and all(health._gate_blocks(p) for p in hits), out
+
+    drift = copy.deepcopy(d)
+    drift["method"]["stateGate"]["minMainMatches"] = threshold + 1
+    out = health.output_problems("wta", _oc(data=drift), NOW)
+    assert any("stateGate.minMainMatches" in p for p in out), out
 
 
 def test_output_match_drop_resets_only_across_a_population_version_boundary():
@@ -1009,6 +1386,42 @@ def test_output_one_official_draw_cannot_attach_to_multiple_espn_events():
     hit = [problem for problem in problems if "attached to multiple ESPN events" in problem]
     assert hit and health._gate_blocks(hit[0]), problems
     assert "421-2026" in hit[0] and "718-2026" in hit[0]
+
+
+def test_output_one_wikipedia_draw_cannot_attach_to_multiple_espn_events():
+    d = _healthy_data()
+    first = d["brackets"][0]
+    first.update({
+        "drawSource": "wikipedia", "espnId": "188-2026",
+        "drawSourceId": "2026 Wimbledon Championships – Women's singles",
+        "drawSourceUrl": "https://en.wikipedia.org/wiki/2026_Wimbledon_Women",
+    })
+    second = copy.deepcopy(first)
+    second.update(name="US Open", espnId="189-2026")
+    d["brackets"].append(second)
+
+    problems = health.output_problems("wta", _oc(data=d), NOW)
+    hit = [problem for problem in problems if "attached to multiple ESPN events" in problem]
+    assert hit and all(health._gate_blocks(problem) for problem in hit), problems
+    assert "188-2026" in hit[0] and "189-2026" in hit[0]
+
+
+def test_output_retained_draw_cache_duplicate_is_blocking_even_when_old_event_is_not_displayed():
+    source = {
+        "source": "wikipedia",
+        "sourceId": "2026 Wimbledon Championships – Women's singles",
+        "sourceUrl": "https://en.wikipedia.org/wiki/2026_Wimbledon_Women",
+        "slots": [f"P{i}" for i in range(8)],
+    }
+    cache = {
+        "188-2026": {**source, "name": "Wimbledon", "espnId": "188-2026"},
+        "189-2026": {**source, "name": "US Open", "espnId": "189-2026"},
+    }
+
+    problems = health.output_problems("wta", _oc(draw_cache=cache), NOW)
+    hit = [problem for problem in problems if "tournament_draws.json" in problem]
+    assert hit and health._gate_blocks(hit[0]), problems
+    assert "188-2026" in hit[0] and "189-2026" in hit[0]
 
 
 def test_output_bracket_early_draw_with_qualifiers_is_clean():
@@ -1814,11 +2227,48 @@ def test_output_track_and_forecast_monotonicity():
 
 def test_output_emptiness_is_season_gated():
     d = _healthy_data(); d["upcoming"] = []; d["tournaments"] = []
-    assert any("upcoming.json is empty" in p for p in health.output_problems("atp", _oc(data=d), NOW))
+    assert any("upcoming feed is empty" in p for p in health.output_problems("atp", _oc(data=d), NOW))
     # in the Nov/Dec off-season the tours are dark — empty schedules must NOT red the build
     dec = pd.Timestamp("2026-12-15")
     assert not any("empty" in p for p in health.output_problems("atp", _oc(data=d), dec))
     print("ok test_output_emptiness_is_season_gated")
+
+
+def test_upcoming_v2_index_and_shards_are_one_gated_graph():
+    d = _healthy_data()
+    base = {
+        "matchId": "v2|espn:1-2026|2026|R32|p0|p1",
+        "event": "Test Open", "espnId": "1-2026", "date": "2026-07-09",
+        "round": "R32", "surface": "Grass", "bestOf": 3, "level": "ATP 250",
+        "playerA": "P0", "playerB": "P1", "pA": 0.7,
+        "watch": _healthy_watch(), "watchRank": 1,
+    }
+    detail = {
+        "matchId": base["matchId"],
+        "components": {"eloBlend": 0.68, "pointModel": 0.72, "combiner": 0.7},
+        "evidence": _healthy_evidence(), "forecast": None,
+    }
+    d["upcoming-index"] = {
+        "schema": "upcoming-v2", "schemaVersion": 2, "generation": "g", "count": 1,
+        "events": [{"name": "Test Open", "espnId": "1-2026", "surface": "Grass",
+                    "level": "ATP 250", "count": 1, "file": "upcoming-event-1.json",
+                    "evidenceFile": "upcoming-evidence-1.json"}],
+        "highlights": [{**base, "watch": {"score": 45.5}}],
+    }
+    shards = {
+        "upcoming-event-1.json": {"schema": "upcoming-event-v1", "generation": "g",
+                                  "matches": [base]},
+        "upcoming-evidence-1.json": {"schema": "upcoming-evidence-v1", "generation": "g",
+                                     "details": [detail]},
+    }
+    out = health.output_problems("atp", _oc(data=d, shards=shards), NOW)
+    assert not any("upcoming-index" in problem or "match/detail identities" in problem
+                   for problem in out)
+
+    broken = copy.deepcopy(shards)
+    broken["upcoming-evidence-1.json"]["details"] = []
+    out = health.output_problems("atp", _oc(data=d, shards=broken), NOW)
+    assert any("match/detail identities disagree" in problem for problem in out)
 
 
 def test_output_liverank_drift_is_season_gated():
@@ -1908,21 +2358,27 @@ def test_output_kalshi_ledger_double_scored_result_blocks():
 
 
 def test_read_outputs_detects_missing_and_corrupt(tmp_path=None):
-    orig = (health.output_dir, health.DATA_DIR)
+    orig = (health.output_dir, health.DATA_DIR, health.live_dir)
     try:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             (root / "atp").mkdir()
+            (root / "raw" / "atp").mkdir(parents=True)
             (root / "atp" / "meta.json").write_text('{"matches": 1}')
             (root / "atp" / "tournaments.json").write_text("{ not json")
+            (root / "raw" / "atp" / "tournament_draws.json").write_text(
+                '{"1-2026":{"espnId":"1-2026","source":"wikipedia",'
+                '"sourceId":"Draw","sourceUrl":"https://en.wikipedia.org/wiki/Draw"}}')
             health.output_dir = lambda tour: root / tour
+            health.live_dir = lambda tour: root / "raw" / tour
             health.DATA_DIR = root
             oc = health.read_outputs("atp")
     finally:
-        health.output_dir, health.DATA_DIR = orig
+        health.output_dir, health.DATA_DIR, health.live_dir = orig
     assert "meta" in oc["data"] and oc["data"]["meta"]["matches"] == 1
+    assert "1-2026" in oc["draw_cache"]
     assert "tournaments" in oc["corrupt"]
-    assert "players" in oc["missing"] and "upcoming" in oc["missing"]
+    assert "players" in oc["missing"] and "upcoming-index" in oc["missing"]
     assert oc["forecast"] is None                                  # no forecast_log in the temp root
     print("ok test_read_outputs_detects_missing_and_corrupt")
 
@@ -1931,7 +2387,7 @@ def test_read_outputs_flags_nan_as_corrupt():
     """json.loads accepts the bare NaN token but the browser's JSON.parse rejects it — a
     NaN that ships blanks the page (the WTA /player,/style regression: a scoreless match
     left "score": NaN in profiles.json). The gate must treat such a file as unparseable."""
-    orig = (health.output_dir, health.DATA_DIR)
+    orig = (health.output_dir, health.DATA_DIR, health.live_dir)
     try:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
@@ -1943,10 +2399,11 @@ def test_read_outputs_flags_nan_as_corrupt():
             (root / "atp" / "profile-p.json").write_text(
                 '{"generation":"g","name":"P","recent":[{"score": NaN}]}')
             health.output_dir = lambda tour: root / tour
+            health.live_dir = lambda tour: root / "raw" / tour
             health.DATA_DIR = root
             oc = health.read_outputs("atp")
     finally:
-        health.output_dir, health.DATA_DIR = orig
+        health.output_dir, health.DATA_DIR, health.live_dir = orig
     assert "profile-p.json" in oc["corrupt_files"] and "profile-p.json" not in oc["shards"]
     # and output_problems surfaces it through the existing unparseable channel
     assert any("profile-p.json" in p and "unparseable" in p

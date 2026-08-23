@@ -102,6 +102,139 @@ def test_active_settled_official_draw_skips_provider_when_field_is_unchanged(mon
     assert resolved["slots"] == players and rejected == []
 
 
+def _wikipedia_draw(source_id: str, source_url: str) -> dict:
+    return {
+        "name": "US Open", "espnId": "189-2026", "source": "wikipedia",
+        "sourceId": source_id, "sourceUrl": source_url,
+        "slots": [f"Player {i}" for i in range(8)], "seeds": {}, "bestOf": 3,
+        "drawSize": 8, "bracketSize": 8,
+        "start": "2026-08-25", "end": "9999-09-13",
+    }
+
+
+def test_active_settled_wikipedia_draw_is_quarantined_when_identity_drifted(monkeypatch):
+    """A complete Wimbledon field was cached under US Open's ESPN id. Settled geometry
+    must not bypass active event identity, and the missing real article must yield no draw."""
+    from tennis_model.data import draws_official, draws_wiki
+
+    wrong = _wikipedia_draw(
+        "2026 Wimbledon Championships – Women's singles",
+        "https://en.wikipedia.org/wiki/2026_Wimbledon_Championships_%E2%80%93_Women%27s_singles",
+    )
+    monkeypatch.setattr(draws, "_field_evidence", lambda *args: [])
+    monkeypatch.setattr(draws_official, "fetch_official_draw", lambda *args: (None, []))
+    monkeypatch.setattr(draws_wiki, "fetch_draw", lambda *args: None)
+
+    resolved, rejected = draws._resolve_one(
+        "wta", "US Open",
+        {"espnId": "189-2026", "start": "2026-08-25", "end": "9999-09-13"},
+        {}, wrong)
+
+    assert resolved is None
+    assert any("cache identity does not match" in reason for reason in rejected)
+
+
+def test_active_settled_wikipedia_draw_reuses_only_exact_current_identity(monkeypatch):
+    from tennis_model.data import draws_official, draws_wiki
+
+    title = "2026 US Open – Women's singles"
+    correct = _wikipedia_draw(
+        title,
+        "https://en.wikipedia.org/wiki/2026_US_Open_%E2%80%93_Women%27s_singles",
+    )
+    monkeypatch.setattr(draws, "_field_evidence", lambda *args: [])
+    monkeypatch.setattr(draws_official, "fetch_official_draw", lambda *args: (None, []))
+    monkeypatch.setattr(
+        draws_wiki, "fetch_draw",
+        lambda *args: (_ for _ in ()).throw(AssertionError("settled exact cache refetched")))
+
+    resolved, _rejected = draws._resolve_one(
+        "wta", "US Open",
+        {"espnId": "189-2026", "start": "2026-08-25", "end": "9999-09-13"},
+        {}, correct)
+
+    assert resolved["sourceId"] == title
+
+
+def test_duplicate_draw_source_attachments_are_quarantined():
+    duplicate = {
+        "source": "wikipedia", "sourceId": "2026 Wimbledon – Women's singles",
+        "sourceUrl": "https://en.wikipedia.org/wiki/2026_Wimbledon_Women",
+        "slots": [f"P{i}" for i in range(8)],
+    }
+    payload = {
+        "188-2026": {**duplicate, "espnId": "188-2026", "name": "Wimbledon"},
+        "189-2026": {**duplicate, "espnId": "189-2026", "name": "US Open"},
+        "718-2026": {**duplicate, "espnId": "718-2026", "name": "Cincinnati",
+                     "sourceId": "2026 Cincinnati – Women's singles",
+                     "sourceUrl": "https://en.wikipedia.org/wiki/2026_Cincinnati_Women"},
+    }
+
+    clean, findings = draws._quarantine_duplicate_sources(payload)
+    assert set(clean) == {"718-2026"}
+    assert len(findings) == 1
+    assert "188-2026" in findings[0] and "189-2026" in findings[0]
+
+
+def test_rejected_current_cache_entry_is_not_restored_by_retention(tmp_path, monkeypatch):
+    """Rejecting US Open in `_resolve_one` was insufficient: the later retention loop added
+    its bad cached row back because it was recent. Current-but-rejected ids must stay absent."""
+    from tennis_model.data import draws_wiki, live
+
+    wrong = _wikipedia_draw(
+        "2026 Wimbledon Championships – Women's singles",
+        "https://en.wikipedia.org/wiki/2026_Wimbledon_Women",
+    )
+    old = {
+        **wrong, "name": "Wimbledon", "espnId": "188-2026",
+        "start": "2026-06-22", "end": "9999-07-13",
+    }
+    (tmp_path / draws.CACHE_FILE).write_text(json.dumps({
+        "188-2026": old,
+        "189-2026": wrong,
+    }), encoding="utf-8")
+    meta = {"US Open": {
+        "espnId": "189-2026", "start": "2026-08-25", "end": "9999-09-13",
+    }}
+
+    monkeypatch.setattr(draws, "live_dir", lambda _tour: tmp_path)
+    monkeypatch.setattr(draws, "update_registry", lambda *_args: {"events": {}})
+    monkeypatch.setattr(draws, "load_registry", lambda *_args: {"events": {}})
+    monkeypatch.setattr(draws, "_resolve_one", lambda *_args: (None, ["rejected"]))
+    monkeypatch.setattr(live, "parse_event_meta", lambda _events: meta)
+    monkeypatch.setattr(draws_wiki, "_download_wiki_meta", lambda *_args: None)
+
+    draws.download_tournament_draws(["wta"], events_by_tour={"wta": []})
+
+    persisted = json.loads((tmp_path / draws.CACHE_FILE).read_text(encoding="utf-8"))
+    assert set(persisted) == {"188-2026"}
+
+
+def test_duplicate_only_cache_is_overwritten_with_empty_quarantine(tmp_path, monkeypatch):
+    from tennis_model.data import draws_wiki, live
+
+    duplicate = {
+        "source": "wikipedia", "sourceId": "Wrong draw",
+        "sourceUrl": "https://en.wikipedia.org/wiki/Wrong_draw",
+        "slots": [f"P{i}" for i in range(8)], "drawSize": 8,
+        "start": "2026-08-01", "end": "9999-09-01",
+    }
+    (tmp_path / draws.CACHE_FILE).write_text(json.dumps({
+        "1-2026": {**duplicate, "espnId": "1-2026", "name": "One"},
+        "2-2026": {**duplicate, "espnId": "2-2026", "name": "Two"},
+    }), encoding="utf-8")
+
+    monkeypatch.setattr(draws, "live_dir", lambda _tour: tmp_path)
+    monkeypatch.setattr(draws, "update_registry", lambda *_args: {"events": {}})
+    monkeypatch.setattr(draws, "load_registry", lambda *_args: {"events": {}})
+    monkeypatch.setattr(live, "parse_event_meta", lambda _events: {})
+    monkeypatch.setattr(draws_wiki, "_download_wiki_meta", lambda *_args: None)
+
+    draws.download_tournament_draws(["wta"], events_by_tour={"wta": []})
+
+    assert json.loads((tmp_path / draws.CACHE_FILE).read_text(encoding="utf-8")) == {}
+
+
 def test_upcoming_rows_use_entry_name_and_stable_event_id():
     payload = {"424-2026": {
         "name": "Mifel Tennis Open", "espnId": "424-2026", "start": "2026-08-01",

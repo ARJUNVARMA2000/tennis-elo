@@ -18,7 +18,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import tennis_model.pipeline as pipeline
-from tennis_model.config import MATCH_POPULATION_VERSION, PLAYER_ALIASES
+from tennis_model.config import (
+    MATCH_POPULATION_VERSION,
+    PLAYER_ALIASES,
+    WTA_DUAL_STATE_GATE_THRESHOLD,
+)
 from tennis_model.model.features import FEATURES, FeatureParams
 from tennis_model.model.predict import TennisPredictor
 
@@ -37,8 +41,14 @@ class _Clf:
 
 
 def _pred(clf, tour="atp") -> TennisPredictor:
-    return TennisPredictor(clf=clf, iso=None, elo=None, srv=None, ctx=None,
-                           meta={}, tour=tour)
+    dual = tour == "wta" and WTA_DUAL_STATE_GATE_THRESHOLD is not None
+    return TennisPredictor(
+        clf=clf, iso=None, elo=None, srv=None, ctx=None, meta={}, tour=tour,
+        lower_elo=object() if dual else None,
+        lower_srv=object() if dual else None,
+        lower_ctx=object() if dual else None,
+        dual_state_threshold=WTA_DUAL_STATE_GATE_THRESHOLD if dual else None,
+    )
 
 
 def test_predictor_schema_guard():
@@ -118,6 +128,23 @@ def test_predictor_match_population_guard():
     del legacy.match_population_version
     assert not pipeline._predictor_current(legacy, "wta")
     print("ok test_predictor_match_population_guard")
+
+
+def test_predictor_dual_state_guard():
+    fresh = _pred(_Clf(list(FEATURES)), "wta")
+    assert pipeline._predictor_current(fresh, "wta")
+
+    disabled = _pred(_Clf(list(FEATURES)), "wta")
+    disabled.dual_state_threshold = None
+    assert not pipeline._predictor_current(disabled, "wta")
+
+    partial = _pred(_Clf(list(FEATURES)), "wta")
+    partial.lower_ctx = None
+    assert not pipeline._predictor_current(partial, "wta")
+
+    legacy = _pred(_Clf(list(FEATURES)), "wta")
+    del legacy.dual_state_threshold
+    assert not pipeline._predictor_current(legacy, "wta")
 
 
 def test_alias_stale_quick_rebuild_defers_kalshi_to_shared_budget(monkeypatch):
@@ -208,7 +235,19 @@ def test_current_quick_export_reuses_model_bound_artifacts(monkeypatch):
         "export_all",
         lambda *args, **kwargs: calls.append(("export", args, kwargs)),
     )
-    monkeypatch.setattr(pipeline, "_track", lambda *args: None)
+    enriched = [{"playerA": "A", "playerB": "B"}]
+    monkeypatch.setattr(
+        pipeline, "_prepare_upcoming",
+        lambda tour, predictor, df: calls.append(("prepare", tour)) or enriched,
+    )
+    monkeypatch.setattr(
+        pipeline, "_track",
+        lambda tour, predictor, df, rows: calls.append(("track", rows)),
+    )
+    monkeypatch.setattr(
+        pipeline, "_forecast_products",
+        lambda tour, predictor, df, rows: calls.append(("forecast", rows)),
+    )
     monkeypatch.setattr(pipeline, "_mirror", lambda *args: None)
 
     assert pipeline.build_tour_quick("atp") is frame
@@ -216,6 +255,107 @@ def test_current_quick_export_reuses_model_bound_artifacts(monkeypatch):
     assert export_call[2]["full"] is False
     assert export_call[2]["oos"] is None
     assert ("health", "atp", frame) in calls
+    assert calls.count(("prepare", "atp")) == 1
+    assert ("track", enriched) in calls and ("forecast", enriched) in calls
+
+
+def test_quick_tour_exports_overlap_and_preserve_requested_mapping(monkeypatch, tmp_path):
+    import threading
+
+    barrier = threading.Barrier(2)
+    active, peak = 0, 0
+    lock = threading.Lock()
+
+    def build(tour):
+        nonlocal active, peak
+        with lock:
+            active += 1
+            peak = max(peak, active)
+        barrier.wait(timeout=2)
+        with lock:
+            active -= 1
+        payload = f"{tour}-artifact"
+        (tmp_path / f"{tour}.json").write_text(payload, encoding="utf-8")
+        return f"{tour}-frame"
+
+    monkeypatch.setattr(pipeline, "build_tour_quick", build)
+    frames = pipeline._build_quick_tours(["atp", "wta"])
+    assert peak == 2
+    assert frames == {"atp": "atp-frame", "wta": "wta-frame"}
+    parallel_artifacts = {
+        tour: (tmp_path / f"{tour}.json").read_text(encoding="utf-8")
+        for tour in ("atp", "wta")
+    }
+    assert parallel_artifacts == {"atp": "atp-artifact", "wta": "wta-artifact"}
+
+    calls = []
+    monkeypatch.setattr(
+        pipeline, "build_tour_quick", lambda tour: calls.append(tour) or f"{tour}-frame")
+    assert pipeline._build_quick_tours(["wta"]) == {"wta": "wta-frame"}
+    assert calls == ["wta"]
+
+
+def test_wta_full_build_keeps_main_exports_and_gates_secondary_state(monkeypatch):
+    from types import SimpleNamespace
+
+    threshold = WTA_DUAL_STATE_GATE_THRESHOLD
+    main_df, enriched_df = object(), object()
+    dual = SimpleNamespace(
+        base_features="base-features", enriched_features="enriched-features",
+        elo="main-elo", srv="main-srv", ctx="main-ctx", meta="main-meta",
+        lower_elo="lower-elo", lower_srv="lower-srv", lower_ctx="lower-ctx",
+    )
+    calls, built = [], {}
+
+    def _load(tour, include_lower=None):
+        calls.append(("load", tour, include_lower))
+        return enriched_df if include_lower else main_df
+
+    class _Predictor:
+        def __init__(self, *args, **kwargs):
+            built["args"], built["kwargs"] = args, kwargs
+            self.elo, self.srv, self.meta = args[2], args[3], args[5]
+            self.trained_at = "now"
+
+        def save(self):
+            calls.append(("save",))
+
+    monkeypatch.setattr(pipeline, "load_matches", _load)
+    monkeypatch.setattr(pipeline, "_health_manifest", lambda tour, df: calls.append(("health", df)))
+    monkeypatch.setattr(
+        pipeline, "build_dual_state_inputs",
+        lambda main, enriched, tour: dual,
+    )
+    monkeypatch.setattr(
+        pipeline, "walk_forward_state_gate",
+        lambda base, enriched, thresholds, **kwargs: {threshold: "gated-oos"},
+    )
+    monkeypatch.setattr(
+        pipeline, "train_final",
+        lambda feat, **kwargs: ("clf", "iso", None),
+    )
+    monkeypatch.setattr(pipeline, "TennisPredictor", _Predictor)
+    monkeypatch.setattr(
+        pipeline, "export_all",
+        lambda *args, **kwargs: calls.append(("export", args, kwargs)),
+    )
+    monkeypatch.setattr(pipeline, "_market_scorecard", lambda *args: None)
+    monkeypatch.setattr(pipeline, "_track", lambda *args: None)
+    monkeypatch.setattr(pipeline, "_forecast_products", lambda *args: None)
+    monkeypatch.setattr(pipeline, "_mirror", lambda *args: None)
+
+    assert pipeline.build_tour("wta", do_backtest=True, run_kalshi=False) is main_df
+    assert calls[:3] == [("load", "wta", False), ("health", main_df),
+                         ("load", "wta", True)]
+    assert built["args"][:6] == ("clf", "iso", "main-elo", "main-srv", "main-ctx",
+                                  "main-meta")
+    assert built["kwargs"]["lower_elo"] == "lower-elo"
+    assert built["kwargs"]["lower_srv"] == "lower-srv"
+    assert built["kwargs"]["lower_ctx"] == "lower-ctx"
+    assert built["kwargs"]["dual_state_threshold"] == threshold
+    exported = next(call for call in calls if call[0] == "export")
+    assert exported[1][1] is main_df
+    assert exported[2]["oos"] == "gated-oos"
 
 
 def test_quick_kalshi_uses_one_budget_and_never_requotes(monkeypatch):
@@ -355,13 +495,14 @@ def test_quick_refresh_updates_current_atp_stats_before_export(monkeypatch):
 
     monkeypatch.setattr(sys, "argv", ["pipeline", "--tour", "all", "--quick"])
     pipeline.main()
-    assert calls == [
+    assert calls[:4] == [
         ("atp_stats", {"full": False, "retries": 1}),
         ("live", ("atp", "wta")),
         ("draws", ("atp", "wta"), shared_events),
         ("rankings", ("atp", "wta")),
-        ("build", "atp"),
-        ("build", "wta"),
+    ]
+    assert set(calls[4:6]) == {("build", "atp"), ("build", "wta")}
+    assert calls[6:] == [
         ("kalshi", ("atp", "wta"), frames),
         ("report", ("atp", "wta")),
     ]

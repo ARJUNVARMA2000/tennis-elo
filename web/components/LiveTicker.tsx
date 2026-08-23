@@ -73,7 +73,7 @@ export function useLiveMatches(tour: Tour): LiveMatchesState {
 }
 
 /** "Live now" strip — real ESPN scores polled from the browser every minute,
-    paired with the model's win probability. Hides itself entirely when there
+    paired with the model's pre-match win probability. Hides itself entirely when there
     are no live matches (or ESPN is unreachable). */
 export default function LiveTicker({
   live,
@@ -101,7 +101,7 @@ export default function LiveTicker({
         <span className="live-dot inline-block h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]" />
         <span className="eyebrow !text-[var(--color-text)]">Live now</span>
         <span className="text-[11px] text-[var(--color-faint)]">
-          ESPN scores · model win odds · refreshes every minute
+          ESPN scores · pre-match model odds · refreshes every minute
         </span>
         {standalone && events.length > 1 && (
           <label className="mono ml-auto flex items-center gap-2 text-[10px] uppercase tracking-wider text-[var(--color-faint)]">
@@ -195,7 +195,7 @@ function LiveCard({
             className="mono ml-auto text-[11.5px]"
             style={{ color: leading ? "var(--color-accent)" : "var(--color-faint)" }}
           >
-            <span className="sr-only">win probability </span>
+            <span className="sr-only">pre-match win probability </span>
             {(prob * 100).toFixed(0)}%
           </span>
         )}

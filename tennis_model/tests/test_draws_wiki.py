@@ -19,6 +19,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
+from tennis_model.data import draws_wiki as dw
 from tennis_model.data.draws_wiki import _anchor, _parse_bracket, _rows_from_draws, _slot_name
 
 # An 8-leaf compact section (Tennis5 = best-of-5) with a seed BYE in the first match
@@ -86,8 +87,36 @@ def test_anchor_rejects_generic_only_names():
     assert _anchor("Winston-Salem Open") == "winston"
     assert _anchor("Swiss Open Gstaad") == "gstaad"
     assert _anchor("Cincinnati Open") == "cincinnati"
-    assert _anchor("US Open") is None                   # all-generic -> no anchor (fall through)
+    assert _anchor("US Open") is None                   # all-generic -> explicit locator required
     print("ok test_anchor_rejects_generic_only_names")
+
+
+def test_generic_only_draw_requires_exact_espn_locator(monkeypatch):
+    """The unanchored 2026 US Open search returned whichever same-year Slam ranked first:
+    French Open for ATP and Wimbledon for WTA. It must never call search without an anchor."""
+    monkeypatch.setattr(dw, "WIKI_DRAW_TITLE_OVERRIDES", {
+        "atp": {"189-2026": "2026 US Open – Men's singles"},
+        "wta": {"189-2026": "2026 US Open – Women's singles"},
+    })
+    monkeypatch.setattr(
+        dw, "_search_title",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("unsafe search called")))
+
+    assert dw.resolve_title("US Open", 2026, "wta") is None
+    assert dw.resolve_title("US Open", 2026, "wta", "189-2026") == (
+        "2026 US Open – Women's singles")
+    assert dw.resolve_title("US Open", 2026, "atp", "189-2026") == (
+        "2026 US Open – Men's singles")
+
+
+def test_title_search_rejects_wrong_gender_before_accepting_the_event(monkeypatch):
+    monkeypatch.setattr(dw, "_get", lambda _params: {"query": {"search": [
+        {"title": "2026 Cincinnati Open – Men's singles"},
+        {"title": "2026 Cincinnati Open – Women's singles"},
+    ]}})
+    assert dw._search_title(
+        "2026 Cincinnati Open Women's singles", 2026, "cincinnati", "women",
+    ) == "2026 Cincinnati Open – Women's singles"
 
 
 def test_rows_from_draws_skips_byes_and_qualifiers():

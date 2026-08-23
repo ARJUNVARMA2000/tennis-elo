@@ -1,4 +1,7 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import PredictionEvidence, { evidenceFactLine } from "@/components/PredictionEvidence";
 import { matrixEvidence, orientEvidence, type PredictionEvidenceData } from "@/lib/evidence";
 import type { MatrixShard } from "@/lib/matrix";
 
@@ -46,5 +49,44 @@ describe("model evidence orientation", () => {
     expect(matrixEvidence(shard, 1, 0)?.signals[0]).toMatchObject({
       key: "surfaceElo", impactPp: -2.5, supports: "A",
     });
+  });
+});
+
+describe("model evidence context cards", () => {
+  it("uses useful fallback facts when an arbitrary matrix matchup has no detailed facts", () => {
+    expect(evidenceFactLine({
+      key: "surfaceElo", available: true, supports: "A", impactPp: 2.5,
+    }, "A", "B")).toBe("Surface-adjusted rating comparison.");
+    expect(evidenceFactLine({
+      key: "rest", available: true, supports: null, impactPp: 0,
+    }, "A", "B")).toBe("Rest and recent workload signal.");
+  });
+
+  it("renders indexed, text-labelled support, neutral and unavailable states", () => {
+    const evidence: PredictionEvidenceData = {
+      schema: "evidence-v1",
+      playerA: "A",
+      playerB: "B",
+      signals: [
+        { key: "surfaceElo", available: true, supports: "A", impactPp: 4.2 },
+        { key: "form", available: true, supports: null, impactPp: 0.01 },
+        { key: "h2h", available: false, supports: null, impactPp: 0 },
+      ],
+    };
+    const html = renderToStaticMarkup(createElement(PredictionEvidence, {
+      evidence,
+      components: { eloBlend: 0.61, pointModel: 0.57, combiner: 0.64 },
+    }));
+
+    expect(html).toContain('data-model-evidence="context-cards-v2"');
+    expect(html).toContain('data-evidence-signal="surfaceElo"');
+    expect(html).toContain('data-signal-state="player-a"');
+    expect(html).toContain("Supports A");
+    expect(html).toContain("+4.2 pp");
+    expect(html).toContain('data-signal-state="neutral"');
+    expect(html).toContain("Near neutral");
+    expect(html).toContain('data-signal-state="unavailable"');
+    expect(html).toContain("Unavailable");
+    expect(html).toContain("not a causal explanation");
   });
 });

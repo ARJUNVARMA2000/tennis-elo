@@ -8,6 +8,7 @@ schema (events -> groupings -> competitions -> competitors).
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -376,6 +377,303 @@ def test_a_genuinely_empty_scoreboard_is_not_an_error(monkeypatch):
     monkeypatch.setattr(live, "_fetch", lambda tour, datestr=None: [])
     assert live.fetch_events("atp") == []
     print("ok test_a_genuinely_empty_scoreboard_is_not_an_error")
+
+
+def test_acquisition_fact_distinguishes_partial_and_success_empty(monkeypatch):
+    monkeypatch.setattr(live, "_fetch", lambda tour, datestr=None: [])
+    events, receipt, error = live._acquire_events("atp")
+    assert events == [] and error is None
+    assert receipt["status"] == "success_empty"
+    assert receipt["queries"] == {
+        "attempted": _sweep_len(), "succeeded": _sweep_len(), "failed": 0,
+        "featuredSucceeded": True, "failedKeys": [], "failureTypes": {},
+    }
+
+    def _partial(tour, datestr=None):
+        if datestr is None:
+            raise OSError("featured down")
+        return [{"id": "421-2026"}]
+
+    monkeypatch.setattr(live, "_fetch", _partial)
+    events, receipt, error = live._acquire_events("atp")
+    assert [event["id"] for event in events] == ["421-2026"]
+    assert receipt["status"] == "partial_query_failure"
+    assert receipt["queries"]["failed"] == 1
+    assert receipt["queries"]["failedKeys"] == ["featured"]
+    assert type(error).__name__ == "OSError"
+
+
+def test_download_writes_total_failure_receipt_and_preserves_last_good(tmp_path, monkeypatch):
+    directory = tmp_path / "atp"
+    directory.mkdir()
+    old = directory / "live.csv"
+    old.write_bytes(b"old,last,good\n")
+    monkeypatch.setattr(live, "live_dir", lambda tour: directory)
+
+    def _down(tour, datestr=None):
+        raise OSError("HTTP 503")
+
+    monkeypatch.setattr(live, "_fetch", _down)
+    result = live.download_live(("atp",))
+    receipt = json.loads((directory / "espn_acquisition.json").read_text(encoding="utf-8"))
+    assert result == {"atp": []}       # tells the draw stage not to repeat the doomed sweep
+    assert receipt["status"] == "total_transport_failure"
+    assert receipt["queries"]["failed"] == _sweep_len()
+    assert receipt["overlay"]["status"] == "retained_last_good"
+    assert receipt["overlay"]["retainedFiles"] == ["live.csv"]
+    assert old.read_bytes() == b"old,last,good\n"
+
+
+def test_severe_partial_sweep_retains_overlay_then_total_outage_keeps_it(tmp_path, monkeypatch):
+    directory = tmp_path / "atp"; directory.mkdir()
+    originals = {
+        "live.csv": b"old-live\n",
+        "fields.json": b'{"old":true}',
+        "upcoming.csv": b"old-upcoming\n",
+    }
+    for name, payload in originals.items():
+        (directory / name).write_bytes(payload)
+    (directory / "espn_acquisition.json").write_text(json.dumps({
+        "overlay": {"lastGoodAt": "2026-08-19T07:00:00Z"},
+    }), encoding="utf-8")
+    partial = {
+        "schema": "espn-acquisition-v1", "tour": "atp", "source": "test",
+        "attemptedAt": "2026-08-23T10:00:00Z", "completedAt": "2026-08-23T10:00:01Z",
+        "status": "partial_query_failure",
+        "queries": {"attempted": 28, "succeeded": 1, "failed": 27,
+                    "featuredSucceeded": False, "failedKeys": ["featured"],
+                    "failureTypes": {"OSError": 27}},
+        "eventCount": 1,
+    }
+    total = {
+        **partial,
+        "attemptedAt": "2026-08-23T11:00:00Z", "completedAt": "2026-08-23T11:00:01Z",
+        "status": "total_transport_failure",
+        "queries": {**partial["queries"], "succeeded": 0, "failed": 28},
+        "eventCount": 0,
+    }
+    acquisitions = iter([
+        ([{"id": "would-overwrite-everything"}], partial, OSError()),
+        ([], total, OSError()),
+    ])
+    monkeypatch.setattr(live, "live_dir", lambda tour: directory)
+    monkeypatch.setattr(live, "_acquire_events", lambda tour: next(acquisitions))
+    monkeypatch.setattr(live, "parse_events",
+                        lambda *args: (_ for _ in ()).throw(AssertionError("must retain")))
+
+    assert live.download_live(("atp",)) == {"atp": []}
+    first = json.loads((directory / "espn_acquisition.json").read_text(encoding="utf-8"))
+    assert first["status"] == "partial_query_failure"
+    assert first["overlay"]["status"] == "retained_last_good"
+    assert first["overlay"]["lastGoodAt"] == "2026-08-19T07:00:00Z"
+    assert {name: (directory / name).read_bytes() for name in originals} == originals
+
+    assert live.download_live(("atp",)) == {"atp": []}
+    second = json.loads((directory / "espn_acquisition.json").read_text(encoding="utf-8"))
+    assert second["status"] == "total_transport_failure"
+    assert second["overlay"]["status"] == "retained_last_good"
+    assert second["overlay"]["lastGoodAt"] == "2026-08-19T07:00:00Z"
+    assert {name: (directory / name).read_bytes() for name in originals} == originals
+
+
+def test_receipt_recovery_replaces_failure_atomically(tmp_path, monkeypatch):
+    directory = tmp_path / "atp"; directory.mkdir()
+    path = directory / "espn_acquisition.json"
+    path.write_text('{"old":"failure"}', encoding="utf-8")
+    monkeypatch.setattr(live, "live_dir", lambda tour: directory)
+    monkeypatch.setattr(live, "_fetch", lambda tour, datestr=None: [])
+    monkeypatch.setattr("tennis_model.data.events.update_registry", lambda tour, meta: None)
+    result = live.download_live(("atp",))
+    receipt = json.loads(path.read_text(encoding="utf-8"))
+    assert result == {"atp": []} and receipt["status"] == "success_empty"
+    assert not list(directory.glob(".*.tmp"))
+
+    old = path.read_bytes()
+    monkeypatch.setattr(live, "_fetch", lambda tour, datestr=None: (_ for _ in ()).throw(OSError()))
+    monkeypatch.setattr(live.os, "replace", lambda src, dst: (_ for _ in ()).throw(OSError("disk")))
+    try:
+        live.download_live(("atp",))
+    except OSError as exc:
+        assert "disk" in str(exc)
+    else:
+        raise AssertionError("a receipt publication failure must fail the refresh")
+    assert path.read_bytes() == old
+
+
+def test_atomic_overlay_write_preserves_old_target_on_mid_write_failure(tmp_path):
+    target = tmp_path / "live.csv"
+    target.write_bytes(b"old-good\n")
+
+    def _partial_then_fail(staged):
+        staged.write_bytes(b"truncated-new")
+        raise OSError("writer stopped")
+
+    try:
+        live._write_atomic(target, _partial_then_fail)
+    except OSError as exc:
+        assert "writer stopped" in str(exc)
+    else:
+        raise AssertionError("mid-write failure was swallowed")
+    assert target.read_bytes() == b"old-good\n"
+    assert not list(tmp_path.glob(".*.tmp"))
+
+
+def test_mixed_overlay_generation_is_explicit_and_keeps_prior_last_good(tmp_path, monkeypatch):
+    import pandas as pd
+    directory = tmp_path / "atp"; directory.mkdir()
+    (directory / "live.csv").write_text("old-live\n", encoding="utf-8")
+    (directory / "fields.json").write_text('{"old":true}', encoding="utf-8")
+    (directory / "espn_acquisition.json").write_text(json.dumps({
+        "overlay": {"lastGoodAt": "2026-08-22T10:00:00Z"},
+    }), encoding="utf-8")
+    acquisition = {
+        "schema": "espn-acquisition-v1", "tour": "atp", "source": "test",
+        "attemptedAt": "2026-08-23T10:00:00Z", "completedAt": "2026-08-23T10:00:01Z",
+        "status": "success", "queries": {"attempted": 28, "succeeded": 28, "failed": 0,
+        "featuredSucceeded": True, "failedKeys": [], "failureTypes": {}}, "eventCount": 1,
+    }
+    monkeypatch.setattr(live, "live_dir", lambda tour: directory)
+    monkeypatch.setattr(live, "_acquire_events",
+                        lambda tour: ([{"id": "1"}], dict(acquisition), None))
+    monkeypatch.setattr(live, "parse_events", lambda events, gender: pd.DataFrame([{
+        "tourney_name": "New", "tourney_date": "2026-08-23",
+    }]))
+    monkeypatch.setattr(live, "parse_fields", lambda events, gender: {"New": {"field": []}})
+    monkeypatch.setattr(live, "parse_upcoming", lambda events, gender: pd.DataFrame())
+    monkeypatch.setattr("tennis_model.data.events.update_registry", lambda tour, meta: None)
+    monkeypatch.setattr(live, "_write_fields",
+                        lambda path, fields: (_ for _ in ()).throw(OSError("fields disk")))
+    live.download_live(("atp",))
+    receipt = json.loads((directory / "espn_acquisition.json").read_text(encoding="utf-8"))
+    assert "New" in (directory / "live.csv").read_text(encoding="utf-8")
+    assert (directory / "fields.json").read_text(encoding="utf-8") == '{"old":true}'
+    assert receipt["overlay"]["status"] == "partially_updated"
+    assert receipt["overlay"]["updatedFiles"] == ["live.csv"]
+    assert receipt["overlay"]["retainedFiles"] == ["fields.json"]
+    assert receipt["overlay"]["lastGoodAt"] == "2026-08-22T10:00:00Z"
+    assert receipt["overlay"]["processingFailureType"] == "OSError"
+
+
+def test_normal_partial_overlay_refresh_keeps_prior_last_good(tmp_path, monkeypatch):
+    import pandas as pd
+    directory = tmp_path / "atp"; directory.mkdir()
+    (directory / "live.csv").write_text("old-live\n", encoding="utf-8")
+    (directory / "fields.json").write_text('{"old":true}', encoding="utf-8")
+    (directory / "espn_acquisition.json").write_text(json.dumps({
+        "overlay": {"lastGoodAt": "2026-08-21T08:00:00Z"},
+    }), encoding="utf-8")
+    acquisition = {
+        "schema": "espn-acquisition-v1", "tour": "atp", "source": "test",
+        "attemptedAt": "2026-08-23T10:00:00Z", "completedAt": "2026-08-23T10:00:01Z",
+        "status": "success", "queries": {"attempted": 28, "succeeded": 28, "failed": 0,
+        "featuredSucceeded": True, "failedKeys": [], "failureTypes": {}}, "eventCount": 1,
+    }
+    monkeypatch.setattr(live, "live_dir", lambda tour: directory)
+    monkeypatch.setattr(live, "_acquire_events",
+                        lambda tour: ([{"id": "1"}], dict(acquisition), None))
+    monkeypatch.setattr(live, "parse_events", lambda events, gender: pd.DataFrame([{
+        "tourney_name": "New", "tourney_date": "2026-08-23",
+    }]))
+    monkeypatch.setattr(live, "parse_fields", lambda events, gender: {})
+    monkeypatch.setattr(live, "parse_upcoming", lambda events, gender: pd.DataFrame())
+    monkeypatch.setattr("tennis_model.data.events.update_registry", lambda tour, meta: None)
+
+    live.download_live(("atp",))
+
+    receipt = json.loads((directory / "espn_acquisition.json").read_text(encoding="utf-8"))
+    assert "New" in (directory / "live.csv").read_text(encoding="utf-8")
+    assert (directory / "fields.json").read_text(encoding="utf-8") == '{"old":true}'
+    assert receipt["overlay"]["status"] == "partially_updated"
+    assert receipt["overlay"]["updatedFiles"] == ["live.csv"]
+    assert receipt["overlay"]["retainedFiles"] == ["fields.json"]
+    assert receipt["overlay"]["lastGoodAt"] == "2026-08-21T08:00:00Z"
+
+
+def test_mild_partial_acquisition_cannot_advance_last_good(tmp_path, monkeypatch):
+    import pandas as pd
+    directory = tmp_path / "atp"; directory.mkdir()
+    for name in ("live.csv", "fields.json", "upcoming.csv"):
+        (directory / name).write_text("old\n", encoding="utf-8")
+    (directory / "espn_acquisition.json").write_text(json.dumps({
+        "overlay": {"lastGoodAt": "2026-08-18T06:00:00Z"},
+    }), encoding="utf-8")
+    acquisition = {
+        "schema": "espn-acquisition-v1", "tour": "atp", "source": "test",
+        "attemptedAt": "2026-08-23T10:00:00Z", "completedAt": "2026-08-23T10:00:01Z",
+        "status": "partial_query_failure",
+        "queries": {"attempted": 28, "succeeded": 27, "failed": 1,
+                    "featuredSucceeded": False, "failedKeys": ["featured"],
+                    "failureTypes": {"OSError": 1}},
+        "eventCount": 1,
+    }
+    monkeypatch.setattr(live, "live_dir", lambda tour: directory)
+    monkeypatch.setattr(live, "_acquire_events",
+                        lambda tour: ([{"id": "1"}], dict(acquisition), OSError()))
+    monkeypatch.setattr(live, "parse_events", lambda events, gender: pd.DataFrame([{
+        "tourney_name": "New", "tourney_date": "2026-08-23",
+    }]))
+    monkeypatch.setattr(live, "parse_fields", lambda events, gender: {"New": {"field": []}})
+    monkeypatch.setattr(live, "parse_upcoming", lambda events, gender: pd.DataFrame([{
+        "tourney_name": "New",
+    }]))
+    monkeypatch.setattr("tennis_model.data.events.update_registry", lambda tour, meta: None)
+
+    live.download_live(("atp",))
+
+    receipt = json.loads((directory / "espn_acquisition.json").read_text(encoding="utf-8"))
+    assert receipt["overlay"]["status"] == "updated"
+    assert receipt["overlay"]["lastGoodAt"] == "2026-08-18T06:00:00Z"
+
+
+def test_success_empty_does_not_refresh_retained_overlay_age(tmp_path, monkeypatch):
+    directory = tmp_path / "atp"; directory.mkdir()
+    (directory / "live.csv").write_text("old-live\n", encoding="utf-8")
+    (directory / "espn_acquisition.json").write_text(json.dumps({
+        "overlay": {"lastGoodAt": "2026-08-20T09:00:00Z"},
+    }), encoding="utf-8")
+    monkeypatch.setattr(live, "live_dir", lambda tour: directory)
+    monkeypatch.setattr(live, "_fetch", lambda tour, datestr=None: [])
+    monkeypatch.setattr("tennis_model.data.events.update_registry", lambda tour, meta: None)
+    live.download_live(("atp",))
+    receipt = json.loads((directory / "espn_acquisition.json").read_text(encoding="utf-8"))
+    assert receipt["status"] == "success_empty"
+    assert receipt["overlay"]["status"] == "retained_last_good"
+    assert receipt["overlay"]["lastGoodAt"] == "2026-08-20T09:00:00Z"
+
+
+def test_http_200_without_an_events_list_is_not_success_empty(monkeypatch):
+    class _Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self):
+            return b'{"leagues": []}'
+
+    monkeypatch.setattr(live.urllib.request, "urlopen", lambda request, timeout: _Response())
+    try:
+        live._fetch("atp")
+    except ValueError as exc:
+        assert "events list" in str(exc)
+    else:
+        raise AssertionError("malformed 200 response was treated as a quiet scoreboard")
+
+
+def test_http_200_with_unkeyed_events_is_a_schema_failure(monkeypatch):
+    class _Response:
+        def __enter__(self): return self
+        def __exit__(self, *args): return False
+        def read(self): return b'{"events": [{"shortName": "Unknown"}]}'
+
+    monkeypatch.setattr(live.urllib.request, "urlopen", lambda request, timeout: _Response())
+    try:
+        live._fetch("atp")
+    except ValueError as exc:
+        assert "stable id" in str(exc)
+    else:
+        raise AssertionError("unkeyed event was discarded as if the scoreboard were empty")
 
 
 def test_scoreboard_uses_the_host_that_serves_a_custom_user_agent():

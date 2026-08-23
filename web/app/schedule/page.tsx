@@ -3,14 +3,14 @@
 import { useData, useTour } from "@/lib/tour";
 import { PageHead, Loading, Reveal, CallCard, FilterChip } from "@/components/bits";
 import { surfaceColor, SURFACES, tournamentTier } from "@/lib/ui";
-import { filterUpcoming, groupByEvent, hasMatchupProfiles, upcomingCard, type Upcoming } from "@/lib/upcoming";
+import { filterUpcoming, groupByEvent, hasMatchupProfiles, upcomingCard, useUpcomingEvents } from "@/lib/upcoming";
 import Dropdown from "@/components/Dropdown";
 import PredictionWhy from "@/components/PredictionWhy";
 import { useMemo, useState } from "react";
 
 export default function Schedule() {
   const { tour } = useTour();
-  const { data, loading } = useData<Upcoming[]>("upcoming.json");
+  const { data, loading } = useUpcomingEvents();
   // The rated roster gates each card's style-matchup drill-in (players without a
   // profile — e.g. qualifiers outside the top N — keep a plain, unlinked card).
   const { data: roster } = useData<{ name: string }[]>("players.json");

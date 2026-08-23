@@ -15,15 +15,23 @@ from datetime import UTC, datetime
 import numpy as np
 import pandas as pd
 
-from ..config import MATCH_POPULATION_VERSION, PLAYER_ALIASES, output_dir
+from ..config import (
+    MATCH_POPULATION_VERSION,
+    PLAYER_ALIASES,
+    WTA_DUAL_STATE_GATE_THRESHOLD,
+    output_dir,
+)
 from ..data.charting import STYLE_FEATURES, build_profiles, name_key
+from ..data.results import load_matches
 from ..points.markov import match_win_prob, score_distribution
 from .features import (
     DEFAULT_FEAT_PARAMS,
     FEATURES,
     STYLE_DIFFS,
+    build_dual_state_inputs,
     build_predictor_inputs,
     feat_params_for,
+    use_lower_state,
 )
 from .train import train_final
 
@@ -57,10 +65,19 @@ EVIDENCE_GROUPS: dict[str, tuple[str, ...]] = {
 
 
 class TennisPredictor:
-    def __init__(self, clf, iso, elo, srv, ctx, meta, tour="atp", fp=None):
+    def __init__(self, clf, iso, elo, srv, ctx, meta, tour="atp", fp=None, *,
+                 lower_elo=None, lower_srv=None, lower_ctx=None,
+                 dual_state_threshold: int | None = None):
         self.clf, self.iso = clf, iso
         self.elo, self.srv, self.ctx, self.meta = elo, srv, ctx, meta
         self.tour = tour
+        self.lower_elo, self.lower_srv, self.lower_ctx = lower_elo, lower_srv, lower_ctx
+        self.dual_state_threshold = dual_state_threshold
+        if dual_state_threshold is not None:
+            if tour != "wta":
+                raise ValueError("dual-state inference is WTA-only")
+            if any(state is None for state in (lower_elo, lower_srv, lower_ctx)):
+                raise ValueError("an enabled dual-state gate requires all three lower states")
         # FeatureParams the training frame was built with; derived from the tour when
         # omitted so no construction site can silently fall back to config defaults
         # (pipeline.build_tour once shipped WTA pickles with fp=None)
@@ -75,7 +92,7 @@ class TennisPredictor:
         self.match_population_version = MATCH_POPULATION_VERSION
         # Bump when prediction-time state/semantics change without changing FEATURES.
         # Quick mode must not reuse a pickle whose context lacks the rest/fatigue mirror.
-        self.inference_schema_version = 2
+        self.inference_schema_version = 3
         # When this model was trained. Derived here rather than at the call sites (both of
         # them construct straight out of train_final) so no path can ship an unstamped
         # pickle — same reasoning as `fp` above. It rides INSIDE the pickle on purpose: the
@@ -107,6 +124,24 @@ class TennisPredictor:
     def _inference_schema_version(self) -> int | None:
         return getattr(self, "inference_schema_version", None)
 
+    @property
+    def _dual_state_threshold(self) -> int | None:
+        return getattr(self, "dual_state_threshold", None)
+
+    @property
+    def _has_lower_state(self) -> bool:
+        return all(getattr(self, name, None) is not None
+                   for name in ("lower_elo", "lower_srv", "lower_ctx"))
+
+    def _states_for(self, a: str, b: str):
+        """One complete state bundle selected from MAIN-only pre-match evidence."""
+        threshold = self._dual_state_threshold
+        if use_lower_state(self.elo.n.get(a, 0), self.elo.n.get(b, 0), threshold):
+            if not self._has_lower_state:
+                raise RuntimeError("dual-state gate is enabled but enriched state is absent")
+            return self.lower_elo, self.lower_srv, self.lower_ctx
+        return self.elo, self.srv, self.ctx
+
     def _home_context(self, a: str, b: str, event: str | None, as_of=None) -> dict:
         """Host evidence for a real match; hypotheticals remain explicitly unavailable."""
         if not event:
@@ -133,7 +168,8 @@ class TennisPredictor:
     def _feature_dict(self, a: str, b: str, surface: str, best_of: int,
                       indoor: bool, tier_k: float, round_order: int,
                       event: str | None = None, as_of=None) -> dict:
-        elo, srv, ctx, meta = self.elo, self.srv, self.ctx, self.meta
+        elo, srv, ctx = self._states_for(a, b)
+        meta = self.meta
         ma, mb = meta.get(a, {}), meta.get(b, {})
 
         belo_a, belo_b = elo.blended(a, surface), elo.blended(b, surface)
@@ -266,18 +302,19 @@ class TennisPredictor:
             a, b, surface, best_of, indoor, tier_k, round_order,
             event=event, as_of=as_of,
         )
+        elo, srv, ctx = self._states_for(a, b)
         frame = pd.DataFrame([[row[c] for c in FEATURES]], columns=FEATURES)
         base = float(self.iso.predict(self.clf.predict_proba(frame)[:, 1])[0])
         ref = np.datetime64(pd.Timestamp(
-            as_of if as_of is not None else self.elo.last_date).to_datetime64())
+            as_of if as_of is not None else elo.last_date).to_datetime64())
 
         def days_since(name: str) -> float | None:
-            last = self.elo.last_played.get(name)
+            last = elo.last_played.get(name)
             return max(0.0, float((ref - last) / np.timedelta64(1, "D"))) if last is not None else None
 
-        h2a, h2b = self.ctx.record(a, b)
-        h2sa, h2sb = self.ctx.record_surface(a, b, surface)
-        workload = getattr(self.ctx, "workload", None)
+        h2a, h2b = ctx.record(a, b)
+        h2sa, h2sb = ctx.record_surface(a, b, surface)
+        workload = getattr(ctx, "workload", None)
         work_a = float(workload(a, ref, self._fp.fatigue_window_days)) if workload else None
         work_b = float(workload(b, ref, self._fp.fatigue_window_days)) if workload else None
         home = self._home_context(a, b, event, ref)
@@ -300,8 +337,8 @@ class TennisPredictor:
         facts = {
             "surfaceElo": {
                 "surface": surface,
-                "a": round(float(self.elo.blended(a, surface)), 1),
-                "b": round(float(self.elo.blended(b, surface)), 1),
+                "a": round(float(elo.blended(a, surface)), 1),
+                "b": round(float(elo.blended(b, surface)), 1),
                 "gap": round(float(row["elo_diff"]), 1),
             },
             "serveReturn": {
@@ -310,10 +347,10 @@ class TennisPredictor:
                 "returnEdge": round(float(row["return_skill_diff"]), 4),
             },
             "form": {
-                "form90A": round(float(self.elo.form_delta(a, ref)), 2),
-                "form90B": round(float(self.elo.form_delta(b, ref)), 2),
-                "recentWinRateA": round(float(self.ctx.winrate10(a)), 3),
-                "recentWinRateB": round(float(self.ctx.winrate10(b)), 3),
+                "form90A": round(float(elo.form_delta(a, ref)), 2),
+                "form90B": round(float(elo.form_delta(b, ref)), 2),
+                "recentWinRateA": round(float(ctx.winrate10(a)), 3),
+                "recentWinRateB": round(float(ctx.winrate10(b)), 3),
             },
             "rest": {
                 "daysSinceA": round(days_since(a), 1) if days_since(a) is not None else None,
@@ -472,9 +509,24 @@ class TennisPredictor:
 def fit_predictor(tour: str = "atp", save: bool = True) -> TennisPredictor:
     """Build states + train the production combiner, returning a ready predictor."""
     from .train import xgb_params_for
-    feat, elo, srv, ctx, meta = build_predictor_inputs(tour=tour)
+    threshold = WTA_DUAL_STATE_GATE_THRESHOLD if tour == "wta" else None
+    dual = None
+    if threshold is not None:
+        main_df = load_matches(tour, include_lower=False)
+        enriched_df = load_matches(tour, include_lower=True)
+        dual = build_dual_state_inputs(main_df, enriched_df, tour=tour)
+        feat, elo, srv, ctx, meta = (
+            dual.base_features, dual.elo, dual.srv, dual.ctx, dual.meta)
+    else:
+        feat, elo, srv, ctx, meta = build_predictor_inputs(tour=tour)
     clf, iso, _ = train_final(feat, xgb_overrides=xgb_params_for(tour))
-    pred = TennisPredictor(clf, iso, elo, srv, ctx, meta, tour=tour)
+    pred = TennisPredictor(
+        clf, iso, elo, srv, ctx, meta, tour=tour,
+        lower_elo=dual.lower_elo if dual else None,
+        lower_srv=dual.lower_srv if dual else None,
+        lower_ctx=dual.lower_ctx if dual else None,
+        dual_state_threshold=threshold,
+    )
     if save:
         pred.save()
     return pred

@@ -24,12 +24,29 @@ from .. import config
 from ..config import TUNE_YEARS, VAL_START, WTA_LOWER_STATE_FIRST_YEAR
 from ..data.names import name_key
 from ..data.results import load_matches
-from ..model.features import build_feature_frame, main_rows
-from ..model.train import walk_forward, xgb_params_for
+from ..model.features import (
+    FEATURES,
+    WTA_DUAL_STATE_GATE_THRESHOLDS,
+    build_feature_frame,
+    main_rows,
+    select_dual_state_features,
+)
+from ..model.train import walk_forward, walk_forward_state_gate, xgb_params_for
 from .kalshi_report import load_ledger, scored_set
 from .metrics import score
 
 AB_DIR = config.OUTPUT_DIR / "tuning"
+
+
+def _load_arm_matches(tour: str, include_lower: bool) -> pd.DataFrame:
+    """Load one explicit population without leaving the process-global flag changed."""
+    flag = "INCLUDE_CHALLENGERS" if tour == "atp" else "INCLUDE_WTA_LOWER_STATE"
+    prev = getattr(config, flag)
+    setattr(config, flag, include_lower)
+    try:
+        return load_matches(tour)
+    finally:
+        setattr(config, flag, prev)
 
 
 def _build_oos(tour: str, include_lower: bool, start: int, end: int | None,
@@ -42,13 +59,7 @@ def _build_oos(tour: str, include_lower: bool, start: int, end: int | None,
     better-rating-priors mechanism from the training-distribution shift (the full
     arm measured huge tune gains but year-level instability from the shift).
     """
-    flag = "INCLUDE_CHALLENGERS" if tour == "atp" else "INCLUDE_WTA_LOWER_STATE"
-    prev = getattr(config, flag)
-    setattr(config, flag, include_lower)
-    try:
-        matches = load_matches(tour)
-    finally:
-        setattr(config, flag, prev)
+    matches = _load_arm_matches(tour, include_lower)
     if include_lower and lower_role != "all":
         matches = matches[
             matches["draw_level"].isin(("main", lower_role))
@@ -66,10 +77,18 @@ def _build_oos(tour: str, include_lower: bool, start: int, end: int | None,
 
 
 def _key(df: pd.DataFrame) -> pd.Series:
-    """Match identity, stable across arms: post-dedup (winner, loser, date, round)
-    is unique and round_order preserves the distinctions that matter here."""
-    return (df["winner_name"].astype(str) + "|" + df["loser_name"].astype(str)
-            + "|" + df["date"].astype(str) + "|" + df["round_order"].astype(str))
+    """Match identity stable across arms, including same-day historical rematches."""
+    columns = ["winner_name", "loser_name", "date", "round_order"]
+    # Historical round-robin and bronze-playoff rows can share the four fields
+    # above.  Fresh frames carry source identity through `_assemble`; old cached
+    # experiment frames still fall back to the legacy key for compatibility.
+    columns += [c for c in ("tourney_id", "round", "match_num", "source_match_id")
+                if c in df.columns]
+    parts = [df[c].fillna("").astype(str) for c in columns]
+    key = parts[0]
+    for part in parts[1:]:
+        key = key + "|" + part
+    return key
 
 
 def _align(base: pd.DataFrame, arm: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -86,6 +105,55 @@ def _align(base: pd.DataFrame, arm: pd.DataFrame) -> tuple[pd.DataFrame, pd.Data
         common = b.index.intersection(a.index)
         b, a = b.loc[common], a.loc[common]
     return b, a.loc[b.index]
+
+
+def _align_feature_frames(base: pd.DataFrame,
+                          enriched: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Require identical main-draw populations before constructing a gated arm.
+
+    The older global-state experiment could score an intersection for diagnostics.
+    A deployable gate cannot: it must preserve every baseline training/scoring row.
+    """
+    enriched = main_rows(enriched)
+    b = base.assign(__k=_key(base)).set_index("__k")
+    e = enriched.assign(__k=_key(enriched)).set_index("__k")
+    if not (b.index.is_unique and e.index.is_unique):
+        raise AssertionError("dual-state feature pairing key is not unique")
+    only_b, only_e = b.index.difference(e.index), e.index.difference(b.index)
+    if len(only_b) or len(only_e):
+        raise AssertionError(
+            "dual-state changed the main-draw population: "
+            f"base-only={len(only_b)}, enriched-only={len(only_e)}")
+    e = e.loc[b.index]
+    return b.reset_index(drop=True), e.reset_index(drop=True)
+
+
+def _build_dual_feature_frames(tour: str = "wta") -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Main-only baseline and aligned lower-enriched main rows, built end-to-end."""
+    if tour != "wta":
+        raise ValueError("the gated dual-state experiment is WTA-only")
+    base_matches = _load_arm_matches(tour, include_lower=False)
+    lower_matches = _load_arm_matches(tour, include_lower=True)
+    base = build_feature_frame(df=base_matches, tour=tour)
+    enriched = build_feature_frame(
+        df=lower_matches, tour=tour, state_only_lower=True)
+    n_lower = int((enriched["draw_level"] != "main").sum())
+    base, enriched = _align_feature_frames(base, enriched)
+
+    pre = base["year"].to_numpy() < WTA_LOWER_STATE_FIRST_YEAR
+    parity_columns = list(FEATURES) + ["p_blend", "p_point"]
+    if pre.any() and not np.array_equal(
+            base.loc[pre, parity_columns].to_numpy(),
+            enriched.loc[pre, parity_columns].to_numpy(), equal_nan=True):
+        delta = np.abs(
+            base.loc[pre, parity_columns].to_numpy(dtype=float)
+            - enriched.loc[pre, parity_columns].to_numpy(dtype=float))
+        raise AssertionError(
+            f"lower-state frame changed pre-{WTA_LOWER_STATE_FIRST_YEAR} features; "
+            f"max |d|={np.nanmax(delta):.3g}")
+    print(f"  dual frames: {len(base):,} identical main rows; "
+          f"{n_lower:,} lower rows update only the enriched state")
+    return base, enriched
 
 
 def _assert_unaffected_parity(b: pd.DataFrame, a: pd.DataFrame,
@@ -187,6 +255,28 @@ def _slice_line(label: str, b: pd.DataFrame, a: pd.DataFrame,
             f"d={d.mean():+.5f}±{se:.5f}")
 
 
+def _paired_delta(b: pd.DataFrame, a: pd.DataFrame,
+                  mask: np.ndarray) -> tuple[float, float, int]:
+    """Mean paired log-loss improvement, standard error and row count."""
+    n = int(mask.sum())
+    if n == 0:
+        return float("nan"), float("nan"), 0
+    lb = -np.log(np.clip(b.loc[mask, "p_combiner"].to_numpy(), 1e-12, None))
+    la = -np.log(np.clip(a.loc[mask, "p_combiner"].to_numpy(), 1e-12, None))
+    d = lb - la
+    se = float(d.std(ddof=1) / np.sqrt(n)) if n > 1 else 0.0
+    return float(d.mean()), se, n
+
+
+def _wta_rank_masks(frame: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
+    wr = pd.to_numeric(frame["winner_rank"], errors="coerce")
+    lr = pd.to_numeric(frame["loser_rank"], errors="coerce")
+    known = (wr.notna() & lr.notna()).to_numpy()
+    worst = pd.concat([wr, lr], axis=1).max(axis=1).to_numpy()
+    affected = frame["year"].to_numpy() >= WTA_LOWER_STATE_FIRST_YEAR
+    return affected & known & (worst <= 50), affected & (worst > 50)
+
+
 def _focused_wta_slices(b: pd.DataFrame, a: pd.DataFrame,
                         kalshi: pd.DataFrame | None = None) -> None:
     """Report the WTA populations that motivated this data experiment.
@@ -194,13 +284,7 @@ def _focused_wta_slices(b: pd.DataFrame, a: pd.DataFrame,
     The Kalshi membership comes from ``scored_set`` before looking at either A/B
     prediction, keeping the comparison paired and frozen.
     """
-    wr = pd.to_numeric(b["winner_rank"], errors="coerce")
-    lr = pd.to_numeric(b["loser_rank"], errors="coerce")
-    known = (wr.notna() & lr.notna()).to_numpy()
-    worst = pd.concat([wr, lr], axis=1).max(axis=1).to_numpy()
-    affected = b["year"].to_numpy() >= WTA_LOWER_STATE_FIRST_YEAR
-    both_top50 = affected & known & (worst <= 50)
-    outside_top50 = affected & (worst > 50)
+    both_top50, outside_top50 = _wta_rank_masks(b)
 
     frozen = scored_set(load_ledger("wta")) if kalshi is None else kalshi
     kalshi_keys = _kalshi_outside_top50_keys(frozen)
@@ -212,6 +296,99 @@ def _focused_wta_slices(b: pd.DataFrame, a: pd.DataFrame,
     print(_slice_line("both players inside top 50", b, a, both_top50))
     print(_slice_line("someone outside top 50", b, a, outside_top50))
     print(_slice_line("frozen Kalshi + outside top 50", b, a, kalshi_outside))
+
+
+def _dual_state_slices(b: pd.DataFrame, a: pd.DataFrame) -> None:
+    """Gate-eligibility and main-history bands for the frozen dual-state arm."""
+    eligible = a["uses_lower_state"].fillna(False).to_numpy(dtype=bool)
+    affected = b["year"].to_numpy() >= WTA_LOWER_STATE_FIRST_YEAR
+    minimum = np.minimum(
+        pd.to_numeric(b["winner_state_matches"], errors="coerce").fillna(0).to_numpy(),
+        pd.to_numeric(b["loser_state_matches"], errors="coerce").fillna(0).to_numpy(),
+    )
+    print("\n=== frozen dual-state gate slices (affected 2016+) ===")
+    print(_slice_line("gate eligible", b, a, affected & eligible))
+    print(_slice_line("gate protected", b, a, affected & ~eligible))
+    for lo, hi in ((0, 7), (8, 15), (16, 31), (32, 63)):
+        print(_slice_line(f"main-count band {lo}-{hi}", b, a,
+                          affected & (minimum >= lo) & (minimum <= hi)))
+    print(_slice_line("main-count band 64+", b, a, affected & (minimum >= 64)))
+
+
+def _dual_state_admission(b: pd.DataFrame, a: pd.DataFrame) -> bool:
+    """Stricter production admission: normal gate + target gain + top-50 safety."""
+    years = b["year"].to_numpy()
+    tune = (years >= TUNE_YEARS[0]) & (years <= TUNE_YEARS[1])
+    val = years >= VAL_START
+    both_top50, outside_top50 = _wta_rank_masks(b)
+    d_tune, _, _ = _paired_delta(b, a, tune)
+    d_val, se_val, _ = _paired_delta(b, a, val)
+    d_top, se_top, n_top = _paired_delta(b, a, both_top50)
+    d_target, _, n_target = _paired_delta(b, a, outside_top50)
+    normal = bool(np.isfinite([d_tune, d_val, se_val]).all()
+                  and d_tune > 0 and d_val > -se_val)
+    top_safe = bool(n_top and np.isfinite([d_top, se_top]).all() and d_top >= -se_top)
+    target_gain = bool(n_target and np.isfinite(d_target) and d_target > 0)
+    passed = normal and top_safe and target_gain
+    print("\nDUAL-STATE ADMISSION: "
+          f"normal={'PASS' if normal else 'FAIL'}  "
+          f"outside50={'PASS' if target_gain else 'FAIL'} ({d_target:+.5f})  "
+          f"top50-safety={'PASS' if top_safe else 'FAIL'} "
+          f"({d_top:+.5f} vs -SE {-se_top:+.5f})  "
+          f"-> {'PASS' if passed else 'REJECT'}")
+    return passed
+
+
+def run_gated_wta(start: int, end: int | None, save: bool = True) -> bool:
+    """Tune a main-experience gate, freeze it, then run the full WTA arbiter."""
+    if start > TUNE_YEARS[0]:
+        raise ValueError(f"gated WTA tuning must start by {TUNE_YEARS[0]}")
+    if end is not None and end < VAL_START:
+        raise ValueError(f"gated WTA arbiter needs validation years {VAL_START}+")
+
+    print("=== GATED WTA: building main-only and lower-enriched state frames ===")
+    base_feat, enriched_feat = _build_dual_feature_frames("wta")
+    tune_end = TUNE_YEARS[1]
+    tune_thresholds = (None,) + WTA_DUAL_STATE_GATE_THRESHOLDS
+    print("=== GATED WTA: tune-only state gates through one baseline combiner ===")
+    tune_arms = walk_forward_state_gate(
+        base_feat, enriched_feat, tune_thresholds,
+        start_test=start, end_test=tune_end,
+        xgb_overrides=xgb_params_for("wta"))
+    tune_base = tune_arms[None]
+    tune_results = []
+    print("\n=== tune-only threshold selection (2010-19; production bagging) ===")
+    for threshold in WTA_DUAL_STATE_GATE_THRESHOLDS:
+        gated_feat = select_dual_state_features(base_feat, enriched_feat, threshold)
+        eligible = int(gated_feat["uses_lower_state"].sum())
+        b, a = _align(tune_base, tune_arms[threshold])
+        _assert_unaffected_parity(b, a, WTA_LOWER_STATE_FIRST_YEAR)
+        mask = ((b["year"].to_numpy() >= TUNE_YEARS[0])
+                & (b["year"].to_numpy() <= TUNE_YEARS[1]))
+        d, se, n = _paired_delta(b, a, mask)
+        tune_results.append((d, -threshold, threshold, se, n, eligible))
+        print(f"  threshold={threshold:>2}: d_tune={d:+.5f}±{se:.5f}  "
+              f"n={n:,}  eligible(all years)={eligible:,}")
+
+    best_d, _, threshold, _, _, _ = max(tune_results)
+    print(f"FROZEN THRESHOLD: {threshold} main matches (best tune d={best_d:+.5f})")
+    print("=== GATED WTA: frozen state gate, full baseline-combiner validation walk ===")
+    full_arms = walk_forward_state_gate(
+        base_feat, enriched_feat, (None, threshold),
+        start_test=start, end_test=end,
+        xgb_overrides=xgb_params_for("wta"))
+    base, arm = full_arms[None], full_arms[threshold]
+    b, a = _align(base, arm)
+    _assert_unaffected_parity(b, a, WTA_LOWER_STATE_FIRST_YEAR)
+
+    if save:
+        AB_DIR.mkdir(parents=True, exist_ok=True)
+        base.to_pickle(AB_DIR / "ab_gated_wta_base.pkl")
+        arm.to_pickle(AB_DIR / f"ab_gated_wta_t{threshold}.pkl")
+    _verdict(b, a)
+    _focused_wta_slices(b, a)
+    _dual_state_slices(b, a)
+    return _dual_state_admission(b, a)
 
 
 def run(tour: str, start: int, end: int | None, save: bool = True,
@@ -266,7 +443,7 @@ if __name__ == "__main__":
     ap.add_argument("--start", type=int, default=config.BACKTEST_START_YEAR)
     ap.add_argument("--end", type=int, default=None)
     ap.add_argument("--no-save", action="store_true", help="skip writing OOS pickles")
-    ap.add_argument("--exp", default="lower", choices=["lower", "altitude"])
+    ap.add_argument("--exp", default="lower", choices=["lower", "altitude", "gated-wta"])
     ap.add_argument("--mode", default="full", choices=["full", "ratings-only"],
                     help="lower exp only — full: lower rows also train the combiner; "
                          "ratings-only: walks see them, the combiner sees main only")
@@ -275,6 +452,10 @@ if __name__ == "__main__":
     args = ap.parse_args()
     if args.exp == "altitude":
         run_altitude(args.tour, args.start, args.end, save=not args.no_save)
+    elif args.exp == "gated-wta":
+        if args.tour != "wta":
+            ap.error("--exp gated-wta requires --tour wta")
+        run_gated_wta(args.start, args.end, save=not args.no_save)
     else:
         run(args.tour, args.start, args.end, save=not args.no_save, mode=args.mode,
             lower_role=args.lower_role)

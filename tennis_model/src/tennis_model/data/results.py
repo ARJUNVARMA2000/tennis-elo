@@ -10,12 +10,19 @@ Elo/rank stay current to last week.
 from __future__ import annotations
 
 import glob
+import gzip
+import hashlib
+import json
+import os
+import pickle
 import re
+import sys
 from pathlib import Path
 
 import pandas as pd
 
 from ..config import (
+    DATA_DIR,
     DEFAULT_TIER_K_MULT,
     MAX_FUTURE_MATCH_DAYS,
     MONTH_SURFACE,
@@ -31,6 +38,7 @@ from ..config import (
     lower_dir,
     stats_dir,
 )
+from ..timing import timed
 from .surface import wiki_categories_by_event_id, wiki_surface_lookup
 
 
@@ -63,6 +71,11 @@ CANON = [
     "winner_rank", "loser_rank", "winner_rank_points", "loser_rank_points",
 ] + _STAT_COLS
 
+_HISTORICAL_CACHE_SCHEMA = 1
+NORMALIZED_HISTORY_CACHE_DIR = DATA_DIR / "cache" / "normalized-history"
+_NORMALIZED_MATCH_CACHE_SCHEMA = 1
+NORMALIZED_MATCH_CACHE_DIR = DATA_DIR / "cache" / "normalized-matches"
+
 
 def _read_dir(d: Path) -> pd.DataFrame:
     files = sorted(glob.glob(str(d / "*.csv")))
@@ -75,6 +88,144 @@ def _read_dir(d: Path) -> pd.DataFrame:
         return pd.DataFrame(columns=CANON)
     out = pd.concat(frames, ignore_index=True)
     return out.reindex(columns=sorted(set(CANON) | set(out.columns), key=str))
+
+
+def _historical_fingerprint(tour: str) -> str:
+    """Identity of the historical CSV inputs and their normalization runtime."""
+    rows = [
+        f"schema={_HISTORICAL_CACHE_SCHEMA}",
+        f"python={sys.version_info.major}.{sys.version_info.minor}",
+        f"pandas={pd.__version__}",
+        "canon=" + json.dumps(CANON, ensure_ascii=False, separators=(",", ":")),
+    ]
+    for path in sorted(historical_dir(tour).glob("*.csv")):
+        try:
+            stat = path.stat()
+        except OSError:
+            continue
+        rows.append(f"{path.name}:{stat.st_size}:{stat.st_mtime_ns}")
+    return hashlib.sha256("\n".join(rows).encode()).hexdigest()
+
+
+def _read_historical(tour: str) -> pd.DataFrame:
+    """Read the schema-normalized historical frame through an atomic persistent cache.
+
+    Any compatibility mismatch, stale manifest, or corrupt pickle is an ordinary miss.
+    The uncached reader remains the source of truth and a failed cache write never blocks
+    a refresh.
+    """
+    fingerprint = _historical_fingerprint(tour)
+    path = NORMALIZED_HISTORY_CACHE_DIR / f"{tour}.pkl"
+    try:
+        payload = pd.read_pickle(path)
+        if (isinstance(payload, dict)
+                and payload.get("fingerprint") == fingerprint
+                and isinstance(payload.get("frame"), pd.DataFrame)):
+            print(f"  results/{tour}: normalized history cache hit", flush=True)
+            return payload["frame"]
+    except (OSError, ValueError, TypeError, AttributeError, EOFError,
+            pickle.UnpicklingError):
+        pass
+
+    frame = _read_dir(historical_dir(tour))
+    print(f"  results/{tour}: normalized history cache miss", flush=True)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+        pd.to_pickle({"fingerprint": fingerprint, "frame": frame}, tmp)
+        os.replace(tmp, path)
+    except (OSError, ValueError, TypeError, AttributeError):
+        try:
+            tmp.unlink(missing_ok=True)
+        except (OSError, UnboundLocalError):
+            pass
+    return frame
+
+
+def _effective_include_lower(tour: str, include_lower: bool | None) -> bool:
+    from .. import config as cfg
+    configured = ((cfg.INCLUDE_CHALLENGERS and tour == "atp")
+                  or (cfg.INCLUDE_WTA_LOWER_STATE and tour == "wta"))
+    return configured if include_lower is None else bool(include_lower)
+
+
+def _normalized_matches_fingerprint(tour: str, include_lower: bool) -> str:
+    """Content identity for every source and implementation input of `load_matches`.
+
+    Dynamic downloads commonly rewrite a byte-identical file, so mtimes would defeat the
+    hourly cache. Streaming hashes cost far less than reparsing and globally de-duplicating
+    hundreds of thousands of rows. The UTC day is included because future-date admission is
+    deliberately relative to today's horizon.
+    """
+    digest = hashlib.sha256()
+    digest.update(f"schema={_NORMALIZED_MATCH_CACHE_SCHEMA}\n".encode())
+    digest.update(f"tour={tour}\nlower={int(include_lower)}\n".encode())
+    digest.update(f"python={sys.version_info.major}.{sys.version_info.minor}\n".encode())
+    digest.update(f"pandas={pd.__version__}\nday={pd.Timestamp.now(tz='UTC').date()}\n".encode())
+    for code in (
+        Path(__file__), Path(__file__).with_name("events.py"),
+        Path(__file__).with_name("surface.py"),
+        Path(__file__).with_name("scores.py"), Path(__file__).with_name("names.py"),
+        Path(__file__).parents[1] / "config.py",
+    ):
+        try:
+            digest.update(code.name.encode() + b"\0" + code.read_bytes())
+        except OSError:
+            pass
+    roots = (
+        historical_dir(tour), stats_dir(tour), fresh_dir(tour),
+        live_dir(tour), lower_dir(tour),
+    )
+    paths = [path for root in roots for path in root.glob("*.csv")
+             if path.name != "upcoming.csv"]
+    paths += [live_dir(tour) / "wiki_surface.json", live_dir(tour) / "wiki_category.json"]
+    for path in sorted(set(paths), key=str):
+        digest.update(str(path).encode() + b"\0")
+        try:
+            with open(path, "rb") as source:
+                for chunk in iter(lambda: source.read(1024 * 1024), b""):
+                    digest.update(chunk)
+        except OSError:
+            digest.update(b"<missing>")
+    return digest.hexdigest()
+
+
+def _normalized_match_cache_path(tour: str, include_lower: bool) -> Path:
+    suffix = "enriched" if include_lower else "main"
+    return NORMALIZED_MATCH_CACHE_DIR / f"{tour}-{suffix}.pkl.gz"
+
+
+def _read_normalized_matches(tour: str, include_lower: bool,
+                             fingerprint: str) -> pd.DataFrame | None:
+    path = _normalized_match_cache_path(tour, include_lower)
+    try:
+        payload = pd.read_pickle(path, compression="gzip")
+    except (OSError, ValueError, TypeError, AttributeError, EOFError,
+            pickle.UnpicklingError, gzip.BadGzipFile):
+        return None
+    if (not isinstance(payload, dict) or payload.get("fingerprint") != fingerprint
+            or not isinstance(payload.get("frame"), pd.DataFrame)):
+        return None
+    print(f"  results/{tour}: normalized match cache hit", flush=True)
+    return payload["frame"]
+
+
+def _write_normalized_matches(tour: str, include_lower: bool,
+                              fingerprint: str, frame: pd.DataFrame) -> None:
+    path = _normalized_match_cache_path(tour, include_lower)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+        pd.to_pickle(
+            {"fingerprint": fingerprint, "frame": frame}, tmp,
+            compression={"method": "gzip", "compresslevel": 1, "mtime": 0},
+        )
+        os.replace(tmp, path)
+    except (OSError, ValueError, TypeError, AttributeError):
+        try:
+            tmp.unlink(missing_ok=True)
+        except (OSError, UnboundLocalError):
+            pass
 
 
 def _read_lower(tour: str) -> pd.DataFrame:
@@ -290,7 +441,7 @@ def _stamp_live_result_policy(tour: str, live: pd.DataFrame) -> pd.DataFrame:
     return live
 
 
-def merge_sources(tour: str) -> pd.DataFrame:
+def merge_sources(tour: str, include_lower: bool | None = None) -> pd.DataFrame:
     """Concatenate historical + stats + fresh + live for a tour and de-dup.
 
     Preference (lower __src wins a duplicate match): historical archive (serve stats +
@@ -300,7 +451,7 @@ def merge_sources(tour: str) -> pd.DataFrame:
     stats always beat results-only duplicates regardless of source (see the __hs sort),
     so the stats overlay fills every match the frozen archive is missing.
     """
-    hist = _read_dir(historical_dir(tour))
+    hist = _read_historical(tour)
     stats = _read_dir(stats_dir(tour))
     fresh = _read_dir(fresh_dir(tour))
     live = _stamp_live_result_policy(tour, _read_dir(live_dir(tour)))
@@ -316,8 +467,9 @@ def merge_sources(tour: str) -> pd.DataFrame:
     hist["__src"], stats["__src"], fresh["__src"], live["__src"] = 0, 1, 2, 3
     frames = [hist, stats, fresh, live]
     from .. import config as _cfg
-    include_lower = ((_cfg.INCLUDE_CHALLENGERS and tour == "atp")
-                     or (_cfg.INCLUDE_WTA_LOWER_STATE and tour == "wta"))
+    configured_lower = ((_cfg.INCLUDE_CHALLENGERS and tour == "atp")
+                        or (_cfg.INCLUDE_WTA_LOWER_STATE and tour == "wta"))
+    include_lower = configured_lower if include_lower is None else bool(include_lower)
     # Always read lower files as population CLASSIFICATION evidence.  A higher-priority
     # archive copy of the same match may be stamped as main; if the lower copy is omitted
     # entirely when the state flag is off, that mislabeled survivor leaks into the baseline
@@ -656,15 +808,32 @@ def thin_seasons(df: pd.DataFrame) -> list[int]:
             if y not in _SHORT_SEASONS and counts[y] < _THIN_SEASON_FRAC * median]
 
 
-def load_matches(tour: str = "atp") -> pd.DataFrame:
+def load_matches(tour: str = "atp", include_lower: bool | None = None) -> pd.DataFrame:
     """Top-level entry: merge sources, clean, backfill bios, chronologically sort."""
-    merged = merge_sources(tour)
-    policy_audit = dict(merged.attrs)
-    df = clean(merged, tour=tour)
-    df = _backfill_bios(df)
-    df["tour"] = tour
-    df = chronological(df)
-    df.attrs.update(policy_audit)
+    with timed(tour, "load_matches.total"):
+        effective_lower = _effective_include_lower(tour, include_lower)
+        with timed(tour, "load_matches.fingerprint"):
+            fingerprint = _normalized_matches_fingerprint(tour, effective_lower)
+        with timed(tour, "load_matches.cache_read"):
+            cached = _read_normalized_matches(tour, effective_lower, fingerprint)
+        if cached is not None:
+            df = cached
+        else:
+            print(f"  results/{tour}: normalized match cache miss", flush=True)
+            with timed(tour, "load_matches.merge"):
+                merged = merge_sources(tour, include_lower=effective_lower)
+            policy_audit = dict(merged.attrs)
+            with timed(tour, "load_matches.clean"):
+                df = clean(merged, tour=tour)
+            with timed(tour, "load_matches.bios"):
+                df = _backfill_bios(df)
+            df["tour"] = tour
+            with timed(tour, "load_matches.sort"):
+                df = chronological(df)
+            df.attrs.update(policy_audit)
+            with timed(tour, "load_matches.cache_write"):
+                _write_normalized_matches(
+                    tour, effective_lower, fingerprint, df)
     thin = thin_seasons(df)
     if thin:
         counts = df["date"].dt.year.value_counts()

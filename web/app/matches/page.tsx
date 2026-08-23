@@ -7,7 +7,7 @@ import LiveTicker, { useLiveMatches } from "@/components/LiveTicker";
 import PredictionWhy from "@/components/PredictionWhy";
 import ForecastTimeline from "@/components/ForecastTimeline";
 import { useData, useTour } from "@/lib/tour";
-import { excludeLiveMatches, groupByEvent, hasMatchupProfiles, upcomingCard, worthWatching, type ForecastHistory, type Upcoming } from "@/lib/upcoming";
+import { excludeLiveMatches, groupByEvent, hasMatchupProfiles, upcomingCard, useUpcomingEvents, worthWatching, type ForecastHistory, type Upcoming } from "@/lib/upcoming";
 
 type Tab = "live" | "upcoming" | "final";
 type TrackCall = {
@@ -27,12 +27,12 @@ const TABS = ["live", "upcoming", "final"] as const;
 
 export default function MatchCenter() {
   const { tour } = useTour();
-  const upcomingState = useData<Upcoming[]>("upcoming.json");
+  const [tab, setTab] = useState<Tab>("live");
+  const [event, setEvent] = useState("all");
+  const upcomingState = useUpcomingEvents(tab === "upcoming");
   const trackState = useData<Track>("track.json");
   const rosterState = useData<{ name: string }[]>("players.json");
   const live = useLiveMatches(tour);
-  const [tab, setTab] = useState<Tab>("live");
-  const [event, setEvent] = useState("all");
   const roster = useMemo(
     () => new Set((rosterState.data ?? []).map((player) => player.name)),
     [rosterState.data],
@@ -226,7 +226,7 @@ function Watchlist({ matches, roster }: { matches: Upcoming[]; roster: ReadonlyS
             </div>
             <div className="mt-2 grid grid-cols-5 gap-1">
               {Object.entries(WATCH_LABELS).map(([key, label]) => {
-                const factor = match.watch?.factors[key as keyof typeof WATCH_LABELS];
+                const factor = match.watch?.factors?.[key as keyof typeof WATCH_LABELS];
                 return (
                   <div key={key} className="min-w-0 rounded border border-[var(--color-line)] px-1 py-1.5 text-center">
                     <div className="mono truncate text-[8px] uppercase text-[var(--color-faint)]">{label}</div>

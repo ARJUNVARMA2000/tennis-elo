@@ -214,3 +214,15 @@ New lesson → append the entry to the matching topic file and add its lead line
 - A portfolio README should make operational depth legible, not secondary: retain concrete data,
   deployment, monitoring, and reproducibility details while improving hierarchy. See
   [`lessons/documentation.md`](lessons/documentation.md).
+
+## Gated-state model addition (2026-08-22)
+
+- A row-level feature gate does not protect its baseline arm if the shared combiner is retrained on
+  gated rows; protection must cover the fitted model and calibration too, with exact protected-row
+  probability parity. See [model research](lessons/model-research.md).
+
+## Generic draw-anchor addition (2026-08-23)
+
+- An all-generic event name cannot safely seed Wikipedia draw search: require an exact event
+  locator, revalidate active cached identity, prevent rejected-current-row retention, and gate the
+  raw cache for duplicate sources. See [draws and live events](lessons/draws-and-live-events.md).

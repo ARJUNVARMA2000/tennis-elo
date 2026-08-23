@@ -145,9 +145,11 @@ export function FilterChip({
 export function SurfacePill({ s, active, onClick }: { s: string; active?: boolean; onClick?: () => void }) {
   return (
     <motion.button
+      type="button"
+      aria-pressed={active}
       onClick={onClick}
       whileTap={{ scale: 0.94 }}
-      className="chip transition-colors"
+      className="chip transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
       style={{
         color: active ? "var(--color-on-accent)" : surfaceColor(s),
         background: active ? surfaceColor(s) : "transparent",

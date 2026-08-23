@@ -29,6 +29,13 @@ set -e
 VERIFY_LOG="${VERIFY_LOG:-/tmp/verify-deploy.log}"
 GH_RETRY_SLEEP="${GH_RETRY_SLEEP:-3}"
 
+set_represented() {
+  if [ -n "${GITHUB_OUTPUT:-}" ]; then
+    printf 'represented=%s\n' "$1" >> "$GITHUB_OUTPUT"
+  fi
+}
+set_represented false
+
 # The calling step is `if: always()`, so it also fires when the verification never RAN —
 # an earlier step (refresh / gate / build / deploy) failed, or the run was cancelled, so
 # the step outcome is `skipped`/`cancelled` rather than `failure`. That says nothing about
@@ -79,6 +86,7 @@ if [ "$OUTCOME" = "success" ]; then
       --body "✅ Recovered: live deploy verification passed on $(date -u +%F). Closing." || true
     gh issue close "$EXISTING" || true
   fi
+  [ "$LISTED" = "1" ] && set_represented true
   echo "deploy verification OK"
   exit 0
 fi
@@ -106,13 +114,16 @@ fi
 if [ -z "$EXISTING" ]; then
   gh issue create --label deploy-health \
     --title "Live deploy verification failed" --body-file /tmp/deploy-health-body.md
+  set_represented true
   echo "::error::live deploy verification failed — see the deploy-health issue"
   exit 1
 fi
 if [ "${MODE:-}" = "full" ]; then
   gh issue comment "$EXISTING" --body-file /tmp/deploy-health-body.md
+  set_represented true
   echo "::error::live deploy verification still failing — see deploy-health issue #$EXISTING"
   exit 1
 fi
+set_represented true
 echo "::warning::live deploy verification still failing — see open deploy-health issue #$EXISTING"
 exit 0

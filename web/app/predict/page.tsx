@@ -10,9 +10,10 @@ import { PageHead, Loading, SurfacePill, Reveal, ProbBar, AnimatedNumber } from 
 import Dropdown, { type DropdownOption } from "@/components/Dropdown";
 import { SPRING, stagger, pop } from "@/lib/motion";
 import { matrixProbability, useMatrixShard } from "@/lib/matrix";
-import { orientForecast, type Upcoming } from "@/lib/upcoming";
+import { orientForecast, useUpcomingDetail, useUpcomingEvents } from "@/lib/upcoming";
 import ForecastTimeline from "@/components/ForecastTimeline";
 import PredictionEvidence from "@/components/PredictionEvidence";
+import PredictionSummary from "@/components/PredictionSummary";
 import { matrixEvidence, orientEvidence } from "@/lib/evidence";
 
 export default function Predict() {
@@ -35,7 +36,7 @@ export default function Predict() {
 function PredictInner() {
   const { tour } = useTour();
   const { data: roster } = useData<{ name: string; eloRank: number }[]>("players.json");
-  const { data: upcoming } = useData<Upcoming[]>("upcoming.json");
+  const { data: upcoming } = useUpcomingEvents();
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
@@ -109,17 +110,22 @@ function PredictInner() {
       && ((m.playerA === players[a] && m.playerB === players[b])
         || (m.playerA === players[b] && m.playerB === players[a])),
   ), [upcoming, surface, format, players, a, b]);
+  const scheduledDetail = useUpcomingDetail(scheduled, Boolean(scheduled));
+  const scheduledFull = useMemo(
+    () => scheduled ? { ...scheduled, ...(scheduledDetail.data ?? {}) } : undefined,
+    [scheduled, scheduledDetail.data],
+  );
 
   const movement = useMemo(() => {
-    const row = scheduled;
+    const row = scheduledFull;
     if (!row?.forecast) return null;
     return orientForecast(row.forecast, row.playerA !== players[a]);
-  }, [scheduled, players, a]);
+  }, [scheduledFull, players, a]);
   const evidence = useMemo(
-    () => scheduled?.evidence
-      ? orientEvidence(scheduled.evidence, scheduled.playerA !== players[a])
+    () => scheduledFull?.evidence
+      ? orientEvidence(scheduledFull.evidence, scheduledFull.playerA !== players[a])
       : matrixEvidence(shard, a, b),
-    [scheduled, players, a, shard, b],
+    [scheduledFull, players, a, shard, b],
   );
 
   const dist = p != null ? scoreDist(p, format) : [];
@@ -131,76 +137,140 @@ function PredictInner() {
       {data && (
         <>
           <Reveal>
-            <div className="mt-8 grid gap-3 sm:grid-cols-2">
-              <Picker label="Player A" value={a} onChange={pickA} options={options} accent="var(--color-accent)" />
-              <Picker label="Player B" value={b} onChange={pickB} options={options} accent="var(--color-cmp)" />
-            </div>
-          </Reveal>
+            <fieldset
+              className="panel mt-8"
+              data-prediction-setup="fine-tune-card-adaptation-v1"
+            >
+              <legend className="sr-only">Prediction setup</legend>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-line)] px-4 py-3 sm:px-5">
+                <div>
+                  <div className="eyebrow !text-[10px] !text-[var(--color-text)]">Prediction setup</div>
+                  <p className="mt-1 text-[11px] text-[var(--color-muted)]">
+                    Fine-tune the matchup and match conditions.
+                  </p>
+                </div>
+                <span className="chip text-[var(--color-muted)]">{surface} · Bo{format}</span>
+              </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            {SURFACES.map((s) => (
-              <SurfacePill key={s} s={s} active={surface === s} onClick={() => setSurface(s)} />
-            ))}
-            {/* Bo3 / Bo5 segmented control with sliding thumb (mirrors the ATP/WTA switch) */}
-            <div className="ml-2 flex items-center rounded-md border border-[var(--color-line)] p-0.5">
-              {formats.map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setBo(f)}
-                  className="mono relative rounded-[5px] px-3 py-1 text-[11px]"
-                >
-                  {format === f && (
-                    <motion.span
-                      layoutId="bo-thumb"
-                      className="absolute inset-0 rounded-[5px] bg-[var(--color-text)]"
-                      transition={SPRING}
-                    />
-                  )}
-                  <span
-                    className="relative z-10 transition-colors"
-                    style={{ color: format === f ? "var(--color-on-accent)" : "var(--color-muted)" }}
-                  >
-                    Bo{f}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
+              <div className="p-4 sm:p-5">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Picker label="Player A" value={a} onChange={pickA} options={options} accent="var(--color-accent)" />
+                  <Picker label="Player B" value={b} onChange={pickB} options={options} accent="var(--color-cmp)" />
+                </div>
+
+                <div className="panel-inset mt-4 grid gap-4 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+                  <div>
+                    <div id="prediction-surface-label" className="eyebrow mb-2 !text-[9px]">Court surface</div>
+                    <div
+                      role="group"
+                      aria-labelledby="prediction-surface-label"
+                      className="flex flex-wrap items-center gap-2"
+                    >
+                      {SURFACES.map((s) => (
+                        <SurfacePill key={s} s={s} active={surface === s} onClick={() => setSurface(s)} />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div id="prediction-format-label" className="eyebrow mb-2 !text-[9px]">Match format</div>
+                    <div
+                      role="group"
+                      aria-labelledby="prediction-format-label"
+                      className="flex items-center rounded-md border border-[var(--color-line)] p-0.5"
+                    >
+                      {formats.map((f) => (
+                        <button
+                          key={f}
+                          type="button"
+                          aria-pressed={format === f}
+                          onClick={() => setBo(f)}
+                          className="mono relative min-h-9 rounded-[5px] px-3 py-1 text-[11px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
+                        >
+                          {format === f && (
+                            <motion.span
+                              layoutId="bo-thumb"
+                              className="absolute inset-0 rounded-[5px] bg-[var(--color-text)]"
+                              transition={SPRING}
+                            />
+                          )}
+                          <span
+                            className="relative z-10 transition-colors"
+                            style={{ color: format === f ? "var(--color-on-accent)" : "var(--color-muted)" }}
+                          >
+                            Bo{f}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </fieldset>
+          </Reveal>
 
           {p != null && (
             <Reveal delay={0.05}>
-              <div className="mt-6 panel p-6 sm:p-8">
-                <div className="flex items-end justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="display text-2xl sm:text-3xl">{players[a]}</div>
-                    <AnimatedNumber
-                      value={p * 100}
-                      decimals={1}
-                      suffix="%"
-                      className="mt-1 block text-3xl text-[var(--color-accent)]"
-                    />
-                  </div>
-                  <div className="mono pb-1 text-[var(--color-faint)]">vs</div>
-                  <div className="flex-1 text-right">
-                    <div className="display text-2xl sm:text-3xl">{players[b]}</div>
-                    <AnimatedNumber
-                      value={(1 - p) * 100}
-                      decimals={1}
-                      suffix="%"
-                      className="mt-1 block text-3xl text-[var(--color-cmp)]"
-                    />
-                  </div>
-                </div>
-                <div className="mt-5">
-                  <ProbBar p={p} w={"100%" as any} />
+              <div className="panel mt-6 p-5 sm:p-6 lg:p-8">
+                <div className="grid gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.65fr)]">
+                  <section
+                    aria-label="Predicted win probabilities"
+                    aria-live="polite"
+                    className="panel-inset flex min-w-0 flex-col justify-center p-5 sm:p-6"
+                  >
+                    <div className="flex items-end justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <div className="display text-xl leading-tight sm:truncate sm:text-3xl">{players[a]}</div>
+                        <AnimatedNumber
+                          value={p * 100}
+                          decimals={1}
+                          suffix="%"
+                          className="mt-1 block text-3xl text-[var(--color-accent)]"
+                        />
+                      </div>
+                      <div className="mono pb-1 text-[var(--color-faint)]">vs</div>
+                      <div className="min-w-0 flex-1 text-right">
+                        <div className="display text-xl leading-tight sm:truncate sm:text-3xl">{players[b]}</div>
+                        <AnimatedNumber
+                          value={(1 - p) * 100}
+                          decimals={1}
+                          suffix="%"
+                          className="mt-1 block text-3xl text-[var(--color-cmp)]"
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-5">
+                      <ProbBar p={p} w={"100%" as any} />
+                    </div>
+                    <p className="mono mt-2 text-[9px] uppercase tracking-wider text-[var(--color-muted)]">
+                      Calibrated pre-match probability · {surface} · Bo{format}
+                    </p>
+                  </section>
+
+                  <PredictionSummary
+                    probabilityA={p}
+                    playerA={players[a]}
+                    playerB={players[b]}
+                    surface={surface}
+                    bestOf={format}
+                    tour={tour}
+                  />
                 </div>
 
                 {(components || evidence) && (
-                  <details className="panel-inset mt-6 p-4">
-                    <summary className="cursor-pointer select-none text-sm font-medium text-[var(--color-text)]">
-                      Model evidence
+                  <details id="model-evidence" className="panel-inset mt-6 p-4">
+                    <summary className="flex min-h-9 cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium text-[var(--color-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]">
+                      <span className="inline-flex items-center gap-2">
+                        <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]" />
+                        Model evidence
+                      </span>
+                      <span className="mono text-[9px] uppercase tracking-wider text-[var(--color-faint)]">
+                        {evidence ? `${evidence.signals.filter((signal) => signal.available).length} available` : "model stack"}
+                      </span>
                     </summary>
-                    <div className="mt-4"><PredictionEvidence evidence={evidence} components={components} /></div>
+                    <div className="mt-4" aria-live="polite">
+                      <PredictionEvidence evidence={evidence} components={components} />
+                    </div>
                     {movement && (
                       <ForecastTimeline forecast={movement} player={players[a]} />
                     )}

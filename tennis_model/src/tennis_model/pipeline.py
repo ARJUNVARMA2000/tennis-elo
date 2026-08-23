@@ -12,16 +12,29 @@ from __future__ import annotations
 import argparse
 import shutil
 import time
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from datetime import UTC
 
-from .config import MATCH_POPULATION_VERSION, PLAYER_ALIASES, TOURS, WEB_DATA_DIR, output_dir
+from .config import (
+    MATCH_POPULATION_VERSION,
+    PLAYER_ALIASES,
+    TOURS,
+    WEB_DATA_DIR,
+    WTA_DUAL_STATE_GATE_THRESHOLD,
+    output_dir,
+)
 from .data.results import load_matches
 from .model.export import export_all
-from .model.features import FEATURES, build_predictor_inputs, feat_params_for
+from .model.features import (
+    FEATURES,
+    build_dual_state_inputs,
+    build_predictor_inputs,
+    feat_params_for,
+)
 from .model.features import main_rows as main_rows  # noqa: F401 — compatibility seam for guard tests
 from .model.predict import TennisPredictor
-from .model.train import train_final, walk_forward, xgb_params_for
+from .model.train import train_final, walk_forward, walk_forward_state_gate, xgb_params_for
 
 
 def _mirror(tour: str) -> None:
@@ -38,21 +51,32 @@ def _mirror(tour: str) -> None:
         shutil.copy(j, dst / j.name)
 
 
-def _track(tour: str, predictor, df) -> None:
+def _prepare_upcoming(tour: str, predictor, df) -> list[dict] | None:
+    """Price the live schedule once for both tracking and the published snapshot."""
+    try:
+        from .model.upcoming import enrich_upcoming, load_upcoming
+        return enrich_upcoming(predictor, df, load_upcoming(tour), tour)
+    except Exception as e:                                   # noqa: BLE001 — both consumers degrade
+        print(f"  upcoming/{tour}: shared enrichment unavailable ({e})")
+        return None
+
+
+def _track(tour: str, predictor, df, enriched: list[dict] | None = None) -> None:
     """Log point-in-time forecasts + (re)grade them (writes track.json). Best-effort:
     a tracking failure must never break the build/deploy."""
     try:
         from .eval.track import log_and_grade
-        log_and_grade(tour, predictor, df)
+        log_and_grade(tour, predictor, df, enriched=enriched)
     except Exception as e:                                   # noqa: BLE001 — never fatal
         print(f"  track/{tour}: skipped ({e})")
 
 
-def _forecast_products(tour: str, predictor, df) -> None:
+def _forecast_products(tour: str, predictor, df,
+                       enriched: list[dict] | None = None) -> None:
     """Publish history/performance decorations after the current snapshot is logged."""
     try:
         from .model.export import export_forecast_products
-        export_forecast_products(tour, predictor, df)
+        export_forecast_products(tour, predictor, df, enriched=enriched)
     except Exception as e:                                   # noqa: BLE001 — tracking UI is non-fatal
         print(f"  forecast-products/{tour}: skipped ({e})")
 
@@ -144,9 +168,19 @@ def build_tour(tour: str, do_backtest: bool, *, run_kalshi: bool = True):
     ``run_kalshi=False`` is used only by a quick-mode compatibility rebuild so the
     caller can keep both tours under the shared hourly benchmark budget."""
     print(f"\n=== {tour.upper()} === loading matches + building features...")
-    df = load_matches(tour)
+    threshold = WTA_DUAL_STATE_GATE_THRESHOLD if tour == "wta" else None
+    # Keep the user-facing/health population main-only.  The WTA overlay is loaded a
+    # second time solely for the secondary state walk and never leaks into exports.
+    df = load_matches(tour, include_lower=False) if threshold is not None else load_matches(tour)
     _health_manifest(tour, df)
-    feat, elo, srv, ctx, meta = build_predictor_inputs(df)
+    dual = None
+    if threshold is not None:
+        enriched_df = load_matches(tour, include_lower=True)
+        dual = build_dual_state_inputs(df, enriched_df, tour=tour)
+        feat, elo, srv, ctx, meta = (
+            dual.base_features, dual.elo, dual.srv, dual.ctx, dual.meta)
+    else:
+        feat, elo, srv, ctx, meta = build_predictor_inputs(df)
 
     oos = None
     if do_backtest:
@@ -158,22 +192,35 @@ def build_tour(tour: str, do_backtest: bool, *, run_kalshi: bool = True):
         # predictor.save(), throwing away a completed ratings walk over a reporting
         # artifact. accuracy.json simply persists from the previous full run.
         try:
-            oos = walk_forward(feat, start_test=2016, end_test=datetime.now(UTC).year,
-                               xgb_overrides=xgb_params_for(tour))
+            if dual is not None:
+                oos = walk_forward_state_gate(
+                    dual.base_features, dual.enriched_features, (threshold,),
+                    start_test=2016, end_test=datetime.now(UTC).year,
+                    xgb_overrides=xgb_params_for(tour))[threshold]
+            else:
+                oos = walk_forward(feat, start_test=2016, end_test=datetime.now(UTC).year,
+                                   xgb_overrides=xgb_params_for(tour))
         except Exception as e:                               # noqa: BLE001 — metrics only
             print(f"  backtest: SKIPPED ({type(e).__name__}: {e}) — accuracy.json keeps "
                   f"the previous run's values; the retrain continues")
 
     print("  training production combiner...")
     clf, iso, _ = train_final(feat, xgb_overrides=xgb_params_for(tour))
-    predictor = TennisPredictor(clf, iso, elo, srv, ctx, meta, tour=tour)
+    predictor = TennisPredictor(
+        clf, iso, elo, srv, ctx, meta, tour=tour,
+        lower_elo=dual.lower_elo if dual else None,
+        lower_srv=dual.lower_srv if dual else None,
+        lower_ctx=dual.lower_ctx if dual else None,
+        dual_state_threshold=threshold,
+    )
     predictor.save()
 
     export_all(tour, df, elo, srv, meta, predictor, oos=oos)
     if oos is not None:
         _market_scorecard(tour, oos)
-    _track(tour, predictor, df)                  # logs upcoming forecasts first, so
-    _forecast_products(tour, predictor, df)      # this run's snapshot reaches the same deploy
+    enriched = _prepare_upcoming(tour, predictor, df)
+    _track(tour, predictor, df, enriched)        # logs upcoming forecasts first, so
+    _forecast_products(tour, predictor, df, enriched)  # this run's snapshot reaches same deploy
     if run_kalshi:
         _kalshi(tour, df, oos)                         # daily historical benchmark repair
     _mirror(tour)
@@ -221,9 +268,17 @@ def _predictor_current(predictor, tour: str) -> bool:
     except Exception:                                        # noqa: BLE001 — legacy/foreign pickle: rebuild
         return False
     try:
-        if predictor._inference_schema_version != 2:
+        if predictor._inference_schema_version != 3:
             return False
     except Exception:                                        # noqa: BLE001 — legacy context mirror: rebuild
+        return False
+    expected_gate = WTA_DUAL_STATE_GATE_THRESHOLD if tour == "wta" else None
+    try:
+        if predictor._dual_state_threshold != expected_gate:
+            return False
+        if bool(expected_gate is not None) != bool(predictor._has_lower_state):
+            return False
+    except Exception:                                        # noqa: BLE001 — legacy/partial dual state: rebuild
         return False
     try:
         return predictor._player_aliases == tuple(sorted(PLAYER_ALIASES.items()))
@@ -233,10 +288,11 @@ def _predictor_current(predictor, tour: str) -> bool:
 
 def build_tour_quick(tour: str):
     """Quick refresh (intra-day): reuse the saved predictor's states, re-pull live
-    results, regenerate JSON. No re-walk, no retrain (~1-2 min). accuracy.json is left
+    results, regenerate JSON. No re-walk or retrain; warm-cache tours export in parallel.
     to persist from the last full run (the workflow caches data/output)."""
     print(f"\n=== {tour.upper()} [quick] === live refresh from saved model...")
-    df = load_matches(tour)
+    threshold = WTA_DUAL_STATE_GATE_THRESHOLD if tour == "wta" else None
+    df = load_matches(tour, include_lower=False) if threshold is not None else load_matches(tour)
     _health_manifest(tour, df)
     predictor = TennisPredictor.load(tour)
     if not _predictor_current(predictor, tour):
@@ -245,10 +301,30 @@ def build_tour_quick(tour: str):
         return build_tour(tour, do_backtest=False, run_kalshi=False)
     export_all(tour, df, predictor.elo, predictor.srv, predictor.meta, predictor,
                oos=None, full=False)
-    _track(tour, predictor, df)
-    _forecast_products(tour, predictor, df)
+    enriched = _prepare_upcoming(tour, predictor, df)
+    _track(tour, predictor, df, enriched)
+    _forecast_products(tour, predictor, df, enriched)
     _mirror(tour)
     return df
+
+
+def _build_quick_tours(tours: list[str]) -> dict:
+    """Build independent tour outputs concurrently after shared downloads complete."""
+    def build_one(tour: str):
+        with _stage(f"{tour.upper()} forecast export"):
+            return build_tour_quick(tour)
+
+    if len(tours) <= 1:
+        return {tour: build_one(tour) for tour in tours}
+    frames = {}
+    with ThreadPoolExecutor(max_workers=min(2, len(tours)),
+                            thread_name_prefix="tour-export") as pool:
+        futures = {tour: pool.submit(build_one, tour) for tour in tours}
+        # Resolve in requested tour order. Exceptions propagate and stop the deploy exactly
+        # as they did in the serial loop; only the independent work itself overlaps.
+        for tour in tours:
+            frames[tour] = futures[tour].result()
+    return frames
 
 
 def main():
@@ -280,10 +356,7 @@ def main():
             download_tournament_draws(tours, events_by_tour=events_by_tour)
         with _stage("live rankings"):
             download_rankings(tours)
-        frames = {}
-        for tour in tours:
-            with _stage(f"{tour.upper()} forecast export"):
-                frames[tour] = build_tour_quick(tour)
+        frames = _build_quick_tours(tours)
         with _stage("Kalshi quick benchmark"):
             _quick_kalshi(tours, frames)
         with _stage("Kalshi report"):

@@ -170,6 +170,39 @@ def test_fp_survives_pickle_roundtrip():
     print("ok test_fp_survives_pickle_roundtrip")
 
 
+def test_wta_dual_state_gate_uses_main_counts_and_a_complete_bundle():
+    main_elo, lower_elo = _Elo(), _Elo()
+    main_srv, lower_srv = _Srv(), _Srv()
+    main_ctx, lower_ctx = _Ctx(), _Ctx()
+    # Alfa is established but Bravo has only 8 MAIN matches.  Enriched counts must
+    # never decide their own admission; the main-only bundle owns the gate.
+    lower_elo.n = {"Alfa One": 30, "Bravo Two": 80}
+    pred = TennisPredictor(
+        clf=None, iso=None, elo=main_elo, srv=main_srv, ctx=main_ctx,
+        meta={}, tour="wta", lower_elo=lower_elo, lower_srv=lower_srv,
+        lower_ctx=lower_ctx, dual_state_threshold=32,
+    )
+    assert pred._states_for("Alfa One", "Bravo Two") == (lower_elo, lower_srv, lower_ctx)
+    assert pred._states_for("Bravo Two", "Alfa One") == (lower_elo, lower_srv, lower_ctx)
+    assert pred._states_for("Unseen Player", "Alfa One") == (lower_elo, lower_srv, lower_ctx)
+
+    main_elo.n = {"Alfa One": 32, "Bravo Two": 100}
+    assert pred._states_for("Alfa One", "Bravo Two") == (main_elo, main_srv, main_ctx)
+
+
+def test_wta_dual_state_survives_pickle_roundtrip():
+    import pickle
+
+    pred = TennisPredictor(
+        clf=None, iso=None, elo=_Elo(), srv=_Srv(), ctx=_Ctx(), meta={}, tour="wta",
+        lower_elo=_Elo(), lower_srv=_Srv(), lower_ctx=_Ctx(), dual_state_threshold=32,
+    )
+    restored = pickle.loads(pickle.dumps(pred))
+    assert restored._dual_state_threshold == 32
+    assert restored._has_lower_state
+    assert restored._inference_schema_version == 3
+
+
 def test_home_flag_threads_event():
     """Real matches pass event=; the venue's host country sets home_flag_diff.
     Hypotheticals (no event) and unmapped events stay neutral."""

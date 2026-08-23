@@ -168,8 +168,9 @@ export function healthArtifactOk(health, expected) {
  * @param {object} matrix
  * @param {object} profiles
  * @param {object|null} scenarios
+ * @param {object|null} upcoming
  */
-export function artifactIndexRefs(matrix, profiles, scenarios = null) {
+export function artifactIndexRefs(matrix, profiles, scenarios = null, upcoming = null) {
   const problems = [];
   const files = [];
   const safe = (value) => typeof value === "string"
@@ -200,6 +201,22 @@ export function artifactIndexRefs(matrix, profiles, scenarios = null) {
       const file = event?.file;
       if (!event?.name || !safe(file)) problems.push(`invalid scenario shard reference ${String(file)}`);
       else files.push({ file, generation: scenarios.generation, kind: "scenario", name: event.name });
+    }
+  }
+  if (upcoming !== null) {
+    if (!upcoming || typeof upcoming !== "object" || upcoming.schemaVersion !== 2
+        || upcoming.schema !== "upcoming-v2" || !upcoming.generation
+        || !Array.isArray(upcoming.events) || !Array.isArray(upcoming.highlights)) {
+      problems.push("upcoming-index schema/generation missing");
+    }
+    for (const event of upcoming?.events || []) {
+      for (const [kind, file] of [
+        ["upcoming-event", event?.file],
+        ["upcoming-evidence", event?.evidenceFile],
+      ]) {
+        if (!event?.name || !safe(file)) problems.push(`invalid ${kind} shard reference ${String(file)}`);
+        else files.push({ file, generation: upcoming.generation, kind, name: event.name });
+      }
     }
   }
   if (!files.some((ref) => ref.kind === "matrix")) problems.push("matrix-index has no shards");
@@ -240,6 +257,52 @@ export function coverageProblems(health, tour, tournaments) {
   const actualMembership = [...keys].sort();
   if (JSON.stringify(actualMembership) !== JSON.stringify(expectedMembership)) {
     problems.push(`${tour}: tournament membership differs from freshly built health.json`);
+  }
+  return problems;
+}
+
+/**
+ * One complete draw artifact may not attach to two stable ESPN event ids. Check both the
+ * provider/article id and its canonical URL because either can drift independently.
+ *
+ * @param {Array<object>} brackets
+ * @returns {string[]}
+ */
+export function drawSourceProblems(brackets) {
+  if (!Array.isArray(brackets)) return ["brackets.json is not an array"];
+  const markers = new Map();
+  const add = (marker, eventId) => {
+    if (!marker || !eventId) return;
+    if (!markers.has(marker)) markers.set(marker, new Set());
+    markers.get(marker).add(eventId);
+  };
+  const canonicalUrl = (value) => {
+    try {
+      const url = new URL(String(value || ""));
+      url.hash = "";
+      url.search = "";
+      url.pathname = decodeURIComponent(url.pathname).replace(/\/$/, "");
+      return url.href;
+    } catch {
+      return "";
+    }
+  };
+
+  for (const event of brackets) {
+    const eventId = String(event?.espnId || "").trim();
+    const source = String(event?.drawSource || "").trim().toLowerCase();
+    const sourceId = String(event?.drawSourceId || "").trim().toLowerCase();
+    const sourceUrl = canonicalUrl(event?.drawSourceUrl);
+    if (!eventId || !source) continue;
+    if (sourceId) add(`drawSourceId ${source}:${sourceId}`, eventId);
+    if (sourceUrl) add(`drawSourceUrl ${sourceUrl}`, eventId);
+  }
+
+  const problems = [];
+  for (const [marker, eventIds] of markers) {
+    if (eventIds.size > 1) {
+      problems.push(`${marker} attached to multiple ESPN events: ${[...eventIds].sort().join(", ")}`);
+    }
   }
   return problems;
 }

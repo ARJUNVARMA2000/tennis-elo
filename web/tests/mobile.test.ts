@@ -87,4 +87,19 @@ describe("mobile browser shell", () => {
     expect(player.match(/className="panel min-w-0/g)).toHaveLength(7);
     expect(player).toContain("single-radar+mobile-contained+expectation-v3");
   });
+
+  it("keeps the predictor setup and forecast-clarity actions accessible on narrow screens", () => {
+    const predict = readWebSource("app/predict/page.tsx");
+    const summary = readWebSource("components/PredictionSummary.tsx");
+    const evidence = readWebSource("components/PredictionEvidence.tsx");
+
+    expect(predict).toContain('data-prediction-setup="fine-tune-card-adaptation-v1"');
+    expect(predict).toContain("<fieldset");
+    expect(predict).toContain('aria-labelledby="prediction-surface-label"');
+    expect(predict).toContain('aria-labelledby="prediction-format-label"');
+    expect(predict).toContain("sm:grid-cols-[minmax(0,1fr)_auto]");
+    expect(summary).toContain("grid-cols-1");
+    expect(summary).toContain("min-h-11");
+    expect(evidence).toContain('compact ? "grid-cols-1" : "sm:grid-cols-2"');
+  });
 });

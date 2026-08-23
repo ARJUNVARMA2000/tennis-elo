@@ -8,7 +8,7 @@ canonical spellings, infer the event's surface / best-of, and price it with
 
 Both consumers need exactly that, so it lives here once:
   - the forecast log (``eval.track``) — locked at first sighting, for grading;
-  - the web schedule board (``model.export`` -> ``upcoming.json``) — the live view.
+  - the web schedule board (``model.export`` -> ``upcoming-index`` + lazy shards).
 
 ``enrich_upcoming`` returns neutral rows; each caller decorates them with its own fields.
 """
@@ -21,6 +21,7 @@ from ..config import ROUND_ORDER, live_dir
 from ..data.results import _name_key as nkey
 from ..data.results import tier_mults
 from ..data.surface import resolve_level, resolve_surface
+from ..timing import timed
 
 UPCOMING_COLS = ["tourney_name", "espn_id", "tourney_date", "round", "playerA", "playerB"]
 
@@ -117,40 +118,41 @@ def enrich_upcoming(predictor, df: pd.DataFrame, up_df: pd.DataFrame | None, tou
     self-pair are dropped. Orientation (A/B) is whatever the feed gave — the match has no
     result yet.
     """
-    if up_df is None or up_df.empty:
-        return []
-    key2name = {nkey(n): n for n in predictor.elo.overall}       # ESPN spelling -> canonical
-    out = []
-    for r in up_df.itertuples(index=False):
-        a, b = key2name.get(nkey(r.playerA)), key2name.get(nkey(r.playerB))
-        if not a or not b or nkey(a) == nkey(b):
-            continue
-        event_id = getattr(r, "espn_id", None)
-        surface, bo = _surface_best_of(df, r.tourney_name, r.tourney_date, tour)
-        level = resolve_level(tour, str(r.tourney_name), event_id=event_id)
-        tier_k = _tier_context(level, tour)
-        round_order = int(ROUND_ORDER.get(str(r.round), 3))
-        if hasattr(predictor, "prediction_components"):
-            components = predictor.prediction_components(
-                a, b, surface=surface, best_of=bo, event=str(r.tourney_name),
-                as_of=r.tourney_date, tier_k=tier_k, round_order=round_order)
-            p = float(components["combiner"])
-            component_payload = {k: round(float(v), 4) for k, v in components.items()}
-        else:  # lightweight test doubles and legacy foreign predictors
-            p = float(predictor.win_prob(
-                a, b, surface=surface, best_of=bo, event=str(r.tourney_name)))
-            component_payload = None
-        evidence_payload = None
-        if hasattr(predictor, "prediction_evidence"):
-            evidence_payload = predictor.prediction_evidence(
-                a, b, surface=surface, best_of=bo, event=str(r.tourney_name),
-                as_of=r.tourney_date, tier_k=tier_k, round_order=round_order)
-        out.append({
-            "event": str(r.tourney_name), "date": str(r.tourney_date), "round": r.round,
-            "surface": surface, "best_of": bo, "playerA": a, "playerB": b, "pA": p,
-            "level": level,
-            "espnId": event_id,
-            "components": component_payload,
-            "evidence": evidence_payload,
-        })
-    return out
+    with timed(tour, "upcoming_enrichment"):
+        if up_df is None or up_df.empty:
+            return []
+        key2name = {nkey(n): n for n in predictor.elo.overall}       # ESPN spelling -> canonical
+        out = []
+        for r in up_df.itertuples(index=False):
+            a, b = key2name.get(nkey(r.playerA)), key2name.get(nkey(r.playerB))
+            if not a or not b or nkey(a) == nkey(b):
+                continue
+            event_id = getattr(r, "espn_id", None)
+            surface, bo = _surface_best_of(df, r.tourney_name, r.tourney_date, tour)
+            level = resolve_level(tour, str(r.tourney_name), event_id=event_id)
+            tier_k = _tier_context(level, tour)
+            round_order = int(ROUND_ORDER.get(str(r.round), 3))
+            if hasattr(predictor, "prediction_components"):
+                components = predictor.prediction_components(
+                    a, b, surface=surface, best_of=bo, event=str(r.tourney_name),
+                    as_of=r.tourney_date, tier_k=tier_k, round_order=round_order)
+                p = float(components["combiner"])
+                component_payload = {k: round(float(v), 4) for k, v in components.items()}
+            else:  # lightweight test doubles and legacy foreign predictors
+                p = float(predictor.win_prob(
+                    a, b, surface=surface, best_of=bo, event=str(r.tourney_name)))
+                component_payload = None
+            evidence_payload = None
+            if hasattr(predictor, "prediction_evidence"):
+                evidence_payload = predictor.prediction_evidence(
+                    a, b, surface=surface, best_of=bo, event=str(r.tourney_name),
+                    as_of=r.tourney_date, tier_k=tier_k, round_order=round_order)
+            out.append({
+                "event": str(r.tourney_name), "date": str(r.tourney_date), "round": r.round,
+                "surface": surface, "best_of": bo, "playerA": a, "playerB": b, "pA": p,
+                "level": level,
+                "espnId": event_id,
+                "components": component_payload,
+                "evidence": evidence_payload,
+            })
+        return out

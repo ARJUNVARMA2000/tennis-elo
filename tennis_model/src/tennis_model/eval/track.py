@@ -47,6 +47,7 @@ from ..config import (
 )
 from ..data.results import _name_key as nkey
 from ..model.upcoming import enrich_upcoming, load_upcoming
+from ..timing import timed
 from .metrics import EPS, calibration_table, score
 
 FORECAST_DIR = DATA_DIR / "forecast_log"
@@ -323,7 +324,8 @@ def _read_json(path):
 # Logging
 # ---------------------------------------------------------------------------
 def log_forecasts(tour: str, predictor, df: pd.DataFrame,
-                  upcoming: pd.DataFrame | None, as_of: str) -> int:
+                  upcoming: pd.DataFrame | None, as_of: str, *,
+                  enriched: list[dict] | None = None) -> int:
     """Append new match + tournament forecasts to the log. Returns # records added.
 
     Idempotent: a matchup is logged once (first sighting locks the forecast), and a
@@ -335,7 +337,8 @@ def log_forecasts(tour: str, predictor, df: pd.DataFrame,
     # match forecasts: one locked P(playerA wins) per scheduled matchup (first sighting).
     # Name-resolution / surface inference / pricing live in model.upcoming.enrich_upcoming,
     # shared with the web schedule board so the two can never disagree on a matchup.
-    enriched = enrich_upcoming(predictor, df, upcoming, tour)
+    if enriched is None:
+        enriched = enrich_upcoming(predictor, df, upcoming, tour)
     bases = []
     for row in enriched:
         base = {
@@ -725,13 +728,21 @@ def grade(tour: str, df: pd.DataFrame) -> dict:
     return out
 
 
-def log_and_grade(tour: str, predictor, df: pd.DataFrame) -> dict:
+def log_and_grade(tour: str, predictor, df: pd.DataFrame, *,
+                  enriched: list[dict] | None = None) -> dict:
     """Pipeline entry point: log today's forecasts, then (re)grade the whole log."""
     # Hour-granular timestamps make snapshot retries idempotent while retaining the exact
     # quote-time ordering the Kalshi ledger needs. Older date-only lines remain valid.
     as_of = datetime.now(UTC).replace(minute=0, second=0, microsecond=0).isoformat()
-    n = log_forecasts(tour, predictor, df, load_upcoming(tour), as_of)
-    out = grade(tour, df)
+    with timed(tour, "tracking.total"):
+        with timed(tour, "tracking.log"):
+            n = log_forecasts(
+                tour, predictor, df,
+                None if enriched is not None else load_upcoming(tour),
+                as_of, enriched=enriched,
+            )
+        with timed(tour, "tracking.grade"):
+            out = grade(tour, df)
     mf = out["matchForecasts"]
     print(f"  track/{tour}: +{n} logged, {mf['graded']} graded / {mf['pending']} pending; "
           f"tournament odds graded for {out['tournamentOdds']['events']} event(s)")

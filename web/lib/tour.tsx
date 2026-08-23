@@ -198,6 +198,39 @@ export function useData<T>(file: string): { data: T | null; loading: boolean; er
   };
 }
 
+/** Fetch a dynamic list of artifacts for the active tour through the same generation-aware
+    cache as `useData`. One hook owns the whole list, so index-declared shard membership can
+    change without changing React hook order. */
+export function useDataFiles<T>(files: string[], enabled = true): {
+  data: T[] | null; loading: boolean; error: boolean;
+} {
+  const { tour } = useTour();
+  const meta = useTourMeta(tour);
+  const fileKey = files.join("\u0000");
+  const requestKey = enabled && meta.generation
+    ? `${tour}\u0000${meta.generation}\u0000${fileKey}` : "";
+  const [state, setState] = useState<{ key: string; data: T[] | null; error: boolean }>({
+    key: "", data: null, error: false,
+  });
+  useEffect(() => {
+    if (!requestKey) return;
+    let live = true;
+    Promise.all(files.map((file) => loadJson(`${BASE}/data/${tour}/${file}`)))
+      .then((rows) => {
+        if (live) setState({ key: requestKey, data: rows as T[], error: false });
+      })
+      .catch(() => {
+        if (live) setState({ key: requestKey, data: null, error: true });
+      });
+    return () => { live = false; };
+  }, [files, requestKey, tour]);
+  if (!enabled) return { data: null, loading: false, error: false };
+  if (meta.loading || !meta.generation || state.key !== requestKey) {
+    return { data: null, loading: true, error: meta.error };
+  }
+  return { data: state.data, loading: false, error: meta.error || state.error };
+}
+
 /** Fetch a JSON artifact by path under /data/, tour-agnostic — "health.json" for the
     root report or an explicit "atp/track.json". Used by the (hidden) /health page,
     which shows both tours at once regardless of the site's tour toggle. */

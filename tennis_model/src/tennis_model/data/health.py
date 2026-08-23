@@ -21,7 +21,8 @@ on produced-output integrity problems (not source freshness), so an internally-i
 build (e.g. impossible reach odds, a live event naming a champion) can never reach the site;
 a failure keeps the last good deploy live. It never writes health.json.
 
-Run:  PYTHONPATH=src python -m tennis_model.data.health [--strict | --issue-body | --gate]
+Run:  PYTHONPATH=src python -m tennis_model.data.health
+      [--strict | --issue-body | --gate [--gate-report PATH]]
 """
 
 from __future__ import annotations
@@ -36,6 +37,7 @@ import shutil
 import urllib.parse
 from collections import Counter
 from datetime import UTC, datetime
+from pathlib import Path
 
 import pandas as pd
 
@@ -63,6 +65,7 @@ from ..config import (
     SURFACE_MAP,
     TOURS,
     WEB_DATA_DIR,
+    WTA_DUAL_STATE_GATE_THRESHOLD,
     fresh_dir,
     historical_dir,
     live_dir,
@@ -76,6 +79,20 @@ from .charting import _GENDER, CHARTING_DIR
 from .names import name_key
 from .results import load_matches
 from .surface import LEVEL_VOCAB
+
+
+def _write_json_atomic(path, payload: object) -> None:
+    """Write JSON without ever exposing a partial file to the next workflow step."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    try:
+        tmp.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        os.replace(tmp, path)
+    finally:
+        try:
+            tmp.unlink(missing_ok=True)
+        except OSError:
+            pass
 
 
 def _offseason(now: pd.Timestamp) -> bool:
@@ -168,15 +185,66 @@ def _health_input_fingerprint(tour: str) -> str:
     for root in (historical_dir(tour), stats_dir(tour), fresh_dir(tour),
                  lower_dir(tour), live_dir(tour)):
         files.extend(root.glob("*.csv"))
+    # A total ESPN failure intentionally retains every CSV. The receipt must still bust a
+    # same-day source manifest or that successful old manifest would mask today's outage.
+    files.append(live_dir(tour) / "espn_acquisition.json")
     files.append(CHARTING_DIR / f"charting-{_GENDER[tour]}-stats-Overview.csv")
     rows = []
     for path in sorted(set(files)):
         try:
             st = path.stat()
         except OSError:
+            if path.name == "espn_acquisition.json":
+                rows.append(f"{path}:missing")
             continue
         rows.append(f"{path}:{st.st_size}:{st.st_mtime_ns}")
     return hashlib.sha256("\n".join(rows).encode()).hexdigest()
+
+
+def _espn_acquisition(tour: str) -> dict:
+    """Load and minimally validate the same-run ESPN acquisition receipt."""
+    path = live_dir(tour) / "espn_acquisition.json"
+    if not path.exists():
+        return {"status": "missing"}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        queries = payload.get("queries")
+        overlay = payload.get("overlay")
+        allowed = {"success", "success_empty", "partial_query_failure",
+                   "total_transport_failure"}
+        if (not isinstance(payload, dict)
+                or payload.get("schema") != "espn-acquisition-v1"
+                or payload.get("tour") != tour
+                or payload.get("status") not in allowed
+                or not isinstance(queries, dict)
+                or not all(_plain_int(queries.get(key)) and queries[key] >= 0
+                           for key in ("attempted", "succeeded", "failed"))
+                or queries["attempted"] < 1
+                or queries["attempted"] != queries["succeeded"] + queries["failed"]
+                or not _plain_int(payload.get("eventCount"))
+                or payload["eventCount"] < 0
+                or not isinstance(overlay, dict)
+                or overlay.get("status") not in {
+                    "updated", "partially_updated", "retained_last_good", "unavailable",
+                }
+                or not isinstance(overlay.get("updatedFiles"), list)
+                or not isinstance(overlay.get("retainedFiles"), list)):
+            raise ValueError("receipt contract mismatch")
+        status = payload["status"]
+        attempted, succeeded, failed = (queries[key]
+                                         for key in ("attempted", "succeeded", "failed"))
+        events = payload["eventCount"]
+        consistent = {
+            "success": failed == 0 and succeeded == attempted and events > 0,
+            "success_empty": failed == 0 and succeeded == attempted and events == 0,
+            "partial_query_failure": 0 < failed < attempted and succeeded > 0,
+            "total_transport_failure": failed == attempted and succeeded == 0,
+        }[status]
+        if not consistent:
+            raise ValueError("receipt status/count mismatch")
+        return payload
+    except (OSError, ValueError, AttributeError, TypeError):
+        return {"status": "malformed"}
 
 
 def _tour_health_from_frame(tour: str, df: pd.DataFrame, now: pd.Timestamp) -> dict:
@@ -202,6 +270,7 @@ def _tour_health_from_frame(tour: str, df: pd.DataFrame, now: pd.Timestamp) -> d
         "fresh_age_days": int((now - fr_max).days) if fr_max is not None else None,
         "charting_date_max": str(ch_max.date()) if ch_max is not None else None,
         "charting_age_days": int((now - ch_max).days) if ch_max is not None else None,
+        "espn_acquisition": _espn_acquisition(tour),
     }
 
 
@@ -351,6 +420,54 @@ def source_checks(tour: str, h: dict, now: pd.Timestamp) -> list[dict]:
               else None),
         problem=(f"{tour}: charting files missing/unreadable (style features degraded)"
                  if ch_age is None else None)))
+    acquisition = h.get("espn_acquisition")
+    if isinstance(acquisition, dict):
+        status = acquisition.get("status")
+        queries = acquisition.get("queries") if isinstance(acquisition.get("queries"), dict) else {}
+        attempted = queries.get("attempted")
+        failed = queries.get("failed")
+        overlay = acquisition.get("overlay") if isinstance(acquisition.get("overlay"), dict) else {}
+        overlay_status = overlay.get("status")
+        retained = overlay_status == "retained_last_good"
+        problem = None
+        note = None
+        if status == "malformed":
+            problem = f"{tour}: ESPN scoreboard acquisition receipt is malformed/incompatible"
+        elif status == "total_transport_failure":
+            disposition = ("retained last-good live overlay" if retained
+                           else "no prior live overlay available")
+            problem = (f"{tour}: ESPN scoreboard acquisition failed for all {attempted} queries "
+                       f"— {disposition}")
+        elif overlay.get("processingFailureType"):
+            if overlay_status == "partially_updated":
+                disposition = "left an explicitly partial overlay update"
+            else:
+                disposition = ("retained last-good live overlay" if retained
+                               else "no prior live overlay available")
+            problem = (f"{tour}: ESPN live overlay processing failed after acquisition "
+                       f"({overlay['processingFailureType']}) — {disposition}")
+        elif status == "partial_query_failure":
+            succeeded = queries.get("succeeded")
+            if (_plain_int(succeeded) and _plain_int(failed) and failed >= succeeded):
+                if overlay_status == "partially_updated":
+                    disposition = "left an explicitly partial overlay update"
+                elif overlay_status == "updated":
+                    disposition = "wrote a degraded live overlay"
+                else:
+                    disposition = ("retained last-good live overlay" if retained
+                                   else "no prior live overlay available")
+                problem = (f"{tour}: ESPN scoreboard acquisition severely degraded "
+                           f"({failed} of {attempted} queries failed) — {disposition}")
+            else:
+                note = (f"ESPN answered {succeeded} of {attempted} scoreboard queries; "
+                        f"{failed} failed query(s) are recorded")
+        elif status == "success_empty":
+            note = "ESPN answered every scoreboard query; the acquisition window contained 0 events"
+        elif status == "missing":
+            note = "receipt not present in this legacy cache; the next data refresh will create it"
+        rows.append(row(
+            "espn_acquisition", "ESPN scoreboard acquisition", failed, 0,
+            unit="", date=acquisition.get("completedAt"), note=note, problem=problem))
     return rows
 
 
@@ -363,7 +480,7 @@ def problems(tour: str, h: dict, now: pd.Timestamp) -> list[str]:
 # ---------------------------------------------------------------------------
 # The web reads these per tour; the first group must always exist and parse, the second
 # is best-effort (accuracy is backtest-only, track needs graded forecasts).
-_REQUIRED_OUTPUTS = ("meta", "players", "tournaments", "event_coverage", "brackets", "upcoming",
+_REQUIRED_OUTPUTS = ("meta", "players", "tournaments", "event_coverage", "brackets", "upcoming-index",
                      "matrix-index", "ratings_history", "profile-index", "draws", "fixtures", "method",
                      "scenario-index", "performance")
 _OPTIONAL_OUTPUTS = ("accuracy", "track", "market")
@@ -400,7 +517,7 @@ _GATE_ADVISORY = (
     "same event more than once",   # YoY sponsor-rename / dedup split (schedule cosmetic)
     "one event under two names",
     "no live/upcoming event",      # a genuine quiet week can leave the board thin
-    "is empty",                    # tournaments.json / upcoming.json empty
+    "is empty",                    # tournaments.json / reconstructed upcoming feed empty
     "liveRank",                    # rankings source drifted (site still correct on model odds)
     "outputs last built",          # build-age; can't legitimately fire right after a build
     "model last retrained",        # retrain liveness; a stale model still forecasts — freezing
@@ -518,7 +635,19 @@ def read_outputs(tour: str) -> dict:
     if isinstance(scenario_index, dict):
         refs.extend(e.get("file") for e in (scenario_index.get("events") or [])
                     if isinstance(e, dict))
-    for filename in sorted(set(refs), key=str):
+    upcoming_index = data.get("upcoming-index")
+    if isinstance(upcoming_index, dict):
+        for event in upcoming_index.get("events") or []:
+            if isinstance(event, dict):
+                refs.extend((event.get("file"), event.get("evidenceFile")))
+    unique_refs = []
+    seen_refs = set()
+    for filename in sorted(refs, key=str):
+        marker = (type(filename).__name__, repr(filename))
+        if marker not in seen_refs:
+            seen_refs.add(marker)
+            unique_refs.append(filename)
+    for filename in unique_refs:
         safe = (isinstance(filename, str) and filename.endswith(".json")
                 and "/" not in filename and "\\" not in filename
                 and filename not in (".", ".."))
@@ -534,6 +663,37 @@ def read_outputs(tour: str) -> dict:
                 path.read_text(), parse_constant=_reject_nonfinite)
         except (ValueError, OSError):
             corrupt_files.append(filename)
+    if isinstance(upcoming_index, dict):
+        upcoming = []
+        for event in upcoming_index.get("events") or []:
+            if not isinstance(event, dict):
+                continue
+            event_shard = shards.get(event.get("file"))
+            evidence_shard = shards.get(event.get("evidenceFile"))
+            if not isinstance(event_shard, dict) or not isinstance(evidence_shard, dict):
+                continue
+            details = {
+                detail.get("matchId"): detail
+                for detail in (evidence_shard.get("details") or [])
+                if isinstance(detail, dict) and detail.get("matchId")
+            }
+            for match in event_shard.get("matches") or []:
+                if not isinstance(match, dict):
+                    continue
+                detail = details.get(match.get("matchId")) or {}
+                upcoming.append({**match, **{
+                    key: detail.get(key) for key in ("components", "evidence", "forecast")
+                }})
+        data["upcoming"] = upcoming
+    draw_cache = None
+    draw_cache_path = live_dir(tour) / "tournament_draws.json"
+    if draw_cache_path.exists():
+        try:
+            parsed = json.loads(
+                draw_cache_path.read_text(), parse_constant=_reject_nonfinite)
+            draw_cache = parsed if isinstance(parsed, dict) else None
+        except (ValueError, OSError):
+            draw_cache = None
     forecast = None
     fc = DATA_DIR / "forecast_log" / f"{tour}.jsonl"
     if fc.exists():
@@ -560,11 +720,50 @@ def read_outputs(tour: str) -> dict:
     return {"data": data, "missing": missing, "corrupt": corrupt,
             "shards": shards, "missing_files": missing_files,
             "corrupt_files": corrupt_files,
+            "draw_cache": draw_cache,
             "forecast": forecast, "kalshi_ledger": ledger}
 
 
 def _is_prob(x) -> bool:
     return isinstance(x, (int, float)) and not isinstance(x, bool) and 0.0 <= float(x) <= 1.0
+
+
+def _plain_int(value: object) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def _population_high_water(tour: str, meta: dict, prev: dict | None) -> tuple[int | None, int | None]:
+    """Return the durable accepted match-count baseline and its population version.
+
+    The raw ``matches`` snapshot is allowed to fall so the report describes what actually
+    shipped; this separate high-water pair is not.  A population-version boundary is the
+    sole reset.  Legacy reports migrate from their raw pair so rollout cannot silently grant
+    a one-run amnesty to an already-regressed population.
+    """
+    floor = HEALTH_MIN_MATCHES.get(tour, 0)
+    previous = prev or {}
+    high = previous.get("high_water_matches")
+    high_version = previous.get("high_water_match_population_version")
+    if not (_plain_int(high) and high >= floor and _plain_int(high_version)):
+        high = previous.get("matches")
+        high_version = previous.get("match_population_version")
+        if not (_plain_int(high) and high >= floor and _plain_int(high_version)):
+            high, high_version = None, None
+
+    current = meta.get("matches")
+    current_version = meta.get("matchPopulationVersion")
+    model_version = meta.get("modelPopulationVersion")
+    current_valid = (
+        _plain_int(current) and current >= floor
+        and _plain_int(current_version) and _plain_int(model_version)
+        and current_version == MATCH_POPULATION_VERSION
+        and model_version == current_version
+    )
+    if not current_valid:
+        return high, high_version
+    if high is None or high_version != current_version:
+        return current, current_version
+    return max(high, current), current_version
 
 
 # players.json enrichment fields that must be valid probabilities when present
@@ -1030,6 +1229,69 @@ def _check_scenarios(out: list, tour: str, index: dict, shards: dict,
                     break
 
 
+def _check_upcoming_shards(out: list, tour: str, index: dict, shards: dict) -> None:
+    """Validate the lazy upcoming graph before reconstructed rows reach existing checks."""
+    generation = index.get("generation")
+    events = index.get("events")
+    highlights = index.get("highlights")
+    if (index.get("schema") != "upcoming-v2" or index.get("schemaVersion") != 2
+            or not generation or not isinstance(events, list)
+            or not isinstance(highlights, list)
+            or not isinstance(index.get("count"), int)):
+        out.append(f"{tour}: upcoming-index.json schema/events is malformed")
+        return
+
+    event_files, evidence_files, event_keys = [], [], []
+    base_ids: list[str] = []
+    total = 0
+    for ref in events:
+        if not isinstance(ref, dict):
+            out.append(f"{tour}: upcoming-index.json contains a malformed event reference")
+            continue
+        event_file, evidence_file = ref.get("file"), ref.get("evidenceFile")
+        event_files.append(event_file)
+        evidence_files.append(evidence_file)
+        event_id = str(ref.get("espnId") or "").strip()
+        event_keys.append(("id", event_id) if event_id else ("name", str(ref.get("name") or "")))
+        event_shard, evidence_shard = shards.get(event_file), shards.get(evidence_file)
+        if not isinstance(event_shard, dict) or not isinstance(evidence_shard, dict):
+            continue  # read_outputs reports the exact missing/corrupt filename
+        matches, details = event_shard.get("matches"), evidence_shard.get("details")
+        if (event_shard.get("schema") != "upcoming-event-v1"
+                or evidence_shard.get("schema") != "upcoming-evidence-v1"
+                or event_shard.get("generation") != generation
+                or evidence_shard.get("generation") != generation
+                or not isinstance(matches, list) or not isinstance(details, list)):
+            out.append(f"{tour}: upcoming shards for {ref.get('name')!r} are malformed")
+            continue
+        match_ids = [row.get("matchId") for row in matches if isinstance(row, dict)]
+        detail_ids = [row.get("matchId") for row in details if isinstance(row, dict)]
+        if (len(match_ids) != len(matches) or len(set(match_ids)) != len(match_ids)
+                or any(not isinstance(match_id, str) or not match_id for match_id in match_ids)
+                or len(detail_ids) != len(details) or len(set(detail_ids)) != len(detail_ids)
+                or set(match_ids) != set(detail_ids)):
+            out.append(f"{tour}: upcoming match/detail identities disagree for {ref.get('name')!r}")
+        if ref.get("count") != len(matches):
+            out.append(f"{tour}: upcoming shard count disagrees for {ref.get('name')!r}")
+        base_ids.extend(match_ids)
+        total += len(matches)
+
+    if (len(set(event_files)) != len(event_files) or len(set(evidence_files)) != len(evidence_files)
+            or len(set(event_keys)) != len(event_keys) or any(key[1] == "" for key in event_keys)):
+        out.append(f"{tour}: upcoming-index.json repeats or omits event shard identity")
+    if len(set(base_ids)) != len(base_ids):
+        out.append(f"{tour}: upcoming match identity appears in more than one event shard")
+    if total != index.get("count"):
+        out.append(f"{tour}: upcoming-index.json count={index.get('count')} but shards contain {total}")
+
+    highlight_ids = [row.get("matchId") for row in highlights if isinstance(row, dict)]
+    if (len(highlight_ids) != len(highlights) or len(set(highlight_ids)) != len(highlight_ids)
+            or not set(highlight_ids).issubset(set(base_ids))
+            or any(any(key in row for key in ("components", "evidence", "forecast"))
+                   for row in highlights if isinstance(row, dict))):
+        out.append(f"{tour}: upcoming-index.json highlights are duplicated, unknown, or heavy")
+
+
 def _check_watch_ranking(out: list, tour: str, upcoming: list,
                          scenario_index: object, shards: dict) -> None:
     """Pin the transparent score math and its stable exact-leverage join."""
@@ -1304,8 +1566,8 @@ def _check_brackets(out: list, tour: str, brackets: list, tournaments) -> None:
     tmap = ({_norm_name(t.get("name")): t for t in tournaments
              if isinstance(t, dict) and t.get("name")} if isinstance(tournaments, list) else {})
     seen: set = set()
-    official_attachments: dict[tuple[str, str], set[tuple[str, str]]] = {}
-    for ev in brackets:
+    source_attachments: dict[str, dict] = {}
+    for index, ev in enumerate(brackets):
         if not isinstance(ev, dict):
             out.append(f"{tour}: brackets.json has a non-object entry")
             continue
@@ -1326,6 +1588,12 @@ def _check_brackets(out: list, tour: str, brackets: list, tournaments) -> None:
         # date/player evidence that attached the provider id to this ESPN event.
         source, source_id, source_url = (
             ev.get("drawSource"), ev.get("drawSourceId"), ev.get("drawSourceUrl"))
+        espn_id = str(ev.get("espnId") or "")
+        if espn_id and source in _DRAW_SOURCE_HOSTS and (source_id or source_url):
+            source_attachments[str(index)] = {
+                "name": name, "espnId": espn_id, "source": source,
+                "sourceId": source_id, "sourceUrl": source_url,
+            }
         if source not in _DRAW_SOURCE_HOSTS:
             out.append(f"{tour}: bracket {name!r} has invalid drawSource {source!r}")
         if not source_id:
@@ -1335,12 +1603,8 @@ def _check_brackets(out: list, tour: str, brackets: list, tournaments) -> None:
             out.append(f"{tour}: bracket {name!r} drawSource {source!r} has URL host "
                        f"{host!r} (expected {_DRAW_SOURCE_HOSTS[source]!r})")
         if source in ("atp", "wta"):
-            espn_id = str(ev.get("espnId") or "")
             if not espn_id:
                 out.append(f"{tour}: bracket {name!r} official draw is missing espnId provenance")
-            elif source_id:
-                official_attachments.setdefault((source, str(source_id)), set()).add(
-                    (espn_id, str(name)))
             if source != tour:
                 out.append(f"{tour}: bracket {name!r} uses the other tour's official source {source!r}")
             evidence = ev.get("drawEvidencePlayers")
@@ -1441,11 +1705,9 @@ def _check_brackets(out: list, tour: str, brackets: list, tournaments) -> None:
                            (p for rnd in rounds for m in (rnd.get("matches") or [])
                             for p in (m.get("a"), m.get("b"))))
 
-    for (source, source_id), attachments in official_attachments.items():
-        if len(attachments) > 1:
-            detail = ", ".join(f"{espn_id} ({name})" for espn_id, name in sorted(attachments))
-            out.append(f"{tour}: official draw {source}:{source_id} is attached to multiple ESPN "
-                       f"events: {detail}")
+    from .draws import duplicate_draw_source_attachments
+    for detail in duplicate_draw_source_attachments(source_attachments):
+        out.append(f"{tour}: brackets.json {detail}")
 
     # cross-presence: hasBracket <=> a brackets.json entry (both directions)
     if isinstance(tournaments, list):
@@ -1616,7 +1878,10 @@ def _check_method(out: list, tour: str, method: dict, meta: dict | None) -> None
     """method.json publishes the effective production parameters to the /method page.
     Sanity only — never pin tuned values here (those live in test_export.py); the gate
     catches a build that would render impossible constants or drift from meta.json."""
-    missing = [k for k in ("elo", "serveReturn", "context", "tiers", "combiner", "protocol")
+    required = ["elo", "serveReturn", "context", "tiers", "combiner", "protocol"]
+    if tour == "wta":
+        required.append("stateGate")
+    missing = [k for k in required
                if not isinstance(method.get(k), dict)]
     if missing:
         out.append(f"{tour}: method.json missing section(s) {', '.join(missing)}")
@@ -1642,6 +1907,17 @@ def _check_method(out: list, tour: str, method: dict, meta: dict | None) -> None
         out.append(f"{tour}: method.json featureCount {nfeat} != meta.features {len(feats)}")
     if not isinstance(comb.get("nBag"), int) or comb["nBag"] < 1:
         out.append(f"{tour}: method.json combiner.nBag={comb.get('nBag')!r} invalid")
+    if tour == "wta":
+        gate = method["stateGate"]
+        expected = WTA_DUAL_STATE_GATE_THRESHOLD
+        if gate.get("enabled") is not (expected is not None):
+            out.append(f"{tour}: method.json stateGate.enabled={gate.get('enabled')!r} "
+                       f"does not match config")
+        if gate.get("minMainMatches") != expected:
+            out.append(f"{tour}: method.json stateGate.minMainMatches="
+                       f"{gate.get('minMainMatches')!r} (expected {expected!r})")
+        if gate.get("trainingPopulation") != "main-only":
+            out.append(f"{tour}: method.json stateGate training population is not main-only")
 
 
 def _coverage_summary(coverage: object, tournaments: object) -> dict:
@@ -1737,6 +2013,11 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
         out.append(f"{tour}: referenced artifact {filename!r} missing or unsafe")
     for filename in oc.get("corrupt_files", []):
         out.append(f"{tour}: referenced artifact {filename!r} is unparseable")
+    draw_cache = oc.get("draw_cache")
+    if isinstance(draw_cache, dict):
+        from .draws import duplicate_draw_source_attachments
+        for detail in duplicate_draw_source_attachments(draw_cache):
+            out.append(f"{tour}: tournament_draws.json {detail}")
     offseason = _offseason(now)
 
     meta = data.get("meta")
@@ -1751,20 +2032,32 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
             out.append(f"{tour}: display-only expectation metric leaked into meta.features")
         n = meta.get("matches")
         population_version = meta.get("matchPopulationVersion")
-        if population_version != MATCH_POPULATION_VERSION:
+        if not _plain_int(population_version) or population_version != MATCH_POPULATION_VERSION:
             out.append(f"{tour}: meta.matchPopulationVersion={population_version!r} "
                        f"(expected {MATCH_POPULATION_VERSION})")
         model_population_version = meta.get("modelPopulationVersion")
-        if model_population_version != MATCH_POPULATION_VERSION:
+        if (not _plain_int(model_population_version)
+                or model_population_version != MATCH_POPULATION_VERSION):
             out.append(f"{tour}: meta.modelPopulationVersion={model_population_version!r} "
                        f"does not match current population {MATCH_POPULATION_VERSION}")
+        if tour == "wta":
+            expected_gate = WTA_DUAL_STATE_GATE_THRESHOLD
+            if ("dualStateThreshold" not in meta
+                    or meta.get("dualStateThreshold") != expected_gate):
+                out.append(f"{tour}: meta.dualStateThreshold="
+                           f"{meta.get('dualStateThreshold')!r} (expected {expected_gate!r})")
+            expected_ready = expected_gate is not None
+            if meta.get("dualStateReady") is not expected_ready:
+                out.append(f"{tour}: meta.dualStateReady={meta.get('dualStateReady')!r} "
+                           f"(expected {expected_ready!r})")
         floor = HEALTH_MIN_MATCHES.get(tour, 0)
-        if not isinstance(n, int) or n < floor:
+        if not _plain_int(n) or n < floor:
             out.append(f"{tour}: meta.matches {n} below floor {floor}")
-        elif (isinstance(prev.get("matches"), int)
-              and prev.get("match_population_version") == population_version
-              and n < prev["matches"] - 50):
-            out.append(f"{tour}: meta.matches dropped {prev['matches']} -> {n}")
+        else:
+            high, high_version = _population_high_water(tour, meta, prev)
+            if (high_version == population_version == model_population_version
+                    and _plain_int(high) and n < high - 50):
+                out.append(f"{tour}: meta.matches dropped {high} -> {n}")
         if tour == "wta":
             wta125 = meta.get("wta125Matches")
             if not isinstance(wta125, int) or isinstance(wta125, bool):
@@ -1922,15 +2215,19 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
     if isinstance(scenario_index, dict):
         _check_scenarios(out, tour, scenario_index, oc.get("shards") or {}, br)
 
+    upcoming_index = data.get("upcoming-index")
+    if isinstance(upcoming_index, dict):
+        _check_upcoming_shards(out, tour, upcoming_index, oc.get("shards") or {})
+
     up = data.get("upcoming")
     if isinstance(up, list):
         if not up and not offseason:
-            out.append(f"{tour}: upcoming.json is empty")
+            out.append(f"{tour}: upcoming feed is empty")
         for m in up:
             if m.get("playerA") and m.get("playerA") == m.get("playerB"):
-                out.append(f"{tour}: upcoming.json row has identical players ({m.get('playerA')!r})")
+                out.append(f"{tour}: upcoming feed row has identical players ({m.get('playerA')!r})")
             if not _is_prob(m.get("pA")):
-                out.append(f"{tour}: upcoming.json pA={m.get('pA')!r} out of [0,1]")
+                out.append(f"{tour}: upcoming feed pA={m.get('pA')!r} out of [0,1]")
             components = m.get("components")
             if (not isinstance(components, dict)
                     or set(components) != {"eloBlend", "pointModel", "combiner"}
@@ -1954,7 +2251,7 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
                     out.append(f"{tour}: upcoming match on {m.get('date')} falls outside "
                                f"{event_name!r} event bounds {start.date()}..{end.date()} "
                                f"(espnId {eid})")
-        _flag_placeholders(out, tour, "upcoming.json",
+        _flag_placeholders(out, tour, "upcoming feed",
                            (n for m in up for n in (m.get("playerA"), m.get("playerB"))))
         _check_watch_ranking(out, tour, up, scenario_index, oc.get("shards") or {})
 
@@ -2126,9 +2423,14 @@ def main() -> int:
                     help="pre-deploy gate: exit non-zero on any produced-OUTPUT integrity "
                          "problem (not source freshness / run-over-run deltas); does not write "
                          "health.json — run BEFORE deploy so a wrong build can't ship")
+    ap.add_argument("--gate-report", type=Path,
+                    help="with --gate, atomically write a structured blocking/advisory report")
     args = ap.parse_args()
 
     health_path = OUTPUT_DIR / "health.json"
+
+    if args.gate_report is not None and not args.gate:
+        ap.error("--gate-report requires --gate")
 
     if args.issue_body:
         if not health_path.exists():
@@ -2149,21 +2451,42 @@ def main() -> int:
         # sentinel's prev-snapshot/issue flow untouched). A failure keeps the last good deploy
         # live rather than shipping a wrong one; a stale-but-correct site beats a fresh-wrong one.
         now = pd.Timestamp(datetime.now(UTC).date())
-        blocking: list[str] = []
+        blocking: list[dict[str, str]] = []
+        advisory: list[dict[str, str]] = []
         outs = {tour: read_outputs(tour) for tour in TOURS}
         for tour in TOURS:
             for pr in output_problems(tour, outs[tour], now, prev=None):
                 if _gate_blocks(pr):
-                    blocking.append(pr)
+                    blocking.append({"scope": tour, "problem": pr})
                     print(f"  GATE/{tour}: BLOCK {pr}")
                 else:
+                    advisory.append({"scope": tour, "problem": pr})
                     print(f"  GATE/{tour}: warn  {pr}  (advisory — post-deploy sentinel handles it)")
         for pr in cross_tour_problems(outs):
             if _gate_blocks(pr):
-                blocking.append(pr)
+                blocking.append({"scope": "cross", "problem": pr})
                 print(f"  GATE/cross: BLOCK {pr}")
             else:
+                advisory.append({"scope": "cross", "problem": pr})
                 print(f"  GATE/cross: warn  {pr}  (advisory — post-deploy sentinel handles it)")
+        if args.gate_report is not None:
+            try:
+                sentinel_paths = {
+                    health_path.resolve(),
+                    (WEB_DATA_DIR / "health.json").resolve(),
+                }
+                if args.gate_report.resolve() in sentinel_paths:
+                    raise ValueError("gate report path must not alias either health.json sentinel")
+                _write_json_atomic(args.gate_report, {
+                    "schema": "predeploy-gate-v1",
+                    "generatedAt": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    "ok": not blocking,
+                    "blocking": blocking,
+                    "advisory": advisory,
+                })
+            except (OSError, ValueError) as exc:
+                print(f"::error::could not write structured gate report: {exc}")
+                return 1
         if blocking:
             print(f"::error::pre-deploy integrity gate failed — {len(blocking)} blocking problem(s); "
                   f"deploy blocked, last good deploy stays live")
@@ -2196,11 +2519,14 @@ def main() -> int:
         oc = outs[tour]
         op = output_problems(tour, oc, now, prev_out) + (cross if tour == TOURS[0] else [])
         meta = oc["data"].get("meta") or {}
+        high_water, high_water_version = _population_high_water(tour, meta, prev_out)
         h["checks"] = checks
         h["problems"] = p
         h["output"] = {
             "matches": meta.get("matches"),
             "match_population_version": meta.get("matchPopulationVersion"),
+            "high_water_matches": high_water,
+            "high_water_match_population_version": high_water_version,
             "model_population_version": meta.get("modelPopulationVersion"),
             "wta125_matches": meta.get("wta125Matches"),
             "excluded_wta125_matches": meta.get("excludedWta125Matches"),
@@ -2230,8 +2556,7 @@ def main() -> int:
                            for p in (t.get("problems") or []) + ((t.get("output") or {}).get("problems") or []))
     report["problems_changed"] = sorted(all_problems) != prev_problems
 
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    health_path.write_text(json.dumps(report, indent=2))
+    _write_json_atomic(health_path, report)
     # Mirror for the (hidden) /health page — the CI check step runs before the site
     # build, so the deploy ships this run's report. Best-effort: a checkout without
     # web/ (or a read-only mount) must never break the sentinel itself.

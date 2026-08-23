@@ -14,6 +14,7 @@ paged, and how?). Runnable directly (`python tests/test_workflow_alerts.py`) or 
 
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import subprocess
@@ -26,12 +27,15 @@ import pytest
 REPO = Path(__file__).resolve().parents[2]
 SCRIPT = REPO / ".github" / "scripts" / "report-deploy-health.sh"
 DATA_SCRIPT = REPO / ".github" / "scripts" / "report-data-health.sh"
+PIPELINE_SCRIPT = REPO / ".github" / "scripts" / "report-pipeline-health.sh"
+WATCHDOG_SCRIPT = REPO / ".github" / "scripts" / "report-watchdog.sh"
 MODE_SCRIPT = REPO / ".github" / "scripts" / "decide-mode.sh"
 SCOPE_SCRIPT = REPO / ".github" / "scripts" / "decide-push-scope.sh"
 ALIAS_SCRIPT = REPO / ".github" / "scripts" / "open-alias-pr.sh"
 WORKFLOW = REPO / ".github" / "workflows" / "refresh.yml"
 ALIAS_WORKFLOW = REPO / ".github" / "workflows" / "propose-aliases.yml"
 TEST_WORKFLOW = REPO / ".github" / "workflows" / "test.yml"
+WATCHDOG_WORKFLOW = REPO / ".github" / "workflows" / "watchdog.yml"
 
 # Windows dev boxes may lack bash; CI (ubuntu-latest) never does, which is where it counts.
 _BASH = shutil.which("bash")
@@ -41,6 +45,14 @@ pytestmark = pytest.mark.skipif(_BASH is None, reason="bash unavailable (non-CI 
 # redded run 30106835566 after a perfectly clean deploy.
 _GH_STUB = """#!/usr/bin/env bash
 echo "$1 $2" >> "$GH_CALLS"
+if [ "$1" = "api" ]; then
+  if [ "${GH_FAIL_API:-}" = "1" ]; then
+    echo 'non-200 OK status code: 504 Gateway Timeout' >&2
+    exit 1
+  fi
+  echo "${FAKE_LAST_SUCCESS:-}"
+  exit 0
+fi
 if [ "$1 $2" = "pr create" ] && [ "${GH_FAIL_PR:-}" = "1" ]; then
   echo 'pull request create failed: GraphQL: GitHub Actions is not permitted to create or approve pull requests (createPullRequest)' >&2
   exit 1
@@ -50,7 +62,15 @@ if [ "$1 $2" = "issue list" ]; then
     echo 'non-200 OK status code: 504 Gateway Timeout' >&2
     exit 1
   fi
-  echo "$FAKE_EXISTING"
+  case "$*" in
+    *pipeline-health-full*) echo "${FAKE_PIPELINE_FULL:-$FAKE_EXISTING}" ;;
+    *pipeline-health-quick-data*) echo "${FAKE_PIPELINE_QUICK_DATA:-$FAKE_EXISTING}" ;;
+    *pipeline-health-quick-web*) echo "${FAKE_PIPELINE_QUICK_WEB:-$FAKE_EXISTING}" ;;
+    *pipeline-health-push-tests*) echo "${FAKE_PIPELINE_PUSH_TESTS:-$FAKE_EXISTING}" ;;
+    *pipeline-health-workflow*) echo "${FAKE_PIPELINE_WORKFLOW:-$FAKE_EXISTING}" ;;
+    *watchdog*) echo "${FAKE_WATCHDOG_EXISTING:-$FAKE_EXISTING}" ;;
+    *) echo "$FAKE_EXISTING" ;;
+  esac
 fi
 exit 0
 """
@@ -99,6 +119,98 @@ def _run_data(ok: str, existing: str = "", mode: str = "full", changed: str = "T
         # the real command needs the package + a built health.json; the body content is
         # not what this file tests (the branch logic is)
         "HEALTH_BODY_CMD": "echo fake-health-body",
+    }, existing=existing, fail_list=fail_list)
+
+
+def _run_with_step_output(script: Path, env: dict, *, existing: str = "", fail_list: bool = False):
+    with tempfile.NamedTemporaryFile("w", delete=False, encoding="utf-8") as f:
+        output_path = f.name
+    try:
+        code, calls = _run_script(
+            script, {**env, "GITHUB_OUTPUT": output_path}, existing=existing,
+            fail_list=fail_list)
+        output = Path(output_path).read_text(encoding="utf-8")
+    finally:
+        os.unlink(output_path)
+    return code, calls, _outputs(output)
+
+
+def _stage_outcomes(kind: str = "full", **overrides: str) -> str:
+    names = ("checkout scope setup_python install_python restore_data bootstrap mode download "
+             "retrain quick gate mirror persist health setup_node restore_next build deploy "
+             "verifydeploy snapshot reportdata reportdeploy savecache failpersist faildownload")
+    values = {name: "skipped" for name in names.split()}
+    for name in ("checkout", "scope", "setup_python", "install_python", "restore_data",
+                 "bootstrap", "mode", "gate", "health", "setup_node", "restore_next",
+                 "build", "deploy", "verifydeploy", "reportdata", "reportdeploy", "savecache"):
+        values[name] = "success"
+    if kind == "full":
+        values.update(download="success", retrain="success", persist="success", snapshot="success")
+    elif kind == "quick-data":
+        values["quick"] = "success"
+    elif kind == "quick-web":
+        values["mirror"] = "success"
+    values.update(overrides)
+    return "\n".join(f"{name}={values[name]}" for name in names.split())
+
+
+def _outputs(value: str) -> dict[str, str]:
+    return dict(line.split("=", 1) for line in value.splitlines() if "=" in line)
+
+
+def _run_pipeline(*, context: str = "refresh", kind: str = "full",
+                  outcomes: str | None = None, existing_by_key: dict[str, str] | None = None,
+                  fail_list: bool = False, extra_env: dict | None = None):
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        (tmp / "gh").write_text(_GH_STUB, encoding="utf-8", newline="\n")
+        (tmp / "gh").chmod(0o755)
+        calls = tmp / "calls.txt"; calls.write_text("", encoding="utf-8")
+        output = tmp / "output"; output.write_text("", encoding="utf-8")
+        mode, scope = {
+            "full": ("full", "data"),
+            "quick-data": ("quick", "data"),
+            "quick-web": ("quick", "web"),
+            "workflow": ("", ""),
+        }[kind]
+        existing_by_key = existing_by_key or {}
+        env = {
+            **os.environ,
+            "PATH": f"{tmp}{os.pathsep}{os.environ.get('PATH', '')}",
+            "GH_CALLS": str(calls), "FAKE_EXISTING": "",
+            "GH_FAIL_LIST": "1" if fail_list else "", "GH_RETRY_SLEEP": "0",
+            "REPORT_CONTEXT": context, "MODE": mode, "PUSH_SCOPE": scope,
+            "DATA_REPRESENTED": "true", "DEPLOY_REPRESENTED": "true",
+            "STAGE_OUTCOMES": outcomes or _stage_outcomes(kind),
+            "GITHUB_OUTPUT": str(output), "RUNNER_TEMP": str(tmp),
+            "GITHUB_RUN_URL": "https://example/run",
+            "FAKE_PIPELINE_FULL": existing_by_key.get("full", ""),
+            "FAKE_PIPELINE_QUICK_DATA": existing_by_key.get("quick-data", ""),
+            "FAKE_PIPELINE_QUICK_WEB": existing_by_key.get("quick-web", ""),
+            "FAKE_PIPELINE_PUSH_TESTS": existing_by_key.get("push-tests", ""),
+            "FAKE_PIPELINE_WORKFLOW": existing_by_key.get("workflow", ""),
+            **(extra_env or {}),
+        }
+        p = subprocess.run([_BASH, str(PIPELINE_SCRIPT)], env=env, capture_output=True,
+                           text=True, timeout=60)
+        body = tmp / "pipeline-health-body.md"
+        return (p.returncode,
+                [ln for ln in calls.read_text(encoding="utf-8").splitlines() if ln],
+                output.read_text(encoding="utf-8"),
+                body.read_text(encoding="utf-8") if body.exists() else "",
+                p.stdout + p.stderr)
+
+
+def _run_watchdog(*, last: str = "2026-08-23T10:00:00Z", now: int = 1787482800,
+                  existing: str = "", fail_api: bool = False, fail_list: bool = False,
+                  window: str = "26"):
+    return _run_script(WATCHDOG_SCRIPT, {
+        "GITHUB_REPOSITORY": "owner/repo", "WINDOW_H": window,
+        "NOW_EPOCH": str(now), "FAKE_LAST_SUCCESS": last,
+        "FAKE_WATCHDOG_EXISTING": existing,
+        "GH_FAIL_API": "1" if fail_api else "",
+        "HEALTH_URL": "https://example/health/",
+        "RUNNER_TEMP": tempfile.gettempdir(),
     }, existing=existing, fail_list=fail_list)
 
 
@@ -209,6 +321,24 @@ def test_data_api_outage_on_failing_data_still_reds_but_files_nothing():
     assert "issue create" not in calls and "issue comment" not in calls
 
 
+def test_specialist_reporters_publish_actual_issue_representation():
+    data_env = {"OK": "False", "CHANGED": "True", "MODE": "full",
+                "HEALTH_BODY_CMD": "echo body", "HEALTH_PAGE_URL": "https://example/health"}
+    code, _, output = _run_with_step_output(DATA_SCRIPT, data_env)
+    assert code == 1 and output == {"represented": "true"}
+    code, _, output = _run_with_step_output(DATA_SCRIPT, data_env, fail_list=True)
+    assert code == 1 and output == {"represented": "false"}
+    code, _, output = _run_with_step_output(
+        DATA_SCRIPT, {**data_env, "HEALTH_BODY_CMD": "false"})
+    assert code != 0 and output == {"represented": "false"}
+
+    deploy_env = {"OUTCOME": "failure", "MODE": "full", "SITE_URL": "https://example"}
+    code, _, output = _run_with_step_output(SCRIPT, deploy_env)
+    assert code == 1 and output == {"represented": "true"}
+    code, _, output = _run_with_step_output(SCRIPT, deploy_env, fail_list=True)
+    assert code == 1 and output == {"represented": "false"}
+
+
 # --- the data-health alert matrix (was inline in refresh.yml, untested) -------------------
 
 def test_data_health_ok_with_no_issue_is_quiet():
@@ -253,6 +383,214 @@ def test_data_health_standing_failure_comments_once_when_the_problem_set_changes
     code, calls = _run_data("False", existing="9", mode="quick", changed="True")
     assert code == 0
     assert calls == ["label create", "issue list", "issue comment"]
+
+
+# --- pipeline/workflow failures that the two specialist reporters do not own -------------
+
+def test_pipeline_reporter_accepts_each_expected_run_shape():
+    for kind in ("full", "quick-data", "quick-web"):
+        code, calls, output, _, log = _run_pipeline(kind=kind)
+        assert code == 0, (kind, log)
+        assert _outputs(output) == {"handled": "true", "state": "healthy"}
+        assert calls == ["label create", "label create", "issue list"]
+
+
+def test_pipeline_failure_opens_a_mode_keyed_issue_with_gate_evidence():
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False,
+                                     encoding="utf-8", newline="\n") as f:
+        f.write('{"schema":"predeploy-gate-v1","blocking":[{"problem":"bad odds"}]}')
+        report = f.name
+    try:
+        outcomes = _stage_outcomes("full", gate="failure", health="skipped", build="skipped",
+                                   deploy="skipped", verifydeploy="skipped",
+                                   reportdata="skipped", reportdeploy="success")
+        code, calls, output, body, _ = _run_pipeline(
+            kind="full", outcomes=outcomes, extra_env={"GATE_REPORT": report})
+    finally:
+        os.unlink(report)
+    assert code == 1 and _outputs(output) == {"handled": "true", "state": "failure"}
+    assert calls == ["label create", "label create", "issue list", "issue create"]
+    assert "pipeline-health-key: full" in body and "gate: failure" in body
+    assert "bad odds" in body
+
+
+def test_pipeline_issue_prioritizes_blockers_in_an_oversized_gate_report():
+    payload = {
+        "schema": "predeploy-gate-v1", "ok": False,
+        "blocking": [{"scope": "atp", "problem": "ROOT BLOCKER"}],
+        "advisory": [{"scope": "atp", "problem": f"advisory-{i}-" + "x" * 300}
+                     for i in range(100)],
+    }
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False,
+                                     encoding="utf-8", newline="\n") as f:
+        json.dump(payload, f)
+        report = f.name
+    try:
+        code, _, _, body, _ = _run_pipeline(
+            kind="full", outcomes=_stage_outcomes("full", gate="failure"),
+            extra_env={"GATE_REPORT": report})
+    finally:
+        os.unlink(report)
+    assert code == 1 and "ROOT BLOCKER" in body
+    assert '"advisoryOmitted": 90' in body
+    assert "advisory-99" not in body
+
+
+def test_standing_pipeline_failure_comments_on_full_but_not_hourly_quick():
+    failed_full = _stage_outcomes("full", retrain="failure")
+    code, calls, output, _, _ = _run_pipeline(
+        kind="full", outcomes=failed_full, existing_by_key={"full": "31"})
+    assert (code == 1 and _outputs(output) == {"handled": "true", "state": "failure"}
+            and calls[-1] == "issue comment")
+    failed_quick = _stage_outcomes("quick-data", quick="failure")
+    code, calls, output, _, _ = _run_pipeline(
+        kind="quick-data", outcomes=failed_quick,
+        existing_by_key={"quick-data": "32"})
+    assert code == 1 and _outputs(output) == {"handled": "true", "state": "failure"}
+    assert "issue comment" not in calls and "issue create" not in calls
+
+
+def test_unexpected_required_skip_is_a_pipeline_failure():
+    outcomes = _stage_outcomes("quick-data", build="skipped")
+    code, _, _, body, _ = _run_pipeline(kind="quick-data", outcomes=outcomes)
+    assert code == 1 and "build: skipped" in body
+
+
+def test_data_and_deploy_failures_keep_their_existing_issue_owners():
+    owned = _stage_outcomes("quick-data", verifydeploy="failure", reportdeploy="failure",
+                              reportdata="failure")
+    code, calls, output, _, log = _run_pipeline(kind="quick-data", outcomes=owned)
+    assert code == 0, log
+    assert _outputs(output) == {"handled": "true", "state": "owned"}
+    assert "issue create" not in calls
+
+
+def test_unrepresented_specialist_reporter_failure_falls_back_to_pipeline_health():
+    data_failed = _stage_outcomes("quick-data", reportdata="failure")
+    code, _, output, body, _ = _run_pipeline(
+        kind="quick-data", outcomes=data_failed, extra_env={"DATA_REPRESENTED": "false"})
+    assert code == 1 and _outputs(output)["state"] == "failure"
+    assert "failed before representing data-health" in body
+
+    deploy_failed = _stage_outcomes("quick-data", verifydeploy="failure",
+                                    reportdeploy="failure")
+    code, _, output, body, _ = _run_pipeline(
+        kind="quick-data", outcomes=deploy_failed,
+        extra_env={"DEPLOY_REPRESENTED": "false"})
+    assert code == 1 and _outputs(output)["state"] == "failure"
+    assert "deploy-health failure was not represented" in body
+
+
+def test_quick_recovery_cannot_close_a_full_pipeline_incident():
+    code, calls, _, _, _ = _run_pipeline(
+        kind="quick-data", existing_by_key={"full": "41"})
+    assert code == 0
+    assert "issue comment" not in calls and "issue close" not in calls
+    code, calls, _, _, _ = _run_pipeline(kind="full", existing_by_key={"full": "41"})
+    assert code == 0 and calls[-2:] == ["issue comment", "issue close"]
+
+
+def test_pipeline_issue_api_unknown_preserves_signal_without_guessing():
+    code, calls, output, _, _ = _run_pipeline(kind="full", fail_list=True)
+    assert code == 0 and _outputs(output) == {"handled": "true", "state": "healthy"}
+    assert calls.count("issue list") == 3 and "issue close" not in calls
+    failed = _stage_outcomes("full", gate="failure")
+    code, calls, output, _, _ = _run_pipeline(kind="full", outcomes=failed, fail_list=True)
+    assert code == 1 and _outputs(output) == {"handled": "false", "state": "failure"}
+    assert "issue create" not in calls and "issue comment" not in calls
+
+
+def test_terminal_reporter_routes_push_test_failures_without_blaming_refresh():
+    code, calls, _, body, _ = _run_pipeline(
+        context="workflow", kind="workflow",
+        extra_env={"EVENT_NAME": "push", "TESTS_RESULT": "failure",
+                   "REFRESH_RESULT": "skipped", "IN_JOB_HANDLED": ""})
+    assert code == 1 and "pipeline-health-key: push-tests" in body
+    assert calls.count("issue create") == 1
+
+
+def test_terminal_reporter_closes_test_incident_then_honours_in_job_handled():
+    code, calls, _, _, _ = _run_pipeline(
+        context="workflow", kind="quick-data", existing_by_key={"push-tests": "52"},
+        extra_env={"EVENT_NAME": "push", "TESTS_RESULT": "success",
+                   "REFRESH_RESULT": "failure", "IN_JOB_HANDLED": "true",
+                   "IN_JOB_STATE": "failure"})
+    assert code == 0
+    assert ["issue comment", "issue close"] == calls[-2:]
+
+
+def test_terminal_reporter_keys_an_unhandled_timeout_by_surviving_mode():
+    code, _, _, body, _ = _run_pipeline(
+        context="workflow", kind="full",
+        extra_env={"EVENT_NAME": "schedule", "TESTS_RESULT": "skipped",
+                   "REFRESH_RESULT": "failure", "IN_JOB_HANDLED": ""})
+    assert code == 1 and "pipeline-health-key: full" in body
+    # A later quick path handled itself and must not touch that full incident.
+    code, calls, _, _, _ = _run_pipeline(
+        context="workflow", kind="quick-data", existing_by_key={"full": "61"},
+        extra_env={"EVENT_NAME": "schedule", "TESTS_RESULT": "skipped",
+                   "REFRESH_RESULT": "success", "IN_JOB_HANDLED": "true",
+                   "IN_JOB_STATE": "healthy"})
+    assert code == 0
+    assert "issue comment" not in calls and "issue close" not in calls
+
+
+def test_terminal_closes_generic_incident_only_after_a_clean_success():
+    common = {"EVENT_NAME": "schedule", "TESTS_RESULT": "skipped",
+              "IN_JOB_HANDLED": "true"}
+    code, calls, _, _, _ = _run_pipeline(
+        context="workflow", kind="workflow", existing_by_key={"workflow": "71"},
+        extra_env={**common, "REFRESH_RESULT": "failure", "IN_JOB_STATE": "failure"})
+    assert code == 0 and "issue close" not in calls
+    code, calls, _, _, _ = _run_pipeline(
+        context="workflow", kind="quick-data", existing_by_key={"workflow": "71"},
+        extra_env={**common, "REFRESH_RESULT": "failure", "IN_JOB_STATE": "owned"})
+    assert code == 0 and "issue close" not in calls       # specialist-owned red
+    code, calls, _, body, _ = _run_pipeline(
+        context="workflow", kind="quick-data",
+        extra_env={**common, "REFRESH_RESULT": "failure", "IN_JOB_STATE": "healthy"})
+    assert code == 1 and calls[-1] == "issue create"
+    assert "post-actions/job result" in body
+    code, calls, _, _, _ = _run_pipeline(
+        context="workflow", kind="quick-data", existing_by_key={"workflow": "71"},
+        extra_env={**common, "REFRESH_RESULT": "success", "IN_JOB_STATE": "healthy"})
+    assert code == 0 and calls[-2:] == ["issue comment", "issue close"]
+
+
+# --- extracted watchdog ---------------------------------------------------------------
+
+def test_watchdog_fresh_closes_and_stale_opens():
+    code, calls = _run_watchdog(last="1970-01-01T00:00:00Z", now=3600,
+                                window="1", existing="7")
+    assert code == 0 and calls[-2:] == ["issue comment", "issue close"]
+    code, calls = _run_watchdog(last="1970-01-01T00:00:00Z", now=3601,
+                                window="0")
+    assert code == 1 and calls[-1] == "issue create"
+    code, calls = _run_watchdog(last="", existing="8")
+    assert code == 1 and calls[-1] == "issue comment"
+    code, _ = _run_watchdog(last="1970-01-01T00:00:00Z", now=26 * 3600, window="26")
+    assert code == 0
+    code, calls = _run_watchdog(last="1970-01-01T00:00:00Z",
+                                now=26 * 3600 + 1, window="26")
+    assert code == 1 and calls[-1] == "issue create"
+
+
+def test_watchdog_transport_unknown_never_claims_a_liveness_failure():
+    code, calls = _run_watchdog(fail_api=True)
+    assert code == 1 and calls == ["api repos/owner/repo/actions/workflows/refresh.yml/runs?status=success&per_page=1"] * 3
+    code, calls = _run_watchdog(last="1970-01-01T00:00:00Z", now=0,
+                                fail_list=True)
+    assert code == 0 and calls.count("issue list") == 3
+    assert "issue close" not in calls
+    code, calls = _run_watchdog(last="", fail_list=True)
+    assert code == 1 and "issue create" not in calls and "issue comment" not in calls
+
+
+def test_watchdog_rejects_malformed_inputs_without_touching_issues():
+    code, calls = _run_watchdog(window="oops")
+    assert code == 1 and calls == []
+    code, calls = _run_watchdog(last="not-a-timestamp")
+    assert code == 1 and all(call.startswith("api ") for call in calls)
 
 
 # --- the scripts must actually be the ones CI runs ---------------------------------------
@@ -440,14 +778,21 @@ def test_workflow_invokes_this_script():
     every test above would keep passing while testing dead code."""
     assert SCRIPT.exists(), f"missing {SCRIPT}"
     assert DATA_SCRIPT.exists(), f"missing {DATA_SCRIPT}"
+    assert PIPELINE_SCRIPT.exists(), f"missing {PIPELINE_SCRIPT}"
+    assert WATCHDOG_SCRIPT.exists(), f"missing {WATCHDOG_SCRIPT}"
     wf = WORKFLOW.read_text(encoding="utf-8")
     assert ".github/scripts/report-deploy-health.sh" in wf
     assert ".github/scripts/report-data-health.sh" in wf
+    assert ".github/scripts/report-pipeline-health.sh" in wf
     assert MODE_SCRIPT.exists(), f"missing {MODE_SCRIPT}"
     assert ".github/scripts/decide-mode.sh" in wf
     assert SCOPE_SCRIPT.exists(), f"missing {SCOPE_SCRIPT}"
     assert ".github/scripts/decide-push-scope.sh" in wf
     assert "if: always()" in wf, "the never-ran guard only matters under if: always()"
+    watchdog = WATCHDOG_WORKFLOW.read_text(encoding="utf-8")
+    assert "actions/checkout@" in watchdog
+    assert "contents: read" in watchdog
+    assert ".github/scripts/report-watchdog.sh" in watchdog
 
 
 def test_live_verifier_pipeline_propagates_failure():
@@ -491,6 +836,21 @@ def test_master_deploy_is_test_gated_and_docs_do_not_trigger_it():
     assert "branches-ignore: [master]" in tests
 
 
+def test_pipeline_reporters_cover_the_job_tail_and_terminal_failures():
+    wf = WORKFLOW.read_text(encoding="utf-8")
+    assert "pipeline_health_handled: ${{ steps.reportpipeline.outputs.handled }}" in wf
+    assert "pipeline_health_state: ${{ steps.reportpipeline.outputs.state }}" in wf
+    assert wf.index("id: savecache") < wf.index("id: reportpipeline")
+    assert "id: reportpipeline\n        if: always()" in wf
+    terminal = wf[wf.index("  report-workflow-health:"):]
+    assert "needs: [tests, refresh]" in terminal
+    assert "if: ${{ always() }}" in terminal
+    assert "IN_JOB_HANDLED: ${{ needs.refresh.outputs.pipeline_health_handled }}" in terminal
+    assert "IN_JOB_STATE: ${{ needs.refresh.outputs.pipeline_health_state }}" in terminal
+    assert "DATA_REPRESENTED: ${{ steps.reportdata.outputs.represented }}" in wf
+    assert "DEPLOY_REPRESENTED: ${{ steps.reportdeploy.outputs.represented }}" in wf
+
+
 def test_web_push_keeps_both_integrity_gates_and_uses_cached_mirror():
     wf = WORKFLOW.read_text(encoding="utf-8")
     assert "steps.scope.outputs.scope != 'web'" in wf
@@ -512,9 +872,11 @@ def test_deploy_inputs_are_cached_and_firebase_tooling_is_immutable():
 def test_no_alert_logic_is_left_inline_in_the_workflow():
     """AGENTS.md: alert branching lives in .github/scripts/ so it is reachable by this
     file. An inline `gh issue create` is by definition untested branching."""
-    wf = WORKFLOW.read_text(encoding="utf-8")
-    for forbidden in ("gh issue create", "gh issue close", "gh issue comment"):
-        assert forbidden not in wf, f"{forbidden!r} is inline in refresh.yml — move it to a script"
+    for path in sorted((REPO / ".github" / "workflows").glob("*.y*ml")):
+        wf = path.read_text(encoding="utf-8")
+        for forbidden in ("gh issue create", "gh issue close", "gh issue comment"):
+            assert forbidden not in wf, \
+                f"{forbidden!r} is inline in {path.name} — move it to a script"
 
 
 # --- the alias proposer's PR script ------------------------------------------------------

@@ -155,3 +155,14 @@ Indexed in [`../lessons.md`](../lessons.md).
   main population, let experimental rows affect only chronological updates, and hard-fail unless
   predictions before the first intervention row are bit-identical. A plausible d±SE table is not a
   substitute for a negative-control period.
+
+- **A feature-row gate does not protect baseline predictions when its shared combiner is
+  retrained.** (2026-08-22, WTA dual-state gate) The first implementation selected enriched
+  feature rows only for cold-start matches, but trained one XGBoost/Platt model on that mixed
+  frame. Gate-protected rows still regressed by −0.00089±0.00014 and both-top-50 matches by
+  −0.00118±0.00025 because the fitted trees and calibration had changed globally. The corrected
+  design fits each fold once on the unchanged main-only baseline and applies enriched state only
+  to eligible test rows; protected probabilities are then bit-identical, while validation improves
+  +0.00098±0.00066. **How to apply:** when a gate promises protection, include the complete fitted
+  path—features, model, and calibration—in the invariant, and assert exact output parity on every
+  protected row rather than inferring safety from routing logic.

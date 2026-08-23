@@ -34,6 +34,7 @@ from ..config import (
     SURFACE_MAP,
     TOURS,
     WIKI_API,
+    WIKI_DRAW_TITLE_OVERRIDES,
     WIKI_DRAW_RETENTION_DAYS,
     WIKI_TITLE_OVERRIDES,
     WIKI_UA,
@@ -135,19 +136,22 @@ def _search_title(query: str, year: int, anchor: str | None, gender: str | None)
     return None
 
 
-def resolve_title(event: str, year: int, tour: str) -> str | None:
+def resolve_title(event: str, year: int, tour: str, espn_id: str | None = None) -> str | None:
     """ESPN event name -> Wikipedia draw-article title, or None if not found.
 
     Slams and combined events split into "Men's singles"/"Women's singles"; tour-only events
     use a plain "Singles" article. We try the tour-specific article first, then the tour-only
     one, via the search API (robust to sponsor names / curly apostrophes), gated on year +
-    a distinctive token + the right tour, with a config override map as the escape hatch."""
-    ov = WIKI_TITLE_OVERRIDES.get(event)
-    if ov:
-        return ov if str(year) in ov else f"{year} {ov}"
+    a distinctive token + the right tour. A generic-only event name cannot safely search:
+    it requires an exact, per-tour ESPN-id locator in ``WIKI_DRAW_TITLE_OVERRIDES``."""
+    override = WIKI_DRAW_TITLE_OVERRIDES.get(tour, {}).get(str(espn_id or ""))
+    if override:
+        return override.format(year=year)
     gword = "Men's singles" if tour == "atp" else "Women's singles"
     clean = " ".join(w for w in event.split() if w.lower() not in _SPONSOR_NOISE)
     anchor = _anchor(clean)
+    if not anchor:
+        return None
     return (_search_title(f"{year} {clean} {gword}", year, anchor, "men" if tour == "atp" else "women")
             or _search_title(f"{year} {clean} singles", year, anchor, None))
 
@@ -240,7 +244,7 @@ def _parse_bracket(wikitext: str) -> dict | None:
 
 def fetch_draw(event: str, year: int, tour: str, meta: dict) -> dict | None:
     """Resolve + parse one event's Wikipedia fallback draw, or ``None``."""
-    title = resolve_title(event, year, tour)
+    title = resolve_title(event, year, tour, str(meta.get("espnId") or "") or None)
     if not title:
         return None
     wt = _wikitext(title)
@@ -336,6 +340,8 @@ def event_meta(event: str, year: int, tour: str) -> tuple[str | None, str | None
     # Sponsor-renamed / brand-new: search directly for the main (non-singles) article.
     clean = " ".join(w for w in event.split() if w.lower() not in _SPONSOR_NOISE)
     anchor = _anchor(clean)
+    if not anchor:
+        return surface, category
     d = _get({"action": "query", "list": "search", "srsearch": f"{year} {clean}", "srlimit": 10})
     fetched = 0
     for h in d.get("query", {}).get("search", []) or []:

@@ -350,3 +350,13 @@ Indexed in [`../lessons.md`](../lessons.md).
   Sunday-night matches crossed midnight UTC and shipped as Monday, preventing exact-date source
   reconciliation. **How to apply:** resolve the venue through a committed IANA-timezone table and
   convert aware timestamps before taking the date; unknown venues retain an explicit UTC fallback.
+
+- **A generic tournament name is not Wikipedia draw identity evidence, and rejecting a cache row
+  is ineffective if retention restores it later.** (2026-08-23, US Open) Searching from `Us Open`
+  supplied no distinctive anchor, so an unrelated Grand Slam result could be accepted and then
+  treated as settled geometry indefinitely. The same bad source survived under two ESPN events,
+  while a later retention pass could resurrect a current row already rejected by the resolver.
+  **How to apply:** require an exact per-tour `espnId` locator when the name has no distinctive
+  anchor; revalidate active Wikipedia source identity before the settled-cache shortcut; never
+  retain a current row that resolution rejected; write an empty cache after the last row is
+  quarantined; and gate duplicate source ids/URLs in the raw cache as well as visible brackets.

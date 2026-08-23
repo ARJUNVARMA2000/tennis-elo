@@ -16,8 +16,11 @@ tournaments are captured too. Best-effort: any failure leaves the existing data 
 from __future__ import annotations
 
 import json
+import os
 import urllib.request
+from collections import Counter
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import pandas as pd
 
@@ -30,6 +33,9 @@ from .timezones import local_date
 # plain HTTP client sends — and took both tours' overlay down mid-Masters. `site.web.api`
 # serves the identical payload under any User-Agent. Do not "simplify" the host back.
 SCOREBOARD = "https://site.web.api.espn.com/apis/site/v2/sports/tennis/{tour}/scoreboard"
+_ACQUISITION_SCHEMA = "espn-acquisition-v1"
+_ACQUISITION_FILE = "espn_acquisition.json"
+_OVERLAY_FILES = ("live.csv", "fields.json", "upcoming.csv")
 
 # ESPN fills an undetermined slot in a scheduled match (opponent awaiting a prior
 # result, or a draw not yet published) with a pseudo-athlete named "TBD" — a
@@ -144,7 +150,15 @@ def _fetch(tour: str, datestr: str | None = None) -> list:
     url = SCOREBOARD.format(tour=tour) + (f"?dates={datestr}&limit=300" if datestr else "?limit=300")
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 tennis_model"})
     with urllib.request.urlopen(req, timeout=30) as r:
-        return json.loads(r.read()).get("events", []) or []
+        payload = json.loads(r.read())
+    if not isinstance(payload, dict) or not isinstance(payload.get("events"), list):
+        raise ValueError("ESPN scoreboard response has no events list")
+    for event in payload["events"]:
+        event_id = event.get("id") if isinstance(event, dict) else None
+        if (not isinstance(event_id, (str, int)) or isinstance(event_id, bool)
+                or not str(event_id).strip()):
+            raise ValueError("ESPN scoreboard response contains an event without a stable id")
+    return payload["events"]
 
 
 def parse_events(events: list, gender: str) -> pd.DataFrame:
@@ -201,36 +215,70 @@ def _gender(tour: str) -> str:
     return "mens" if tour == "atp" else "womens"
 
 
-def fetch_events(tour: str, days_back: int = 14, days_fwd: int = 12) -> list:
-    """Union of the featured event(s) + a per-day sweep over a window (dedup by id).
-
-    The window spans both **past** days (completed results) and **upcoming** days
-    (scheduled matches) so a live event's FULL field is captured — e.g. a Slam's
-    Day-2/3 players, whose matches haven't happened yet, still appear in the draw."""
+def _acquire_events(tour: str, days_back: int = 14, days_fwd: int = 12) \
+        -> tuple[list, dict, Exception | None]:
+    """Run the scoreboard sweep and return events plus its structured acquisition fact."""
+    attempted_at = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     today = datetime.now(UTC).date()
     offsets = range(-days_fwd, days_back + 1)        # negative = upcoming, positive = past
     queries = [None] + [(today - timedelta(days=k)).strftime("%Y%m%d") for k in offsets]
     seen: dict = {}
-    failures: list[Exception] = []
+    failures: list[tuple[str, Exception]] = []
+    succeeded = 0
     for q in queries:
         try:
             for ev in _fetch(tour, q):
-                eid = ev.get("id")
-                if eid and eid not in seen:
+                eid = str(ev["id"])
+                if eid not in seen:
                     seen[eid] = ev
+            succeeded += 1
         except Exception as e:  # noqa: BLE001 — one malformed ESPN query must not kill the scoreboard
-            failures.append(e)
+            failures.append(("featured" if q is None else q, e))
             continue
-    # Tolerating a single bad query is right; tolerating ALL of them is how a transport
-    # outage disguises itself as a quiet week. On 2026-08-04 ESPN started 403-ing this
-    # client and every query in the sweep raised, so the caller saw an empty list and printed
-    # "no completed matches found" for ~13 refresh runs while a Masters draw played out.
-    # An empty return must mean ESPN answered and had nothing, never that nobody answered.
-    if failures and len(failures) == len(queries):
+    events = list(seen.values())
+    if succeeded == 0:
+        status = "total_transport_failure"
+    elif failures:
+        status = "partial_query_failure"
+    elif not events:
+        status = "success_empty"
+    else:
+        status = "success"
+    failure_types = Counter(type(exc).__name__ for _, exc in failures)
+    receipt = {
+        "schema": _ACQUISITION_SCHEMA,
+        "tour": tour,
+        "source": "site.web.api.espn.com",
+        "attemptedAt": attempted_at,
+        "completedAt": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "status": status,
+        "queries": {
+            "attempted": len(queries),
+            "succeeded": succeeded,
+            "failed": len(failures),
+            "featuredSucceeded": not any(key == "featured" for key, _ in failures),
+            "failedKeys": [key for key, _ in failures],
+            "failureTypes": dict(sorted(failure_types.items())),
+        },
+        "eventCount": len(events),
+    }
+    return events, receipt, failures[-1][1] if failures else None
+
+
+def fetch_events(tour: str, days_back: int = 14, days_fwd: int = 12) -> list:
+    """Union featured + dated scoreboard queries; empty means ESPN really answered empty.
+
+    The window spans both past completed results and upcoming scheduled matches. Partial
+    query failures return their union, while a total failure remains distinguishable from a
+    genuinely quiet window.
+    """
+    events, receipt, last_error = _acquire_events(tour, days_back, days_fwd)
+    if receipt["status"] == "total_transport_failure":
+        attempted = receipt["queries"]["attempted"]
         raise ScoreboardUnavailable(
-            f"all {len(queries)} scoreboard queries failed; last: {failures[-1]!r}"
-        ) from failures[-1]
-    return list(seen.values())
+            f"all {attempted} scoreboard queries failed; last: {last_error!r}"
+        ) from last_error
+    return events
 
 
 def fetch_live(tour: str, days_back: int = 14) -> pd.DataFrame:
@@ -333,46 +381,152 @@ def parse_event_meta(events: list) -> dict:
     return out
 
 
+def _receipt_last_good(path: Path) -> str | None:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        value = (payload.get("overlay") or {}).get("lastGoodAt")
+        return value if isinstance(value, str) and value else None
+    except (OSError, ValueError, AttributeError):
+        return None
+
+
+def _write_atomic(path: Path, writer) -> None:
+    """Stage a sibling file and replace only after the complete payload is durable."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    try:
+        writer(tmp)
+        os.replace(tmp, path)
+    finally:
+        try:
+            tmp.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+
+def _write_receipt(path: Path, receipt: dict) -> None:
+    """Atomically publish the fact that health.py consumes later in this same run."""
+    _write_atomic(path, lambda tmp: tmp.write_text(
+        json.dumps(receipt, indent=2), encoding="utf-8"))
+
+
+def _write_frame(path: Path, frame: pd.DataFrame) -> None:
+    _write_atomic(path, lambda tmp: frame.to_csv(tmp, index=False, encoding="utf-8"))
+
+
+def _write_fields(path: Path, fields: dict) -> None:
+    _write_atomic(path, lambda tmp: tmp.write_text(json.dumps(fields), encoding="utf-8"))
+
+
+def _overlay_receipt(directory: Path, before: set[str], updated: list[str],
+                     last_good: str | None, *, processing_failure: Exception | None = None) -> dict:
+    retained = sorted(before - set(updated))
+    if processing_failure is not None:
+        if updated:
+            status = "partially_updated"
+        else:
+            status = "retained_last_good" if retained else "unavailable"
+    elif updated and retained:
+        status = "partially_updated"
+    elif updated:
+        status = "updated"
+    elif retained:
+        status = "retained_last_good"
+    else:
+        status = "unavailable"
+    result = {
+        "status": status,
+        "updatedFiles": sorted(updated),
+        "retainedFiles": retained,
+        "lastGoodAt": last_good,
+    }
+    if processing_failure is not None:
+        result["processingFailureType"] = type(processing_failure).__name__
+    return result
+
+
 def download_live(tours=TOURS) -> dict[str, list]:
     """Refresh live overlays and return each successfully fetched raw ESPN event list.
 
     Complete-draw discovery consumes the same scoreboard window immediately afterward;
-    returning the raw response avoids repeating 27 requests per tour. A tour whose fetch
-    fails is omitted so that the draw layer can make its own best-effort retry."""
+    returning the raw response avoids repeating 28 requests per tour. A total failure is
+    represented by an explicit empty list so that stage retains cached facts without making
+    the same doomed sweep again; the receipt distinguishes that from success-empty."""
     fetched: dict[str, list] = {}
     for tour in tours:
+        d = live_dir(tour)
+        d.mkdir(parents=True, exist_ok=True)
+        receipt_path = d / _ACQUISITION_FILE
+        prior_last_good = _receipt_last_good(receipt_path)
+        before = {name for name in _OVERLAY_FILES if (d / name).exists()}
+        events, receipt, last_error = _acquire_events(tour)
+        if receipt["status"] == "total_transport_failure":
+            # An explicit empty shared result prevents the immediately-following draw stage
+            # from repeating the same 28 doomed requests. Cached draw/live artifacts remain.
+            fetched[tour] = []
+            receipt["overlay"] = _overlay_receipt(d, before, [], prior_last_good)
+            _write_receipt(receipt_path, receipt)
+            attempted = receipt["queries"]["attempted"]
+            print(f"  live/{tour}: ERROR scoreboard unreachable, overlay is now STALE "
+                  f"(all {attempted} queries failed; last: {last_error!r})")
+            continue
+        queries = receipt["queries"]
+        if (receipt["status"] == "partial_query_failure"
+                and queries["failed"] >= queries["succeeded"]):
+            # A majority-failed sweep is an observed outage, not a usable refresh.  Do not
+            # replace a coherent prior overlay with whatever happened to be returned by the
+            # minority of queries, and do not feed that incomplete event set to draw discovery.
+            fetched[tour] = []
+            receipt["overlay"] = _overlay_receipt(d, before, [], prior_last_good)
+            _write_receipt(receipt_path, receipt)
+            print(f"  live/{tour}: ERROR scoreboard severely degraded; retained prior overlay "
+                  f"({queries['failed']} of {queries['attempted']} queries failed)")
+            continue
         try:
-            events = fetch_events(tour)
             fetched[tour] = events
             df = parse_events(events, _gender(tour))
             fields = parse_fields(events, _gender(tour))
             upcoming = parse_upcoming(events, _gender(tour))
-        except ScoreboardUnavailable as e:  # transport is down: say so, don't imply idleness
-            print(f"  live/{tour}: ERROR scoreboard unreachable, overlay is now STALE ({e})")
-            continue
         except Exception as e:  # noqa: BLE001 — live overlay is best-effort, never build-fatal
+            receipt["overlay"] = _overlay_receipt(
+                d, before, [], prior_last_good, processing_failure=e)
+            _write_receipt(receipt_path, receipt)
             print(f"  live/{tour}: skipped ({e})")
             continue
         # Record identity BEFORE the per-file writes, and before any `if` that could skip
         # them: a quiet week with no completed matches still needs its events registered, and
         # a rename must be captured the run it happens or the old name is lost.
         from .events import update_registry
-        update_registry(tour, parse_event_meta(events))
-        d = live_dir(tour)
-        d.mkdir(parents=True, exist_ok=True)
-        if not df.empty:
-            df.to_csv(d / "live.csv", index=False, encoding="utf-8")
-            print(f"  live/{tour}: {len(df)} matches across {df['tourney_name'].nunique()} events "
-                  f"(latest {df['tourney_date'].max()}) -> {d / 'live.csv'}")
-        else:
-            print(f"  live/{tour}: no completed matches found")
-        if fields:
-            (d / "fields.json").write_text(json.dumps(fields), encoding="utf-8")
-            print(f"  live/{tour}: fields for {len(fields)} event(s) -> {d / 'fields.json'}")
-        if not upcoming.empty:
-            upcoming.to_csv(d / "upcoming.csv", index=False, encoding="utf-8")
-            print(f"  upcoming/{tour}: {len(upcoming)} scheduled matchups across "
-                  f"{upcoming['tourney_name'].nunique()} events -> {d / 'upcoming.csv'}")
+        updated: list[str] = []
+        try:
+            update_registry(tour, parse_event_meta(events))
+            if not df.empty:
+                _write_frame(d / "live.csv", df)
+                updated.append("live.csv")
+                print(f"  live/{tour}: {len(df)} matches across {df['tourney_name'].nunique()} events "
+                      f"(latest {df['tourney_date'].max()}) -> {d / 'live.csv'}")
+            else:
+                print(f"  live/{tour}: no completed matches found")
+            if fields:
+                _write_fields(d / "fields.json", fields)
+                updated.append("fields.json")
+                print(f"  live/{tour}: fields for {len(fields)} event(s) -> {d / 'fields.json'}")
+            if not upcoming.empty:
+                _write_frame(d / "upcoming.csv", upcoming)
+                updated.append("upcoming.csv")
+                print(f"  upcoming/{tour}: {len(upcoming)} scheduled matchups across "
+                      f"{upcoming['tourney_name'].nunique()} events -> {d / 'upcoming.csv'}")
+        except Exception as e:  # noqa: BLE001 — preserve artifacts, but make the failure observable
+            receipt["overlay"] = _overlay_receipt(
+                d, before | set(updated), updated, prior_last_good, processing_failure=e)
+            _write_receipt(receipt_path, receipt)
+            print(f"  live/{tour}: overlay write skipped ({e})")
+            continue
+        overlay = _overlay_receipt(d, before, updated, prior_last_good)
+        if overlay["status"] == "updated" and receipt["status"] == "success":
+            overlay["lastGoodAt"] = receipt["completedAt"]
+        receipt["overlay"] = overlay
+        _write_receipt(receipt_path, receipt)
     return fetched
 
 

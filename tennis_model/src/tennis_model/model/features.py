@@ -113,6 +113,12 @@ SYMMETRIC = [
 ]
 FEATURES = ANTISYM + SYMMETRIC
 
+# Pre-registered WTA dual-state gate candidates.  Selection is tune-only (2010-19),
+# after which exactly one threshold is frozen for the 2020+ arbiter.  Keeping this
+# finite list beside the shared gate makes the search auditable and prevents a
+# validation-driven threshold from quietly entering production.
+WTA_DUAL_STATE_GATE_THRESHOLDS = (8, 16, 32, 64)
+
 
 @dataclass(frozen=True)
 class FeatureParams:
@@ -131,6 +137,21 @@ class FeatureParams:
 
 
 DEFAULT_FEAT_PARAMS = FeatureParams()
+
+
+@dataclass(frozen=True)
+class DualStateInputs:
+    """Baseline combiner frame plus complete main-only/enriched inference states."""
+
+    base_features: pd.DataFrame
+    enriched_features: pd.DataFrame
+    elo: object
+    srv: object
+    ctx: object
+    lower_elo: object
+    lower_srv: object
+    lower_ctx: object
+    meta: dict
 
 
 def feat_params_for(tour: str) -> FeatureParams:
@@ -250,6 +271,87 @@ def main_rows(feat: pd.DataFrame) -> pd.DataFrame:
     return feat[feat["draw_level"] == "main"]
 
 
+def use_lower_state(main_matches_a: float, main_matches_b: float,
+                    threshold: int | None) -> bool:
+    """Whether a matchup should use the lower-tier-enriched state bundle.
+
+    The gate depends only on the main-only Elo state's PRE-match career counts, a
+    signal available with identical semantics in the historical walk and the saved
+    predictor.  ``None`` disables the intervention.  Missing/non-finite counts are
+    treated as zero so a genuinely unseen player can benefit from lower-tier history.
+    """
+    if threshold is None:
+        return False
+    if int(threshold) <= 0:
+        raise ValueError("dual-state threshold must be a positive integer or None")
+
+    def _count(value: float) -> float:
+        try:
+            value = float(value)
+        except (TypeError, ValueError):
+            return 0.0
+        return value if np.isfinite(value) and value >= 0 else 0.0
+
+    return min(_count(main_matches_a), _count(main_matches_b)) < int(threshold)
+
+
+def dual_state_gate_mask(base: pd.DataFrame, threshold: int | None) -> np.ndarray:
+    """Vectorised :func:`use_lower_state` over a main-only feature frame."""
+    if threshold is None:
+        return np.zeros(len(base), dtype=bool)
+    if int(threshold) <= 0:
+        raise ValueError("dual-state threshold must be a positive integer or None")
+    required = {"winner_state_matches", "loser_state_matches"}
+    missing = required.difference(base.columns)
+    if missing:
+        raise ValueError(f"dual-state gate is missing main-count columns: {sorted(missing)}")
+    wn = pd.to_numeric(base["winner_state_matches"], errors="coerce").fillna(0.0)
+    ln = pd.to_numeric(base["loser_state_matches"], errors="coerce").fillna(0.0)
+    counts = np.minimum(np.maximum(wn.to_numpy(dtype=float), 0.0),
+                        np.maximum(ln.to_numpy(dtype=float), 0.0))
+    return counts < int(threshold)
+
+
+def select_dual_state_features(base: pd.DataFrame, enriched: pd.DataFrame,
+                               threshold: int | None) -> pd.DataFrame:
+    """Select one COMPLETE state bundle per row while preserving baseline identity.
+
+    ``base`` is walked over main draws only; ``enriched`` is walked over main plus
+    qualifying/WTA-125 state rows and must already be aligned 1:1 to ``base``.  All
+    model inputs and component probabilities come from one arm or the other—never a
+    mixture—while row identity, labels, ranks and the gate's main-only counts remain
+    baseline-owned.  The combiner therefore still trains and scores the exact same
+    main-draw population.
+    """
+    if len(base) != len(enriched):
+        raise ValueError(
+            f"dual-state frames are not row-aligned: {len(base)} base vs "
+            f"{len(enriched)} enriched")
+    identity = ["date", "winner_name", "loser_name", "round_order", "draw_level"]
+    identity += [c for c in ("tourney_id", "round", "match_num", "source_match_id")
+                 if c in base.columns or c in enriched.columns]
+    for column in identity:
+        if column not in base or column not in enriched:
+            raise ValueError(f"dual-state frames are missing identity column {column!r}")
+        left = base[column].reset_index(drop=True)
+        right = enriched[column].reset_index(drop=True)
+        if not left.equals(right):
+            raise ValueError(f"dual-state frames differ at identity column {column!r}")
+
+    out = base.reset_index(drop=True).copy()
+    lower = enriched.reset_index(drop=True)
+    mask = dual_state_gate_mask(out, threshold)
+    state_columns = list(FEATURES) + ["p_blend", "p_point"]
+    missing = [c for c in state_columns if c not in lower]
+    if missing:
+        raise ValueError(f"enriched dual-state frame is missing columns: {missing}")
+    if mask.any():
+        out.loc[mask, state_columns] = lower.loc[mask, state_columns].to_numpy()
+    out["uses_lower_state"] = mask
+    out["dual_state_threshold"] = threshold
+    return out
+
+
 def player_meta(df: pd.DataFrame) -> dict:
     """Latest-known rank points, age, height, hand and country per player.
 
@@ -279,8 +381,53 @@ def build_predictor_inputs(df: pd.DataFrame | None = None, tour: str = "atp"):
     """Everything the TennisPredictor needs: features (for training) + final states + meta."""
     if df is None:
         df = load_matches(tour)
-    f, elo_state, srv_state, ctx_state = _run_all(df)
-    return f, elo_state, srv_state, ctx_state, player_meta(df)
+    actual_tour = str(df["tour"].iloc[0]) if "tour" in df and len(df) else tour
+    # The adopted WTA intervention never turns this legacy helper into the rejected
+    # global lower-state arm.  Callers needing both bundles use
+    # ``build_dual_state_inputs``; generic callers safely receive the main-only model.
+    model_df = (df[df["draw_level"].eq("main")].copy()
+                if actual_tour == "wta"
+                and _config.WTA_DUAL_STATE_GATE_THRESHOLD is not None
+                and "draw_level" in df else df)
+    f, elo_state, srv_state, ctx_state = _run_all(model_df)
+    return f, elo_state, srv_state, ctx_state, player_meta(model_df)
+
+
+def build_dual_state_inputs(main_df: pd.DataFrame, enriched_df: pd.DataFrame,
+                            tour: str = "wta") -> DualStateInputs:
+    """Build production's two WTA state bundles over one row-exact main population.
+
+    The combiner and shared player metadata come exclusively from ``main_df``.
+    ``enriched_df`` may additionally contain qualifying/WTA-125 rows, which update
+    the secondary Elo, serve/return and context walks but never become training or
+    display rows themselves.
+    """
+    if tour != "wta":
+        raise ValueError("dual-state predictor inputs are WTA-only")
+    if "draw_level" not in main_df or not main_df["draw_level"].eq("main").all():
+        raise ValueError("dual-state main_df must contain main-draw rows only")
+    if "draw_level" not in enriched_df:
+        raise ValueError("dual-state enriched_df must carry draw_level")
+
+    base, elo, srv, ctx = _run_all(main_df)
+    enriched, lower_elo, lower_srv, lower_ctx = _run_all(
+        enriched_df, state_only_lower=True)
+    enriched = main_rows(enriched).reset_index(drop=True)
+    base = base.reset_index(drop=True)
+    # Selection with a disabled gate is a cheap row-identity assertion and pins the
+    # complete feature schemas before the two final state objects are serialized.
+    select_dual_state_features(base, enriched, threshold=None)
+    return DualStateInputs(
+        base_features=base,
+        enriched_features=enriched,
+        elo=elo,
+        srv=srv,
+        ctx=ctx,
+        lower_elo=lower_elo,
+        lower_srv=lower_srv,
+        lower_ctx=lower_ctx,
+        meta=player_meta(main_df),
+    )
 
 
 def _assemble(d: pd.DataFrame,
@@ -369,11 +516,21 @@ def _assemble(d: pd.DataFrame,
     f["p_point"] = d["p_point"]
     f["winner_name"] = d["winner_name"]
     f["loser_name"] = d["loser_name"]
+    # Stable audit identity for row-exact A/B pairing.  Player/date/round_order is
+    # insufficient for historical round-robin/bronze rematches (Landshut 1981).
+    for column in ("tourney_id", "round", "match_num", "source_match_id"):
+        if column in d:
+            f[column] = d[column]
     # Audit-only population metadata.  These are deliberately not in FEATURES:
     # they let the data arbiter report lower-ranked/Kalshi slices without giving
     # the combiner a new signal or changing the paired prediction population.
     f["winner_rank"] = pd.to_numeric(d.get("winner_rank"), errors="coerce")
     f["loser_rank"] = pd.to_numeric(d.get("loser_rank"), errors="coerce")
+    # Audit/gate metadata, never model inputs.  On a main-only walk these are the
+    # exact pre-match counts used by the WTA dual-state gate; on an enriched walk
+    # they remain useful diagnostics for the complete state bundle selected above.
+    f["winner_state_matches"] = pd.to_numeric(d["w_n"], errors="coerce").fillna(0.0)
+    f["loser_state_matches"] = pd.to_numeric(d["l_n"], errors="coerce").fillna(0.0)
     # main/qual/chall marker (A5): lower-tier rows feed the walks but are excluded
     # from the arbiter's scored eval set, which must be identical across arms
     f["draw_level"] = d.get("draw_level", "main")

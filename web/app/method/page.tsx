@@ -15,7 +15,7 @@ type Meta = {
 const REPO = "https://github.com/ARJUNVARMA2000/tennis-elo";
 
 const STEPS = [
-  ["Surface-blended Elo", "Every match updates an overall rating plus separate hard, clay and grass ratings — results transfer partially across surfaces, so clay form informs hard-court form — with a dynamic K-factor (new players move fast, veterans settle) and margin-of-victory weighting from games won. At prediction time the overall and surface ratings are blended with a per-tour tuned weight, currently about 60/40 toward the surface rating. ATP ratings also learn from Challenger and qualifying matches, though predictions are trained and scored on tour-level main draws only."],
+  ["Surface-blended Elo", "Every match updates an overall rating plus separate hard, clay and grass ratings — results transfer partially across surfaces, so clay form informs hard-court form — with a dynamic K-factor (new players move fast, veterans settle) and margin-of-victory weighting from games won. At prediction time the overall and surface ratings are blended with a per-tour tuned weight, currently about 60/40 toward the surface rating. ATP ratings learn globally from Challenger and qualifying matches; WTA uses lower-tier history through a cold-start gate, while both combiners remain trained and scored only on tour-level main draws."],
   ["Serve / return point model", "Each player carries a time-decayed serve and return skill, computed per surface and adjusted for the strength of the opponents faced. These feed a hierarchical Markov model (point → game → tiebreak → set → match) that yields a full set-score distribution and handles best-of-3 vs best-of-5 correctly."],
   ["Tactical fingerprints", "From the Match Charting Project, each charted player gets an eight-dimension style profile — serve dominance, placement variety, net play, serve-and-volley rate, aggression, forehand/backhand balance, return depth, break-point clutch — attached as features where available."],
   ["XGBoost combiner", "An ensemble of seed-bagged XGBoost classifiers fuses Elo, the point model, ranking, rest, fatigue, recent form, head-to-head, home advantage, player profile, style and match context (surface, format, tier, round) into one win probability, then Platt-calibrated so the numbers mean what they say. Elo remains the single most important input."],
@@ -180,6 +180,15 @@ function FullMethodology({ m, features }: { m: MethodDoc; features?: string[] })
               ? "There is no Elo-level home-country bonus — home advantage enters the combiner as a feature instead."
               : `A home-country rating bonus of ${fmt(e.homeAdv)} points applies.`}
           </P>
+          {m.stateGate?.enabled && m.stateGate.minMainMatches !== null && (
+            <P>
+              WTA also maintains a separate state enriched by qualifying and 125-level matches from{" "}
+              <Num v={m.stateGate.lowerStateFirstYear ?? 2016} /> onward. It is selected only when either
+              player has fewer than <Num v={m.stateGate.minMainMatches} /> prior main-draw matches; otherwise
+              the main-only Elo, serve/return and context bundle is preserved exactly. The XGBoost combiner
+              is always trained on main draws, so lower-tier rows cannot change its training population.
+            </P>
+          )}
         </div>
       </motion.section>
 

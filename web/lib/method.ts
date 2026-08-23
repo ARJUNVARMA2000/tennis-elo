@@ -21,6 +21,10 @@ export type MethodDoc = {
     surfaceServeShrinkage: number; eventShrinkage: number; pClip: number[];
   };
   context: { fatigueWindowDays: number; layoffDays: number; peakAge: number; winrateWindow: number };
+  stateGate?: {
+    enabled: boolean; minMainMatches: number | null; lowerStateFirstYear: number | null;
+    trainingPopulation: string; enrichedRows: string[];
+  };
   combiner: {
     algorithm: string; nBag: number; calibration: string; earlyStoppingRounds: number;
     xgb: Record<string, number>;

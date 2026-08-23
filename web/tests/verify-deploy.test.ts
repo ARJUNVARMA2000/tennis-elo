@@ -14,6 +14,7 @@ import {
   extractGoogleSiteVerification,
   sitemapCoverageProblems,
   coverageProblems,
+  drawSourceProblems,
   hasProfileContract,
   hasMatchCenterContract,
   hasLiveScheduleContract,
@@ -48,6 +49,22 @@ describe("artifactIndexRefs", () => {
     );
     expect(result.problems).toEqual([]);
     expect(result.files.at(-1)).toMatchObject({ kind: "scenario", file: "scenario-open.json" });
+  });
+
+  it("includes both upcoming event and evidence shards", () => {
+    const result = artifactIndexRefs(
+      { generation: "g", surfaces: { Hard: { 3: "matrix-hard-bo3.json" } } },
+      { generation: "g", profiles: [{ name: "A", file: "profile-a1.json" }] },
+      { schemaVersion: 1, generation: "g", events: [] },
+      { schema: "upcoming-v2", schemaVersion: 2, generation: "u", highlights: [], events: [
+        { name: "Open", file: "upcoming-event-open.json", evidenceFile: "upcoming-evidence-open.json" },
+      ] },
+    );
+    expect(result.problems).toEqual([]);
+    expect(result.files.slice(-2)).toEqual([
+      { kind: "upcoming-event", file: "upcoming-event-open.json", generation: "u", name: "Open" },
+      { kind: "upcoming-evidence", file: "upcoming-evidence-open.json", generation: "u", name: "Open" },
+    ]);
   });
 
   it("rejects unsafe, duplicate, and empty index references", () => {
@@ -364,6 +381,29 @@ describe("coverageProblems", () => {
     expect(problems).toContain("missing expected espn:2-2026");
     expect(problems).toContain("duplicate espn:1-2026");
     expect(problems).toContain("membership differs");
+  });
+});
+
+describe("drawSourceProblems", () => {
+  it("accepts unique source ids and URLs", () => {
+    expect(drawSourceProblems([
+      { espnId: "188-2026", drawSource: "wikipedia", drawSourceId: "Wimbledon",
+        drawSourceUrl: "https://en.wikipedia.org/wiki/Wimbledon" },
+      { espnId: "189-2026", drawSource: "wikipedia", drawSourceId: "US Open",
+        drawSourceUrl: "https://en.wikipedia.org/wiki/US_Open" },
+    ])).toEqual([]);
+  });
+
+  it("rejects one source id or canonical URL on different ESPN events", () => {
+    const problems = drawSourceProblems([
+      { espnId: "188-2026", drawSource: "wikipedia", drawSourceId: "Wimbledon",
+        drawSourceUrl: "https://en.wikipedia.org/wiki/Wimbledon?oldid=1" },
+      { espnId: "189-2026", drawSource: "wikipedia", drawSourceId: "Wimbledon",
+        drawSourceUrl: "https://en.wikipedia.org/wiki/Wimbledon#Draw" },
+    ]).join("; ");
+    expect(problems).toContain("drawSourceId wikipedia:wimbledon");
+    expect(problems).toContain("drawSourceUrl https://en.wikipedia.org/wiki/Wimbledon");
+    expect(problems).toContain("188-2026, 189-2026");
   });
 });
 

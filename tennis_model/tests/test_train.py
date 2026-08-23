@@ -23,6 +23,7 @@ from tennis_model.model.train import (
     _combiner_rows,
     _fit_fold,
     _orient_for_cal,
+    walk_forward_state_gate,
 )
 
 
@@ -163,6 +164,57 @@ def test_fit_fold_bagging():
     # the pipeline's stale-schema guard must still introspect feature names
     assert list(bagged.get_booster().feature_names) == list(FEATURES)
     print("ok test_fit_fold_bagging")
+
+
+def test_state_gate_reuses_one_baseline_combiner_and_keeps_protected_rows_exact(monkeypatch):
+    """The state gate may change eligible test features, never fold training/model state."""
+    import tennis_model.model.train as train_module
+
+    base = _synthetic_feat(n=7000, seed=9)
+    base["p_blend"] = 0.6
+    base["p_point"] = 0.6
+    base["date"] = pd.Timestamp("2020-01-01")
+    base["winner_name"] = "Winner"
+    base["loser_name"] = "Loser"
+    base["draw_level"] = "main"
+    base["winner_state_matches"] = 100
+    base["loser_state_matches"] = 100
+    test = base["year"].eq(2021)
+    eligible = test & (np.arange(len(base)) % 2 == 0)
+    base.loc[eligible, "winner_state_matches"] = 0
+    enriched = base.copy()
+    enriched.loc[:, "elo_diff"] += 1.0
+
+    calls = []
+
+    class _Clf:
+        feature_importances_ = np.zeros(len(FEATURES))
+
+        def predict_proba(self, X):
+            p = np.clip(0.5 + 0.05 * X["elo_diff"].to_numpy(), 0.01, 0.99)
+            return np.column_stack([1.0 - p, p])
+
+    class _Cal:
+        def predict(self, p):
+            return np.asarray(p)
+
+    def _fake_fit(core, cal, **kwargs):
+        calls.append((len(core), len(cal), kwargs["seed"]))
+        return _Clf(), _Cal()
+
+    monkeypatch.setattr(train_module, "_fit_fold", _fake_fit)
+    arms = walk_forward_state_gate(
+        base, enriched, (None, 8), start_test=2021, end_test=2021, n_bag=1,
+        verbose=False)
+    assert len(calls) == 1, "threshold arms must share one fitted baseline combiner"
+    baseline, gated = arms[None], arms[8]
+    used = gated["uses_lower_state"].to_numpy(dtype=bool)
+    assert used.any() and (~used).any()
+    assert np.array_equal(
+        baseline.loc[~used, "p_combiner"].to_numpy(),
+        gated.loc[~used, "p_combiner"].to_numpy()), "protected rows drifted"
+    assert np.all(gated.loc[used, "p_combiner"].to_numpy()
+                  > baseline.loc[used, "p_combiner"].to_numpy())
 
 
 if __name__ == "__main__":
