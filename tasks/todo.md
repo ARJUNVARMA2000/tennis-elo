@@ -5303,3 +5303,22 @@ explicit deploy confirmation.
 - [ ] Push `master` only after explicit confirmation because that push triggers production. Then
       delete the stale remote `alias-proposer/30807596234` branch, fetch/prune, and verify local and
       remote `master` are identical and the remote exposes no non-master branch.
+
+## Production consolidation deployment review (2026-08-23)
+
+Status: complete and live.
+
+- [x] Atomically pushed consolidated `master` and deleted the stale remote
+      `alias-proposer/30807596234` branch. GitHub now exposes only `master`; no local feature branch,
+      worktree change, stash, or remote cleanup ref remains.
+- [x] The first guarded deployment stopped before refresh on two Ruff `I001` import-order findings.
+      Corrected only those imports in `11dbebc`, then passed repository-wide Ruff and all 15 affected
+      draw-Wikipedia tests before retrying. Workflow-health issue #23 opened for the failed attempt
+      and closed automatically after recovery.
+- [x] Corrected production run `32619603718` completed successfully in 16m18s: 698 Python tests,
+      280 web tests, web lint/type-check/static export, quick refresh, pre-deploy integrity, data
+      health, Firebase deployment, live deployment verification, and terminal workflow health all
+      passed.
+- [x] Final live ref check confirmed local and remote `master` both resolved to `11dbebc` before this
+      tasks-only completion note; the remote had no other head. The note itself is excluded from the
+      production trigger by `refresh.yml`'s `tasks/**` path ignore.
