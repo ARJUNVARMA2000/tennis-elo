@@ -19,8 +19,9 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from tennis_model.data import draws_wiki as dw
 from tennis_model.data.draws_wiki import _anchor, _parse_bracket, _rows_from_draws, _slot_name
+
+from tennis_model.data import draws_wiki as dw
 
 # An 8-leaf compact section (Tennis5 = best-of-5) with a seed BYE in the first match
 # (leaves 1,2 absent; the seed rides in RD2-team01), plus a non-compact summary bracket
