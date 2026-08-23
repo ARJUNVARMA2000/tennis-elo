@@ -5278,3 +5278,28 @@ Status: Round 1A-1C complete locally; implementation is not committed or deploye
       tracking ref is `b1b8579` (308 commits, two evaluation-log commits ahead). The extensive dirty
       concurrent worktree remains intact; no commit, branch change, push, issue mutation, or deploy
       was performed.
+
+## Repository consolidation review (2026-08-23)
+
+Status: local consolidation complete; remote deployment and remote-branch cleanup remain paused for
+explicit deploy confirmation.
+
+- [x] Committed the entire reviewed tree as `339287b` (`feat: harden forecasts and production
+      reliability`) and rebased it onto `origin/master` `b1b8579` without losing either remote daily
+      evaluation update.
+- [x] Reconciled the append-only forecast logs by semantic identity: retained remote history through
+      August 22, added 137 unique ATP and 167 unique WTA August 23 records, and suppressed ten later
+      ATP duplicates of already-frozen first sightings. Both logs parse, remain chronological, and
+      have no duplicate semantic keys.
+- [x] Replayed the local ledger rows over the remote ledgers through the production frozen-field
+      policy, retaining valid remote morning quotes and aligned forecasts while adding every newer
+      local ticker. Regenerated the report at 1,518 ATP / 1,526 WTA events and 943 scored matches;
+      post-anchor quotes and settlement disagreements are both zero.
+- [x] Verification after reconciliation: 698 Python tests and 280 web tests pass; the real pre-upload
+      integrity gate, TypeScript, production build (24 routes), Actionlint, ShellCheck, Bash syntax,
+      and `git diff --check` pass. ESLint has zero errors and nine pre-existing hook warnings.
+- [x] Fast-forwarded local `master` to `339287b` and deleted the redundant local
+      `codex/fix-mcp-charting-health` branch. Local `master` is now the only local branch.
+- [ ] Push `master` only after explicit confirmation because that push triggers production. Then
+      delete the stale remote `alias-proposer/30807596234` branch, fetch/prune, and verify local and
+      remote `master` are identical and the remote exposes no non-master branch.
