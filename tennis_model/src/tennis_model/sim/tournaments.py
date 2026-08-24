@@ -33,9 +33,10 @@ from ..config import (
 )
 from ..data.event_coverage import cached_draw_identity_aliases
 from ..data.events import EventResolver, display_event_name, is_event_id, load_registry
+from ..data.participants import draw_is_meaningful, is_real_participant
 from ..data.results import _name_key
 from ..data.surface import resolve_level, resolve_surface_info
-from .bracket import bracket_is_meaningful, bracket_rounds, is_real, oriented_logged, price_bracket
+from .bracket import bracket_is_meaningful, bracket_rounds, oriented_logged, price_bracket
 from .draws import advance_slots, draw_status, live_draw, standard_seed_draw
 
 _KO_ROUNDS = {"R128", "R64", "R32", "R16", "QF", "SF", "F"}
@@ -158,7 +159,8 @@ def _real_players(g: pd.DataFrame) -> set:
     main = _main_draw_ko_rows(g)
     if main.empty:
         return set()
-    return {n for n in set(main["winner_name"]) | set(main["loser_name"]) if is_real(n)}
+    return {n for n in set(main["winner_name"]) | set(main["loser_name"])
+            if is_real_participant(n)}
 
 
 def _real_match_pairs(g: pd.DataFrame) -> set[tuple[str, str]]:
@@ -169,7 +171,7 @@ def _real_match_pairs(g: pd.DataFrame) -> set[tuple[str, str]]:
     return {
         tuple(sorted((_name_key(winner), _name_key(loser))))
         for winner, loser in zip(main["winner_name"], main["loser_name"])
-        if is_real(winner) and is_real(loser)
+        if is_real_participant(winner) and is_real_participant(loser)
     }
 
 
@@ -471,16 +473,16 @@ def recent_tournaments(df: pd.DataFrame, within_days: int = 40,
 def projection_is_meaningful(field_pool) -> bool:
     """Whether title odds over this field describe players, or mostly placeholders.
 
-    Deliberately the SAME majority rule as `sim.bracket.bracket_is_meaningful`, on the same
-    `is_real` predicate: a card whose bracket is withheld as noise must not still publish
-    odds computed from that noise. Unresolved `Qualifier N` slots are unknown to the rating
+    Deliberately the SAME majority rule as `sim.bracket.bracket_is_meaningful`, through the
+    shared participant classifier: a card whose bracket is withheld as noise must not still
+    publish odds computed from that noise. Unresolved entrant slots are unknown to the rating
     pool, so each one enters the simulation at DEFAULT_RATING — on 2026-07-27 the DC Open
     shipped 22 of 24 projected "players" as qualifiers and inflated the real favourite to
     53-56% against a field of ghosts."""
     field = list(field_pool or [])
     if not field:
         return False
-    return sum(1 for x in field if is_real(x)) * 2 >= len(field)
+    return draw_is_meaningful(field)
 
 
 def _simulate_projection(predictor, slots: list, surface: str, best_of: int,
@@ -505,7 +507,7 @@ def _simulate_projection(predictor, slots: list, surface: str, best_of: int,
     exact = exact_from_slots(slots, players, matrix)
     rows = []
     for player in players:
-        if not is_real(player):
+        if not is_real_participant(player):
             continue
         reach = exact["reach"].get(player, {})
         rows.append({
@@ -635,7 +637,7 @@ def _derive_withdrawals(slots: list, field: set, results: list) -> tuple[dict, l
     worse than the phantom it was chasing. Mass absence is treated as a broken feed, not as a
     tournament that emptied out.
     """
-    drawn = {s for s in slots if s is not None and is_real(s)}
+    drawn = {s for s in slots if is_real_participant(s)}
     played = {r.get(k) for r in results for k in ("winner_name", "loser_name")}
     absent = sorted((drawn - field) - played)     # drawn, dropped by the feed, never played
     if not absent or len(absent) > MAX_DERIVED_WITHDRAWALS:

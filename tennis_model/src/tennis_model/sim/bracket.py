@@ -16,17 +16,22 @@ the forecast log. Callers (``sim/tournaments.build_tournaments``) wire those in.
 Slot vocabulary (from ``data.draws`` -> ``_reconcile_draw_names``):
   * a canonical player name (``str``)              -> a real entrant
   * ``None``                                       -> a bye (round 0) or TBD (later round)
-  * ``"Qualifier N"`` / ``"Lucky Loser"`` (``str``) -> an unresolved placeholder
+  * numbered qualifier / lucky-loser / wildcard / alternate / unresolved labels
+                                                  -> an unresolved entrant seat
 """
 
 from __future__ import annotations
 
 from collections import defaultdict
 
+from ..data.participants import (
+    ParticipantContext,
+    classify_participant,
+    draw_is_meaningful,
+    is_real_participant,
+)
 from ..data.results import _name_key
 from .draws import SIZE_NAME
-
-_PLACEHOLDER_PREFIXES = ("qualifier", "lucky loser", "bye", "tbd", "tba")
 
 # The score shipped for a match awarded without play. Standard tennis notation, so the
 # card reads correctly with no client change — and the marker `price_bracket` keys off to
@@ -37,13 +42,14 @@ _WALKOVER = "W/O"
 
 
 def is_real(x: object) -> bool:
-    """A slot that names an actual player (not a bye/TBD ``None`` or a placeholder string)."""
-    return isinstance(x, str) and x.strip() != "" and not _is_placeholder(x)
+    """Compatibility name for the canonical participant classifier's real-player policy."""
+    return is_real_participant(x)
 
 
 def _is_placeholder(x: object) -> bool:
-    s = str(x).strip().lower()
-    return any(s.startswith(p) for p in _PLACEHOLDER_PREFIXES)
+    return classify_participant(
+        x, context=ParticipantContext.OPENING_DRAW_SLOT,
+    ).is_placeholder
 
 
 def _result_index(results) -> dict:
@@ -72,7 +78,7 @@ def _clean_score(s: object) -> str | None:
 
 
 def _resolve_placeholders(slots: list, results) -> list:
-    """Adopt a real identity for a ``"Qualifier N"`` slot when its round-0 opponent has
+    """Adopt a real identity for an unresolved entrant slot when its round-0 opponent has
     exactly one opponent-of-record who is not otherwise in the draw (the qualifier who came
     through). Ambiguous (zero or several) placeholders are left as-is. Display-only: it
     never changes who advanced, only the name shown in an already-decided slot."""
@@ -190,16 +196,16 @@ def bracket_is_meaningful(rounds: list[dict], draw_size: int) -> bool:
     """Whether a bracket is worth showing, or is mostly unresolved placeholders.
 
     An early wiki capture (frozen by the first-capture cache) can name only a couple of
-    direct entrants with the rest still "Qualifier N"; when those unresolved slots also face
+    direct entrants with most other entrant roles unresolved; when those slots also face
     each other there's no named anchor for :func:`_resolve_placeholders`, so the draw stays a
-    wall of "Qualifier" cards. Require a real majority of the entrants to be named — an
+    wall of placeholder cards. Require a real majority of the entrants to be named — an
     all-qualifier bracket is noise, not a draw. A resolved draw (Wimbledon 128/128, or a
     normal event with a handful of qualifiers) clears it comfortably.
     """
     if not rounds or not isinstance(draw_size, int) or draw_size <= 0:
         return False
-    real = sum(1 for m in rounds[0]["matches"] for x in (m.get("a"), m.get("b")) if is_real(x))
-    return real * 2 >= draw_size
+    opening = [x for match in rounds[0]["matches"] for x in (match.get("a"), match.get("b"))]
+    return draw_is_meaningful(opening, total=draw_size)
 
 
 def oriented_logged(index: dict, a: str, b: str) -> float | None:

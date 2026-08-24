@@ -199,7 +199,11 @@ def test_upcoming_dedup_keys_on_the_event_id_when_both_rows_have_one(tmp_path, m
     monkeypatch.setattr(up, "live_dir", lambda tour: tmp_path)
 
     def _overlay(rows):
-        monkeypatch.setattr(draws, "tournament_draw_upcoming_rows", lambda tour: rows)
+        monkeypatch.setattr(
+            draws,
+            "tournament_draw_upcoming_rows",
+            lambda tour, *, status=None: rows,
+        )
 
     (tmp_path / "upcoming.csv").write_text(
         "tourney_name,espn_id,tourney_date,round,playerA,playerB\n"
@@ -227,6 +231,53 @@ def test_upcoming_dedup_keys_on_the_event_id_when_both_rows_have_one(tmp_path, m
     _overlay([])
     assert len(up.load_upcoming("atp")) == 2
     print("ok test_upcoming_dedup_keys_on_the_event_id_when_both_rows_have_one")
+
+
+def test_upcoming_reports_corrupt_or_failed_sources_without_discarding_fallback(
+        tmp_path, monkeypatch):
+    from tennis_model.model import upcoming as up
+
+    from tennis_model.data import draws
+
+    monkeypatch.setattr(up, "live_dir", lambda _tour: tmp_path)
+    (tmp_path / "upcoming.csv").write_text(
+        "tourney_name,espn_id,tourney_date,round,playerA,playerB\n"
+        "Fallback Open,7-2026,2026-08-24,R32,A Player,B Player\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        draws,
+        "tournament_draw_upcoming_rows",
+        lambda _tour, *, status=None: (
+            _ for _ in ()
+        ).throw(RuntimeError("draw provider unavailable")),
+    )
+    status: dict = {}
+    frame = up.load_upcoming("atp", status=status)
+    assert frame["tourney_name"].tolist() == ["Fallback Open"]
+    assert status == {
+        "failures": [{"source": "complete-draw", "errorType": "RuntimeError"}]
+    }
+
+    (tmp_path / "upcoming.csv").write_text("wrong,columns\n1,2\n", encoding="utf-8")
+    monkeypatch.setattr(
+        draws, "tournament_draw_upcoming_rows", lambda _tour, *, status=None: [])
+    status = {}
+    assert up.load_upcoming("atp", status=status).empty
+    assert status == {
+        "failures": [{"source": "espn-upcoming", "errorType": "SchemaError"}]
+    }
+
+    monkeypatch.setattr(
+        up.pd,
+        "read_csv",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(UnicodeError("bad bytes")),
+    )
+    status = {}
+    assert up.load_upcoming("atp", status=status).empty
+    assert status == {
+        "failures": [{"source": "espn-upcoming", "errorType": "UnicodeError"}]
+    }
 
 
 if __name__ == "__main__":

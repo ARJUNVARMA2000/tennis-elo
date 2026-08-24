@@ -5426,3 +5426,68 @@ Status: complete and live.
   context no longer creates an amber/red incident. GitHub has no open issue after reconciliation.
 - Local `master` and `origin/master` both resolved to `9f6bd41` before this tasks-only completion
   note. The note is excluded from the production trigger by `refresh.yml`'s `tasks/**` path ignore.
+
+## Historical reliability audit — Round 3A/3B/3C (2026-08-24)
+
+Status: implementation and pre-deploy review complete; commit and production deployment pending.
+
+- [x] Extend the history audit through current `master` with an exact post-cutoff commit ledger and
+      reconcile every original ranked proposal against shipped code, tests, and production behavior.
+- [x] Round 3A: extend the existing timing seam into atomic per-tour `stage-status-v1` receipts with
+      stable stage identity, product/evaluation criticality, attempt outcome, duration, input
+      fingerprint, last-success timestamp, and bounded error evidence. Preserve the last known state
+      for stages not attempted in a given mode and avoid cross-tour write races.
+- [x] Surface current product-stage failures and overdue product-stage success through stable typed
+      health findings; keep evaluation-only failures visible but informational. Add broken, repeated,
+      recovery, stale-success, malformed-receipt, quick/full, and concurrent-tour controls.
+- [x] Round 3B: introduce one source-aware participant/slot classifier covering real player,
+      qualifier, lucky loser, wildcard, alternate, bye, and unresolved/TBD states. Make the existing
+      real-player, settled-draw, and meaningful-draw policies consume that vocabulary without
+      changing legitimate provider-specific context.
+- [x] Migrate ESPN, Wikipedia, official-draw, simulation, event-evidence, and health consumers in
+      small parity-preserving steps. Add cross-provider vocabulary, numbered-placeholder, null-slot,
+      source-context, settled, and meaningful broken/clean controls before deleting local sets.
+- [x] Round 3C: put a narrow real-browser scroll/overflow/interaction smoke in CI against deterministic
+      fixture data and the built static site. Pin the browser runtime, keep external provider/Firebase
+      traffic out of the gate, and prove the historical wheel-chain and horizontal-scroll failures bite.
+- [x] Run focused tests after each sub-round, then repository-wide Ruff/Python/web/type/build/workflow
+      checks, the real pre-deploy gate, browser smoke, and `git diff --check`; obtain an independent
+      adversarial review and reconcile the final diff/history before release.
+- [ ] Commit on a `codex/` branch, fetch/reconcile current remote `master`, fast-forward deliberately,
+      push to production, and monitor CI, refresh, typed data health, Firebase verification, browser
+      serving, terminal workflow health, and issue recovery through a clean live result.
+
+### Review
+
+Pre-deploy review complete; production evidence is pending.
+
+- The history ledger now accounts for all 317 commits through production `b6b1511`, including the
+  exact nine post-cutoff commits and incidents #23-#25. The original P0/P1 proposals are reconciled
+  to their shipped Round 1/2 implementation, with only the staged artifact envelope/lineage and two
+  lower-priority follow-ups still open.
+- Round 3A records private, atomic per-tour stage attempts with complete input identities, bounded
+  error detail, last-success state, clock-skew validation, and product/evaluation criticality. Public
+  health exposes stable safe categories only; legacy rollout stays silent, corrupt/expected/incomplete
+  state is explicit, every mirror excludes the receipt, and test runs cannot pollute operational data.
+  Partial Kalshi sweeps and zero-match market joins now remain usable while recording informational
+  degradation instead of false success.
+- Round 3B replaces the distributed placeholder sets with one source/context-aware vocabulary in
+  Python and a parity-matched browser vocabulary. Wikipedia omissions become proven byes only from
+  explicit/carry evidence; legacy ambiguity is materialized as unique unresolved seats and remains
+  safe through failed refresh, retention, simulation, and rendering.
+- Round 3C builds a two-tour fixture and tests the exported site in real Chromium without external
+  traffic. Its negative controls prove the historical wheel-chain and horizontal-overflow failures
+  still bite. The interaction check found and fixed a real reverse-toggle race; URL, rendered data,
+  saved preference, active control, base path, unrelated query, and fragment now stay aligned.
+- Final verification: 873 Python tests and 288 web tests pass; repository Ruff, TypeScript, current
+  live-data pre-deploy gate, Actionlint, browser-script syntax, and `git diff --check` pass. The
+  isolated production build exports all 24 routes and the browser smoke passes both negative controls
+  plus 4/4 desktop/mobile route checks. ESLint has zero errors and the same nine existing hook
+  warnings. Independent adversarial passes closed future-dated receipt, incomplete fingerprint,
+  quiet degradation, test pollution, ambiguous null retention, rollback-private receipt and warmed
+  cache compatibility, producer-order failure laundering, malformed row isolation, generic-verifier
+  fixture coupling, incidental route-height, and URL/hash race findings.
+
+Round 4 will add the pre-unpickle predictor envelope and whole-build lineage manifest after this
+release establishes the shared status/criticality vocabulary; the manifest will shadow before it
+becomes blocking.

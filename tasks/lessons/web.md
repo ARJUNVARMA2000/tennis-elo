@@ -142,3 +142,25 @@ Indexed in [`../lessons.md`](../lessons.md).
   Player names alone are insufficient because the event registry's identity contract still
   applies. Pin the pure overlap predicate and both deployed route markers: a component-level live
   badge and a scheduled card can each be correct while their combined page is contradictory.
+
+- **A query-only URL mirror must survive the reverse transition, not just the first toggle.**
+  (2026-08-24, WTA -> ATP left `?tour=wta` shareably attached to an ATP page) The context state
+  and saved preference both changed, but a second `router.replace` that removed the default-tour
+  query was lost while the prior replacement settled. Unit tests of the query helper and one-way
+  component behavior stayed green because neither exercised two real client transitions. When a
+  control already owns the local state, mirror its canonical query synchronously through the
+  framework-observed History API. Do not pass the framework's own internal history marker (that
+  deliberately suppresses observation), and preserve the browser pathname/base path plus hash.
+  Browser-test both directions and, after pending work settles, assert active control, rendered
+  dataset, and URL all agree after A -> B -> A; any one of the three can pass while a copied link or
+  visible page is still wrong.
+
+- **Fixture-specific browser assertions need an explicit fixture capability, not a shared verifier
+  assumption.** (2026-08-24, Round 3 browser-smoke review) The CI smoke strengthened the general
+  verifier by hard-coding its synthetic ATP/WTA player names, so an ordinary developer verification
+  against real generated data failed the same route. **How to apply:** keep generic state, URL,
+  accessibility, and geometry checks active everywhere; enable synthetic identity assertions only
+  when the runner explicitly declares both offline mode and fixture data. Share fixture identities
+  between writer and assertion code, declare which fixture routes are intentionally long instead
+  of requiring incidental content height everywhere, and include a negative control proving
+  default verification contains no fixture-name dependency.

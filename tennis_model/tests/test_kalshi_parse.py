@@ -193,3 +193,23 @@ def test_time_budget_caps_inflight_timeout_and_retry_sleep(monkeypatch):
     assert timeouts == [5.0]
     assert sleeps == [5.0]
     assert clock[0] == 105.0
+
+
+def test_refresh_snapshots_reports_total_transport_and_budget_degradation(
+        tmp_path, monkeypatch):
+    from tennis_model.data import kalshi
+
+    monkeypatch.setattr(kalshi, "kalshi_dir", lambda tour: tmp_path / tour)
+    monkeypatch.setattr(kalshi, "fetch_markets", lambda *_args, **_kwargs: None)
+    status: dict = {}
+    with kalshi.time_budget(0):
+        snapshots = kalshi.refresh_snapshots("atp", status=status)
+        assert kalshi.budget_spent()
+
+    assert snapshots["events"] == {}
+    assert status == {
+        "sweepsAttempted": 2,
+        "sweepsSucceeded": 0,
+        "failedSweeps": ["settled", "open"],
+        "budgetSpent": True,
+    }

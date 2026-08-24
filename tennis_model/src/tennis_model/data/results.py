@@ -834,6 +834,10 @@ def load_matches(tour: str = "atp", include_lower: bool | None = None) -> pd.Dat
             with timed(tour, "load_matches.cache_write"):
                 _write_normalized_matches(
                     tour, effective_lower, fingerprint, df)
+        # Downstream operational receipts need a stable identity for the normalized frame,
+        # but must not re-hash every source once per soft-fail stage.  DataFrame attrs ride
+        # through ordinary pipeline consumers without becoming a modeled/exported feature.
+        df.attrs["normalizedInputFingerprint"] = f"nm1:{fingerprint}"
     thin = thin_seasons(df)
     if thin:
         counts = df["date"].dt.year.value_counts()

@@ -54,6 +54,23 @@ def test_parse_bracket_orders_sections_handles_bye_and_bestof():
     print("ok test_parse_bracket_orders_sections_handles_bye_and_bestof")
 
 
+def test_absent_wiki_slots_are_unresolved_without_positive_bye_evidence():
+    raw = """
+    {{8TeamBracket-Compact-Tennis3
+    | RD1-team01=[[Player A]]
+    | RD1-team03=[[Player B]] | RD1-team04=[[Player C]]
+    | RD1-team05=[[Player D]] | RD1-team06=[[Player E]]
+    }}
+    """
+    draw = _parse_bracket(raw)
+    assert draw is not None
+    assert draw["slots"] == [
+        "Player A", "Qualifier/Unresolved 1", "Player B", "Player C",
+        "Player D", "Player E", "Qualifier/Unresolved 2",
+        "Qualifier/Unresolved 3",
+    ]
+
+
 def test_parse_bracket_qualifiers_are_distinct_and_not_a_power_of_two_is_none():
     q = """
     {{4TeamBracket-Compact-Tennis3
@@ -79,8 +96,40 @@ def test_slot_name_strips_disambiguator_and_reads_byes():
     assert _slot_name(val("[[Jannik Sinner]]")) == "Jannik Sinner"
     assert _slot_name(val("Bye")) is None
     assert _slot_name(val("Qualifier")) == "Qualifier"
-    assert _slot_name(val("")) == "Qualifier"          # empty slot -> placeholder, not a bye
+    assert _slot_name(val("")) == "Unresolved"         # empty slot -> unknown, not a bye
     print("ok test_slot_name_strips_disambiguator_and_reads_byes")
+
+
+def test_parse_bracket_preserves_every_unresolved_provider_role():
+    raw = """
+    {{8TeamBracket-Compact-Tennis3
+    | RD1-team01=Q | RD1-team02=LL
+    | RD1-team03=WC | RD1-team04=ALT
+    | RD1-team05=TBD | RD1-team06=
+    | RD1-team07=[[Player A]] | RD1-team08=[[Player B]]
+    }}
+    """
+    draw = _parse_bracket(raw)
+    assert draw is not None
+    assert draw["slots"] == [
+        "Qualifier 1", "Lucky Loser 1", "Qualifier/Wildcard 1",
+        "Qualifier/Alternate 1", "Qualifier/Unresolved 1",
+        "Qualifier/Unresolved 2", "Player A", "Player B",
+    ]
+
+
+def test_link_target_that_is_only_a_reserved_role_fails_closed():
+    raw = """
+    {{8TeamBracket-Compact-Tennis3
+    | RD1-team01=[[Wildcard]] | RD1-team02=[[Player A]]
+    | RD1-team03=[[Player B]] | RD1-team04=[[Player C]]
+    | RD1-team05=[[Player D]] | RD1-team06=[[Player E]]
+    | RD1-team07=[[Player F]] | RD1-team08=[[Player G]]
+    }}
+    """
+    draw = _parse_bracket(raw)
+    assert draw is not None
+    assert draw["slots"][0] == "Qualifier/Wildcard 1"
 
 
 def test_anchor_rejects_generic_only_names():
@@ -122,10 +171,10 @@ def test_title_search_rejects_wrong_gender_before_accepting_the_event(monkeypatc
 
 def test_rows_from_draws_skips_byes_and_qualifiers():
     draws = {"Test Cup": {"start": "2026-08-01",
-                          "slots": ["A", "B", "C", None, "Qualifier 1", "D", "E", "F"]}}
+                          "slots": ["A", "B", "C", None, "Wildcard 1", "D", "E", "F"]}}
     rows = _rows_from_draws(draws)
     pairs = {(r["playerA"], r["playerB"]) for r in rows}
-    assert pairs == {("A", "B"), ("E", "F")}            # (C,None) bye + (Q,D) qualifier dropped
+    assert pairs == {("A", "B"), ("E", "F")}      # (C,None) bye + (wildcard,D) unresolved
     assert all(r["round"] == "QF" and r["tourney_date"] == "2026-08-01" for r in rows)  # 8 slots
     print("ok test_rows_from_draws_skips_byes_and_qualifiers")
 
@@ -193,6 +242,7 @@ def test_a_draw_outlives_the_discovery_window_that_found_it(tmp_path, monkeypatc
     monkeypatch.setattr(live_mod, "fetch_events", lambda tour: [])
     monkeypatch.setattr(live_mod, "parse_event_meta", lambda evs: {})
     monkeypatch.setattr(ev_mod, "update_registry", lambda *a, **k: None)
+    monkeypatch.setattr(ev_mod, "load_registry", lambda *a, **k: {"events": {}})
     # ESPN now lists NOTHING — the old code would write an empty cache and lose both draws
     monkeypatch.setattr(dw, "_retention_cutoff",
                         lambda now=None: "2026-07-01")     # pin "today - 45d"

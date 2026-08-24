@@ -360,3 +360,29 @@ Indexed in [`../lessons.md`](../lessons.md).
   anchor; revalidate active Wikipedia source identity before the settled-cache shortcut; never
   retain a current row that resolution rejected; write an empty cache after the last row is
   quarantined; and gate duplicate source ids/URLs in the raw cache as well as visible brackets.
+
+- **A participant vocabulary is a cross-runtime contract, not only a producer refactor.**
+  (2026-08-24, canonical participant consolidation) Python began emitting role-preserving
+  `Wildcard N`, `Alternate N`, and `Unresolved N` slots, while the browser still recognized only
+  qualifier/lucky-loser labels and therefore treated the new placeholders as real players in
+  bracket and scenario logic. **How to apply:** enumerate the full closed role vocabulary once per
+  runtime, preserve exact role labels for display, reject every role in simulation/locking, and add
+  one cross-language parity table whenever a producer adds a serialized value.
+
+- **Resolve provider-null meaning before normalization; a partial field cannot prove completeness.**
+  (2026-08-24, Wikipedia bye settlement) Wikipedia uses absent/empty bracket parameters for both
+  byes and unresolved entrants. Recomputing `drawSize` from non-null slots erased the conservative
+  source evidence, while exact equality with ESPN's currently named players was circular because
+  that field can be incomplete in exactly the same way. **How to apply:** preserve explicit roles;
+  accept null only for an explicit Bye or positive bracket carry evidence; emit other omissions as
+  numbered unresolved seats; persist the source-derived entrant count through normalization; and
+  make legacy ambiguous rows refresh once. Test ordinary 28/32 byes and 27 names plus five unknowns.
+
+- **A durable cache vocabulary must be readable by the release you may roll back to.** (2026-08-24,
+  Round 3 participant review) The new classifier correctly serialized `Wildcard N`, `Alternate N`,
+  and `Unresolved N`, but the pre-Round-3 Python and browser readers knew only strings beginning
+  `Qualifier` or `Lucky Loser`; a rollback after warming the cache would therefore promote those
+  seats to real players. **How to apply:** version or relocate the cache, or use a compatibility
+  envelope that old consumers reject safely while new consumers recover the precise role. Test the
+  serialized value against both the new classifier and an executable copy of the previous policy,
+  in every runtime that reads it.

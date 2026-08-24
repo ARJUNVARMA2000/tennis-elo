@@ -15,6 +15,8 @@ import sys
 from contextlib import contextmanager
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import tennis_model.pipeline as pipeline
@@ -25,6 +27,14 @@ from tennis_model.config import (
 )
 from tennis_model.model.features import FEATURES, FeatureParams
 from tennis_model.model.predict import TennisPredictor
+
+from tennis_model import timing
+
+
+@pytest.fixture(autouse=True)
+def _isolate_stage_receipts(monkeypatch, tmp_path):
+    """Pipeline guard tests must never write operational receipts into real ignored data."""
+    monkeypatch.setattr(timing, "output_dir", lambda tour: tmp_path / "output" / tour)
 
 
 class _Booster:
@@ -189,11 +199,12 @@ def test_alias_stale_quick_rebuild_defers_kalshi_to_shared_budget(monkeypatch):
     monkeypatch.setattr(pipeline, "_track", lambda *args, **kwargs: None)
     monkeypatch.setattr(pipeline, "_mirror", lambda *args, **kwargs: None)
     monkeypatch.setattr(kalshi, "time_budget", _time_budget)
-    monkeypatch.setattr(
-        kalshi,
-        "refresh_snapshots",
-        lambda tour, recent_days=None: snapshots.append((tour, recent_days)),
-    )
+    def refresh_snapshots(tour, recent_days=None, *, status=None):
+        snapshots.append((tour, recent_days))
+        if status is not None:
+            status["sweepsSucceeded"] = 2
+
+    monkeypatch.setattr(kalshi, "refresh_snapshots", refresh_snapshots)
     monkeypatch.setattr(
         kalshi_ledger,
         "refresh_ledger",
@@ -371,11 +382,12 @@ def test_quick_kalshi_uses_one_budget_and_never_requotes(monkeypatch):
         yield
 
     monkeypatch.setattr(kalshi, "time_budget", _time_budget)
-    monkeypatch.setattr(
-        kalshi,
-        "refresh_snapshots",
-        lambda tour, recent_days=None: snapshots.append((tour, recent_days)),
-    )
+    def refresh_snapshots(tour, recent_days=None, *, status=None):
+        snapshots.append((tour, recent_days))
+        if status is not None:
+            status["sweepsSucceeded"] = 2
+
+    monkeypatch.setattr(kalshi, "refresh_snapshots", refresh_snapshots)
     monkeypatch.setattr(
         kalshi_ledger,
         "refresh_ledger",
@@ -405,10 +417,12 @@ def test_quick_kalshi_failure_does_not_starve_the_other_tour(monkeypatch):
     def _time_budget(_seconds):
         yield
 
-    def snapshots(tour, recent_days=None):
+    def snapshots(tour, recent_days=None, *, status=None):
         seen.append(("snapshot", tour, recent_days))
         if tour == "atp":
             raise RuntimeError("temporary ATP market failure")
+        if status is not None:
+            status["sweepsSucceeded"] = 2
 
     monkeypatch.setattr(kalshi, "time_budget", _time_budget)
     monkeypatch.setattr(kalshi, "refresh_snapshots", snapshots)
@@ -563,6 +577,4 @@ def test_a_failing_backtest_does_not_cost_the_ratings_walk():
 
 
 if __name__ == "__main__":
-    import pytest
-
     raise SystemExit(pytest.main([__file__, "-q"]))

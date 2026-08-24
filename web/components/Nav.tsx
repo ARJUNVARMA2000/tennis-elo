@@ -263,6 +263,7 @@ export default function Nav() {
               <button
                 key={t}
                 onClick={() => setTour(t)}
+                aria-pressed={tour === t}
                 className="mono relative rounded-[5px] px-3 py-1 text-[11px] uppercase tracking-wider"
               >
                 {tour === t && (

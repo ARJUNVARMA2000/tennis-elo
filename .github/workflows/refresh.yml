@@ -203,7 +203,9 @@ jobs:
             mkdir -p "web/public/data/$tour"
             find "web/public/data/$tour" -maxdepth 1 -type f -name '*.json' -delete
             find "tennis_model/data/output/$tour" -maxdepth 1 -type f -name '*.json' \
-              ! -name 'health-source.json' -exec cp {} "web/public/data/$tour/" \;
+              ! -name 'health-source.json' ! -name 'stage-status.json' \
+              ! -name 'stage-status.private' \
+              -exec cp {} "web/public/data/$tour/" \;
           done
 
       # Durably persist the append-only forecast log (the data cache is evictable, so

@@ -32,6 +32,7 @@ jobs:
 
   web:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: web
@@ -60,5 +61,18 @@ jobs:
       # catches type errors and export breakage on PRs before the deploy
       # workflow hits them (Next 16 no longer lints during build). No basePath, matching
       # the root-domain Firebase build that refresh.yml ships.
+      - name: Prepare deterministic browser fixture
+        run: node scripts/prepare-browser-smoke.mjs public/data
+
       - name: Build (type-check + static export)
         run: npm run build
+
+      # The fetch-only production verifier cannot exercise wheel chaining, overflow geometry,
+      # focus, or URL/state interactions. Install the exact Playwright Chromium paired with
+      # the lockfile and run only two fixture-backed routes against the built static export;
+      # no ESPN/Firebase request is allowed into this pre-merge gate.
+      - name: Install browser runtime
+        run: npx playwright-core install --with-deps chromium
+
+      - name: Real-browser scroll and interaction smoke
+        run: npm run test:browser

@@ -24,6 +24,7 @@ import pandas as pd
 
 from ..config import live_dir
 from .events import EventResolver, display_event_name, is_event_id, load_registry, norm_event_name
+from .participants import is_real_participant
 from .results import _name_key
 from .surface import resolve_level, resolve_surface_info
 
@@ -49,8 +50,7 @@ def _iso(value) -> str | None:
 
 
 def _real_name(value) -> bool:
-    from ..sim.bracket import is_real
-    return bool(is_real(value))
+    return is_real_participant(value)
 
 
 def _event_id(values) -> str | None:
