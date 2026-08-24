@@ -259,9 +259,9 @@ These should be maintained, not reimplemented:
 | P1 | Stable `HealthFinding {code,severity,tour,entity,evidence}` plus fingerprint lifecycle | **Live — Round 2A** | Compatibility prose remains during migration |
 | P1 | Production-shape incident replay corpus with broken and clean controls | **Live — Round 2B** | Fixture upkeep is the ongoing cost |
 | P1 | Pre-unpickle predictor envelope/checksum and whole-generation lineage | **Planned — staged Round 4A/4B** | Medium design effort; shadow before enforcement |
-| P1 | Durable stage-status ledger using the active timing seam | **Final review — Round 3A** | Product/evaluation criticality is explicit |
-| P1 | Canonical participant/draw-state classifier | **Final review — Round 3B** | Source/context-specific policy is retained |
-| P2 | Run the existing real browser scroll/interaction smoke in CI | **Final review — Round 3C** | Narrow deterministic fixture bounds runtime and flakes |
+| P1 | Durable stage-status ledger using the active timing seam | **Live — Round 3A** | Product/evaluation criticality is explicit |
+| P1 | Canonical participant/draw-state classifier | **Live — Round 3B** | Source/context-specific policy is retained |
+| P2 | Run the existing real browser scroll/interaction smoke in CI | **Live — Round 3C** | Narrow deterministic fixture bounds runtime and flakes |
 | P2 | Transport-only second verifier confirmation | Open; existing retry handles most cases | Low, but retries already solve most of the class |
 | P2 | Static external-I/O contract audit | Open | Useful guardrail; lower urgency than known artifact gaps |
 
@@ -393,6 +393,9 @@ and incident map above. The 32 non-substantive commits are explicitly:
 
 ## Current rollout decision
 
-Rounds 1 and 2 are complete and live. Round 3 must pass its full release gate and production
-verification before the two-phase Round 4 rollout begins: envelope/lineage shadow publication,
-one successful production bootstrap, then blocking enforcement.
+Rounds 1-3 are complete and live through production merge `1bcfe1b` (320 commits). Round 3 passed
+its full local release gate and production run `32745490015`, including quick regeneration, the
+pre-deploy integrity gate, Firebase publication, live verification, cache persistence, terminal
+health reporting, an independently green live health payload, and zero open issues. Round 4 remains
+a separate two-phase rollout: envelope/lineage shadow publication, one successful production
+bootstrap plus a later cache-restored quick run, then blocking enforcement.

@@ -5429,7 +5429,7 @@ Status: complete and live.
 
 ## Historical reliability audit — Round 3A/3B/3C (2026-08-24)
 
-Status: implementation and pre-deploy review complete; commit and production deployment pending.
+Status: complete and live.
 
 - [x] Extend the history audit through current `master` with an exact post-cutoff commit ledger and
       reconcile every original ranked proposal against shipped code, tests, and production behavior.
@@ -5453,15 +5453,15 @@ Status: implementation and pre-deploy review complete; commit and production dep
 - [x] Run focused tests after each sub-round, then repository-wide Ruff/Python/web/type/build/workflow
       checks, the real pre-deploy gate, browser smoke, and `git diff --check`; obtain an independent
       adversarial review and reconcile the final diff/history before release.
-- [ ] Commit on a `codex/` branch, fetch/reconcile current remote `master`, fast-forward deliberately,
+- [x] Commit on a `codex/` branch, fetch/reconcile current remote `master`, fast-forward deliberately,
       push to production, and monitor CI, refresh, typed data health, Firebase verification, browser
       serving, terminal workflow health, and issue recovery through a clean live result.
 
 ### Review
 
-Pre-deploy review complete; production evidence is pending.
+Pre-deploy and production review complete.
 
-- The history ledger now accounts for all 317 commits through production `b6b1511`, including the
+- The pre-deploy history ledger accounted for all 317 commits through production `b6b1511`, including the
   exact nine post-cutoff commits and incidents #23-#25. The original P0/P1 proposals are reconciled
   to their shipped Round 1/2 implementation, with only the staged artifact envelope/lineage and two
   lower-priority follow-ups still open.
@@ -5487,6 +5487,19 @@ Pre-deploy review complete; production evidence is pending.
   quiet degradation, test pollution, ambiguous null retention, rollback-private receipt and warmed
   cache compatibility, producer-order failure laundering, malformed row isolation, generic-verifier
   fixture coupling, incidental route-height, and URL/hash race findings.
+- Committed the reviewed implementation as `bbe3d0b`. Because the remote advanced independently to
+  evaluation-log commit `af78c69`, created a clean merge candidate from that exact remote head and
+  pushed only the approved Round 3 change as merge `1bcfe1b`; the evaluation history remained intact.
+- Production run `32745490015` completed successfully. Both reusable CI jobs passed, including the
+  deterministic real-Chromium smoke; the refresh job then completed quick two-tour regeneration,
+  the typed pre-deploy gate, authoritative health write, static build, Firebase publication, live
+  verification, cache persistence, and data/deploy/pipeline reporting. The terminal workflow-health
+  reporter also passed, and GitHub has no open issue after reconciliation.
+- The independently fetched live `data/health.json` returned HTTP 200 with `no-cache, no-store`, is
+  stamped `2026-08-24T15:41:01Z`, identifies itself as an authoritative `health-finding-v1`
+  snapshot, reports `ok=true`, and contains zero actionable findings. Its three remaining records
+  are informational source notes. A final fetch confirmed `origin/master` at `1bcfe1b` before this
+  tasks-only completion note; `tasks/**` is excluded from the production trigger.
 
 Round 4 will add the pre-unpickle predictor envelope and whole-build lineage manifest after this
 release establishes the shared status/criticality vocabulary; the manifest will shadow before it
