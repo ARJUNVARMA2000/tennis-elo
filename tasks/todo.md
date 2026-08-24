@@ -5362,7 +5362,7 @@ Status: complete and live.
 
 ## Historical reliability audit — Round 2A/2B (2026-08-23)
 
-Status: implementation complete and production deployment authorized by owner; deployment pending.
+Status: complete and live.
 
 - [x] Introduce a versioned structured health-finding contract with stable code, severity, scope,
       tour/entity identity, evidence, message, and deterministic fingerprint. Preserve legacy prose
@@ -5381,7 +5381,7 @@ Status: implementation complete and production deployment authorized by owner; d
 - [x] Run repository-wide Ruff, focused and full Python tests, the real pre-deploy integrity gate,
       workflow linters/shell tests, web tests/lint/type-check/build, and `git diff --check`; obtain an
       adversarial review and append the completion evidence before release.
-- [ ] Commit on a `codex/` branch, fetch/reconcile the latest remote history, fast-forward `master`,
+- [x] Commit on a `codex/` branch, fetch/reconcile the latest remote history, fast-forward `master`,
       push deliberately, and monitor tests, Firebase deployment, live verification, and all health
       reporters through successful production recovery.
 
@@ -5411,3 +5411,18 @@ Status: implementation complete and production deployment authorized by owner; d
   and `git diff --check` pass. ESLint exits with zero errors and the same nine pre-existing React hook
   warnings. Repository-wide shell/workflow lint additionally reports unchanged findings in two
   alias-proposal paths; the Round 2 scripts and workflow are clean.
+
+### Production deployment review
+
+- Committed the reviewed Round 2A/2B implementation as `9f6bd41`, fetched and confirmed remote
+  `master` had not moved, fast-forwarded local `master`, and pushed the exact commit deliberately.
+- Production run `32687229574` completed successfully in 11m23s. Both reusable CI jobs passed, then
+  quick two-tour regeneration, the typed pre-deploy gate, authoritative data-health write, static
+  build, Firebase publication, live verification, desired-state data/deploy/pipeline reporters,
+  cache save, and terminal workflow-health classification all passed.
+- The deployed `data/health.json` is stamped `2026-08-24T03:49:17Z`, identifies itself as an
+  authoritative `health-finding-v1` snapshot, reports `ok=true`, and contains zero actionable
+  findings. Its three remaining records are informational coverage/date notes, proving that visible
+  context no longer creates an amber/red incident. GitHub has no open issue after reconciliation.
+- Local `master` and `origin/master` both resolved to `9f6bd41` before this tasks-only completion
+  note. The note is excluded from the production trigger by `refresh.yml`'s `tasks/**` path ignore.
