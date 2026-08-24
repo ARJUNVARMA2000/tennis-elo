@@ -852,13 +852,18 @@ def test_main_reports_a_stale_model_through_the_alert_path():
     print("ok test_main_reports_a_stale_model_through_the_alert_path")
 
 
-def test_gate_blocks_bad_output_without_writing_healthjson():
+def test_gate_blocks_bad_output_without_writing_healthjson(monkeypatch):
     """--gate reds the deploy on an integrity problem but must NOT clobber the sentinel's
     health.json, and must pass on internally-consistent output (fresh lastUpdated so the
     build-age check stays clean whatever the real date this runs)."""
     from datetime import UTC, datetime
     fresh_iso = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     clean = _healthy_data(); clean["meta"]["lastUpdated"] = fresh_iso
+    monkeypatch.setattr(
+        health,
+        "_lineage_observation",
+        lambda **kwargs: ({}, {"atp": []}),
+    )
     orig = (health.read_outputs, health.OUTPUT_DIR, health.TOURS, sys.argv)
     try:
         with tempfile.TemporaryDirectory() as d:
@@ -879,10 +884,15 @@ def test_gate_blocks_bad_output_without_writing_healthjson():
     print("ok test_gate_blocks_bad_output_without_writing_healthjson")
 
 
-def test_gate_writes_an_atomic_structured_report_without_touching_sentinel():
+def test_gate_writes_an_atomic_structured_report_without_touching_sentinel(monkeypatch):
     from datetime import UTC, datetime
     clean = _healthy_data()
     clean["meta"]["lastUpdated"] = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    monkeypatch.setattr(
+        health,
+        "_lineage_observation",
+        lambda **kwargs: ({}, {"atp": []}),
+    )
     orig = (health.read_outputs, health.OUTPUT_DIR, health.TOURS, sys.argv)
     try:
         with tempfile.TemporaryDirectory() as d:
@@ -2733,12 +2743,12 @@ def test_output_numbered_qualifier_as_model_favourite_is_flagged():
     print("ok test_output_numbered_qualifier_as_model_favourite_is_flagged")
 
 
-def test_lineage_shadow_observation_is_informational_and_redacts_detail(monkeypatch):
+def test_lineage_observation_is_blocking_and_redacts_detail(monkeypatch):
     from tennis_model import artifact_lineage as lineage
 
     issue = lineage.LineageIssue(
         code="output.lineage.manifest_invalid",
-        severity="info",
+        severity="error",
         reason=lineage.LineageReason.MANIFEST_INVALID,
         tour="atp",
         path="atp/meta.json",
@@ -2762,7 +2772,7 @@ def test_lineage_shadow_observation_is_informational_and_redacts_detail(monkeypa
     assert findings["wta"] == []
     assert len(findings["atp"]) == 1
     finding = findings["atp"][0]
-    assert finding.severity == "info" and not health._gate_blocks(finding)
+    assert finding.severity == "error" and health._gate_blocks(finding)
     assert finding.entity == "atp/meta.json"
     assert set(finding.evidence) == {"state", "reason", "path"}
 
@@ -2800,6 +2810,60 @@ def test_accepted_lineage_summary_is_exact_and_live_verifier_ready(monkeypatch, 
         "tours": ["atp", "wta"],
     }
     assert findings == {"atp": [], "wta": []}
+
+
+def test_predeploy_lineage_accepts_valid_candidate_without_receipt(monkeypatch, tmp_path):
+    from tennis_model import artifact_lineage as lineage
+
+    release_id = "11111111-1111-4111-8111-111111111111"
+    release = lineage.ValidatedRelease(
+        root=tmp_path,
+        manifest={"releaseId": release_id, "artifacts": []},
+        manifest_bytes=b"{}\n",
+        manifest_sha256="a" * 64,
+    )
+    requirements = []
+
+    def inspect(*_args, **kwargs):
+        requirements.append(kwargs["require_accepted"])
+        return lineage.LineageState(state="valid", release=release)
+
+    monkeypatch.setattr(lineage, "inspect_release", inspect)
+
+    summary, findings = health._lineage_observation(require_accepted=False)
+
+    assert requirements == [False]
+    assert summary["status"] == "valid"
+    assert summary["releaseId"] == release_id
+    assert findings == {"atp": [], "wta": []}
+
+
+def test_global_lineage_failure_is_blocking_for_both_tours(monkeypatch):
+    from tennis_model import artifact_lineage as lineage
+
+    issue = lineage.LineageIssue(
+        code="output.lineage.acceptance_missing",
+        severity="error",
+        reason=lineage.LineageReason.ACCEPTANCE_MISSING,
+    )
+    monkeypatch.setattr(
+        lineage,
+        "inspect_release",
+        lambda *args, **kwargs: lineage.LineageState(
+            state="unaccepted", release=None, issues=(issue,)
+        ),
+    )
+
+    _, findings = health._lineage_observation(require_accepted=True)
+
+    assert {
+        tour: [(finding.code, finding.severity, finding.entity)]
+        for tour, values in findings.items()
+        for finding in values
+    } == {
+        "atp": [("output.lineage.acceptance_missing", "error", "release")],
+        "wta": [("output.lineage.acceptance_missing", "error", "release")],
+    }
 
 
 if __name__ == "__main__":

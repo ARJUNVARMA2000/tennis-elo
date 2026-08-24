@@ -380,7 +380,7 @@ def test_future_dated_receipt_cannot_suppress_real_attempts_or_look_healthy(
     assert path.read_text() == original
 
 
-def test_stage_receipt_and_error_evidence_never_enter_public_mirror(monkeypatch, tmp_path):
+def test_stage_receipt_and_error_evidence_have_no_raw_publication_path(tmp_path):
     output_root, public_root = tmp_path / "output", tmp_path / "public"
     source = output_root / "atp"
     source.mkdir(parents=True)
@@ -388,16 +388,13 @@ def test_stage_receipt_and_error_evidence_never_enter_public_mirror(monkeypatch,
     (source / "health-source.json").write_text('{"private":true}')
     (source / timing.STAGE_STATUS_FILENAME).write_text(
         '{"error":"RECEIPT_SECRET"}')
-    monkeypatch.setattr(pipeline, "output_dir", lambda tour: output_root / tour)
-    monkeypatch.setattr(pipeline, "WEB_DATA_DIR", public_root)
+    from tennis_model import artifact_lineage as lineage
 
-    pipeline._mirror("atp")
-    assert (public_root / "atp" / "meta.json").exists()
-    assert not (public_root / "atp" / "health-source.json").exists()
-    assert not (public_root / "atp" / timing.STAGE_STATUS_FILENAME).exists()
+    assert not hasattr(pipeline, "_mirror")
+    assert not hasattr(lineage, "legacy_mirror_tour")
 
-    # The extension is the rollback boundary: a pre-Round-3 mirror copied every JSON and
-    # knew nothing about the receipt name, but still cannot select the private receipt.
+    # The extension remains a rollback boundary: even a pre-Round-3 wildcard JSON copy
+    # cannot select the private receipt.
     assert not timing.STAGE_STATUS_FILENAME.endswith(".json")
     legacy_public = public_root / "legacy" / "atp"
     legacy_public.mkdir(parents=True)

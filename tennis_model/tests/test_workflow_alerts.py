@@ -1251,16 +1251,32 @@ def test_pipeline_reporters_cover_the_job_tail_and_terminal_failures():
     assert "DEPLOY_REPRESENTED: ${{ steps.reportdeploy.outputs.represented }}" in wf
 
 
-def test_web_push_keeps_both_integrity_gates_and_uses_cached_mirror():
+def test_publication_is_fail_closed_and_web_uses_only_accepted_cached_lineage():
     wf = WORKFLOW.read_text(encoding="utf-8")
     assert "steps.scope.outputs.scope != 'web'" in wf
-    assert 'if [ "${{ steps.scope.outputs.scope }}" = "web" ]; then' in wf
     assert "python -m tennis_model.data.health --gate" in wf
     assert "python -m tennis_model.data.health" in wf
     assert "Verify live Firebase deploy" in wf
-    assert "python -m tennis_model.artifact_lineage publish --scope web" in wf
-    assert "python -m tennis_model.artifact_lineage publish --scope data" in wf
-    assert "--semantic-gate-passed --validator predeploy-integrity-gate-v1" in wf
+    publication = wf[
+        wf.index("      - name: Publish accepted release data"):
+        wf.index("      # Durably persist the append-only forecast log")
+    ]
+    assert "set -euo pipefail" in publication
+    assert "PUBLICATION_SCOPE: ${{ steps.scope.outputs.scope }}" in publication
+    assert 'case "$PUBLICATION_SCOPE" in' in publication
+    web_case = publication[publication.index("            web)"):
+                           publication.index("            data)")]
+    data_case = publication[publication.index("            data)"):
+                            publication.index("            *)")]
+    assert "python -m tennis_model.artifact_lineage publish --scope web" in web_case
+    assert "--semantic-gate-passed" not in web_case and "--validator" not in web_case
+    assert "python -m tennis_model.artifact_lineage publish --scope data" in data_case
+    assert "--semantic-gate-passed --validator predeploy-integrity-gate-v1" in data_case
+    assert "refusing publication for unknown push scope" in publication
+    for forbidden in (
+        "continue-on-error", "shadow", "legacy", "fallback", "|| true", "cp ", "find ",
+    ):
+        assert forbidden not in publication
     assert wf.index("id: gate") < wf.index("id: mirror") < wf.index("id: health")
     assert "find \"tennis_model/data/output/$tour\"" not in wf
 

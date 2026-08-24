@@ -321,6 +321,11 @@ def _run_predeploy_gate(
     monkeypatch.setattr(health, "datetime", _FixedDatetime)
     monkeypatch.setattr(health, "TOURS", (case["tour"],))
     monkeypatch.setattr(
+        health,
+        "_lineage_observation",
+        lambda **_kwargs: ({}, {case["tour"]: []}),
+    )
+    monkeypatch.setattr(
         sys,
         "argv",
         ["health", "--gate", "--gate-report", str(report_path)],
@@ -365,6 +370,11 @@ def _run_sentinel(
 
     monkeypatch.setattr(health, "datetime", _FixedDatetime)
     monkeypatch.setattr(health, "TOURS", (case["tour"],))
+    monkeypatch.setattr(
+        health,
+        "_lineage_observation",
+        lambda **_kwargs: ({}, {case["tour"]: []}),
+    )
     monkeypatch.setattr(
         health,
         "tour_health",

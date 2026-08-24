@@ -4,7 +4,7 @@ Run:  PYTHONPATH=src python -m tennis_model.pipeline --tour all [--download] [--
 
 For each tour it builds the production predictor (data/output/<tour>/predictor.pkl)
 and writes the full set of frontend JSON artifacts (see model/export.py). The web app
-reads data/output/<tour>/*.json; copies are mirrored into web/public/data/<tour>/.
+reads data/output/<tour>/*.json; accepted all-tour publication mirrors them later.
 """
 
 from __future__ import annotations
@@ -17,9 +17,13 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import ExitStack, contextmanager
-from dataclasses import asdict, is_dataclass
+from dataclasses import asdict, dataclass, is_dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .artifact_lineage import CarriedRelease, ReleaseContext
 
 from . import __version__
 from .config import (
@@ -29,7 +33,6 @@ from .config import (
     OUTPUT_DIR,
     PLAYER_ALIASES,
     TOURS,
-    WEB_DATA_DIR,
     WTA_DUAL_STATE_GATE_THRESHOLD,
     kalshi_dir,
     live_dir,
@@ -427,16 +430,17 @@ def _receipt_stage(tour: str, stage: str, *inputs: object):
         yield attempt
 
 
-def _mirror(tour: str) -> None:
-    """Safely copy one tour's bounded public JSON through the legacy seam."""
-    from .artifact_lineage import legacy_mirror_tour
-
-    source_tour = output_dir(tour)
-    legacy_mirror_tour(source_tour.parent, WEB_DATA_DIR, tour)
-
-
 _FRAME_PREDICTOR_ARTIFACT_ID = "_pipelinePredictorArtifactId"
 _FRAME_RELEASE_STAGE_INPUTS = "_pipelineReleaseStageInputs"
+
+
+@dataclass(frozen=True, slots=True)
+class _ReleasePlan:
+    """Strict all-tour lineage plan decided before the first output mutation."""
+
+    context: ReleaseContext
+    carried: CarriedRelease | None
+    bootstrap: bool
 
 
 def _bind_frame_predictor(frame, predictor) -> None:
@@ -503,110 +507,133 @@ def _release_source_identity(
     }
 
 
-def _begin_shadow_release(mode: str):
-    """Snapshot a valid accepted parent before the first output writer, if one exists."""
+def _begin_release(mode: str) -> _ReleasePlan:
+    """Choose exact carry or a parentless graph bootstrap before any output write.
+
+    A missing/corrupt lineage pointer is recoverable by rebuilding the complete public
+    graph. Unsafe paths, I/O failures, and pointer-revocation failures are not evidence
+    that the cache is merely absent, so those propagate and stop the run.
+    """
     from .artifact_lineage import (
         ArtifactLineageError,
+        LineageReason,
         begin_release,
         carry_forward_release,
+        initialize_release_root,
         unbless_release_for_mutation,
     )
 
+    initialize_release_root(OUTPUT_DIR)
     carried = None
     try:
         # Source and destination intentionally coincide in the production cache: the
         # validated manifest records are the immutable prior snapshot used for exact
         # carry decisions while writers replace files below it.
         carried = carry_forward_release(OUTPUT_DIR, OUTPUT_DIR)
-    except (ArtifactLineageError, OSError) as exc:
-        reason = getattr(getattr(exc, "reason", None), "value", type(exc).__name__)
-        print(f"  lineage/{mode}: no accepted parent ({reason}); shadow bootstrap")
+    except ArtifactLineageError as exc:
+        if exc.reason in {LineageReason.PATH_INVALID, LineageReason.IO_ERROR}:
+            raise
+        print(
+            f"  lineage/{mode}: no accepted parent ({exc.reason.value}); "
+            "promoting to parentless full graph bootstrap"
+        )
+    bootstrap = carried is None
     accepted = carried.accepted if carried is not None else None
-    context = begin_release(mode, accepted_prior=accepted)
+    context = begin_release(
+        "full" if bootstrap else mode,
+        accepted_prior=accepted,
+    )
     # The carried manifest/receipt are now immutable in memory. Remove their durable
     # pointers before the first public artifact can be mutated, so a host crash exposes
     # an explicitly unblessed candidate rather than an old pointer over mixed bytes.
     unbless_release_for_mutation(OUTPUT_DIR)
-    return context, carried
+    return _ReleasePlan(context=context, carried=carried, bootstrap=bootstrap)
 
 
-def _seal_shadow_release(mode: str, frames: dict, context, carried, produced):
-    """Draft and seal one ATP+WTA manifest; failure remains observational in Round 4A."""
+def _remove_unproduced_bootstrap_evaluations(produced) -> None:
+    """Remove stale optional JSON that has no production proof in this bootstrap."""
+    from .artifact_lineage import OPTIONAL_EVALUATION_FILES, remove_produced_artifact
+
+    snapshots = produced.snapshot()
+    for tour in TOURS:
+        proved = set(snapshots[tour])
+        for filename in sorted(OPTIONAL_EVALUATION_FILES):
+            if f"{tour}/{filename}" in proved:
+                continue
+            remove_produced_artifact(
+                tour,
+                output_dir(tour) / filename,
+                trusted_root=OUTPUT_DIR,
+            )
+
+
+def _seal_release(frames: dict, plan: _ReleasePlan, produced):
+    """Strictly draft and seal one ATP+WTA release; every failure stops the run."""
     from .artifact_lineage import (
-        ArtifactLineageError,
         ArtifactProvenance,
         ReleaseCoordinator,
-        shadow_draft_tour_release,
+        draft_tour_release,
         source_fingerprint,
     )
 
-    coordinator = ReleaseCoordinator(context)
-    try:
-        producer_revision = _producer_revision()
-    except (OSError, ValueError) as exc:
-        print(
-            f"  lineage/{mode}: shadow producer revision unavailable "
-            f"({type(exc).__name__})"
-        )
-        return None
+    if plan.bootstrap:
+        _remove_unproduced_bootstrap_evaluations(produced)
+
+    coordinator = ReleaseCoordinator(plan.context)
+    producer_revision = _producer_revision()
     accepted_parent = None
-    if carried is not None:
+    if plan.carried is not None:
         accepted_parent = {
-            "releaseId": carried.accepted.release_id,
-            "manifestSha256": carried.accepted.release.manifest_sha256,
+            "releaseId": plan.carried.accepted.release_id,
+            "manifestSha256": plan.carried.accepted.release.manifest_sha256,
         }
     for tour in TOURS:
-        try:
-            frame = frames[tour]
-            attrs = getattr(frame, "attrs", None)
-            artifact_id = (
-                attrs.get(_FRAME_PREDICTOR_ARTIFACT_ID)
-                if isinstance(attrs, dict) else None
-            )
-            provenance = ArtifactProvenance(
-                producer=f"tennis_model.pipeline@{producer_revision}",
-                source_fingerprint=source_fingerprint(
-                    _release_source_identity(
-                        tour,
-                        frame,
-                        mode,
-                        release_created_at=context.created_at,
-                        producer_revision=producer_revision,
-                        accepted_parent=accepted_parent,
-                    )
-                ),
-                predictor_artifact_id=artifact_id,
-            )
-            result = shadow_draft_tour_release(
-                OUTPUT_DIR,
-                tour,
-                context,
-                provenance,
-                carried=carried,
-                produced_paths=produced.snapshot(tour),
-            )
-        except (ArtifactLineageError, KeyError, OSError, TypeError) as exc:
-            reason = getattr(getattr(exc, "reason", None), "value", type(exc).__name__)
-            print(f"  lineage/{tour}: shadow draft unavailable ({reason})")
-            return None
-        if result.draft is None:
-            for issue in result.issues:
-                print(f"  lineage/{tour}: shadow {issue.reason.value}"
-                      f"{f' ({issue.path})' if issue.path else ''}")
-            return None
-        coordinator.merge(result.draft)
+        frame = frames[tour]
+        attrs = getattr(frame, "attrs", None)
+        artifact_id = (
+            attrs.get(_FRAME_PREDICTOR_ARTIFACT_ID)
+            if isinstance(attrs, dict) else None
+        )
+        provenance = ArtifactProvenance(
+            producer=f"tennis_model.pipeline@{producer_revision}",
+            source_fingerprint=source_fingerprint(
+                _release_source_identity(
+                    tour,
+                    frame,
+                    plan.context.mode,
+                    release_created_at=plan.context.created_at,
+                    producer_revision=producer_revision,
+                    accepted_parent=accepted_parent,
+                )
+            ),
+            predictor_artifact_id=artifact_id,
+        )
+        coordinator.merge(draft_tour_release(
+            OUTPUT_DIR,
+            tour,
+            plan.context,
+            provenance,
+            carried=plan.carried,
+            produced_paths=produced.snapshot(tour),
+        ))
 
-    try:
-        release = coordinator.seal(OUTPUT_DIR)
-    except (ArtifactLineageError, OSError) as exc:
-        reason = getattr(getattr(exc, "reason", None), "value", type(exc).__name__)
-        print(f"  lineage/{mode}: shadow seal unavailable ({reason})")
-        return None
+    release = coordinator.seal(OUTPUT_DIR)
     print(
-        f"  lineage/{mode}: sealed {release.release_id} "
+        f"  lineage/{plan.context.mode}: sealed {release.release_id} "
         f"({len(release.records)} exact artifacts, {release.manifest_sha256[:12]})"
     )
     return release
+
+
+def _unbless_partial_output() -> None:
+    """Revoke all-tour validity before a single-tour developer run mutates output."""
+    from .artifact_lineage import (
+        initialize_release_root,
+        unbless_release_for_mutation,
+    )
+
+    initialize_release_root(OUTPUT_DIR)
+    unbless_release_for_mutation(OUTPUT_DIR)
 
 
 def _prepare_upcoming(tour: str, predictor, df) -> list[dict] | None:
@@ -796,12 +823,12 @@ def _quick_kalshi(tours, frames: dict) -> None:
         print(f"  kalshi/quick: skipped ({e})")
 
 
-def _kalshi_report(tours, *, mirror: bool = True) -> None:
-    """Regenerate the cross-tour Kalshi scorecard (kalshi.json + report.md) from the
-    ledger CSVs. Single-tour/legacy callers may mirror immediately; exact all-tour runs
-    leave publication to the post-gate release coordinator so the final Kalshi bytes are
-    inside the same manifest. Reads the committed CSVs, so it also republishes kalshi.json
-    on quick runs / after a data-cache eviction. Best-effort."""
+def _kalshi_report(tours) -> None:
+    """Regenerate the cross-tour Kalshi scorecard inside the private output tree.
+
+    Publication is exclusively the post-gate accepted-release step. Reads the committed
+    CSVs, so this also regenerates ``kalshi.json`` after a data-cache eviction. Best-effort.
+    """
     try:
         report_inputs = _kalshi_report_input_identity(tours)
         with ExitStack() as stack:
@@ -811,19 +838,15 @@ def _kalshi_report(tours, *, mirror: bool = True) -> None:
                 ))
             from .eval.kalshi_report import build_report
             build_report()
-            if mirror:
-                for tour in report_inputs["tours"]:
-                    _mirror(tour)
     except Exception as e:                                   # noqa: BLE001 — never fatal
         print(f"  kalshi-report: skipped ({e})")
 
 
-def build_tour(tour: str, do_backtest: bool, *, run_kalshi: bool = True,
-               mirror: bool = True):
+def build_tour(tour: str, do_backtest: bool, *, run_kalshi: bool = True):
     """Full build: re-walk ratings, retrain the combiner, write every JSON (daily).
     ``run_kalshi=False`` is used only by a quick-mode compatibility rebuild so the
-    caller can keep both tours under the shared hourly benchmark budget. The all-tour
-    release coordinator also sets ``mirror=False`` until the semantic gate accepts it."""
+    caller can keep both tours under the shared hourly benchmark budget. Public bytes are
+    never mutated here; the accepted all-tour publisher owns that boundary."""
     print(f"\n=== {tour.upper()} === loading matches + building features...")
     threshold = WTA_DUAL_STATE_GATE_THRESHOLD if tour == "wta" else None
     # Keep the user-facing/health population main-only.  The WTA overlay is loaded a
@@ -892,8 +915,6 @@ def build_tour(tour: str, do_backtest: bool, *, run_kalshi: bool = True,
     _forecast_products(tour, predictor, df, enriched)  # this run's snapshot reaches same deploy
     if run_kalshi:
         _kalshi(tour, df, oos)                         # daily historical benchmark repair
-    if mirror:
-        _mirror(tour)
     return df
 
 
@@ -947,7 +968,11 @@ def _predictor_current(predictor, tour: str) -> bool:
     return True
 
 
-def build_tour_quick(tour: str, *, mirror: bool = True):
+def build_tour_quick(
+    tour: str,
+    *,
+    force_static: bool = False,
+):
     """Quick refresh (intra-day): reuse the saved predictor's states, re-pull live
     results, regenerate JSON. No re-walk or retrain; warm-cache tours export in parallel.
     to persist from the last full run (the workflow caches data/output)."""
@@ -963,30 +988,35 @@ def build_tour_quick(tour: str, *, mirror: bool = True):
             f"  quick: saved predictor rejected ({exc.reason.value}) -> full rebuild"
         )
         return build_tour(
-            tour, do_backtest=False, run_kalshi=False, mirror=mirror
+            tour, do_backtest=False, run_kalshi=False
         )
     if not _predictor_current(predictor, tour):
         print("  quick: saved predictor is stale (feature schema, FeatureParams, match "
               "population, or player aliases) -> full rebuild")
         return build_tour(
-            tour, do_backtest=False, run_kalshi=False, mirror=mirror
+            tour, do_backtest=False, run_kalshi=False
         )
     _bind_frame_predictor(df, predictor)
     export_all(tour, df, predictor.elo, predictor.srv, predictor.meta, predictor,
-               oos=None, full=False)
+               oos=None, full=force_static)
     enriched = _prepare_upcoming(tour, predictor, df)
     _track(tour, predictor, df, enriched)
     _forecast_products(tour, predictor, df, enriched)
-    if mirror:
-        _mirror(tour)
     return df
 
 
-def _build_quick_tours(tours: list[str], *, mirror: bool = True) -> dict:
+def _build_quick_tours(
+    tours: list[str],
+    *,
+    force_static: bool = False,
+) -> dict:
     """Build independent tour outputs concurrently after shared downloads complete."""
     def build_one(tour: str):
         with _stage(f"{tour.upper()} forecast export"):
-            return build_tour_quick(tour, mirror=mirror)
+            return build_tour_quick(
+                tour,
+                force_static=force_static,
+            )
 
     if len(tours) <= 1:
         return {tour: build_one(tour) for tour in tours}
@@ -1003,7 +1033,12 @@ def _build_quick_tours(tours: list[str], *, mirror: bool = True) -> dict:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--tour", default="atp", help="atp | wta | all")
+    ap.add_argument(
+        "--tour",
+        choices=(*TOURS, "all"),
+        default="atp",
+        help="atp | wta | all",
+    )
     ap.add_argument("--download", action="store_true", help="fetch latest results overlay first")
     ap.add_argument("--backtest", action="store_true", help="run walk-forward metrics + accuracy.json")
     ap.add_argument("--quick", action="store_true",
@@ -1033,16 +1068,18 @@ def main():
         if tuple(tours) == tuple(TOURS):
             from .artifact_lineage import begin_produced_artifacts
             with begin_produced_artifacts() as produced:
-                context, carried = _begin_shadow_release("quick")
-                frames = _build_quick_tours(tours, mirror=False)
+                plan = _begin_release("quick")
+                frames = _build_quick_tours(
+                    tours,
+                    force_static=plan.bootstrap,
+                )
                 with _stage("Kalshi quick benchmark"):
                     _quick_kalshi(tours, frames)
                 with _stage("Kalshi report"):
-                    _kalshi_report(tours, mirror=False)
-                _seal_shadow_release(
-                    "quick", frames, context, carried, produced
-                )
+                    _kalshi_report(tours)
+                _seal_release(frames, plan, produced)
         else:
+            _unbless_partial_output()
             frames = _build_quick_tours(tours)
             with _stage("Kalshi quick benchmark"):
                 _quick_kalshi(tours, frames)
@@ -1063,14 +1100,15 @@ def main():
     if tuple(tours) == tuple(TOURS):
         from .artifact_lineage import begin_produced_artifacts
         with begin_produced_artifacts() as produced:
-            context, carried = _begin_shadow_release("full")
+            plan = _begin_release("full")
             frames = {
-                tour: build_tour(tour, args.backtest, mirror=False)
+                tour: build_tour(tour, args.backtest)
                 for tour in tours
             }
-            _kalshi_report(tours, mirror=False)
-            _seal_shadow_release("full", frames, context, carried, produced)
+            _kalshi_report(tours)
+            _seal_release(frames, plan, produced)
     else:
+        _unbless_partial_output()
         for tour in tours:
             build_tour(tour, args.backtest)
         _kalshi_report(tours)

@@ -192,23 +192,32 @@ jobs:
           PYTHONPATH: src
         run: python -m tennis_model.data.health --gate --gate-report "$RUNNER_TEMP/predeploy-gate.json"
 
-      # Publication is one parent-owned release boundary after the semantic gate. Data
-      # runs accept the sealed ATP+WTA candidate and mirror every byte named by its manifest;
-      # web-only pushes may mirror only a previously gate-accepted cached release. Round 4A
-      # is a shadow rollout: invalid/missing lineage falls back to the same two-tour JSON
-      # mirror only after removing stale public manifest metadata. A failed fallback is fatal.
-      - name: Publish validated release data
+      # Publication is one fail-closed, parent-owned release boundary after the semantic
+      # gate. Data runs accept only the sealed, gate-green ATP+WTA candidate and then mirror
+      # every byte named by its manifest. Web-only pushes may mirror only a previously
+      # accepted cached release; missing, unaccepted, or invalid lineage is fatal and no raw
+      # JSON copying outside the declared manifest is permitted.
+      - name: Publish accepted release data
         id: mirror
         working-directory: tennis_model
         env:
           PYTHONPATH: src
+          PUBLICATION_SCOPE: ${{ steps.scope.outputs.scope }}
         run: |
-          if [ "${{ steps.scope.outputs.scope }}" = "web" ]; then
-            python -m tennis_model.artifact_lineage publish --scope web
-          else
-            python -m tennis_model.artifact_lineage publish --scope data \
-              --semantic-gate-passed --validator predeploy-integrity-gate-v1
-          fi
+          set -euo pipefail
+          case "$PUBLICATION_SCOPE" in
+            web)
+              python -m tennis_model.artifact_lineage publish --scope web
+              ;;
+            data)
+              python -m tennis_model.artifact_lineage publish --scope data \
+                --semantic-gate-passed --validator predeploy-integrity-gate-v1
+              ;;
+            *)
+              echo "::error::refusing publication for unknown push scope"
+              exit 1
+              ;;
+          esac
 
       # Durably persist the append-only forecast log (the data cache is evictable, so
       # commit it back). Once daily on the full run keeps history to one commit/day; the

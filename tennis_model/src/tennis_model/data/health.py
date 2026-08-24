@@ -198,20 +198,19 @@ def _finding_messages(findings: list[HealthFinding], *, actionable_only: bool = 
 
 
 def _lineage_observation(*, require_accepted: bool) -> tuple[dict, dict[str, list[HealthFinding]]]:
-    """Inspect the whole release once and translate shadow issues into typed findings.
+    """Inspect the whole release once and translate issues into blocking typed findings.
 
-    Round 4A is observational: every lineage issue is informational, so neither the
-    semantic gate nor the ordinary health verdict can be made red by the new format.
-    Raw parser/IO detail remains private; the public contract carries only a stable reason,
-    safe relative artifact path, and state. Global release issues are attached to both
-    tours because one shared manifest owns both payloads.
+    The pre-deploy gate calls this with ``require_accepted=False`` because acceptance is
+    written only after that gate succeeds. Authoritative health requires the private
+    receipt. Raw parser/IO detail remains private; the public contract carries only a
+    stable reason, safe relative artifact path, and state. Global release issues are
+    attached to both tours because one shared manifest owns both payloads.
     """
     from ..artifact_lineage import AcceptedRelease, inspect_release
 
     state = inspect_release(
         OUTPUT_DIR,
         require_accepted=require_accepted,
-        shadow=True,
     )
     accepted = state.release if isinstance(state.release, AcceptedRelease) else None
     release = accepted.release if accepted is not None else state.release
@@ -230,13 +229,13 @@ def _lineage_observation(*, require_accepted: bool) -> tuple[dict, dict[str, lis
             path = issue.path
             by_tour[tour].append(HealthFinding(
                 code=issue.code,
-                severity="info",
+                severity="error",
                 scope="output",
                 tour=tour,
                 entity=path or "release",
                 evidence={"state": state.state, "reason": reason, "path": path},
                 message=(
-                    f"{tour.upper()} release-lineage shadow: "
+                    f"{tour.upper()} release lineage: "
                     f"{reason.replace('-', ' ')}"
                     + (f" ({path})" if path else "")
                 ),

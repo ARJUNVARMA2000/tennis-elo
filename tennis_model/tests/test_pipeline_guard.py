@@ -128,11 +128,11 @@ def test_quick_rebuilds_when_artifact_load_rejects_cache(monkeypatch, reason_nam
         ) or rebuilt,
     )
 
-    assert pipeline.build_tour_quick("atp", mirror=False) is rebuilt
+    assert pipeline.build_tour_quick("atp") is rebuilt
     assert calls == [(
         "atp",
         False,
-        {"run_kalshi": False, "mirror": False},
+        {"run_kalshi": False},
     )]
 
 
@@ -188,7 +188,6 @@ def test_alias_stale_quick_rebuild_defers_kalshi_to_shared_budget(monkeypatch):
     monkeypatch.setattr(pipeline, "TennisPredictor", _RebuiltPredictor)
     monkeypatch.setattr(pipeline, "export_all", lambda *args, **kwargs: None)
     monkeypatch.setattr(pipeline, "_track", lambda *args, **kwargs: None)
-    monkeypatch.setattr(pipeline, "_mirror", lambda *args, **kwargs: None)
     monkeypatch.setattr(kalshi, "time_budget", _time_budget)
     def refresh_snapshots(tour, recent_days=None, *, status=None):
         snapshots.append((tour, recent_days))
@@ -251,7 +250,6 @@ def test_current_quick_export_reuses_model_bound_artifacts(monkeypatch):
         pipeline, "_forecast_products",
         lambda tour, predictor, df, rows: calls.append(("forecast", rows)),
     )
-    monkeypatch.setattr(pipeline, "_mirror", lambda *args: None)
 
     assert pipeline.build_tour_quick("atp") is frame
     export_call = next(call for call in calls if call[0] == "export")
@@ -260,6 +258,12 @@ def test_current_quick_export_reuses_model_bound_artifacts(monkeypatch):
     assert ("health", "atp", frame) in calls
     assert calls.count(("prepare", "atp")) == 1
     assert ("track", enriched) in calls and ("forecast", enriched) in calls
+
+    calls.clear()
+    assert pipeline.build_tour_quick("atp", force_static=True) is frame
+    bootstrap_export = next(call for call in calls if call[0] == "export")
+    assert bootstrap_export[2]["full"] is True
+    assert bootstrap_export[2]["oos"] is None
 
 
 def test_quick_tour_exports_overlap_and_preserve_requested_mapping(monkeypatch, tmp_path):
@@ -348,7 +352,6 @@ def test_wta_full_build_keeps_main_exports_and_gates_secondary_state(monkeypatch
     monkeypatch.setattr(pipeline, "_market_scorecard", lambda *args: None)
     monkeypatch.setattr(pipeline, "_track", lambda *args: None)
     monkeypatch.setattr(pipeline, "_forecast_products", lambda *args: None)
-    monkeypatch.setattr(pipeline, "_mirror", lambda *args: None)
 
     assert pipeline.build_tour("wta", do_backtest=True, run_kalshi=False) is main_df
     assert calls[:3] == [("load", "wta", False), ("health", main_df),
@@ -491,23 +494,24 @@ def test_quick_refresh_updates_current_atp_stats_before_export(monkeypatch):
     )
     frames = {"atp": object(), "wta": object()}
     context, carried = object(), object()
+    plan = pipeline._ReleasePlan(context=context, carried=carried, bootstrap=False)
     monkeypatch.setattr(
         pipeline,
-        "_begin_shadow_release",
-        lambda mode: calls.append(("lineage-begin", mode)) or (context, carried),
+        "_begin_release",
+        lambda mode: calls.append(("lineage-begin", mode)) or plan,
     )
     monkeypatch.setattr(
         pipeline,
-        "_seal_shadow_release",
-        lambda mode, got, ctx, prior, produced: calls.append(
-            ("lineage-seal", mode, got, ctx, prior, produced.snapshot())
+        "_seal_release",
+        lambda got, got_plan, produced: calls.append(
+            ("lineage-seal", got, got_plan, produced.snapshot())
         ),
     )
     monkeypatch.setattr(
         pipeline,
         "build_tour_quick",
         lambda tour, **kwargs: calls.append(
-            ("build", tour, kwargs.get("mirror"))
+            ("build", tour, kwargs.get("force_static"))
         ) or frames[tour],
     )
     monkeypatch.setattr(
@@ -518,9 +522,12 @@ def test_quick_refresh_updates_current_atp_stats_before_export(monkeypatch):
     monkeypatch.setattr(
         pipeline,
         "_kalshi_report",
-        lambda tours, **kwargs: calls.append(
-            ("report", tuple(tours), kwargs.get("mirror"))
-        ),
+        lambda tours: calls.append(("report", tuple(tours))),
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "_unbless_partial_output",
+        lambda: calls.append(("partial-unbless",)),
     )
 
     monkeypatch.setattr(sys, "argv", ["pipeline", "--tour", "all", "--quick"])
@@ -537,49 +544,70 @@ def test_quick_refresh_updates_current_atp_stats_before_export(monkeypatch):
     }
     assert calls[7:9] == [
         ("kalshi", ("atp", "wta"), frames),
-        ("report", ("atp", "wta"), False),
+        ("report", ("atp", "wta")),
     ]
     seal = calls[9]
-    assert seal[:5] == ("lineage-seal", "quick", frames, context, carried)
-    assert seal[5] == {"atp": (), "wta": ()}
+    assert seal[:3] == ("lineage-seal", frames, plan)
+    assert seal[3] == {"atp": (), "wta": ()}
+
+    calls.clear()
+    bootstrap_plan = pipeline._ReleasePlan(
+        context=context,
+        carried=None,
+        bootstrap=True,
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "_begin_release",
+        lambda mode: calls.append(("lineage-begin", mode)) or bootstrap_plan,
+    )
+    pipeline.main()
+    assert {
+        call for call in calls if call[0] == "build"
+    } == {
+        ("build", "atp", True),
+        ("build", "wta", True),
+    }
+    assert next(call for call in calls if call[0] == "lineage-seal")[2] is bootstrap_plan
 
     calls.clear()
     monkeypatch.setattr(sys, "argv", ["pipeline", "--tour", "wta", "--quick"])
     pipeline.main()
     assert not any(call[0] == "atp_stats" for call in calls)
-    assert ("build", "wta", True) in calls
+    assert ("partial-unbless",) in calls
+    assert ("build", "wta", False) in calls
     assert not any(call[0].startswith("lineage-") for call in calls)
-    assert ("report", ("wta",), None) in calls
+    assert ("report", ("wta",)) in calls
+    assert not hasattr(pipeline, "_mirror")
 
 
-def test_full_all_uses_one_parent_release_and_never_worker_mirrors(monkeypatch):
+def test_full_all_uses_one_parent_release_and_never_worker_publishes(monkeypatch):
     calls = []
     context, carried = object(), object()
+    plan = pipeline._ReleasePlan(context=context, carried=carried, bootstrap=False)
     frames = {"atp": object(), "wta": object()}
     monkeypatch.setattr(
         pipeline,
-        "_begin_shadow_release",
-        lambda mode: calls.append(("begin", mode)) or (context, carried),
+        "_begin_release",
+        lambda mode: calls.append(("begin", mode)) or plan,
     )
     monkeypatch.setattr(
         pipeline,
         "build_tour",
         lambda tour, backtest, **kwargs: calls.append(
-            ("build", tour, backtest, kwargs.get("mirror"))
+            ("build", tour, backtest, kwargs)
         ) or frames[tour],
     )
     monkeypatch.setattr(
         pipeline,
         "_kalshi_report",
-        lambda tours, **kwargs: calls.append(
-            ("report", tuple(tours), kwargs.get("mirror"))
-        ),
+        lambda tours: calls.append(("report", tuple(tours))),
     )
     monkeypatch.setattr(
         pipeline,
-        "_seal_shadow_release",
-        lambda mode, got, ctx, prior, produced: calls.append(
-            ("seal", mode, got, ctx, prior, produced.snapshot())
+        "_seal_release",
+        lambda got, got_plan, produced: calls.append(
+            ("seal", got, got_plan, produced.snapshot())
         ),
     )
     monkeypatch.setattr(sys, "argv", ["pipeline", "--tour", "all", "--backtest"])
@@ -588,12 +616,251 @@ def test_full_all_uses_one_parent_release_and_never_worker_mirrors(monkeypatch):
 
     assert calls[:4] == [
         ("begin", "full"),
-        ("build", "atp", True, False),
-        ("build", "wta", True, False),
-        ("report", ("atp", "wta"), False),
+        ("build", "atp", True, {}),
+        ("build", "wta", True, {}),
+        ("report", ("atp", "wta")),
     ]
-    assert calls[4][:5] == ("seal", "full", frames, context, carried)
-    assert calls[4][5] == {"atp": (), "wta": ()}
+    assert calls[4][:3] == ("seal", frames, plan)
+    assert calls[4][3] == {"atp": (), "wta": ()}
+
+
+def test_invalid_tour_stops_before_download_build_or_pointer_mutation(
+    monkeypatch,
+    tmp_path,
+):
+    root = tmp_path / "output"
+    root.mkdir()
+    manifest = root / "release-manifest.json"
+    receipt = root / "release-accepted.private"
+    manifest.write_bytes(b"existing manifest")
+    receipt.write_bytes(b"existing receipt")
+    calls = []
+    monkeypatch.setattr(pipeline, "OUTPUT_DIR", root)
+    monkeypatch.setattr(
+        pipeline,
+        "_unbless_partial_output",
+        lambda: calls.append("unbless"),
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "build_tour",
+        lambda *_args, **_kwargs: calls.append("build"),
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["pipeline", "--tour", "apt", "--quick", "--download"],
+    )
+
+    with pytest.raises(SystemExit) as caught:
+        pipeline.main()
+
+    assert caught.value.code == 2
+    assert calls == []
+    assert manifest.read_bytes() == b"existing manifest"
+    assert receipt.read_bytes() == b"existing receipt"
+
+
+def test_begin_release_keeps_an_exact_accepted_quick_parent(monkeypatch):
+    from types import SimpleNamespace
+
+    from tennis_model import artifact_lineage as lineage
+
+    parent_id = "11111111-1111-4111-8111-111111111111"
+    accepted = SimpleNamespace(release_id=parent_id)
+    carried = SimpleNamespace(accepted=accepted)
+    unblessed = []
+    monkeypatch.setattr(
+        lineage,
+        "carry_forward_release",
+        lambda source, destination: carried,
+    )
+    monkeypatch.setattr(
+        lineage,
+        "unbless_release_for_mutation",
+        lambda root: unblessed.append(root),
+    )
+
+    plan = pipeline._begin_release("quick")
+
+    assert plan.carried is carried
+    assert not plan.bootstrap
+    assert plan.context.mode == "quick"
+    assert plan.context.parent == parent_id
+    assert unblessed == [pipeline.OUTPUT_DIR]
+
+
+@pytest.mark.parametrize("requested_mode", ["full", "quick"])
+def test_begin_release_cold_cache_initializes_parentless_full_bootstrap(
+    monkeypatch, tmp_path, requested_mode
+):
+    output_parent = tmp_path / "data"
+    output_parent.mkdir()
+    output_root = output_parent / "output"
+    monkeypatch.setattr(pipeline, "OUTPUT_DIR", output_root)
+
+    plan = pipeline._begin_release(requested_mode)
+
+    assert plan.bootstrap and plan.carried is None
+    assert plan.context.mode == "full"
+    assert plan.context.parent is None
+    assert {path.name for path in output_root.iterdir()} == {"atp", "wta"}
+
+
+def test_single_tour_cold_cache_initializes_root_before_revocation(
+    monkeypatch, tmp_path
+):
+    output_parent = tmp_path / "data"
+    output_parent.mkdir()
+    output_root = output_parent / "output"
+    monkeypatch.setattr(pipeline, "OUTPUT_DIR", output_root)
+
+    pipeline._unbless_partial_output()
+
+    assert {path.name for path in output_root.iterdir()} == {"atp", "wta"}
+
+
+@pytest.mark.parametrize(
+    "reason",
+    [
+        "MANIFEST_MISSING",
+        "ACCEPTANCE_INVALID",
+        "ARTIFACT_MISMATCH",
+    ],
+)
+def test_begin_release_promotes_missing_or_corrupt_quick_to_parentless_full(
+    monkeypatch, reason
+):
+    from tennis_model import artifact_lineage as lineage
+
+    def reject(*_args):
+        raise lineage.ArtifactLineageError(
+            getattr(lineage.LineageReason, reason),
+            "broken cached lineage",
+        )
+
+    unblessed = []
+    monkeypatch.setattr(lineage, "carry_forward_release", reject)
+    monkeypatch.setattr(
+        lineage,
+        "unbless_release_for_mutation",
+        lambda root: unblessed.append(root),
+    )
+
+    plan = pipeline._begin_release("quick")
+
+    assert plan.bootstrap and plan.carried is None
+    assert plan.context.mode == "full"
+    assert plan.context.parent is None
+    assert unblessed == [pipeline.OUTPUT_DIR]
+
+
+@pytest.mark.parametrize("reason", ["PATH_INVALID", "IO_ERROR"])
+def test_begin_release_propagates_unsafe_parent_failures(monkeypatch, reason):
+    from tennis_model import artifact_lineage as lineage
+
+    def reject(*_args):
+        raise lineage.ArtifactLineageError(
+            getattr(lineage.LineageReason, reason),
+            "unsafe cached lineage",
+        )
+
+    monkeypatch.setattr(lineage, "carry_forward_release", reject)
+    monkeypatch.setattr(
+        lineage,
+        "unbless_release_for_mutation",
+        lambda _root: pytest.fail("unsafe parent must fail before pointer mutation"),
+    )
+
+    with pytest.raises(lineage.ArtifactLineageError) as caught:
+        pipeline._begin_release("quick")
+    assert caught.value.reason == getattr(lineage.LineageReason, reason)
+
+
+def test_begin_release_propagates_pointer_revocation_failure(monkeypatch):
+    from tennis_model import artifact_lineage as lineage
+
+    monkeypatch.setattr(
+        lineage,
+        "carry_forward_release",
+        lambda *_args: (_ for _ in ()).throw(lineage.ArtifactLineageError(
+            lineage.LineageReason.MANIFEST_MISSING,
+            "no parent",
+        )),
+    )
+    monkeypatch.setattr(
+        lineage,
+        "unbless_release_for_mutation",
+        lambda _root: (_ for _ in ()).throw(OSError("cannot revoke")),
+    )
+
+    with pytest.raises(OSError, match="cannot revoke"):
+        pipeline._begin_release("quick")
+
+
+def test_bootstrap_removes_only_optional_artifacts_without_current_proof(
+    monkeypatch, tmp_path
+):
+    from tennis_model import artifact_lineage as lineage
+
+    root = tmp_path / "output"
+    monkeypatch.setattr(pipeline, "OUTPUT_DIR", root)
+    monkeypatch.setattr(pipeline, "output_dir", lambda tour: root / tour)
+    for tour in lineage.TOURS:
+        directory = root / tour
+        directory.mkdir(parents=True)
+        for filename in lineage.OPTIONAL_EVALUATION_FILES:
+            (directory / filename).write_text("{}", encoding="utf-8")
+
+    class _Produced:
+        @staticmethod
+        def snapshot():
+            return {
+                "atp": ("atp/accuracy.json",),
+                "wta": ("wta/track.json",),
+            }
+
+    pipeline._remove_unproduced_bootstrap_evaluations(_Produced())
+
+    assert (root / "atp" / "accuracy.json").exists()
+    assert (root / "wta" / "track.json").exists()
+    assert not (root / "atp" / "track.json").exists()
+    assert not (root / "wta" / "accuracy.json").exists()
+    for tour, proved in (("atp", "accuracy.json"), ("wta", "track.json")):
+        assert {
+            path.name for path in (root / tour).glob("*.json")
+        } == {proved}
+
+
+def test_seal_release_propagates_draft_failure(monkeypatch):
+    from types import SimpleNamespace
+
+    from tennis_model import artifact_lineage as lineage
+
+    artifact_id = "11111111-1111-4111-8111-111111111111"
+    context = lineage.begin_release("full")
+    plan = pipeline._ReleasePlan(context=context, carried=None, bootstrap=False)
+    frames = {
+        tour: SimpleNamespace(
+            attrs={pipeline._FRAME_PREDICTOR_ARTIFACT_ID: artifact_id}
+        )
+        for tour in lineage.TOURS
+    }
+    monkeypatch.setattr(pipeline, "_producer_revision", lambda: "git:" + "a" * 40)
+    monkeypatch.setattr(pipeline, "_release_source_identity", lambda *args, **kwargs: {})
+
+    def reject(*_args, **_kwargs):
+        raise lineage.ArtifactLineageError(
+            lineage.LineageReason.GRAPH_INVALID,
+            "draft failed",
+        )
+
+    monkeypatch.setattr(lineage, "draft_tour_release", reject)
+    produced = SimpleNamespace(snapshot=lambda _tour: ())
+
+    with pytest.raises(lineage.ArtifactLineageError) as caught:
+        pipeline._seal_release(frames, plan, produced)
+    assert caught.value.reason == lineage.LineageReason.GRAPH_INVALID
 
 
 def test_release_source_identity_binds_registry_fields_time_and_producer(
@@ -746,7 +1013,7 @@ def test_a_failing_backtest_does_not_cost_the_ratings_walk():
 
     orig = (pl.load_matches, pl.build_predictor_inputs, pl.main_rows, pl.walk_forward,
             pl.train_final, pl.TennisPredictor, pl.export_all, pl._market_scorecard,
-            pl._track, pl._kalshi, pl._mirror)
+            pl._track, pl._kalshi)
     try:
         pl.load_matches = lambda tour: "df"
         pl.build_predictor_inputs = lambda df: ("feat", "elo", "srv", "ctx", "meta")
@@ -757,7 +1024,6 @@ def test_a_failing_backtest_does_not_cost_the_ratings_walk():
         pl._market_scorecard = lambda *a, **k: None
         pl._track = lambda *a, **k: None
         pl._kalshi = lambda *a, **k: None
-        pl._mirror = lambda *a, **k: None
 
         def _boom(*a, **k):
             raise KeyError(256)          # the real 2026-07-11 crash shape
@@ -768,7 +1034,7 @@ def test_a_failing_backtest_does_not_cost_the_ratings_walk():
     finally:
         (pl.load_matches, pl.build_predictor_inputs, pl.main_rows, pl.walk_forward,
          pl.train_final, pl.TennisPredictor, pl.export_all, pl._market_scorecard,
-         pl._track, pl._kalshi, pl._mirror) = orig
+         pl._track, pl._kalshi) = orig
     print("ok test_a_failing_backtest_does_not_cost_the_ratings_walk")
 
 

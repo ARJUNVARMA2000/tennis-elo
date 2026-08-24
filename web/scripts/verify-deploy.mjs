@@ -115,6 +115,28 @@ const LINEAGE_OPTIONAL_EVALUATION = new Set([
   "market.json",
   "track.json",
 ]);
+// These exact operational filenames come from the producer's private-output contracts. Firebase
+// has no directory-listing API, so exact live-set verification combines the accepted positive
+// graph with bounded negative probes for every known private path and every known optional file
+// omitted from that graph.
+const LINEAGE_PRIVATE_TOUR_FILENAMES = Object.freeze([
+  "predictor.pkl",
+  "predictor.pkl.envelope",
+  "predictor.pkl.envelope.pending",
+  "stage-status.private",
+  "stage-status.json",
+  "health-source.json",
+  "tournament_draws-status.private",
+]);
+export const LINEAGE_FORBIDDEN_PATHS = Object.freeze([
+  "/data/.last_full_run",
+  "/data/release-accepted.private",
+  ...LINEAGE_TOURS.flatMap((tour) => (
+    LINEAGE_PRIVATE_TOUR_FILENAMES.map((filename) => `/data/${tour}/${filename}`)
+  )),
+]);
+const LINEAGE_MAX_NEGATIVE_PROBES = LINEAGE_FORBIDDEN_PATHS.length
+  + LINEAGE_TOURS.length * LINEAGE_OPTIONAL_EVALUATION.size;
 const LINEAGE_DYNAMIC_PATTERNS = new Map([
   ["matrix-shard", /^matrix-[A-Za-z0-9][A-Za-z0-9._-]*\.json$/],
   ["profile-shard", /^profile-[0-9a-f]{16}\.json$/],
@@ -331,18 +353,26 @@ function validUtcTimestamp(value) {
 }
 
 /**
- * Return the accepted local lineage expectation, or null during the Round 4A legacy-shadow
- * fallback. Once status is `accepted`, every field is strict and malformed data fails closed.
+ * Return the accepted local lineage expectation. Missing, malformed, and non-accepted summaries
+ * fail closed because every deploy must now carry an exact accepted artifact graph.
  *
  * @param {unknown} health
- * @returns {{schema: string, status: string, releaseId: string, manifestSha256: string, tours: string[]}|null}
+ * @returns {{schema: string, status: string, releaseId: string, manifestSha256: string, tours: string[]}}
  */
 export function expectedArtifactLineage(health) {
-  const summary = health && typeof health === "object" && !Array.isArray(health)
-    ? health.artifactLineage
-    : null;
-  if (!summary || typeof summary !== "object" || Array.isArray(summary)
-      || summary.status !== "accepted") return null;
+  lineageMust(
+    health !== null && typeof health === "object" && !Array.isArray(health),
+    "health is not an object with accepted artifactLineage",
+  );
+  const summary = health.artifactLineage;
+  lineageMust(
+    summary !== null && typeof summary === "object" && !Array.isArray(summary),
+    "health artifactLineage is missing or not an object",
+  );
+  lineageMust(
+    summary.status === "accepted",
+    `health artifactLineage status is ${String(summary.status)}; expected accepted`,
+  );
   lineageMust(
     exactFields(summary, LINEAGE_SUMMARY_FIELDS),
     "accepted local health artifactLineage fields do not match artifact-lineage-v1",
@@ -529,6 +559,33 @@ function validateIndexClosure(manifest, indexPayloads) {
   );
 }
 
+async function verifyKnownAbsentLineagePaths(base, manifest, fetcher) {
+  const declared = new Set(manifest.artifacts.map((record) => `/data/${record.path}`));
+  const probes = [
+    ...LINEAGE_FORBIDDEN_PATHS.map((path) => ({ path, kind: "forbidden private path" })),
+    ...LINEAGE_TOURS.flatMap((tour) => [...LINEAGE_OPTIONAL_EVALUATION]
+      .map((filename) => `/data/${tour}/${filename}`)
+      .filter((path) => !declared.has(path))
+      .map((path) => ({ path, kind: "undeclared optional artifact" }))),
+  ];
+  lineageMust(
+    probes.length <= LINEAGE_MAX_NEGATIVE_PROBES
+      && new Set(probes.map((probe) => probe.path)).size === probes.length,
+    "lineage negative-probe set is duplicate or exceeds its bound",
+  );
+
+  await Promise.all(probes.map(async ({ path, kind }) => {
+    const response = await fetcher(base + path, {
+      cache: "no-store",
+      redirect: "manual",
+    });
+    const status = response.status;
+    if (response.body) await response.body.cancel();
+    lineageMust(status === 404, `${kind} ${path} -> ${status}; expected 404`);
+  }));
+  return probes.map((probe) => probe.path);
+}
+
 /**
  * Verify one accepted live release without sampling. The fetcher is injected for deterministic
  * adversarial tests and is normally the retrying production fetch wrapper.
@@ -542,7 +599,6 @@ export async function verifyArtifactLineageRelease({
   observedAt = new Date(),
 }) {
   const expected = expectedArtifactLineage(expectedHealth);
-  if (expected === null) return { skipped: true, artifactCount: 0, releaseId: null, fetchedPaths: [] };
 
   const normalizedBase = String(base).replace(/\/$/, "");
   const healthResponse = await fetcher(normalizedBase + LINEAGE_HEALTH_PATH, { cache: "no-store" });
@@ -556,7 +612,6 @@ export async function verifyArtifactLineageRelease({
     "deployed health",
   );
   const liveExpected = expectedArtifactLineage(liveHealth);
-  lineageMust(liveExpected !== null, "deployed health has no accepted artifactLineage summary");
   lineageMust(
     LINEAGE_SUMMARY_FIELDS.every((field) => JSON.stringify(liveExpected[field]) === JSON.stringify(expected[field])),
     "deployed health artifactLineage differs from local accepted health",
@@ -581,6 +636,11 @@ export async function verifyArtifactLineageRelease({
     parseStrictLineageJson(manifestBytes, "release manifest"),
     expected,
     observedAt,
+  );
+  const probedAbsentPaths = await verifyKnownAbsentLineagePaths(
+    normalizedBase,
+    manifest,
+    fetcher,
   );
 
   const fetchedPaths = [];
@@ -612,10 +672,11 @@ export async function verifyArtifactLineageRelease({
   validateIndexClosure(manifest, indexPayloads);
   lineageMust(fetchedPaths.length === manifest.artifacts.length, "not every declared release artifact was fetched");
   return {
-    skipped: false,
     artifactCount: manifest.artifacts.length,
+    absentPathCount: probedAbsentPaths.length,
     releaseId: manifest.releaseId,
     fetchedPaths,
+    probedAbsentPaths,
   };
 }
 
@@ -796,9 +857,8 @@ await check(
 
 await check("release lineage: exact accepted artifact graph", async () => {
   const expectedHealth = loadExpectedHealth(EXPECTED_HEALTH_PATH);
-  if (expectedArtifactLineage(expectedHealth) === null) {
-    return "legacy shadow fallback (no accepted local lineage)";
-  }
+  // Local lineage cannot change during CDN propagation, so reject it before the retry window.
+  expectedArtifactLineage(expectedHealth);
   let lastError;
   for (let attempt = 0; attempt < FRESH_TRIES; attempt++) {
     try {
@@ -807,7 +867,7 @@ await check("release lineage: exact accepted artifact graph", async () => {
         expectedHealth,
         fetcher: fetchT,
       });
-      return `${result.artifactCount} exact artifact(s), release ${result.releaseId}`;
+      return `${result.artifactCount} exact artifact(s), ${result.absentPathCount} known absent path(s), release ${result.releaseId}`;
     } catch (error) {
       lastError = error;
       if (attempt < FRESH_TRIES - 1) await sleep(FRESH_DELAY_MS);

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -155,6 +156,26 @@ def _accepted(root: Path) -> lineage.AcceptedRelease:
     )
 
 
+def _accepted_with_strict_predictors(
+    root: Path,
+    monkeypatch,
+) -> lineage.AcceptedRelease:
+    _write_graph(root)
+    for tour in lineage.TOURS:
+        _write_strict_predictor_pair(root, tour)
+    monkeypatch.setattr(
+        lineage,
+        "_validate_predictor_identity",
+        _REAL_VALIDATE_PREDICTOR_IDENTITY,
+    )
+    _seal(root)
+    return lineage.accept_release(
+        root,
+        semantic_gate_passed=True,
+        validator="predeploy-integrity-gate-v1",
+    )
+
+
 def _write_strict_predictor_pair(root: Path, tour: str) -> bytes:
     from tennis_model.model import artifact
 
@@ -186,6 +207,45 @@ def _write_strict_predictor_pair(root: Path, tour: str) -> bytes:
     })
     _write_json(meta_path, meta)
     return payload
+
+
+@pytest.mark.parametrize(
+    ("predictor_reason", "lineage_reason"),
+    [
+        ("PATH_INVALID", "PATH_INVALID"),
+        ("ENVELOPE_IO", "IO_ERROR"),
+        ("PAYLOAD_IO", "IO_ERROR"),
+        ("PENDING_IO", "IO_ERROR"),
+        ("PUBLICATION_IO", "IO_ERROR"),
+        ("ENVELOPE_MALFORMED", "GRAPH_INVALID"),
+        ("PAYLOAD_CHECKSUM_MISMATCH", "GRAPH_INVALID"),
+    ],
+)
+def test_predictor_identity_failure_preserves_fatal_vs_rebuildable_class(
+    tmp_path,
+    monkeypatch,
+    predictor_reason,
+    lineage_reason,
+):
+    from tennis_model.model import artifact
+
+    def reject(*_args, **_kwargs):
+        raise artifact.PredictorArtifactError(
+            getattr(artifact.PredictorArtifactReason, predictor_reason),
+            "injected",
+        )
+
+    monkeypatch.setattr(
+        lineage,
+        "_validate_predictor_identity",
+        _REAL_VALIDATE_PREDICTOR_IDENTITY,
+    )
+    monkeypatch.setattr(artifact, "validate_predictor_artifact_identity", reject)
+
+    with pytest.raises(lineage.ArtifactLineageError) as caught:
+        lineage._validate_predictor_identity(tmp_path, "atp")
+
+    assert caught.value.reason == getattr(lineage.LineageReason, lineage_reason)
 
 
 def test_discovers_exact_fixed_recursive_and_optional_graph(tmp_path):
@@ -364,16 +424,16 @@ def test_private_acceptance_binds_exact_manifest_release_and_validator(tmp_path)
 def test_acceptance_rereads_graph_after_receipt_publication(tmp_path, monkeypatch):
     _write_graph(tmp_path)
     _seal(tmp_path)
-    real_atomic = lineage._atomic_write_bytes
+    real_atomic = lineage._atomic_replace_at
 
-    def mutate_after_receipt(path, raw, **kwargs):
-        real_atomic(path, raw, **kwargs)
-        if Path(path).name == lineage.ACCEPTANCE_FILENAME:
+    def mutate_after_receipt(parent_fd, filename, raw):
+        real_atomic(parent_fd, filename, raw)
+        if filename == lineage.ACCEPTANCE_FILENAME:
             (tmp_path / "atp" / "players.json").write_text(
                 '{"mutated":true}', encoding="utf-8"
             )
 
-    monkeypatch.setattr(lineage, "_atomic_write_bytes", mutate_after_receipt)
+    monkeypatch.setattr(lineage, "_atomic_replace_at", mutate_after_receipt)
     with pytest.raises(lineage.ArtifactLineageError) as changed:
         lineage.accept_release(
             tmp_path,
@@ -383,6 +443,98 @@ def test_acceptance_rereads_graph_after_receipt_publication(tmp_path, monkeypatc
     assert changed.value.reason == lineage.LineageReason.ARTIFACT_MISMATCH
     with pytest.raises(lineage.ArtifactLineageError):
         lineage.load_accepted_release(tmp_path)
+
+
+def test_acceptance_root_swap_before_receipt_write_mutates_neither_replacement(
+    tmp_path,
+    monkeypatch,
+):
+    source = tmp_path / "source"
+    moved_source = tmp_path / "moved-source"
+    replacement = tmp_path / "replacement"
+    _write_graph(source)
+    candidate = _seal(source)
+    replacement_accepted = _accepted(replacement)
+    real_validate = lineage.validate_release
+    swapped = False
+
+    def validate_then_swap(root, *args, **kwargs):
+        nonlocal swapped
+        result = real_validate(root, *args, **kwargs)
+        if Path(root) == source and not swapped:
+            swapped = True
+            source.replace(moved_source)
+            replacement.replace(source)
+        return result
+
+    monkeypatch.setattr(lineage, "validate_release", validate_then_swap)
+
+    with pytest.raises(lineage.ArtifactLineageError) as caught:
+        lineage.accept_release(
+            source,
+            semantic_gate_passed=True,
+            validator="predeploy-integrity-gate-v1",
+        )
+
+    assert caught.value.reason == lineage.LineageReason.PATH_INVALID
+    assert (moved_source / lineage.MANIFEST_FILENAME).read_bytes() == (
+        candidate.manifest_bytes
+    )
+    assert not (moved_source / lineage.ACCEPTANCE_FILENAME).exists()
+    assert (source / lineage.MANIFEST_FILENAME).read_bytes() == (
+        replacement_accepted.release.manifest_bytes
+    )
+    assert (source / lineage.ACCEPTANCE_FILENAME).read_bytes() == (
+        replacement_accepted.receipt_bytes
+    )
+
+
+def test_seal_root_swap_after_graph_validation_preserves_both_existing_roots(
+    tmp_path,
+    monkeypatch,
+):
+    source = tmp_path / "source"
+    moved_source = tmp_path / "moved-source"
+    replacement = tmp_path / "replacement"
+    accepted_a = _accepted(source)
+    accepted_b = _accepted(replacement)
+    context = lineage.begin_release("full")
+    manifest = lineage.merge_release_drafts(
+        context,
+        [_draft(source, tour, context) for tour in lineage.TOURS],
+    )
+    real_validate_graph = lineage._validate_manifest_against_graph
+    swapped = False
+
+    def validate_graph_then_swap(*args, **kwargs):
+        nonlocal swapped
+        result = real_validate_graph(*args, **kwargs)
+        if not swapped:
+            swapped = True
+            source.replace(moved_source)
+            replacement.replace(source)
+        return result
+
+    monkeypatch.setattr(
+        lineage,
+        "_validate_manifest_against_graph",
+        validate_graph_then_swap,
+    )
+
+    with pytest.raises(lineage.ArtifactLineageError) as caught:
+        lineage.seal_release(source, manifest)
+
+    assert caught.value.reason == lineage.LineageReason.PATH_INVALID
+    assert (moved_source / lineage.MANIFEST_FILENAME).read_bytes() == (
+        accepted_a.release.manifest_bytes
+    )
+    assert (moved_source / lineage.ACCEPTANCE_FILENAME).read_bytes() == (
+        accepted_a.receipt_bytes
+    )
+    assert (source / lineage.MANIFEST_FILENAME).read_bytes() == (
+        accepted_b.release.manifest_bytes
+    )
+    assert (source / lineage.ACCEPTANCE_FILENAME).read_bytes() == accepted_b.receipt_bytes
 
 
 def test_acceptance_receipt_rejects_unknown_duplicate_and_future_fields(tmp_path):
@@ -488,6 +640,124 @@ def test_carry_requires_full_exact_accepted_prior_and_preserves_origin(tmp_path)
         lineage.carry_forward_release(source, broken_destination)
     assert sentinel.read_text(encoding="utf-8") == "untouched"
     assert not (broken_destination / lineage.MANIFEST_FILENAME).exists()
+
+
+@pytest.mark.parametrize("swap_kind", ["root", "parent", "tour"])
+def test_unequal_carry_is_bound_to_attempted_destination_under_replacement(
+    tmp_path,
+    monkeypatch,
+    swap_kind,
+):
+    source = tmp_path / "source"
+    source_accepted = _accepted(source)
+    if swap_kind == "parent":
+        parent = tmp_path / "carry-parent"
+        destination = parent / "output"
+        moved_parent = tmp_path / "moved-carry-parent"
+        replacement_parent = tmp_path / "replacement-carry-parent"
+        replacement_root = replacement_parent / "output"
+    else:
+        parent = tmp_path
+        destination = tmp_path / "destination"
+        moved_destination = tmp_path / "moved-carry-attempt"
+        replacement_root = tmp_path / "replacement-destination"
+    destination_accepted = _accepted(destination)
+    if swap_kind in {"root", "parent"}:
+        replacement_accepted = _accepted(replacement_root)
+    else:
+        replacement_atp = tmp_path / "replacement-atp"
+        replacement_atp.mkdir()
+        (replacement_atp / "sentinel.bin").write_bytes(b"unrelated tour bytes")
+        (replacement_atp / "predictor.pkl.envelope").write_bytes(
+            b"unrelated predictor envelope"
+        )
+        moved_atp = tmp_path / "moved-carry-atp"
+
+    destination_identity = (
+        os.stat(destination).st_dev,
+        os.stat(destination).st_ino,
+    )
+    atp_identity = (
+        os.stat(destination / "atp").st_dev,
+        os.stat(destination / "atp").st_ino,
+    )
+    real_unlink = lineage._durable_unlink_at
+    real_replace = lineage._atomic_replace_at
+    swapped = False
+
+    def unlink_then_swap(parent_fd, filename):
+        nonlocal swapped
+        real_unlink(parent_fd, filename)
+        opened = os.fstat(parent_fd)
+        if (
+            swapped
+            or swap_kind == "tour"
+            or filename != lineage.ACCEPTANCE_FILENAME
+            or (opened.st_dev, opened.st_ino) != destination_identity
+        ):
+            return
+        swapped = True
+        if swap_kind == "root":
+            destination.replace(moved_destination)
+            replacement_root.replace(destination)
+        else:
+            parent.replace(moved_parent)
+            replacement_parent.replace(parent)
+
+    def replace_then_swap(parent_fd, filename, raw):
+        nonlocal swapped
+        real_replace(parent_fd, filename, raw)
+        opened = os.fstat(parent_fd)
+        if (
+            swapped
+            or swap_kind != "tour"
+            or filename != "predictor.pkl.envelope"
+            or (opened.st_dev, opened.st_ino) != atp_identity
+        ):
+            return
+        swapped = True
+        (destination / "atp").replace(moved_atp)
+        replacement_atp.replace(destination / "atp")
+
+    monkeypatch.setattr(lineage, "_durable_unlink_at", unlink_then_swap)
+    monkeypatch.setattr(lineage, "_atomic_replace_at", replace_then_swap)
+
+    with pytest.raises(lineage.ArtifactLineageError) as caught:
+        lineage.carry_forward_release(source, destination)
+
+    assert caught.value.reason == lineage.LineageReason.PATH_INVALID
+    assert swapped
+    assert (source / lineage.MANIFEST_FILENAME).read_bytes() == (
+        source_accepted.release.manifest_bytes
+    )
+    assert (source / lineage.ACCEPTANCE_FILENAME).read_bytes() == (
+        source_accepted.receipt_bytes
+    )
+    if swap_kind in {"root", "parent"}:
+        moved_attempt = (
+            moved_destination if swap_kind == "root" else moved_parent / "output"
+        )
+        assert not (moved_attempt / lineage.MANIFEST_FILENAME).exists()
+        assert not (moved_attempt / lineage.ACCEPTANCE_FILENAME).exists()
+        assert (destination / lineage.MANIFEST_FILENAME).read_bytes() == (
+            replacement_accepted.release.manifest_bytes
+        )
+        assert (destination / lineage.ACCEPTANCE_FILENAME).read_bytes() == (
+            replacement_accepted.receipt_bytes
+        )
+    else:
+        assert not (destination / lineage.MANIFEST_FILENAME).exists()
+        assert not (destination / lineage.ACCEPTANCE_FILENAME).exists()
+        assert (destination / "atp" / "sentinel.bin").read_bytes() == (
+            b"unrelated tour bytes"
+        )
+        assert (destination / "atp" / "predictor.pkl.envelope").read_bytes() == (
+            b"unrelated predictor envelope"
+        )
+        assert (moved_atp / "predictor.pkl.envelope").read_bytes() != (
+            destination / "atp" / "predictor.pkl.envelope"
+        ).read_bytes()
+    assert destination_accepted.release_id != source_accepted.release_id
 
 
 def test_meta_predictor_chain_quick_bootstrap_and_current_production_proof(tmp_path):
@@ -977,17 +1247,73 @@ def test_remove_produced_artifact_absence_is_synced_and_private_rejected(
 def test_candidate_mutation_unblesses_receipt_then_manifest(tmp_path, monkeypatch):
     _accepted(tmp_path)
     order = []
-    real_unlink = lineage._durable_unlink
+    real_unlink = lineage._durable_unlink_at
 
-    def record_unlink(path, **kwargs):
-        order.append(Path(path).name)
-        real_unlink(path, **kwargs)
+    def record_unlink(parent_fd, filename):
+        order.append(filename)
+        real_unlink(parent_fd, filename)
 
-    monkeypatch.setattr(lineage, "_durable_unlink", record_unlink)
+    monkeypatch.setattr(lineage, "_durable_unlink_at", record_unlink)
     lineage.unbless_release_for_mutation(tmp_path)
     assert order == [lineage.ACCEPTANCE_FILENAME, lineage.MANIFEST_FILENAME]
     assert not (tmp_path / lineage.ACCEPTANCE_FILENAME).exists()
     assert not (tmp_path / lineage.MANIFEST_FILENAME).exists()
+
+
+@pytest.mark.parametrize("swap_kind", ["root", "parent"])
+def test_unbless_root_binding_revokes_attempt_without_touching_replacement(
+    tmp_path,
+    monkeypatch,
+    swap_kind,
+):
+    if swap_kind == "root":
+        parent = tmp_path
+        root = parent / "output"
+        moved_root = tmp_path / "moved-output-attempt"
+        replacement = tmp_path / "replacement-output"
+        replacement_root = replacement
+    else:
+        parent = tmp_path / "candidate-parent"
+        root = parent / "output"
+        moved_parent = tmp_path / "moved-candidate-parent"
+        replacement_parent = tmp_path / "replacement-parent"
+        replacement_root = replacement_parent / "output"
+    accepted_attempt = _accepted(root)
+    accepted_replacement = _accepted(replacement_root)
+    real_unlink = lineage._durable_unlink_at
+    swapped = False
+
+    def unlink_then_swap(parent_fd, filename):
+        nonlocal swapped
+        real_unlink(parent_fd, filename)
+        if swapped or filename != lineage.ACCEPTANCE_FILENAME:
+            return
+        swapped = True
+        if swap_kind == "root":
+            root.replace(moved_root)
+            replacement.replace(root)
+        else:
+            parent.replace(moved_parent)
+            replacement_parent.replace(parent)
+
+    monkeypatch.setattr(lineage, "_durable_unlink_at", unlink_then_swap)
+
+    with pytest.raises(lineage.ArtifactLineageError) as caught:
+        lineage.unbless_release_for_mutation(root)
+
+    assert caught.value.reason == lineage.LineageReason.PATH_INVALID
+    moved_attempt = moved_root if swap_kind == "root" else moved_parent / "output"
+    assert not (moved_attempt / lineage.ACCEPTANCE_FILENAME).exists()
+    assert not (moved_attempt / lineage.MANIFEST_FILENAME).exists()
+    assert (root / lineage.ACCEPTANCE_FILENAME).read_bytes() == (
+        accepted_replacement.receipt_bytes
+    )
+    assert (root / lineage.MANIFEST_FILENAME).read_bytes() == (
+        accepted_replacement.release.manifest_bytes
+    )
+    assert accepted_attempt.release.manifest_bytes != (
+        root / lineage.MANIFEST_FILENAME
+    ).read_bytes()
 
 
 def test_unbless_rejects_symlinked_root_without_deleting_external_release(tmp_path):
@@ -1162,16 +1488,15 @@ def test_mirror_prune_sync_failure_cannot_publish_manifest(tmp_path, monkeypatch
     _accepted(source)
     _write_json(public / "atp" / "stale.json", {"old": True})
     (public / lineage.MANIFEST_FILENAME).write_bytes(b"old public pointer")
-    real_unlink = lineage._durable_unlink
+    real_unlink = lineage._durable_unlink_at
 
-    def fail_after_prune_unlink(path, **kwargs):
-        path = Path(path)
-        if path.name == "stale.json":
-            path.unlink()
+    def fail_after_prune_unlink(parent_fd, filename):
+        if filename == "stale.json":
+            os.unlink(filename, dir_fd=parent_fd)
             raise OSError("simulated prune directory fsync failure")
-        real_unlink(path, **kwargs)
+        real_unlink(parent_fd, filename)
 
-    monkeypatch.setattr(lineage, "_durable_unlink", fail_after_prune_unlink)
+    monkeypatch.setattr(lineage, "_durable_unlink_at", fail_after_prune_unlink)
     with pytest.raises(OSError, match="prune directory fsync failure"):
         lineage.mirror_release(source, public, require_accepted=True)
 
@@ -1251,6 +1576,89 @@ def test_copy_roots_cannot_overlap_in_either_direction(
     assert sentinel.read_text(encoding="utf-8") == "untouched"
 
 
+def test_publication_relationship_preflight_is_read_only_for_missing_destination(
+    tmp_path,
+):
+    source = tmp_path / "source"
+    destination = tmp_path / "public"
+    _accepted(source)
+
+    assert lineage._preflight_publication_relationship(source, destination) == (
+        source,
+        destination,
+    )
+    assert not destination.exists()
+
+
+@pytest.mark.parametrize("scope", ["data", "web"])
+@pytest.mark.parametrize(
+    "relationship",
+    ["equal", "source-ancestor", "destination-ancestor", "alias"],
+)
+def test_publishers_reject_overlapping_roots_before_any_mutation(
+    tmp_path,
+    monkeypatch,
+    scope,
+    relationship,
+):
+    if relationship == "destination-ancestor":
+        destination = tmp_path / "outer"
+        source = destination / "source"
+    else:
+        source = tmp_path / "source"
+        destination = tmp_path / "public"
+    accepted = _accepted(source)
+
+    if relationship == "equal":
+        destination = source
+    elif relationship == "source-ancestor":
+        destination = source / "nested-public"
+        destination.mkdir()
+    elif relationship == "alias":
+        destination.symlink_to(source, target_is_directory=True)
+
+    sentinel_root = (
+        destination
+        if relationship in {"source-ancestor", "destination-ancestor"}
+        else source
+    )
+    sentinel = sentinel_root / "unrelated-sentinel.txt"
+    sentinel.write_bytes(b"must remain untouched")
+    destination_pointer = destination / lineage.MANIFEST_FILENAME
+    if relationship in {"source-ancestor", "destination-ancestor"}:
+        destination_pointer.write_bytes(b"unrelated destination pointer")
+    destination_before = destination_pointer.read_bytes()
+    source_manifest_before = (source / lineage.MANIFEST_FILENAME).read_bytes()
+    source_receipt_before = (source / lineage.ACCEPTANCE_FILENAME).read_bytes()
+
+    if scope == "data":
+        monkeypatch.setattr(
+            lineage,
+            "accept_release",
+            lambda *_args, **_kwargs: pytest.fail(
+                "relationship failure must precede acceptance"
+            ),
+        )
+        call = lambda: lineage.publish_data_release(
+            source,
+            destination,
+            semantic_gate_passed=True,
+            validator="predeploy-integrity-gate-v1",
+        )
+    else:
+        call = lambda: lineage.publish_web_release(source, destination)
+
+    with pytest.raises(lineage.ArtifactLineageError) as caught:
+        call()
+
+    assert caught.value.reason == lineage.LineageReason.PATH_INVALID
+    assert (source / lineage.MANIFEST_FILENAME).read_bytes() == source_manifest_before
+    assert (source / lineage.ACCEPTANCE_FILENAME).read_bytes() == source_receipt_before
+    assert destination_pointer.read_bytes() == destination_before
+    assert sentinel.read_bytes() == b"must remain untouched"
+    assert accepted.release.manifest_bytes == source_manifest_before
+
+
 @pytest.mark.parametrize("operation", ["mirror", "carry"])
 def test_copy_rejects_destination_tour_symlink_before_mutation(tmp_path, operation):
     source = tmp_path / "source"
@@ -1269,58 +1677,172 @@ def test_copy_rejects_destination_tour_symlink_before_mutation(tmp_path, operati
     assert not (destination / lineage.MANIFEST_FILENAME).exists()
 
 
-def test_legacy_fallback_rejects_same_or_overlapping_roots_without_deleting_source(
-    tmp_path
+def test_two_tour_raw_legacy_fallback_is_removed():
+    assert not hasattr(lineage, "_legacy_mirror_two_tour")
+    assert not hasattr(lineage, "legacy_mirror_tour")
+    assert not hasattr(lineage, "publish_shadow_release")
+
+
+@pytest.mark.parametrize(
+    ("reason", "code"),
+    [
+        (lineage.LineageReason.MANIFEST_MISSING, "output.lineage.manifest_missing"),
+        (lineage.LineageReason.MANIFEST_INVALID, "output.lineage.manifest_invalid"),
+        (lineage.LineageReason.CONTRACT_INVALID, "output.lineage.manifest_invalid"),
+        (lineage.LineageReason.PATH_INVALID, "output.lineage.graph_invalid"),
+        (lineage.LineageReason.BOUNDS_EXCEEDED, "output.lineage.bounds_exceeded"),
+        (lineage.LineageReason.GRAPH_INVALID, "output.lineage.graph_invalid"),
+        (lineage.LineageReason.ARTIFACT_MISSING, "output.lineage.artifact_missing"),
+        (lineage.LineageReason.ARTIFACT_MISMATCH, "output.lineage.artifact_mismatch"),
+        (lineage.LineageReason.ACCEPTANCE_MISSING, "output.lineage.acceptance_missing"),
+        (lineage.LineageReason.ACCEPTANCE_INVALID, "output.lineage.acceptance_invalid"),
+        (lineage.LineageReason.ACCEPTANCE_MISMATCH, "output.lineage.acceptance_invalid"),
+        (lineage.LineageReason.SEMANTIC_GATE_RED, "output.lineage.candidate_rejected"),
+        (lineage.LineageReason.IO_ERROR, "output.lineage.unreadable"),
+    ],
+)
+def test_every_lineage_reason_has_one_blocking_issue_contract(reason, code):
+    issue = lineage._issue_for(lineage.ArtifactLineageError(reason, "private detail"))
+
+    assert issue.code == code
+    assert issue.severity == "error"
+    assert issue.reason == reason
+    assert issue.tour is None and issue.path is None
+
+
+@pytest.mark.parametrize(
+    ("path", "expected_path", "expected_tour"),
+    [
+        ("atp", "atp", "atp"),
+        ("wta", "wta", "wta"),
+        ("atp/meta.json", "atp/meta.json", "atp"),
+        ("wta/matrix-index.json", "wta/matrix-index.json", "wta"),
+        ("../secret", None, None),
+        (None, None, None),
+    ],
+)
+def test_issue_scope_accepts_only_safe_tour_paths(path, expected_path, expected_tour):
+    issue = lineage._issue_for(lineage.ArtifactLineageError(
+        lineage.LineageReason.GRAPH_INVALID,
+        "private detail",
+        path=path,
+    ))
+
+    assert issue.path == expected_path
+    assert issue.tour == expected_tour
+
+
+@pytest.mark.parametrize("tour", lineage.TOURS)
+@pytest.mark.parametrize(
+    "breakage",
+    ["missing-tour", "predictor", "malformed-index", "artifact-hash"],
+)
+def test_real_tour_lineage_failure_pages_only_its_owner_with_stable_identity(
+    tmp_path,
+    monkeypatch,
+    tour,
+    breakage,
 ):
-    source = tmp_path / "source"
-    _write_graph(source)
-    predictor = source / "atp" / "predictor.pkl"
-    before = predictor.read_bytes()
-    for destination in (source, source / "nested", tmp_path):
-        with pytest.raises(lineage.ArtifactLineageError) as caught:
-            lineage._legacy_mirror_two_tour(source, destination)
-        assert caught.value.reason == lineage.LineageReason.PATH_INVALID
-        assert predictor.read_bytes() == before
+    from tennis_model.data import health
+
+    root = tmp_path / "output"
+    if breakage == "predictor":
+        _accepted_with_strict_predictors(root, monkeypatch)
+    else:
+        _accepted(root)
+    if breakage == "missing-tour":
+        (root / tour).replace(tmp_path / f"missing-{tour}")
+    elif breakage == "predictor":
+        predictor = root / tour / "predictor.pkl"
+        predictor.write_bytes(b"X" * predictor.stat().st_size)
+    elif breakage == "malformed-index":
+        (root / tour / "matrix-index.json").write_bytes(b"[]")
+    else:
+        (root / tour / "players.json").write_bytes(b'{"changed":true}')
+    monkeypatch.setattr(health, "OUTPUT_DIR", root)
+
+    first_summary, first = health._lineage_observation(require_accepted=True)
+    second_summary, second = health._lineage_observation(require_accepted=True)
+    other = next(item for item in lineage.TOURS if item != tour)
+
+    assert first_summary["status"] == "invalid"
+    assert second_summary == first_summary
+    assert first[other] == [] and second[other] == []
+    assert len(first[tour]) == len(second[tour]) == 1
+    assert first[tour][0].severity == "error"
+    assert first[tour][0].fingerprint == second[tour][0].fingerprint
+    assert first[tour][0].as_dict() == second[tour][0].as_dict()
 
 
-def test_single_tour_legacy_mirror_prunes_private_and_stale_json(tmp_path):
-    source = tmp_path / "source"
-    destination = tmp_path / "public"
-    _write_json(source / "atp" / "players.json", {"current": True})
-    _write_json(source / "atp" / "health-source.json", {"private": True})
-    _write_json(destination / "atp" / "stale.json", {"old": True})
-    _write_json(destination / "wta" / "sentinel.json", {"keep": True})
-
-    lineage.legacy_mirror_tour(source, destination, "atp")
-
-    assert json.loads(
-        (destination / "atp" / "players.json").read_text(encoding="utf-8")
-    ) == {"current": True}
-    assert not (destination / "atp" / "stale.json").exists()
-    assert not (destination / "atp" / "health-source.json").exists()
-    assert (destination / "wta" / "sentinel.json").exists()
-
-
-def test_single_tour_legacy_mirror_rejects_destination_tour_symlink(
-    tmp_path
+@pytest.mark.parametrize("breakage", ["manifest", "acceptance"])
+def test_real_root_lineage_failure_remains_global_without_duplicate_findings(
+    tmp_path,
+    monkeypatch,
+    breakage,
 ):
-    source = tmp_path / "source"
-    destination = tmp_path / "public"
-    external = tmp_path / "external"
-    _write_json(source / "atp" / "players.json", {"current": True})
-    _write_json(external / "stale.json", {"external": True})
-    destination.mkdir()
-    (destination / "atp").symlink_to(external, target_is_directory=True)
+    from tennis_model.data import health
 
-    with pytest.raises(lineage.ArtifactLineageError) as caught:
-        lineage.legacy_mirror_tour(source, destination, "atp")
+    root = tmp_path / "output"
+    _accepted(root)
+    if breakage == "manifest":
+        (root / lineage.MANIFEST_FILENAME).write_bytes(b"not strict json")
+    else:
+        (root / lineage.ACCEPTANCE_FILENAME).unlink()
+    monkeypatch.setattr(health, "OUTPUT_DIR", root)
 
-    assert caught.value.reason == lineage.LineageReason.PATH_INVALID
-    assert (destination / "atp").is_symlink()
-    assert json.loads(
-        (external / "stale.json").read_text(encoding="utf-8")
-    ) == {"external": True}
-    assert not (external / "players.json").exists()
+    _, findings = health._lineage_observation(require_accepted=True)
+
+    assert all(len(findings[tour]) == 1 for tour in lineage.TOURS)
+    assert {finding.tour for values in findings.values() for finding in values} == {
+        "atp",
+        "wta",
+    }
+    assert len({
+        finding.fingerprint
+        for values in findings.values()
+        for finding in values
+    }) == 2
+
+
+def test_real_lineage_gate_lifecycle_requires_authoritative_acceptance_and_recovers(
+    tmp_path,
+    monkeypatch,
+):
+    from tennis_model.data import health
+
+    root = tmp_path / "output"
+    _write_graph(root)
+    monkeypatch.setattr(health, "OUTPUT_DIR", root)
+
+    missing_summary, missing = health._lineage_observation(require_accepted=False)
+    assert missing_summary["status"] == "missing"
+    assert all(len(missing[tour]) == 1 for tour in lineage.TOURS)
+
+    candidate = _seal(root)
+    candidate_summary, candidate_findings = health._lineage_observation(
+        require_accepted=False
+    )
+    assert candidate_summary["status"] == "valid"
+    assert candidate_summary["releaseId"] == candidate.release_id
+    assert candidate_findings == {"atp": [], "wta": []}
+
+    unaccepted_summary, unaccepted = health._lineage_observation(
+        require_accepted=True
+    )
+    assert unaccepted_summary["status"] == "unaccepted"
+    assert all(len(unaccepted[tour]) == 1 for tour in lineage.TOURS)
+
+    accepted = lineage.accept_release(
+        root,
+        semantic_gate_passed=True,
+        validator="predeploy-integrity-gate-v1",
+    )
+    recovered_summary, recovered = health._lineage_observation(require_accepted=True)
+    repeated_summary, repeated = health._lineage_observation(require_accepted=True)
+    assert recovered_summary["status"] == "accepted"
+    assert recovered_summary["releaseId"] == accepted.release_id
+    assert recovered == repeated == {"atp": [], "wta": []}
+    assert repeated_summary == recovered_summary
 
 
 def test_root_relationship_normalizes_filesystem_anchor_alias_before_overlap(tmp_path):
@@ -1353,14 +1875,14 @@ def test_mirror_failure_before_manifest_leaves_release_explicitly_unblessed(tmp_
     public.mkdir()
     old_manifest = b"old accepted public manifest"
     (public / lineage.MANIFEST_FILENAME).write_bytes(old_manifest)
-    real_write = lineage._atomic_write_bytes
+    real_write = lineage._atomic_replace_at
 
-    def crash_before_manifest(path, raw, **kwargs):
-        if Path(path).name == lineage.MANIFEST_FILENAME:
+    def crash_before_manifest(parent_fd, filename, raw):
+        if filename == lineage.MANIFEST_FILENAME:
             raise OSError("simulated crash")
-        real_write(path, raw, **kwargs)
+        real_write(parent_fd, filename, raw)
 
-    monkeypatch.setattr(lineage, "_atomic_write_bytes", crash_before_manifest)
+    monkeypatch.setattr(lineage, "_atomic_replace_at", crash_before_manifest)
     with pytest.raises(OSError, match="simulated crash"):
         lineage.mirror_release(source, public, require_accepted=True)
     assert not (public / lineage.MANIFEST_FILENAME).exists()
@@ -1441,12 +1963,12 @@ def test_mirror_rejects_symlink_created_after_cleanup_and_revokes_manifest(tmp_p
     assert not (public / lineage.MANIFEST_FILENAME).exists()
 
 
-def test_shadow_state_and_draft_expose_stable_nonblocking_issues(tmp_path):
-    state = lineage.inspect_release(tmp_path, shadow=True)
+def test_enforced_state_is_blocking_and_draft_propagates(tmp_path):
+    state = lineage.inspect_release(tmp_path)
     assert state.state == "missing"
     assert state.issues[0].as_dict() == {
         "code": "output.lineage.manifest_missing",
-        "severity": "info",
+        "severity": "error",
         "reason": "manifest-missing",
         "tour": None,
         "path": None,
@@ -1458,17 +1980,15 @@ def test_shadow_state_and_draft_expose_stable_nonblocking_issues(tmp_path):
         {"events": [{"file": "../../private.json"}]},
     )
     context = lineage.begin_release("full")
-    result = lineage.shadow_draft_tour_release(
-        tmp_path,
-        "atp",
-        context,
-        _provenance("atp"),
-        produced_paths=lineage.discover_tour_artifacts(tmp_path, "wta"),
-    )
-    assert result.draft is None
-    assert result.issues[0].severity == "info"
-    assert result.issues[0].code == "output.lineage.graph_invalid"
-    assert result.issues[0].tour == "atp"
+    with pytest.raises(lineage.ArtifactLineageError) as caught:
+        lineage.draft_tour_release(
+            tmp_path,
+            "atp",
+            context,
+            _provenance("atp"),
+            produced_paths=(),
+        )
+    assert caught.value.reason == lineage.LineageReason.PATH_INVALID
 
 
 def test_health_summary_has_exact_safe_shape(tmp_path):
@@ -1544,7 +2064,210 @@ def test_release_reader_rejects_symlinked_source_ancestor(tmp_path):
     )
 
 
-def test_shadow_publication_web_never_accepts_and_falls_back_without_stale_manifest(
+def test_initialize_release_root_creates_only_expected_leaf_and_tours(tmp_path):
+    parent = tmp_path / "data"
+    parent.mkdir()
+    root = parent / "output"
+
+    initialized = lineage.initialize_release_root(root)
+
+    assert initialized == root
+    assert {path.name for path in parent.iterdir()} == {"output"}
+    assert {path.name for path in root.iterdir()} == {"atp", "wta"}
+    assert all(path.is_dir() and not path.is_symlink() for path in root.iterdir())
+
+
+def test_initialize_release_root_never_creates_missing_higher_ancestor(tmp_path):
+    missing_parent = tmp_path / "missing-parent"
+
+    with pytest.raises(lineage.ArtifactLineageError) as caught:
+        lineage.initialize_release_root(missing_parent / "output")
+
+    assert caught.value.reason == lineage.LineageReason.PATH_INVALID
+    assert not missing_parent.exists()
+
+
+@pytest.mark.parametrize("kind", ["file", "symlink"])
+def test_initialize_release_root_rejects_non_directory_or_linked_root(tmp_path, kind):
+    parent = tmp_path / "data"
+    parent.mkdir()
+    root = parent / "output"
+    external = tmp_path / "external"
+    if kind == "file":
+        root.write_text("not a directory", encoding="utf-8")
+    else:
+        external.mkdir()
+        root.symlink_to(external, target_is_directory=True)
+
+    with pytest.raises(lineage.ArtifactLineageError) as caught:
+        lineage.initialize_release_root(root)
+
+    assert caught.value.reason == lineage.LineageReason.PATH_INVALID
+    if kind == "file":
+        assert root.read_text(encoding="utf-8") == "not a directory"
+    else:
+        assert root.is_symlink()
+        assert list(external.iterdir()) == []
+
+
+def test_initialize_release_root_rejects_linked_ancestor(tmp_path):
+    real_parent = tmp_path / "real-parent"
+    real_parent.mkdir()
+    alias = tmp_path / "parent-alias"
+    alias.symlink_to(real_parent, target_is_directory=True)
+
+    with pytest.raises(lineage.ArtifactLineageError) as caught:
+        lineage.initialize_release_root(alias / "output")
+
+    assert caught.value.reason == lineage.LineageReason.PATH_INVALID
+    assert not (real_parent / "output").exists()
+
+
+@pytest.mark.parametrize("kind", ["file", "symlink"])
+def test_initialize_release_root_rejects_non_directory_or_linked_tour(tmp_path, kind):
+    root = tmp_path / "output"
+    root.mkdir()
+    tour = root / "atp"
+    external = tmp_path / "external-tour"
+    if kind == "file":
+        tour.write_text("not a directory", encoding="utf-8")
+    else:
+        external.mkdir()
+        tour.symlink_to(external, target_is_directory=True)
+
+    with pytest.raises(lineage.ArtifactLineageError) as caught:
+        lineage.initialize_release_root(root)
+
+    assert caught.value.reason == lineage.LineageReason.PATH_INVALID
+    if kind == "file":
+        assert tour.read_text(encoding="utf-8") == "not a directory"
+    else:
+        assert tour.is_symlink()
+        assert list(external.iterdir()) == []
+
+
+def test_begin_release_rejects_linked_predictor_leaf_without_revoking_proof(
+    tmp_path,
+    monkeypatch,
+):
+    from tennis_model import pipeline
+
+    root = tmp_path / "output"
+    accepted = _accepted_with_strict_predictors(root, monkeypatch)
+    payload = root / "atp" / "predictor.pkl"
+    external = tmp_path / "external-predictor.pkl"
+    payload.replace(external)
+    payload.symlink_to(external)
+    monkeypatch.setattr(pipeline, "OUTPUT_DIR", root)
+
+    with pytest.raises(lineage.ArtifactLineageError) as caught:
+        pipeline._begin_release("quick")
+
+    assert caught.value.reason == lineage.LineageReason.IO_ERROR
+    assert (root / lineage.MANIFEST_FILENAME).read_bytes() == (
+        accepted.release.manifest_bytes
+    )
+    assert (root / lineage.ACCEPTANCE_FILENAME).read_bytes() == accepted.receipt_bytes
+    assert external.read_bytes() == b"strict-private-payload:atp"
+
+
+def test_begin_release_rejects_linked_predictor_parent_without_revoking_proof(
+    tmp_path,
+    monkeypatch,
+):
+    from tennis_model import pipeline
+
+    root = tmp_path / "output"
+    accepted = _accepted_with_strict_predictors(root, monkeypatch)
+    external = tmp_path / "external-atp"
+    (root / "atp").replace(external)
+    (root / "atp").symlink_to(external, target_is_directory=True)
+    monkeypatch.setattr(pipeline, "OUTPUT_DIR", root)
+
+    with pytest.raises(lineage.ArtifactLineageError) as caught:
+        pipeline._begin_release("quick")
+
+    assert caught.value.reason == lineage.LineageReason.PATH_INVALID
+    assert (root / lineage.MANIFEST_FILENAME).read_bytes() == (
+        accepted.release.manifest_bytes
+    )
+    assert (root / lineage.ACCEPTANCE_FILENAME).read_bytes() == accepted.receipt_bytes
+    assert (external / "predictor.pkl").read_bytes() == b"strict-private-payload:atp"
+
+
+@pytest.mark.parametrize(
+    "predictor_reason",
+    ["ENVELOPE_IO", "PAYLOAD_IO", "PENDING_IO", "PUBLICATION_IO"],
+)
+def test_begin_release_propagates_predictor_io_without_revoking_proof(
+    tmp_path,
+    monkeypatch,
+    predictor_reason,
+):
+    from tennis_model.model import artifact
+
+    from tennis_model import pipeline
+
+    root = tmp_path / "output"
+    accepted = _accepted(root)
+
+    def reject(*_args, **_kwargs):
+        raise artifact.PredictorArtifactError(
+            getattr(artifact.PredictorArtifactReason, predictor_reason),
+            "injected I/O",
+        )
+
+    monkeypatch.setattr(
+        lineage,
+        "_validate_predictor_identity",
+        _REAL_VALIDATE_PREDICTOR_IDENTITY,
+    )
+    monkeypatch.setattr(artifact, "validate_predictor_artifact_identity", reject)
+    monkeypatch.setattr(pipeline, "OUTPUT_DIR", root)
+
+    with pytest.raises(lineage.ArtifactLineageError) as caught:
+        pipeline._begin_release("quick")
+
+    assert caught.value.reason == lineage.LineageReason.IO_ERROR
+    assert (root / lineage.MANIFEST_FILENAME).read_bytes() == (
+        accepted.release.manifest_bytes
+    )
+    assert (root / lineage.ACCEPTANCE_FILENAME).read_bytes() == accepted.receipt_bytes
+
+
+def test_begin_release_treats_predictor_checksum_failure_as_rebuildable(
+    tmp_path,
+    monkeypatch,
+):
+    from tennis_model.model import artifact
+
+    from tennis_model import pipeline
+
+    root = tmp_path / "output"
+    _accepted(root)
+
+    def reject(*_args, **_kwargs):
+        raise artifact.PredictorArtifactError(
+            artifact.PredictorArtifactReason.PAYLOAD_CHECKSUM_MISMATCH,
+            "injected corruption",
+        )
+
+    monkeypatch.setattr(
+        lineage,
+        "_validate_predictor_identity",
+        _REAL_VALIDATE_PREDICTOR_IDENTITY,
+    )
+    monkeypatch.setattr(artifact, "validate_predictor_artifact_identity", reject)
+    monkeypatch.setattr(pipeline, "OUTPUT_DIR", root)
+
+    plan = pipeline._begin_release("quick")
+
+    assert plan.bootstrap and plan.context.mode == "full" and plan.context.parent is None
+    assert not (root / lineage.MANIFEST_FILENAME).exists()
+    assert not (root / lineage.ACCEPTANCE_FILENAME).exists()
+
+
+def test_web_publication_requires_acceptance_and_never_raw_copies(
     tmp_path, monkeypatch, capsys
 ):
     source = tmp_path / "source"
@@ -1562,124 +2285,569 @@ def test_shadow_publication_web_never_accepts_and_falls_back_without_stale_manif
         "--scope", "web",
         "--source", str(source),
         "--destination", str(public),
-    ]) == 0
+    ]) == 1
     output = json.loads(capsys.readouterr().out)
-    assert output["status"] == "legacy"
+    assert output["schema"] == "artifact-lineage-publication-v1"
+    assert output["status"] == "failed"
     assert output["issues"][0]["code"] == "output.lineage.manifest_missing"
+    assert output["issues"][0]["severity"] == "error"
     assert not (public / lineage.MANIFEST_FILENAME).exists()
-    assert (public / "atp" / "players.json").exists()
-    assert not (public / "atp" / "health-source.json").exists()
-    assert not (public / "atp" / "predictor.pkl.envelope").exists()
+    assert not (public / "atp" / "players.json").exists()
 
 
-def test_data_shadow_revokes_candidate_acceptance_when_exact_mirror_fails(
-    tmp_path, monkeypatch
-):
-    source = tmp_path / "source"
-    public = tmp_path / "public"
-    _write_graph(source)
-    candidate = _seal(source)
-    legacy_calls = []
-
-    def fail_mirror(*_args, **_kwargs):
-        raise OSError("public destination unavailable")
-
-    monkeypatch.setattr(lineage, "mirror_release", fail_mirror)
-    result = lineage.publish_shadow_release(
-        source,
-        public,
-        accept_candidate=True,
-        semantic_gate_passed=True,
-        validator="predeploy-integrity-gate-v1",
-        legacy_mirror=lambda: legacy_calls.append("ran"),
-    )
-    assert result.state == "legacy"
-    assert result.accepted is None
-    assert legacy_calls == ["ran"]
-    assert not (source / lineage.ACCEPTANCE_FILENAME).exists()
-    assert lineage.validate_release(source).release_id == candidate.release_id
-    with pytest.raises(lineage.ArtifactLineageError, match="acceptance"):
-        lineage.load_accepted_release(source)
-
-
-def test_data_shadow_revokes_receipt_when_acceptance_raises_after_replace(
+def test_data_publication_failure_revokes_source_and_destination_validity(
     tmp_path, monkeypatch
 ):
     source = tmp_path / "source"
     public = tmp_path / "public"
     _write_graph(source)
     _seal(source)
-    real_atomic = lineage._atomic_write_bytes
+    public.mkdir()
+    (public / lineage.MANIFEST_FILENAME).write_text("stale", encoding="utf-8")
 
-    def fail_after_receipt_replace(path, raw, **kwargs):
-        real_atomic(path, raw, **kwargs)
-        if Path(path).name == lineage.ACCEPTANCE_FILENAME:
-            raise RuntimeError("post-receipt callback failed")
+    def fail_mirror(*_args, **_kwargs):
+        raise OSError("public destination unavailable")
 
-    monkeypatch.setattr(lineage, "_atomic_write_bytes", fail_after_receipt_replace)
-    legacy_calls = []
-    result = lineage.publish_shadow_release(
-        source,
-        public,
-        accept_candidate=True,
-        semantic_gate_passed=True,
-        validator="predeploy-integrity-gate-v1",
-        legacy_mirror=lambda: legacy_calls.append("ran"),
-    )
-    assert result.state == "legacy"
-    assert result.accepted is None
-    assert legacy_calls == ["ran"]
+    monkeypatch.setattr(lineage, "mirror_release", fail_mirror)
+    with pytest.raises(OSError, match="destination unavailable"):
+        lineage.publish_data_release(
+            source,
+            public,
+            semantic_gate_passed=True,
+            validator="predeploy-integrity-gate-v1",
+        )
     assert not (source / lineage.ACCEPTANCE_FILENAME).exists()
+    assert not (source / lineage.MANIFEST_FILENAME).exists()
+    assert not (public / lineage.MANIFEST_FILENAME).exists()
 
 
-def test_cli_exits_nonzero_when_lineage_and_legacy_publication_both_fail(
-    tmp_path, monkeypatch, capsys
+def test_data_publication_revokes_receipt_and_manifest_when_acceptance_raises_after_replace(
+    tmp_path, monkeypatch
 ):
     source = tmp_path / "source"
     public = tmp_path / "public"
     _write_graph(source)
+    _seal(source)
+    real_atomic = lineage._atomic_replace_at
 
-    def broken_legacy(*args, **kwargs):
+    def fail_after_receipt_replace(parent_fd, filename, raw):
+        real_atomic(parent_fd, filename, raw)
+        if filename == lineage.ACCEPTANCE_FILENAME:
+            raise RuntimeError("post-receipt callback failed")
+
+    monkeypatch.setattr(lineage, "_atomic_replace_at", fail_after_receipt_replace)
+    with pytest.raises(RuntimeError, match="post-receipt"):
+        lineage.publish_data_release(
+            source,
+            public,
+            semantic_gate_passed=True,
+            validator="predeploy-integrity-gate-v1",
+        )
+    assert not (source / lineage.ACCEPTANCE_FILENAME).exists()
+    assert not (source / lineage.MANIFEST_FILENAME).exists()
+
+
+def test_web_copy_failure_preserves_source_acceptance_and_revokes_public_pointer(
+    tmp_path, monkeypatch
+):
+    source = tmp_path / "source"
+    public = tmp_path / "public"
+    accepted = _accepted(source)
+    public.mkdir()
+    (public / lineage.MANIFEST_FILENAME).write_text("stale", encoding="utf-8")
+
+    def broken_mirror(*args, **kwargs):
         raise OSError("destination unavailable")
 
-    monkeypatch.setattr(lineage, "_legacy_mirror_two_tour", broken_legacy)
-    assert lineage.main([
-        "publish",
-        "--scope", "web",
-        "--source", str(source),
-        "--destination", str(public),
-    ]) == 1
-    output = json.loads(capsys.readouterr().out)
-    assert output["status"] == "failed"
-    assert [issue["code"] for issue in output["issues"]] == [
-        "output.lineage.manifest_missing",
-        "output.lineage.unreadable",
-    ]
+    monkeypatch.setattr(lineage, "mirror_release", broken_mirror)
+    with pytest.raises(OSError, match="destination unavailable"):
+        lineage.publish_web_release(source, public)
+    assert (source / lineage.ACCEPTANCE_FILENAME).read_bytes() == accepted.receipt_bytes
+    assert (source / lineage.MANIFEST_FILENAME).read_bytes() == (
+        accepted.release.manifest_bytes
+    )
+    assert not (public / lineage.MANIFEST_FILENAME).exists()
 
 
-def test_shadow_fallback_cannot_succeed_if_stale_manifest_cannot_be_removed(tmp_path):
+@pytest.mark.parametrize("scope", ["data", "web"])
+@pytest.mark.parametrize("mutation", ["artifact", "manifest", "receipt"])
+def test_publishers_reject_source_mutation_after_copy_and_apply_scope_cleanup(
+    tmp_path,
+    scope,
+    mutation,
+):
+    source = tmp_path / "source"
+    public = tmp_path / "public"
+    accepted = _accepted(source)
+    original_manifest = accepted.release.manifest_bytes
+    original_receipt = accepted.receipt_bytes
+    mutated = False
+
+    def mutate_source(_relative):
+        nonlocal mutated
+        if mutated:
+            return
+        mutated = True
+        if mutation == "artifact":
+            (source / "atp" / "players.json").write_bytes(b'{"mutated":true}')
+        elif mutation == "manifest":
+            (source / lineage.MANIFEST_FILENAME).write_bytes(b"mutated manifest")
+        else:
+            (source / lineage.ACCEPTANCE_FILENAME).write_bytes(b"mutated receipt")
+
+    if scope == "data":
+        call = lambda: lineage.publish_data_release(
+            source,
+            public,
+            semantic_gate_passed=True,
+            validator="predeploy-integrity-gate-v1",
+            on_copy=mutate_source,
+        )
+    else:
+        call = lambda: lineage.publish_web_release(
+            source,
+            public,
+            on_copy=mutate_source,
+        )
+
+    with pytest.raises(lineage.ArtifactLineageError):
+        call()
+
+    assert mutated
+    assert not (public / lineage.MANIFEST_FILENAME).exists()
+    if scope == "data":
+        assert not (source / lineage.MANIFEST_FILENAME).exists()
+        assert not (source / lineage.ACCEPTANCE_FILENAME).exists()
+    elif mutation == "manifest":
+        assert (source / lineage.MANIFEST_FILENAME).read_bytes() == b"mutated manifest"
+        assert (source / lineage.ACCEPTANCE_FILENAME).read_bytes() == original_receipt
+    elif mutation == "receipt":
+        assert (source / lineage.MANIFEST_FILENAME).read_bytes() == original_manifest
+        assert (source / lineage.ACCEPTANCE_FILENAME).read_bytes() == b"mutated receipt"
+    else:
+        assert (source / lineage.MANIFEST_FILENAME).read_bytes() == original_manifest
+        assert (source / lineage.ACCEPTANCE_FILENAME).read_bytes() == original_receipt
+
+
+@pytest.mark.parametrize("scope", ["data", "web"])
+def test_publishers_reject_a_different_still_valid_source_receipt(
+    tmp_path,
+    scope,
+):
+    source = tmp_path / "source"
+    public = tmp_path / "public"
+    accepted = _accepted(source)
+    replacement_receipt = None
+
+    def reaccept_source(_relative):
+        nonlocal replacement_receipt
+        if replacement_receipt is None:
+            replacement_receipt = lineage.accept_release(
+                source,
+                semantic_gate_passed=True,
+                validator="alternate-predeploy-gate-v1",
+            ).receipt_bytes
+
+    if scope == "data":
+        call = lambda: lineage.publish_data_release(
+            source,
+            public,
+            semantic_gate_passed=True,
+            validator="predeploy-integrity-gate-v1",
+            on_copy=reaccept_source,
+        )
+    else:
+        call = lambda: lineage.publish_web_release(
+            source,
+            public,
+            on_copy=reaccept_source,
+        )
+
+    with pytest.raises(lineage.ArtifactLineageError) as caught:
+        call()
+
+    assert caught.value.reason == lineage.LineageReason.ACCEPTANCE_MISMATCH
+    assert replacement_receipt is not None
+    assert replacement_receipt != accepted.receipt_bytes
+    assert not (public / lineage.MANIFEST_FILENAME).exists()
+    if scope == "data":
+        assert not (source / lineage.MANIFEST_FILENAME).exists()
+        assert not (source / lineage.ACCEPTANCE_FILENAME).exists()
+    else:
+        assert (source / lineage.MANIFEST_FILENAME).read_bytes() == (
+            accepted.release.manifest_bytes
+        )
+        assert (source / lineage.ACCEPTANCE_FILENAME).read_bytes() == replacement_receipt
+
+
+@pytest.mark.parametrize("scope", ["data", "web"])
+def test_publishers_reject_valid_source_a_to_b_swap_with_exact_pointer_policy(
+    tmp_path,
+    monkeypatch,
+    scope,
+):
+    source = tmp_path / "source"
+    replacement = tmp_path / "replacement-source"
+    moved_attempt = tmp_path / "moved-source-a"
+    public = tmp_path / "public"
+    accepted_a = _accepted(source)
+    accepted_b = _accepted(replacement)
+    real_accept = lineage.accept_release
+    real_mirror = lineage.mirror_release
+    swapped = False
+
+    def swap_sources():
+        nonlocal swapped
+        if swapped:
+            return
+        swapped = True
+        source.replace(moved_attempt)
+        replacement.replace(source)
+
+    if scope == "data":
+        def accept_then_swap(*args, **kwargs):
+            accepted = real_accept(*args, **kwargs)
+            swap_sources()
+            return accepted
+
+        monkeypatch.setattr(lineage, "accept_release", accept_then_swap)
+        call = lambda: lineage.publish_data_release(
+            source,
+            public,
+            semantic_gate_passed=True,
+            validator="predeploy-integrity-gate-v1",
+        )
+    else:
+        def mirror_after_swap(*args, **kwargs):
+            swap_sources()
+            return real_mirror(*args, **kwargs)
+
+        monkeypatch.setattr(lineage, "mirror_release", mirror_after_swap)
+        call = lambda: lineage.publish_web_release(source, public)
+
+    with pytest.raises(lineage.ArtifactLineageError):
+        call()
+
+    assert swapped
+    assert (source / lineage.MANIFEST_FILENAME).read_bytes() == (
+        accepted_b.release.manifest_bytes
+    )
+    assert (source / lineage.ACCEPTANCE_FILENAME).read_bytes() == accepted_b.receipt_bytes
+    if scope == "data":
+        assert not (moved_attempt / lineage.MANIFEST_FILENAME).exists()
+        assert not (moved_attempt / lineage.ACCEPTANCE_FILENAME).exists()
+    else:
+        assert (moved_attempt / lineage.MANIFEST_FILENAME).read_bytes() == (
+            accepted_a.release.manifest_bytes
+        )
+        assert (moved_attempt / lineage.ACCEPTANCE_FILENAME).read_bytes() == (
+            accepted_a.receipt_bytes
+        )
+    assert not (public / lineage.MANIFEST_FILENAME).exists()
+
+
+@pytest.mark.parametrize("scope", ["data", "web"])
+@pytest.mark.parametrize("swap_kind", ["root", "parent"])
+def test_publication_failure_cleans_attempt_fd_without_touching_replacement_root(
+    tmp_path,
+    scope,
+    swap_kind,
+):
+    source = tmp_path / "source"
+    accepted = _accepted(source)
+    if swap_kind == "root":
+        parent = tmp_path
+        public = parent / "public"
+        moved_public = tmp_path / "moved-public-attempt"
+        replacement = tmp_path / "replacement-public"
+        replacement.mkdir()
+        replacement_pointer = replacement / lineage.MANIFEST_FILENAME
+    else:
+        parent = tmp_path / "publication-parent"
+        public = parent / "public"
+        moved_parent = tmp_path / "moved-publication-parent"
+        replacement_parent = tmp_path / "replacement-parent"
+        replacement = replacement_parent / "public"
+        replacement.mkdir(parents=True)
+        replacement_pointer = replacement / lineage.MANIFEST_FILENAME
+    public.mkdir(parents=True)
+    replacement_pointer.write_bytes(b"unrelated replacement manifest")
+    replacement_sentinel = replacement / "unrelated-sentinel.txt"
+    replacement_sentinel.write_bytes(b"unrelated replacement bytes")
+    swapped = False
+
+    def swap_and_fail(_relative):
+        nonlocal swapped
+        if swapped:
+            return
+        swapped = True
+        if swap_kind == "root":
+            public.replace(moved_public)
+            replacement.replace(public)
+        else:
+            parent.replace(moved_parent)
+            replacement_parent.replace(parent)
+        raise RuntimeError("injected publication root swap")
+
+    if scope == "data":
+        call = lambda: lineage.publish_data_release(
+            source,
+            public,
+            semantic_gate_passed=True,
+            validator="predeploy-integrity-gate-v1",
+            on_copy=swap_and_fail,
+        )
+    else:
+        call = lambda: lineage.publish_web_release(
+            source,
+            public,
+            on_copy=swap_and_fail,
+        )
+
+    with pytest.raises(RuntimeError, match="root swap"):
+        call()
+
+    assert swapped
+    assert (public / lineage.MANIFEST_FILENAME).read_bytes() == (
+        b"unrelated replacement manifest"
+    )
+    assert (public / "unrelated-sentinel.txt").read_bytes() == (
+        b"unrelated replacement bytes"
+    )
+    original_attempt = (
+        moved_public if swap_kind == "root" else moved_parent / "public"
+    )
+    assert not (original_attempt / lineage.MANIFEST_FILENAME).exists()
+    if scope == "data":
+        assert not (source / lineage.MANIFEST_FILENAME).exists()
+        assert not (source / lineage.ACCEPTANCE_FILENAME).exists()
+    else:
+        assert (source / lineage.MANIFEST_FILENAME).read_bytes() == (
+            accepted.release.manifest_bytes
+        )
+        assert (source / lineage.ACCEPTANCE_FILENAME).read_bytes() == (
+            accepted.receipt_bytes
+        )
+
+
+@pytest.mark.parametrize("scope", ["data", "web"])
+def test_pre_mirror_destination_replacement_never_revokes_unrelated_pointer(
+    tmp_path,
+    monkeypatch,
+    scope,
+):
+    source = tmp_path / "source"
+    public = tmp_path / "public"
+    moved_attempt = tmp_path / "moved-public-attempt"
+    replacement = tmp_path / "replacement-public"
+    accepted = _accepted(source)
+    public.mkdir()
+    (public / lineage.MANIFEST_FILENAME).write_bytes(b"old attempt pointer")
+    replacement.mkdir()
+    (replacement / lineage.MANIFEST_FILENAME).write_bytes(
+        b"unrelated replacement pointer"
+    )
+    (replacement / "sentinel.txt").write_bytes(b"unrelated replacement bytes")
+    real_accept = lineage.accept_release
+    real_mirror = lineage.mirror_release
+    swapped = False
+
+    def swap_destination():
+        nonlocal swapped
+        if swapped:
+            return
+        swapped = True
+        public.replace(moved_attempt)
+        replacement.replace(public)
+
+    if scope == "data":
+        def accept_then_swap(*args, **kwargs):
+            result = real_accept(*args, **kwargs)
+            swap_destination()
+            return result
+
+        monkeypatch.setattr(lineage, "accept_release", accept_then_swap)
+        call = lambda: lineage.publish_data_release(
+            source,
+            public,
+            semantic_gate_passed=True,
+            validator="predeploy-integrity-gate-v1",
+        )
+    else:
+        def mirror_after_swap(*args, **kwargs):
+            swap_destination()
+            return real_mirror(*args, **kwargs)
+
+        monkeypatch.setattr(lineage, "mirror_release", mirror_after_swap)
+        call = lambda: lineage.publish_web_release(source, public)
+
+    with pytest.raises(lineage.ArtifactLineageError) as caught:
+        call()
+
+    assert caught.value.reason == lineage.LineageReason.PATH_INVALID
+    assert (public / lineage.MANIFEST_FILENAME).read_bytes() == (
+        b"unrelated replacement pointer"
+    )
+    assert (public / "sentinel.txt").read_bytes() == b"unrelated replacement bytes"
+    assert not (moved_attempt / lineage.MANIFEST_FILENAME).exists()
+    if scope == "data":
+        assert not (source / lineage.MANIFEST_FILENAME).exists()
+        assert not (source / lineage.ACCEPTANCE_FILENAME).exists()
+    else:
+        assert (source / lineage.MANIFEST_FILENAME).read_bytes() == (
+            accepted.release.manifest_bytes
+        )
+        assert (source / lineage.ACCEPTANCE_FILENAME).read_bytes() == (
+            accepted.receipt_bytes
+        )
+
+
+@pytest.mark.parametrize("scope", ["data", "web"])
+@pytest.mark.parametrize("swap_phase", ["during-copy", "before-prune"])
+def test_destination_tour_replacement_is_never_written_or_pruned(
+    tmp_path,
+    scope,
+    swap_phase,
+):
+    source = tmp_path / "source"
+    public = tmp_path / "public"
+    moved_atp = tmp_path / "moved-atp-attempt"
+    replacement_atp = tmp_path / "replacement-atp"
+    accepted = _accepted(source)
+    (public / "atp").mkdir(parents=True)
+    (public / "wta").mkdir()
+    replacement_atp.mkdir()
+    replacement_sentinel = replacement_atp / "sentinel.json"
+    replacement_sentinel.write_bytes(b'{"unrelated":true}')
+    replacement_private = replacement_atp / "private.bin"
+    replacement_private.write_bytes(b"unrelated private bytes")
+    copied_artifacts = 0
+    trigger_at = 1 if swap_phase == "during-copy" else len(accepted.release.records)
+    swapped = False
+
+    def swap_tour(relative):
+        nonlocal copied_artifacts, swapped
+        if relative == lineage.MANIFEST_FILENAME:
+            return
+        copied_artifacts += 1
+        if copied_artifacts != trigger_at:
+            return
+        (public / "atp").replace(moved_atp)
+        replacement_atp.replace(public / "atp")
+        swapped = True
+
+    if scope == "data":
+        call = lambda: lineage.publish_data_release(
+            source,
+            public,
+            semantic_gate_passed=True,
+            validator="predeploy-integrity-gate-v1",
+            on_copy=swap_tour,
+        )
+    else:
+        call = lambda: lineage.publish_web_release(
+            source,
+            public,
+            on_copy=swap_tour,
+        )
+
+    with pytest.raises(lineage.ArtifactLineageError) as caught:
+        call()
+
+    assert caught.value.reason == lineage.LineageReason.PATH_INVALID
+    assert swapped
+    assert (public / "atp" / "sentinel.json").read_bytes() == b'{"unrelated":true}'
+    assert (public / "atp" / "private.bin").read_bytes() == b"unrelated private bytes"
+    assert not (public / lineage.MANIFEST_FILENAME).exists()
+    if scope == "data":
+        assert not (source / lineage.MANIFEST_FILENAME).exists()
+        assert not (source / lineage.ACCEPTANCE_FILENAME).exists()
+    else:
+        assert (source / lineage.MANIFEST_FILENAME).read_bytes() == (
+            accepted.release.manifest_bytes
+        )
+        assert (source / lineage.ACCEPTANCE_FILENAME).read_bytes() == (
+            accepted.receipt_bytes
+        )
+
+
+@pytest.mark.parametrize("scope", ["data", "web"])
+def test_mid_prune_tour_swap_keeps_unrelated_same_name_files(
+    tmp_path,
+    monkeypatch,
+    scope,
+):
+    source = tmp_path / "source"
+    public = tmp_path / "public"
+    moved_atp = tmp_path / "moved-atp-attempt"
+    replacement_atp = tmp_path / "replacement-atp"
+    accepted = _accepted(source)
+    (public / "atp").mkdir(parents=True)
+    (public / "wta").mkdir()
+    stale = public / "atp" / "same-name-stale.json"
+    stale.write_bytes(b"attempt stale bytes")
+    replacement_atp.mkdir()
+    (replacement_atp / stale.name).write_bytes(b"unrelated same-name bytes")
+    (replacement_atp / "sentinel.bin").write_bytes(b"unrelated sentinel")
+    attempted_atp_identity = (
+        os.stat(public / "atp").st_dev,
+        os.stat(public / "atp").st_ino,
+    )
+    real_unlink = lineage._durable_unlink_at
+    swapped = False
+
+    def swap_during_bound_unlink(parent_fd, filename):
+        nonlocal swapped
+        opened = os.fstat(parent_fd)
+        if not swapped and (opened.st_dev, opened.st_ino) == attempted_atp_identity:
+            (public / "atp").replace(moved_atp)
+            replacement_atp.replace(public / "atp")
+            swapped = True
+        real_unlink(parent_fd, filename)
+
+    monkeypatch.setattr(lineage, "_durable_unlink_at", swap_during_bound_unlink)
+    if scope == "data":
+        call = lambda: lineage.publish_data_release(
+            source,
+            public,
+            semantic_gate_passed=True,
+            validator="predeploy-integrity-gate-v1",
+        )
+    else:
+        call = lambda: lineage.publish_web_release(source, public)
+
+    with pytest.raises(lineage.ArtifactLineageError) as caught:
+        call()
+
+    assert caught.value.reason == lineage.LineageReason.PATH_INVALID
+    assert swapped
+    assert (public / "atp" / stale.name).read_bytes() == b"unrelated same-name bytes"
+    assert (public / "atp" / "sentinel.bin").read_bytes() == b"unrelated sentinel"
+    assert not (public / lineage.MANIFEST_FILENAME).exists()
+    if scope == "data":
+        assert not (source / lineage.MANIFEST_FILENAME).exists()
+        assert not (source / lineage.ACCEPTANCE_FILENAME).exists()
+    else:
+        assert (source / lineage.MANIFEST_FILENAME).read_bytes() == (
+            accepted.release.manifest_bytes
+        )
+        assert (source / lineage.ACCEPTANCE_FILENAME).read_bytes() == (
+            accepted.receipt_bytes
+        )
+
+
+def test_web_publication_fails_if_stale_manifest_cannot_be_revoked(tmp_path):
     source = tmp_path / "source"
     public = tmp_path / "public"
     _write_graph(source)
     (public / lineage.MANIFEST_FILENAME).mkdir(parents=True)
-    legacy_calls = []
-
-    result = lineage.publish_shadow_release(
-        source,
-        public,
-        accept_candidate=False,
-        legacy_mirror=lambda: legacy_calls.append("ran"),
-    )
-    assert legacy_calls == []
-    assert result.state == "failed"
-    assert [issue.code for issue in result.issues] == [
-        "output.lineage.manifest_missing",
-        "output.lineage.unreadable",
-    ]
+    with pytest.raises(lineage.ArtifactLineageError) as caught:
+        lineage.publish_web_release(source, public)
+    assert caught.value.reason == lineage.LineageReason.IO_ERROR
 
 
 @pytest.mark.parametrize("unsafe_pointer", ["source", "destination"])
-def test_shadow_fallback_never_runs_when_symlinked_pointer_cannot_be_revoked(
+def test_strict_publication_never_follows_symlinked_validity_pointer(
     tmp_path, unsafe_pointer
 ):
     real_source = tmp_path / "real-source"
@@ -1695,23 +2863,16 @@ def test_shadow_fallback_never_runs_when_symlinked_pointer_cannot_be_revoked(
     else:
         destination = tmp_path / "destination-alias"
         destination.symlink_to(real_destination, target_is_directory=True)
-    legacy_calls = []
-
-    result = lineage.publish_shadow_release(
-        source,
-        destination,
-        accept_candidate=unsafe_pointer == "source",
-        semantic_gate_passed=unsafe_pointer == "source",
-        validator=(
-            "predeploy-integrity-gate-v1"
-            if unsafe_pointer == "source"
-            else None
-        ),
-        legacy_mirror=lambda: legacy_calls.append("ran"),
-    )
-
-    assert result.state == "failed"
-    assert legacy_calls == []
+    with pytest.raises(lineage.ArtifactLineageError):
+        if unsafe_pointer == "source":
+            lineage.publish_data_release(
+                source,
+                destination,
+                semantic_gate_passed=True,
+                validator="predeploy-integrity-gate-v1",
+            )
+        else:
+            lineage.publish_web_release(source, destination)
     assert (real_source / lineage.ACCEPTANCE_FILENAME).read_bytes() == (
         accepted.receipt_bytes
     )
@@ -1719,6 +2880,31 @@ def test_shadow_fallback_never_runs_when_symlinked_pointer_cannot_be_revoked(
         assert (real_destination / lineage.MANIFEST_FILENAME).read_bytes() == (
             b"external pointer"
         )
+
+
+def test_successful_data_publication_accepts_and_exact_mirrors(tmp_path, capsys):
+    source = tmp_path / "source"
+    public = tmp_path / "public"
+    _write_graph(source)
+    candidate = _seal(source)
+
+    assert lineage.main([
+        "publish",
+        "--scope", "data",
+        "--semantic-gate-passed",
+        "--validator", "predeploy-integrity-gate-v1",
+        "--source", str(source),
+        "--destination", str(public),
+    ]) == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output == {
+        "issues": [],
+        "releaseId": candidate.release_id,
+        "schema": "artifact-lineage-publication-v1",
+        "status": "published",
+    }
+    assert lineage.load_accepted_release(source).release_id == candidate.release_id
+    assert lineage.validate_public_release(public).release_id == candidate.release_id
 
 
 def test_data_cli_requires_explicit_green_gate_and_validator():

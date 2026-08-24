@@ -30,6 +30,7 @@ import {
   artifactIndexRefs,
 } from "@/scripts/verify-deploy-lib.mjs";
 import {
+  LINEAGE_FORBIDDEN_PATHS,
   expectedArtifactLineage,
   parseStrictLineageJson,
   validateArtifactLineageManifest,
@@ -72,6 +73,28 @@ type LineageFixture = {
 
 const LINEAGE_RELEASE_ID = "11111111-1111-4111-8111-111111111111";
 const LINEAGE_PREDICTOR_ID = "22222222-2222-4222-8222-222222222222";
+const EXPECTED_FORBIDDEN_PATHS = [
+  "/data/.last_full_run",
+  "/data/release-accepted.private",
+  "/data/atp/predictor.pkl",
+  "/data/atp/predictor.pkl.envelope",
+  "/data/atp/predictor.pkl.envelope.pending",
+  "/data/atp/stage-status.private",
+  "/data/atp/stage-status.json",
+  "/data/atp/health-source.json",
+  "/data/atp/tournament_draws-status.private",
+  "/data/wta/predictor.pkl",
+  "/data/wta/predictor.pkl.envelope",
+  "/data/wta/predictor.pkl.envelope.pending",
+  "/data/wta/stage-status.private",
+  "/data/wta/stage-status.json",
+  "/data/wta/health-source.json",
+  "/data/wta/tournament_draws-status.private",
+];
+const EXPECTED_OPTIONAL_PATHS = ["atp", "wta"].flatMap((tour) => (
+  ["accuracy.json", "kalshi.json", "market.json", "track.json"]
+    .map((filename) => `/data/${tour}/${filename}`)
+));
 const LINEAGE_ENCODER = new TextEncoder();
 const LINEAGE_DECODER = new TextDecoder();
 const lineageBytes = (value: unknown) => LINEAGE_ENCODER.encode(JSON.stringify(value));
@@ -222,9 +245,11 @@ function lineageFetcher(
   overrides: Map<string, { body?: Uint8Array; status?: number; contentType?: string }> = new Map(),
 ) {
   const calls: string[] = [];
-  const fetcher = async (input: string | URL | Request): Promise<Response> => {
+  const requests: { path: string; init?: RequestInit }[] = [];
+  const fetcher = async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
     const url = new URL(typeof input === "string" || input instanceof URL ? input : input.url);
     calls.push(url.pathname);
+    requests.push({ path: url.pathname, init });
     if (url.pathname === "/data/health.json") {
       const override = overrides.get("health.json") || {};
       return new Response(new Uint8Array(override.body || lineageBytes(fixture.health)).buffer, {
@@ -247,19 +272,30 @@ function lineageFetcher(
       headers: { "content-type": override.contentType || "application/json" },
     });
   };
-  return { fetcher, calls };
+  return { fetcher, calls, requests };
 }
 
 describe("accepted release lineage verification", () => {
-  it("skips only the Round 4A legacy-shadow state and fails malformed accepted summaries", async () => {
-    expect(expectedArtifactLineage({})).toBeNull();
-    expect(expectedArtifactLineage({ artifactLineage: { status: "legacy" } })).toBeNull();
+  it.each([
+    ["non-object health", null, /health is not an object/],
+    ["missing summary", {}, /artifactLineage is missing or not an object/],
+    ["non-object summary", { artifactLineage: [] }, /artifactLineage is missing or not an object/],
+    ["non-accepted summary", { artifactLineage: { status: "legacy" } }, /status is legacy; expected accepted/],
+  ])("rejects %s", async (_label, health, message) => {
+    expect(() => expectedArtifactLineage(health)).toThrow(message);
+    let fetched = false;
     await expect(verifyArtifactLineageRelease({
       base: "https://example.com",
-      expectedHealth: {},
-      fetcher: async () => { throw new Error("legacy mode must not fetch lineage"); },
-    })).resolves.toMatchObject({ skipped: true, artifactCount: 0 });
+      expectedHealth: health,
+      fetcher: async () => {
+        fetched = true;
+        throw new Error("invalid local lineage must not fetch");
+      },
+    })).rejects.toThrow(message);
+    expect(fetched).toBe(false);
+  });
 
+  it("rejects malformed accepted summaries", () => {
     expect(() => expectedArtifactLineage({
       artifactLineage: { status: "accepted", schema: "artifact-lineage-v1" },
     })).toThrow(/fields do not match/);
@@ -267,7 +303,7 @@ describe("accepted release lineage verification", () => {
 
   it("fetches every declared fixed, dynamic, and optional artifact with no sampling", async () => {
     const fixture = buildLineageFixture(35);
-    const { fetcher, calls } = lineageFetcher(fixture);
+    const { fetcher, calls, requests } = lineageFetcher(fixture);
     const result = await verifyArtifactLineageRelease({
       base: "https://example.com/",
       expectedHealth: fixture.health,
@@ -276,14 +312,19 @@ describe("accepted release lineage verification", () => {
     });
 
     const expectedPaths = fixture.manifest.artifacts.map((record) => record.path);
+    expect(LINEAGE_FORBIDDEN_PATHS).toEqual(EXPECTED_FORBIDDEN_PATHS);
     expect(result).toMatchObject({
-      skipped: false,
       artifactCount: expectedPaths.length,
+      absentPathCount: EXPECTED_FORBIDDEN_PATHS.length,
       releaseId: LINEAGE_RELEASE_ID,
       fetchedPaths: expectedPaths,
+      probedAbsentPaths: EXPECTED_FORBIDDEN_PATHS,
     });
     expect(new Set(calls.slice(2))).toEqual(
-      new Set(expectedPaths.map((path) => `/data/${path}`)),
+      new Set([
+        ...EXPECTED_FORBIDDEN_PATHS,
+        ...expectedPaths.map((path) => `/data/${path}`),
+      ]),
     );
     expect(calls).toContain("/data/atp/brackets.json");
     expect(calls).toContain("/data/wta/tournaments.json");
@@ -291,7 +332,74 @@ describe("accepted release lineage verification", () => {
     expect(calls).toContain("/data/wta/upcoming-evidence-open.json");
     expect(calls).toContain("/data/atp/kalshi.json");
     expect(calls).toContain("/data/wta/matrix-extra-034.json");
-    expect(calls).toHaveLength(expectedPaths.length + 2);
+    expect(calls).toHaveLength(expectedPaths.length + EXPECTED_FORBIDDEN_PATHS.length + 2);
+    for (const path of EXPECTED_FORBIDDEN_PATHS) {
+      expect(requests.find((request) => request.path === path)?.init).toMatchObject({
+        cache: "no-store",
+        redirect: "manual",
+      });
+    }
+  });
+
+  it("requires exact 404s for every known optional artifact omitted from the manifest", async () => {
+    const fixture = withLineageManifest(buildLineageFixture(), (manifest) => {
+      manifest.artifacts = manifest.artifacts.filter(
+        (record) => !EXPECTED_OPTIONAL_PATHS.includes(`/data/${record.path}`),
+      );
+    });
+    for (const path of EXPECTED_OPTIONAL_PATHS) fixture.files.delete(path.replace(/^\/data\//, ""));
+    const { fetcher, requests } = lineageFetcher(fixture);
+    const result = await verifyArtifactLineageRelease({
+      base: "https://example.com",
+      expectedHealth: fixture.health,
+      fetcher,
+      observedAt: new Date("2026-08-24T12:01:00Z"),
+    });
+
+    expect(result.probedAbsentPaths).toEqual([
+      ...EXPECTED_FORBIDDEN_PATHS,
+      ...EXPECTED_OPTIONAL_PATHS,
+    ]);
+    expect(result.absentPathCount).toBe(24);
+    for (const path of EXPECTED_OPTIONAL_PATHS) {
+      expect(requests.find((request) => request.path === path)?.init).toMatchObject({
+        cache: "no-store",
+        redirect: "manual",
+      });
+    }
+  });
+
+  it("detects a stale undeclared optional artifact still served live", async () => {
+    const leakedPath = "atp/market.json";
+    const fixture = withLineageManifest(buildLineageFixture(), (manifest) => {
+      manifest.artifacts = manifest.artifacts.filter((record) => record.path !== leakedPath);
+    });
+    const { fetcher } = lineageFetcher(fixture);
+    await expect(verifyArtifactLineageRelease({
+      base: "https://example.com",
+      expectedHealth: fixture.health,
+      fetcher,
+    })).rejects.toThrow(
+      /undeclared optional artifact \/data\/atp\/market\.json -> 200; expected 404/,
+    );
+  });
+
+  it.each([
+    ["published acceptance receipt", "release-accepted.private", 200],
+    ["published predictor payload", "atp/predictor.pkl", 200],
+    ["redirected stage receipt", "wta/stage-status.private", 302],
+    ["access-controlled health source", "atp/health-source.json", 403],
+    ["failed private probe", "wta/predictor.pkl.envelope.pending", 500],
+  ])("rejects a non-404 %s", async (_label, leakedPath, status) => {
+    const fixture = buildLineageFixture();
+    const { fetcher } = lineageFetcher(fixture, new Map([[leakedPath, { status }]]));
+    await expect(verifyArtifactLineageRelease({
+      base: "https://example.com",
+      expectedHealth: fixture.health,
+      fetcher,
+    })).rejects.toThrow(
+      new RegExp(`forbidden private path /data/${leakedPath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} -> ${status}; expected 404`),
+    );
   });
 
   it.each([
@@ -364,6 +472,22 @@ describe("accepted release lineage verification", () => {
     await expect(verifyArtifactLineageRelease({
       base: "https://example.com", expectedHealth: fixture.health, fetcher: served.fetcher,
     })).rejects.toThrow(/deployed health artifactLineage differs from local accepted health/);
+  });
+
+  it.each([
+    ["missing", {}, /artifactLineage is missing or not an object/],
+    ["non-object", { artifactLineage: "accepted" }, /artifactLineage is missing or not an object/],
+    ["non-accepted", { artifactLineage: { status: "legacy" } }, /status is legacy; expected accepted/],
+  ])("rejects a deployed health document with %s lineage", async (_label, deployedHealth, message) => {
+    const fixture = buildLineageFixture();
+    const served = lineageFetcher(fixture, new Map([
+      ["health.json", { body: lineageBytes(deployedHealth) }],
+    ]));
+    await expect(verifyArtifactLineageRelease({
+      base: "https://example.com",
+      expectedHealth: fixture.health,
+      fetcher: served.fetcher,
+    })).rejects.toThrow(message);
   });
 
   it.each([
