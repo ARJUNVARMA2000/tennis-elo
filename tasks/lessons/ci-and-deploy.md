@@ -274,3 +274,11 @@ Indexed in [`../lessons.md`](../lessons.md).
   shadow mode itself the migration release, collect the ordered legacy/full/quick production proof,
   then land one small flag-free enforcement commit whose failing-first tests replace—rather than
   coexist with—the temporary compatibility behavior.
+
+- **A manifest proves what must exist; it does not prove known private and omitted files are absent
+  on a static host.** (2026-08-24, Round 4B live verifier) Firebase exposes no directory-listing
+  contract. **How to apply:** pair exhaustive fetch/hash/MIME verification of every declared artifact
+  and index closure with a bounded negative-probe vocabulary: request every known private path and
+  every optional evaluation file omitted from the manifest with redirects disabled, and require
+  exact 404 responses. Fail before artifact fetch when the local lineage summary is missing or
+  unaccepted, and update the probe vocabulary whenever producer-private or optional filenames change.

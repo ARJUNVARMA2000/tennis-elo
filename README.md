@@ -179,9 +179,13 @@ The workflow is deliberately failure-aware:
 - **Pre-deploy integrity gate:** typed `output_findings()` block internally inconsistent artifacts before
   Firebase sees them—missing JSON, impossible draw geometry, placeholder identities, incoherent
   probabilities, or broken cross-file contracts leave the previous good deploy live.
+- **Accepted artifact releases:** cached predictors are verified against exact-byte/runtime/configuration
+  envelopes before deserialization. Each all-tour run seals one exact ATP+WTA public-data manifest;
+  only the gate-accepted release is published, and single-tour/debug runs cannot mutate the live tree.
 - **Post-deploy serving gate:** the live verifier checks every route, canonical and crawl metadata,
   cache policy, MIME types, trailing-slash and 404 behavior, the exact freshly generated health
-  stamp, event coverage, shard generations, and page-level UI contracts.
+  stamp, every declared release byte/hash/MIME and index edge, known-private/omitted-path 404s,
+  event coverage, shard generations, and page-level UI contracts.
 - **Actionable monitoring:** every actionable data finding has a stable fingerprint and its own
   independently recoverable GitHub issue—including findings that block before deploy. Serving and
   pipeline failures retain their mode-keyed incident owners. Standing failures suppress repeated

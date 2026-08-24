@@ -159,9 +159,12 @@ constants in `config.py`.
 A separate daily `watchdog.yml` workflow guards the pipeline's own liveness: if
 `refresh.yml` has no successful run in 26h, it opens a `watchdog` issue and reds itself.
 
-Outputs land in `data/output/<tour>/`: `predictor.pkl`, `players.json` (current
-ratings + official live ranks), `meta.json`, `accuracy.json` (rolling-window metrics
-for the site's accuracy view).
+Private outputs land in `data/output/<tour>/`: `predictor.pkl` plus its strict integrity
+envelope, `players.json` (current ratings + official live ranks), `meta.json`, and
+`accuracy.json` (rolling-window metrics for the site's accuracy view). An all-tour run seals
+the exact public JSON graph into a shared manifest; the semantic gate accepts that candidate
+before the publisher mirrors only its declared bytes into `web/public/data/`. Single-tour runs
+revoke any stale all-tour validity pointer and never publish.
 
 ### Kalshi evaluation ledger (benchmark only — never a model input)
 

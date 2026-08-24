@@ -5507,8 +5507,8 @@ becomes blocking.
 
 ## Historical reliability audit — Round 4A/4B artifact integrity (2026-08-24)
 
-Status: Round 3 is live; the rebased Round 4A implementation and its reopened filesystem-safety
-review are locally complete and approved for the ordered production migration below.
+Status: Round 4A is live and its legacy QUICK, parentless FULL, and child QUICK migration sequence
+is proven; the reviewed flag-free Round 4B cutover is ready for production deployment.
 
 - [x] Round 4A predictor shadow: keep `predictor.pkl` rollback-readable while writing a strict,
       bounded, non-public envelope with exact bytes/hash, runtime and dependency identity, exact
@@ -5525,7 +5525,7 @@ review are locally complete and approved for the ordered production migration be
 - [x] Add strict schema/bound/path/hash/atomic/crash/rollback/red-cache/concurrent-tour tests plus
       predictor bag/calibrator/state and lineage graph/mirror/acceptance negative controls. Run the
       repository-wide release gate and obtain independent adversarial review.
-- [ ] After Round 3 is live, deploy Round 4A deliberately; confirm both predictor envelopes, one
+- [x] After Round 3 is live, deploy Round 4A deliberately; confirm both predictor envelopes, one
       accepted two-tour lineage manifest, a successful full bootstrap, and a subsequent quick
       carry-forward run in the production cache and live verifier.
 - [ ] Round 4B enforcement: remove legacy predictor and mirror fallback, make lineage failures
@@ -5583,61 +5583,61 @@ review are locally complete and approved for the ordered production migration be
 
 ## Historical reliability audit — Round 4B enforcement cutover plan (2026-08-24)
 
-Status: specified and adversarially reviewed, but deliberately not implemented. A dormant flag would
-create an unexercised second contract and could either red the first migration run or silently leave
-fallback enabled. Land one small flag-free cutover only after the live evidence below exists.
+Status: implemented locally as one flag-free cutover and independently adversarially approved; the
+ordered FULL and child-QUICK production evidence is complete and the cutover is ready to deploy.
 
 ### Required live evidence
 
 - [x] Deploy and verify Round 3 independently (`1bcfe1b`, production run `32745490015`).
-- [ ] Deploy the hardened Round 4A commit and observe a QUICK run against the old cache reject each
+- [x] Deploy the hardened Round 4A commit and observe a QUICK run against the old cache reject each
       envelope-free predictor before payload read/deserialization, rebuild both pairs through the
       controlled path, and use only the explicit lineage mirror fallback, with no stale manifest or
       private public file.
-- [ ] Observe a later FULL run create both ATP/WTA payload-envelope pairs with UUIDv4 identities and
+- [x] Observe a later FULL run create both ATP/WTA payload-envelope pairs with UUIDv4 identities and
       no pending markers, seal and gate-accept one exact two-tour public-data manifest, publish it,
       pass the exhaustive live graph verifier, and save the resulting data cache.
-- [ ] Observe a subsequent QUICK run restore that cache, reuse the same predictor identities without
+- [x] Observe a subsequent QUICK run restore that cache, reuse the same predictor identities without
       rejection/retraining, publish a child manifest whose parent is the accepted FULL release, carry
       only exact unchanged artifacts, pass live verification, and save the cache again.
 
 ### Flag-free enforcement delta after those observations
 
-- [ ] Predictor (pulled forward into hardened Round 4A; confirm live before cutover): reject every
+- [x] Predictor (pulled forward into hardened Round 4A; confirm live before cutover): reject every
       envelope-free payload before reading or deserializing it; remove the
       UUIDv5 legacy identity/helper and `allow_legacy_id` structure bypass. Preserve pending-marker
       recovery, exact-byte/runtime/config/model/state validation, plain-pickle rollback readability,
       and QUICK's existing typed rejection -> controlled per-tour rebuild path.
-- [ ] Pipeline: replace no-throw shadow begin/draft/seal with strict propagation. A valid accepted
+- [x] Pipeline: replace no-throw shadow begin/draft/seal with strict propagation. A valid accepted
       parent keeps normal QUICK carry. Missing/corrupt acceptance promotes a data run to a parentless
       FULL artifact-graph bootstrap, forces both tours' static exports, and regenerates or removes
       every optional evaluation JSON lacking current production proof; every bootstrap record must
       have `originRelease == releaseId`. Web-only publication cannot bootstrap.
-- [ ] Publication: delete raw legacy mirror fallback and shadow result states. Data scope may accept
+- [x] Publication: delete raw legacy mirror fallback and shadow result states. Data scope may accept
       only the semantic-gate-green candidate and then exact-mirror it; web scope may exact-mirror only
       an already accepted release. Any draft, seal, acceptance, mirror, cleanup, or postvalidation
       error exits nonzero while preserving acceptance/manifest revocation guarantees.
-- [ ] Health: inspect lineage with blocking severity. The pre-deploy gate requires a valid candidate
+- [x] Health: inspect lineage with blocking severity. The pre-deploy gate requires a valid candidate
       but not its not-yet-written acceptance; authoritative health requires an accepted release.
       Preserve stable reason codes, safe evidence, ATP/WTA scoping, partial-snapshot recovery rules,
       and reporter ownership between data-, pipeline-, and deploy-health incidents.
-- [ ] Live verifier: reject absent, non-object, valid-but-unaccepted, or otherwise non-accepted local
+- [x] Live verifier: reject absent, non-object, valid-but-unaccepted, or otherwise non-accepted local
       lineage instead of skipping. Every deployment must compare local/live accepted summaries and
-      verify the manifest, every declared byte/hash/MIME, exact public set, and index closure.
+      verify the manifest, every declared byte/hash/MIME, index closure, and bounded exact-404 probes
+      for every known private path and omitted optional artifact.
 
 ### Failing-first cutover matrix
 
-- [ ] Predictor tests prove both genuine legacy and current-shaped envelope-free pickles reject
+- [x] Predictor tests prove both genuine legacy and current-shaped envelope-free pickles reject
       before payload read/`pickle.loads`, UUIDv5 is never accepted, marker crash cases stay closed,
       and QUICK rebuild receives the existing no-backtest/no-private-Kalshi arguments.
-- [ ] Pipeline/lineage tests prove missing acceptance triggers a complete parentless graph bootstrap,
+- [x] Pipeline/lineage tests prove missing acceptance triggers a complete parentless graph bootstrap,
       accepted QUICK carry remains exact, stale optional artifacts cannot be blessed, strict failures
       propagate, data mirror failure revokes its new receipt/manifest, and web missing/unaccepted state
       performs no raw copy or acceptance.
-- [ ] Health/reporter tests cover every lineage reason and scope, blocking gate reports, accepted
+- [x] Health/reporter tests cover every lineage reason and scope, blocking gate reports, accepted
       pre-gate versus authoritative state, partial-report non-recovery, specialist ownership, and
       later exact recovery without duplicate issues.
-- [ ] Browser-verifier tests replace legacy skip controls with fail-closed missing/unaccepted controls
+- [x] Browser-verifier tests replace legacy skip controls with fail-closed missing/unaccepted controls
       that perform no artifact fetch, while retaining the exhaustive accepted-graph negatives.
 
 ### Current external baseline
@@ -5648,3 +5648,61 @@ fallback enabled. Land one small flag-free cutover only after the live evidence 
   Round 3 cache, whose tour roots contain plain `predictor.pkl` payloads with no Round 4 envelope,
   pending marker, acceptance receipt, or release manifest. This is the exact first-QUICK migration
   baseline; no Round 4B enforcement code was added.
+
+### Ordered production migration evidence
+
+- [x] Hardened Round 4A landed as `c3253e0` and production run `32751277520` completed green on the
+      exact commit. It restored legacy cache `tennis-data-32748035704-1`, selected QUICK, rejected
+      both ATP and WTA predictors with `envelope_missing_for_current_payload`, rebuilt both through
+      the controlled no-backtest path, refused a parentless QUICK lineage draft, and published only
+      the typed legacy mirror fallback.
+- [x] The same run passed the pre-deploy gate, Firebase deployment, legacy-aware live verifier, data/
+      deploy/pipeline reporters, terminal workflow reporter, and saved migrated cache
+      `tennis-data-32751277520-1` (102,018,251 bytes). Live health at `2026-08-24T16:40:38Z` was
+      `ok=true` with informational missing lineage only; the manifest, acceptance receipt, both
+      predictor payloads/envelopes/pending markers were all absent from public hosting, and GitHub
+      had no open incident.
+- [x] The first FULL bootstrap attempt, run `32752489596`, retrained both tours and saved cache but
+      was correctly blocked before publication: ATP finished under a new predictor generation in
+      the same UTC hour as the migration QUICK, while forecast-log retry identity allowed only one
+      matchup/hour snapshot. The gate surfaced 16 exact
+      `output.forecast.current_probability_mismatch` findings as issues #26-#41 and left the last
+      good site live. Scheduled QUICK `32753774504` reused the saved FULL predictors, crossed into a
+      new hour, passed every gate/deploy/cache/reporter step, and closed all 16 incidents.
+- [x] Standardized snapshot storage idempotence on matchup + UTC hour + predictor artifact UUID in
+      isolated fix `372f5f8`; this closed ordinary current-observation retries but deliberately
+      retained the existing one-point/hour presentation contract pending live proof.
+      Production run `32755434314` restored `tennis-data-32753774504-1`, reused both predictors with
+      volatile-only exports and no rejection/retrain, passed the previously failing gate, saved
+      `tennis-data-32755434314-1`, and left no open incident.
+- [x] Fixed FULL run `32755973163` proved the remaining presentation collision: its one WTA match was
+      first sighted and retrained inside the same hour, so choosing the new generation for that hour
+      made immutable `forecast.first` disagree with timeline[0]. The gate blocked publication as
+      issue #42 and saved the retrained cache. Fix `f0fb206` now groups visible observations by UTC
+      hour + predictor artifact UUID, collapses only same-generation retries, retains every ordered
+      same-hour generation across orientation, and makes malformed generation IDs gate-blocking.
+- [x] Recovery QUICK `32758282859` restored the failed FULL cache, reused both predictors, passed the
+      repaired semantic gate, deployed, passed the live serving verifier, saved its cache, and closed
+      issue #42. Its authoritative reporter separately opened issue #43 because Winston-Salem's live
+      schedule proved Pierre-Hugues Herbert replaced withdrawn Vit Kopriva before a scored result.
+- [x] Standardized pre-match replacement inference in `eedc38c`: seat each same-event extra candidate
+      in the vacated draw slot and accept only unique exact scheduled-opponent continuity, preserving
+      the existing field/absence/ambiguity guards. Production QUICK `32759235248` passed the gate,
+      22/22 live verifier, all health reporters, and cache save `tennis-data-32759235248-1`; live
+      health returned `ok=true`, issue #43 closed, and no incident remained open.
+- [x] Parentless FULL `32759935577` restored `tennis-data-32759235248-1`, completed fresh ATP/WTA
+      walks, sealed and accepted release `036b14e5-c320-4a14-83bf-375b4bfb1319` with 453 exact
+      artifacts and manifest SHA-256 `88721cb94d3688a2b88119c8ef3b0ed43ce224e608df9b1b12afe0a61354b107`,
+      then passed 22/22 live checks, every reporter, raw snapshot, and cache save
+      `tennis-data-32759935577-1`. Its parent is null; all records self-originate; ATP predictor
+      `e74dd718-c138-48ea-b31d-91b491f2e427` and WTA predictor
+      `49c72a0c-6ab5-4115-963a-6586d4d46c72` are distinct UUIDv4 identities; live bytes hash to the
+      accepted manifest hash; pending/predictor/envelope/receipt/`.last_full_run` probes are 404.
+- [x] Child QUICK `32761968258` restored that exact FULL cache, skipped download/retrain, produced
+      volatile-only exports, retained both predictor UUIDs, and sealed accepted release
+      `566e3982-397b-435c-a293-8a9af9b7b91f` with parent `036b14e5-c320-4a14-83bf-375b4bfb1319`.
+      Its 453-artifact manifest SHA-256 is
+      `1370d0c38ccc4277b11e5730925814a35c1e24627ddf2088ecf9912ff0b33fa6`; 21 unchanged records carry
+      the FULL origin and exact hashes while 432 current records originate in the child. Gate,
+      22/22 live verification, every reporter, private 404 probes, and cache save
+      `tennis-data-32761968258-1` passed with live `ok=true` and zero open incident.

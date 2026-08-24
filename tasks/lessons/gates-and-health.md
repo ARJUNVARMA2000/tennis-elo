@@ -369,3 +369,31 @@ Indexed in [`../lessons.md`](../lessons.md).
   Open the parent before unlink and fsync it even when the leaf is already absent, because durable
   absence is itself state. In shadow mode, failure to revoke any stale receipt or manifest is a typed
   failure barrier: suppress fallback rather than letting compatibility publish behind untrusted proof.
+
+- **Retry identity must include model generation even when the product timeline is hourly.**
+  (2026-08-24, FULL bootstrap run 32752489596) A FULL retrain completed in the same UTC hour as the
+  preceding QUICK, so matchup-plus-hour dedup retained an old probability while current output used
+  a new predictor; the gate surfaced 16 current mismatches, and the first correction then hid the
+  immutable first call when both generations occupied its first hour. **How to apply:** key storage
+  and presentation identity by matchup + UTC hour + predictor artifact UUID. Collapse only true
+  same-generation retries; retain ordered same-hour generation changes so the immutable first call
+  and current call both remain visible. A display bucket is not a safe write identity when retries
+  can change the model inside it.
+
+- **A path-safe release operation must bind one filesystem transaction, not repeatedly trust path
+  names.** (2026-08-24, Round 4B adversarial review) A root or ATP/WTA directory can be renamed and
+  replaced between individually safe validation, copy, prune, pointer-write, and cleanup calls.
+  **How to apply:** open and retain exact source/destination root and tour-directory descriptors for
+  the whole transaction; perform mutation, postvalidation, revocation, and failure cleanup through
+  them, while rechecking name-to-descriptor binding at commit boundaries. Test parent, root, and tour
+  swaps during every phase.
+
+- **A two-tour acceptance pointer cannot survive a single-tour/debug mutation.** (2026-08-24,
+  Round 4B cutover) Changing one tour beneath a receipt that claims an exact ATP+WTA graph makes the
+  whole receipt false. **How to apply:** validate the tour selector before mutation, revoke manifest
+  and acceptance before a single-tour write, keep that run non-publishing, and let only the all-tour
+  post-gate publisher mutate `web/public/data/`. Do not restore a tour-scoped mirror escape hatch.
+
+- **Strict predictor enforcement supersedes the temporary legacy-envelope exception.** (2026-08-24,
+  Round 4B cutover) Readers reject every marker-present state and every envelope-free payload before
+  payload read or deserialization; QUICK's controlled rebuild is the only migration path.

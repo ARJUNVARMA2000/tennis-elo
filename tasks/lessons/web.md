@@ -164,3 +164,8 @@ Indexed in [`../lessons.md`](../lessons.md).
   between writer and assertion code, declare which fixture routes are intentionally long instead
   of requiring incidental content height everywhere, and include a negative control proving
   default verification contains no fixture-name dependency.
+
+- **Artifact-lineage enforcement supersedes the old per-tour auto-mirror publishing step.**
+  (2026-08-24, Round 4B cutover) A new JSON output must also be classified in the lineage contract.
+  All-tour runs seal it into the release graph and only the post-gate accepted publisher may mirror
+  its exact declared bytes into `web/public/data/`; single-tour/debug runs never publish.

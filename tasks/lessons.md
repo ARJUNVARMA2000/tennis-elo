@@ -287,3 +287,18 @@ New lesson → append the entry to the matching topic file and add its lead line
 - After those observations, replace the compatibility path with one flag-free enforcement commit;
   do not maintain an unexercised dormant strict contract beside shadow mode. See
   [`lessons/ci-and-deploy.md`](lessons/ci-and-deploy.md).
+
+## Round 4 enforcement additions (2026-08-24)
+
+- Include predictor generation in retry identity even when presentation collapses observations into
+  hourly buckets. See [`lessons/gates-and-health.md`](lessons/gates-and-health.md).
+- Bind source, destination, and tour directory descriptors for the complete release transaction,
+  including cleanup and postvalidation. See
+  [`lessons/gates-and-health.md`](lessons/gates-and-health.md).
+- Revoke the all-tour acceptance pointers before any single-tour/debug mutation, and keep that path
+  non-publishing. See [`lessons/gates-and-health.md`](lessons/gates-and-health.md).
+- Pair exhaustive positive manifest verification with bounded exact-404 probes for known private and
+  omitted optional paths. See [`lessons/ci-and-deploy.md`](lessons/ci-and-deploy.md).
+- Treat a current same-event scheduled matchup as positive draw-replacement evidence only when exact
+  opponent continuity identifies one unique vacated slot. See
+  [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md).

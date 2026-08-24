@@ -386,3 +386,12 @@ Indexed in [`../lessons.md`](../lessons.md).
   envelope that old consumers reject safely while new consumers recover the precise role. Test the
   serialized value against both the new classifier and an executable copy of the previous policy,
   in every runtime that reads it.
+
+- **A released-draw replacement can be proven before first ball, but absence alone is not proof.**
+  (2026-08-24, Winston-Salem Kopriva/Herbert) The official draw still named Vit Kopriva while the
+  current ESPN schedule paired Pierre-Hugues Herbert with Kopriva's exact owed opponent, Lorenzo
+  Sonego. Withdrawal inference previously required a scored result, so the health gate correctly
+  blocked the withdrawn player from remaining projected. **How to apply:** temporarily seat each
+  same-event extra candidate in each vacated slot, fold completed results, and accept only one
+  unique candidate whose scheduled/in-progress opponent equals the opponent that slot owes. Keep
+  mass-absence, partial-field, unrelated-card, and ambiguity guards fail-closed.
