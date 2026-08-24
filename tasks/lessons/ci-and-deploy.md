@@ -266,3 +266,11 @@ Indexed in [`../lessons.md`](../lessons.md).
   sequence. A failed shadow publication must first remove stale acceptance/manifest proof and clean
   undeclared/private public files before legacy fallback; if stale proof cannot be revoked or the
   fallback cannot complete exactly, fail the job instead of claiming a degraded success.
+
+- **Do not pre-land the enforcement half of a shadow migration behind a dormant runtime flag.**
+  (2026-08-24, Round 4B cutover review) That creates two contracts while production exercises only
+  one: strict code can drift unseen, the switch can accidentally red the bootstrap run, or fallback
+  can remain enabled indefinitely because the dormant branch merely exists. **How to apply:** make
+  shadow mode itself the migration release, collect the ordered legacy/full/quick production proof,
+  then land one small flag-free enforcement commit whose failing-first tests replace—rather than
+  coexist with—the temporary compatibility behavior.

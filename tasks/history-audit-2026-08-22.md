@@ -414,4 +414,6 @@ health reporting, an independently green live health payload, and zero open issu
 rebased but not releasable: a later audit reopened no-follow filesystem and directory-durability
 cases. After those are closed, the sequence remains shadow publication with safe legacy fallback,
 one successful full bootstrap, one successful cache-restored quick carry-forward, and only then
-Round 4B blocking enforcement.
+Round 4B blocking enforcement. The exact flag-free cutover and failing-first matrix are recorded at
+the tail of `tasks/todo.md`; no dormant strict path is being carried beside the unobserved migration
+contract.

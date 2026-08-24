@@ -5567,3 +5567,67 @@ not approved for production until the hardening checklist below passes.
 - [ ] Rerun focused artifact/lineage/pipeline/verifier suites, all Python and web tests, repository
       lint/type/build/browser/integrity gates, production-shaped legacy/full/quick rehearsals, and an
       independent adversarial review before committing or deploying Round 4A.
+
+## Historical reliability audit — Round 4B enforcement cutover plan (2026-08-24)
+
+Status: specified and adversarially reviewed, but deliberately not implemented. A dormant flag would
+create an unexercised second contract and could either red the first migration run or silently leave
+fallback enabled. Land one small flag-free cutover only after the live evidence below exists.
+
+### Required live evidence
+
+- [x] Deploy and verify Round 3 independently (`1bcfe1b`, production run `32745490015`).
+- [ ] Deploy the hardened Round 4A commit and observe a QUICK run against the old cache succeed through the
+      explicit legacy predictor/lineage fallback, with no stale manifest or private public file.
+- [ ] Observe a later FULL run create both ATP/WTA payload-envelope pairs with UUIDv4 identities and
+      no pending markers, seal and gate-accept one exact two-tour public-data manifest, publish it,
+      pass the exhaustive live graph verifier, and save the resulting data cache.
+- [ ] Observe a subsequent QUICK run restore that cache, reuse the same predictor identities without
+      rejection/retraining, publish a child manifest whose parent is the accepted FULL release, carry
+      only exact unchanged artifacts, pass live verification, and save the cache again.
+
+### Flag-free enforcement delta after those observations
+
+- [ ] Predictor: reject every envelope-free payload before reading or deserializing it; remove the
+      UUIDv5 legacy identity/helper and `allow_legacy_id` structure bypass. Preserve pending-marker
+      recovery, exact-byte/runtime/config/model/state validation, plain-pickle rollback readability,
+      and QUICK's existing typed rejection -> controlled per-tour rebuild path.
+- [ ] Pipeline: replace no-throw shadow begin/draft/seal with strict propagation. A valid accepted
+      parent keeps normal QUICK carry. Missing/corrupt acceptance promotes a data run to a parentless
+      FULL artifact-graph bootstrap, forces both tours' static exports, and regenerates or removes
+      every optional evaluation JSON lacking current production proof; every bootstrap record must
+      have `originRelease == releaseId`. Web-only publication cannot bootstrap.
+- [ ] Publication: delete raw legacy mirror fallback and shadow result states. Data scope may accept
+      only the semantic-gate-green candidate and then exact-mirror it; web scope may exact-mirror only
+      an already accepted release. Any draft, seal, acceptance, mirror, cleanup, or postvalidation
+      error exits nonzero while preserving acceptance/manifest revocation guarantees.
+- [ ] Health: inspect lineage with blocking severity. The pre-deploy gate requires a valid candidate
+      but not its not-yet-written acceptance; authoritative health requires an accepted release.
+      Preserve stable reason codes, safe evidence, ATP/WTA scoping, partial-snapshot recovery rules,
+      and reporter ownership between data-, pipeline-, and deploy-health incidents.
+- [ ] Live verifier: reject absent, non-object, valid-but-unaccepted, or otherwise non-accepted local
+      lineage instead of skipping. Every deployment must compare local/live accepted summaries and
+      verify the manifest, every declared byte/hash/MIME, exact public set, and index closure.
+
+### Failing-first cutover matrix
+
+- [ ] Predictor tests prove both genuine legacy and current-shaped envelope-free pickles reject
+      before payload read/`pickle.loads`, UUIDv5 is never accepted, marker crash cases stay closed,
+      and QUICK rebuild receives the existing no-backtest/no-private-Kalshi arguments.
+- [ ] Pipeline/lineage tests prove missing acceptance triggers a complete parentless graph bootstrap,
+      accepted QUICK carry remains exact, stale optional artifacts cannot be blessed, strict failures
+      propagate, data mirror failure revokes its new receipt/manifest, and web missing/unaccepted state
+      performs no raw copy or acceptance.
+- [ ] Health/reporter tests cover every lineage reason and scope, blocking gate reports, accepted
+      pre-gate versus authoritative state, partial-report non-recovery, specialist ownership, and
+      later exact recovery without duplicate issues.
+- [ ] Browser-verifier tests replace legacy skip controls with fail-closed missing/unaccepted controls
+      that perform no artifact fetch, while retaining the exhaustive accepted-graph negatives.
+
+### Current external baseline
+
+- Fresh fetch resolves `origin/master` to tasks-only head `2f5fef9`; the latest production refresh,
+  `32745490015`, completed every QUICK/gate/build/Firebase/live-verifier/health/cache/reporter step
+  successfully. The local cache contains only `atp/predictor.pkl` and `wta/predictor.pkl`, with no
+  envelope, pending marker, acceptance receipt, or release manifest. This proves the cutover
+  preconditions are not yet satisfied; no Round 4B production code was added.

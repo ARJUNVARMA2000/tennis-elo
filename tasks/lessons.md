@@ -274,3 +274,6 @@ New lesson → append the entry to the matching topic file and add its lead line
 - Keep fallback through observed legacy, full-bootstrap, and quick-carry production states; a failed
   shadow publication must revoke stale proof before exact fallback. See
   [`lessons/ci-and-deploy.md`](lessons/ci-and-deploy.md).
+- After those observations, replace the compatibility path with one flag-free enforcement commit;
+  do not maintain an unexercised dormant strict contract beside shadow mode. See
+  [`lessons/ci-and-deploy.md`](lessons/ci-and-deploy.md).
