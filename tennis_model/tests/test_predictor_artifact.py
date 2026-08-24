@@ -192,73 +192,39 @@ def test_wta_dual_state_fitted_artifact_roundtrip(tmp_path):
     validate_predictor_structure(loaded, "wta")
 
 
-def test_genuine_legacy_pickle_gets_stable_derived_id(tmp_path):
-    predictor = TennisPredictor(None, None, None, None, None, {}, tour="atp")
-    del predictor.artifact_id
-    path = tmp_path / "predictor.pkl"
-    payload = pickle.dumps(predictor, protocol=pickle.HIGHEST_PROTOCOL)
-    path.write_bytes(payload)
-
-    first = TennisPredictor.load("atp", path)
-    second = TennisPredictor.load("atp", path)
-    assert first.artifact_id == second.artifact_id
-    assert uuid.UUID(first.artifact_id).version == 5
-    assert "artifact_id" not in vars(pickle.loads(payload))
-    with pytest.raises(PredictorArtifactError) as caught:
-        validate_predictor_structure(first, "atp")
-    assert caught.value.reason is PredictorArtifactReason.PREDICTOR_ID
-
-
-def test_shared_structure_guard_accepts_only_explicit_valid_legacy_id(
-    valid_artifact, tmp_path
+@pytest.mark.parametrize("legacy", [True, False])
+def test_missing_envelope_rejects_before_payload_read_or_unpickle(
+    tmp_path, monkeypatch, legacy
 ):
-    source, _ = valid_artifact
-    predictor = pickle.loads(source.read_bytes())
-    del predictor.artifact_id
-    path = tmp_path / "predictor.pkl"
-    path.write_bytes(pickle.dumps(predictor, protocol=pickle.HIGHEST_PROTOCOL))
-    loaded = TennisPredictor.load("atp", path)
-
-    validate_predictor_structure(loaded, "atp", allow_legacy_id=True)
-    with pytest.raises(PredictorArtifactError) as caught:
-        validate_predictor_structure(loaded, "atp")
-    assert caught.value.reason is PredictorArtifactReason.PREDICTOR_ID
-
-
-def test_new_payload_without_envelope_is_not_legacy(tmp_path):
     predictor = TennisPredictor(None, None, None, None, None, {}, tour="atp")
+    if legacy:
+        del predictor.artifact_id
     path = tmp_path / "predictor.pkl"
     path.write_bytes(pickle.dumps(predictor, protocol=pickle.HIGHEST_PROTOCOL))
+    payload_reads = []
+    unpickle_calls = []
+    monkeypatch.setattr(
+        artifact, "_read_payload", lambda *args, **kwargs: payload_reads.append(args)
+    )
+    monkeypatch.setattr(
+        artifact.pickle, "loads", lambda payload: unpickle_calls.append(payload)
+    )
 
     with pytest.raises(PredictorArtifactError) as caught:
         TennisPredictor.load("atp", path)
     assert caught.value.reason is PredictorArtifactReason.ENVELOPE_MISSING_FOR_CURRENT_PAYLOAD
+    assert payload_reads == []
+    assert unpickle_calls == []
 
 
-def test_legacy_preflight_rechecks_marker_after_payload_read(tmp_path, monkeypatch):
-    predictor = TennisPredictor(None, None, None, None, None, {}, tour="atp")
-    del predictor.artifact_id
-    path = tmp_path / "predictor.pkl"
-    path.write_bytes(pickle.dumps(predictor, protocol=pickle.HIGHEST_PROTOCOL))
-    original_read_payload = artifact._read_payload
-    original_loads = artifact.pickle.loads
-    calls = []
+def test_shared_structure_guard_accepts_uuid4_only(valid_artifact):
+    source, _ = valid_artifact
+    predictor = pickle.loads(source.read_bytes())
+    predictor.artifact_id = str(uuid.uuid5(uuid.NAMESPACE_URL, "legacy-predictor"))
 
-    def marker_appears_after_read(payload_path):
-        payload = original_read_payload(payload_path)
-        predictor_pending_path(path).write_bytes(b"writer-started")
-        return payload
-
-    monkeypatch.setattr(artifact, "_read_payload", marker_appears_after_read)
-    monkeypatch.setattr(
-        artifact.pickle,
-        "loads",
-        lambda payload: calls.append(payload) or original_loads(payload),
-    )
     with pytest.raises(PredictorArtifactError) as caught:
-        TennisPredictor.load("atp", path)
-    assert caught.value.reason is PredictorArtifactReason.INCOMPLETE_WRITE
-    assert calls == []
+        validate_predictor_structure(predictor, "atp")
+    assert caught.value.reason is PredictorArtifactReason.PREDICTOR_ID
 
 
 def test_every_invalid_present_envelope_stops_before_unpickle(
@@ -376,6 +342,224 @@ def test_valid_external_envelope_symlink_is_rejected(valid_artifact, tmp_path):
     with pytest.raises(PredictorArtifactError) as identity_error:
         artifact.validate_predictor_artifact_identity(path, "atp")
     assert identity_error.value.reason is PredictorArtifactReason.ENVELOPE_IO
+
+
+@pytest.mark.parametrize("link_is_immediate_parent", [True, False])
+def test_symlinked_parent_component_cannot_read_outside_artifact_root(
+    valid_artifact, tmp_path, monkeypatch, link_is_immediate_parent
+):
+    source, _ = valid_artifact
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    _copy_artifact(source, outside)
+    logical = tmp_path / "logical"
+    logical.mkdir()
+    if link_is_immediate_parent:
+        parent = logical / "atp"
+        parent.symlink_to(outside, target_is_directory=True)
+    else:
+        outside_parent = tmp_path / "outside-parent"
+        outside_parent.mkdir()
+        outside_tour = outside_parent / "atp"
+        outside_tour.mkdir()
+        _copy_artifact(source, outside_tour)
+        jump = logical / "jump"
+        jump.symlink_to(outside_parent, target_is_directory=True)
+        parent = jump / "atp"
+    path = parent / "predictor.pkl"
+    calls = []
+    monkeypatch.setattr(artifact.pickle, "loads", lambda payload: calls.append(payload))
+
+    with pytest.raises(PredictorArtifactError) as caught:
+        TennisPredictor.load("atp", path)
+    assert caught.value.reason is PredictorArtifactReason.PATH_INVALID
+    with pytest.raises(PredictorArtifactError) as identity_error:
+        validate_predictor_artifact_identity(path, "atp")
+    assert identity_error.value.reason is PredictorArtifactReason.PATH_INVALID
+    assert calls == []
+
+
+def test_symlinked_parent_cannot_write_outside_artifact_root(
+    valid_artifact, tmp_path
+):
+    source, _ = valid_artifact
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    external_path = _copy_artifact(source, outside)
+    before = {
+        candidate.name: candidate.read_bytes()
+        for candidate in outside.iterdir()
+        if candidate.is_file()
+    }
+    logical_parent = tmp_path / "logical-atp"
+    logical_parent.symlink_to(outside, target_is_directory=True)
+    predictor = pickle.loads(source.read_bytes())
+    predictor.artifact_id = str(uuid.uuid4())
+
+    with pytest.raises(PredictorArtifactError) as caught:
+        predictor.save(logical_parent / "predictor.pkl")
+    assert caught.value.reason is PredictorArtifactReason.PATH_INVALID
+    assert external_path.exists()
+    assert before == {
+        candidate.name: candidate.read_bytes()
+        for candidate in outside.iterdir()
+        if candidate.is_file()
+    }
+    assert not any(candidate.name.endswith(".tmp") for candidate in outside.iterdir())
+
+
+def test_in_root_cross_tour_alias_is_not_a_trusted_path(
+    valid_artifact, tmp_path, monkeypatch
+):
+    source, _ = valid_artifact
+    output = tmp_path / "output"
+    atp = output / "atp"
+    atp.mkdir(parents=True)
+    real_path = _copy_artifact(source, atp)
+    before = {
+        candidate.name: candidate.read_bytes()
+        for candidate in atp.iterdir()
+        if candidate.is_file()
+    }
+    alias = output / "wta"
+    alias.symlink_to(atp, target_is_directory=True)
+    path = alias / "predictor.pkl"
+    predictor = pickle.loads(source.read_bytes())
+    unpickle_calls = []
+    monkeypatch.setattr(artifact, "OUTPUT_DIR", output)
+    monkeypatch.setattr(
+        artifact.pickle, "loads", lambda payload: unpickle_calls.append(payload)
+    )
+
+    with pytest.raises(PredictorArtifactError) as read_error:
+        TennisPredictor.load("wta", path)
+    assert read_error.value.reason is PredictorArtifactReason.PATH_INVALID
+    with pytest.raises(PredictorArtifactError) as write_error:
+        predictor.save(path)
+    assert write_error.value.reason is PredictorArtifactReason.PATH_INVALID
+    assert unpickle_calls == []
+    assert real_path.exists()
+    assert before == {
+        candidate.name: candidate.read_bytes()
+        for candidate in atp.iterdir()
+        if candidate.is_file()
+    }
+
+
+def test_lstat_fstat_fallback_rejects_parent_and_leaf_symlinks_before_read(
+    valid_artifact, tmp_path, monkeypatch
+):
+    source, _ = valid_artifact
+    outside = tmp_path / "outside-read"
+    outside.mkdir()
+    external_path = _copy_artifact(source, outside)
+
+    parent_link = tmp_path / "parent-link-read"
+    parent_link.symlink_to(outside, target_is_directory=True)
+    parent_path = parent_link / "predictor.pkl"
+
+    leaf_parent = tmp_path / "leaf-read"
+    leaf_parent.mkdir()
+    leaf_path = leaf_parent / "predictor.pkl"
+    leaf_path.symlink_to(external_path)
+    shutil.copyfile(
+        predictor_envelope_path(source), predictor_envelope_path(leaf_path)
+    )
+    unpickle_calls = []
+    monkeypatch.setattr(artifact, "_nofollow_flag", lambda: 0)
+    monkeypatch.setattr(
+        artifact.pickle, "loads", lambda payload: unpickle_calls.append(payload)
+    )
+
+    with pytest.raises(PredictorArtifactError) as parent_error:
+        TennisPredictor.load("atp", parent_path)
+    assert parent_error.value.reason is PredictorArtifactReason.PATH_INVALID
+    with pytest.raises(PredictorArtifactError) as leaf_error:
+        TennisPredictor.load("atp", leaf_path)
+    assert leaf_error.value.reason is PredictorArtifactReason.PAYLOAD_IO
+    assert unpickle_calls == []
+
+
+def test_lstat_fstat_fallback_rejects_parent_and_leaf_symlinks_before_write(
+    valid_artifact, tmp_path, monkeypatch
+):
+    source, _ = valid_artifact
+    predictor = pickle.loads(source.read_bytes())
+    outside = tmp_path / "outside-write"
+    outside.mkdir()
+    _copy_artifact(source, outside)
+    outside_before = {
+        candidate.name: candidate.read_bytes()
+        for candidate in outside.iterdir()
+        if candidate.is_file()
+    }
+    parent_link = tmp_path / "parent-link-write"
+    parent_link.symlink_to(outside, target_is_directory=True)
+
+    leaf_parent = tmp_path / "leaf-write"
+    leaf_parent.mkdir()
+    external_leaf = tmp_path / "external-leaf.pkl"
+    external_leaf.write_bytes(b"must remain unchanged")
+    leaf_path = leaf_parent / "predictor.pkl"
+    leaf_path.symlink_to(external_leaf)
+    atomic_calls = []
+    monkeypatch.setattr(artifact, "_nofollow_flag", lambda: 0)
+    monkeypatch.setattr(
+        artifact,
+        "_atomic_write",
+        lambda *args, **kwargs: atomic_calls.append((args, kwargs)),
+    )
+
+    with pytest.raises(PredictorArtifactError) as parent_error:
+        predictor.save(parent_link / "predictor.pkl")
+    assert parent_error.value.reason is PredictorArtifactReason.PATH_INVALID
+    with pytest.raises(PredictorArtifactError) as leaf_error:
+        predictor.save(leaf_path)
+    assert leaf_error.value.reason is PredictorArtifactReason.PATH_INVALID
+    assert atomic_calls == []
+    assert external_leaf.read_bytes() == b"must remain unchanged"
+    assert leaf_path.is_symlink()
+    assert not predictor_pending_path(leaf_path).exists()
+    assert not predictor_envelope_path(leaf_path).exists()
+    assert outside_before == {
+        candidate.name: candidate.read_bytes()
+        for candidate in outside.iterdir()
+        if candidate.is_file()
+    }
+
+
+def test_explicit_trusted_root_blocks_outside_reads_and_writes(
+    valid_artifact, tmp_path, monkeypatch
+):
+    source, _ = valid_artifact
+    trusted = tmp_path / "trusted"
+    trusted.mkdir()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    path = _copy_artifact(source, outside)
+    before = {
+        candidate.name: candidate.read_bytes()
+        for candidate in outside.iterdir()
+        if candidate.is_file()
+    }
+    predictor = pickle.loads(source.read_bytes())
+    predictor.artifact_id = str(uuid.uuid4())
+    calls = []
+    monkeypatch.setattr(artifact.pickle, "loads", lambda payload: calls.append(payload))
+
+    with pytest.raises(PredictorArtifactError) as read_error:
+        artifact.load_predictor_artifact(path, "atp", trusted_root=trusted)
+    assert read_error.value.reason is PredictorArtifactReason.PATH_INVALID
+    assert calls == []
+
+    with pytest.raises(PredictorArtifactError) as write_error:
+        artifact.save_predictor_artifact(predictor, path, trusted_root=trusted)
+    assert write_error.value.reason is PredictorArtifactReason.PATH_INVALID
+    assert before == {
+        candidate.name: candidate.read_bytes()
+        for candidate in outside.iterdir()
+        if candidate.is_file()
+    }
 
 
 def test_checked_bytes_are_the_bytes_deserialized(valid_artifact, tmp_path, monkeypatch):
@@ -540,7 +724,8 @@ def test_pending_marker_closes_each_atomic_crash_window(
     original_atomic_write = artifact._atomic_write
     original_loads = artifact.pickle.loads
 
-    # Before the marker replace, the untouched legacy artifact remains transitional.
+    # Before the marker replace, the untouched legacy artifact remains unpaired and
+    # therefore cannot be read by the strict loader.
     before_marker = tmp_path / "before-marker" / "predictor.pkl"
     before_marker.parent.mkdir()
     before_marker.write_bytes(legacy_bytes)
@@ -548,12 +733,24 @@ def test_pending_marker_closes_each_atomic_crash_window(
         patch.setattr(
             artifact,
             "_atomic_write",
-            lambda path, payload: (_ for _ in ()).throw(OSError("marker crash")),
+            lambda path, payload, **kwargs: (
+                _ for _ in ()
+            ).throw(OSError("marker crash")),
         )
         with pytest.raises(PredictorArtifactError) as caught:
             current.save(before_marker)
         assert caught.value.reason is PredictorArtifactReason.PUBLICATION_IO
-    assert TennisPredictor.load("atp", before_marker).artifact_id
+    unpickle_calls = []
+    with monkeypatch.context() as patch:
+        patch.setattr(
+            artifact.pickle,
+            "loads",
+            lambda payload: unpickle_calls.append(payload),
+        )
+        with pytest.raises(PredictorArtifactError) as caught:
+            TennisPredictor.load("atp", before_marker)
+    assert caught.value.reason is PredictorArtifactReason.ENVELOPE_MISSING_FOR_CURRENT_PAYLOAD
+    assert unpickle_calls == []
 
     # Once the marker is durable, crashes at the payload and envelope replaces both
     # reject before deserialization, whether the bytes are old or new.
@@ -563,11 +760,13 @@ def test_pending_marker_closes_each_atomic_crash_window(
         path.write_bytes(legacy_bytes)
         calls = []
 
-        def crashing_write(target, payload, *, _calls=calls, _fail_at=fail_at):
+        def crashing_write(
+            target, payload, *, _calls=calls, _fail_at=fail_at, **kwargs
+        ):
             _calls.append(Path(target))
             if len(_calls) == _fail_at:
                 raise OSError(f"replace {_fail_at} crash")
-            original_atomic_write(target, payload)
+            original_atomic_write(target, payload, **kwargs)
 
         with monkeypatch.context() as patch:
             patch.setattr(artifact, "_atomic_write", crashing_write)
@@ -593,7 +792,7 @@ def test_pending_marker_closes_each_atomic_crash_window(
             assert calls[2] == predictor_envelope_path(path)
 
 
-def test_completed_pair_is_readable_if_pending_cleanup_crashes(
+def test_completed_pair_recovers_pending_cleanup_crash_on_load(
     valid_artifact, tmp_path, monkeypatch
 ):
     source, artifact_id = valid_artifact
@@ -603,7 +802,9 @@ def test_completed_pair_is_readable_if_pending_cleanup_crashes(
         patch.setattr(
             artifact,
             "_remove_pending",
-            lambda pending: (_ for _ in ()).throw(OSError("cleanup crash")),
+            lambda pending, **kwargs: (
+                _ for _ in ()
+            ).throw(OSError("cleanup crash")),
         )
         with pytest.raises(PredictorArtifactError) as caught:
             predictor.save(path)
@@ -611,6 +812,31 @@ def test_completed_pair_is_readable_if_pending_cleanup_crashes(
 
     assert predictor_pending_path(path).exists()
     assert TennisPredictor.load("atp", path).artifact_id == artifact_id
+    assert not predictor_pending_path(path).exists()
+    assert validate_predictor_artifact_identity(path, "atp")["artifactId"] == artifact_id
+
+
+def test_pending_recovery_cleanup_failure_is_a_typed_load_rejection(
+    valid_artifact, tmp_path, monkeypatch
+):
+    source, _ = valid_artifact
+    path = _copy_artifact(source, tmp_path)
+    pending_path = predictor_pending_path(path)
+    pending_path.write_text(
+        json.dumps(_pending_from_envelope(path)), encoding="utf-8"
+    )
+    monkeypatch.setattr(
+        artifact,
+        "_remove_pending",
+        lambda pending, **kwargs: (
+            _ for _ in ()
+        ).throw(OSError("cleanup still unavailable")),
+    )
+
+    with pytest.raises(PredictorArtifactError) as caught:
+        TennisPredictor.load("atp", path)
+    assert caught.value.reason is PredictorArtifactReason.PENDING_IO
+    assert pending_path.exists()
 
 
 def test_pending_without_envelope_rejects_before_unpickle(
@@ -679,17 +905,17 @@ def test_atomic_writer_uses_unique_temps_and_fsyncs(valid_artifact, tmp_path, mo
     source, _ = valid_artifact
     predictor = pickle.loads(source.read_bytes())
     path = tmp_path / "predictor.pkl"
-    original_mkstemp = artifact.tempfile.mkstemp
+    original_temporary_name = artifact._temporary_name
     original_fsync = artifact.os.fsync
     temporary_names = []
     fsync_calls = []
 
-    def recording_mkstemp(*args, **kwargs):
-        descriptor, name = original_mkstemp(*args, **kwargs)
+    def recording_temporary_name(target_name):
+        name = original_temporary_name(target_name)
         temporary_names.append(name)
-        return descriptor, name
+        return name
 
-    monkeypatch.setattr(artifact.tempfile, "mkstemp", recording_mkstemp)
+    monkeypatch.setattr(artifact, "_temporary_name", recording_temporary_name)
     monkeypatch.setattr(
         artifact.os,
         "fsync",
@@ -701,7 +927,7 @@ def test_atomic_writer_uses_unique_temps_and_fsyncs(valid_artifact, tmp_path, mo
     assert len(set(temporary_names)) == 3
     assert all(name.endswith(".tmp") for name in temporary_names)
     assert len(fsync_calls) >= 7  # each file + directory, then pending-unlink directory
-    assert not any(Path(name).exists() for name in temporary_names)
+    assert not any((tmp_path / name).exists() for name in temporary_names)
 
 
 def test_error_reason_is_typed_and_stable():

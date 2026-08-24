@@ -268,8 +268,18 @@ New lesson → append the entry to the matching topic file and add its lead line
 - Validate exact bytes, runtime, dependencies, configuration, and concrete fitted/state structure
   around—not merely after—pickle deserialization. See
   [`lessons/model-research.md`](lessons/model-research.md).
+- Treat the trusted root—not a leaf-level no-follow flag—as the filesystem boundary: reject
+  symlinks and non-directories in every parent component before predictor reads or writes. See
+  [`lessons/model-research.md`](lessons/model-research.md).
 - Close separately atomic payload/envelope crash windows with a durable pending marker, and treat
   release acceptance/manifest files as revocable validity pointers. See
+  [`lessons/gates-and-health.md`](lessons/gates-and-health.md).
+- Apply that same component-by-component trust check to public release publication, including on
+  platforms without `O_NOFOLLOW`, before any read, replace, prune, or deserialization. See
+  [`lessons/gates-and-health.md`](lessons/gates-and-health.md).
+- Harden the complete lineage I/O inventory—not only ordinary artifact writers—including validity
+  pointers, removals, carry/mirror compatibility paths, and alias-aware root-overlap checks. A
+  fallback may run only after every stale proof is durably revoked. See
   [`lessons/gates-and-health.md`](lessons/gates-and-health.md).
 - Keep fallback through observed legacy, full-bootstrap, and quick-carry production states; a failed
   shadow publication must revoke stale proof before exact fallback. See

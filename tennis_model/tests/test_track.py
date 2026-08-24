@@ -50,9 +50,10 @@ def _results_df(rows):
 def _setup(tmp):
     track.FORECAST_DIR = tmp / "forecast_log"
     track.FORECAST_DIR.mkdir(parents=True, exist_ok=True)
-    out = tmp / "output"
+    root = tmp / "output"
+    out = root / "atp"
     out.mkdir(parents=True, exist_ok=True)
-    track.output_dir = lambda tour: out          # redirect reads/writes
+    track.output_dir = lambda tour: root / tour  # redirect reads/writes
     return out
 
 

@@ -14,8 +14,8 @@ import pickle
 import re
 import stat
 import sys
-import tempfile
 import uuid
+from contextlib import contextmanager
 from dataclasses import asdict
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
@@ -28,6 +28,7 @@ import numpy as np
 from ..config import (
     MATCH_POPULATION_VERSION,
     N_BAG,
+    OUTPUT_DIR,
     PLAYER_ALIASES,
     WTA_DUAL_STATE_GATE_THRESHOLD,
 )
@@ -106,6 +107,7 @@ class PredictorArtifactReason(StrEnum):
     ENVELOPE_MALFORMED = "envelope_malformed"
     ENVELOPE_SCHEMA = "envelope_schema"
     ENVELOPE_MISSING_FOR_CURRENT_PAYLOAD = "envelope_missing_for_current_payload"
+    PATH_INVALID = "path_invalid"
     PENDING_IO = "pending_io"
     PENDING_TOO_LARGE = "pending_too_large"
     PENDING_MALFORMED = "pending_malformed"
@@ -418,40 +420,244 @@ def _reject_json_constant(value: str) -> None:
     raise ValueError(f"non-finite JSON value: {value}")
 
 
+def _absolute_without_symlink_resolution(path: str | os.PathLike[str]) -> Path:
+    """Normalize ``.``/``..`` without following any filesystem link."""
+
+    return Path(os.path.abspath(os.fspath(path)))
+
+
+def _trusted_root_for(
+    path: Path, trusted_root: str | os.PathLike[str] | None
+) -> Path:
+    """Return the lexical authority boundary for one predictor triplet.
+
+    Production artifacts are rooted at ``OUTPUT_DIR``. Explicit test/tool paths retain
+    their historical custom-location API and trust only their containing directory unless
+    the caller supplies a narrower shared root.
+    """
+
+    absolute = _absolute_without_symlink_resolution(path)
+    if trusted_root is not None:
+        root = _absolute_without_symlink_resolution(trusted_root)
+    else:
+        production_root = _absolute_without_symlink_resolution(OUTPUT_DIR)
+        try:
+            absolute.relative_to(production_root)
+        except ValueError:
+            root = absolute.parent
+        else:
+            root = production_root
+    try:
+        relative = absolute.relative_to(root)
+    except ValueError as exc:
+        raise PredictorArtifactError(
+            PredictorArtifactReason.PATH_INVALID,
+            "predictor path escapes its trusted root",
+        ) from exc
+    if not relative.parts:
+        raise PredictorArtifactError(
+            PredictorArtifactReason.PATH_INVALID,
+            "predictor path must name a file below its trusted root",
+        )
+    return root
+
+
+def _nofollow_flag() -> int:
+    """Return the platform no-follow flag through one testable boundary."""
+
+    return getattr(os, "O_NOFOLLOW", 0)
+
+
+def _directory_flags() -> int:
+    return (
+        os.O_RDONLY
+        | getattr(os, "O_DIRECTORY", 0)
+        | _nofollow_flag()
+    )
+
+
+def _same_file_identity(left: os.stat_result, right: os.stat_result) -> bool:
+    return (left.st_dev, left.st_ino) == (right.st_dev, right.st_ino)
+
+
+def _directory_entry(directory: int, name: str) -> os.stat_result:
+    """lstat one entry relative to a stable parent descriptor."""
+
+    return os.stat(name, dir_fd=directory, follow_symlinks=False)
+
+
+def _open_directory_without_symlinks(directory: Path, *, create: bool) -> int:
+    """Open an absolute directory one component at a time without following links."""
+
+    absolute = _absolute_without_symlink_resolution(directory)
+    if not absolute.is_absolute() or absolute.anchor != os.path.sep:
+        raise PredictorArtifactError(
+            PredictorArtifactReason.PATH_INVALID,
+            "predictor directory must be an absolute local path",
+        )
+    descriptor: int | None = None
+    try:
+        descriptor = os.open(os.path.sep, _directory_flags())
+        for component in absolute.parts[1:]:
+            try:
+                entry_before = _directory_entry(descriptor, component)
+            except FileNotFoundError:
+                if not create:
+                    raise
+                os.mkdir(component, mode=0o755, dir_fd=descriptor)
+                entry_before = _directory_entry(descriptor, component)
+            if not stat.S_ISDIR(entry_before.st_mode):
+                raise OSError("predictor path component is not a real directory")
+            child = os.open(
+                component,
+                _directory_flags(),
+                dir_fd=descriptor,
+            )
+            try:
+                opened = os.fstat(child)
+                entry_after = _directory_entry(descriptor, component)
+                if (
+                    not stat.S_ISDIR(opened.st_mode)
+                    or not stat.S_ISDIR(entry_after.st_mode)
+                    or not _same_file_identity(entry_before, opened)
+                    or not _same_file_identity(opened, entry_after)
+                ):
+                    raise OSError(
+                        "predictor path component changed or resolved through a link"
+                    )
+            except Exception:
+                os.close(child)
+                raise
+            os.close(descriptor)
+            descriptor = child
+        return descriptor
+    except PredictorArtifactError:
+        if descriptor is not None:
+            os.close(descriptor)
+        raise
+    except OSError as exc:
+        if descriptor is not None:
+            os.close(descriptor)
+        raise PredictorArtifactError(
+            PredictorArtifactReason.PATH_INVALID,
+            f"predictor directory traversal failed ({type(exc).__name__})",
+        ) from exc
+
+
+@contextmanager
+def _open_artifact_parent(
+    path: Path,
+    *,
+    trusted_root: str | os.PathLike[str] | None = None,
+    create: bool = False,
+):
+    """Yield one stable parent fd after lexical-root and no-symlink validation."""
+
+    absolute = _absolute_without_symlink_resolution(path)
+    _trusted_root_for(absolute, trusted_root)
+    descriptor = _open_directory_without_symlinks(absolute.parent, create=create)
+    try:
+        yield descriptor, absolute.name
+    finally:
+        os.close(descriptor)
+
+
+def _lexists_secure(
+    path: Path, *, trusted_root: str | os.PathLike[str] | None = None
+) -> bool:
+    with _open_artifact_parent(path, trusted_root=trusted_root) as (directory, name):
+        try:
+            os.stat(name, dir_fd=directory, follow_symlinks=False)
+        except FileNotFoundError:
+            return False
+        except OSError as exc:
+            raise PredictorArtifactError(
+                PredictorArtifactReason.PATH_INVALID,
+                f"predictor path inspection failed ({type(exc).__name__})",
+            ) from exc
+        return True
+
+
+def _validate_write_destination(directory: int, name: str) -> None:
+    """Allow only a missing or real regular-file replacement target."""
+
+    try:
+        target = _directory_entry(directory, name)
+    except FileNotFoundError:
+        return
+    except OSError as exc:
+        raise PredictorArtifactError(
+            PredictorArtifactReason.PATH_INVALID,
+            f"predictor write target inspection failed ({type(exc).__name__})",
+        ) from exc
+    if not stat.S_ISREG(target.st_mode):
+        raise PredictorArtifactError(
+            PredictorArtifactReason.PATH_INVALID,
+            "predictor write target must be a real regular file",
+        )
+
+
+def _preflight_write_path(
+    path: Path, *, trusted_root: str | os.PathLike[str] | None = None
+) -> None:
+    with _open_artifact_parent(
+        path, trusted_root=trusted_root, create=True
+    ) as (directory, name):
+        _validate_write_destination(directory, name)
+
+
 def _read_bounded(
     path: Path,
     limit: int,
     *,
     io_reason: PredictorArtifactReason,
     too_large_reason: PredictorArtifactReason,
+    trusted_root: str | os.PathLike[str] | None = None,
 ) -> bytes:
     descriptor = None
     try:
-        descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
-        before = os.fstat(descriptor)
-        if not stat.S_ISREG(before.st_mode):
-            raise OSError("artifact path is not a regular file")
-        if before.st_size > limit:
-            raise PredictorArtifactError(
-                too_large_reason, f"limit is {limit} bytes"
+        with _open_artifact_parent(path, trusted_root=trusted_root) as (directory, name):
+            entry_before = _directory_entry(directory, name)
+            if not stat.S_ISREG(entry_before.st_mode):
+                raise OSError("artifact path is not a real regular file")
+            descriptor = os.open(
+                name,
+                os.O_RDONLY | _nofollow_flag(),
+                dir_fd=directory,
             )
-        chunks = []
-        remaining = limit + 1
-        while remaining:
-            chunk = os.read(descriptor, min(1024 * 1024, remaining))
-            if not chunk:
-                break
-            chunks.append(chunk)
-            remaining -= len(chunk)
-        value = b"".join(chunks)
-        after = os.fstat(descriptor)
-        if (
-            len(value) != after.st_size
-            or before.st_size != after.st_size
-            or before.st_mtime_ns != after.st_mtime_ns
-            or before.st_ctime_ns != after.st_ctime_ns
-        ):
-            raise OSError("artifact changed while being read")
+            before = os.fstat(descriptor)
+            entry_after_open = _directory_entry(directory, name)
+            if (
+                not stat.S_ISREG(before.st_mode)
+                or not stat.S_ISREG(entry_after_open.st_mode)
+                or not _same_file_identity(entry_before, before)
+                or not _same_file_identity(before, entry_after_open)
+            ):
+                raise OSError("artifact path changed or resolved through a link")
+            if before.st_size > limit:
+                raise PredictorArtifactError(
+                    too_large_reason, f"limit is {limit} bytes"
+                )
+            chunks = []
+            remaining = limit + 1
+            while remaining:
+                chunk = os.read(descriptor, min(1024 * 1024, remaining))
+                if not chunk:
+                    break
+                chunks.append(chunk)
+                remaining -= len(chunk)
+            value = b"".join(chunks)
+            after = os.fstat(descriptor)
+            entry_after_read = _directory_entry(directory, name)
+            if (
+                len(value) != after.st_size
+                or before.st_size != after.st_size
+                or before.st_mtime_ns != after.st_mtime_ns
+                or before.st_ctime_ns != after.st_ctime_ns
+                or not stat.S_ISREG(entry_after_read.st_mode)
+                or not _same_file_identity(after, entry_after_read)
+            ):
+                raise OSError("artifact changed while being read")
     except PredictorArtifactError:
         raise
     except OSError as exc:
@@ -464,12 +670,18 @@ def _read_bounded(
     return value
 
 
-def _read_envelope(path: Path, expected_tour: str) -> dict[str, Any]:
+def _read_envelope(
+    path: Path,
+    expected_tour: str,
+    *,
+    trusted_root: str | os.PathLike[str] | None = None,
+) -> dict[str, Any]:
     raw = _read_bounded(
         path,
         MAX_ENVELOPE_BYTES,
         io_reason=PredictorArtifactReason.ENVELOPE_IO,
         too_large_reason=PredictorArtifactReason.ENVELOPE_TOO_LARGE,
+        trusted_root=trusted_root,
     )
     try:
         envelope = json.loads(
@@ -484,12 +696,18 @@ def _read_envelope(path: Path, expected_tour: str) -> dict[str, Any]:
     return _validate_envelope(envelope, expected_tour)
 
 
-def _read_pending(path: Path, expected_tour: str) -> dict[str, Any]:
+def _read_pending(
+    path: Path,
+    expected_tour: str,
+    *,
+    trusted_root: str | os.PathLike[str] | None = None,
+) -> dict[str, Any]:
     raw = _read_bounded(
         path,
         MAX_PENDING_BYTES,
         io_reason=PredictorArtifactReason.PENDING_IO,
         too_large_reason=PredictorArtifactReason.PENDING_TOO_LARGE,
+        trusted_root=trusted_root,
     )
     try:
         pending = json.loads(
@@ -535,17 +753,25 @@ def _read_pending(path: Path, expected_tour: str) -> dict[str, Any]:
     return pending
 
 
-def _read_payload(path: Path) -> bytes:
+def _read_payload(
+    path: Path, *, trusted_root: str | os.PathLike[str] | None = None
+) -> bytes:
     return _read_bounded(
         path,
         MAX_PREDICTOR_BYTES,
         io_reason=PredictorArtifactReason.PAYLOAD_IO,
         too_large_reason=PredictorArtifactReason.PAYLOAD_TOO_LARGE,
+        trusted_root=trusted_root,
     )
 
 
-def _checked_payload(path: Path, envelope: dict[str, Any]) -> bytes:
-    payload = _read_payload(path)
+def _checked_payload(
+    path: Path,
+    envelope: dict[str, Any],
+    *,
+    trusted_root: str | os.PathLike[str] | None = None,
+) -> bytes:
+    payload = _read_payload(path, trusted_root=trusted_root)
     if len(payload) != envelope["payloadBytes"]:
         raise PredictorArtifactError(
             PredictorArtifactReason.PAYLOAD_SIZE_MISMATCH,
@@ -560,7 +786,10 @@ def _checked_payload(path: Path, envelope: dict[str, Any]) -> bytes:
 
 
 def validate_predictor_artifact_identity(
-    payload_path: str | os.PathLike[str], expected_tour: str
+    payload_path: str | os.PathLike[str],
+    expected_tour: str,
+    *,
+    trusted_root: str | os.PathLike[str] | None = None,
 ) -> dict[str, str | int]:
     """Validate a completed envelope/payload pair without deserializing the pickle.
 
@@ -574,20 +803,22 @@ def validate_predictor_artifact_identity(
         )
     path = Path(payload_path)
     pending_path = predictor_pending_path(path)
-    if os.path.lexists(pending_path):
+    if _lexists_secure(pending_path, trusted_root=trusted_root):
         raise PredictorArtifactError(
             PredictorArtifactReason.INCOMPLETE_WRITE,
             "pending marker makes the predictor publication incomplete",
         )
     envelope_path = predictor_envelope_path(path)
-    if not os.path.lexists(envelope_path):
+    if not _lexists_secure(envelope_path, trusted_root=trusted_root):
         raise PredictorArtifactError(
             PredictorArtifactReason.ENVELOPE_IO,
             "completed predictor publication requires an envelope",
         )
-    envelope = _read_envelope(envelope_path, expected_tour)
-    _checked_payload(path, envelope)
-    if os.path.lexists(pending_path):
+    envelope = _read_envelope(
+        envelope_path, expected_tour, trusted_root=trusted_root
+    )
+    _checked_payload(path, envelope, trusted_root=trusted_root)
+    if _lexists_secure(pending_path, trusted_root=trusted_root):
         raise PredictorArtifactError(
             PredictorArtifactReason.INCOMPLETE_WRITE,
             "pending marker appeared during predictor identity validation",
@@ -781,7 +1012,6 @@ def _validate_predictor(
     *,
     artifact_id: str,
     trained_at: str,
-    artifact_id_versions: tuple[int, ...] = (4,),
 ) -> None:
     # Imported lazily to keep ``predict.TennisPredictor`` free to delegate here.
     from .predict import INFERENCE_SCHEMA_VERSION, TennisPredictor
@@ -799,10 +1029,7 @@ def _validate_predictor(
         raise PredictorArtifactError(
             PredictorArtifactReason.TOUR_MISMATCH, "payload tour differs from envelope"
         )
-    if raw["artifact_id"] != artifact_id or not any(
-        _valid_artifact_id(raw["artifact_id"], version_number=value)
-        for value in artifact_id_versions
-    ):
+    if raw["artifact_id"] != artifact_id or not _valid_artifact_id(raw["artifact_id"]):
         raise PredictorArtifactError(
             PredictorArtifactReason.PREDICTOR_ID, "payload artifact_id differs from envelope"
         )
@@ -834,59 +1061,89 @@ def _validate_predictor(
     _validate_model(predictor, tour)
 
 
-def validate_predictor_structure(
-    predictor: Any, tour: str, *, allow_legacy_id: bool = False
-) -> None:
-    """Shared current-contract guard for pipeline reuse.
-
-    ``allow_legacy_id`` admits only the deterministic UUIDv5 attached by the isolated
-    Round 4A no-envelope loader; every other raw/model/state invariant remains strict.
-    """
+def validate_predictor_structure(predictor: Any, tour: str) -> None:
+    """Shared current-contract guard for pipeline reuse."""
     raw = vars(predictor) if hasattr(predictor, "__dict__") else {}
     _validate_predictor(
         predictor,
         tour,
         artifact_id=raw.get("artifact_id"),
         trained_at=raw.get("trained_at"),
-        artifact_id_versions=(4, 5) if allow_legacy_id else (4,),
     )
 
 
-def _atomic_write(path: Path, payload: bytes) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    descriptor, temporary_name = tempfile.mkstemp(
-        dir=path.parent, prefix=f".{path.name}.", suffix=".tmp"
-    )
-    temporary = Path(temporary_name)
+def _temporary_name(target_name: str) -> str:
+    return f".{target_name}.{uuid.uuid4().hex}.tmp"
+
+
+def _atomic_write(
+    path: Path,
+    payload: bytes,
+    *,
+    trusted_root: str | os.PathLike[str] | None = None,
+) -> None:
+    temporary_name = _temporary_name(path.name)
+    descriptor: int | None = None
     try:
-        with os.fdopen(descriptor, "wb") as handle:
-            handle.write(payload)
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(temporary, path)
-        directory = os.open(path.parent, os.O_RDONLY)
-        try:
+        with _open_artifact_parent(
+            path, trusted_root=trusted_root, create=True
+        ) as (directory, name):
+            _validate_write_destination(directory, name)
+            descriptor = os.open(
+                temporary_name,
+                os.O_WRONLY
+                | os.O_CREAT
+                | os.O_EXCL
+                | _nofollow_flag(),
+                0o600,
+                dir_fd=directory,
+            )
+            remaining = memoryview(payload)
+            while remaining:
+                written = os.write(descriptor, remaining)
+                if written <= 0:  # pragma: no cover - defensive OS contract guard
+                    raise OSError("artifact temporary write made no progress")
+                remaining = remaining[written:]
+            os.fsync(descriptor)
+            os.close(descriptor)
+            descriptor = None
+            _validate_write_destination(directory, name)
+            os.replace(
+                temporary_name,
+                name,
+                src_dir_fd=directory,
+                dst_dir_fd=directory,
+            )
             os.fsync(directory)
-        finally:
-            os.close(directory)
     except Exception:
+        if descriptor is not None:
+            os.close(descriptor)
         try:
-            temporary.unlink()
+            with _open_artifact_parent(
+                path, trusted_root=trusted_root
+            ) as (directory, _):
+                os.unlink(temporary_name, dir_fd=directory)
         except FileNotFoundError:
+            pass
+        except PredictorArtifactError:
             pass
         raise
 
 
-def _remove_pending(path: Path) -> None:
-    path.unlink()
-    directory = os.open(path.parent, os.O_RDONLY)
-    try:
+def _remove_pending(
+    path: Path, *, trusted_root: str | os.PathLike[str] | None = None
+) -> None:
+    with _open_artifact_parent(path, trusted_root=trusted_root) as (directory, name):
+        os.unlink(name, dir_fd=directory)
         os.fsync(directory)
-    finally:
-        os.close(directory)
 
 
-def save_predictor_artifact(predictor: Any, payload_path: str | os.PathLike[str]) -> None:
+def save_predictor_artifact(
+    predictor: Any,
+    payload_path: str | os.PathLike[str],
+    *,
+    trusted_root: str | os.PathLike[str] | None = None,
+) -> None:
     """Atomically publish a rollback-readable pickle, then its strict envelope."""
     path = Path(payload_path)
     tour = getattr(predictor, "tour", None)
@@ -965,15 +1222,20 @@ def save_predictor_artifact(predictor: Any, payload_path: str | os.PathLike[str]
             f"pending marker is {len(pending_bytes)} bytes",
         )
 
-    # Crash contract: the fsynced marker makes the new format mandatory before the
-    # payload can change.  A crash at either later replace therefore cannot launder
-    # new bytes through the one-release missing-envelope exception.
+    # Crash contract: the fsynced marker makes the envelope mandatory before the
+    # payload can change. A crash at either later replace cannot expose unpaired bytes.
     pending_path = predictor_pending_path(path)
     try:
-        _atomic_write(pending_path, pending_bytes)
-        _atomic_write(path, payload)
-        _atomic_write(predictor_envelope_path(path), envelope_bytes)
-        _remove_pending(pending_path)
+        # Validate every publication target before creating the pending marker. Each
+        # atomic write repeats this check to close later path-replacement races.
+        for target in (pending_path, path, predictor_envelope_path(path)):
+            _preflight_write_path(target, trusted_root=trusted_root)
+        _atomic_write(pending_path, pending_bytes, trusted_root=trusted_root)
+        _atomic_write(path, payload, trusted_root=trusted_root)
+        _atomic_write(
+            predictor_envelope_path(path), envelope_bytes, trusted_root=trusted_root
+        )
+        _remove_pending(pending_path, trusted_root=trusted_root)
     except PredictorArtifactError:
         raise
     except OSError as exc:
@@ -982,50 +1244,13 @@ def save_predictor_artifact(predictor: Any, payload_path: str | os.PathLike[str]
         ) from exc
 
 
-def _legacy_artifact_id(payload: bytes) -> str:
-    digest = hashlib.sha256(payload).hexdigest()
-    return str(uuid.uuid5(uuid.NAMESPACE_URL, f"tennis-predictor-legacy:{digest}"))
-
-
-def _load_legacy_without_envelope_round4a(path: Path, expected_tour: str) -> Any:
-    """One-release transition for a genuine pre-envelope direct pickle only."""
-    payload = _read_payload(path)
-    # Close the initial lexists/read race with a concurrent first-format save.  The
-    # writer durably publishes the marker before replacing the payload, so seeing
-    # either private sibling after the byte read means these bytes are not eligible
-    # for the legacy exception.  Crucially, this check still precedes pickle.loads.
-    if os.path.lexists(predictor_pending_path(path)) or os.path.lexists(
-        predictor_envelope_path(path)
-    ):
-        raise PredictorArtifactError(
-            PredictorArtifactReason.INCOMPLETE_WRITE,
-            "envelope state changed during legacy preflight",
-        )
-    predictor = _deserialize(payload)
-    from .predict import TennisPredictor
-
-    if type(predictor) is not TennisPredictor:
-        raise PredictorArtifactError(
-            PredictorArtifactReason.PREDICTOR_TYPE, "legacy payload class mismatch"
-        )
-    raw = vars(predictor)
-    if "artifact_id" in raw:
-        raise PredictorArtifactError(
-            PredictorArtifactReason.ENVELOPE_MISSING_FOR_CURRENT_PAYLOAD,
-            "current payload marker is present",
-        )
-    if raw.get("tour") != expected_tour:
-        raise PredictorArtifactError(
-            PredictorArtifactReason.TOUR_MISMATCH, "legacy payload tour mismatch"
-        )
-    predictor.artifact_id = _legacy_artifact_id(payload)
-    return predictor
-
-
 def load_predictor_artifact(
-    payload_path: str | os.PathLike[str], expected_tour: str
+    payload_path: str | os.PathLike[str],
+    expected_tour: str,
+    *,
+    trusted_root: str | os.PathLike[str] | None = None,
 ) -> Any:
-    """Load only after envelope preflight; missing-envelope legacy is isolated above."""
+    """Load only after strict rooted envelope and exact-payload preflight."""
     if expected_tour not in _TOURS:
         raise PredictorArtifactError(
             PredictorArtifactReason.TOUR_MISMATCH, f"unsupported tour: {expected_tour!r}"
@@ -1033,16 +1258,20 @@ def load_predictor_artifact(
     path = Path(payload_path)
     envelope_path = predictor_envelope_path(path)
     pending_path = predictor_pending_path(path)
-    pending_present = os.path.lexists(pending_path)
-    envelope_present = os.path.lexists(envelope_path)
+    pending_present = _lexists_secure(pending_path, trusted_root=trusted_root)
+    envelope_present = _lexists_secure(envelope_path, trusted_root=trusted_root)
     if pending_present:
-        pending = _read_pending(pending_path, expected_tour)
+        pending = _read_pending(
+            pending_path, expected_tour, trusted_root=trusted_root
+        )
         if not envelope_present:
             raise PredictorArtifactError(
                 PredictorArtifactReason.INCOMPLETE_WRITE,
                 "pending marker exists without an envelope",
             )
-        envelope = _read_envelope(envelope_path, expected_tour)
+        envelope = _read_envelope(
+            envelope_path, expected_tour, trusted_root=trusted_root
+        )
         pending_identity = {
             "artifactId": pending["artifactId"],
             "tour": pending["tour"],
@@ -1060,13 +1289,16 @@ def load_predictor_artifact(
                 "pending marker and envelope identify different generations",
             )
     elif envelope_present:
-        envelope = _read_envelope(envelope_path, expected_tour)
+        envelope = _read_envelope(
+            envelope_path, expected_tour, trusted_root=trusted_root
+        )
     else:
-        return _load_legacy_without_envelope_round4a(path, expected_tour)
+        raise PredictorArtifactError(
+            PredictorArtifactReason.ENVELOPE_MISSING_FOR_CURRENT_PAYLOAD,
+            "strict predictor envelope is required",
+        )
 
-    # lexists matters: a dangling envelope symlink is present-but-invalid and must
-    # never silently activate the legacy pickle path.
-    payload = _checked_payload(path, envelope)
+    payload = _checked_payload(path, envelope, trusted_root=trusted_root)
 
     # This is deliberately the same in-memory byte string checked immediately above;
     # the path is never reopened between checksum validation and deserialization.
@@ -1077,4 +1309,14 @@ def load_predictor_artifact(
         artifact_id=envelope["artifactId"],
         trained_at=envelope["trainedAt"],
     )
+    if pending_present:
+        try:
+            _remove_pending(pending_path, trusted_root=trusted_root)
+        except PredictorArtifactError:
+            raise
+        except OSError as exc:
+            raise PredictorArtifactError(
+                PredictorArtifactReason.PENDING_IO,
+                f"validated pending-marker cleanup failed ({type(exc).__name__})",
+            ) from exc
     return predictor

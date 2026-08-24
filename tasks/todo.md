@@ -5507,15 +5507,16 @@ becomes blocking.
 
 ## Historical reliability audit — Round 4A/4B artifact integrity (2026-08-24)
 
-Status: Round 3 is live; Round 4A has been rebased for a new blocking filesystem-safety review and is
-not approved for production until the hardening checklist below passes.
+Status: Round 3 is live; the rebased Round 4A implementation and its reopened filesystem-safety
+review are locally complete and approved for the ordered production migration below.
 
 - [x] Round 4A predictor shadow: keep `predictor.pkl` rollback-readable while writing a strict,
       bounded, non-public envelope with exact bytes/hash, runtime and dependency identity, exact
       model/configuration and required inference-state structure, stable artifact ID, durable pending
       marker before payload/envelope publication, and fail-closed validation for every present
-      envelope. Permit genuinely legacy envelope-free pickles during the shadow window until a full
-      retrain creates the new pair and Round 4B removes fallback.
+      envelope. Reject envelope-free pickles before payload read/deserialization and use QUICK's
+      controlled rebuild path to migrate the old cache; keep only lineage publication fallback until
+      the full bootstrap creates the first accepted release.
 - [x] Round 4A lineage shadow: generate one shared ATP/WTA release identity, discover the complete
       fixed/indexed two-tour public-data JSON graph, hash exact bytes with explicit producer/source/predictor
       provenance, accept carry-forward only from a fully validated and gate-accepted prior release,
@@ -5548,6 +5549,18 @@ not approved for production until the hardening checklist below passes.
   audit reopened ancestor-overlap, destination-symlink, post-copy mutation, symlinked-directory prune,
   predictor-envelope symlink, and directory-fsync cases. Those are blocking correctness/security
   findings; the prior SHIP verdict is withdrawn until failing-first regressions close all of them.
+- The reopened review is now closed. Predictor, lineage-pointer, public writer, remover, carry,
+  two-tour fallback, and legacy single-tour mirror I/O all share rooted component-by-component
+  traversal, descriptor-relative reads/replaces/unlinks, durable absence, exact producer authority,
+  post-write binding checks, and fail-closed cleanup. Alias-normalized root overlap, parent swaps,
+  platforms without `O_NOFOLLOW`, dangling links, private-name preflight, and unsafe shadow
+  revocation all have failing-first controls.
+- Fresh final gates pass: 987 Python tests and 308 web tests; repository Ruff, TypeScript, current-data
+  pre-deploy integrity, Actionlint, shell/Node syntax, and `git diff --check`; a production build of all
+  24 routes; and the isolated real-Chromium smoke with both negative controls and 4/4 route/viewport
+  checks. ESLint has zero errors and the same nine existing hook warnings. Independent reviews first
+  reproduced and then verified closure of external symlink read/write/delete, missing-root authority,
+  non-durable absent-pointer, alias-overlap, cleanup-fallback, stale-link, and legacy-mirror gaps.
 - No envelope, accepted release receipt, or lineage manifest has been claimed in production. Round 3
   is live at merge `1bcfe1b`; Round 4A publication remains pending behind the hardening, complete
   release gate, and fresh adversarial review, followed by the full-bootstrap and quick-carry
@@ -5555,16 +5568,16 @@ not approved for production until the hardening checklist below passes.
 
 ### Round 4A reopened hardening plan
 
-- [ ] Reject source/destination roots that are equal or ancestor-related before any prune/copy, using
+- [x] Reject source/destination roots that are equal or ancestor-related before any prune/copy, using
       canonical no-follow checks that cannot erase or mutate the source tree.
-- [ ] Reject symlinks at every source and destination path component, including tour directories,
+- [x] Reject symlinks at every source and destination path component, including tour directories,
       undeclared directory entries, predictor payload/envelope/pending files, and paths escaping the
       trusted release root; prove rejection occurs before reads, deserialization, deletion, or copy.
-- [ ] Revalidate the complete copied destination graph from fresh file descriptors immediately before
+- [x] Revalidate the complete copied destination graph from fresh file descriptors immediately before
       manifest publication; a source or destination mutation after copy must revoke proof and fail.
-- [ ] Make prune/copy publication crash-durable by fsyncing every changed directory before manifest or
+- [x] Make prune/copy publication crash-durable by fsyncing every changed directory before manifest or
       acceptance publication, and add injected-failure tests for each ordering boundary.
-- [ ] Rerun focused artifact/lineage/pipeline/verifier suites, all Python and web tests, repository
+- [x] Rerun focused artifact/lineage/pipeline/verifier suites, all Python and web tests, repository
       lint/type/build/browser/integrity gates, production-shaped legacy/full/quick rehearsals, and an
       independent adversarial review before committing or deploying Round 4A.
 
@@ -5577,8 +5590,10 @@ fallback enabled. Land one small flag-free cutover only after the live evidence 
 ### Required live evidence
 
 - [x] Deploy and verify Round 3 independently (`1bcfe1b`, production run `32745490015`).
-- [ ] Deploy the hardened Round 4A commit and observe a QUICK run against the old cache succeed through the
-      explicit legacy predictor/lineage fallback, with no stale manifest or private public file.
+- [ ] Deploy the hardened Round 4A commit and observe a QUICK run against the old cache reject each
+      envelope-free predictor before payload read/deserialization, rebuild both pairs through the
+      controlled path, and use only the explicit lineage mirror fallback, with no stale manifest or
+      private public file.
 - [ ] Observe a later FULL run create both ATP/WTA payload-envelope pairs with UUIDv4 identities and
       no pending markers, seal and gate-accept one exact two-tour public-data manifest, publish it,
       pass the exhaustive live graph verifier, and save the resulting data cache.
@@ -5588,7 +5603,8 @@ fallback enabled. Land one small flag-free cutover only after the live evidence 
 
 ### Flag-free enforcement delta after those observations
 
-- [ ] Predictor: reject every envelope-free payload before reading or deserializing it; remove the
+- [ ] Predictor (pulled forward into hardened Round 4A; confirm live before cutover): reject every
+      envelope-free payload before reading or deserializing it; remove the
       UUIDv5 legacy identity/helper and `allow_legacy_id` structure bypass. Preserve pending-marker
       recovery, exact-byte/runtime/config/model/state validation, plain-pickle rollback readability,
       and QUICK's existing typed rejection -> controlled per-tour rebuild path.
@@ -5626,8 +5642,9 @@ fallback enabled. Land one small flag-free cutover only after the live evidence 
 
 ### Current external baseline
 
-- Fresh fetch resolves `origin/master` to tasks-only head `2f5fef9`; the latest production refresh,
-  `32745490015`, completed every QUICK/gate/build/Firebase/live-verifier/health/cache/reporter step
-  successfully. The local cache contains only `atp/predictor.pkl` and `wta/predictor.pkl`, with no
-  envelope, pending marker, acceptance receipt, or release manifest. This proves the cutover
-  preconditions are not yet satisfied; no Round 4B production code was added.
+- Fresh remote/run inspection resolves `origin/master` to tasks-only head `2f5fef9`; the latest
+  observed production refresh, `32748035704`, completed every QUICK/gate/build/Firebase/live-verifier/
+  health/cache/reporter step and saved legacy cache `tennis-data-32748035704-1`. That run restored the
+  Round 3 cache, whose tour roots contain plain `predictor.pkl` payloads with no Round 4 envelope,
+  pending marker, acceptance receipt, or release manifest. This is the exact first-QUICK migration
+  baseline; no Round 4B enforcement code was added.

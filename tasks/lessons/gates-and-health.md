@@ -347,3 +347,25 @@ Indexed in [`../lessons.md`](../lessons.md).
   accepted parent into provenance, accept only after the semantic gate, copy declared files before
   the public manifest, and postvalidate the exact destination. Any failed publication must revoke
   stale proof before fallback; inability to do so is fatal.
+
+- **Leaf-level no-follow checks do not make a release publisher path-safe.** (2026-08-24, Round 4A
+  filesystem review) A symlinked parent directory can redirect an otherwise safe leaf open or
+  atomic replace, and relying only on `O_NOFOLLOW` makes the invariant platform-dependent.
+  **How to apply:** establish a trusted publication root, reject lexical/resolved escape and every
+  symlink or non-directory component before reads, copies, temp creation, replaces, or pruning;
+  separately reject a symlink leaf with `lstat` so the behavior remains fail-closed when
+  `O_NOFOLLOW` is absent. Revalidate after copy, durably fsync every directory whose entries changed,
+  and regression-test that rejection creates no external temp file and publishes no validity pointer.
+
+- **A secure artifact writer does not secure the release if pointers, deletions, or compatibility
+  mirrors still use paths.** (2026-08-24, Round 4A adversarial review) The first rooted writer patch
+  protected produced JSON, but manifest/acceptance writes and revocations, stale-shard cleanup, and
+  the single-tour legacy mirror still followed symlinked parents; the reviewer reproduced both an
+  external delete and an external write. A second blind spot compared `/tmp/...` with
+  `/private/tmp/...` lexically before normalizing the administrator-owned alias, so physical
+  ancestor overlap passed. **How to apply:** inventory every read, create, replace, unlink, prune,
+  carry, and rollback/legacy seam that touches the artifact tree; route all of them through the same
+  descriptor-anchored root contract. Normalize only approved root aliases before ancestry checks.
+  Open the parent before unlink and fsync it even when the leaf is already absent, because durable
+  absence is itself state. In shadow mode, failure to revoke any stale receipt or manifest is a typed
+  failure barrier: suppress fallback rather than letting compatibility publish behind untrusted proof.

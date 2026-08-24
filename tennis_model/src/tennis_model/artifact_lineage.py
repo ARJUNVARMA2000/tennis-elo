@@ -19,7 +19,6 @@ import math
 import os
 import re
 import stat
-import tempfile
 import threading
 import uuid
 from collections.abc import Callable, Iterable, Mapping, Sequence
@@ -492,21 +491,35 @@ def begin_artifact_write(tour: str, filename: str) -> None:
         collector._records[tour].discard(f"{tour}/{filename}")
 
 
-def write_produced_artifact(tour: str, path: Path, raw: bytes) -> None:
+def write_produced_artifact(
+    tour: str,
+    path: Path,
+    raw: bytes,
+    *,
+    trusted_root: Path | None = None,
+) -> None:
     """Durably replace one public artifact and record only the completed generation."""
 
-    path = Path(path)
     if not isinstance(raw, bytes):
         raise TypeError("public artifact payload must be bytes")
-    _validate_tour(tour)
-    _validate_filename(path.name)
-    begin_artifact_write(tour, path.name)
-    _atomic_write_bytes(path, raw)
+    _validate_public_producer_filename(Path(path).name)
+    path = _validate_public_write_path(tour, Path(path), trusted_root=trusted_root)
+    parent_fd = _open_directory_without_symlinks(path.parent, create=True)
+    try:
+        _validate_public_write_leaf(parent_fd, path.name)
+        begin_artifact_write(tour, path.name)
+        _atomic_write_public_bytes(parent_fd, path.name, raw)
+        _validate_open_directory_binding(path.parent, parent_fd)
+    finally:
+        os.close(parent_fd)
     note_produced_artifact(tour, path.name)
 
 
 def write_produced_artifact_batch(
-    tour: str, artifacts: Sequence[tuple[Path, bytes]]
+    tour: str,
+    artifacts: Sequence[tuple[Path, bytes]],
+    *,
+    trusted_root: Path | None = None,
 ) -> None:
     """Durably replace a logical artifact group and prove it only as one completion."""
 
@@ -514,23 +527,64 @@ def write_produced_artifact_batch(
     items = [(Path(path), raw) for path, raw in artifacts]
     if not items or len({path.name for path, _ in items}) != len(items):
         raise ValueError("public artifact batch must be non-empty with unique filenames")
+    validated = []
     for path, raw in items:
         if not isinstance(raw, bytes):
             raise TypeError("public artifact payload must be bytes")
-        _validate_filename(path.name)
-        begin_artifact_write(tour, path.name)
-    for path, raw in items:
-        _atomic_write_bytes(path, raw)
-    for path, _ in items:
+        _validate_public_producer_filename(path.name)
+        validated.append((
+            _validate_public_write_path(tour, path, trusted_root=trusted_root),
+            raw,
+        ))
+    if len({path.parent for path, _ in validated}) != 1:
+        raise ArtifactLineageError(
+            LineageReason.PATH_INVALID,
+            "public artifact batch must share one trusted tour directory",
+        )
+    parent = validated[0][0].parent
+    parent_fd = _open_directory_without_symlinks(parent, create=True)
+    try:
+        for path, _ in validated:
+            _validate_public_write_leaf(parent_fd, path.name)
+        for path, _ in validated:
+            begin_artifact_write(tour, path.name)
+        for path, raw in validated:
+            _atomic_write_public_bytes(parent_fd, path.name, raw)
+        _validate_open_directory_binding(parent, parent_fd)
+    finally:
+        os.close(parent_fd)
+    for path, _ in validated:
         note_produced_artifact(tour, path.name)
+
+
+def remove_produced_artifact(
+    tour: str,
+    path: Path,
+    *,
+    trusted_root: Path | None = None,
+) -> None:
+    """Durably remove one public artifact and invalidate any earlier success proof."""
+
+    _validate_public_producer_filename(Path(path).name)
+    authority = _public_trusted_root(trusted_root)
+    path = _validate_public_write_path(tour, Path(path), trusted_root=authority)
+    parent_fd = _open_directory_without_symlinks(path.parent, create=True)
+    try:
+        begin_artifact_write(tour, path.name)
+        _durable_unlink_at(parent_fd, path.name)
+        _validate_open_directory_binding(path.parent, parent_fd)
+    finally:
+        os.close(parent_fd)
 
 
 def unbless_release_for_mutation(root: Path) -> None:
     """Durably remove old acceptance/root pointers before candidate bytes can change."""
 
-    root = Path(root)
-    _durable_unlink(root / ACCEPTANCE_FILENAME)
-    _durable_unlink(root / MANIFEST_FILENAME)
+    root = _lexical_absolute(Path(root))
+    _durable_unlink(
+        root / ACCEPTANCE_FILENAME, trusted_root=root
+    )
+    _durable_unlink(root / MANIFEST_FILENAME, trusted_root=root)
 
 
 def snapshot_produced_artifacts(
@@ -663,7 +717,7 @@ def draft_tour_release(
 ) -> TourDraft:
     """Hash one tour graph, preserving provenance only for exact accepted carry-over."""
 
-    root = Path(root).resolve(strict=False)
+    root = _lexical_absolute(Path(root))
     if context.mode == "quick" and carried is None:
         raise ArtifactLineageError(
             LineageReason.CONTRACT_INVALID,
@@ -716,7 +770,7 @@ def draft_tour_release(
 
     carried_records: Mapping[str, dict] = {}
     if carried is not None:
-        if carried.destination_root.resolve(strict=False) != root:
+        if _lexical_absolute(carried.destination_root) != root:
             raise ArtifactLineageError(
                 LineageReason.CONTRACT_INVALID,
                 "carried release belongs to another destination",
@@ -731,7 +785,9 @@ def draft_tour_release(
     records = []
     total_bytes = 0
     for relative, role in roles.items():
-        size, digest = exact_file_identity(_safe_join(root, relative))
+        size, digest = exact_file_identity(
+            _safe_join(root, relative), trusted_root=root
+        )
         total_bytes += size
         if total_bytes > MAX_RELEASE_BYTES:
             raise ArtifactLineageError(
@@ -847,9 +903,9 @@ def seal_release(root: Path, manifest: object) -> ValidatedRelease:
     # Once the candidate is proven complete, durably unbless the prior state before
     # publishing the new root pointer.  A crash can leave no manifest, never a stale
     # accepted manifest over a mixture of generations.
-    _durable_unlink(root / ACCEPTANCE_FILENAME)
-    _durable_unlink(root / MANIFEST_FILENAME)
-    _atomic_write_bytes(root / MANIFEST_FILENAME, raw)
+    _durable_unlink(root / ACCEPTANCE_FILENAME, trusted_root=root)
+    _durable_unlink(root / MANIFEST_FILENAME, trusted_root=root)
+    _atomic_write_bytes(root / MANIFEST_FILENAME, raw, trusted_root=root)
     return validate_release(root)
 
 
@@ -868,7 +924,9 @@ def validate_release(
             LineageReason.MANIFEST_MISSING, "release manifest is absent"
         )
     try:
-        raw = _read_regular_file(manifest_path, MAX_MANIFEST_BYTES)
+        raw = _read_regular_file(
+            manifest_path, MAX_MANIFEST_BYTES, trusted_root=root
+        )
         manifest = _strict_json_loads(raw, reason=LineageReason.MANIFEST_INVALID)
     except ArtifactLineageError:
         raise
@@ -878,7 +936,7 @@ def validate_release(
         ) from exc
     _validate_manifest_against_graph(manifest, root, observed_at=observed_at)
     release = ValidatedRelease(
-        root=root.resolve(strict=False),
+        root=_lexical_absolute(root),
         manifest=manifest,
         manifest_bytes=raw,
         manifest_sha256=hashlib.sha256(raw).hexdigest(),
@@ -927,7 +985,9 @@ def accept_release(
     }
     _validate_acceptance_contract(receipt)
     raw = _json_bytes(receipt)
-    _atomic_write_bytes(Path(root) / ACCEPTANCE_FILENAME, raw)
+    _atomic_write_bytes(
+        Path(root) / ACCEPTANCE_FILENAME, raw, trusted_root=Path(root)
+    )
     # Re-read the entire graph, private predictor bindings, manifest, and receipt after
     # publication. An artifact mutation concurrent with the receipt write must never let
     # this function return an already-stale in-memory acceptance.
@@ -968,20 +1028,37 @@ def carry_forward_release(source_root: Path, destination_root: Path) -> CarriedR
     buffered = _buffer_release_artifacts(accepted.release)
     private_predictors = _buffer_predictor_artifacts(source)
     _remove_destination_symlinks(destination)
-    _durable_unlink(destination / ACCEPTANCE_FILENAME)
-    _durable_unlink(destination / MANIFEST_FILENAME)
+    _durable_unlink(
+        destination / ACCEPTANCE_FILENAME, trusted_root=destination
+    )
+    _durable_unlink(destination / MANIFEST_FILENAME, trusted_root=destination)
     for relative, raw in private_predictors:
-        _atomic_write_bytes(_safe_join(destination, relative), raw)
+        _atomic_write_bytes(
+            _safe_join(destination, relative), raw, trusted_root=destination
+        )
     for tour in TOURS:
-        _durable_unlink(_safe_join(destination, f"{tour}/predictor.pkl.envelope.pending"))
+        _durable_unlink(
+            _safe_join(destination, f"{tour}/predictor.pkl.envelope.pending"),
+            trusted_root=destination,
+        )
     copied: list[str] = []
     for record, raw in buffered:
         relative = record["path"]
-        _atomic_write_bytes(_safe_join(destination, relative), raw)
+        _atomic_write_bytes(
+            _safe_join(destination, relative), raw, trusted_root=destination
+        )
         copied.append(relative)
     _remove_undeclared_json(destination, set(copied), preserve_private=True)
-    _atomic_write_bytes(destination / MANIFEST_FILENAME, accepted.release.manifest_bytes)
-    _atomic_write_bytes(destination / ACCEPTANCE_FILENAME, accepted.receipt_bytes)
+    _atomic_write_bytes(
+        destination / MANIFEST_FILENAME,
+        accepted.release.manifest_bytes,
+        trusted_root=destination,
+    )
+    _atomic_write_bytes(
+        destination / ACCEPTANCE_FILENAME,
+        accepted.receipt_bytes,
+        trusted_root=destination,
+    )
     # Re-read the destination; this also proves the copy did not accidentally inherit a
     # symlink or private/public path confusion.
     copied_release = load_accepted_release(destination)
@@ -1004,12 +1081,14 @@ def mirror_release(
     loaded = validate_release(source, require_accepted=require_accepted)
     release = loaded.release if isinstance(loaded, AcceptedRelease) else loaded
     buffered = _buffer_release_artifacts(release)
-    _durable_unlink(destination / MANIFEST_FILENAME)
+    _durable_unlink(destination / MANIFEST_FILENAME, trusted_root=destination)
     removed = _remove_destination_symlinks(destination)
     copied: list[str] = []
     for record, raw in buffered:
         relative = record["path"]
-        _atomic_write_bytes(_safe_join(destination, relative), raw)
+        _atomic_write_bytes(
+            _safe_join(destination, relative), raw, trusted_root=destination
+        )
         copied.append(relative)
         if on_copy is not None:
             on_copy(relative)
@@ -1017,7 +1096,11 @@ def mirror_release(
     removed.extend(_remove_undeclared_public_files(destination, set(copied)))
     # Exact source bytes, not a reserialization.  The acceptance receipt is deliberately
     # never copied: it is private operational state, not web data.
-    _atomic_write_bytes(destination / MANIFEST_FILENAME, release.manifest_bytes)
+    _atomic_write_bytes(
+        destination / MANIFEST_FILENAME,
+        release.manifest_bytes,
+        trusted_root=destination,
+    )
     copied.append(MANIFEST_FILENAME)
     try:
         if on_copy is not None:
@@ -1031,7 +1114,9 @@ def mirror_release(
     except Exception:
         # The manifest is the public validity pointer. Never return or fall back while a
         # failed post-copy validation can still advertise the destination as complete.
-        _durable_unlink(destination / MANIFEST_FILENAME)
+        _durable_unlink(
+            destination / MANIFEST_FILENAME, trusted_root=destination
+        )
         raise
     return MirrorResult(
         release_id=release.release_id,
@@ -1093,26 +1178,38 @@ def publish_shadow_release(
     except Exception as exc:  # noqa: BLE001 - shadow normalizes callback/publication failures
         error = _coerce_error(exc)
         fallback_errors = [error]
+        revocation_safe = True
         # A data candidate was accepted only for this publication attempt. If its
         # manifest-driven mirror failed, revoke that receipt before falling back so
         # health cannot advertise an accepted graph that was not actually published.
         if accept_candidate and acceptance_attempted:
             try:
-                _durable_unlink(Path(source_root) / ACCEPTANCE_FILENAME)
+                _durable_unlink(
+                    Path(source_root) / ACCEPTANCE_FILENAME,
+                    trusted_root=Path(source_root),
+                )
                 accepted = None
-            except OSError as cleanup_error:
-                fallback_errors.append(ArtifactLineageError(
-                    LineageReason.IO_ERROR,
-                    f"candidate acceptance revocation failed ({type(cleanup_error).__name__})",
-                ))
+            except (ArtifactLineageError, OSError) as cleanup_error:
+                fallback_errors.append(_coerce_error(cleanup_error))
+                revocation_safe = False
         public_manifest = Path(destination_root) / MANIFEST_FILENAME
         try:
-            _durable_unlink(public_manifest)
-        except OSError as cleanup_error:
-            fallback_errors.append(ArtifactLineageError(
-                LineageReason.IO_ERROR,
-                f"stale public manifest removal failed ({type(cleanup_error).__name__})",
-            ))
+            _durable_unlink(
+                public_manifest, trusted_root=Path(destination_root)
+            )
+        except (ArtifactLineageError, OSError) as cleanup_error:
+            fallback_errors.append(_coerce_error(cleanup_error))
+            revocation_safe = False
+        if not revocation_safe:
+            return ShadowPublicationResult(
+                state="failed",
+                mirror=None,
+                accepted=accepted,
+                issues=tuple(
+                    _issue_for(fallback_error, shadow=True)
+                    for fallback_error in fallback_errors
+                ),
+            )
         try:
             legacy_mirror()
         except Exception as legacy_error:  # noqa: BLE001 - shadow cannot own legacy outcome
@@ -1219,7 +1316,9 @@ def _legacy_mirror_two_tour(source_root: Path, destination_root: Path) -> None:
                 continue
             relative = f"{tour}/{path.name}"
             _split_artifact_path(relative)
-            raw = _read_regular_file(path, MAX_ARTIFACT_BYTES)
+            raw = _read_regular_file(
+                path, MAX_ARTIFACT_BYTES, trusted_root=source
+            )
             total += len(raw)
             if len(buffered) >= MAX_ARTIFACTS or total > MAX_RELEASE_BYTES:
                 raise ArtifactLineageError(
@@ -1236,13 +1335,71 @@ def _legacy_mirror_two_tour(source_root: Path, destination_root: Path) -> None:
             )
 
     _remove_destination_symlinks(destination)
-    for tour in TOURS:
-        _safe_join(destination, tour).mkdir(parents=True, exist_ok=True)
     for relative, raw in sorted(buffered.items()):
-        _atomic_write_bytes(_safe_join(destination, relative), raw)
+        _atomic_write_bytes(
+            _safe_join(destination, relative), raw, trusted_root=destination
+        )
     # Exact public fallback: no arbitrary non-JSON, private, temp, or symlinked file can
     # survive alongside the two tour trees. Root health is owned by the following step.
     _remove_undeclared_public_files(destination, set(buffered))
+
+
+def legacy_mirror_tour(
+    source_root: Path,
+    destination_root: Path,
+    tour: str,
+) -> None:
+    """Safely mirror one tour's bounded public JSON for the legacy pipeline path.
+
+    Both arguments are common roots containing tour directories.  The operation is
+    intentionally scoped to ``tour`` so a single-tour refresh cannot prune the other
+    tour's published files.
+    """
+
+    _validate_tour(tour)
+    source, destination = _validate_root_relationship(
+        Path(source_root), Path(destination_root), allow_equal=False
+    )
+    _preflight_destination_tour(destination, tour)
+    source_tour = _tour_directory(source, tour)
+    if not source_tour.is_dir():
+        raise ArtifactLineageError(
+            LineageReason.ARTIFACT_MISSING,
+            "legacy mirror source tour is absent",
+            path=tour,
+        )
+
+    buffered: dict[str, bytes] = {}
+    total = 0
+    for path in sorted(source_tour.glob("*.json")):
+        if path.name in PRIVATE_JSON_FILES:
+            continue
+        relative = f"{tour}/{path.name}"
+        _split_artifact_path(relative)
+        raw = _read_regular_file(path, MAX_ARTIFACT_BYTES, trusted_root=source)
+        total += len(raw)
+        if len(buffered) >= MAX_ARTIFACTS or total > MAX_RELEASE_BYTES:
+            raise ArtifactLineageError(
+                LineageReason.BOUNDS_EXCEEDED,
+                "legacy mirror artifact set exceeds release bounds",
+            )
+        buffered[path.name] = raw
+    if not buffered:
+        raise ArtifactLineageError(
+            LineageReason.ARTIFACT_MISSING,
+            "legacy mirror source tour has no public JSON",
+            path=tour,
+        )
+
+    destination_tour = _safe_join(destination, tour)
+    _remove_destination_symlinks(destination_tour)
+    for filename, raw in sorted(buffered.items()):
+        _atomic_write_bytes(
+            destination_tour / filename,
+            raw,
+            trusted_root=destination,
+        )
+    _remove_undeclared_public_files(destination_tour, set(buffered))
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -1295,10 +1452,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     return 1 if result.state == "failed" else 0
 
 
-def exact_file_identity(path: Path) -> tuple[int, str]:
+def exact_file_identity(
+    path: Path, *, trusted_root: Path | None = None
+) -> tuple[int, str]:
     """Return size and SHA-256 of the exact bytes read from one regular file."""
 
-    raw = _read_regular_file(Path(path), MAX_ARTIFACT_BYTES)
+    raw = _read_regular_file(
+        Path(path), MAX_ARTIFACT_BYTES, trusted_root=trusted_root
+    )
     return len(raw), hashlib.sha256(raw).hexdigest()
 
 
@@ -1314,7 +1475,9 @@ def validate_public_release(
             LineageReason.MANIFEST_MISSING, "release manifest is absent"
         )
     try:
-        raw = _read_regular_file(manifest_path, MAX_MANIFEST_BYTES)
+        raw = _read_regular_file(
+            manifest_path, MAX_MANIFEST_BYTES, trusted_root=root
+        )
         manifest = _strict_json_loads(raw, reason=LineageReason.MANIFEST_INVALID)
     except ArtifactLineageError:
         raise
@@ -1326,7 +1489,7 @@ def validate_public_release(
         manifest, root, observed_at=observed_at, exact_public=True
     )
     return ValidatedRelease(
-        root=root.resolve(strict=False),
+        root=_lexical_absolute(root),
         manifest=manifest,
         manifest_bytes=raw,
         manifest_sha256=hashlib.sha256(raw).hexdigest(),
@@ -1403,7 +1566,9 @@ def _validate_public_manifest_against_graph(
     for record in records:
         path = record["path"]
         try:
-            size, digest = exact_file_identity(_safe_join(root, path))
+            size, digest = exact_file_identity(
+                _safe_join(root, path), trusted_root=root
+            )
         except FileNotFoundError as exc:
             raise ArtifactLineageError(
                 LineageReason.ARTIFACT_MISSING,
@@ -1560,7 +1725,9 @@ def _load_acceptance(
             LineageReason.ACCEPTANCE_MISSING, "release acceptance receipt is absent"
         )
     try:
-        raw = _read_regular_file(path, MAX_ACCEPTANCE_BYTES)
+        raw = _read_regular_file(
+            path, MAX_ACCEPTANCE_BYTES, trusted_root=release.root
+        )
         receipt = _strict_json_loads(raw, reason=LineageReason.ACCEPTANCE_INVALID)
     except ArtifactLineageError:
         raise
@@ -1780,6 +1947,260 @@ def _validate_tour(tour: object) -> None:
         raise ArtifactLineageError(LineageReason.PATH_INVALID, "artifact tour is unknown")
 
 
+def _lexical_absolute(path: Path) -> Path:
+    """Normalize separators and dot segments without following filesystem links."""
+
+    return Path(os.path.abspath(os.fspath(path)))
+
+
+def _trusted_path(path: Path, trusted_root: Path) -> tuple[Path, Path, Path]:
+    """Return lexical absolute path/root/relative or reject authority escape."""
+
+    absolute = _lexical_absolute(path)
+    root = _lexical_absolute(trusted_root)
+    try:
+        relative = absolute.relative_to(root)
+    except ValueError as exc:
+        raise ArtifactLineageError(
+            LineageReason.PATH_INVALID,
+            "artifact path escapes its trusted root",
+        ) from exc
+    if not relative.parts:
+        raise ArtifactLineageError(
+            LineageReason.PATH_INVALID,
+            "artifact path must name a leaf below its trusted root",
+        )
+    return absolute, root, relative
+
+
+def _validate_public_producer_filename(filename: str) -> None:
+    _validate_filename(filename)
+    if filename in _PRIVATE_PRODUCER_JSON:
+        raise ArtifactLineageError(
+            LineageReason.PATH_INVALID,
+            "private or root manifest JSON cannot be produced as a public artifact",
+        )
+
+
+def _public_trusted_root(trusted_root: Path | None) -> Path:
+    if trusted_root is None:
+        from .config import OUTPUT_DIR
+
+        trusted_root = OUTPUT_DIR
+    return _lexical_absolute(Path(trusted_root))
+
+
+def _validate_public_write_path(
+    tour: str,
+    path: Path,
+    *,
+    trusted_root: Path | None,
+) -> Path:
+    """Bind public output to production or an explicitly authorized custom root."""
+
+    _validate_tour(tour)
+    _validate_public_producer_filename(path.name)
+    trusted_root = _public_trusted_root(trusted_root)
+    absolute, _, relative = _trusted_path(path, trusted_root)
+    if relative.parts != (tour, path.name):
+        raise ArtifactLineageError(
+            LineageReason.PATH_INVALID,
+            "public artifact path does not match its trusted tour root",
+        )
+    return absolute
+
+
+def _directory_open_flags() -> int:
+    return (
+        os.O_RDONLY
+        | getattr(os, "O_DIRECTORY", 0)
+        | getattr(os, "O_NOFOLLOW", 0)
+    )
+
+
+def _normalize_filesystem_anchor_alias(path: Path) -> Path:
+    """Expand only an administrator-owned alias directly below the filesystem root.
+
+    macOS exposes temporary paths through ``/var -> /private/var`` (and similarly
+    ``/tmp``).  Treating that immutable root entry as an application-controlled parent
+    link would make secure temporary/custom outputs unusable.  No deeper component is
+    resolved here; those remain subject to the strict descriptor walk below.
+    """
+
+    if len(path.parts) < 2:
+        return path
+    anchor = Path(path.anchor)
+    first = anchor / path.parts[1]
+    try:
+        first_stat = os.lstat(first)
+    except OSError:
+        return path
+    if not stat.S_ISLNK(first_stat.st_mode):
+        return path
+    anchor_stat = os.stat(anchor)
+    if anchor_stat.st_mode & (stat.S_IWGRP | stat.S_IWOTH):
+        raise ArtifactLineageError(
+            LineageReason.PATH_INVALID,
+            "writable filesystem root cannot authorize a directory alias",
+        )
+    target = Path(os.readlink(first))
+    if not target.is_absolute():
+        target = first.parent / target
+    expanded = Path(os.path.abspath(os.fspath(target)))
+    return expanded.joinpath(*path.parts[2:])
+
+
+def _open_directory_without_symlinks(directory: Path, *, create: bool) -> int:
+    """Open one absolute directory component-by-component and return a stable fd.
+
+    Directory-relative stat/open identity checks are the portable no-follow fallback:
+    even where ``O_NOFOLLOW`` is unavailable, swapping a checked component for a link
+    either changes the opened inode or is detected by the second no-follow stat.
+    """
+
+    absolute = _normalize_filesystem_anchor_alias(
+        Path(os.path.abspath(os.fspath(directory)))
+    )
+    if not absolute.is_absolute() or not absolute.anchor:
+        raise ArtifactLineageError(
+            LineageReason.PATH_INVALID,
+            "public artifact parent must be an absolute local path",
+        )
+
+    descriptor: int | None = None
+    try:
+        descriptor = os.open(absolute.anchor, _directory_open_flags())
+        if not stat.S_ISDIR(os.fstat(descriptor).st_mode):
+            raise ArtifactLineageError(
+                LineageReason.PATH_INVALID,
+                "filesystem anchor is not a directory",
+            )
+        for component in absolute.parts[1:]:
+            try:
+                entry = os.stat(
+                    component,
+                    dir_fd=descriptor,
+                    follow_symlinks=False,
+                )
+            except FileNotFoundError:
+                if not create:
+                    raise
+                try:
+                    os.mkdir(component, mode=0o755, dir_fd=descriptor)
+                except FileExistsError:
+                    pass
+                else:
+                    try:
+                        os.fsync(descriptor)
+                    except OSError as exc:
+                        raise ArtifactLineageError(
+                            LineageReason.IO_ERROR,
+                            "new public artifact parent could not be synced",
+                        ) from exc
+                entry = os.stat(
+                    component,
+                    dir_fd=descriptor,
+                    follow_symlinks=False,
+                )
+            if stat.S_ISLNK(entry.st_mode) or not stat.S_ISDIR(entry.st_mode):
+                raise ArtifactLineageError(
+                    LineageReason.PATH_INVALID,
+                    "public artifact parent components must be real directories",
+                )
+
+            child = os.open(
+                component,
+                _directory_open_flags(),
+                dir_fd=descriptor,
+            )
+            try:
+                opened = os.fstat(child)
+                entry_after = os.stat(
+                    component,
+                    dir_fd=descriptor,
+                    follow_symlinks=False,
+                )
+                if (
+                    not stat.S_ISDIR(opened.st_mode)
+                    or not _same_file_identity(entry, opened)
+                    or not _same_file_identity(entry_after, opened)
+                ):
+                    raise ArtifactLineageError(
+                        LineageReason.PATH_INVALID,
+                        "public artifact parent changed during traversal",
+                    )
+            except Exception:
+                os.close(child)
+                raise
+            previous = descriptor
+            descriptor = child
+            os.close(previous)
+        return descriptor
+    except ArtifactLineageError:
+        if descriptor is not None:
+            os.close(descriptor)
+        raise
+    except (NotImplementedError, OSError, TypeError) as exc:
+        if descriptor is not None:
+            os.close(descriptor)
+        raise ArtifactLineageError(
+            LineageReason.PATH_INVALID,
+            "public artifact parent traversal failed",
+        ) from exc
+
+
+def _validate_public_write_leaf(parent_fd: int, filename: str) -> None:
+    """Reject an existing non-regular or linked destination without following it."""
+
+    _validate_filename(filename)
+    _validate_regular_write_leaf(parent_fd, filename)
+
+
+def _validate_regular_leaf_name(filename: str) -> None:
+    if (
+        not filename
+        or filename in {".", ".."}
+        or "/" in filename
+        or "\\" in filename
+        or len(filename) > 255
+    ):
+        raise ArtifactLineageError(
+            LineageReason.PATH_INVALID, "artifact destination leaf is unsafe"
+        )
+
+
+def _validate_regular_write_leaf(parent_fd: int, filename: str) -> None:
+    _validate_regular_leaf_name(filename)
+    try:
+        leaf = os.stat(filename, dir_fd=parent_fd, follow_symlinks=False)
+    except FileNotFoundError:
+        return
+    except (NotImplementedError, OSError, TypeError) as exc:
+        raise ArtifactLineageError(
+            LineageReason.PATH_INVALID,
+            "public artifact destination cannot be inspected",
+        ) from exc
+    if stat.S_ISLNK(leaf.st_mode) or not stat.S_ISREG(leaf.st_mode):
+        raise ArtifactLineageError(
+            LineageReason.PATH_INVALID,
+            "public artifact destination must be a regular file or absent",
+        )
+
+
+def _validate_open_directory_binding(directory: Path, expected_fd: int) -> None:
+    """Prove the lexical parent still names the stable directory just written."""
+
+    observed_fd = _open_directory_without_symlinks(directory, create=False)
+    try:
+        if not _same_file_identity(os.fstat(expected_fd), os.fstat(observed_fd)):
+            raise ArtifactLineageError(
+                LineageReason.PATH_INVALID,
+                "public artifact parent changed before completion proof",
+            )
+    finally:
+        os.close(observed_fd)
+
+
 def _tour_directory(root: Path, tour: str) -> Path:
     candidate = _safe_join(root, tour)
     if candidate.is_symlink():
@@ -1790,19 +2211,13 @@ def _tour_directory(root: Path, tour: str) -> Path:
 
 
 def _safe_join(root: Path, relative: str) -> Path:
-    root = Path(root).resolve(strict=False)
+    root = _lexical_absolute(Path(root))
     if not isinstance(relative, str) or relative.startswith(("/", "\\")):
         raise ArtifactLineageError(LineageReason.PATH_INVALID, "unsafe relative path")
     parts = relative.split("/")
     if not parts or any(part in {"", ".", ".."} for part in parts) or "\\" in relative:
         raise ArtifactLineageError(LineageReason.PATH_INVALID, "unsafe relative path")
     candidate = root.joinpath(*parts)
-    try:
-        candidate.resolve(strict=False).relative_to(root)
-    except ValueError as exc:
-        raise ArtifactLineageError(
-            LineageReason.PATH_INVALID, "relative path escapes its release root"
-        ) from exc
     return candidate
 
 
@@ -1811,52 +2226,72 @@ def _validate_root_relationship(
 ) -> tuple[Path, Path]:
     """Reject symlink roots and destructive ancestor overlap before any mutation."""
 
-    if source.is_symlink() or destination.is_symlink():
-        raise ArtifactLineageError(
-            LineageReason.PATH_INVALID, "release roots cannot be symlinks"
-        )
-    resolved_source = source.resolve(strict=False)
-    resolved_destination = destination.resolve(strict=False)
-    if resolved_source == resolved_destination:
+    source = _normalize_filesystem_anchor_alias(_lexical_absolute(source))
+    destination = _normalize_filesystem_anchor_alias(_lexical_absolute(destination))
+    if source == destination:
+        source_fd = _open_directory_without_symlinks(source, create=False)
+        os.close(source_fd)
         if allow_equal:
-            return resolved_source, resolved_destination
+            return source, destination
         raise ArtifactLineageError(
             LineageReason.PATH_INVALID, "release source and destination must differ"
         )
     if (
-        resolved_source in resolved_destination.parents
-        or resolved_destination in resolved_source.parents
+        source in destination.parents
+        or destination in source.parents
     ):
         raise ArtifactLineageError(
             LineageReason.PATH_INVALID,
             "release source and destination cannot contain one another",
         )
-    return resolved_source, resolved_destination
+    source_fd = _open_directory_without_symlinks(source, create=False)
+    try:
+        destination_fd = _open_directory_without_symlinks(destination, create=True)
+        try:
+            if _same_file_identity(os.fstat(source_fd), os.fstat(destination_fd)):
+                raise ArtifactLineageError(
+                    LineageReason.PATH_INVALID,
+                    "release source and destination resolve to one directory",
+                )
+        finally:
+            os.close(destination_fd)
+    finally:
+        os.close(source_fd)
+    return source, destination
 
 
 def _preflight_destination_tours(destination: Path) -> None:
     """Prove tour parents are real, distinct directories before the first write."""
 
     for tour in TOURS:
-        tour_path = destination / tour
-        if tour_path.is_symlink():
-            raise ArtifactLineageError(
-                LineageReason.PATH_INVALID,
-                "destination tour directory cannot be a symlink",
-                path=tour,
-            )
-        if tour_path.exists() and not tour_path.is_dir():
-            raise ArtifactLineageError(
-                LineageReason.PATH_INVALID,
-                "destination tour path is not a directory",
-                path=tour,
-            )
+        _preflight_destination_tour(destination, tour)
+
+
+def _preflight_destination_tour(destination: Path, tour: str) -> None:
+    """Reject a linked or non-directory destination tour before any cleanup."""
+
+    _validate_tour(tour)
+    tour_path = destination / tour
+    if tour_path.is_symlink():
+        raise ArtifactLineageError(
+            LineageReason.PATH_INVALID,
+            "destination tour directory cannot be a symlink",
+            path=tour,
+        )
+    if tour_path.exists() and not tour_path.is_dir():
+        raise ArtifactLineageError(
+            LineageReason.PATH_INVALID,
+            "destination tour path is not a directory",
+            path=tour,
+        )
 
 
 def _load_artifact_json(root: Path, relative: str) -> object:
     path = _safe_join(root, relative)
     try:
-        raw = _read_regular_file(path, MAX_ARTIFACT_BYTES)
+        raw = _read_regular_file(
+            path, MAX_ARTIFACT_BYTES, trusted_root=root
+        )
     except FileNotFoundError as exc:
         raise ArtifactLineageError(
             LineageReason.ARTIFACT_MISSING,
@@ -2020,14 +2455,38 @@ def _assert_json_bounds(value: object) -> None:
                 raise ValueError("JSON integer is not finite in the browser runtime")
 
 
-def _read_regular_file(path: Path, limit: int) -> bytes:
-    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
-    fd = os.open(path, flags)
+def _read_regular_file(
+    path: Path,
+    limit: int,
+    *,
+    trusted_root: Path | None = None,
+) -> bytes:
+    path = _lexical_absolute(Path(path))
+    if trusted_root is not None:
+        _trusted_path(path, trusted_root)
+    parent_fd = _open_directory_without_symlinks(path.parent, create=False)
+    fd: int | None = None
     try:
+        leaf_before = os.stat(
+            path.name,
+            dir_fd=parent_fd,
+            follow_symlinks=False,
+        )
+        if stat.S_ISLNK(leaf_before.st_mode) or not stat.S_ISREG(leaf_before.st_mode):
+            raise ArtifactLineageError(
+                LineageReason.PATH_INVALID, "artifact path is not a regular file"
+            )
+        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+        fd = os.open(path.name, flags, dir_fd=parent_fd)
         before = os.fstat(fd)
         if not stat.S_ISREG(before.st_mode):
             raise ArtifactLineageError(
                 LineageReason.PATH_INVALID, "artifact path is not a regular file"
+            )
+        if not _same_file_snapshot(leaf_before, before):
+            raise ArtifactLineageError(
+                LineageReason.ARTIFACT_MISMATCH,
+                "artifact changed before its exact bytes were read",
             )
         if before.st_size > limit:
             raise ArtifactLineageError(
@@ -2051,56 +2510,155 @@ def _read_regular_file(path: Path, limit: int) -> bytes:
             len(raw) != after.st_size
             or before.st_size != after.st_size
             or before.st_mtime_ns != after.st_mtime_ns
+            or before.st_ctime_ns != after.st_ctime_ns
         ):
             raise ArtifactLineageError(
                 LineageReason.ARTIFACT_MISMATCH,
                 "file changed while its exact bytes were read",
             )
+        try:
+            leaf_after = os.stat(
+                path.name,
+                dir_fd=parent_fd,
+                follow_symlinks=False,
+            )
+        except OSError as exc:
+            raise ArtifactLineageError(
+                LineageReason.ARTIFACT_MISMATCH,
+                "artifact path changed while its exact bytes were read",
+            ) from exc
+        if (
+            stat.S_ISLNK(leaf_after.st_mode)
+            or not stat.S_ISREG(leaf_after.st_mode)
+            or not _same_file_snapshot(leaf_after, after)
+        ):
+            raise ArtifactLineageError(
+                LineageReason.ARTIFACT_MISMATCH,
+                "artifact path changed while its exact bytes were read",
+            )
+        _validate_open_directory_binding(path.parent, parent_fd)
         return raw
     finally:
-        os.close(fd)
+        if fd is not None:
+            os.close(fd)
+        os.close(parent_fd)
 
 
-def _atomic_write_bytes(path: Path, raw: bytes) -> None:
-    """Unique same-directory temp, file fsync, replace, then directory fsync."""
-
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    fd, temporary = tempfile.mkstemp(
-        prefix=f".{path.name}.", suffix=".tmp", dir=path.parent
+def _same_file_identity(left: os.stat_result, right: os.stat_result) -> bool:
+    return (
+        left.st_dev == right.st_dev
+        and left.st_ino == right.st_ino
+        and stat.S_IFMT(left.st_mode) == stat.S_IFMT(right.st_mode)
     )
-    temporary_path = Path(temporary)
+
+
+def _same_file_snapshot(left: os.stat_result, right: os.stat_result) -> bool:
+    """Compare a path lstat with an opened descriptor without following a leaf link."""
+
+    return (
+        _same_file_identity(left, right)
+        and left.st_size == right.st_size
+        and left.st_mtime_ns == right.st_mtime_ns
+        and left.st_ctime_ns == right.st_ctime_ns
+    )
+
+
+def _atomic_write_public_bytes(parent_fd: int, filename: str, raw: bytes) -> None:
+    """Create, fsync, and rename one public file relative to a stable parent fd."""
+
+    _validate_filename(filename)
+    _atomic_replace_at(parent_fd, filename, raw)
+
+
+def _atomic_replace_at(parent_fd: int, filename: str, raw: bytes) -> None:
+    """Replace one leaf relative to a stable parent and durably clean failed temps."""
+
+    _validate_regular_leaf_name(filename)
+    temporary = f".{filename}.{uuid.uuid4()}.tmp"
+    flags = (
+        os.O_WRONLY
+        | os.O_CREAT
+        | os.O_EXCL
+        | getattr(os, "O_CLOEXEC", 0)
+        | getattr(os, "O_NOFOLLOW", 0)
+    )
+    temporary_fd: int | None = None
     try:
-        with os.fdopen(fd, "wb") as handle:
+        temporary_fd = os.open(temporary, flags, 0o600, dir_fd=parent_fd)
+        handle = os.fdopen(temporary_fd, "wb")
+        temporary_fd = None
+        with handle:
             handle.write(raw)
             handle.flush()
             os.fsync(handle.fileno())
-        os.replace(temporary_path, path)
-        directory_fd = os.open(path.parent, os.O_RDONLY)
-        try:
-            os.fsync(directory_fd)
-        finally:
-            os.close(directory_fd)
+        os.replace(
+            temporary,
+            filename,
+            src_dir_fd=parent_fd,
+            dst_dir_fd=parent_fd,
+        )
+        os.fsync(parent_fd)
     finally:
+        if temporary_fd is not None:
+            os.close(temporary_fd)
+        removed_temporary = False
         try:
-            temporary_path.unlink(missing_ok=True)
-        except OSError:
+            os.unlink(temporary, dir_fd=parent_fd)
+        except FileNotFoundError:
             pass
+        else:
+            removed_temporary = True
+        if removed_temporary:
+            os.fsync(parent_fd)
 
 
-def _durable_unlink(path: Path) -> None:
-    """Remove one release pointer/private marker and fsync that directory."""
+def _atomic_write_bytes(
+    path: Path,
+    raw: bytes,
+    *,
+    trusted_root: Path | None = None,
+) -> None:
+    """Descriptor-anchored atomic replace with a caller-bounded authority root."""
 
-    path = Path(path)
+    path = _lexical_absolute(Path(path))
+    if trusted_root is not None:
+        _trusted_path(path, trusted_root)
+    parent_fd = _open_directory_without_symlinks(path.parent, create=True)
     try:
-        path.unlink()
-    except FileNotFoundError:
-        return
-    directory_fd = os.open(path.parent, os.O_RDONLY)
-    try:
-        os.fsync(directory_fd)
+        _validate_regular_write_leaf(parent_fd, path.name)
+        _atomic_replace_at(parent_fd, path.name, raw)
+        _validate_open_directory_binding(path.parent, parent_fd)
     finally:
-        os.close(directory_fd)
+        os.close(parent_fd)
+
+
+def _durable_unlink(
+    path: Path,
+    *,
+    trusted_root: Path | None = None,
+) -> None:
+    """Unlink relative to a stable parent and fsync even if the leaf is absent."""
+
+    path = _lexical_absolute(Path(path))
+    if trusted_root is not None:
+        _trusted_path(path, trusted_root)
+    parent_fd = _open_directory_without_symlinks(path.parent, create=True)
+    try:
+        _durable_unlink_at(parent_fd, path.name)
+        _validate_open_directory_binding(path.parent, parent_fd)
+    finally:
+        os.close(parent_fd)
+
+
+def _durable_unlink_at(parent_fd: int, filename: str) -> None:
+    """Unlink one descriptor-relative leaf and always fsync the observed absence."""
+
+    _validate_regular_leaf_name(filename)
+    try:
+        os.unlink(filename, dir_fd=parent_fd)
+    except FileNotFoundError:
+        pass
+    os.fsync(parent_fd)
 
 
 def _buffer_release_artifacts(
@@ -2110,7 +2668,9 @@ def _buffer_release_artifacts(
     total = 0
     for record in release.records:
         raw = _read_regular_file(
-            _safe_join(release.root, record["path"]), MAX_ARTIFACT_BYTES
+            _safe_join(release.root, record["path"]),
+            MAX_ARTIFACT_BYTES,
+            trusted_root=release.root,
         )
         total += len(raw)
         if total > MAX_RELEASE_BYTES:
@@ -2140,10 +2700,14 @@ def _buffer_predictor_artifacts(root: Path) -> list[tuple[str, bytes]]:
         payload_relative = f"{tour}/predictor.pkl"
         envelope_relative = f"{tour}/predictor.pkl.envelope"
         payload = _read_regular_file(
-            _safe_join(root, payload_relative), MAX_PRIVATE_PREDICTOR_BYTES
+            _safe_join(root, payload_relative),
+            MAX_PRIVATE_PREDICTOR_BYTES,
+            trusted_root=root,
         )
         envelope = _read_regular_file(
-            _safe_join(root, envelope_relative), MAX_PRIVATE_ENVELOPE_BYTES
+            _safe_join(root, envelope_relative),
+            MAX_PRIVATE_ENVELOPE_BYTES,
+            trusted_root=root,
         )
         total += len(payload) + len(envelope)
         if total > 2 * (MAX_PRIVATE_PREDICTOR_BYTES + MAX_PRIVATE_ENVELOPE_BYTES):
@@ -2192,7 +2756,7 @@ def _remove_undeclared_json(
             relative not in declared
             and not (preserve_private and path.name in PRIVATE_JSON_FILES)
         ):
-            _durable_unlink(path)
+            _durable_unlink(path, trusted_root=root)
             removed.append(relative)
     if not preserve_private:
         removed.extend(_remove_private_mirror_files(root))
@@ -2208,7 +2772,7 @@ def _remove_private_mirror_files(root: Path) -> list[str]:
         and candidate.name in PRIVATE_MIRROR_FILES
     ):
         relative = path.relative_to(root).as_posix()
-        _durable_unlink(path)
+        _durable_unlink(path, trusted_root=root)
         removed.append(relative)
     return removed
 
@@ -2227,7 +2791,7 @@ def _remove_destination_symlinks(root: Path) -> list[str]:
     removed = []
     for path in symlinks:
         relative = path.relative_to(root).as_posix()
-        _durable_unlink(path)
+        _durable_unlink(path, trusted_root=root)
         removed.append(relative)
     return removed
 
@@ -2245,7 +2809,7 @@ def _remove_undeclared_public_files(root: Path, declared: set[str]) -> list[str]
         relative = path.relative_to(root).as_posix()
         if relative in declared or relative == "health.json":
             continue
-        _durable_unlink(path)
+        _durable_unlink(path, trusted_root=root)
         removed.append(relative)
     return removed
 
@@ -2422,6 +2986,7 @@ __all__ = [
     "draft_tour_release",
     "exact_file_identity",
     "inspect_release",
+    "legacy_mirror_tour",
     "lineage_health_summary",
     "load_accepted_release",
     "main",
@@ -2429,6 +2994,7 @@ __all__ = [
     "mirror_release",
     "note_produced_artifact",
     "publish_shadow_release",
+    "remove_produced_artifact",
     "reset_produced_artifacts",
     "seal_release",
     "shadow_draft_tour_release",

@@ -71,14 +71,13 @@ def _finite(x):
 
 def _write(tour: str, name: str, data, *, compact: bool = False) -> None:
     out = output_dir(tour)
-    out.mkdir(parents=True, exist_ok=True)
     path = out / name
     options = {"separators": (",", ":")} if compact else {"indent": 2}
     raw = json.dumps(_finite(data), ensure_ascii=False, **options).encode("utf-8")
     # Same-directory temp + fsync + replace makes the completed bytes durable before
     # their current-run lineage proof is restored. Rewrites invalidate older proof first.
     from ..artifact_lineage import write_produced_artifact
-    write_produced_artifact(tour, path, raw)
+    write_produced_artifact(tour, path, raw, trusted_root=out.parent)
 
 
 def _active(elo) -> list:
@@ -324,9 +323,10 @@ def build_profile_shards(profiles: dict, generation: str) -> tuple[dict, dict[st
 def _write_shards(tour: str, prefix: str, shards: dict[str, dict]) -> None:
     out = output_dir(tour)
     expected = set(shards)
+    from ..artifact_lineage import remove_produced_artifact
     for old in out.glob(f"{prefix}-*.json"):
         if old.name != f"{prefix}-index.json" and old.name not in expected:
-            old.unlink()
+            remove_produced_artifact(tour, old, trusted_root=out.parent)
     for filename, payload in shards.items():
         # Matrix shards are machine-read numeric arrays. Pretty-printing adds nearly a
         # megabyte of indentation per selected context without improving inspectability.
@@ -335,8 +335,10 @@ def _write_shards(tour: str, prefix: str, shards: dict[str, dict]) -> None:
 
 def _clear_upcoming_outputs(tour: str) -> None:
     """Prevent a failed refresh from laundering the previous schedule as current."""
-    for path in output_dir(tour).glob("upcoming*.json"):
-        path.unlink()
+    out = output_dir(tour)
+    from ..artifact_lineage import remove_produced_artifact
+    for path in out.glob("upcoming*.json"):
+        remove_produced_artifact(tour, path, trusted_root=out.parent)
 
 
 def build_draws(predictor, players: list, tour: str) -> dict:
@@ -562,8 +564,10 @@ def export_forecast_products(tour: str, predictor, df, *,
         _write(tour, "upcoming-index.json", upcoming_index)
         _write_shards(tour, "upcoming", upcoming_shards)
         legacy = output_dir(tour) / "upcoming.json"
-        if legacy.exists():
-            legacy.unlink()
+        from ..artifact_lineage import remove_produced_artifact
+        remove_produced_artifact(
+            tour, legacy, trusted_root=output_dir(tour).parent
+        )
 
     out = output_dir(tour)
     perf_path, index_path = out / "performance.json", out / "profile-index.json"
@@ -977,10 +981,12 @@ def export_all(tour, df, elo, srv, meta, predictor, oos=None, *, full: bool = Tr
         _write(tour, "profile-index.json", profile_index)
         _write_shards(tour, "profile", profile_shards)
         _write(tour, "draws.json", build_draws(predictor, players, tour))
+        from ..artifact_lineage import remove_produced_artifact
         for legacy in ("matrix.json", "profiles.json"):
             path = output_dir(tour) / legacy
-            if path.exists():
-                path.unlink()
+            remove_produced_artifact(
+                tour, path, trusted_root=output_dir(tour).parent
+            )
     coverage, ts = build_event_outputs(predictor, df, tour)
     with timed(tour, "scenario_generation"):
         scenario_index, scenario_shards = build_scenario_shards(

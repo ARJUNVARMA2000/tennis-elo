@@ -13,7 +13,6 @@ import argparse
 import hashlib
 import json
 import os
-import shutil
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -48,12 +47,7 @@ from .model.features import (
 from .model.features import main_rows as main_rows  # noqa: F401 — compatibility seam for guard tests
 from .model.predict import TennisPredictor
 from .model.train import train_final, walk_forward, walk_forward_state_gate, xgb_params_for
-from .timing import (
-    LEGACY_STAGE_STATUS_FILENAME,
-    STAGE_STATUS_FILENAME,
-    stage_input_fingerprint,
-    timed,
-)
+from .timing import stage_input_fingerprint, timed
 
 # These are the soft-fail boundaries whose outcomes otherwise exist only as log prose.
 # Product stages feed a shipped/operator-facing artifact and become actionable health
@@ -434,22 +428,11 @@ def _receipt_stage(tour: str, stage: str, *inputs: object):
 
 
 def _mirror(tour: str) -> None:
-    """Copy a tour's JSON outputs into the web app's public dir."""
-    src, dst = output_dir(tour), WEB_DATA_DIR / tour
-    dst.mkdir(parents=True, exist_ok=True)
-    private = {
-        "health-source.json",
-        LEGACY_STAGE_STATUS_FILENAME,
-        STAGE_STATUS_FILENAME,
-    }
-    names = {j.name for j in src.glob("*.json") if j.name not in private}
-    for old in dst.glob("*.json"):
-        if old.name not in names:
-            old.unlink()
-    for j in src.glob("*.json"):
-        if j.name in private:
-            continue
-        shutil.copy(j, dst / j.name)
+    """Safely copy one tour's bounded public JSON through the legacy seam."""
+    from .artifact_lineage import legacy_mirror_tour
+
+    source_tour = output_dir(tour)
+    legacy_mirror_tour(source_tour.parent, WEB_DATA_DIR, tour)
 
 
 _FRAME_PREDICTOR_ARTIFACT_ID = "_pipelinePredictorArtifactId"
@@ -930,10 +913,14 @@ def _market_scorecard(tour: str, oos) -> None:
                 attempt.mark_failure(MarketScorecardNoMatchesDegraded(
                     "market scorecard joined zero OOS matches"
                 ))
-            path = output_dir(tour) / "market.json"
+            tour_dir = output_dir(tour)
+            path = tour_dir / "market.json"
             from .artifact_lineage import write_produced_artifact
             write_produced_artifact(
-                tour, path, json.dumps(sc, indent=2).encode("utf-8")
+                tour,
+                path,
+                json.dumps(sc, indent=2).encode("utf-8"),
+                trusted_root=tour_dir.parent,
             )
             print(f"  market/{tour}: matched={sc.get('matched')} "
                   f"model={sc.get('model', {}).get('brier')} "
@@ -948,15 +935,13 @@ def _predictor_current(predictor, tour: str) -> bool:
 
     The artifact reader performs this validation after strict envelope/hash preflight;
     the quick guard deliberately repeats it at its reuse decision so an opaque booster,
-    unfitted calibrator, partial state bundle, or legacy raw-field shape can only trigger
-    a controlled full rebuild.  The one Round 4A legacy loader assigns a deterministic
-    UUIDv5 after unpickling; that ID is admitted here while every structural/config
-    invariant remains identical to the UUIDv4 envelope path.
+    unfitted calibrator, partial state bundle, or stale raw-field shape can only trigger
+    a controlled full rebuild.
     """
     from .model.artifact import PredictorArtifactError, validate_predictor_structure
 
     try:
-        validate_predictor_structure(predictor, tour, allow_legacy_id=True)
+        validate_predictor_structure(predictor, tour)
     except PredictorArtifactError:
         return False
     return True

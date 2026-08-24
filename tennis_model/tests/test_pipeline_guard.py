@@ -71,12 +71,12 @@ def test_predictor_current_delegates_to_the_shared_strict_guard(monkeypatch):
     predictor = object()
     calls = []
 
-    def accept(value, tour, *, allow_legacy_id):
-        calls.append((value, tour, allow_legacy_id))
+    def accept(value, tour):
+        calls.append((value, tour))
 
     monkeypatch.setattr(artifact, "validate_predictor_structure", accept)
     assert pipeline._predictor_current(predictor, "atp")
-    assert calls == [(predictor, "atp", True)]
+    assert calls == [(predictor, "atp")]
 
     def reject(*_args, **_kwargs):
         raise PredictorArtifactError(PredictorArtifactReason.BOOSTER_INVALID)
@@ -96,7 +96,15 @@ def test_predictor_schema_guard_is_fail_closed_for_unfitted_or_opaque_stubs():
     assert not pipeline._predictor_current(_pred(_Opaque()), "atp")
 
 
-def test_quick_rebuilds_when_envelope_or_payload_preflight_rejects_cache(monkeypatch):
+@pytest.mark.parametrize(
+    "reason_name",
+    [
+        "ENVELOPE_MISSING_FOR_CURRENT_PAYLOAD",
+        "PAYLOAD_CHECKSUM_MISMATCH",
+        "PENDING_IO",
+    ],
+)
+def test_quick_rebuilds_when_artifact_load_rejects_cache(monkeypatch, reason_name):
     from tennis_model.model.artifact import (
         PredictorArtifactError,
         PredictorArtifactReason,
@@ -109,9 +117,7 @@ def test_quick_rebuilds_when_envelope_or_payload_preflight_rejects_cache(monkeyp
     monkeypatch.setattr(pipeline, "_health_manifest", lambda *_args: None)
 
     def reject(_tour):
-        raise PredictorArtifactError(
-            PredictorArtifactReason.PAYLOAD_CHECKSUM_MISMATCH
-        )
+        raise PredictorArtifactError(getattr(PredictorArtifactReason, reason_name))
 
     monkeypatch.setattr(pipeline.TennisPredictor, "load", staticmethod(reject))
     monkeypatch.setattr(

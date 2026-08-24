@@ -176,3 +176,14 @@ Indexed in [`../lessons.md`](../lessons.md).
   concrete predictor, every fitted booster, calibrator, and required state structure afterward.
   Make quick reuse call the same guard so the fast path cannot bypass the release contract; keep any
   legacy exception explicit, observable, and temporary.
+
+- **`O_NOFOLLOW` on the filename is not a trusted-root boundary.** (2026-08-24, Round 4A
+  filesystem review) A final-component no-follow open still traverses a symlinked tour directory,
+  so a restored cache containing `data/output/atp -> external` could redirect the quick path's
+  read and `pickle.loads`, while `mkstemp(dir=path.parent)` could publish payload, envelope, and
+  pending files outside `OUTPUT_DIR`. **How to apply:** anchor predictor operations to the expected
+  output root; check lexical and resolved containment; `lstat` every existing component from the
+  root through the parent; reject symlinks, non-directories, and cross-tour aliases before reading,
+  deserializing, creating a temp file, replacing, or unlinking. Keep a portable final-component
+  symlink check even when `O_NOFOLLOW` is unavailable, and prove rejection happens before
+  `pickle.loads` and before any external filesystem change.

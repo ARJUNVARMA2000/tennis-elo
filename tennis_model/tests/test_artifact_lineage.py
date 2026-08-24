@@ -366,8 +366,8 @@ def test_acceptance_rereads_graph_after_receipt_publication(tmp_path, monkeypatc
     _seal(tmp_path)
     real_atomic = lineage._atomic_write_bytes
 
-    def mutate_after_receipt(path, raw):
-        real_atomic(path, raw)
+    def mutate_after_receipt(path, raw, **kwargs):
+        real_atomic(path, raw, **kwargs)
         if Path(path).name == lineage.ACCEPTANCE_FILENAME:
             (tmp_path / "atp" / "players.json").write_text(
                 '{"mutated":true}', encoding="utf-8"
@@ -665,21 +665,26 @@ def test_produced_artifact_recorder_is_thread_safe_scoped_and_success_only(tmp_p
 
 
 def test_rewrite_invalidates_earlier_success_before_mutation(monkeypatch, tmp_path):
-    path = tmp_path / "players.json"
+    path = tmp_path / "atp" / "players.json"
+    path.parent.mkdir()
     with lineage.begin_produced_artifacts() as produced:
-        lineage.write_produced_artifact("atp", path, b'{"generation":1}')
+        lineage.write_produced_artifact(
+            "atp", path, b'{"generation":1}', trusted_root=tmp_path
+        )
         assert produced.snapshot("atp") == ("atp/players.json",)
 
-        real_atomic = lineage._atomic_write_bytes
+        real_atomic = lineage._atomic_write_public_bytes
 
-        def replace_then_crash(target, raw):
-            real_atomic(target, raw)
+        def replace_then_crash(parent_fd, filename, raw):
+            real_atomic(parent_fd, filename, raw)
             raise OSError("crash after durable replace, before completion proof")
 
-        monkeypatch.setattr(lineage, "_atomic_write_bytes", replace_then_crash)
+        monkeypatch.setattr(
+            lineage, "_atomic_write_public_bytes", replace_then_crash
+        )
         with pytest.raises(OSError, match="before completion proof"):
             lineage.write_produced_artifact(
-                "atp", path, b'{"generation":2}'
+                "atp", path, b'{"generation":2}', trusted_root=tmp_path
             )
 
         assert path.read_bytes() == b'{"generation":2}'
@@ -687,52 +692,286 @@ def test_rewrite_invalidates_earlier_success_before_mutation(monkeypatch, tmp_pa
 
 
 def test_atomic_writer_preserves_prior_bytes_when_replace_fails(monkeypatch, tmp_path):
-    path = tmp_path / "performance.json"
+    path = tmp_path / "atp" / "performance.json"
+    path.parent.mkdir()
     path.write_bytes(b'{"prior":true}')
     real_replace = lineage.os.replace
 
-    def fail_target_replace(source, target):
-        if Path(target) == path:
+    def fail_target_replace(source, target, **kwargs):
+        if target == path.name and kwargs.get("dst_dir_fd") is not None:
             raise OSError("replace failed")
-        real_replace(source, target)
+        real_replace(source, target, **kwargs)
 
     monkeypatch.setattr(lineage.os, "replace", fail_target_replace)
     with lineage.begin_produced_artifacts() as produced:
         lineage.note_produced_artifact("atp", path.name)
         with pytest.raises(OSError, match="replace failed"):
-            lineage.write_produced_artifact("atp", path, b'{"new":true}')
+            lineage.write_produced_artifact(
+                "atp", path, b'{"new":true}', trusted_root=tmp_path
+            )
         assert produced.snapshot("atp") == ()
     assert path.read_bytes() == b'{"prior":true}'
-    assert not list(tmp_path.glob(".*.tmp"))
+    assert not list(path.parent.glob(".*.tmp"))
 
 
 def test_artifact_batch_proves_nothing_when_second_replace_fails(monkeypatch, tmp_path):
-    track_path = tmp_path / "track.json"
-    performance_path = tmp_path / "performance.json"
+    tour_dir = tmp_path / "atp"
+    tour_dir.mkdir()
+    track_path = tour_dir / "track.json"
+    performance_path = tour_dir / "performance.json"
     track_path.write_bytes(b'{"prior":1}')
     performance_path.write_bytes(b'{"prior":1}')
-    real_atomic = lineage._atomic_write_bytes
+    real_atomic = lineage._atomic_write_public_bytes
     calls = 0
 
-    def fail_second(target, raw):
+    def fail_second(parent_fd, filename, raw):
         nonlocal calls
         calls += 1
         if calls == 2:
             raise OSError("second artifact failed")
-        real_atomic(target, raw)
+        real_atomic(parent_fd, filename, raw)
 
-    monkeypatch.setattr(lineage, "_atomic_write_bytes", fail_second)
+    monkeypatch.setattr(lineage, "_atomic_write_public_bytes", fail_second)
     with lineage.begin_produced_artifacts() as produced:
         lineage.note_produced_artifact("atp", track_path.name)
         lineage.note_produced_artifact("atp", performance_path.name)
         with pytest.raises(OSError, match="second artifact failed"):
-            lineage.write_produced_artifact_batch("atp", (
-                (track_path, b'{"current":2}'),
-                (performance_path, b'{"current":2}'),
-            ))
+            lineage.write_produced_artifact_batch(
+                "atp",
+                (
+                    (track_path, b'{"current":2}'),
+                    (performance_path, b'{"current":2}'),
+                ),
+                trusted_root=tmp_path,
+            )
         assert produced.snapshot("atp") == ()
     assert track_path.read_bytes() == b'{"current":2}'
     assert performance_path.read_bytes() == b'{"prior":1}'
+
+
+@pytest.mark.parametrize("symlink_component", ["root", "tour"])
+def test_public_writer_rejects_symlinked_parent_before_invalidating_proof(
+    tmp_path, symlink_component
+):
+    external = tmp_path / "external"
+    external.mkdir()
+    if symlink_component == "root":
+        (external / "atp").mkdir()
+        root = tmp_path / "output"
+        root.symlink_to(external, target_is_directory=True)
+    else:
+        root = tmp_path / "output"
+        root.mkdir()
+        (root / "atp").symlink_to(external, target_is_directory=True)
+    path = root / "atp" / "players.json"
+
+    with lineage.begin_produced_artifacts() as produced:
+        lineage.note_produced_artifact("atp", path.name)
+        with pytest.raises(lineage.ArtifactLineageError) as caught:
+            lineage.write_produced_artifact(
+                "atp", path, b'{"new":true}', trusted_root=root
+            )
+        assert caught.value.reason == lineage.LineageReason.PATH_INVALID
+        assert produced.snapshot("atp") == ("atp/players.json",)
+
+    assert not (external / "players.json").exists()
+    assert not (external / "atp" / "players.json").exists()
+
+
+def test_public_writer_rejects_symlinked_ancestor_without_o_nofollow(
+    tmp_path, monkeypatch
+):
+    external = tmp_path / "external"
+    (external / "output" / "atp").mkdir(parents=True)
+    alias = tmp_path / "aliased-parent"
+    alias.symlink_to(external, target_is_directory=True)
+    path = alias / "output" / "atp" / "players.json"
+    monkeypatch.delattr(lineage.os, "O_NOFOLLOW", raising=False)
+
+    with lineage.begin_produced_artifacts() as produced:
+        lineage.note_produced_artifact("atp", path.name)
+        with pytest.raises(lineage.ArtifactLineageError) as caught:
+            lineage.write_produced_artifact(
+                "atp",
+                path,
+                b'{"new":true}',
+                trusted_root=alias / "output",
+            )
+        assert caught.value.reason == lineage.LineageReason.PATH_INVALID
+        assert produced.snapshot("atp") == ("atp/players.json",)
+
+    assert not (external / "output" / "atp" / "players.json").exists()
+
+
+def test_public_writer_parent_swap_cannot_redirect_or_restore_fresh_proof(
+    tmp_path, monkeypatch
+):
+    root = tmp_path / "output"
+    tour_dir = root / "atp"
+    tour_dir.mkdir(parents=True)
+    detached = root / "detached-atp"
+    external = tmp_path / "external"
+    external.mkdir()
+    path = tour_dir / "players.json"
+    real_atomic = lineage._atomic_write_public_bytes
+
+    def swap_parent_then_write(parent_fd, filename, raw):
+        tour_dir.rename(detached)
+        tour_dir.symlink_to(external, target_is_directory=True)
+        real_atomic(parent_fd, filename, raw)
+
+    monkeypatch.setattr(
+        lineage, "_atomic_write_public_bytes", swap_parent_then_write
+    )
+    with lineage.begin_produced_artifacts() as produced:
+        lineage.note_produced_artifact("atp", path.name)
+        with pytest.raises(lineage.ArtifactLineageError) as caught:
+            lineage.write_produced_artifact(
+                "atp", path, b'{"new":true}', trusted_root=root
+            )
+        assert caught.value.reason == lineage.LineageReason.PATH_INVALID
+        assert produced.snapshot("atp") == ()
+
+    assert (detached / "players.json").read_bytes() == b'{"new":true}'
+    assert not (external / "players.json").exists()
+
+
+def test_public_batch_validates_every_parent_before_invalidating_any_proof(tmp_path):
+    root = tmp_path / "output"
+    tour_dir = root / "atp"
+    tour_dir.mkdir(parents=True)
+    external = tmp_path / "external"
+    external.mkdir()
+    alias = root / "alias"
+    alias.symlink_to(external, target_is_directory=True)
+    valid = tour_dir / "track.json"
+    redirected = alias / "performance.json"
+
+    with lineage.begin_produced_artifacts() as produced:
+        lineage.note_produced_artifact("atp", valid.name)
+        lineage.note_produced_artifact("atp", redirected.name)
+        with pytest.raises(lineage.ArtifactLineageError) as caught:
+            lineage.write_produced_artifact_batch(
+                "atp",
+                (
+                    (valid, b'{"current":2}'),
+                    (redirected, b'{"current":2}'),
+                ),
+                trusted_root=root,
+            )
+        assert caught.value.reason == lineage.LineageReason.PATH_INVALID
+        assert produced.snapshot("atp") == (
+            "atp/performance.json",
+            "atp/track.json",
+        )
+
+    assert not valid.exists()
+    assert not (external / "performance.json").exists()
+
+
+def test_public_writer_requires_production_or_explicit_trusted_root(tmp_path):
+    root = tmp_path / "custom-output"
+    path = root / "atp" / "players.json"
+
+    with pytest.raises(lineage.ArtifactLineageError) as caught:
+        lineage.write_produced_artifact("atp", path, b'{"blocked":true}')
+    assert caught.value.reason == lineage.LineageReason.PATH_INVALID
+    assert not path.exists()
+
+    lineage.write_produced_artifact(
+        "atp", path, b'{"allowed":true}', trusted_root=root
+    )
+    assert path.read_bytes() == b'{"allowed":true}'
+
+
+def test_private_producer_names_fail_before_write_or_batch_invalidation(tmp_path):
+    root = tmp_path / "output"
+    tour_dir = root / "atp"
+    tour_dir.mkdir(parents=True)
+    private = tour_dir / "health-source.json"
+    private.write_bytes(b'{"private":"prior"}')
+
+    with pytest.raises(lineage.ArtifactLineageError) as caught:
+        lineage.write_produced_artifact(
+            "atp", private, b'{"private":"overwritten"}', trusted_root=root
+        )
+    assert caught.value.reason == lineage.LineageReason.PATH_INVALID
+    assert private.read_bytes() == b'{"private":"prior"}'
+
+    players = tour_dir / "players.json"
+    with lineage.begin_produced_artifacts() as produced:
+        lineage.note_produced_artifact("atp", players.name)
+        with pytest.raises(lineage.ArtifactLineageError) as caught:
+            lineage.write_produced_artifact_batch(
+                "atp",
+                (
+                    (players, b'{"public":true}'),
+                    (private, b'{"private":"overwritten"}'),
+                ),
+                trusted_root=root,
+            )
+        assert caught.value.reason == lineage.LineageReason.PATH_INVALID
+        assert produced.snapshot("atp") == ("atp/players.json",)
+    assert not players.exists()
+    assert private.read_bytes() == b'{"private":"prior"}'
+
+
+def test_remove_produced_artifact_rejects_parent_symlink_without_external_delete(
+    tmp_path
+):
+    root = tmp_path / "output"
+    root.mkdir()
+    external = tmp_path / "external"
+    external.mkdir()
+    victim = external / "players.json"
+    victim.write_bytes(b'{"external":true}')
+    (root / "atp").symlink_to(external, target_is_directory=True)
+    path = root / "atp" / "players.json"
+
+    with lineage.begin_produced_artifacts() as produced:
+        lineage.note_produced_artifact("atp", path.name)
+        with pytest.raises(lineage.ArtifactLineageError) as caught:
+            lineage.remove_produced_artifact(
+                "atp", path, trusted_root=root
+            )
+        assert caught.value.reason == lineage.LineageReason.PATH_INVALID
+        assert produced.snapshot("atp") == ("atp/players.json",)
+    assert victim.read_bytes() == b'{"external":true}'
+
+
+def test_remove_produced_artifact_absence_is_synced_and_private_rejected(
+    tmp_path, monkeypatch
+):
+    root = tmp_path / "output"
+    tour_dir = root / "atp"
+    tour_dir.mkdir(parents=True)
+    missing = tour_dir / "players.json"
+    private = tour_dir / "health-source.json"
+    fsyncs = []
+    real_fsync = lineage.os.fsync
+
+    def observe_fsync(fd):
+        fsyncs.append(fd)
+        real_fsync(fd)
+
+    monkeypatch.setattr(lineage.os, "fsync", observe_fsync)
+    with lineage.begin_produced_artifacts() as produced:
+        lineage.note_produced_artifact("atp", missing.name)
+        lineage.remove_produced_artifact(
+            "atp", missing, trusted_root=root
+        )
+        assert produced.snapshot("atp") == ()
+        synced_after_absence = len(fsyncs)
+
+        lineage.note_produced_artifact("atp", missing.name)
+        with pytest.raises(lineage.ArtifactLineageError) as caught:
+            lineage.remove_produced_artifact(
+                "atp", private, trusted_root=root
+            )
+        assert caught.value.reason == lineage.LineageReason.PATH_INVALID
+        assert produced.snapshot("atp") == ("atp/players.json",)
+
+    assert synced_after_absence >= 1
 
 
 def test_candidate_mutation_unblesses_receipt_then_manifest(tmp_path, monkeypatch):
@@ -740,15 +979,31 @@ def test_candidate_mutation_unblesses_receipt_then_manifest(tmp_path, monkeypatc
     order = []
     real_unlink = lineage._durable_unlink
 
-    def record_unlink(path):
+    def record_unlink(path, **kwargs):
         order.append(Path(path).name)
-        real_unlink(path)
+        real_unlink(path, **kwargs)
 
     monkeypatch.setattr(lineage, "_durable_unlink", record_unlink)
     lineage.unbless_release_for_mutation(tmp_path)
     assert order == [lineage.ACCEPTANCE_FILENAME, lineage.MANIFEST_FILENAME]
     assert not (tmp_path / lineage.ACCEPTANCE_FILENAME).exists()
     assert not (tmp_path / lineage.MANIFEST_FILENAME).exists()
+
+
+def test_unbless_rejects_symlinked_root_without_deleting_external_release(tmp_path):
+    external = tmp_path / "external"
+    accepted = _accepted(external)
+    manifest = accepted.release.manifest_bytes
+    receipt = accepted.receipt_bytes
+    alias = tmp_path / "output"
+    alias.symlink_to(external, target_is_directory=True)
+
+    with pytest.raises(lineage.ArtifactLineageError) as caught:
+        lineage.unbless_release_for_mutation(alias)
+
+    assert caught.value.reason == lineage.LineageReason.PATH_INVALID
+    assert (external / lineage.MANIFEST_FILENAME).read_bytes() == manifest
+    assert (external / lineage.ACCEPTANCE_FILENAME).read_bytes() == receipt
 
 
 def test_atomic_writes_use_unique_temps_fsync_and_manifest_after_artifacts(
@@ -767,9 +1022,9 @@ def test_atomic_writes_use_unique_temps_fsync_and_manifest_after_artifacts(
     real_replace = lineage.os.replace
     real_fsync = lineage.os.fsync
 
-    def observe_replace(source, destination):
+    def observe_replace(source, destination, **kwargs):
         replacements.append((Path(source), Path(destination)))
-        real_replace(source, destination)
+        real_replace(source, destination, **kwargs)
 
     def observe_fsync(fd):
         fsyncs.append(fd)
@@ -787,6 +1042,141 @@ def test_atomic_writes_use_unique_temps_fsync_and_manifest_after_artifacts(
     assert all(name.endswith(".tmp") for name in temp_names)
     assert len(fsyncs) >= 6  # file and directory for all three atomic writes
     assert not list(tmp_path.glob(".*.tmp"))
+
+
+def test_failed_public_replace_fsyncs_temp_cleanup_directory(tmp_path, monkeypatch):
+    root = tmp_path / "output"
+    path = root / "atp" / "players.json"
+    (root / "atp").mkdir(parents=True)
+    cleanup_unlinked = False
+    cleanup_synced = False
+    real_replace = lineage.os.replace
+    real_unlink = lineage.os.unlink
+    real_fsync = lineage.os.fsync
+
+    def fail_replace(source, destination, **kwargs):
+        if destination == path.name and kwargs.get("dst_dir_fd") is not None:
+            raise OSError("simulated replace failure")
+        return real_replace(source, destination, **kwargs)
+
+    def observe_unlink(target, **kwargs):
+        nonlocal cleanup_unlinked
+        result = real_unlink(target, **kwargs)
+        if str(target).startswith(f".{path.name}."):
+            cleanup_unlinked = True
+        return result
+
+    def observe_fsync(fd):
+        nonlocal cleanup_synced
+        if cleanup_unlinked:
+            cleanup_synced = True
+        return real_fsync(fd)
+
+    monkeypatch.setattr(lineage.os, "replace", fail_replace)
+    monkeypatch.setattr(lineage.os, "unlink", observe_unlink)
+    monkeypatch.setattr(lineage.os, "fsync", observe_fsync)
+    with pytest.raises(OSError, match="replace failure"):
+        lineage.write_produced_artifact(
+            "atp", path, b'{"new":true}', trusted_root=root
+        )
+
+    assert cleanup_unlinked is True
+    assert cleanup_synced is True
+    assert not path.exists()
+    assert not list(path.parent.glob(".*.tmp"))
+
+
+def test_durable_unlink_fsyncs_parent_after_removing_leaf(tmp_path, monkeypatch):
+    path = tmp_path / "atp" / "stale.json"
+    path.parent.mkdir()
+    path.write_text("stale", encoding="utf-8")
+    events = []
+
+    real_unlink = lineage.os.unlink
+    real_fsync = lineage.os.fsync
+
+    def observe_unlink(filename, **kwargs):
+        result = real_unlink(filename, **kwargs)
+        events.append(("unlink", filename))
+        return result
+
+    def observe_fsync(fd):
+        assert not path.exists()
+        events.append(("fsync", fd))
+        return real_fsync(fd)
+
+    monkeypatch.setattr(lineage.os, "unlink", observe_unlink)
+    monkeypatch.setattr(lineage.os, "fsync", observe_fsync)
+
+    lineage._durable_unlink(path, trusted_root=tmp_path)
+
+    assert [event[0] for event in events] == ["unlink", "fsync"]
+
+
+def test_durable_unlink_fsyncs_parent_when_leaf_is_already_absent(
+    tmp_path, monkeypatch
+):
+    path = tmp_path / "atp" / "missing.json"
+    path.parent.mkdir()
+    fsyncs = []
+    real_fsync = lineage.os.fsync
+
+    def observe_fsync(fd):
+        fsyncs.append(fd)
+        real_fsync(fd)
+
+    monkeypatch.setattr(lineage.os, "fsync", observe_fsync)
+    lineage._durable_unlink(path, trusted_root=tmp_path)
+
+    assert len(fsyncs) == 1
+
+
+def test_durable_unlink_retry_syncs_absence_after_first_sync_failure(
+    tmp_path, monkeypatch
+):
+    path = tmp_path / "atp" / "stale.json"
+    path.parent.mkdir()
+    path.write_text("stale", encoding="utf-8")
+    real_fsync = lineage.os.fsync
+    calls = 0
+
+    def fail_once(fd):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise OSError("simulated directory sync failure")
+        real_fsync(fd)
+
+    monkeypatch.setattr(lineage.os, "fsync", fail_once)
+    with pytest.raises(OSError, match="directory sync failure"):
+        lineage._durable_unlink(path, trusted_root=tmp_path)
+    assert not path.exists()
+
+    lineage._durable_unlink(path, trusted_root=tmp_path)
+    assert calls == 2
+
+
+def test_mirror_prune_sync_failure_cannot_publish_manifest(tmp_path, monkeypatch):
+    source = tmp_path / "source"
+    public = tmp_path / "public"
+    _accepted(source)
+    _write_json(public / "atp" / "stale.json", {"old": True})
+    (public / lineage.MANIFEST_FILENAME).write_bytes(b"old public pointer")
+    real_unlink = lineage._durable_unlink
+
+    def fail_after_prune_unlink(path, **kwargs):
+        path = Path(path)
+        if path.name == "stale.json":
+            path.unlink()
+            raise OSError("simulated prune directory fsync failure")
+        real_unlink(path, **kwargs)
+
+    monkeypatch.setattr(lineage, "_durable_unlink", fail_after_prune_unlink)
+    with pytest.raises(OSError, match="prune directory fsync failure"):
+        lineage.mirror_release(source, public, require_accepted=True)
+
+    assert not (public / "atp" / "stale.json").exists()
+    assert not (public / lineage.MANIFEST_FILENAME).exists()
 
 
 def test_manifest_driven_mirror_removes_unknown_and_private_and_copies_manifest_last(tmp_path):
@@ -893,6 +1283,69 @@ def test_legacy_fallback_rejects_same_or_overlapping_roots_without_deleting_sour
         assert predictor.read_bytes() == before
 
 
+def test_single_tour_legacy_mirror_prunes_private_and_stale_json(tmp_path):
+    source = tmp_path / "source"
+    destination = tmp_path / "public"
+    _write_json(source / "atp" / "players.json", {"current": True})
+    _write_json(source / "atp" / "health-source.json", {"private": True})
+    _write_json(destination / "atp" / "stale.json", {"old": True})
+    _write_json(destination / "wta" / "sentinel.json", {"keep": True})
+
+    lineage.legacy_mirror_tour(source, destination, "atp")
+
+    assert json.loads(
+        (destination / "atp" / "players.json").read_text(encoding="utf-8")
+    ) == {"current": True}
+    assert not (destination / "atp" / "stale.json").exists()
+    assert not (destination / "atp" / "health-source.json").exists()
+    assert (destination / "wta" / "sentinel.json").exists()
+
+
+def test_single_tour_legacy_mirror_rejects_destination_tour_symlink(
+    tmp_path
+):
+    source = tmp_path / "source"
+    destination = tmp_path / "public"
+    external = tmp_path / "external"
+    _write_json(source / "atp" / "players.json", {"current": True})
+    _write_json(external / "stale.json", {"external": True})
+    destination.mkdir()
+    (destination / "atp").symlink_to(external, target_is_directory=True)
+
+    with pytest.raises(lineage.ArtifactLineageError) as caught:
+        lineage.legacy_mirror_tour(source, destination, "atp")
+
+    assert caught.value.reason == lineage.LineageReason.PATH_INVALID
+    assert (destination / "atp").is_symlink()
+    assert json.loads(
+        (external / "stale.json").read_text(encoding="utf-8")
+    ) == {"external": True}
+    assert not (external / "players.json").exists()
+
+
+def test_root_relationship_normalizes_filesystem_anchor_alias_before_overlap(tmp_path):
+    tmp_alias = Path("/tmp")
+    if not tmp_alias.is_symlink() or tmp_alias.resolve() != Path("/private/tmp"):
+        pytest.skip("requires the macOS /tmp filesystem alias")
+    alias_base = tmp_alias / f"lineage-overlap-{tmp_path.name}"
+    source = alias_base / "source"
+    physical_source = Path("/private/tmp") / alias_base.name / "source"
+    destination = physical_source / "destination"
+    source.mkdir(parents=True)
+    try:
+        with pytest.raises(lineage.ArtifactLineageError) as caught:
+            lineage._validate_root_relationship(
+                source, destination, allow_equal=False
+            )
+        assert "cannot contain one another" in caught.value.detail
+        assert not destination.exists()
+    finally:
+        if destination.exists():
+            destination.rmdir()
+        source.rmdir()
+        alias_base.rmdir()
+
+
 def test_mirror_failure_before_manifest_leaves_release_explicitly_unblessed(tmp_path, monkeypatch):
     source = tmp_path / "source"
     public = tmp_path / "public"
@@ -902,10 +1355,10 @@ def test_mirror_failure_before_manifest_leaves_release_explicitly_unblessed(tmp_
     (public / lineage.MANIFEST_FILENAME).write_bytes(old_manifest)
     real_write = lineage._atomic_write_bytes
 
-    def crash_before_manifest(path, raw):
+    def crash_before_manifest(path, raw, **kwargs):
         if Path(path).name == lineage.MANIFEST_FILENAME:
             raise OSError("simulated crash")
-        real_write(path, raw)
+        real_write(path, raw, **kwargs)
 
     monkeypatch.setattr(lineage, "_atomic_write_bytes", crash_before_manifest)
     with pytest.raises(OSError, match="simulated crash"):
@@ -1056,6 +1509,41 @@ def test_strict_json_rejects_integer_that_is_nonfinite_in_browser_runtime():
     assert caught.value.reason == lineage.LineageReason.GRAPH_INVALID
 
 
+def test_regular_file_reader_rejects_leaf_symlink_without_o_nofollow(
+    tmp_path, monkeypatch
+):
+    target = tmp_path / "target.json"
+    target.write_bytes(b'{"secret":true}')
+    link = tmp_path / "artifact.json"
+    try:
+        link.symlink_to(target)
+    except (NotImplementedError, OSError):
+        pytest.skip("filesystem does not support symlinks")
+    monkeypatch.delattr(lineage.os, "O_NOFOLLOW", raising=False)
+
+    with pytest.raises(lineage.ArtifactLineageError) as caught:
+        lineage._read_regular_file(link, lineage.MAX_ARTIFACT_BYTES)
+
+    assert caught.value.reason == lineage.LineageReason.PATH_INVALID
+    assert target.read_bytes() == b'{"secret":true}'
+
+
+def test_release_reader_rejects_symlinked_source_ancestor(tmp_path):
+    real_parent = tmp_path / "real-parent"
+    release_root = real_parent / "release"
+    accepted = _accepted(release_root)
+    alias = tmp_path / "source-alias"
+    alias.symlink_to(real_parent, target_is_directory=True)
+
+    with pytest.raises(lineage.ArtifactLineageError) as caught:
+        lineage.validate_release(alias / "release", require_accepted=True)
+
+    assert caught.value.reason == lineage.LineageReason.PATH_INVALID
+    assert (release_root / lineage.MANIFEST_FILENAME).read_bytes() == (
+        accepted.release.manifest_bytes
+    )
+
+
 def test_shadow_publication_web_never_accepts_and_falls_back_without_stale_manifest(
     tmp_path, monkeypatch, capsys
 ):
@@ -1123,8 +1611,8 @@ def test_data_shadow_revokes_receipt_when_acceptance_raises_after_replace(
     _seal(source)
     real_atomic = lineage._atomic_write_bytes
 
-    def fail_after_receipt_replace(path, raw):
-        real_atomic(path, raw)
+    def fail_after_receipt_replace(path, raw, **kwargs):
+        real_atomic(path, raw, **kwargs)
         if Path(path).name == lineage.ACCEPTANCE_FILENAME:
             raise RuntimeError("post-receipt callback failed")
 
@@ -1182,12 +1670,55 @@ def test_shadow_fallback_cannot_succeed_if_stale_manifest_cannot_be_removed(tmp_
         accept_candidate=False,
         legacy_mirror=lambda: legacy_calls.append("ran"),
     )
-    assert legacy_calls == ["ran"]
+    assert legacy_calls == []
     assert result.state == "failed"
     assert [issue.code for issue in result.issues] == [
         "output.lineage.manifest_missing",
         "output.lineage.unreadable",
     ]
+
+
+@pytest.mark.parametrize("unsafe_pointer", ["source", "destination"])
+def test_shadow_fallback_never_runs_when_symlinked_pointer_cannot_be_revoked(
+    tmp_path, unsafe_pointer
+):
+    real_source = tmp_path / "real-source"
+    real_destination = tmp_path / "real-public"
+    accepted = _accepted(real_source)
+    real_destination.mkdir()
+    (real_destination / lineage.MANIFEST_FILENAME).write_bytes(b"external pointer")
+    source = real_source
+    destination = real_destination
+    if unsafe_pointer == "source":
+        source = tmp_path / "source-alias"
+        source.symlink_to(real_source, target_is_directory=True)
+    else:
+        destination = tmp_path / "destination-alias"
+        destination.symlink_to(real_destination, target_is_directory=True)
+    legacy_calls = []
+
+    result = lineage.publish_shadow_release(
+        source,
+        destination,
+        accept_candidate=unsafe_pointer == "source",
+        semantic_gate_passed=unsafe_pointer == "source",
+        validator=(
+            "predeploy-integrity-gate-v1"
+            if unsafe_pointer == "source"
+            else None
+        ),
+        legacy_mirror=lambda: legacy_calls.append("ran"),
+    )
+
+    assert result.state == "failed"
+    assert legacy_calls == []
+    assert (real_source / lineage.ACCEPTANCE_FILENAME).read_bytes() == (
+        accepted.receipt_bytes
+    )
+    if unsafe_pointer == "destination":
+        assert (real_destination / lineage.MANIFEST_FILENAME).read_bytes() == (
+            b"external pointer"
+        )
 
 
 def test_data_cli_requires_explicit_green_gate_and_validator():
