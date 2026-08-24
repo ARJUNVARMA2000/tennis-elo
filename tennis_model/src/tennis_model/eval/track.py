@@ -369,6 +369,14 @@ def _tourn_key(r: dict) -> str:
     return f"{_norm_event(r.get('event'))}|{r.get('season')}|{str(r.get('as_of'))[:10]}"
 
 
+def _predictor_generation(r: dict) -> str:
+    """Canonical predictor generation for retry and timeline de-duplication."""
+    artifact_id = r.get("predictor_artifact_id")
+    if isinstance(artifact_id, str) and artifact_id.strip():
+        return artifact_id.strip().lower()
+    return "legacy"
+
+
 def _snapshot_key(r: dict, bridges: dict[str, str] | None = None) -> str:
     """One snapshot per matchup, UTC hour, and predictor generation.
 
@@ -378,13 +386,7 @@ def _snapshot_key(r: dict, bridges: dict[str, str] | None = None) -> str:
     probability agrees with the newly published current forecast.
     """
     match_id = _effective_match_id(r, bridges or {})
-    artifact_id = r.get("predictor_artifact_id")
-    generation = (
-        artifact_id.strip()
-        if isinstance(artifact_id, str) and artifact_id.strip()
-        else "legacy"
-    )
-    return f"{match_id}|{str(r.get('as_of'))[:13]}|{generation}"
+    return f"{match_id}|{str(r.get('as_of'))[:13]}|{_predictor_generation(r)}"
 
 
 def _oriented_probability(rec: dict, player_a: object) -> float | None:
@@ -462,7 +464,12 @@ def _history_index(records: list[dict], bridges: dict[str, str] | None = None) -
 
 def _forecast_history(records: list[dict], player_a: object,
                       current: float | None = None) -> dict | None:
-    """Normalize one match's append-only records into a de-duplicated timeline."""
+    """Normalize one match's append-only records into a de-duplicated timeline.
+
+    Ordinary retries collapse within their UTC hour and predictor generation. A distinct
+    generation in the same hour remains visible: otherwise the timeline would have to
+    hide either the immutable first sighting or the currently published probability.
+    """
     if not records:
         return None
     records = sorted(records, key=lambda r: str(r.get("as_of") or ""))
@@ -471,14 +478,16 @@ def _forecast_history(records: list[dict], player_a: object,
     if initial is None:
         return None
 
-    # The first run writes a `match` provenance row and a same-hour snapshot. They are
-    # one observation in the graph, not two apparent model changes.
-    buckets: dict[str, list[dict]] = defaultdict(list)
+    # The first run writes a `match` provenance row and a same-hour snapshot from the
+    # same predictor generation. They are one observation, not two apparent changes.
+    # Dict insertion order preserves append order for distinct generations whose
+    # hour-granular timestamps are equal.
+    buckets: dict[tuple[str, str], list[dict]] = defaultdict(list)
     for rec in records:
-        buckets[str(rec.get("as_of") or "")[:13]].append(rec)
+        bucket = (str(rec.get("as_of") or "")[:13], _predictor_generation(rec))
+        buckets[bucket].append(rec)
     timeline = []
-    for bucket in sorted(buckets):
-        recs = buckets[bucket]
+    for recs in buckets.values():
         rec = recs[-1]
         p = _oriented_probability(rec, player_a)
         if p is None:
@@ -489,6 +498,9 @@ def _forecast_history(records: list[dict], player_a: object,
             "modelVersion": rec.get("model_version"),
             "firstSighting": any(r is first for r in recs),
         }
+        generation = _predictor_generation(rec)
+        if generation != "legacy":
+            item["predictorArtifactId"] = generation
         components = _oriented_components(rec, player_a)
         if components:
             item["components"] = components

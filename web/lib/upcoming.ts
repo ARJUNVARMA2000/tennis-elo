@@ -11,6 +11,7 @@ export type ForecastPoint = {
   asOf?: string;
   p: number;
   modelVersion?: string | null;
+  predictorArtifactId?: string;
   firstSighting?: boolean;
   components?: {
     eloBlend?: number;

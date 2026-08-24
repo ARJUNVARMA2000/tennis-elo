@@ -210,8 +210,49 @@ def test_visible_forecast_timeline_must_be_current_and_hour_deduped():
         ],
     }
     problems = health.output_problems("atp", _oc(data=d), NOW)
-    assert any("repeats a UTC hour" in problem for problem in problems)
+    assert any("repeats one predictor generation" in problem for problem in problems)
     assert any("current probability disagrees" in problem for problem in problems)
+
+
+def test_visible_forecast_timeline_retains_distinct_same_hour_generations():
+    d = _healthy_data()
+    d["upcoming"][0]["forecast"] = {
+        "first": 0.6, "current": 0.7, "delta": 0.1, "snapshots": 2,
+        "timeline": [
+            {
+                "asOf": "2026-07-09T08:00:00Z", "p": 0.6,
+                "firstSighting": True,
+                "predictorArtifactId": "11111111-1111-4111-8111-111111111111",
+            },
+            {
+                "asOf": "2026-07-09T08:00:00Z", "p": 0.7,
+                "predictorArtifactId": "22222222-2222-4222-8222-222222222222",
+            },
+        ],
+    }
+    codes = {
+        finding.code for finding in health.output_findings("atp", _oc(data=d), NOW)
+    }
+    assert "output.forecast.timeline_order_invalid" not in codes
+    assert "output.forecast.first_probability_mismatch" not in codes
+    assert "output.forecast.current_probability_mismatch" not in codes
+
+
+def test_visible_forecast_timeline_rejects_invalid_predictor_generation():
+    d = _healthy_data()
+    d["upcoming"][0]["forecast"] = {
+        "first": 0.6, "current": 0.6, "delta": 0.0, "snapshots": 1,
+        "timeline": [{
+            "asOf": "2026-07-09T08:00:00Z", "p": 0.6,
+            "firstSighting": True, "predictorArtifactId": "not-a-uuid",
+        }],
+    }
+    findings = health.output_findings("atp", _oc(data=d), NOW)
+    assert any(
+        finding.code == "output.forecast.predictor_generation_invalid"
+        and finding.severity == "error"
+        for finding in findings
+    )
 
 
 def test_expectation_summary_arithmetic_is_a_blocking_invariant():

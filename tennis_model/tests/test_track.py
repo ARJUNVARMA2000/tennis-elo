@@ -216,8 +216,14 @@ def test_same_hour_new_predictor_generation_supersedes_retry_bucket():
         row = {"event": "TestOpen", "date": "2026-06-01", "round": "QF",
                "playerA": "Alice", "playerB": "Bob", "pA": 0.7}
         movement = track.movement_for_upcoming("atp", [row])[track.movement_key(row)]
-        assert movement["snapshots"] == 1
-        assert movement["timeline"][-1]["p"] == movement["current"] == 0.7
+        assert movement["first"] == movement["timeline"][0]["p"] == 0.6
+        assert movement["current"] == movement["timeline"][-1]["p"] == 0.7
+        assert movement["snapshots"] == len(movement["timeline"]) == 2
+        assert [point.get("predictorArtifactId") for point in movement["timeline"]] == [
+            first.artifact_id,
+            retrained.artifact_id,
+        ]
+        assert sum(point["firstSighting"] for point in movement["timeline"]) == 1
 
 
 def test_same_hour_strict_generation_supersedes_legacy_snapshot():
@@ -242,6 +248,62 @@ def test_same_hour_strict_generation_supersedes_legacy_snapshot():
         ) == 1
         records = track._read_log(track.FORECAST_DIR / "atp.jsonl")
         assert [row["p"] for row in records if row["type"] == "match_snapshot"] == [0.6, 0.7]
+        row = {"event": "TestOpen", "date": "2026-06-01", "round": "QF",
+               "playerA": "Alice", "playerB": "Bob", "pA": 0.7}
+        movement = track.movement_for_upcoming("atp", [row])[track.movement_key(row)]
+        assert movement["first"] == movement["timeline"][0]["p"] == 0.6
+        assert movement["current"] == movement["timeline"][-1]["p"] == 0.7
+        assert movement["snapshots"] == len(movement["timeline"]) == 2
+        assert [point.get("predictorArtifactId") for point in movement["timeline"]] == [
+            None,
+            predictor.artifact_id,
+        ]
+        assert sum(point["firstSighting"] for point in movement["timeline"]) == 1
+
+
+def test_same_hour_generation_order_and_identity_survive_reorientation():
+    with tempfile.TemporaryDirectory() as d:
+        _setup(Path(d))
+        stamp = "2026-06-01T08:00:00+00:00"
+        artifact_ids = [
+            "11111111-1111-4111-8111-111111111111",
+            "22222222-2222-4222-8222-222222222222",
+            "33333333-3333-4333-8333-333333333333",
+        ]
+        first = _match("Alice", "Bob", 0.6, as_of=stamp)
+        first["predictor_artifact_id"] = artifact_ids[0]
+        first["match_id"] = track.match_identity(first)
+        records = [
+            first,
+            {**first, "type": "match_snapshot"},
+            {
+                **first, "type": "match_snapshot", "p": 0.7,
+                "predictor_artifact_id": artifact_ids[1],
+            },
+            {
+                **first, "type": "match_snapshot", "p": 0.8,
+                "predictor_artifact_id": artifact_ids[2],
+            },
+        ]
+        _write_log(records)
+        reversed_row = {
+            "event": "TestOpen", "date": "2026-06-01", "round": "QF",
+            "playerA": "Bob", "playerB": "Alice", "pA": 0.2,
+        }
+
+        movement = track.movement_for_upcoming(
+            "atp", [reversed_row],
+        )[track.movement_key(reversed_row)]
+
+        assert [point["p"] for point in movement["timeline"]] == [0.4, 0.3, 0.2]
+        assert [
+            point["predictorArtifactId"] for point in movement["timeline"]
+        ] == artifact_ids
+        assert movement["first"] == 0.4 and movement["current"] == 0.2
+        assert movement["delta"] == -0.2 and movement["snapshots"] == 3
+        assert [point["firstSighting"] for point in movement["timeline"]] == [
+            True, False, False,
+        ]
 
 
 def test_movement_keeps_first_sighting_and_current_probability():

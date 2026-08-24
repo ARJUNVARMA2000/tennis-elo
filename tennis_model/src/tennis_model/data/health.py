@@ -93,6 +93,9 @@ from .surface import LEVEL_VOCAB
 FINDING_SCHEMA = "health-finding-v1"
 FINDING_ISSUE_BODY_MAX_CHARS = 60_000
 _FINDING_CODE_RE = re.compile(r"^(source|output|cross)(?:\.[a-z][a-z0-9_]*){2,}$")
+_UUID4_RE = re.compile(
+    r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+)
 _FINDING_SEVERITIES = frozenset({"error", "warning", "info"})
 _FINDING_SCOPES = frozenset({"source", "output", "cross"})
 
@@ -1559,20 +1562,43 @@ def _check_forecast_history(out: list, tour: str, label: str, forecast: object,
             severity="error", entity=finding_entity,
             evidence={"valueType": type(timeline).__name__})
         return
-    stamps = [str(point.get("asOf") or "") for point in timeline if isinstance(point, dict)]
+    points = [point for point in timeline if isinstance(point, dict)]
+    stamps = [str(point.get("asOf") or "") for point in points]
     hours = [stamp[:13] for stamp in stamps]
+    generations: list[str] = []
+    invalid_generations: list[dict] = []
+    for index, point in enumerate(points):
+        raw_generation = point.get("predictorArtifactId")
+        if raw_generation is None:
+            generations.append("legacy")
+        elif isinstance(raw_generation, str) and _UUID4_RE.fullmatch(raw_generation):
+            generations.append(raw_generation)
+        else:
+            generations.append(f"invalid:{index}")
+            invalid_generations.append({
+                "index": index,
+                "value": repr(raw_generation),
+            })
+    generation_keys = list(zip(hours, generations, strict=True))
     if len(stamps) != len(timeline) or any(not stamp for stamp in stamps):
         _add_finding(
             out, "output.forecast.timestamp_missing",
             f"{tour}: {label} forecast timeline has a missing timestamp",
             severity="error", entity=finding_entity,
             evidence={"observations": len(timeline), "timestamps": len(stamps)})
-    elif stamps != sorted(stamps) or len(hours) != len(set(hours)):
+    elif stamps != sorted(stamps) or len(generation_keys) != len(set(generation_keys)):
         _add_finding(
             out, "output.forecast.timeline_order_invalid",
-            f"{tour}: {label} forecast timeline is unordered or repeats a UTC hour",
+            f"{tour}: {label} forecast timeline is unordered or repeats one predictor "
+            "generation within a UTC hour",
             severity="error", entity=finding_entity,
-            evidence={"timestamps": stamps})
+            evidence={"timestamps": stamps, "predictorArtifactIds": generations})
+    if invalid_generations:
+        _add_finding(
+            out, "output.forecast.predictor_generation_invalid",
+            f"{tour}: {label} forecast timeline has an invalid predictor generation",
+            severity="error", entity=finding_entity,
+            evidence={"values": invalid_generations})
     probs = [point.get("p") for point in timeline if isinstance(point, dict)]
     if any(not _is_prob(p) for p in probs):
         _add_finding(
