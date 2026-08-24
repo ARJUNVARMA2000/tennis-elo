@@ -370,9 +370,21 @@ def _tourn_key(r: dict) -> str:
 
 
 def _snapshot_key(r: dict, bridges: dict[str, str] | None = None) -> str:
-    """One snapshot per matchup per UTC hour, even when a job is retried."""
+    """One snapshot per matchup, UTC hour, and predictor generation.
+
+    An ordinary retry reuses the same predictor artifact and remains idempotent. A full
+    retrain can legitimately finish inside the same hour as an earlier quick refresh;
+    its new artifact id must append a replacement observation so the hour bucket's latest
+    probability agrees with the newly published current forecast.
+    """
     match_id = _effective_match_id(r, bridges or {})
-    return f"{match_id}|{str(r.get('as_of'))[:13]}"
+    artifact_id = r.get("predictor_artifact_id")
+    generation = (
+        artifact_id.strip()
+        if isinstance(artifact_id, str) and artifact_id.strip()
+        else "legacy"
+    )
+    return f"{match_id}|{str(r.get('as_of'))[:13]}|{generation}"
 
 
 def _oriented_probability(rec: dict, player_a: object) -> float | None:
@@ -537,6 +549,7 @@ def log_forecasts(tour: str, predictor, df: pd.DataFrame,
     FORECAST_DIR.mkdir(parents=True, exist_ok=True)
     path = FORECAST_DIR / f"{tour}.jsonl"
     existing = _read_log(path, status=status)
+    predictor_artifact_id = getattr(predictor, "artifact_id", None)
     # match forecasts: one locked P(playerA wins) per scheduled matchup (first sighting).
     # Name-resolution / surface inference / pricing live in model.upcoming.enrich_upcoming,
     # shared with the web schedule board so the two can never disagree on a matchup.
@@ -554,6 +567,8 @@ def log_forecasts(tour: str, predictor, df: pd.DataFrame,
             "components": row.get("components"),
             "evidence": row.get("evidence"),
         }
+        if isinstance(predictor_artifact_id, str) and predictor_artifact_id.strip():
+            base["predictor_artifact_id"] = predictor_artifact_id.strip()
         base["match_id"] = match_identity(base)
         bases.append(base)
 

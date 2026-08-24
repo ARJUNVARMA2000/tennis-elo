@@ -30,9 +30,15 @@ class _FakeElo:
 
 class _FakePredictor:
     """Constant-probability stand-in so logging needs no trained model."""
-    def __init__(self, names, p=0.6):
+    def __init__(
+        self,
+        names,
+        p=0.6,
+        artifact_id="11111111-1111-4111-8111-111111111111",
+    ):
         self.elo = _FakeElo(names)
         self._p = p
+        self.artifact_id = artifact_id
 
     def win_prob(self, a, b, surface=None, best_of=None, event=None):
         return self._p
@@ -181,6 +187,61 @@ def test_dedup_idempotent():
         assert sum(r["type"] == "match" for r in lines) == 1
         assert sum(r["type"] == "match_snapshot" for r in lines) == 2
         print("ok test_dedup_idempotent")
+
+
+def test_same_hour_new_predictor_generation_supersedes_retry_bucket():
+    with tempfile.TemporaryDirectory() as d:
+        out = _setup(Path(d))
+        (out / "tournaments.json").write_text("[]", encoding="utf-8")
+        up = pd.DataFrame([{"tourney_name": "TestOpen", "tourney_date": "2026-06-01",
+                            "round": "QF", "playerA": "Alice", "playerB": "Bob"}])
+        df = _results_df([("Zeta", "Yan", "2026-06-01", "Hard")])
+        first = _FakePredictor(
+            ["Alice", "Bob"], p=0.6,
+            artifact_id="11111111-1111-4111-8111-111111111111",
+        )
+        retrained = _FakePredictor(
+            ["Alice", "Bob"], p=0.7,
+            artifact_id="22222222-2222-4222-8222-222222222222",
+        )
+        stamp = "2026-06-01T08:00:00+00:00"
+
+        assert track.log_forecasts("atp", first, df, up, stamp) == 2
+        assert track.log_forecasts("atp", retrained, df, up, stamp) == 1
+        assert track.log_forecasts("atp", retrained, df, up, stamp) == 0
+
+        records = track._read_log(track.FORECAST_DIR / "atp.jsonl")
+        snapshots = [row for row in records if row["type"] == "match_snapshot"]
+        assert [row["p"] for row in snapshots] == [0.6, 0.7]
+        row = {"event": "TestOpen", "date": "2026-06-01", "round": "QF",
+               "playerA": "Alice", "playerB": "Bob", "pA": 0.7}
+        movement = track.movement_for_upcoming("atp", [row])[track.movement_key(row)]
+        assert movement["snapshots"] == 1
+        assert movement["timeline"][-1]["p"] == movement["current"] == 0.7
+
+
+def test_same_hour_strict_generation_supersedes_legacy_snapshot():
+    with tempfile.TemporaryDirectory() as d:
+        out = _setup(Path(d))
+        (out / "tournaments.json").write_text("[]", encoding="utf-8")
+        legacy = _match(
+            "Alice", "Bob", 0.6, as_of="2026-06-01T08:00:00+00:00",
+        )
+        legacy["match_id"] = track.match_identity(legacy)
+        _write_log([legacy, {**legacy, "type": "match_snapshot"}])
+        predictor = _FakePredictor(
+            ["Alice", "Bob"], p=0.7,
+            artifact_id="22222222-2222-4222-8222-222222222222",
+        )
+        up = pd.DataFrame([{"tourney_name": "TestOpen", "tourney_date": "2026-06-01",
+                            "round": "QF", "playerA": "Alice", "playerB": "Bob"}])
+        df = _results_df([("Zeta", "Yan", "2026-06-01", "Hard")])
+
+        assert track.log_forecasts(
+            "atp", predictor, df, up, "2026-06-01T08:00:00+00:00",
+        ) == 1
+        records = track._read_log(track.FORECAST_DIR / "atp.jsonl")
+        assert [row["p"] for row in records if row["type"] == "match_snapshot"] == [0.6, 0.7]
 
 
 def test_movement_keeps_first_sighting_and_current_probability():
