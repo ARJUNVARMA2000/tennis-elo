@@ -5322,3 +5322,35 @@ Status: complete and live.
 - [x] Final live ref check confirmed local and remote `master` both resolved to `11dbebc` before this
       tasks-only completion note; the remote had no other head. The note itself is excluded from the
       production trigger by `refresh.yml`'s `tasks/**` path ignore.
+
+## ESPN scheduled-round reconciliation repair (2026-08-23)
+
+Status: implementation and verification in progress after plan approval.
+
+- [x] Reconcile scheduled and completed matchup rounds from the freshly generated complete bracket
+      only when stable `espnId` plus the exact canonical real-player pair identify one unambiguous
+      bracket round; do it before scheduled pricing/logging and before completed fixture export.
+- [x] Keep the independent pre-deploy round-consistency invariant blocking; do not trust or suppress
+      unmatched/ambiguous provider rows.
+- [x] Canonicalize cached forecast identities through the same bracket evidence so a failed run's
+      wrong-round first sighting remains the one immutable forecast instead of spawning or grading a
+      duplicate when the corrected round arrives.
+- [x] Add focused regression coverage for ESPN's Winston-Salem failure shape, including ordinary,
+      missing-id, unmatched-pair, ambiguous-bracket, and poisoned-cache controls.
+- [x] Run the scoped upcoming/health tests, then the full Python suite and repository lint/integrity
+      checks proportionate to this production-path change.
+- [ ] Reconcile the final diff and recent history, commit, push deliberately to `master`, and monitor
+      the triggered production deployment through live verification and automatic incident recovery.
+
+### Review
+
+- Local implementation is complete. Exact, alias-aware bracket evidence now corrects round metadata
+  before scheduled pricing/tracking and fixture export; ambiguous or incomplete evidence remains
+  untouched and is still rejected by the independent health gate.
+- Forecast tracking persists validated identity bridges so the blocked run's original first sighting
+  remains immutable and grades exactly once after correction, including after the bracket artifact
+  expires and across legacy identity chains.
+- Verification: 184 focused tests and all 706 Python tests pass; all 280 web tests, Ruff, the real
+  pre-deploy gate, `git diff --check`, TypeScript, and the production build of all 24 static routes
+  pass. ESLint exits with zero errors and nine pre-existing hook warnings.
+- Production push and live deployment verification remain pending.

@@ -269,3 +269,13 @@ Indexed in [`../lessons.md`](../lessons.md).
   coverage age visible as a note, detect a moved/unreachable/malformed source from the actual
   download result, validate before atomically replacing the last good input, and test both signals
   independently.
+
+- **A pre-deploy gate can block bad artifacts after an earlier append-only side effect has already
+  escaped into the next run's state.** (2026-08-23, Winston-Salem) ESPN temporarily labeled a newly
+  advanced R32 matchup as R64. The independent bracket-round gate correctly prevented deployment,
+  but forecast tracking had already cached the wrong round as part of the match identity. Correcting
+  only the producer would therefore create a second first sighting and later a second grade. **How to
+  apply:** reconcile provider metadata from stronger exact evidence before any round-sensitive
+  consumer, keep the independent gate blocking, and migrate durable append-only identity through a
+  narrowly validated bridge. The bridge must be fail-closed on missing, ambiguous, non-knockout, or
+  mismatched event/player evidence and remain usable after the live bracket ages out.

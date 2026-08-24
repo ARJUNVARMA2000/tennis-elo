@@ -36,6 +36,11 @@ import pandas as pd
 
 from .. import __version__
 from ..config import MATCH_POPULATION_VERSION, SURFACES, output_dir
+from ..data.bracket_rounds import (
+    BracketRoundIndex,
+    build_bracket_round_index,
+    unique_bracket_round,
+)
 from ..data.charting import build_profiles, name_key
 from ..data.rankings import load_rankings
 from ..data.results import summary
@@ -346,8 +351,11 @@ def build_draws(predictor, players: list, tour: str) -> dict:
     return {"field": field, "bestOf": bo, "surfaces": draws}
 
 
-def build_fixtures(df, predictor, n=60) -> list:
+def build_fixtures(df, predictor, n=60, *, tour: str | None = None,
+                   bracket_index: BracketRoundIndex | None = None) -> list:
     """Latest completed matches with the model's pre-match probability + upset flag."""
+    if bracket_index is None:
+        bracket_index = {}
     d = df[df["completed"]].sort_values("date").tail(400)
     out = []
     for r in d.tail(n).iloc[::-1].itertuples(index=False):
@@ -360,11 +368,18 @@ def build_fixtures(df, predictor, n=60) -> list:
         # UPSET badge is wrong on its face — and blocks the gate, which can only re-derive
         # the flag from the number in the file.
         mp = round(p, 3)
+        event_id = getattr(r, "espn_id", None)
+        bracket_round = unique_bracket_round(
+            bracket_index, event_id, r.winner_name, r.loser_name)
+        if bracket_round is not None and str(r.round) != bracket_round:
+            print(f"  round-reconcile/{tour or 'fixtures'}: completed {event_id} "
+                  f"{r.winner_name!r} vs {r.loser_name!r} {r.round}->{bracket_round}")
         out.append({
             "date": pd.Timestamp(r.date).strftime("%Y-%m-%d"),
             "event": r.tourney_name,
-            "espnId": getattr(r, "espn_id", None),
-            "surface": r.surface_b, "round": r.round,
+            "espnId": event_id,
+            "surface": r.surface_b,
+            "round": bracket_round if bracket_round is not None else r.round,
             "winner": r.winner_name, "loser": r.loser_name, "score": r.score,
             "modelProb": mp, "upset": bool(mp < 0.5),
         })
@@ -960,10 +975,14 @@ def export_all(tour, df, elo, srv, meta, predictor, oos=None, *, full: bool = Tr
             predictor, ts, ts, build_generation)
     _write(tour, "scenario-index.json", scenario_index)
     _write_shards(tour, "scenario", scenario_shards)
-    _write(tour, "brackets.json", build_brackets_payload(ts))   # pops bracket/size/url, stamps hasBracket
+    brackets = build_brackets_payload(ts)   # pops bracket/size/url, stamps hasBracket
+    _write(tour, "brackets.json", brackets)
     _write(tour, "tournaments.json", ts)
     _write(tour, "event_coverage.json", coverage)
-    _write(tour, "fixtures.json", build_fixtures(df, predictor))
+    _write(tour, "fixtures.json", build_fixtures(
+        df, predictor, tour=tour,
+        bracket_index=build_bracket_round_index(brackets),
+    ))
     if accuracy:
         _write(tour, "accuracy.json", accuracy)
     # Legacy attributes degrade to unknown rather than crashing. Quick mode normally rebuilds

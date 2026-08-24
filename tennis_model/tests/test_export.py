@@ -418,6 +418,40 @@ def test_fixtures_upset_flag_agrees_with_the_rounded_prob_it_ships():
     print("ok test_fixtures_upset_flag_agrees_with_the_rounded_prob_it_ships")
 
 
+def test_fixtures_reconcile_completed_round_from_fresh_bracket(capsys):
+    from tennis_model.data.bracket_rounds import build_bracket_round_index
+
+    class _Stub:
+        def win_prob(self, w, l, surface=None, best_of=3, event=None):
+            return 0.6
+
+    df = pd.DataFrame([{
+        "completed": True,
+        "date": "2026-08-23",
+        "tourney_name": "Winston-Salem Open",
+        "espn_id": "363-2026",
+        "surface_b": "Hard",
+        "round": "R64",
+        "winner_name": "Carlos Alcaraz",
+        "loser_name": "Novak Djokovic",
+        "score": "6-4 6-4",
+        "best_of": 3,
+    }])
+    index = build_bracket_round_index([{
+        "espnId": "363-2026",
+        "rounds": [{
+            "round": "R32",
+            "matches": [{"a": "Novak Djokovic", "b": "Carlos Alcaraz"}],
+        }],
+    }])
+
+    out = export.build_fixtures(df, _Stub(), bracket_index=index)
+
+    assert out[0]["round"] == "R32"
+    logged = capsys.readouterr().out
+    assert "completed 363-2026" in logged and "R64->R32" in logged
+
+
 def test_build_upcoming_preserves_stable_event_id(monkeypatch):
     """The tournament card join must survive sponsor/city display-name differences."""
     import pandas as pd

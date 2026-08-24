@@ -15,6 +15,10 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
+from tennis_model.data.bracket_rounds import (
+    build_bracket_round_index,
+    unique_bracket_round,
+)
 from tennis_model.model.upcoming import enrich_upcoming, event_attrs
 
 # The events below resolve surface without any on-disk Wikipedia cache: "Wimbledon" via the
@@ -72,6 +76,79 @@ def test_enrich_passes_stable_event_id_to_tier_resolution(monkeypatch):
     out = enrich_upcoming(_Pred(), _df(), rows, "atp")
     assert out[0]["level"] == "Masters 1000"
     assert seen == [("atp", "Toronto", "421-2026")]
+
+
+def test_enrich_reconciles_round_before_prediction_context(capsys):
+    """The ordered bracket outranks ESPN's lagging label before context is assembled."""
+    calls = []
+
+    class _ContextPred(_Pred):
+        def prediction_components(self, a, b, **kwargs):
+            calls.append(("components", kwargs["round_order"]))
+            return {"eloBlend": 0.61, "pointModel": 0.62, "combiner": 0.63}
+
+        def prediction_evidence(self, a, b, **kwargs):
+            calls.append(("evidence", kwargs["round_order"]))
+            return {"roundOrder": kwargs["round_order"]}
+
+    brackets = [{
+        "espnId": "363-2026",
+        "rounds": [{
+            "round": "R32",
+            "matches": [{"a": "Carlos Alcaraz", "b": "Novak Djokovic"}],
+        }],
+    }]
+    rows = pd.DataFrame([{
+        "tourney_name": "Winston-Salem Open", "espn_id": "363-2026",
+        "tourney_date": "2026-08-23", "round": "R64",
+        "playerA": "Carlos Alcaraz", "playerB": "Novak Djokovic",
+    }])
+
+    out = enrich_upcoming(
+        _ContextPred(), _df(), rows, "atp",
+        bracket_index=build_bracket_round_index(brackets),
+    )
+
+    assert out[0]["round"] == "R32"
+    assert calls == [("components", 3), ("evidence", 3)]
+    logged = capsys.readouterr().out
+    assert "upcoming 363-2026" in logged and "R64->R32" in logged
+
+
+def test_bracket_round_reconciliation_fails_closed():
+    brackets = [{
+        "espnId": "363-2026",
+        "rounds": [
+            {"round": "R32", "matches": [
+                {"a": "Diego Dedura-Palomero", "b": "Novak Djokovic"},
+                {"a": "Qualifier 1", "b": "Jannik Sinner"},
+                {"a": "Novak Djokovic", "b": "Jannik Sinner"},
+                {"a": "Jannik Sinner", "b": "Novak Djokovic"},
+            ]},
+            # The repeated pair makes this event/pair ambiguous by construction.
+            {"round": "SF", "matches": [
+                {"a": "Carlos Alcaraz", "b": "Jannik Sinner"},
+            ]},
+            {"round": "F", "matches": [
+                {"a": "Jannik Sinner", "b": "Carlos Alcaraz"},
+            ]},
+        ],
+    }]
+    index = build_bracket_round_index(brackets)
+
+    # Explicit aliases and orientation both canonicalize to one exact pair.
+    assert unique_bracket_round(
+        index, "363-2026", "Novak Djokovic", "Diego Dedura") == "R32"
+    # Missing id, mismatched id/pair, placeholders, self-pairs and multi-round matches
+    # produce no evidence; callers retain the provider label for the output gate to audit.
+    assert unique_bracket_round(index, None, "Diego Dedura", "Novak Djokovic") is None
+    assert unique_bracket_round(index, float("nan"), "Diego Dedura", "Novak Djokovic") is None
+    assert unique_bracket_round(index, "other", "Diego Dedura", "Novak Djokovic") is None
+    assert unique_bracket_round(index, "363-2026", "Nobody", "Novak Djokovic") is None
+    assert unique_bracket_round(index, "363-2026", "Qualifier 1", "Jannik Sinner") is None
+    assert unique_bracket_round(index, "363-2026", "Jannik Sinner", "Jannik Sinner") is None
+    assert unique_bracket_round(index, "363-2026", "Novak Djokovic", "Jannik Sinner") is None
+    assert unique_bracket_round(index, "363-2026", "Carlos Alcaraz", "Jannik Sinner") is None
 
 
 def test_name_resolution_and_month_fallback():

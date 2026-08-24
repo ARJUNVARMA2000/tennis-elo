@@ -10,13 +10,15 @@ plus a grader that scores them once the actual results arrive.
   data/output/<tour>/track.json    derived scorecard — regenerated every run, mirrored
                                    to the web app like every other artifact.
 
-Three line types in the log:
+Four line types in the log:
   match       one upcoming matchup + P(playerA wins), logged once at first sighting so
               the probability is a genuine pre-result forecast (the model has not yet
               trained on the outcome).
   match_snapshot  an hourly, idempotent pending-match snapshot. The first-sighting record
               remains the grading contract; these snapshots power forecast movement and
               let market comparisons select the model state available at the quote time.
+  match_identity_bridge  append-only provenance for a bracket-proven round correction, so
+              a blocked run's first sighting stays canonical after that bracket ages out.
   tournament  a daily snapshot of an in-progress event's title odds (odds evolve as the
               draw thins, so we keep one snapshot per event per day).
 
@@ -45,6 +47,11 @@ from ..config import (
     SURFACES,
     output_dir,
 )
+from ..data.bracket_rounds import (
+    build_bracket_round_index,
+    player_identity_key,
+    unique_bracket_round,
+)
 from ..data.results import _name_key as nkey
 from ..model.upcoming import enrich_upcoming, load_upcoming
 from ..timing import timed
@@ -55,6 +62,7 @@ JOIN_WINDOW_DAYS = 21          # max gap between forecast and the result it grad
 RECENT_N = 60                  # graded decisions surfaced for the UI table
 PERFORMANCE_N = 10             # genuine first-sighting decisions in a player's scorecard
 MATCH_ID_VERSION = "v2"
+_KNOCKOUT_ROUNDS = frozenset({"R128", "R64", "R32", "R16", "QF", "SF", "F"})
 
 
 # ---------------------------------------------------------------------------
@@ -158,8 +166,147 @@ def _legacy_match_bridges(records: list[dict]) -> dict[str, str]:
     return bridges
 
 
+def _canonical_bracket_match_identity(r: dict, canonical_round: str) -> str:
+    """Build the corrected ID with the same explicit aliases as bracket matching."""
+    a, b = sorted((player_identity_key(r.get("playerA")),
+                   player_identity_key(r.get("playerB"))))
+    event_id = _clean_id(r.get("espnId", r.get("espn_id")))
+    season = _season(r.get("season"), r.get("date"), r.get("as_of"))
+    rnd = re.sub(r"[^A-Z0-9]", "", canonical_round.upper()) or "?"
+    return f"{MATCH_ID_VERSION}|espn:{event_id}|{season}|{rnd}|{a}|{b}"
+
+
+def _bracket_round_bridges(tour: str, records: list[dict]) -> dict[str, str]:
+    """Canonicalize cached ESPN identities only from one exact bracket matchup.
+
+    A failed refresh can append an immutable first-sighting under ESPN's wrong round
+    before the independent deploy gate blocks publication.  The next refresh must keep
+    that forecast, not append a second decision under the corrected round.  Stable event
+    id + exact canonical pair + one knockout bracket round is the complete bridge; missing
+    or ambiguous evidence deliberately leaves the append-only identities separate.
+    """
+    try:
+        index = build_bracket_round_index(
+            _read_json(output_dir(tour) / "brackets.json") or [])
+    except (OSError, TypeError, ValueError):
+        return {}
+
+    bridges: dict[str, str] = {}
+    for rec in records:
+        if rec.get("type") not in ("match", "match_snapshot"):
+            continue
+        event_id = _clean_id(rec.get("espnId", rec.get("espn_id")))
+        canonical_round = unique_bracket_round(
+            index, event_id, rec.get("playerA"), rec.get("playerB"))
+        if canonical_round not in _KNOCKOUT_ROUNDS:
+            continue
+        canonical_id = _canonical_bracket_match_identity(rec, canonical_round)
+        old_id = _match_key(rec)
+        if old_id != canonical_id and _valid_persisted_round_bridge(old_id, canonical_id):
+            bridges[old_id] = canonical_id
+    return bridges
+
+
+def _valid_persisted_round_bridge(source_id: object, target_id: object) -> bool:
+    """A durable bridge may change only one knockout round in one ESPN identity."""
+    if not isinstance(source_id, str) or not isinstance(target_id, str):
+        return False
+    source = source_id.split("|")
+    target = target_id.split("|")
+    if len(source) != 6 or len(target) != 6:
+        return False
+    if source[0] != MATCH_ID_VERSION or target[0] != MATCH_ID_VERSION:
+        return False
+    if not source[1].startswith("espn:") or source[1] == "espn:":
+        return False
+    source_pair = sorted(player_identity_key(name) for name in source[4:])
+    target_pair = sorted(player_identity_key(name) for name in target[4:])
+    same_match = source[:3] == target[:3] and source_pair == target_pair
+    return (
+        same_match
+        and len(set(target_pair)) == 2
+        and all(target_pair)
+        and target[4:] == target_pair
+        and source[3] != target[3]
+        and source[3] in _KNOCKOUT_ROUNDS
+        and target[3] in _KNOCKOUT_ROUNDS
+    )
+
+
+def _persisted_round_bridge_candidates(records: list[dict]) -> dict[str, set[str]]:
+    """Read structurally valid bracket-backed markers without resolving conflicts."""
+    candidates: dict[str, set[str]] = defaultdict(set)
+    for rec in records:
+        if rec.get("type") != "match_identity_bridge":
+            continue
+        if rec.get("bridge_version") != "bracket-round-v1":
+            continue
+        if rec.get("evidence") != "unique_knockout_bracket_round":
+            continue
+        source_id = rec.get("from_match_id")
+        target_id = rec.get("to_match_id")
+        if _valid_persisted_round_bridge(source_id, target_id):
+            candidates[source_id].add(target_id)
+    return dict(candidates)
+
+
+def _persisted_round_bridges(records: list[dict]) -> dict[str, str]:
+    """Consume prior bracket-backed markers, rejecting any conflicting mapping."""
+    candidates = _persisted_round_bridge_candidates(records)
+    return {
+        source_id: next(iter(targets))
+        for source_id, targets in candidates.items()
+        if len(targets) == 1
+    }
+
+
+def _merge_round_bridges(*sources: dict[str, str]) -> dict[str, str]:
+    """Require stored and current bracket evidence to agree when both exist."""
+    candidates: dict[str, set[str]] = defaultdict(set)
+    for source in sources:
+        for source_id, target_id in source.items():
+            candidates[source_id].add(target_id)
+    return {
+        source_id: next(iter(targets))
+        for source_id, targets in candidates.items()
+        if len(targets) == 1
+    }
+
+
+def _reconciled_round_bridges(
+    records: list[dict], current: dict[str, str],
+) -> dict[str, str]:
+    """Resolve durable and current evidence, failing closed on stored corruption."""
+    persisted_candidates = _persisted_round_bridge_candidates(records)
+    conflicts = {
+        source_id for source_id, targets in persisted_candidates.items() if len(targets) != 1
+    }
+    merged = _merge_round_bridges(_persisted_round_bridges(records), current)
+    return {
+        source_id: target_id
+        for source_id, target_id in merged.items()
+        if source_id not in conflicts
+    }
+
+
+def _forecast_match_bridges(tour: str, records: list[dict]) -> dict[str, str]:
+    """Compose pre-ID migration and durable/current bracket reconciliation."""
+    bridges = _legacy_match_bridges(records)
+    current = _bracket_round_bridges(tour, records)
+    bridges.update(_reconciled_round_bridges(records, current))
+    return bridges
+
+
 def _effective_match_id(r: dict, bridges: dict[str, str]) -> str:
-    return bridges.get(_match_key(r), _match_key(r))
+    match_id = _match_key(r)
+    seen: set[str] = set()
+    while match_id in bridges and match_id not in seen:
+        seen.add(match_id)
+        next_id = bridges[match_id]
+        if next_id == match_id:
+            break
+        match_id = next_id
+    return match_id
 
 
 def _event_id_from_match_id(match_id: str) -> str | None:
@@ -167,6 +314,55 @@ def _event_id_from_match_id(match_id: str) -> str | None:
     if not match_id.startswith(prefix):
         return None
     return match_id[len(prefix):].split("|", 1)[0] or None
+
+
+def _round_from_match_id(match_id: str) -> str | None:
+    parts = match_id.split("|", 5)
+    if len(parts) < 4 or parts[0] != MATCH_ID_VERSION:
+        return None
+    return parts[3] or None
+
+
+def _new_identity_bridge_records(
+    tour: str,
+    records: list[dict],
+    current: dict[str, str],
+    accepted: dict[str, str],
+    as_of: str,
+) -> list[dict]:
+    """Persist newly accepted round bridges without rewriting old forecast lines."""
+    source_records: dict[str, dict] = {}
+    for rec in sorted(
+        (r for r in records if r.get("type") in ("match", "match_snapshot")),
+        key=lambda r: str(r.get("as_of") or ""),
+    ):
+        source_records.setdefault(_match_key(rec), rec)
+
+    stored = _persisted_round_bridge_candidates(records)
+    new = []
+    for source_id, target_id in sorted(current.items()):
+        source = source_records.get(source_id)
+        if source is None or accepted.get(source_id) != target_id:
+            continue
+        if target_id in stored.get(source_id, set()):
+            continue
+        new.append({
+            "type": "match_identity_bridge",
+            "bridge_version": "bracket-round-v1",
+            "evidence": "unique_knockout_bracket_round",
+            "as_of": as_of,
+            "tour": tour,
+            "event": source.get("event"),
+            "espnId": _event_id_from_match_id(target_id),
+            "season": _season(source.get("season"), source.get("as_of")),
+            "playerA": source.get("playerA"),
+            "playerB": source.get("playerB"),
+            "from_round": _round_from_match_id(source_id),
+            "round": _round_from_match_id(target_id),
+            "from_match_id": source_id,
+            "to_match_id": target_id,
+        })
+    return new
 
 
 def _tourn_key(r: dict) -> str:
@@ -185,10 +381,10 @@ def _oriented_probability(rec: dict, player_a: object) -> float | None:
         p = float(rec["p"])
     except (KeyError, TypeError, ValueError):
         return None
-    key = nkey(player_a)
-    if key == nkey(rec.get("playerA")):
+    key = player_identity_key(player_a)
+    if key == player_identity_key(rec.get("playerA")):
         return p
-    if key == nkey(rec.get("playerB")):
+    if key == player_identity_key(rec.get("playerB")):
         return 1.0 - p
     return None
 
@@ -197,7 +393,7 @@ def _oriented_components(rec: dict, player_a: object) -> dict | None:
     components = rec.get("components")
     if not isinstance(components, dict):
         return None
-    flip = nkey(player_a) == nkey(rec.get("playerB"))
+    flip = player_identity_key(player_a) == player_identity_key(rec.get("playerB"))
     out = {}
     for name, value in components.items():
         if isinstance(value, (int, float)) and np.isfinite(value):
@@ -213,7 +409,7 @@ def _oriented_evidence(rec: dict, player_a: object) -> dict | None:
     # JSON round-trip is an inexpensive defensive copy for this compact payload and keeps
     # the append-only record immutable while a reversed feed orientation is normalized.
     out = json.loads(json.dumps(evidence))
-    if nkey(player_a) != nkey(rec.get("playerB")):
+    if player_identity_key(player_a) != player_identity_key(rec.get("playerB")):
         return out
     out["playerA"], out["playerB"] = out.get("playerB"), out.get("playerA")
     if isinstance(out.get("probabilityA"), (int, float)):
@@ -358,7 +554,12 @@ def log_forecasts(tour: str, predictor, df: pd.DataFrame,
     # This prevents the first run that learns an espnId from appending a second immutable
     # first-sighting for the same real match.
     probes = [{**base, "type": "match_snapshot"} for base in bases]
-    bridges = _legacy_match_bridges(existing + probes)
+    evidence_records = existing + probes
+    current_round_bridges = _bracket_round_bridges(tour, evidence_records)
+    accepted_round_bridges = _reconciled_round_bridges(
+        evidence_records, current_round_bridges)
+    bridges = _legacy_match_bridges(evidence_records)
+    bridges.update(accepted_round_bridges)
     seen_match = {
         _effective_match_id(r, bridges) for r in existing if r.get("type") == "match"
     }
@@ -367,7 +568,8 @@ def log_forecasts(tour: str, predictor, df: pd.DataFrame,
     }
     seen_tourn = {_tourn_key(r) for r in existing if r.get("type") == "tournament"}
 
-    new: list = []
+    new: list = _new_identity_bridge_records(
+        tour, existing, current_round_bridges, accepted_round_bridges, as_of)
     for base in bases:
         rec = {
             **base,
@@ -412,7 +614,7 @@ def log_forecasts(tour: str, predictor, df: pd.DataFrame,
 def movement_for_upcoming(tour: str, rows: list[dict]) -> dict[str, dict]:
     """Movement summaries keyed by the shared matchup key for enriched upcoming rows."""
     records = _read_log(FORECAST_DIR / f"{tour}.jsonl")
-    bridges = _legacy_match_bridges(records)
+    bridges = _forecast_match_bridges(tour, records)
     history = _history_index(records, bridges)
     out: dict[str, dict] = {}
     for row in rows:
@@ -443,7 +645,8 @@ def _grade_matches(matches: list, df: pd.DataFrame) -> list:
     comp = df[df["completed"]] if "completed" in df else df
     index: dict = defaultdict(list)
     for row in comp.itertuples(index=False):
-        wk, lk = nkey(row.winner_name), nkey(row.loser_name)
+        wk = player_identity_key(row.winner_name)
+        lk = player_identity_key(row.loser_name)
         walkover = getattr(row, "walkover", False)
         walkover = bool(walkover) if not pd.isna(walkover) else False
         index[frozenset((wk, lk))].append({
@@ -457,7 +660,8 @@ def _grade_matches(matches: list, df: pd.DataFrame) -> list:
 
     graded = []
     for r in matches:
-        pair = frozenset((nkey(r["playerA"]), nkey(r["playerB"])))
+        pair = frozenset((player_identity_key(r["playerA"]),
+                          player_identity_key(r["playerB"])))
         cands = index.get(pair)
         if not cands:
             continue                                        # not resolved yet -> pending
@@ -482,7 +686,7 @@ def _grade_matches(matches: list, df: pd.DataFrame) -> list:
             continue
         result = valid[0]
         date, winner = result["date"], result["winner"]
-        a_won = nkey(winner) == nkey(r["playerA"])
+        a_won = player_identity_key(winner) == player_identity_key(r["playerA"])
         p_a = float(r["p"])
         graded.append({
             **r, "date": date.strftime("%Y-%m-%d"), "actualWinner": winner,
@@ -651,7 +855,7 @@ def _drift_block(graded: list, baseline: dict | None,
 def grade(tour: str, df: pd.DataFrame) -> dict:
     """Read the log, score it against `df`'s results, write + return track.json."""
     log = _read_log(FORECAST_DIR / f"{tour}.jsonl")
-    bridges = _legacy_match_bridges(log)
+    bridges = _forecast_match_bridges(tour, log)
     # A pre-v2 first-sighting and the later ID-backed migration row are one decision.
     # Keep the earliest provenance once and recover its registry ID from later evidence.
     first_matches: dict[str, dict] = {}
@@ -659,10 +863,15 @@ def grade(tour: str, df: pd.DataFrame) -> dict:
         (r for r in log if r.get("type") == "match"),
         key=lambda r: str(r.get("as_of") or ""),
     ):
+        original_id = _match_key(rec)
         match_id = _effective_match_id(rec, bridges)
         if match_id in first_matches:
             continue
         normalized = {**rec, "match_id": match_id}
+        if match_id != original_id:
+            canonical_round = _round_from_match_id(match_id)
+            if canonical_round:
+                normalized["round"] = canonical_round
         event_id = _event_id_from_match_id(match_id)
         if event_id and not _clean_id(normalized.get("espnId")):
             normalized["espnId"] = event_id

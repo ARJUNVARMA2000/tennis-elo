@@ -18,6 +18,11 @@ from __future__ import annotations
 import pandas as pd
 
 from ..config import ROUND_ORDER, live_dir
+from ..data.bracket_rounds import (
+    BracketRoundIndex,
+    load_bracket_round_index,
+    unique_bracket_round,
+)
 from ..data.results import _name_key as nkey
 from ..data.results import tier_mults
 from ..data.surface import resolve_level, resolve_surface
@@ -106,7 +111,8 @@ def _surface_best_of(df: pd.DataFrame, event: str, date: str, tour: str) -> tupl
     return surface, int(bo) if bo else 3
 
 
-def enrich_upcoming(predictor, df: pd.DataFrame, up_df: pd.DataFrame | None, tour: str) -> list:
+def enrich_upcoming(predictor, df: pd.DataFrame, up_df: pd.DataFrame | None, tour: str, *,
+                    bracket_index: BracketRoundIndex | None = None) -> list:
     """Resolve, attribute, and price each scheduled matchup.
 
     Returns one dict per predictable matchup::
@@ -121,6 +127,11 @@ def enrich_upcoming(predictor, df: pd.DataFrame, up_df: pd.DataFrame | None, tou
     with timed(tour, "upcoming_enrichment"):
         if up_df is None or up_df.empty:
             return []
+        if bracket_index is None:
+            # ``export_all`` has just generated this artifact before the shared enrichment
+            # seam runs. Loading it here also gives forecast tracking and the schedule board
+            # exactly the same round evidence without threading a second tournament graph.
+            bracket_index = load_bracket_round_index(tour)
         key2name = {nkey(n): n for n in predictor.elo.overall}       # ESPN spelling -> canonical
         out = []
         for r in up_df.itertuples(index=False):
@@ -131,7 +142,12 @@ def enrich_upcoming(predictor, df: pd.DataFrame, up_df: pd.DataFrame | None, tou
             surface, bo = _surface_best_of(df, r.tourney_name, r.tourney_date, tour)
             level = resolve_level(tour, str(r.tourney_name), event_id=event_id)
             tier_k = _tier_context(level, tour)
-            round_order = int(ROUND_ORDER.get(str(r.round), 3))
+            bracket_round = unique_bracket_round(bracket_index, event_id, a, b)
+            round_name = bracket_round if bracket_round is not None else r.round
+            if bracket_round is not None and str(r.round) != bracket_round:
+                print(f"  round-reconcile/{tour}: upcoming {event_id} {a!r} vs {b!r} "
+                      f"{r.round}->{bracket_round}")
+            round_order = int(ROUND_ORDER.get(str(round_name), 3))
             if hasattr(predictor, "prediction_components"):
                 components = predictor.prediction_components(
                     a, b, surface=surface, best_of=bo, event=str(r.tourney_name),
@@ -148,7 +164,7 @@ def enrich_upcoming(predictor, df: pd.DataFrame, up_df: pd.DataFrame | None, tou
                     a, b, surface=surface, best_of=bo, event=str(r.tourney_name),
                     as_of=r.tourney_date, tier_k=tier_k, round_order=round_order)
             out.append({
-                "event": str(r.tourney_name), "date": str(r.tourney_date), "round": r.round,
+                "event": str(r.tourney_name), "date": str(r.tourney_date), "round": round_name,
                 "surface": surface, "best_of": bo, "playerA": a, "playerB": b, "pA": p,
                 "level": level,
                 "espnId": event_id,

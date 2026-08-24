@@ -226,3 +226,9 @@ New lesson → append the entry to the matching topic file and add its lead line
 - An all-generic event name cannot safely seed Wikipedia draw search: require an exact event
   locator, revalidate active cached identity, prevent rejected-current-row retention, and gate the
   raw cache for duplicate sources. See [draws and live events](lessons/draws-and-live-events.md).
+
+## Blocked-deploy state addition (2026-08-23)
+
+- A pre-deploy gate can stop publication after an earlier append-only writer has persisted the bad
+  identity; fix the producer, retain the gate, and bridge the durable identity from exact evidence.
+  See [`lessons/gates-and-health.md`](lessons/gates-and-health.md).

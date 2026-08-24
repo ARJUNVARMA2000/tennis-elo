@@ -63,6 +63,17 @@ def _write_log(records):
             f.write(json.dumps(r) + "\n")
 
 
+def _write_bracket(out, rounds, espn_id="123"):
+    (out / "brackets.json").write_text(json.dumps([{
+        "name": "TestOpen",
+        "espnId": espn_id,
+        "rounds": [
+            {"round": rnd, "matches": [{"a": a, "b": b} for a, b in matches]}
+            for rnd, matches in rounds
+        ],
+    }]), encoding="utf-8")
+
+
 def _match(a, b, p, as_of="2026-06-01", surface="Hard", event="TestOpen", rnd="QF",
            version="test", espn_id=None):
     return {"type": "match", "as_of": as_of, "tour": "atp", "event": event,
@@ -190,6 +201,195 @@ def test_match_identity_and_timeline_are_orientation_safe():
         assert movement["snapshots"] == 2  # first + same-hour snapshot is one observation
         assert movement["timeline"][1]["p"] == 0.34
         assert movement["timeline"][1]["components"]["combiner"] == 0.34
+
+
+def test_bracket_round_bridge_preserves_first_sighting_and_persists():
+    with tempfile.TemporaryDirectory() as d:
+        out = _setup(Path(d))
+        (out / "tournaments.json").write_text("[]", encoding="utf-8")
+        _write_bracket(out, [("R32", [("Alice", "Bob")])])
+
+        first = _match(
+            "Alice", "Bob", 0.55, as_of="2026-06-01T08:00:00+00:00",
+            rnd="R64", espn_id="123",
+        )
+        first["match_id"] = track.match_identity(first)
+        failed_snapshot = {**first, "type": "match_snapshot", "p": 0.57}
+        _write_log([first, failed_snapshot])
+
+        current = {
+            "event": "TestOpen", "espnId": "123", "date": "2026-06-02",
+            "round": "R32", "surface": "Hard", "best_of": 3,
+            "playerA": "Alice", "playerB": "Bob", "pA": 0.61,
+        }
+        empty_results = _results_df([])
+        added = track.log_forecasts(
+            "atp", None, empty_results, None, "2026-06-02T08:00:00+00:00",
+            enriched=[current],
+        )
+        retry = track.log_forecasts(
+            "atp", None, empty_results, None, "2026-06-02T08:00:00+00:00",
+            enriched=[current],
+        )
+        lines = track._read_log(track.FORECAST_DIR / "atp.jsonl")
+        canonical_id = track.match_identity({**current, "season": 2026})
+
+        assert added == 2 and retry == 0  # durable bridge + one new hourly snapshot
+        assert sum(r["type"] == "match" for r in lines) == 1
+        assert sum(r["type"] == "match_snapshot" for r in lines) == 2
+        markers = [r for r in lines if r["type"] == "match_identity_bridge"]
+        assert len(markers) == 1
+        assert markers[0]["from_match_id"] == first["match_id"]
+        assert markers[0]["to_match_id"] == canonical_id
+        assert markers[0]["round"] == "R32"
+
+        # The marker remains authoritative after the live bracket artifact ages out.
+        (out / "brackets.json").write_text("[]", encoding="utf-8")
+        movement = track.movement_for_upcoming("atp", [
+            {**current, "pA": 0.64},
+        ])[track.movement_key(current)]
+        assert movement["first"] == 0.55 and movement["current"] == 0.64
+        assert movement["firstAsOf"] == "2026-06-01T08:00:00+00:00"
+        assert movement["snapshots"] == 2
+        assert sum(point["firstSighting"] for point in movement["timeline"]) == 1
+
+        results = _results_df([("Alice", "Bob", "2026-06-03", "Hard")])
+        results["espn_id"] = "123"
+        results["round"] = "R32"
+        graded = track.grade("atp", results)["matchForecasts"]
+        assert graded["logged"] == 1 and graded["graded"] == 1 and graded["pending"] == 0
+        assert graded["recent"][0]["matchId"] == canonical_id
+        assert graded["recent"][0]["round"] == "R32"
+        assert graded["recent"][0]["forecast"]["first"] == 0.55
+        assert graded["recent"][0]["forecast"]["snapshots"] == 2
+
+
+def test_bracket_round_bridge_canonicalizes_explicit_player_alias_in_id():
+    with tempfile.TemporaryDirectory() as d:
+        out = _setup(Path(d))
+        (out / "tournaments.json").write_text("[]", encoding="utf-8")
+        _write_bracket(out, [("R32", [("Diego Dedura", "Alice")])])
+
+        cached = _match(
+            "Diego Dedura-Palomero", "Alice", 0.6,
+            as_of="2026-06-01T08:00:00+00:00", rnd="R64", espn_id="123",
+        )
+        cached["match_id"] = track.match_identity(cached)
+        _write_log([cached])
+        current = {
+            "event": "TestOpen", "espnId": "123", "date": "2026-06-02",
+            "round": "R32", "surface": "Hard", "best_of": 3,
+            "playerA": "Diego Dedura", "playerB": "Alice", "pA": 0.63,
+        }
+        added = track.log_forecasts(
+            "atp", None, _results_df([]), None, "2026-06-02T08:00:00+00:00",
+            enriched=[current],
+        )
+        lines = track._read_log(track.FORECAST_DIR / "atp.jsonl")
+        canonical_id = track.match_identity({**current, "season": 2026})
+        marker = next(r for r in lines if r["type"] == "match_identity_bridge")
+
+        assert added == 2 and sum(r["type"] == "match" for r in lines) == 1
+        assert marker["to_match_id"] == canonical_id
+        assert "diego dedura palomero" not in marker["to_match_id"]
+        movement = track.movement_for_upcoming("atp", [current])[canonical_id]
+        assert movement["first"] == 0.6 and movement["current"] == 0.63
+
+        results = _results_df([("Diego Dedura", "Alice", "2026-06-03", "Hard")])
+        results["espn_id"] = "123"
+        assert track.grade("atp", results)["matchForecasts"]["graded"] == 1
+
+
+def test_persisted_round_bridge_survives_transitive_legacy_id_chain():
+    with tempfile.TemporaryDirectory() as d:
+        out = _setup(Path(d))
+        (out / "tournaments.json").write_text("[]", encoding="utf-8")
+        _write_bracket(out, [("R32", [("Alice", "Bob")])])
+
+        legacy = _match(
+            "Alice", "Bob", 0.54, as_of="2026-06-01T08:00:00+00:00",
+            event="Sponsor Open", rnd="R64",
+        )
+        identified_snapshot = {
+            **legacy,
+            "type": "match_snapshot",
+            "as_of": "2026-06-02T08:00:00+00:00",
+            "event": "City Open",
+            "espnId": "123",
+            "p": 0.58,
+        }
+        _write_log([legacy, identified_snapshot])
+        current = {
+            "event": "TestOpen", "espnId": "123", "date": "2026-06-03",
+            "round": "R32", "surface": "Hard", "best_of": 3,
+            "playerA": "Alice", "playerB": "Bob", "pA": 0.62,
+        }
+        added = track.log_forecasts(
+            "atp", None, _results_df([]), None, "2026-06-03T08:00:00+00:00",
+            enriched=[current],
+        )
+        lines = track._read_log(track.FORECAST_DIR / "atp.jsonl")
+        marker = next(r for r in lines if r["type"] == "match_identity_bridge")
+        wrong_explicit_id = track.match_identity(identified_snapshot)
+        canonical_id = track.match_identity({**current, "season": 2026})
+        assert added == 2 and sum(r["type"] == "match" for r in lines) == 1
+        assert marker["from_match_id"] == wrong_explicit_id
+        assert marker["to_match_id"] == canonical_id
+
+        (out / "brackets.json").write_text("[]", encoding="utf-8")
+        movement = track.movement_for_upcoming("atp", [current])[canonical_id]
+        assert movement["first"] == 0.54 and movement["snapshots"] == 3
+        results = _results_df([("Alice", "Bob", "2026-06-04", "Hard")])
+        results["espn_id"] = "123"
+        graded = track.grade("atp", results)["matchForecasts"]
+        assert graded["logged"] == 1 and graded["graded"] == 1
+        assert graded["recent"][0]["round"] == "R32"
+
+
+def test_bracket_round_bridge_fails_closed_without_unique_knockout_evidence():
+    with tempfile.TemporaryDirectory() as d:
+        out = _setup(Path(d))
+        missing_id = _match("Alice", "Bob", 0.55, rnd="R64")
+        unmatched = _match("Alice", "Cara", 0.55, rnd="R64", espn_id="123")
+        _write_bracket(out, [("R32", [("Alice", "Bob")])])
+        assert track._bracket_round_bridges("atp", [missing_id, unmatched]) == {}
+
+        cached = _match("Alice", "Bob", 0.55, rnd="R64", espn_id="123")
+        cached["match_id"] = track.match_identity(cached)
+        malformed = {**cached, "match_id": "not-a-match-id"}
+        other_pair = _match("Alice", "Cara", 0.55, rnd="R64", espn_id="123")
+        mismatched = {**cached, "match_id": track.match_identity(other_pair)}
+        assert track._bracket_round_bridges("atp", [malformed, mismatched]) == {}
+
+        # A round-robin meeting plus a knockout rematch cannot identify which meeting
+        # ESPN's poisoned R64 cache row represented, even though the event id is stable.
+        _write_bracket(out, [
+            ("RR", [("Alice", "Bob")]),
+            ("F", [("Alice", "Bob")]),
+        ])
+        assert track._bracket_round_bridges("atp", [cached]) == {}
+
+        # A lone non-knockout occurrence is not eligible either.
+        _write_bracket(out, [("RR", [("Alice", "Bob")])])
+        assert track._bracket_round_bridges("atp", [cached]) == {}
+
+
+def test_conflicting_persisted_round_bridges_fail_closed():
+    cached = _match("Alice", "Bob", 0.55, rnd="R64", espn_id="123")
+    cached["match_id"] = track.match_identity(cached)
+    r32 = track.match_identity({**cached, "match_id": None, "round": "R32"})
+    r16 = track.match_identity({**cached, "match_id": None, "round": "R16"})
+    marker = lambda target: {
+        "type": "match_identity_bridge",
+        "bridge_version": "bracket-round-v1",
+        "evidence": "unique_knockout_bracket_round",
+        "from_match_id": cached["match_id"],
+        "to_match_id": target,
+    }
+    records = [cached, marker(r32), marker(r16)]
+    assert track._persisted_round_bridges(records) == {}
+    assert track._reconciled_round_bridges(
+        records, {cached["match_id"]: r32}) == {}
 
 
 def test_legacy_first_sighting_bridges_to_unique_registry_match():
