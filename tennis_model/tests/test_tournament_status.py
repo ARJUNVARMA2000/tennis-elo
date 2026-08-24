@@ -906,7 +906,7 @@ def test_a_lucky_loser_takes_the_slot_and_plays_the_match(monkeypatch):
     print("ok test_a_lucky_loser_takes_the_slot_and_plays_the_match")
 
 
-def _field_board(monkeypatch, field, withdrawals=None):
+def _field_board(monkeypatch, field, withdrawals=None, matchups=None):
     """An 8-slot live draw P0..P7 against an ESPN field, so the two can disagree."""
     from tennis_model.sim import tournaments as tournament_module
     monkeypatch.setattr(tournament_module, "EVENT_WITHDRAWN_PLAYERS",
@@ -917,7 +917,7 @@ def _field_board(monkeypatch, field, withdrawals=None):
     return project_tournament(
         _PRED, "Test Open", g, "atp", known=set(), top_set=None,
         espn_fields={"Test Open": {"field": field, "eliminated": ["P3"]}},
-        resolve=lambda n: n, matchups=[],
+        resolve=lambda n: n, matchups=matchups or [],
         tournament_draw={"slots": [f"P{i}" for i in range(8)], "bestOf": 3},
         espn_id="421-2026", n_sims=200, seed=1)
 
@@ -934,6 +934,24 @@ def test_a_drawn_player_the_feed_has_dropped_is_reported():
     gone = _field_board(pytest.MonkeyPatch(), [f"P{i}" for i in range(1, 8)] + ["P9"])
     assert gone["drawnNotInField"] == ["P0"], gone["drawnNotInField"]
     print("ok test_a_drawn_player_the_feed_has_dropped_is_reported")
+
+
+def test_a_scheduled_replacement_clears_the_withdrawn_player_before_first_ball():
+    """Winston-Salem 2026: the released draw said Kopriva-Sonego, then ESPN replaced that
+    scheduled card with Herbert-Sonego before a result existed.  The schedule pairing is as
+    specific as the later score: Herbert can only inherit Kopriva's slot if he faces the
+    opponent that slot owed.  Waiting for the result left Kopriva priced on the live board."""
+    field = [f"P{i}" for i in range(1, 8)] + ["P9"]
+    out = _field_board(pytest.MonkeyPatch(), field, matchups=[("P9", "P1")])
+
+    names = {p["name"] for p in out["projection"]}
+    assert "P0" not in names, "the released-draw entrant withdrew before playing"
+    assert "P9" in names, "the uniquely scheduled replacement must inherit the slot"
+    assert out["drawnNotInField"] == [], out["drawnNotInField"]
+    slot = out["bracket"][0]["matches"][0]
+    assert (slot["a"], slot["b"]) == ("P9", "P1"), slot
+    assert slot["winner"] is None, "a scheduled match must remain pending, not become a W/O"
+    print("ok test_a_scheduled_replacement_clears_the_withdrawn_player_before_first_ball")
 
 
 def test_an_explained_withdrawal_is_not_reported_twice():
@@ -1004,6 +1022,26 @@ def test_derive_refuses_an_uncorroborated_newcomer():
     derived, unresolved = _derive_withdrawals(_D8, field, [_res("P2", "P3")])
     assert derived == {} and unresolved == ["P0"], (derived, unresolved)
     print("ok test_derive_refuses_an_uncorroborated_newcomer")
+
+
+def test_derive_refuses_a_newcomer_scheduled_outside_the_vacated_slot():
+    """A newcomer appearing on some other live card is not evidence they replaced P0."""
+    from tennis_model.sim.tournaments import _derive_withdrawals
+    field = {f"P{i}" for i in range(1, 8)} | {"P9"}
+    derived, unresolved = _derive_withdrawals(
+        _D8, field, [_res("P2", "P3")], matchups=[("P9", "P2")])
+    assert derived == {} and unresolved == ["P0"], (derived, unresolved)
+    print("ok test_derive_refuses_a_newcomer_scheduled_outside_the_vacated_slot")
+
+
+def test_derive_refuses_ambiguous_scheduled_replacements():
+    """Two newcomers both paired with the owed opponent is contradictory feed evidence."""
+    from tennis_model.sim.tournaments import _derive_withdrawals
+    field = {f"P{i}" for i in range(1, 8)} | {"P9", "P10"}
+    derived, unresolved = _derive_withdrawals(
+        _D8, field, [], matchups=[("P9", "P1"), ("P10", "P1")])
+    assert derived == {} and unresolved == ["P0"], (derived, unresolved)
+    print("ok test_derive_refuses_ambiguous_scheduled_replacements")
 
 
 def test_derive_calls_a_walkover_only_when_nobody_entered():

@@ -616,7 +616,35 @@ def _slot_result_joins(slots: list, results: list, pos: int, player: str) -> boo
     return False
 
 
-def _derive_withdrawals(slots: list, field: set, results: list) -> tuple[dict, list]:
+def _slot_matchup_joins(slots: list, results: list, matchups: list,
+                        pos: int, player: str) -> bool:
+    """Would ``player`` inherit a matchup ESPN currently schedules for slot ``pos``?
+
+    This is the pre-match mirror of :func:`_slot_result_joins`.  Replacing the released-draw
+    entrant and folding the results already played tells us which opponent that slot owes
+    now; ESPN pairing the newcomer with exactly that opponent is positive evidence that the
+    newcomer took the slot.  A mere appearance elsewhere in the event is not enough.
+    """
+    scheduled = {
+        frozenset((_name_key(a), _name_key(b)))
+        for a, b in (matchups or [])
+        if a and b
+    }
+    if not scheduled:
+        return False
+    trial = list(slots)
+    trial[pos] = player
+    for rnd in bracket_rounds(trial, results):
+        for m in rnd["matches"]:
+            a, b = m.get("a"), m.get("b")
+            if player in (a, b) and a and b and m.get("winner") is None:
+                if frozenset((_name_key(a), _name_key(b))) in scheduled:
+                    return True
+    return False
+
+
+def _derive_withdrawals(slots: list, field: set, results: list,
+                        matchups: list | None = None) -> tuple[dict, list]:
     """Infer who left a live draw without losing -> ``({player: replacement or None}, unresolved)``.
 
     Eliminations come from loser rows, so a withdrawal is invisible to every ordinary signal;
@@ -625,10 +653,11 @@ def _derive_withdrawals(slots: list, field: set, results: list) -> tuple[dict, l
     differently looks identical — so nobody is removed here without positive evidence of what
     replaced them:
 
-      * someone in the feed's field who is absent from the draw, and who plays a recorded
-        match from the vacated slot (:func:`_slot_result_joins`). Note this is right under
-        BOTH readings: a genuine lucky loser belongs in that slot, and a spelling split means
-        the feed's version is the one the results already use.
+      * someone in the feed's field who is absent from the draw, and who either plays a
+        recorded match from the vacated slot (:func:`_slot_result_joins`) or is scheduled
+        against the opponent that slot owes (:func:`_slot_matchup_joins`). Note this is right
+        under BOTH readings: a genuine lucky loser belongs in that slot, and a spelling split
+        means the feed's version is the one ESPN already uses.
       * or, when the field brought in nobody at all, a walkover — the opponent was awarded
         the match and no replacement was ever admitted.
 
@@ -651,7 +680,13 @@ def _derive_withdrawals(slots: list, field: set, results: list) -> tuple[dict, l
     for gone in absent:
         pos = slots.index(gone)
         taken = set(derived.values())
-        hits = [r for r in extra if r not in taken and _slot_result_joins(slots, results, pos, r)]
+        hits = [
+            r for r in extra
+            if r not in taken and (
+                _slot_result_joins(slots, results, pos, r)
+                or _slot_matchup_joins(slots, results, matchups or [], pos, r)
+            )
+        ]
         if len(hits) == 1:
             derived[gone] = hits[0]
         else:
@@ -781,7 +816,8 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
                      if c in main.columns]
             derived, unresolved_absent = _derive_withdrawals(
                 resolved_draw_slots, {resolve(n) for n in ef.get("field", [])},
-                main[rcols].to_dict("records") if not main.empty else [])
+                main[rcols].to_dict("records") if not main.empty else [],
+                matchups=matchups or [])
             for gone, repl in derived.items():
                 if gone not in withdrawals:
                     print(f"  tournaments/{tour}: {name!r} derived withdrawal {gone!r}"
