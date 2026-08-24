@@ -139,17 +139,23 @@ PYTHONPATH=src uv run --with-requirements requirements.txt python -m tennis_mode
 
 # data-health sentinel — checks contracted source coverage/freshness AND the
 # produced JSON the web reads (counts, tournaments, matches, predictions make sense).
-# Writes data/output/health.json; --strict exits non-zero on any problem.
+# Writes data/output/health.json; --strict exits non-zero on any error/warning finding.
 PYTHONPATH=src uv run --with-requirements requirements.txt python -m tennis_model.data.health --strict
 ```
 
-Every refresh run — daily full and hourly quick — invokes this without `--strict`, then reads
-`health.json` and, on any problem, opens (or comments on, and later auto-closes) a single
-**`data-health` GitHub issue** listing the exact problems plus a ready-to-paste prompt
-for a fresh session — and reds the run so GitHub also emails the owner. Quick runs red
-only when they open the issue; while it stands they stay green, commenting only when the
-problem set changes (`problems_changed`), so a standing failure alerts once, not hourly. `output_problems()` in `data/health.py` holds the
-produced-output invariants; thresholds are the `HEALTH_*` constants in `config.py`.
+Every refresh run — daily full and hourly quick — invokes this without `--strict`. The
+report carries versioned `health-finding-v1` records: a stable code/fingerprint identifies
+the invariant and affected entity, while severity, evidence, and human wording can change
+without creating a new incident. Errors and warnings each own an independently recoverable
+**`data-health` GitHub issue**; informational findings remain visible on `/health` without
+alarming. A recurrence reopens its original issue, evidence revisions update that issue,
+and an authoritative sentinel recovery closes only the finding that disappeared. A partial
+pre-deploy gate report may open or update incidents but cannot close findings it did not
+observe. Quick runs red only for a new or
+recurrent finding, so standing incidents do not alert hourly; full runs remain the daily
+heartbeat. `output_findings()` in `data/health.py` holds the produced-output invariants and
+`output_problems()` is its rollout compatibility wrapper. Thresholds are the `HEALTH_*`
+constants in `config.py`.
 A separate daily `watchdog.yml` workflow guards the pipeline's own liveness: if
 `refresh.yml` has no successful run in 26h, it opens a `watchdog` issue and reds itself.
 

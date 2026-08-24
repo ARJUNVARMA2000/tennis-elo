@@ -81,17 +81,62 @@ _EVENT_MARKERS = ("tier did not resolve", "level vocabulary")
 _TOUR_PREFIX = re.compile(r"^([a-z]+):")
 _COVERAGE_EVENT = re.compile(
     r"begun tournament (['\"])(.+?)\1 \(coverage key ([^)]+)\) is missing from tournaments\.json")
+_STRUCTURED_WIKI_CODES = frozenset({
+    "output.tournament.tier_unresolved",
+    "output.tournament.level_invalid",
+    "output.tournament.level_wrong_tour",
+})
+_STRUCTURED_COVERAGE_CODES = frozenset({"output.event_coverage.missing_card"})
+
+
+def _finding_evidence(finding: dict) -> list[dict]:
+    """Flatten coalesced finding evidence without depending on its display message."""
+    evidence = finding.get("evidence")
+    if not isinstance(evidence, dict):
+        return []
+    occurrences = evidence.get("occurrences")
+    if isinstance(occurrences, list):
+        return [item for item in occurrences if isinstance(item, dict)]
+    return [evidence]
 
 
 def questions_from_health(report: dict) -> list[Question]:
     """Open event identities, read from a health.json report.
 
-    The gate already names every event it could not resolve; this just turns those problem
-    strings back into structured questions. Cross-tour problems are attached to the first
-    tour's block (see health.check_all), so the tour is read from the problem string's own
-    ``"{tour}: "`` prefix and only falls back to the block it was filed under."""
+    New reports carry typed evidence, which is the canonical input. The prose parser remains
+    as a rollout fallback for cached pre-schema reports and deliberately deduplicates against
+    structured questions. Cross-tour legacy problems are attached to the first tour's block,
+    so their tour is read from the problem string's own prefix."""
     out: list[Question] = []
     seen: set = set()
+
+    for finding in report.get("findings") or []:
+        if not isinstance(finding, dict):
+            continue
+        code = finding.get("code")
+        tour = finding.get("tour")
+        if tour not in LEVEL_VOCAB:
+            continue
+        context = finding.get("message") if isinstance(finding.get("message"), str) else code
+        for evidence in _finding_evidence(finding):
+            if code in _STRUCTURED_WIKI_CODES:
+                name = evidence.get("name")
+                if not isinstance(name, str) or not name.strip():
+                    continue
+                q = Question(kind="wiki_title", tour=tour, subject=(name,), context=context)
+            elif code in _STRUCTURED_COVERAGE_CODES:
+                name, coverage_key = evidence.get("name"), evidence.get("coverageKey")
+                if not all(isinstance(value, str) and value.strip()
+                           for value in (name, coverage_key)):
+                    continue
+                kind = "missing_event" if coverage_key.startswith("espn:") else "event_identity"
+                q = Question(kind=kind, tour=tour, subject=(name, coverage_key), context=context)
+            else:
+                continue
+            if q.key not in seen:
+                seen.add(q.key)
+                out.append(q)
+
     for block_tour, block in (report.get("tours") or {}).items():
         problems = list(block.get("problems") or [])
         problems += list((block.get("output") or {}).get("problems") or [])

@@ -12,6 +12,9 @@ export type CheckRow = {
   date: string | null;
   ok: boolean;
   note: string | null; // over-limit but deliberately not alarmed (shadowed redundancy)
+  /** Why a passing row carries a note. Missing stays backward-compatible with the
+      pre-schema report, where every note meant degraded-but-covered. */
+  noteLevel?: "info" | "degraded" | null;
   problem: string | null;
 };
 
@@ -59,14 +62,18 @@ export const TONE_COLOR: Record<Tone, string> = {
 
 export const REPO = "ARJUNVARMA2000/tennis-elo";
 
-/** A failing row is red; a passing row carrying a note (e.g. a frozen-but-shadowed
-    source) is amber; a clean pass is green. */
-export function checkTone(row: Pick<CheckRow, "ok" | "note">): Tone {
-  return !row.ok ? "fail" : row.note ? "warn" : "ok";
+/** A failing row is red; degraded-but-covered is amber; purely informational notes
+    stay visible without making the system look unhealthy. */
+export function checkTone(row: Pick<CheckRow, "ok" | "note" | "noteLevel">): Tone {
+  if (!row.ok) return "fail";
+  if (!row.note) return "ok";
+  return row.noteLevel === "info" ? "muted" : "warn";
 }
 
-export function checkStatusLabel(row: Pick<CheckRow, "ok" | "note">): string {
-  return !row.ok ? "fail" : row.note ? "covered" : "ok";
+export function checkStatusLabel(row: Pick<CheckRow, "ok" | "note" | "noteLevel">): string {
+  if (!row.ok) return "fail";
+  if (!row.note) return "ok";
+  return row.noteLevel === "info" ? "info" : "covered";
 }
 
 export function driftTone(status: Drift["status"] | undefined): Tone {
@@ -85,7 +92,10 @@ export function driftLabel(d: Drift | undefined): string {
 export function overall(report: HealthReport): { tone: Tone; problems: number; noted: number } {
   const tours = Object.values(report.tours);
   const problems = tours.reduce((n, t) => n + t.problems.length + t.output.problems.length, 0);
-  const noted = tours.reduce((n, t) => n + t.checks.filter((c) => c.ok && c.note).length, 0);
+  const noted = tours.reduce(
+    (n, t) => n + t.checks.filter((c) => c.ok && c.note && c.noteLevel !== "info").length,
+    0,
+  );
   return { tone: !report.ok ? "fail" : noted ? "warn" : "ok", problems, noted };
 }
 

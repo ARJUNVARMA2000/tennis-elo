@@ -93,6 +93,48 @@ def test_coverage_failures_become_contained_event_search_questions():
     ]
 
 
+def test_structured_health_evidence_does_not_reverse_parse_mutable_prose():
+    report = {
+        "findings": [
+            {
+                "code": "output.tournament.tier_unresolved",
+                "tour": "wta",
+                "evidence": {"name": "Some WTA Event", "level": "WTA Tour"},
+                "message": "This wording contains none of the historical parser markers.",
+            },
+            {
+                "code": "output.event_coverage.missing_card",
+                "tour": "atp",
+                "evidence": {
+                    "name": "Odlum Brown VanOpen",
+                    "coverageKey": "espn:875-2026",
+                },
+                "message": "Presentation text may change independently of automation.",
+            },
+        ],
+        "tours": {},
+    }
+
+    assert [(q.kind, q.tour, q.subject) for q in ap.questions_from_health(report)] == [
+        ("wiki_title", "wta", ("Some WTA Event",)),
+        ("missing_event", "atp", ("Odlum Brown VanOpen", "espn:875-2026")),
+    ]
+
+
+def test_structured_and_legacy_health_paths_deduplicate_during_rollout():
+    problem = "wta: upcoming tournament 'Some WTA Event' tier did not resolve (shows 'WTA Tour')"
+    report = {
+        "findings": [{
+            "code": "output.tournament.tier_unresolved",
+            "tour": "wta",
+            "evidence": {"name": "Some WTA Event"},
+            "message": problem,
+        }],
+        "tours": {"atp": {"output": {"problems": [problem]}}},
+    }
+    assert len(ap.questions_from_health(report)) == 1
+
+
 def test_event_search_answer_cannot_change_the_asked_coverage_identity():
     q = Question(kind="missing_event", tour="wta",
                  subject=("Odlum Brown VanOpen", "espn:875-2026"), context="missing")

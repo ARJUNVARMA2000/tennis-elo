@@ -58,6 +58,7 @@ def _healthy_bracket() -> dict:
     tournaments entry: rounds halve, winners feed forward, champion agrees, probs in range."""
     return {
         "name": "Mini Open", "surface": "Hard", "level": "ATP 250", "bestOf": 3,
+        "espnId": "2-2026",
         "start": "2026-07-01", "end": "2026-07-06", "status": "completed",
         "drawSize": 4, "bracketSize": 4, "champion": "A", "runnerUp": "C",
         "drawSource": "wikipedia", "drawSourceId": "Mini Open draw",
@@ -334,6 +335,9 @@ def test_espn_acquisition_receipt_surfaces_same_run_transport_state():
     row = next(r for r in health.source_checks("atp", partial, NOW)
                if r["key"] == "espn_acquisition")
     assert row["ok"] and "27 of 28" in row["note"]
+    partial_finding = next(f for f in health.source_findings("atp", partial, NOW)
+                           if f.code == "source.espn.partial_query_failure")
+    assert partial_finding.severity == "warning"
 
     failed = _h(); failed["espn_acquisition"] = _espn_receipt(
         "total_transport_failure", failed=28, overlay="retained_last_good")
@@ -391,6 +395,8 @@ def test_espn_receipt_missing_is_rollout_note_but_malformed_is_actionable():
     row = next(r for r in health.source_checks("atp", missing, NOW)
                if r["key"] == "espn_acquisition")
     assert row["ok"] and "legacy cache" in row["note"]
+    assert next(f for f in health.source_findings("atp", missing, NOW)
+                if f.code == "source.espn.receipt_missing").severity == "info"
     malformed = _h(); malformed["espn_acquisition"] = {"status": "malformed"}
     assert health.problems("atp", malformed, NOW) == [
         "atp: ESPN scoreboard acquisition receipt is malformed/incompatible"]
@@ -618,12 +624,15 @@ def test_source_checks_structure_and_consistency():
             assert [r["key"] for r in rows] == ["results", "future_dates", "stats", "coverage", "fresh", "fresh_future", "charting"]
             for r in rows:
                 assert set(r) == {"key", "label", "value", "limit", "unit", "date",
-                                  "ok", "note", "problem"}
+                                  "ok", "note", "noteLevel", "problem"}
                 assert r["ok"] == (r["problem"] is None)
             assert health.problems("atp", h, now) == [r["problem"] for r in rows if r["problem"]]
-    # the shadowed fresh overlay renders as a NOTE (page shows amber), never a problem
+    # The shadowed fresh overlay is visible context, never degradation or a problem.
     rows = {r["key"]: r for r in health.source_checks("atp", _h(fresh_age=20), july)}
-    assert rows["fresh"]["ok"] and "shadowed" in rows["fresh"]["note"]
+    assert (rows["fresh"]["ok"] and "shadowed" in rows["fresh"]["note"]
+            and rows["fresh"]["noteLevel"] == "info")
+    assert next(f for f in health.source_findings("atp", _h(fresh_age=20), july)
+                if f.code == "source.fresh_overlay.shadowed").severity == "info"
     live = {r["key"]: r for r in health.source_checks("atp", _h(fresh_age=20, stats_age=17), july)}
     assert not live["fresh"]["ok"] and live["fresh"]["note"] is None
     print("ok test_source_checks_structure_and_consistency")
@@ -852,9 +861,17 @@ def test_gate_writes_an_atomic_structured_report_without_touching_sentinel():
     finally:
         health.read_outputs, health.OUTPUT_DIR, health.TOURS, sys.argv = orig
     assert rc == 1 and report["schema"] == "predeploy-gate-v1" and not report["ok"]
-    assert report["blocking"] == [{"scope": "atp", "problem": "atp: tournaments.json missing"}]
+    assert [(item["scope"], item["problem"], item["finding"]["code"])
+            for item in report["blocking"]] == [
+                ("atp", "atp: tournaments.json missing", "output.artifact.required_missing")]
+    assert report["findingSchema"] == health.FINDING_SCHEMA
+    assert report["findingSnapshot"] == "partial"
+    assert report["findingsOk"] is False
+    assert [finding["code"] for finding in report["findings"] if finding["severity"] == "error"] == [
+        "output.artifact.required_missing"]
     assert untouched == '{"sentinel":true}'
     assert rc_clean == 0 and recovered["ok"] is True and recovered["blocking"] == []
+    assert recovered["findingsOk"] is False, "gate advisories remain reporter-actionable warnings"
 
 
 def test_gate_report_can_never_alias_health_json():
@@ -1438,6 +1455,7 @@ def test_output_bracket_early_draw_with_qualifiers_is_clean():
     d = _healthy_data()
     d["brackets"] = [{
         "name": "Gstaad", "surface": "Clay", "level": "ATP 250", "bestOf": 3,
+        "espnId": "7-2026",
         "start": "2026-07-14", "end": "2026-07-20", "status": "upcoming",
         "drawSize": 28, "bracketSize": 32, "champion": None, "runnerUp": None,
         "drawSource": "wikipedia", "drawSourceId": "Gstaad draw",
@@ -2085,13 +2103,14 @@ def test_cross_tour_surface_split_is_flagged():
     disagree, one is provably wrong — and no per-tour check can see it. On 2026-07-27 BOTH
     tours shipped the DC Open as Grass in the hard-court swing and every invariant passed."""
     def _card(surface, **over):
-        c = {"name": "Mubadala DC Open", "surface": surface, "status": "live",
+        c = {"name": "Mubadala DC Open", "espnId": "dc-2026",
+             "surface": surface, "status": "live",
              "start": "2026-07-27", "end": "2026-08-03"}
         c.update(over)
         return c
 
-    outs = {"atp": _oc(data={"tournaments": [_card("Hard")]}),
-            "wta": _oc(data={"tournaments": [_card("Grass")]})}
+    outs = {"atp": _oc(data={"tournaments": [_card("Hard", name="Mubadala DC Open")]}),
+            "wta": _oc(data={"tournaments": [_card("Grass", name="DC Open by WTA")]})}
     probs = health.cross_tour_problems(outs)
     assert any("surface split across tours" in p for p in probs), probs
     assert not health._gate_blocks(probs[0])          # advisory: which side is wrong is unknown
@@ -2099,11 +2118,20 @@ def test_cross_tour_surface_split_is_flagged():
     same = {"atp": _oc(data={"tournaments": [_card("Hard")]}),
             "wta": _oc(data={"tournaments": [_card("Hard")]})}
     assert health.cross_tour_problems(same) == []
-    # same NAME in different weeks is a different event — never compared
+    # A shared edition ID outranks missing/wrong date metadata; otherwise the bad date can
+    # hide the surface disagreement it belongs to.
     apart = {"atp": _oc(data={"tournaments": [_card("Hard")]}),
              "wta": _oc(data={"tournaments": [_card("Clay", start="2026-10-05",
                                                      end="2026-10-11")]})}
-    assert health.cross_tour_problems(apart) == []
+    assert any("surface split across tours" in p for p in health.cross_tour_problems(apart))
+    # Same display name with distinct registry IDs is never joined.
+    distinct = {"atp": _oc(data={"tournaments": [_card("Hard", espnId="atp-dc")]}),
+                "wta": _oc(data={"tournaments": [_card("Clay", espnId="wta-dc")]})}
+    assert health.cross_tour_problems(distinct) == []
+    # Id-less cards are skipped rather than guessed from sponsor prose.
+    idless = {"atp": _oc(data={"tournaments": [_card("Hard", espnId=None)]}),
+              "wta": _oc(data={"tournaments": [_card("Clay", espnId=None)]})}
+    assert health.cross_tour_problems(idless) == []
     # a one-sided board (no counterpart) is silent
     assert health.cross_tour_problems({"atp": _oc(data={"tournaments": [_card("Hard")]})}) == []
     print("ok test_cross_tour_surface_split_is_flagged")
@@ -2174,8 +2202,7 @@ def test_output_forecast_log_stale_flagged_advisory():
 
 
 def test_main_reports_problems_changed():
-    """The hourly report step dedups on problems_changed: True on the first failure (no
-    prev health.json), False while the problem set is identical, True when it shifts."""
+    """Incident change detection follows identity, while evidence updates stay on one issue."""
     from datetime import UTC, datetime
     today = pd.Timestamp(datetime.now(UTC).date())
     stale = pd.DataFrame({"date": pd.to_datetime(["2026-01-01"]),
@@ -2200,7 +2227,7 @@ def test_main_reports_problems_changed():
             first = json.loads((Path(d) / "health.json").read_text())
             health.main()
             second = json.loads((Path(d) / "health.json").read_text())
-            health.load_matches = lambda tour: staler         # problem strings shift
+            health.load_matches = lambda tour: staler         # evidence/prose shift, identity stays
             health.main()
             third = json.loads((Path(d) / "health.json").read_text())
             mirrored = json.loads((Path(d) / "web" / "health.json").read_text())
@@ -2210,7 +2237,11 @@ def test_main_reports_problems_changed():
          health.TOURS, sys.argv) = orig
     assert first["ok"] is False and first["problems_changed"] is True
     assert second["problems_changed"] is False
-    assert third["problems_changed"] is True
+    assert third["problems_changed"] is False
+    assert third["findings_changed"] is False
+    assert third["findingTransitions"]["activated"] == []
+    assert third["findingTransitions"]["resolved"] == []
+    assert third["findingTransitions"]["updated"], "changed age evidence was not surfaced"
     # the /health page's copy is the same report, mirrored on every sentinel run
     assert mirrored == third
     print("ok test_main_reports_problems_changed")

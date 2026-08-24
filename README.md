@@ -176,16 +176,17 @@ The workflow is deliberately failure-aware:
 - **Validated, atomic acquisition:** schema or payload failures do not overwrite the last good
   source file. A failed full download does not discard usable data or prevent a retrain; it is
   escalated after the best-effort deploy so the failure remains visible.
-- **Pre-deploy integrity gate:** `output_problems()` blocks internally inconsistent artifacts before
+- **Pre-deploy integrity gate:** typed `output_findings()` block internally inconsistent artifacts before
   Firebase sees them—missing JSON, impossible draw geometry, placeholder identities, incoherent
-  probabilities, stale models, or broken cross-file contracts leave the previous good deploy live.
+  probabilities, or broken cross-file contracts leave the previous good deploy live.
 - **Post-deploy serving gate:** the live verifier checks every route, canonical and crawl metadata,
   cache policy, MIME types, trailing-slash and 404 behavior, the exact freshly generated health
   stamp, event coverage, shard generations, and page-level UI contracts.
-- **Actionable monitoring:** data and serving failures open one deduplicated GitHub issue per failure
-  class, suppress repeated hourly alerts, leave a daily full-run heartbeat, and close automatically
-  on recovery. A separate watchdog covers the failure mode where the refresh workflow itself stops
-  running.
+- **Actionable monitoring:** every actionable data finding has a stable fingerprint and its own
+  independently recoverable GitHub issue—including findings that block before deploy. Serving and
+  pipeline failures retain their mode-keyed incident owners. Standing failures suppress repeated
+  hourly alerts, leave a daily full-run heartbeat, and close automatically on recovery. A separate
+  watchdog covers the failure mode where the refresh workflow itself stops running.
 - **Recoverable state:** data and trained artifacts are cached after every run, including late red
   runs; a rolling weekly release snapshot can bootstrap the historical archive if the cache or an
   upstream disappears.

@@ -136,19 +136,27 @@ stage_outcome() {
 }
 
 refresh_report() {
-  local key outcome name failures="" missing="" required owned=0 state=healthy
+  local key outcome name failures="" missing="" required owned=0 gate_owned=0 state=healthy
   key=$(run_key)
 
   # First name actual roots. Downstream skips after a known root are noise, not more causes.
   while IFS='=' read -r name outcome; do
     case "$name" in
-      verifydeploy|reportdata|reportdeploy) continue ;;
+      gate|verifydeploy|reportdata|reportdeploy) continue ;;
       failpersist|faildownload|reportpipeline) continue ;;
     esac
     case "$outcome" in
       failure|cancelled) failures="${failures}- ${name}: ${outcome}\n" ;;
     esac
   done <<< "${STAGE_OUTCOMES:-}"
+
+  outcome=$(stage_outcome gate)
+  if [ "$outcome" = "failure" ] || [ "$outcome" = "cancelled" ]; then
+    case "$(stage_outcome reportdata):${DATA_REPRESENTED:-}" in
+      success:true|failure:true) owned=1; gate_owned=1 ;;
+      *) failures="${failures}- gate: $outcome\n" ;;
+    esac
+  fi
 
   if [ "$(stage_outcome reportdata)" = "failure" ]; then
     if [ "${DATA_REPRESENTED:-}" = "true" ]; then
@@ -166,17 +174,32 @@ refresh_report() {
     fi
   fi
 
-  required="checkout scope setup_python install_python restore_data bootstrap mode gate health setup_node restore_next build deploy verifydeploy reportdata reportdeploy savecache"
-  case "$key" in
-    full) required="$required download retrain persist snapshot" ;;
-    quick-data) required="$required quick" ;;
-    quick-web) required="$required mirror" ;;
-    workflow) failures="${failures}- mode/scope: unavailable or invalid\n" ;;
-  esac
+  if [ "$gate_owned" = "1" ]; then
+    # A typed gate incident deliberately stops every deploy-side stage. The specialist
+    # reporter owns that root; only stages that must have run before/after it are required.
+    required="checkout scope setup_python install_python restore_data bootstrap mode gate reportdata reportdeploy savecache"
+    case "$key" in
+      full) required="$required download retrain" ;;
+      quick-data) required="$required quick" ;;
+      quick-web) ;;
+      workflow) failures="${failures}- mode/scope: unavailable or invalid\n" ;;
+    esac
+  else
+    required="checkout scope setup_python install_python restore_data bootstrap mode gate health setup_node restore_next build deploy verifydeploy reportdata reportdeploy savecache"
+    case "$key" in
+      full) required="$required download retrain persist snapshot" ;;
+      quick-data) required="$required quick" ;;
+      quick-web) required="$required mirror" ;;
+      workflow) failures="${failures}- mode/scope: unavailable or invalid\n" ;;
+    esac
+  fi
 
   if [ -z "$failures" ]; then
     for name in $required; do
       outcome=$(stage_outcome "$name")
+      if [ "$name" = "gate" ] && [ "$outcome" = "failure" ] && [ "$gate_owned" = "1" ]; then
+        continue
+      fi
       case "$name:$outcome" in
         verifydeploy:success|verifydeploy:failure|reportdata:success|reportdata:failure|reportdeploy:success|reportdeploy:failure) ;;
         *:success) ;;
@@ -187,7 +210,15 @@ refresh_report() {
   failures="${failures}${missing}"
 
   if [ -z "$failures" ]; then
-    [ "$owned" = "1" ] && state=owned
+    if [ "$owned" = "1" ]; then
+      # A specialist-owned red run proves only that its current root is represented. In
+      # particular, a blocking gate skips build/deploy/snapshot, so it cannot prove that an
+      # older mode-keyed pipeline incident in one of those stages recovered. Leave that
+      # generic thread untouched until an actually clean run executes the whole required path.
+      echo "pipeline failure is owned by a specialist health issue ($key)"
+      write_result true owned
+      return 0
+    fi
     if reconcile "$key" healthy ""; then
       write_result true "$state"
       return 0

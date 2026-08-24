@@ -133,9 +133,13 @@ function TourPanel({ tour, t, now }: { tour: string; t: TourReport; now: number 
         <SourceChecks t={t} />
       </div>
 
-      {/* over-limit-but-covered context, spelled out (the amber rows above) */}
+      {/* Source context, spelled out with the same degraded/info tone as its row. */}
       {t.checks.filter((c) => c.ok && c.note).map((c) => (
-        <div key={c.key} className="mono mt-3 text-[11px] leading-relaxed text-[var(--color-champ)]">
+        <div
+          key={c.key}
+          className="mono mt-3 text-[11px] leading-relaxed"
+          style={{ color: TONE_COLOR[checkTone(c)] }}
+        >
           {c.label}: {c.note}
         </div>
       ))}

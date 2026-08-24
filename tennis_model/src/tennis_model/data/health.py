@@ -1,7 +1,6 @@
-"""Data-health sentinel: fail loudly when the pipeline quietly stops making sense.
+"""Data-health sentinel: stable machine findings for quiet pipeline failures.
 
-Two layers, both surfaced in data/output/health.json and both reddening the daily
-build under --strict:
+Two layers are surfaced in data/output/health.json and red the daily build under --strict:
   * source freshness (tour_health/problems) — a scraper silently froze and the newest
     match/serve-stats row stopped advancing. The TML GitHub freeze of Jan 2026 went
     unnoticed for months precisely because every downloader failure was silent.
@@ -9,12 +8,12 @@ build under --strict:
     (counts, tournaments, matches, predictions) is missing, stale, or internally
     inconsistent even though the sources looked fine.
 
-The workflow runs this without --strict on EVERY run — daily full and hourly quick —
-(always writes health.json, exit 0) and a follow-up step reads health.json to open/close
-a `data-health` GitHub issue and red the run. Quick runs red only when they OPEN the
-issue; while it stands they stay green, commenting only when the problem set changed
-(problems_changed), so a standing failure alerts once, not hourly. --issue-body prints
-that issue's Markdown; --strict is kept for local use.
+Every invariant emits ``health-finding-v1``: code/scope/tour/entity define a stable
+fingerprint, while severity/evidence/message define its mutable revision. The workflow
+runs this without --strict on every daily/full and hourly/quick run, then reconciles one
+durable GitHub issue per actionable fingerprint. Quick runs red only for onset/recurrence;
+standing findings stay green and independently close on recovery. Info findings remain
+visible without alarming. Legacy prose lists and --issue-body remain during migration.
 
 --gate is the PRE-deploy guard the workflow runs before publishing: it fails (exit 1) only
 on produced-output integrity problems (not source freshness), so an internally-inconsistent
@@ -22,7 +21,8 @@ build (e.g. impossible reach odds, a live event naming a champion) can never rea
 a failure keeps the last good deploy live. It never writes health.json.
 
 Run:  PYTHONPATH=src python -m tennis_model.data.health
-      [--strict | --issue-body | --gate [--gate-report PATH]]
+      [--strict | --issue-body | --findings-json | --finding-body
+       | --gate [--gate-report PATH]]
 """
 
 from __future__ import annotations
@@ -33,11 +33,14 @@ import hashlib
 import itertools
 import json
 import os
+import re
 import shutil
 import urllib.parse
 from collections import Counter
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Literal
 
 import pandas as pd
 
@@ -79,6 +82,109 @@ from .charting import _GENDER, CHARTING_DIR
 from .names import name_key
 from .results import load_matches
 from .surface import LEVEL_VOCAB
+
+FINDING_SCHEMA = "health-finding-v1"
+FINDING_ISSUE_BODY_MAX_CHARS = 60_000
+_FINDING_CODE_RE = re.compile(r"^(source|output|cross)(?:\.[a-z][a-z0-9_]*){2,}$")
+_FINDING_SEVERITIES = frozenset({"error", "warning", "info"})
+_FINDING_SCOPES = frozenset({"source", "output", "cross"})
+
+
+@dataclass(frozen=True, slots=True)
+class HealthFinding:
+    """Stable machine identity plus mutable human evidence for one health invariant.
+
+    Fingerprints deliberately exclude severity, evidence, and prose: an age moving from 9d
+    to 10d, a wording cleanup, or warning-to-error promotion is one continuing incident.
+    ``revision`` captures those mutable fields so reporters may update that same incident.
+    """
+
+    code: str
+    severity: Literal["error", "warning", "info"]
+    scope: Literal["source", "output", "cross"]
+    tour: str | None
+    entity: str | None
+    evidence: dict
+    message: str
+
+    def __post_init__(self) -> None:
+        if not _FINDING_CODE_RE.fullmatch(self.code):
+            raise ValueError(f"invalid health finding code {self.code!r}")
+        if self.severity not in _FINDING_SEVERITIES:
+            raise ValueError(f"invalid health finding severity {self.severity!r}")
+        if self.scope not in _FINDING_SCOPES or not self.code.startswith(f"{self.scope}."):
+            raise ValueError("health finding scope/code mismatch")
+        if self.tour not in (*TOURS, None):
+            raise ValueError(f"invalid health finding tour {self.tour!r}")
+        if self.scope == "cross" and self.tour is not None:
+            raise ValueError("cross-tour finding cannot name one tour")
+        if self.scope != "cross" and self.tour is None:
+            raise ValueError("source/output finding must name a tour")
+        if self.entity is not None and (not isinstance(self.entity, str) or not self.entity.strip()):
+            raise ValueError("health finding entity must be a non-empty string or null")
+        if not isinstance(self.evidence, dict) or not isinstance(self.message, str) or not self.message:
+            raise ValueError("health finding evidence/message is malformed")
+        try:
+            json.dumps(self.evidence, sort_keys=True, separators=(",", ":"), allow_nan=False)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("health finding evidence is not strict JSON") from exc
+
+    @property
+    def fingerprint(self) -> str:
+        identity = [FINDING_SCHEMA, self.code, self.scope, self.tour, self.entity]
+        raw = json.dumps(identity, separators=(",", ":"), ensure_ascii=False).encode()
+        return f"hf1:{hashlib.sha256(raw).hexdigest()}"
+
+    @property
+    def revision(self) -> str:
+        content = [self.severity, self.evidence, self.message]
+        raw = json.dumps(content, sort_keys=True, separators=(",", ":"),
+                         ensure_ascii=False, allow_nan=False).encode()
+        return f"hr1:{hashlib.sha256(raw).hexdigest()}"
+
+    def as_dict(self) -> dict:
+        return {
+            "schema": FINDING_SCHEMA,
+            "fingerprint": self.fingerprint,
+            "revision": self.revision,
+            "code": self.code,
+            "severity": self.severity,
+            "scope": self.scope,
+            "tour": self.tour,
+            "entity": self.entity,
+            "evidence": self.evidence,
+            "message": self.message,
+        }
+
+
+class _FindingCollector:
+    def __init__(self, scope: str, tour: str | None):
+        self.scope = scope
+        self.tour = tour
+        self.findings: list[HealthFinding] = []
+
+
+def _add_finding(out, code: str, message: str, *, severity: str = "error",
+                 entity: str | None = None, evidence: dict | None = None,
+                 scope: str | None = None, tour: str | None = None) -> None:
+    """Emit typed findings in production while preserving helper tests using plain lists."""
+    if isinstance(out, _FindingCollector):
+        out.findings.append(HealthFinding(
+            code=code,
+            severity=severity,
+            scope=scope or out.scope,
+            tour=tour if tour is not None else out.tour,
+            entity=entity,
+            evidence=evidence or {},
+            message=message,
+        ))
+    else:
+        out.append(message)
+
+
+def _finding_messages(findings: list[HealthFinding], *, actionable_only: bool = True) -> list[str]:
+    return [finding.message for finding in findings
+            if not actionable_only or finding.severity != "info"]
 
 
 def _write_json_atomic(path, payload: object) -> None:
@@ -313,17 +419,19 @@ def source_checks(tour: str, h: dict, now: pd.Timestamp) -> list[dict]:
     """Structured verdicts for the raw-source freshness checks — the single source of
     truth: problems() derives its alert strings from these rows, and the (hidden)
     /health page renders them, so the two can never drift. Each row:
-      {key, label, value, limit, unit, date, ok, note, problem}
-    `problem` is the alert string (None when ok); `note` carries context for a row that
-    is over its limit but deliberately not alarmed (a shadowed redundancy layer)."""
+      {key, label, value, limit, unit, date, ok, note, noteLevel, problem}
+    `problem` is a hard failure. `noteLevel` distinguishes actionable degradation from
+    benign context; both stay visible without forcing presentation code to parse prose."""
     offseason = _offseason(now)
     max_result = HEALTH_OFFSEASON_RELAX_DAYS if offseason else HEALTH_MAX_RESULT_AGE_DAYS
     max_stats = HEALTH_OFFSEASON_RELAX_DAYS if offseason else HEALTH_MAX_STATS_AGE_DAYS
     min_frac = HEALTH_MIN_STATS_FRACTION.get(tour, 0.0)
 
-    def row(key, label, value, limit, unit="d", date=None, note=None, problem=None):
+    def row(key, label, value, limit, unit="d", date=None, note=None, problem=None,
+            note_level="degraded"):
         return {"key": key, "label": label, "value": value, "limit": limit, "unit": unit,
-                "date": date, "ok": problem is None, "note": note, "problem": problem}
+                "date": date, "ok": problem is None, "note": note,
+                "noteLevel": note_level if note else None, "problem": problem}
 
     rows = []
     res_age = h["result_age_days"]
@@ -362,6 +470,7 @@ def source_checks(tour: str, h: dict, now: pd.Timestamp) -> list[dict]:
             "coverage", "Season stats coverage", frac, min_frac, unit="frac",
             note=("season too young to judge (under 100 matches)"
                   if frac is not None and h["cur_year_matches"] < 100 else None),
+            note_level="info",
             problem=(f"{tour}: current-season stats coverage {frac:.0%} < {min_frac:.0%}"
                      if frac is not None and h["cur_year_matches"] >= 100 and frac < min_frac
                      else None)))
@@ -385,6 +494,7 @@ def source_checks(tour: str, h: dict, now: pd.Timestamp) -> list[dict]:
     shadowed = fresh_age is not None and fresh_age > max_fresh and stats_current
     rows.append(row(
         "fresh", "Results overlay (fresh)", fresh_age, max_fresh, date=h.get("fresh_date_max"),
+        note_level="info",
         note=("frozen upstream, but shadowed — the serve-stats overlay is current, so "
               "results/ranks/stats all still flow" if shadowed else None),
         problem=(f"{tour}: fresh overlay has no loadable results" if fresh_age is None
@@ -406,14 +516,14 @@ def source_checks(tour: str, h: dict, now: pd.Timestamp) -> list[dict]:
     fr_future = h.get("fresh_future_date_max")
     rows.append(row(
         "fresh_future", "Fresh overlay date sanity", 1 if fr_future else 0, 0,
-        unit="rows", date=fr_future,
+        unit="rows", date=fr_future, note_level="info",
         note=(f"upstream year typo: a result dated {fr_future}. Excluded from the model "
               f"population and from the freshness age beside it, and repaired into its real "
               f"season where the bracket topology proves the year" if fr_future else None)))
     ch_age = h["charting_age_days"]
     rows.append(row(
         "charting", "Match charting (MCP)", ch_age, HEALTH_CHARTING_COVERAGE_NOTE_DAYS,
-        date=h.get("charting_date_max"),
+        date=h.get("charting_date_max"), note_level="info",
         note=(f"volunteer batch source; newest charted match is {ch_age}d old "
               f"(coverage note after {HEALTH_CHARTING_COVERAGE_NOTE_DAYS}d)"
               if ch_age is not None and ch_age > HEALTH_CHARTING_COVERAGE_NOTE_DAYS
@@ -467,12 +577,111 @@ def source_checks(tour: str, h: dict, now: pd.Timestamp) -> list[dict]:
             note = "receipt not present in this legacy cache; the next data refresh will create it"
         rows.append(row(
             "espn_acquisition", "ESPN scoreboard acquisition", failed, 0,
-            unit="", date=acquisition.get("completedAt"), note=note, problem=problem))
+            unit="", date=acquisition.get("completedAt"), note=note, problem=problem,
+            note_level=("degraded" if status == "partial_query_failure" else "info")))
     return rows
 
 
+def source_findings(tour: str, h: dict, now: pd.Timestamp) -> list[HealthFinding]:
+    """Typed source verdicts derived from the already-structured source-check rows."""
+    rows = source_checks(tour, h, now)
+    acquisition = h.get("espn_acquisition") if isinstance(h.get("espn_acquisition"), dict) else {}
+    entities = {
+        "results": f"merged-results:{tour}",
+        "future_dates": f"merged-results:{tour}",
+        "stats": f"serve-stats:{tour}",
+        "coverage": f"serve-stats:{tour}",
+        "fresh": f"fresh-overlay:{tour}",
+        "fresh_future": f"fresh-overlay:{tour}",
+        "charting": f"match-charting:{tour}",
+        "espn_acquisition": f"espn-scoreboard:{tour}",
+    }
+    problem_codes = {
+        "future_dates": "source.results.future_date",
+        "stats": "source.stats.stale",
+        "coverage": "source.stats.coverage_low",
+        "charting": "source.charting.unavailable",
+    }
+    note_codes = {
+        "coverage": "source.stats.coverage_pending",
+        "fresh": "source.fresh_overlay.shadowed",
+        "fresh_future": "source.fresh_overlay.future_date",
+        "charting": "source.charting.coverage_age",
+    }
+    findings: list[HealthFinding] = []
+    for row in rows:
+        key = row["key"]
+        if key == "espn_acquisition":
+            queries = acquisition.get("queries") if isinstance(
+                acquisition.get("queries"), dict) else {}
+            overlay = acquisition.get("overlay") if isinstance(
+                acquisition.get("overlay"), dict) else {}
+            evidence = {
+                "status": acquisition.get("status"),
+                "eventCount": acquisition.get("eventCount"),
+                "queries": {
+                    name: queries.get(name)
+                    for name in ("attempted", "succeeded", "failed", "featuredSucceeded")
+                },
+                "overlay": {
+                    "status": overlay.get("status"),
+                    "processingFailureType": overlay.get("processingFailureType"),
+                    "updatedFiles": sorted(map(str, overlay.get("updatedFiles") or []))
+                    if isinstance(overlay.get("updatedFiles"), list) else None,
+                    "retainedFiles": sorted(map(str, overlay.get("retainedFiles") or []))
+                    if isinstance(overlay.get("retainedFiles"), list) else None,
+                },
+            }
+            evidence["queries"]["failedKeys"] = (
+                sorted(map(str, queries.get("failedKeys") or []))
+                if isinstance(queries.get("failedKeys"), list) else None)
+            evidence["queries"]["failureTypes"] = (
+                {str(name): queries["failureTypes"][name]
+                 for name in sorted(queries["failureTypes"], key=str)}
+                if isinstance(queries.get("failureTypes"), dict) else None)
+        else:
+            evidence = {name: row.get(name) for name in ("value", "limit", "unit", "date")
+                        if row.get(name) is None
+                        or isinstance(row.get(name), (str, int, float, bool))}
+        if row.get("problem"):
+            if key == "results":
+                code = ("source.results.unavailable" if row.get("value") is None
+                        else "source.results.stale")
+            elif key == "fresh":
+                code = ("source.fresh_overlay.unavailable" if row.get("value") is None
+                        else "source.fresh_overlay.stale")
+            elif key == "espn_acquisition":
+                status = acquisition.get("status")
+                code = {
+                    "malformed": "source.espn.receipt_malformed",
+                    "total_transport_failure": "source.espn.total_transport_failure",
+                    "partial_query_failure": "source.espn.severe_partial_failure",
+                }.get(status, "source.espn.processing_failure")
+            else:
+                code = problem_codes[key]
+            findings.append(HealthFinding(
+                code=code, severity="error", scope="source", tour=tour,
+                entity=entities[key], evidence=evidence, message=row["problem"]))
+        elif row.get("note"):
+            if key == "espn_acquisition":
+                status = acquisition.get("status")
+                code = {
+                    "partial_query_failure": "source.espn.partial_query_failure",
+                    "success_empty": "source.espn.success_empty",
+                    "missing": "source.espn.receipt_missing",
+                }.get(status, "source.espn.status_note")
+            else:
+                code = note_codes[key]
+            severity = "warning" if row.get("noteLevel") == "degraded" else "info"
+            findings.append(HealthFinding(
+                code=code, severity=severity, scope="source", tour=tour,
+                entity=entities[key], evidence=evidence,
+                message=f"{tour}: {row['label']}: {row['note']}"))
+    return findings
+
+
 def problems(tour: str, h: dict, now: pd.Timestamp) -> list[str]:
-    return [r["problem"] for r in source_checks(tour, h, now) if r["problem"]]
+    return _finding_messages(source_findings(tour, h, now))
 
 
 # ---------------------------------------------------------------------------
@@ -579,17 +788,32 @@ def _tier_blocks(level: object) -> bool:
 def _tiered(problem: str, level: object, *, force: bool = False) -> str:
     """Stamp a board-quality problem advisory unless the event is 500-or-above.
 
-    The severity decision lives in the MESSAGE rather than in the classifier, which keeps
-    `_gate_blocks` a pure string predicate (the property its tests rely on) and puts the
-    reason in the run log and the issue body instead of hiding it in classification code.
+    The suffix remains for legacy prose consumers and explains the decision in logs; typed
+    emitters pair it with ``_tier_severity`` and the production gate reads that severity.
     Coverage-only cards set ``force`` because their unresolved tier cannot be evidence that
     a co-located defect is unimportant."""
     return problem if force or _tier_blocks(level) else problem + _BELOW_TIER
 
 
-def _gate_blocks(problem: str) -> bool:
-    """True if this output problem should BLOCK the deploy (vs. warn-but-ship)."""
-    return not any(marker in problem for marker in _GATE_ADVISORY)
+def _tier_severity(level: object, *, force: bool = False) -> str:
+    """Typed counterpart to the legacy explanatory suffix added by ``_tiered``."""
+    return "error" if force or _tier_blocks(level) else "warning"
+
+
+def _gate_blocks(finding: HealthFinding | dict | str) -> bool:
+    """Compatibility predicate; production passes a typed finding, never prose.
+
+    String support remains temporarily for the historical unit suite and third-party callers.
+    New gate code must classify at emission and pass ``HealthFinding``/serialized finding data.
+    """
+    if isinstance(finding, HealthFinding):
+        return finding.severity == "error"
+    if isinstance(finding, dict):
+        severity = finding.get("severity")
+        if severity not in _FINDING_SEVERITIES:
+            raise ValueError("gate received malformed serialized finding")
+        return severity == "error"
+    return not any(marker in finding for marker in _GATE_ADVISORY)
 
 
 def _reject_nonfinite(token: str):
@@ -766,6 +990,18 @@ def _population_high_water(tour: str, meta: dict, prev: dict | None) -> tuple[in
     return max(high, current), current_version
 
 
+def _forecast_high_water(current: object, prev: dict | None) -> int | None:
+    """Durable append-only forecast-log baseline, seeded from legacy report state."""
+    previous = prev or {}
+    high = previous.get("forecast_high_water_lines")
+    if not (_plain_int(high) and high >= 0):
+        legacy = previous.get("forecast_lines")
+        high = legacy if _plain_int(legacy) and legacy >= 0 else None
+    if _plain_int(current) and current >= 0:
+        return current if high is None else max(high, current)
+    return high
+
+
 # players.json enrichment fields that must be valid probabilities when present
 _PLAYER_PCT_FIELDS = ("winRate10",
                       "servePctHard", "servePctClay", "servePctGrass",
@@ -800,10 +1036,14 @@ def _age_days(iso, now: pd.Timestamp):
     return int((now_utc - ts).days)
 
 
-def _flag_placeholders(out: list, tour: str, where: str, names) -> None:
+def _flag_placeholders(out: list, tour: str, where: str, names, *, entity: str) -> None:
     bad = sorted({n for n in names if isinstance(n, str) and n.strip().lower() in _PLACEHOLDER_NAMES})
     if bad:
-        out.append(f"{tour}: {where} contains placeholder name(s) {bad}")
+        _add_finding(
+            out, "output.participant.placeholder_name",
+            f"{tour}: {where} contains placeholder name(s) {bad}",
+            severity="error", entity=entity,
+            evidence={"where": where, "names": bad})
 
 
 def _check_matrix(out: list, tour: str, mx: dict) -> None:
@@ -815,22 +1055,46 @@ def _check_matrix(out: list, tour: str, mx: dict) -> None:
         for fmt, m in byfmt.items():
             if (not isinstance(m, list) or len(m) != n
                     or any(not isinstance(r, list) or len(r) != n for r in m)):
-                out.append(f"{tour}: matrix[{surf}][{fmt}] is not {n}x{n}")
+                _add_finding(
+                    out, "output.matrix.geometry_invalid",
+                    f"{tour}: matrix[{surf}][{fmt}] is not {n}x{n}",
+                    severity="error", entity=f"matrix:{surf}:{fmt}",
+                    evidence={"surface": str(surf), "format": str(fmt),
+                              "expectedSize": n})
                 continue
             if n == 0:
-                out.append(f"{tour}: matrix[{surf}][{fmt}] has no players")
+                _add_finding(
+                    out, "output.matrix.roster_empty",
+                    f"{tour}: matrix[{surf}][{fmt}] has no players",
+                    severity="error", entity=f"matrix:{surf}:{fmt}",
+                    evidence={"surface": str(surf), "format": str(fmt)})
                 continue
             # sample corners + the top-left 2x2 — enough to catch a systemic break
             # (all-out-of-range, transposed, un-normalised) without scanning ~14k cells
             for i, j in {(0, 0), (0, min(1, n - 1)), (n - 1, 0), (n - 1, n - 1)}:
                 if not _is_prob(m[i][j]):
-                    out.append(f"{tour}: matrix[{surf}][{fmt}][{i}][{j}]={m[i][j]!r} out of [0,1]")
+                    _add_finding(
+                        out, "output.matrix.probability_invalid",
+                        f"{tour}: matrix[{surf}][{fmt}][{i}][{j}]={m[i][j]!r} out of [0,1]",
+                        severity="error", entity=f"matrix:{surf}:{fmt}:{i}:{j}",
+                        evidence={"surface": str(surf), "format": str(fmt),
+                                  "row": i, "column": j, "value": repr(m[i][j])})
             if n >= 2:
                 if abs(m[0][0] - 0.5) > 1e-6:
-                    out.append(f"{tour}: matrix[{surf}][{fmt}] diagonal != 0.5 ({m[0][0]})")
+                    _add_finding(
+                        out, "output.matrix.diagonal_invalid",
+                        f"{tour}: matrix[{surf}][{fmt}] diagonal != 0.5 ({m[0][0]})",
+                        severity="error", entity=f"matrix:{surf}:{fmt}",
+                        evidence={"surface": str(surf), "format": str(fmt),
+                                  "value": float(m[0][0])})
                 if abs(m[0][1] + m[1][0] - 1.0) > 1e-3:
-                    out.append(f"{tour}: matrix[{surf}][{fmt}] not antisymmetric "
-                               f"({m[0][1]}+{m[1][0]})")
+                    _add_finding(
+                        out, "output.matrix.antisymmetry_invalid",
+                        f"{tour}: matrix[{surf}][{fmt}] not antisymmetric "
+                        f"({m[0][1]}+{m[1][0]})",
+                        severity="error", entity=f"matrix:{surf}:{fmt}",
+                        evidence={"surface": str(surf), "format": str(fmt),
+                                  "forward": float(m[0][1]), "reverse": float(m[1][0])})
 
 
 def _check_matrix_shards(out: list, tour: str, index: dict, shards: dict) -> None:
@@ -838,42 +1102,87 @@ def _check_matrix_shards(out: list, tour: str, index: dict, shards: dict) -> Non
     generation = index.get("generation")
     expected_components = {"eloBlend", "pointModel", "combiner"}
     if not generation:
-        out.append(f"{tour}: matrix-index.json is missing generation")
+        _add_finding(
+            out, "output.matrix_index.generation_missing",
+            f"{tour}: matrix-index.json is missing generation",
+            severity="error", entity="artifact:matrix-index.json", evidence={})
     if not isinstance(players, list) or not players or any(not p for p in players):
-        out.append(f"{tour}: matrix-index.json has an empty/malformed player roster")
+        _add_finding(
+            out, "output.matrix_index.roster_invalid",
+            f"{tour}: matrix-index.json has an empty/malformed player roster",
+            severity="error", entity="artifact:matrix-index.json",
+            evidence={"valueType": type(players).__name__})
         players = players if isinstance(players, list) else []
     elif len(set(players)) != len(players):
-        out.append(f"{tour}: matrix-index.json has duplicate players")
+        _add_finding(
+            out, "output.matrix_index.roster_duplicate",
+            f"{tour}: matrix-index.json has duplicate players",
+            severity="error", entity="artifact:matrix-index.json",
+            evidence={"players": len(players), "uniquePlayers": len(set(players))})
     formats = index.get("formats")
     if not isinstance(formats, list) or not formats:
-        out.append(f"{tour}: matrix-index.json has no formats")
+        _add_finding(
+            out, "output.matrix_index.formats_invalid",
+            f"{tour}: matrix-index.json has no formats",
+            severity="error", entity="artifact:matrix-index.json",
+            evidence={"valueType": type(formats).__name__})
     surfaces = index.get("surfaces")
     if not isinstance(surfaces, dict) or not surfaces:
         # Avoid the generic advisory marker "is empty": a shard index with no context
         # makes the predictor unusable and must block, unlike a quiet schedule feed.
-        out.append(f"{tour}: matrix-index.json surfaces is missing/malformed")
+        _add_finding(
+            out, "output.matrix_index.surfaces_invalid",
+            f"{tour}: matrix-index.json surfaces is missing/malformed",
+            severity="error", entity="artifact:matrix-index.json",
+            evidence={"valueType": type(surfaces).__name__})
         return
     for surface, byfmt in surfaces.items():
         if not isinstance(byfmt, dict):
-            out.append(f"{tour}: matrix-index {surface!r} format map is malformed")
+            _add_finding(
+                out, "output.matrix_index.format_map_invalid",
+                f"{tour}: matrix-index {surface!r} format map is malformed",
+                severity="error", entity=f"matrix-index:{surface}",
+                evidence={"surface": str(surface), "valueType": type(byfmt).__name__})
             continue
         for fmt, filename in byfmt.items():
             shard = shards.get(filename)
             if not isinstance(shard, dict):
                 continue  # missing/corrupt has its own exact-file problem
             if shard.get("generation") != generation:
-                out.append(f"{tour}: {filename} generation disagrees with matrix-index.json")
+                _add_finding(
+                    out, "output.matrix_shard.generation_mismatch",
+                    f"{tour}: {filename} generation disagrees with matrix-index.json",
+                    severity="error", entity=f"artifact:{filename}",
+                    evidence={"expected": generation, "actual": shard.get("generation")})
             if shard.get("players") != players:
-                out.append(f"{tour}: {filename} player order disagrees with matrix-index.json")
+                _add_finding(
+                    out, "output.matrix_shard.roster_mismatch",
+                    f"{tour}: {filename} player order disagrees with matrix-index.json",
+                    severity="error", entity=f"artifact:{filename}", evidence={})
             if shard.get("surface") != surface or str(shard.get("bestOf")) != str(fmt):
-                out.append(f"{tour}: {filename} context disagrees with matrix-index.json")
+                _add_finding(
+                    out, "output.matrix_shard.context_mismatch",
+                    f"{tour}: {filename} context disagrees with matrix-index.json",
+                    severity="error", entity=f"artifact:{filename}",
+                    evidence={"expectedSurface": str(surface), "expectedBestOf": str(fmt),
+                              "actualSurface": shard.get("surface"),
+                              "actualBestOf": shard.get("bestOf")})
             components = shard.get("components")
             if not isinstance(components, dict):
-                out.append(f"{tour}: {filename} components is malformed")
+                _add_finding(
+                    out, "output.matrix_shard.components_invalid",
+                    f"{tour}: {filename} components is malformed",
+                    severity="error", entity=f"artifact:{filename}",
+                    evidence={"valueType": type(components).__name__})
                 continue
             if set(components) != expected_components:
-                out.append(f"{tour}: {filename} component set {sorted(components)} "
-                           f"!= {sorted(expected_components)}")
+                _add_finding(
+                    out, "output.matrix_shard.component_set_mismatch",
+                    f"{tour}: {filename} component set {sorted(components)} "
+                    f"!= {sorted(expected_components)}",
+                    severity="error", entity=f"artifact:{filename}",
+                    evidence={"actual": sorted(components),
+                              "expected": sorted(expected_components)})
             for component, matrix in components.items():
                 _check_matrix(out, tour, {
                     "players": players,
@@ -896,11 +1205,20 @@ def _check_matrix_evidence(out: list, tour: str, filename: str,
                            evidence: object, n: int) -> None:
     """Arbitrary-pair evidence must share the matrix roster and signed orientation."""
     if not isinstance(evidence, dict) or evidence.get("schema") != "evidence-v1":
-        out.append(f"{tour}: {filename} evidence-v1 payload is missing/malformed")
+        _add_finding(
+            out, "output.matrix_evidence.payload_invalid",
+            f"{tour}: {filename} evidence-v1 payload is missing/malformed",
+            severity="error", entity=f"artifact:{filename}",
+            evidence={"valueType": type(evidence).__name__})
         return
     effects = evidence.get("effects")
     if not isinstance(effects, dict) or set(effects) != set(_EVIDENCE_KEYS):
-        out.append(f"{tour}: {filename} evidence signal set is malformed")
+        _add_finding(
+            out, "output.matrix_evidence.signal_set_invalid",
+            f"{tour}: {filename} evidence signal set is malformed",
+            severity="error", entity=f"artifact:{filename}",
+            evidence={"expected": sorted(_EVIDENCE_KEYS),
+                      "actual": sorted(map(str, effects)) if isinstance(effects, dict) else None})
         return
     packed = evidence.get("encoding") == "upper-triangle-bps-v1"
     packed_size = n * (n - 1) // 2
@@ -909,10 +1227,18 @@ def _check_matrix_evidence(out: list, tour: str, filename: str,
             if (not isinstance(matrix, list) or len(matrix) != packed_size
                     or any(not isinstance(value, int) or isinstance(value, bool)
                            or not -10_000 <= value <= 10_000 for value in matrix)):
-                out.append(f"{tour}: {filename} packed evidence[{key}] is malformed")
+                _add_finding(
+                    out, "output.matrix_evidence.packed_signal_invalid",
+                    f"{tour}: {filename} packed evidence[{key}] is malformed",
+                    severity="error", entity=f"artifact:{filename}#signal:{key}",
+                    evidence={"signal": str(key), "expectedSize": packed_size})
             continue
         if not _square_matrix(matrix, n):
-            out.append(f"{tour}: {filename} evidence[{key}] is not {n}x{n}")
+            _add_finding(
+                out, "output.matrix_evidence.geometry_invalid",
+                f"{tour}: {filename} evidence[{key}] is not {n}x{n}",
+                severity="error", entity=f"artifact:{filename}#signal:{key}",
+                evidence={"signal": str(key), "expectedSize": n})
             continue
         bad = False
         for i in range(n):
@@ -928,10 +1254,17 @@ def _check_matrix_evidence(out: list, tour: str, filename: str,
             if bad:
                 break
         if bad:
-            out.append(f"{tour}: {filename} evidence[{key}] is non-finite/non-antisymmetric")
+            _add_finding(
+                out, "output.matrix_evidence.antisymmetry_invalid",
+                f"{tour}: {filename} evidence[{key}] is non-finite/non-antisymmetric",
+                severity="error", entity=f"artifact:{filename}#signal:{key}",
+                evidence={"signal": str(key)})
     available = evidence.get("available")
     if not isinstance(available, dict) or set(available) != {"h2h", "style"}:
-        out.append(f"{tour}: {filename} conditional evidence availability is malformed")
+        _add_finding(
+            out, "output.matrix_evidence.availability_invalid",
+            f"{tour}: {filename} conditional evidence availability is malformed",
+            severity="error", entity=f"artifact:{filename}", evidence={})
     else:
         for key, matrix in available.items():
             if packed:
@@ -941,35 +1274,75 @@ def _check_matrix_evidence(out: list, tour: str, filename: str,
                 valid = (_square_matrix(matrix, n) and all(
                     value in (0, 1) for row in matrix for value in row))
             if not valid:
-                out.append(f"{tour}: {filename} evidence availability[{key}] is malformed")
+                _add_finding(
+                    out, "output.matrix_evidence.availability_signal_invalid",
+                    f"{tour}: {filename} evidence availability[{key}] is malformed",
+                    severity="error", entity=f"artifact:{filename}#availability:{key}",
+                    evidence={"signal": str(key)})
     if evidence.get("homeAvailable") is not False:
-        out.append(f"{tour}: {filename} generic matchup evidence claims home context")
+        _add_finding(
+            out, "output.matrix_evidence.home_context_invalid",
+            f"{tour}: {filename} generic matchup evidence claims home context",
+            severity="error", entity=f"artifact:{filename}",
+            evidence={"homeAvailable": repr(evidence.get("homeAvailable"))})
 
 
 def _check_prediction_evidence(out: list, tour: str, label: str, evidence: object,
                                player_a: object = None, player_b: object = None,
-                               probability_a: object = None) -> None:
+                               probability_a: object = None, *, entity: str | None = None) -> None:
     """Validate the seven grouped signals and their explicit non-causal contract."""
+    finding_entity = entity or _match_entity(
+        {}, player_a=player_a, player_b=player_b)
     if not isinstance(evidence, dict) or evidence.get("schema") != "evidence-v1":
-        out.append(f"{tour}: {label} prediction evidence is missing/malformed")
+        _add_finding(
+            out, "output.prediction_evidence.payload_invalid",
+            f"{tour}: {label} prediction evidence is missing/malformed",
+            severity="error", entity=finding_entity,
+            evidence={"valueType": type(evidence).__name__})
         return
     a, b = evidence.get("playerA"), evidence.get("playerB")
     if player_a is not None and (a != player_a or b != player_b):
-        out.append(f"{tour}: {label} evidence orientation disagrees with matchup")
+        _add_finding(
+            out, "output.prediction_evidence.orientation_mismatch",
+            f"{tour}: {label} evidence orientation disagrees with matchup",
+            severity="error", entity=finding_entity,
+            evidence={"expectedPlayerA": repr(player_a), "expectedPlayerB": repr(player_b),
+                      "actualPlayerA": repr(a), "actualPlayerB": repr(b)})
     if not _is_prob(evidence.get("probabilityA")):
-        out.append(f"{tour}: {label} evidence probability is outside [0,1]")
+        _add_finding(
+            out, "output.prediction_evidence.probability_invalid",
+            f"{tour}: {label} evidence probability is outside [0,1]",
+            severity="error", entity=finding_entity,
+            evidence={"value": repr(evidence.get("probabilityA"))})
     elif _is_prob(probability_a) and abs(float(evidence["probabilityA"]) - float(probability_a)) > 1e-4:
-        out.append(f"{tour}: {label} evidence probability disagrees with published call")
+        _add_finding(
+            out, "output.prediction_evidence.probability_mismatch",
+            f"{tour}: {label} evidence probability disagrees with published call",
+            severity="error", entity=finding_entity,
+            evidence={"evidenceProbability": float(evidence["probabilityA"]),
+                      "publishedProbability": float(probability_a)})
     note = str(evidence.get("note") or "").lower()
     if "evidence" not in note or "not causation" not in note:
-        out.append(f"{tour}: {label} evidence omits the non-causal disclaimer")
+        _add_finding(
+            out, "output.prediction_evidence.disclaimer_missing",
+            f"{tour}: {label} evidence omits the non-causal disclaimer",
+            severity="error", entity=finding_entity, evidence={})
     signals = evidence.get("signals")
     if not isinstance(signals, list) or len(signals) != len(_EVIDENCE_KEYS):
-        out.append(f"{tour}: {label} evidence signal list is malformed")
+        _add_finding(
+            out, "output.prediction_evidence.signal_list_invalid",
+            f"{tour}: {label} evidence signal list is malformed",
+            severity="error", entity=finding_entity,
+            evidence={"expectedCount": len(_EVIDENCE_KEYS),
+                      "actualCount": len(signals) if isinstance(signals, list) else None})
         return
     keys = [signal.get("key") for signal in signals if isinstance(signal, dict)]
     if len(keys) != len(signals) or set(keys) != set(_EVIDENCE_KEYS):
-        out.append(f"{tour}: {label} evidence signal keys are missing/duplicated")
+        _add_finding(
+            out, "output.prediction_evidence.signal_keys_invalid",
+            f"{tour}: {label} evidence signal keys are missing/duplicated",
+            severity="error", entity=finding_entity,
+            evidence={"expected": sorted(_EVIDENCE_KEYS), "actual": list(map(str, keys))})
         return
     available_strengths = []
     unavailable_seen = False
@@ -978,39 +1351,77 @@ def _check_prediction_evidence(out: list, tour: str, label: str, evidence: objec
         impact = signal.get("impactPp")
         supports = signal.get("supports")
         if not isinstance(available, bool) or not _finite_between(impact, -100.0, 100.0):
-            out.append(f"{tour}: {label} evidence signal {signal.get('key')} has invalid availability/impact")
+            _add_finding(
+                out, "output.prediction_evidence.signal_value_invalid",
+                f"{tour}: {label} evidence signal {signal.get('key')} has invalid availability/impact",
+                severity="error", entity=f"{finding_entity}#signal:{signal.get('key')}",
+                evidence={"signal": str(signal.get("key")), "available": repr(available),
+                          "impactPp": repr(impact)})
         if supports not in (None, a, b):
-            out.append(f"{tour}: {label} evidence signal {signal.get('key')} supports an unknown player")
+            _add_finding(
+                out, "output.prediction_evidence.support_unknown",
+                f"{tour}: {label} evidence signal {signal.get('key')} supports an unknown player",
+                severity="error", entity=f"{finding_entity}#signal:{signal.get('key')}",
+                evidence={"signal": str(signal.get("key")), "supports": repr(supports)})
         if not isinstance(signal.get("facts"), dict):
-            out.append(f"{tour}: {label} evidence signal {signal.get('key')} facts are malformed")
+            _add_finding(
+                out, "output.prediction_evidence.facts_invalid",
+                f"{tour}: {label} evidence signal {signal.get('key')} facts are malformed",
+                severity="error", entity=f"{finding_entity}#signal:{signal.get('key')}",
+                evidence={"signal": str(signal.get("key"))})
         if available:
             if unavailable_seen:
-                out.append(f"{tour}: {label} strongest evidence is not ranked before unavailable signals")
+                _add_finding(
+                    out, "output.prediction_evidence.availability_order_invalid",
+                    f"{tour}: {label} strongest evidence is not ranked before unavailable signals",
+                    severity="error", entity=finding_entity, evidence={})
             if _finite_between(impact, -100.0, 100.0):
                 available_strengths.append(abs(float(impact)))
         else:
             unavailable_seen = True
     if available_strengths != sorted(available_strengths, reverse=True):
-        out.append(f"{tour}: {label} available evidence is not strongest-first")
+        _add_finding(
+            out, "output.prediction_evidence.strength_order_invalid",
+            f"{tour}: {label} available evidence is not strongest-first",
+            severity="error", entity=finding_entity,
+            evidence={"strengths": available_strengths})
 
 
 def _check_profile_shards(out: list, tour: str, index: dict, shards: dict,
                           players: list | None) -> None:
     rows = index.get("profiles") or []
     if not isinstance(rows, list):
-        out.append(f"{tour}: profile-index.json profiles is not a list")
+        _add_finding(
+            out, "output.profile_index.roster_invalid",
+            f"{tour}: profile-index.json profiles is not a list",
+            severity="error", entity="artifact:profile-index.json",
+            evidence={"valueType": type(rows).__name__})
         return
     names = [p.get("name") for p in rows if isinstance(p, dict)]
     files = [p.get("file") for p in rows if isinstance(p, dict)]
     if len(set(names)) != len(names) or any(not name for name in names):
-        out.append(f"{tour}: profile-index.json has duplicate/null player names")
+        _add_finding(
+            out, "output.profile_index.player_identity_invalid",
+            f"{tour}: profile-index.json has duplicate/null player names",
+            severity="error", entity="artifact:profile-index.json",
+            evidence={"rows": len(rows), "uniqueNames": len(set(names))})
     if len(set(files)) != len(files) or any(not filename for filename in files):
-        out.append(f"{tour}: profile-index.json has duplicate/null shard files")
+        _add_finding(
+            out, "output.profile_index.shard_identity_invalid",
+            f"{tour}: profile-index.json has duplicate/null shard files",
+            severity="error", entity="artifact:profile-index.json",
+            evidence={"rows": len(rows), "uniqueFiles": len(set(files))})
     if isinstance(players, list) and names != [p.get("name") for p in players]:
-        out.append(f"{tour}: profile-index.json roster/order disagrees with players.json")
+        _add_finding(
+            out, "output.profile_index.roster_mismatch",
+            f"{tour}: profile-index.json roster/order disagrees with players.json",
+            severity="error", entity="artifact:profile-index.json", evidence={})
     generation = index.get("generation")
     if not generation:
-        out.append(f"{tour}: profile-index.json is missing generation")
+        _add_finding(
+            out, "output.profile_index.generation_missing",
+            f"{tour}: profile-index.json is missing generation",
+            severity="error", entity="artifact:profile-index.json", evidence={})
     for summary in rows:
         if not isinstance(summary, dict):
             continue
@@ -1019,44 +1430,91 @@ def _check_profile_shards(out: list, tour: str, index: dict, shards: dict,
         if not isinstance(shard, dict):
             continue
         if shard.get("generation") != generation:
-            out.append(f"{tour}: {filename} generation disagrees with profile-index.json")
+            _add_finding(
+                out, "output.profile_shard.generation_mismatch",
+                f"{tour}: {filename} generation disagrees with profile-index.json",
+                severity="error", entity=f"artifact:{filename}",
+                evidence={"expected": generation, "actual": shard.get("generation")})
         if shard.get("name") != summary.get("name"):
-            out.append(f"{tour}: {filename} names {shard.get('name')!r}, expected "
-                       f"{summary.get('name')!r}")
+            _add_finding(
+                out, "output.profile_shard.player_mismatch",
+                f"{tour}: {filename} names {shard.get('name')!r}, expected "
+                f"{summary.get('name')!r}",
+                severity="error", entity=f"artifact:{filename}",
+                evidence={"expected": repr(summary.get("name")),
+                          "actual": repr(shard.get("name"))})
 
 
 def _check_forecast_history(out: list, tour: str, label: str, forecast: object,
-                            current: object | None = None) -> None:
+                            current: object | None = None, *, entity: str | None = None) -> None:
     """A visible timeline must be ordered, de-duplicated, and agree with its summary."""
     if not isinstance(forecast, dict):
         return
+    finding_entity = entity or _match_entity(
+        forecast,
+        player_a=forecast.get("playerA"),
+        player_b=forecast.get("playerB"),
+    )
     timeline = forecast.get("timeline")
     if not isinstance(timeline, list) or not timeline:
-        out.append(f"{tour}: {label} forecast timeline is missing/empty")
+        _add_finding(
+            out, "output.forecast.timeline_missing",
+            f"{tour}: {label} forecast timeline is missing/empty",
+            severity="error", entity=finding_entity,
+            evidence={"valueType": type(timeline).__name__})
         return
     stamps = [str(point.get("asOf") or "") for point in timeline if isinstance(point, dict)]
     hours = [stamp[:13] for stamp in stamps]
     if len(stamps) != len(timeline) or any(not stamp for stamp in stamps):
-        out.append(f"{tour}: {label} forecast timeline has a missing timestamp")
+        _add_finding(
+            out, "output.forecast.timestamp_missing",
+            f"{tour}: {label} forecast timeline has a missing timestamp",
+            severity="error", entity=finding_entity,
+            evidence={"observations": len(timeline), "timestamps": len(stamps)})
     elif stamps != sorted(stamps) or len(hours) != len(set(hours)):
-        out.append(f"{tour}: {label} forecast timeline is unordered or repeats a UTC hour")
+        _add_finding(
+            out, "output.forecast.timeline_order_invalid",
+            f"{tour}: {label} forecast timeline is unordered or repeats a UTC hour",
+            severity="error", entity=finding_entity,
+            evidence={"timestamps": stamps})
     probs = [point.get("p") for point in timeline if isinstance(point, dict)]
     if any(not _is_prob(p) for p in probs):
-        out.append(f"{tour}: {label} forecast timeline has probability outside [0,1]")
+        _add_finding(
+            out, "output.forecast.probability_invalid",
+            f"{tour}: {label} forecast timeline has probability outside [0,1]",
+            severity="error", entity=finding_entity,
+            evidence={"values": [repr(p) for p in probs if not _is_prob(p)]})
         return
     if forecast.get("snapshots") != len(timeline):
-        out.append(f"{tour}: {label} forecast snapshots={forecast.get('snapshots')!r} "
-                   f"but timeline has {len(timeline)} observations")
+        _add_finding(
+            out, "output.forecast.snapshot_count_mismatch",
+            f"{tour}: {label} forecast snapshots={forecast.get('snapshots')!r} "
+            f"but timeline has {len(timeline)} observations",
+            severity="error", entity=finding_entity,
+            evidence={"declared": repr(forecast.get("snapshots")),
+                      "actual": len(timeline)})
     if probs and isinstance(forecast.get("first"), (int, float)) \
             and abs(float(forecast["first"]) - float(probs[0])) > 1e-4:
-        out.append(f"{tour}: {label} forecast first disagrees with timeline")
+        _add_finding(
+            out, "output.forecast.first_probability_mismatch",
+            f"{tour}: {label} forecast first disagrees with timeline",
+            severity="error", entity=finding_entity,
+            evidence={"summary": float(forecast["first"]), "timeline": float(probs[0])})
     expected_current = current if _is_prob(current) else forecast.get("current")
     if probs and _is_prob(expected_current) and abs(float(expected_current) - float(probs[-1])) > 1e-4:
-        out.append(f"{tour}: {label} current probability disagrees with latest saved observation")
+        _add_finding(
+            out, "output.forecast.current_probability_mismatch",
+            f"{tour}: {label} current probability disagrees with latest saved observation",
+            severity="error", entity=finding_entity,
+            evidence={"summary": float(expected_current), "timeline": float(probs[-1])})
     if _is_prob(forecast.get("first")) and _is_prob(forecast.get("current")):
         delta = float(forecast["current"]) - float(forecast["first"])
         if not isinstance(forecast.get("delta"), (int, float)) or abs(delta - float(forecast["delta"])) > 1e-4:
-            out.append(f"{tour}: {label} forecast delta disagrees with first/current")
+            _add_finding(
+                out, "output.forecast.delta_mismatch",
+                f"{tour}: {label} forecast delta disagrees with first/current",
+                severity="error", entity=finding_entity,
+                evidence={"expected": delta, "actual": repr(forecast.get("delta"))})
     for index, point in enumerate(timeline):
         if isinstance(point, dict) and point.get("evidence") is not None:
             evidence = point["evidence"]
@@ -1065,6 +1523,7 @@ def _check_forecast_history(out: list, tour: str, label: str, forecast: object,
                 evidence.get("playerA") if isinstance(evidence, dict) else None,
                 evidence.get("playerB") if isinstance(evidence, dict) else None,
                 point.get("p"),
+                entity=finding_entity,
             )
 
 
@@ -1072,11 +1531,20 @@ def _check_performance(out: list, tour: str, performance: dict, profile_index: o
                        shards: dict) -> None:
     rows, window = performance.get("players"), performance.get("window")
     if not isinstance(rows, list) or not isinstance(window, int) or window < 1:
-        out.append(f"{tour}: performance.json players/window is malformed")
+        _add_finding(
+            out, "output.performance.contract_invalid",
+            f"{tour}: performance.json players/window is malformed",
+            severity="error", entity="artifact:performance.json",
+            evidence={"playersType": type(rows).__name__, "window": repr(window)})
         return
     names = [row.get("name") for row in rows if isinstance(row, dict)]
     if len(names) != len(rows) or len(names) != len(set(names)) or any(not name for name in names):
-        out.append(f"{tour}: performance.json has malformed/duplicate player names")
+        _add_finding(
+            out, "output.performance.player_identity_invalid",
+            f"{tour}: performance.json has malformed/duplicate player names",
+            severity="error", entity="artifact:performance.json",
+            evidence={"rows": len(rows), "names": len(names),
+                      "uniqueNames": len(set(names))})
     by_name = {}
     for row in rows:
         if not isinstance(row, dict):
@@ -1086,7 +1554,13 @@ def _check_performance(out: list, tour: str, performance: dict, profile_index: o
         if not (isinstance(n, int) and 0 <= n <= window and isinstance(wins, int)
                 and 0 <= wins <= n and isinstance(expected, (int, float)) and 0 <= expected <= n
                 and isinstance(delta, (int, float)) and abs(float(delta) - (wins - float(expected))) <= 0.002):
-            out.append(f"{tour}: performance.json summary for {name!r} is inconsistent")
+            _add_finding(
+                out, "output.performance.summary_invalid",
+                f"{tour}: performance.json summary for {name!r} is inconsistent",
+                severity="error", entity=f"player:{_player_identity_key(name)}",
+                evidence={"n": repr(n), "wins": repr(wins),
+                          "expectedWins": repr(expected), "delta": repr(delta),
+                          "window": window})
             continue
         by_name[name] = row
     if not isinstance(profile_index, dict):
@@ -1099,37 +1573,82 @@ def _check_performance(out: list, tour: str, performance: dict, profile_index: o
         expected_summary = ({k: perf.get(k) for k in ("n", "wins", "expectedWins", "delta")}
                             if perf else None)
         if shipped_summary != expected_summary:
-            out.append(f"{tour}: profile expectation summary disagrees for {summary.get('name')!r}")
+            _add_finding(
+                out, "output.performance.profile_summary_mismatch",
+                f"{tour}: profile expectation summary disagrees for {summary.get('name')!r}",
+                severity="error", entity=f"player:{_player_identity_key(summary.get('name'))}",
+                evidence={"expected": expected_summary,
+                          "actual": shipped_summary if isinstance(shipped_summary, dict)
+                          else repr(shipped_summary)})
         detail = shards.get(summary.get("file"))
         if not isinstance(detail, dict):
             continue
         detail_perf = detail.get("performance")
         if not perf:
             if detail_perf is not None:
-                out.append(f"{tour}: profile expectation detail exists without summary for "
-                           f"{summary.get('name')!r}")
+                _add_finding(
+                    out, "output.performance.orphan_profile_detail",
+                    f"{tour}: profile expectation detail exists without summary for "
+                    f"{summary.get('name')!r}",
+                    severity="error",
+                    entity=f"player:{_player_identity_key(summary.get('name'))}", evidence={})
             continue
         if not isinstance(detail_perf, dict):
-            out.append(f"{tour}: profile expectation detail missing for {summary.get('name')!r}")
+            _add_finding(
+                out, "output.performance.profile_detail_missing",
+                f"{tour}: profile expectation detail missing for {summary.get('name')!r}",
+                severity="error",
+                entity=f"player:{_player_identity_key(summary.get('name'))}", evidence={})
             continue
         if any(detail_perf.get(k) != perf.get(k) for k in ("n", "wins", "expectedWins", "delta")):
-            out.append(f"{tour}: profile expectation detail disagrees for {summary.get('name')!r}")
+            _add_finding(
+                out, "output.performance.profile_detail_mismatch",
+                f"{tour}: profile expectation detail disagrees for {summary.get('name')!r}",
+                severity="error",
+                entity=f"player:{_player_identity_key(summary.get('name'))}", evidence={})
         decisions = detail_perf.get("recent")
         if not isinstance(decisions, list) or len(decisions) != perf["n"]:
-            out.append(f"{tour}: profile expectation evidence count disagrees for {summary.get('name')!r}")
+            _add_finding(
+                out, "output.performance.evidence_count_mismatch",
+                f"{tour}: profile expectation evidence count disagrees for {summary.get('name')!r}",
+                severity="error",
+                entity=f"player:{_player_identity_key(summary.get('name'))}",
+                evidence={"expected": perf["n"],
+                          "actual": len(decisions) if isinstance(decisions, list) else None})
             continue
         ids = [decision.get("matchId") for decision in decisions if isinstance(decision, dict)]
         if len(ids) != len(set(ids)) or any(not str(match_id).startswith("v2|") for match_id in ids):
-            out.append(f"{tour}: profile expectation evidence has duplicate/legacy match IDs for "
-                       f"{summary.get('name')!r}")
+            _add_finding(
+                out, "output.performance.match_identity_invalid",
+                f"{tour}: profile expectation evidence has duplicate/legacy match IDs for "
+                f"{summary.get('name')!r}",
+                severity="error",
+                entity=f"player:{_player_identity_key(summary.get('name'))}",
+                evidence={"matchIds": list(map(str, ids))})
         for decision in decisions:
             if not isinstance(decision, dict) or not _is_prob(decision.get("p")):
-                out.append(f"{tour}: profile expectation evidence probability is invalid")
+                _add_finding(
+                    out, "output.performance.probability_invalid",
+                    f"{tour}: profile expectation evidence probability is invalid",
+                    severity="error",
+                    entity=f"player:{_player_identity_key(summary.get('name'))}",
+                    evidence={"value": repr(decision.get("p"))
+                              if isinstance(decision, dict) else repr(decision)})
                 break
             expected_residual = (1.0 if decision.get("won") is True else 0.0) - decision["p"]
             if not isinstance(decision.get("residual"), (int, float)) \
                     or abs(expected_residual - decision["residual"]) > 1e-4:
-                out.append(f"{tour}: profile expectation residual is inconsistent")
+                _add_finding(
+                    out, "output.performance.residual_invalid",
+                    f"{tour}: profile expectation residual is inconsistent",
+                    severity="error",
+                    entity=_match_entity(
+                        decision,
+                        player_a=summary.get("name"),
+                        player_b=decision.get("opponent"),
+                    ),
+                    evidence={"expected": expected_residual,
+                              "actual": repr(decision.get("residual"))})
                 break
 
 
@@ -1141,7 +1660,14 @@ def _check_scenarios(out: list, tour: str, index: dict, shards: dict,
     generation = index.get("generation")
     if (index.get("schema") != "scenario-v1" or index.get("schemaVersion") != 1
             or not generation or not isinstance(index.get("events"), list)):
-        out.append(f"{tour}: scenario-index.json schema/events is malformed")
+        _add_finding(
+            out, "output.scenario_index.contract_invalid",
+            f"{tour}: scenario-index.json schema/events is malformed",
+            severity="error", entity="artifact:scenario-index.json",
+            evidence={"schema": repr(index.get("schema")),
+                      "schemaVersion": repr(index.get("schemaVersion")),
+                      "generation": repr(generation),
+                      "eventsType": type(index.get("events")).__name__})
         return
     refs_by_file = {
         entry.get("file"): entry for entry in index["events"] if isinstance(entry, dict)
@@ -1151,9 +1677,18 @@ def _check_scenarios(out: list, tour: str, index: dict, shards: dict,
                  if isinstance(entry, dict)]
     if (len(refs) != len(index["events"]) or None in refs
             or len(event_ids) != len(set(event_ids)) or any(not event_id for event_id in event_ids)):
-        out.append(f"{tour}: scenario-index.json repeats or omits shard files")
+        _add_finding(
+            out, "output.scenario_index.shard_identity_invalid",
+            f"{tour}: scenario-index.json repeats or omits shard files",
+            severity="error", entity="artifact:scenario-index.json",
+            evidence={"events": len(index["events"]), "uniqueFiles": len(refs),
+                      "eventIds": event_ids})
     if any(entry.get("generation") != generation for entry in refs_by_file.values()):
-        out.append(f"{tour}: scenario-index.json event generation is inconsistent")
+        _add_finding(
+            out, "output.scenario_index.generation_mismatch",
+            f"{tour}: scenario-index.json event generation is inconsistent",
+            severity="error", entity="artifact:scenario-index.json",
+            evidence={"generation": generation})
     bracket_refs = {
         ((event.get("scenario") or {}).get("file") or event.get("scenarioFile"))
         for event in (brackets or []) if isinstance(event, dict)
@@ -1161,7 +1696,12 @@ def _check_scenarios(out: list, tour: str, index: dict, shards: dict,
         and ((event.get("scenario") or {}).get("file") or event.get("scenarioFile"))
     }
     if bracket_refs != refs:
-        out.append(f"{tour}: scenario-index.json files disagree with unsettled brackets")
+        _add_finding(
+            out, "output.scenario_index.bracket_reference_mismatch",
+            f"{tour}: scenario-index.json files disagree with unsettled brackets",
+            severity="error", entity="artifact:scenario-index.json",
+            evidence={"indexFiles": sorted(map(str, refs)),
+                      "bracketFiles": sorted(map(str, bracket_refs))})
     for filename in refs:
         shard = shards.get(filename)
         if not isinstance(shard, dict):
@@ -1176,7 +1716,12 @@ def _check_scenarios(out: list, tour: str, index: dict, shards: dict,
                 or shard.get("modelGeneration") != ref.get("modelGeneration")
                 or not isinstance(players, list) or len(set(players)) != len(players) \
                 or not isinstance(matrices, dict) or not isinstance(rounds, list) or not rounds):
-            out.append(f"{tour}: {filename} scenario structure is malformed")
+            _add_finding(
+                out, "output.scenario_shard.contract_invalid",
+                f"{tour}: {filename} scenario structure is malformed",
+                severity="error", entity=f"artifact:{filename}",
+                evidence={"expectedEspnId": str(ref.get("espnId") or ""),
+                          "actualEspnId": event_id})
             continue
         n = len(players)
         bad_matrix = False
@@ -1192,40 +1737,76 @@ def _check_scenarios(out: list, tour: str, index: dict, shards: dict,
                         bad_matrix = True
                         break
         if bad_matrix:
-            out.append(f"{tour}: {filename} scenario matrices are malformed/non-antisymmetric")
+            _add_finding(
+                out, "output.scenario_shard.matrix_invalid",
+                f"{tour}: {filename} scenario matrices are malformed/non-antisymmetric",
+                severity="error", entity=f"artifact:{filename}",
+                evidence={"players": n})
             continue
         if shard.get("matrix") != matrices["combiner"]:
-            out.append(f"{tour}: {filename} authoritative matrix disagrees with combiner")
+            _add_finding(
+                out, "output.scenario_shard.authoritative_matrix_mismatch",
+                f"{tour}: {filename} authoritative matrix disagrees with combiner",
+                severity="error", entity=f"artifact:{filename}", evidence={})
             continue
         try:
             validate_matrix(players, shard["matrix"], atol=2e-5)
             expected_baseline = propagate_rounds(
                 rounds, players, shard["matrix"], event_id=event_id)
         except (TypeError, ValueError) as exc:
-            out.append(f"{tour}: {filename} exact scenario contract failed ({exc})")
+            _add_finding(
+                out, "output.scenario_shard.exact_contract_invalid",
+                f"{tour}: {filename} exact scenario contract failed ({exc})",
+                severity="error", entity=f"artifact:{filename}",
+                evidence={"failureType": type(exc).__name__})
             continue
         if shard.get("baseline") != expected_baseline:
-            out.append(f"{tour}: {filename} baseline disagrees with exact propagation")
+            _add_finding(
+                out, "output.scenario_shard.baseline_mismatch",
+                f"{tour}: {filename} baseline disagrees with exact propagation",
+                severity="error", entity=f"artifact:{filename}", evidence={})
         expected_legacy = exact_bracket(rounds, players, matrices["combiner"])
         if shard.get("base") != expected_legacy:
-            out.append(f"{tour}: {filename} base forecast disagrees with exact propagation")
+            _add_finding(
+                out, "output.scenario_shard.base_forecast_mismatch",
+                f"{tour}: {filename} base forecast disagrees with exact propagation",
+                severity="error", entity=f"artifact:{filename}", evidence={})
         geometry = shard.get("geometry")
         expected_ids = [match["id"] for rnd in expected_baseline["rounds"] for match in rnd["matches"]]
         geometry_ids = [match.get("id") for rnd in geometry or []
                         for match in (rnd.get("matches") or []) if isinstance(match, dict)]
         if not isinstance(geometry, list) or geometry_ids != expected_ids:
-            out.append(f"{tour}: {filename} stable match geometry is malformed")
+            _add_finding(
+                out, "output.scenario_shard.geometry_invalid",
+                f"{tour}: {filename} stable match geometry is malformed",
+                severity="error", entity=f"artifact:{filename}",
+                evidence={"expectedMatchIds": expected_ids,
+                          "actualMatchIds": list(map(str, geometry_ids))})
         lockable = set(expected_baseline["lockableMatchIds"])
         if ref.get("lockableMatches") != len(lockable):
-            out.append(f"{tour}: {filename} lockable-match count disagrees with scenario index")
+            _add_finding(
+                out, "output.scenario_shard.lockable_count_mismatch",
+                f"{tour}: {filename} lockable-match count disagrees with scenario index",
+                severity="error", entity=f"artifact:{filename}",
+                evidence={"expected": len(lockable), "actual": ref.get("lockableMatches")})
         leverage = shard.get("titleLeverage")
         if not isinstance(leverage, dict) or set(leverage) != lockable:
-            out.append(f"{tour}: {filename} title-leverage keys disagree with real unresolved matches")
+            _add_finding(
+                out, "output.scenario_shard.title_leverage_keys_mismatch",
+                f"{tour}: {filename} title-leverage keys disagree with real unresolved matches",
+                severity="error", entity=f"artifact:{filename}",
+                evidence={"expected": sorted(map(str, lockable)),
+                          "actual": sorted(map(str, leverage))
+                          if isinstance(leverage, dict) else None})
         else:
             for match_id, row in leverage.items():
                 if (not isinstance(row, dict) or not _is_prob(row.get("value"))
                         or not row.get("playerA") or not row.get("playerB")):
-                    out.append(f"{tour}: {filename} title leverage {match_id} is malformed")
+                    _add_finding(
+                        out, "output.scenario_shard.title_leverage_invalid",
+                        f"{tour}: {filename} title leverage {match_id} is malformed",
+                        severity="error", entity=f"match:{match_id}",
+                        evidence={"artifact": str(filename)})
                     break
 
 
@@ -1238,7 +1819,13 @@ def _check_upcoming_shards(out: list, tour: str, index: dict, shards: dict) -> N
             or not generation or not isinstance(events, list)
             or not isinstance(highlights, list)
             or not isinstance(index.get("count"), int)):
-        out.append(f"{tour}: upcoming-index.json schema/events is malformed")
+        _add_finding(
+            out, "output.upcoming_index.contract_invalid",
+            f"{tour}: upcoming-index.json schema/events is malformed",
+            severity="error", entity="artifact:upcoming-index.json",
+            evidence={"schema": repr(index.get("schema")),
+                      "schemaVersion": repr(index.get("schemaVersion")),
+                      "generation": repr(generation)})
         return
 
     event_files, evidence_files, event_keys = [], [], []
@@ -1246,7 +1833,11 @@ def _check_upcoming_shards(out: list, tour: str, index: dict, shards: dict) -> N
     total = 0
     for ref in events:
         if not isinstance(ref, dict):
-            out.append(f"{tour}: upcoming-index.json contains a malformed event reference")
+            _add_finding(
+                out, "output.upcoming_index.event_reference_invalid",
+                f"{tour}: upcoming-index.json contains a malformed event reference",
+                severity="error", entity="artifact:upcoming-index.json",
+                evidence={"value": repr(ref)})
             continue
         event_file, evidence_file = ref.get("file"), ref.get("evidenceFile")
         event_files.append(event_file)
@@ -1262,7 +1853,13 @@ def _check_upcoming_shards(out: list, tour: str, index: dict, shards: dict) -> N
                 or event_shard.get("generation") != generation
                 or evidence_shard.get("generation") != generation
                 or not isinstance(matches, list) or not isinstance(details, list)):
-            out.append(f"{tour}: upcoming shards for {ref.get('name')!r} are malformed")
+            _add_finding(
+                out, "output.upcoming_shard.contract_invalid",
+                f"{tour}: upcoming shards for {ref.get('name')!r} are malformed",
+                severity="error",
+                entity=_event_entity(ref),
+                evidence={"eventFile": repr(event_file),
+                          "evidenceFile": repr(evidence_file)})
             continue
         match_ids = [row.get("matchId") for row in matches if isinstance(row, dict)]
         detail_ids = [row.get("matchId") for row in details if isinstance(row, dict)]
@@ -1270,26 +1867,55 @@ def _check_upcoming_shards(out: list, tour: str, index: dict, shards: dict) -> N
                 or any(not isinstance(match_id, str) or not match_id for match_id in match_ids)
                 or len(detail_ids) != len(details) or len(set(detail_ids)) != len(detail_ids)
                 or set(match_ids) != set(detail_ids)):
-            out.append(f"{tour}: upcoming match/detail identities disagree for {ref.get('name')!r}")
+            _add_finding(
+                out, "output.upcoming_shard.match_identity_mismatch",
+                f"{tour}: upcoming match/detail identities disagree for {ref.get('name')!r}",
+                severity="error",
+                entity=_event_entity(ref),
+                evidence={"matchIds": list(map(str, match_ids)),
+                          "detailIds": list(map(str, detail_ids))})
         if ref.get("count") != len(matches):
-            out.append(f"{tour}: upcoming shard count disagrees for {ref.get('name')!r}")
+            _add_finding(
+                out, "output.upcoming_shard.count_mismatch",
+                f"{tour}: upcoming shard count disagrees for {ref.get('name')!r}",
+                severity="error",
+                entity=_event_entity(ref),
+                evidence={"declared": ref.get("count"), "actual": len(matches)})
         base_ids.extend(match_ids)
         total += len(matches)
 
     if (len(set(event_files)) != len(event_files) or len(set(evidence_files)) != len(evidence_files)
             or len(set(event_keys)) != len(event_keys) or any(key[1] == "" for key in event_keys)):
-        out.append(f"{tour}: upcoming-index.json repeats or omits event shard identity")
+        _add_finding(
+            out, "output.upcoming_index.event_identity_invalid",
+            f"{tour}: upcoming-index.json repeats or omits event shard identity",
+            severity="error", entity="artifact:upcoming-index.json",
+            evidence={"eventFiles": list(map(str, event_files)),
+                      "evidenceFiles": list(map(str, evidence_files)),
+                      "eventKeys": [[str(a), str(b)] for a, b in event_keys]})
     if len(set(base_ids)) != len(base_ids):
-        out.append(f"{tour}: upcoming match identity appears in more than one event shard")
+        _add_finding(
+            out, "output.upcoming_index.match_identity_duplicate",
+            f"{tour}: upcoming match identity appears in more than one event shard",
+            severity="error", entity="artifact:upcoming-index.json",
+            evidence={"matchIds": base_ids})
     if total != index.get("count"):
-        out.append(f"{tour}: upcoming-index.json count={index.get('count')} but shards contain {total}")
+        _add_finding(
+            out, "output.upcoming_index.count_mismatch",
+            f"{tour}: upcoming-index.json count={index.get('count')} but shards contain {total}",
+            severity="error", entity="artifact:upcoming-index.json",
+            evidence={"declared": index.get("count"), "actual": total})
 
     highlight_ids = [row.get("matchId") for row in highlights if isinstance(row, dict)]
     if (len(highlight_ids) != len(highlights) or len(set(highlight_ids)) != len(highlight_ids)
             or not set(highlight_ids).issubset(set(base_ids))
             or any(any(key in row for key in ("components", "evidence", "forecast"))
                    for row in highlights if isinstance(row, dict))):
-        out.append(f"{tour}: upcoming-index.json highlights are duplicated, unknown, or heavy")
+        _add_finding(
+            out, "output.upcoming_index.highlights_invalid",
+            f"{tour}: upcoming-index.json highlights are duplicated, unknown, or heavy",
+            severity="error", entity="artifact:upcoming-index.json",
+            evidence={"highlightIds": list(map(str, highlight_ids))})
 
 
 def _check_watch_ranking(out: list, tour: str, upcoming: list,
@@ -1320,19 +1946,44 @@ def _check_watch_ranking(out: list, tour: str, upcoming: list,
     ranks = []
     for match in upcoming:
         label = f"upcoming {match.get('playerA')!r} vs {match.get('playerB')!r}"
+        match_entity = _match_entity(
+            match,
+            player_a=match.get("playerA"),
+            player_b=match.get("playerB"),
+        )
         watch, rank = match.get("watch"), match.get("watchRank")
         if not isinstance(watch, dict) or watch.get("schema") != "watch-v1":
-            out.append(f"{tour}: {label} watch-v1 score is missing/malformed")
+            _add_finding(
+                out, "output.watch_score.contract_invalid",
+                f"{tour}: {label} watch-v1 score is missing/malformed",
+                severity="error", entity=match_entity,
+                evidence={"valueType": type(watch).__name__})
             continue
         if not isinstance(rank, int) or isinstance(rank, bool):
-            out.append(f"{tour}: {label} watchRank is missing/malformed")
+            _add_finding(
+                out, "output.watch_score.rank_invalid",
+                f"{tour}: {label} watchRank is missing/malformed",
+                severity="error", entity=match_entity, evidence={"rank": repr(rank)})
         else:
             ranks.append((rank, watch.get("score")))
         if watch.get("weights") != _WATCH_WEIGHTS:
-            out.append(f"{tour}: {label} watch weights disagree with watch-v1")
+            _add_finding(
+                out, "output.watch_score.weights_mismatch",
+                f"{tour}: {label} watch weights disagree with watch-v1",
+                severity="error", entity=match_entity,
+                evidence={"expected": _WATCH_WEIGHTS,
+                          "actual": watch.get("weights")
+                          if isinstance(watch.get("weights"), dict)
+                          else repr(watch.get("weights"))})
         factors = watch.get("factors")
         if not isinstance(factors, dict) or set(factors) != set(_WATCH_WEIGHTS):
-            out.append(f"{tour}: {label} watch factors are missing/duplicated")
+            _add_finding(
+                out, "output.watch_score.factor_set_invalid",
+                f"{tour}: {label} watch factors are missing/duplicated",
+                severity="error", entity=match_entity,
+                evidence={"expected": sorted(_WATCH_WEIGHTS),
+                          "actual": sorted(map(str, factors))
+                          if isinstance(factors, dict) else None})
             continue
         available_count = 0
         weighted = 0.0
@@ -1340,19 +1991,39 @@ def _check_watch_ranking(out: list, tour: str, upcoming: list,
             factor = factors.get(key)
             if (not isinstance(factor, dict) or not isinstance(factor.get("available"), bool)
                     or not _finite_between(factor.get("score"), 0.0, 100.0)):
-                out.append(f"{tour}: {label} watch factor {key} is invalid")
+                _add_finding(
+                    out, "output.watch_score.factor_invalid",
+                    f"{tour}: {label} watch factor {key} is invalid",
+                    severity="error", entity=f"{match_entity}#factor:{key}",
+                    evidence={"factor": key, "value": repr(factor)})
                 continue
             available_count += int(factor["available"])
             weighted += weight * float(factor["score"]) / 100.0
             if key in ("closeness", "quality", "stakes") and not factor["available"]:
-                out.append(f"{tour}: {label} required watch factor {key} is unavailable")
+                _add_finding(
+                    out, "output.watch_score.required_factor_unavailable",
+                    f"{tour}: {label} required watch factor {key} is unavailable",
+                    severity="error", entity=f"{match_entity}#factor:{key}",
+                    evidence={"factor": key})
             if not factor["available"] and float(factor["score"]) != 0.0:
-                out.append(f"{tour}: {label} unavailable watch factor {key} received a bonus")
+                _add_finding(
+                    out, "output.watch_score.unavailable_factor_bonus",
+                    f"{tour}: {label} unavailable watch factor {key} received a bonus",
+                    severity="error", entity=f"{match_entity}#factor:{key}",
+                    evidence={"factor": key, "score": float(factor["score"])})
         if watch.get("coverage") != available_count:
-            out.append(f"{tour}: {label} watch coverage disagrees with available factors")
+            _add_finding(
+                out, "output.watch_score.coverage_mismatch",
+                f"{tour}: {label} watch coverage disagrees with available factors",
+                severity="error", entity=match_entity,
+                evidence={"expected": available_count, "actual": watch.get("coverage")})
         if (not _finite_between(watch.get("score"), 0.0, 100.0)
                 or abs(float(watch["score"]) - weighted) > 0.11):
-            out.append(f"{tour}: {label} watch score disagrees with weighted factors")
+            _add_finding(
+                out, "output.watch_score.total_mismatch",
+                f"{tour}: {label} watch score disagrees with weighted factors",
+                severity="error", entity=match_entity,
+                evidence={"expected": weighted, "actual": repr(watch.get("score"))})
 
         pair = frozenset((_player_identity_key(match.get("playerA")),
                           _player_identity_key(match.get("playerB"))))
@@ -1361,22 +2032,39 @@ def _check_watch_ranking(out: list, tour: str, upcoming: list,
         title = factors.get("titleLeverage")
         if isinstance(title, dict):
             if leverage is None and title.get("available"):
-                out.append(f"{tour}: {label} title leverage lacks same-generation exact evidence")
+                _add_finding(
+                    out, "output.watch_score.title_leverage_orphan",
+                    f"{tour}: {label} title leverage lacks same-generation exact evidence",
+                    severity="error", entity=match_entity, evidence={})
             elif leverage is not None and (not title.get("available")
                                            or abs(float(title.get("score", -1)) - leverage) > 0.11):
-                out.append(f"{tour}: {label} title leverage disagrees with exact scenario")
+                _add_finding(
+                    out, "output.watch_score.title_leverage_mismatch",
+                    f"{tour}: {label} title leverage disagrees with exact scenario",
+                    severity="error", entity=match_entity,
+                    evidence={"expected": leverage, "actual": repr(title.get("score"))})
     if len(ranks) == len(upcoming):
         ordered = sorted(ranks)
         if [rank for rank, _ in ordered] != list(range(1, len(upcoming) + 1)):
-            out.append(f"{tour}: upcoming watchRank is not contiguous 1..{len(upcoming)}")
+            _add_finding(
+                out, "output.watch_score.ranking_not_contiguous",
+                f"{tour}: upcoming watchRank is not contiguous 1..{len(upcoming)}",
+                severity="error", entity="artifact:upcoming-index.json",
+                evidence={"ranks": [rank for rank, _ in ordered],
+                          "expectedCount": len(upcoming)})
         scores = [float(score) for _, score in ordered if _finite_between(score, 0.0, 100.0)]
         if len(scores) == len(ordered) and scores != sorted(scores, reverse=True):
-            out.append(f"{tour}: upcoming watchRank is not score-descending")
+            _add_finding(
+                out, "output.watch_score.ranking_order_invalid",
+                f"{tour}: upcoming watchRank is not score-descending",
+                severity="error", entity="artifact:upcoming-index.json",
+                evidence={"scores": scores})
 
 
-def _check_projection(out: list, tour: str, name, proj: list) -> None:
+def _check_projection(out: list, tour: str, name, proj: list, *, event_entity: str) -> None:
     for p in proj:
         who = p.get("name")
+        entity = f"{event_entity}#player:{_player_identity_key(who)}"
         c, f, s = p.get("champion"), p.get("final"), p.get("sf")
         for k, v in (("champion", c), ("final", f), ("sf", s)):
             # None is deliberate: the live projector (sim/tournaments.py) sets a round field
@@ -1384,30 +2072,66 @@ def _check_projection(out: list, tour: str, name, proj: list) -> None:
             # finalist who is past the semis). That degrades gracefully in the UI; only a
             # PRESENT-but-out-of-range value is a real problem.
             if v is not None and not _is_prob(v):
-                out.append(f"{tour}: {name!r} {who!r} {k}={v!r} out of [0,1]")
+                _add_finding(
+                    out, "output.projection.probability_invalid",
+                    f"{tour}: {name!r} {who!r} {k}={v!r} out of [0,1]",
+                    severity="error", entity=f"{entity}#stage:{k}",
+                    evidence={"stage": k, "value": repr(v)})
         if _is_prob(c) and _is_prob(f) and _is_prob(s) and (c > f + 1e-6 or f > s + 1e-6):
-            out.append(f"{tour}: {name!r} {who!r} champion<=final<=sf violated ({c},{f},{s})")
+            _add_finding(
+                out, "output.projection.stage_order_invalid",
+                f"{tour}: {name!r} {who!r} champion<=final<=sf violated ({c},{f},{s})",
+                severity="error", entity=entity,
+                evidence={"champion": float(c), "final": float(f), "sf": float(s)})
         seq = [p["reach"][k] for k in _REACH_ORDER if isinstance(p.get("reach"), dict) and k in p["reach"]]
         if any(not _is_prob(v) for v in seq):
-            out.append(f"{tour}: {name!r} {who!r} reach probability out of [0,1]")
+            _add_finding(
+                out, "output.projection.reach_probability_invalid",
+                f"{tour}: {name!r} {who!r} reach probability out of [0,1]",
+                severity="error", entity=entity,
+                evidence={"values": [repr(v) for v in seq]})
         elif any(seq[i] < seq[i + 1] - 1e-6 for i in range(len(seq) - 1)):
-            out.append(f"{tour}: {name!r} {who!r} reach odds not monotonically non-increasing")
+            _add_finding(
+                out, "output.projection.reach_order_invalid",
+                f"{tour}: {name!r} {who!r} reach odds not monotonically non-increasing",
+                severity="error", entity=entity,
+                evidence={"values": [float(v) for v in seq]})
 
 
 def _check_tournament(out: list, tour: str, t: dict, now: pd.Timestamp | None = None) -> None:
     name, status = t.get("name"), t.get("status")
     force = bool(t.get("coverageOnly"))
+    event_entity = _event_entity(t)
     ds, size, alive, champ = t.get("drawStatus"), t.get("drawSize"), t.get("aliveCount"), t.get("champion")
     if status not in _STATUSES:
-        out.append(f"{tour}: tournament {name!r} has bad status {status!r}")
+        _add_finding(
+            out, "output.tournament.status_invalid",
+            f"{tour}: tournament {name!r} has bad status {status!r}",
+            severity="error", entity=event_entity,
+            evidence={"status": repr(status)})
     if ds is None:
-        out.append(f"{tour}: tournament {name!r} missing drawStatus")
+        _add_finding(
+            out, "output.tournament.draw_status_missing",
+            f"{tour}: tournament {name!r} missing drawStatus",
+            severity="error", entity=event_entity, evidence={})
     elif ds not in _DRAW_STATES:
-        out.append(f"{tour}: tournament {name!r} has bad drawStatus {ds!r}")
+        _add_finding(
+            out, "output.tournament.draw_status_invalid",
+            f"{tour}: tournament {name!r} has bad drawStatus {ds!r}",
+            severity="error", entity=event_entity,
+            evidence={"drawStatus": repr(ds)})
     if isinstance(size, int) and isinstance(alive, int) and alive > size:
-        out.append(f"{tour}: tournament {name!r} aliveCount {alive} > drawSize {size}")
+        _add_finding(
+            out, "output.tournament.alive_count_invalid",
+            f"{tour}: tournament {name!r} aliveCount {alive} > drawSize {size}",
+            severity="error", entity=event_entity,
+            evidence={"aliveCount": alive, "drawSize": size})
     if isinstance(size, int) and size > 128:
-        out.append(f"{tour}: tournament {name!r} drawSize {size} exceeds the maximum 128-player draw")
+        _add_finding(
+            out, "output.tournament.draw_size_excessive",
+            f"{tour}: tournament {name!r} drawSize {size} exceeds the maximum 128-player draw",
+            severity="error", entity=event_entity,
+            evidence={"drawSize": size, "maximum": 128})
     # a real bracket seats a STANDARD draw size — a power of two, or a sanctioned
     # bye-draw (28/48/56/96...; Gstaad's 28-draw blocked a deploy on 2026-07-10 when this
     # demanded strict powers of two). A leaked 'TBD' (128 -> 129, 28 -> 29) or a name-
@@ -1415,21 +2139,36 @@ def _check_tournament(out: list, tour: str, t: dict, now: pd.Timestamp | None = 
     # partial/seeded/completed sizes can be non-standard because drawSize counts entrants,
     # but no tour-level singles draw can exceed 128.
     if ds == "real" and isinstance(size, int) and not _real_draw_size_ok(size):
-        out.append(f"{tour}: tournament {name!r} real draw size {size} is not a standard "
-                   f"bracket size (power of two or bye-draw {sorted(_BYE_DRAW_SIZES)})")
+        _add_finding(
+            out, "output.tournament.draw_geometry_invalid",
+            f"{tour}: tournament {name!r} real draw size {size} is not a standard "
+            f"bracket size (power of two or bye-draw {sorted(_BYE_DRAW_SIZES)})",
+            severity="error", entity=event_entity,
+            evidence={"drawSize": size, "allowedByeDrawSizes": sorted(_BYE_DRAW_SIZES)})
     if status == "completed" and not champ:
         # An event can now be called over by its CALENDAR when the results feed never
         # delivered a final (sim/tournaments: Iasi sat "live" for nine days waiting for one).
         # That card is honest — the champion is genuinely unknown — so it is advisory. A
         # completed card with no champion and no such explanation is still a builder bug.
         if t.get("finalRecorded") is False:
-            out.append(f"{tour}: completed tournament {name!r} completed without a recorded "
-                       f"final — its calendar says it is over but no final arrived, so the "
-                       f"champion is unknown")
+            _add_finding(
+                out, "output.tournament.final_missing",
+                f"{tour}: completed tournament {name!r} completed without a recorded "
+                f"final — its calendar says it is over but no final arrived, so the "
+                f"champion is unknown",
+                severity="warning", entity=event_entity,
+                evidence={"finalRecorded": False})
         else:
-            out.append(f"{tour}: completed tournament {name!r} has no champion")
+            _add_finding(
+                out, "output.tournament.champion_missing",
+                f"{tour}: completed tournament {name!r} has no champion",
+                severity="error", entity=event_entity, evidence={})
     if status in ("live", "upcoming") and champ:
-        out.append(f"{tour}: {status} tournament {name!r} already names champion {champ!r}")
+        _add_finding(
+            out, "output.tournament.champion_premature",
+            f"{tour}: {status} tournament {name!r} already names champion {champ!r}",
+            severity="error", entity=event_entity,
+            evidence={"status": status, "champion": repr(champ)})
     # An entrant of a live ordered draw that the feed no longer lists in the event has left
     # without losing, or is spelled two ways. Nothing else catches either: eliminations come
     # from loser rows, so a withdrawal leaves no evidence at all, and Felix Auger-Aliassime
@@ -1438,12 +2177,16 @@ def _check_tournament(out: list, tour: str, t: dict, now: pd.Timestamp | None = 
     # can tell the two apart; the gate's job is to refuse to ship the result.
     missing = t.get("drawnNotInField")
     if isinstance(missing, list) and missing:
-        out.append(_tiered(f"{tour}: live tournament {name!r} still has {len(missing)} drawn "
-                           f"player(s) the feed no longer lists in the event "
-                           f"({', '.join(map(str, missing[:4]))}) — they withdrew without "
-                           f"losing, or the draw and the feed spell them differently; either "
-                           f"way the board is showing someone who is not in the tournament",
-                           t.get("level"), force=force))
+        _add_finding(
+            out, "output.tournament.withdrawn_player_projected",
+            _tiered(f"{tour}: live tournament {name!r} still has {len(missing)} drawn "
+                    f"player(s) the feed no longer lists in the event "
+                    f"({', '.join(map(str, missing[:4]))}) — they withdrew without "
+                    f"losing, or the draw and the feed spell them differently; either "
+                    f"way the board is showing someone who is not in the tournament",
+                    t.get("level"), force=force),
+            severity=_tier_severity(t.get("level"), force=force), entity=event_entity,
+            evidence={"players": list(map(str, missing)), "level": repr(t.get("level"))})
     # A live event that has stopped absorbing results is wrong in one of two ways, and the
     # gate cannot tell them apart from `end` alone, so it must not assert either: the event
     # ENDED and lost its final, freezing it live (Iasi showed live with 3 alive nine days
@@ -1464,11 +2207,16 @@ def _check_tournament(out: list, tour: str, t: dict, now: pd.Timestamp | None = 
     if status == "live" and now is not None and t.get("dateBasis") != "start":
         age = _age_days(t.get("end"), now)
         if age is not None and age > HEALTH_MAX_LIVE_EVENT_AGE_DAYS:
-            out.append(_tiered(f"{tour}: live tournament {name!r} last played {age}d ago "
-                               f"(max {HEALTH_MAX_LIVE_EVENT_AGE_DAYS}) — either its final "
-                               f"never arrived and it is stuck 'live', or its results feed has "
-                               f"stalled and eliminated players are still shown as alive",
-                               t.get("level"), force=force))
+            _add_finding(
+                out, "output.tournament.live_progress_stale",
+                _tiered(f"{tour}: live tournament {name!r} last played {age}d ago "
+                        f"(max {HEALTH_MAX_LIVE_EVENT_AGE_DAYS}) — either its final "
+                        f"never arrived and it is stuck 'live', or its results feed has "
+                        f"stalled and eliminated players are still shown as alive",
+                        t.get("level"), force=force),
+                severity=_tier_severity(t.get("level"), force=force), entity=event_entity,
+                evidence={"ageDays": age, "maxDays": HEALTH_MAX_LIVE_EVENT_AGE_DAYS,
+                          "lastPlayed": t.get("end"), "level": repr(t.get("level"))})
     # The mirror image: an event still labelled "upcoming" after its own dates have passed.
     # Ending while never having gone live is impossible — the results simply never joined, so
     # the card is inviting clicks on odds for a tournament that is already over. Tier-aware:
@@ -1477,44 +2225,75 @@ def _check_tournament(out: list, tour: str, t: dict, now: pd.Timestamp | None = 
         end_age = _age_days(t.get("end"), now)
         start_age = _age_days(t.get("start"), now)
         if end_age is not None and end_age > 0:
-            out.append(_tiered(f"{tour}: upcoming tournament {name!r} already ended "
-                               f"({t.get('end')}, {end_age}d ago) but never went live — its "
-                               f"results are not joining", t.get("level"), force=force))
+            _add_finding(
+                out, "output.tournament.upcoming_after_end",
+                _tiered(f"{tour}: upcoming tournament {name!r} already ended "
+                        f"({t.get('end')}, {end_age}d ago) but never went live — its "
+                        f"results are not joining", t.get("level"), force=force),
+                severity=_tier_severity(t.get("level"), force=force), entity=event_entity,
+                evidence={"end": t.get("end"), "ageDays": end_age,
+                          "level": repr(t.get("level"))})
         elif start_age is not None and start_age > HEALTH_MAX_UPCOMING_START_LAG_DAYS:
             # Advisory at every tier: ESPN start dates include qualifying, so a main draw
             # legitimately reads "upcoming" for a day or two — and a Slam for a whole week.
-            out.append(f"{tour}: upcoming tournament {name!r} started {t.get('start')} "
-                       f"({start_age}d ago, max {HEALTH_MAX_UPCOMING_START_LAG_DAYS}) but "
-                       f"has not flipped live")
+            _add_finding(
+                out, "output.tournament.live_transition_late",
+                f"{tour}: upcoming tournament {name!r} started {t.get('start')} "
+                f"({start_age}d ago, max {HEALTH_MAX_UPCOMING_START_LAG_DAYS}) but "
+                f"has not flipped live",
+                severity="warning", entity=event_entity,
+                evidence={"start": t.get("start"), "ageDays": start_age,
+                          "maxDays": HEALTH_MAX_UPCOMING_START_LAG_DAYS})
     # A finished event has exactly one player left standing. Palermo shipped as completed
     # WITH a champion and aliveCount 32 of 32: the authoritative draw supplied the field
     # while the results supplied the eliminations, and the two never joined. Settled-draw
     # refreshes now prevent that producer failure; regressions follow the tier policy.
     if status == "completed" and champ and isinstance(alive, int) and alive > 1:
-        out.append(_tiered(f"{tour}: completed tournament {name!r} names champion {champ!r} "
-                           f"but still reports {alive} players alive (expected 1)",
-                           t.get("level"), force=force))
+        _add_finding(
+            out, "output.tournament.completed_alive_count_invalid",
+            _tiered(f"{tour}: completed tournament {name!r} names champion {champ!r} "
+                    f"but still reports {alive} players alive (expected 1)",
+                    t.get("level"), force=force),
+            severity=_tier_severity(t.get("level"), force=force), entity=event_entity,
+            evidence={"champion": repr(champ), "aliveCount": alive, "expected": 1,
+                      "level": repr(t.get("level"))})
     # `_flag_placeholders` matches a fixed word set, so the NUMBERED form ("Qualifier 30")
     # slipped through and shipped as Palermo's modelFavorite. Use the same predicate the
     # draw machinery uses to decide whether a slot names a real player.
     fav = t.get("modelFavorite")
     if fav is not None and not _is_real_name(fav):
-        out.append(_tiered(f"{tour}: tournament {name!r} modelFavorite {fav!r} is a draw "
-                           f"placeholder", t.get("level"), force=force))
+        _add_finding(
+            out, "output.tournament.favorite_placeholder",
+            _tiered(f"{tour}: tournament {name!r} modelFavorite {fav!r} is a draw "
+                    f"placeholder", t.get("level"), force=force),
+            severity=_tier_severity(t.get("level"), force=force), entity=event_entity,
+            evidence={"modelFavorite": repr(fav), "level": repr(t.get("level"))})
     # Surface. A non-canonical value is a builder bug (the card, the per-surface Elo blend
     # and the /style page all key off this string), so it blocks. A month-of-year GUESS is
     # tier-aware — it is what shipped the DC Open, a hard court, priced on grass Elo, but for
     # a genuinely new small event it can be the only answer we have.
     sfc, lvl = t.get("surface"), t.get("level")
     if sfc is None:
-        out.append(f"{tour}: tournament {name!r} has no surface")
+        _add_finding(
+            out, "output.tournament.surface_missing",
+            f"{tour}: tournament {name!r} has no surface",
+            severity="error", entity=event_entity, evidence={})
     elif sfc not in _CANONICAL_SURFACES:
-        out.append(f"{tour}: tournament {name!r} surface {sfc!r} is not a canonical surface "
-                   f"({'/'.join(sorted(_CANONICAL_SURFACES))})")
+        _add_finding(
+            out, "output.tournament.surface_invalid",
+            f"{tour}: tournament {name!r} surface {sfc!r} is not a canonical surface "
+            f"({'/'.join(sorted(_CANONICAL_SURFACES))})",
+            severity="error", entity=event_entity,
+            evidence={"surface": repr(sfc), "allowed": sorted(_CANONICAL_SURFACES)})
     if status in ("live", "upcoming") and t.get("surfaceSource") == "month":
-        out.append(_tiered(f"{tour}: {status} tournament {name!r} surface {sfc!r} is a "
-                           f"month-of-year guess — no archive or Wikipedia surface resolved",
-                           lvl, force=force))
+        _add_finding(
+            out, "output.tournament.surface_guessed",
+            _tiered(f"{tour}: {status} tournament {name!r} surface {sfc!r} is a "
+                    f"month-of-year guess — no archive or Wikipedia surface resolved",
+                    lvl, force=force),
+            severity=_tier_severity(lvl, force=force), entity=event_entity,
+            evidence={"surface": repr(sfc), "surfaceSource": "month",
+                      "level": repr(lvl)})
     # Match format drives the model's win transform. ATP Slams alone are best-of-five;
     # every WTA card and every non-Slam ATP card is best-of-three. A generic tier is
     # deliberately skipped because the resolver has not established which rule applies.
@@ -1522,9 +2301,14 @@ def _check_tournament(out: list, tour: str, t: dict, now: pd.Timestamp | None = 
     if lvl != generic_level:
         expected_best_of = 5 if tour == "atp" and lvl == "Grand Slam" else 3
         if t.get("bestOf") != expected_best_of:
-            out.append(_tiered(f"{tour}: tournament {name!r} bestOf={t.get('bestOf')!r} "
-                               f"does not match {lvl!r} (expected {expected_best_of})",
-                               lvl, force=force))
+            _add_finding(
+                out, "output.tournament.match_format_invalid",
+                _tiered(f"{tour}: tournament {name!r} bestOf={t.get('bestOf')!r} "
+                        f"does not match {lvl!r} (expected {expected_best_of})",
+                        lvl, force=force),
+                severity=_tier_severity(lvl, force=force), entity=event_entity,
+                evidence={"bestOf": repr(t.get("bestOf")), "expected": expected_best_of,
+                          "level": repr(lvl)})
     # Level. A tier outside the vocabulary is a builder bug — some source's dialect reached a
     # card verbatim ("ATP 250 series", "C") — so it blocks regardless of tier. A tier from the
     # WRONG TOUR is the same bug with a sharper symptom: the ATP board shipped Generali Open
@@ -1532,16 +2316,34 @@ def _check_tournament(out: list, tour: str, t: dict, now: pd.Timestamp | None = 
     if lvl is not None and lvl not in LEVEL_VOCAB.get(tour, frozenset()):
         other = "wta" if tour == "atp" else "atp"
         if lvl in LEVEL_VOCAB.get(other, frozenset()):
-            out.append(f"{tour}: tournament {name!r} level {lvl!r} belongs to the other tour")
+            _add_finding(
+                out, "output.tournament.level_wrong_tour",
+                f"{tour}: tournament {name!r} level {lvl!r} belongs to the other tour",
+                severity="error", entity=event_entity,
+                evidence={"name": str(name), "level": str(lvl),
+                          "otherTour": other, "coverageKey": t.get("coverageKey"),
+                          "espnId": t.get("espnId")})
         else:
-            out.append(f"{tour}: tournament {name!r} level {lvl!r} is not in the "
-                       f"{tour.upper()} level vocabulary")
+            _add_finding(
+                out, "output.tournament.level_invalid",
+                f"{tour}: tournament {name!r} level {lvl!r} is not in the "
+                f"{tour.upper()} level vocabulary",
+                severity="error", entity=event_entity,
+                evidence={"name": str(name), "level": str(lvl),
+                          "allowed": sorted(LEVEL_VOCAB.get(tour, frozenset())),
+                          "coverageKey": t.get("coverageKey"), "espnId": t.get("espnId")})
     elif lvl == generic_level:
-        out.append(_tiered(f"{tour}: {status} tournament {name!r} tier did not resolve "
-                           f"(shows the generic {lvl!r})", lvl, force=force))
+        _add_finding(
+            out, "output.tournament.tier_unresolved",
+            _tiered(f"{tour}: {status} tournament {name!r} tier did not resolve "
+                    f"(shows the generic {lvl!r})", lvl, force=force),
+            severity=_tier_severity(lvl, force=force), entity=event_entity,
+            evidence={"status": str(status), "level": str(lvl),
+                      "name": str(name), "coverageKey": t.get("coverageKey"),
+                      "espnId": t.get("espnId")})
 
     proj = t.get("projection") or []
-    _check_projection(out, tour, name, proj)
+    _check_projection(out, tour, name, proj, event_entity=event_entity)
     # `_flag_placeholders` tests exact membership of a fixed word set, so the NUMBERED form
     # ("Qualifier 30") walked straight through it — 22 of DC's 24 projected "players" were
     # qualifiers and nothing fired. Use the same `is_real` predicate the draw machinery and
@@ -1550,8 +2352,13 @@ def _check_tournament(out: list, tour: str, t: dict, now: pd.Timestamp | None = 
     ghosts = sorted({p.get("name") for p in proj if not _is_real_name(p.get("name"))})
     if ghosts:
         shown = ", ".join(repr(g) for g in ghosts[:3]) + (" …" if len(ghosts) > 3 else "")
-        out.append(_tiered(f"{tour}: tournament {name!r} projection names {len(ghosts)} draw "
-                           f"placeholder(s) as players ({shown})", t.get("level"), force=force))
+        _add_finding(
+            out, "output.tournament.projection_placeholder",
+            _tiered(f"{tour}: tournament {name!r} projection names {len(ghosts)} draw "
+                    f"placeholder(s) as players ({shown})", t.get("level"), force=force),
+            severity=_tier_severity(t.get("level"), force=force), entity=event_entity,
+            evidence={"players": [repr(g) for g in ghosts],
+                      "level": repr(t.get("level"))})
 
 
 def _check_brackets(out: list, tour: str, brackets: list, tournaments) -> None:
@@ -1563,24 +2370,77 @@ def _check_brackets(out: list, tour: str, brackets: list, tournaments) -> None:
     from ..data.draws_official import official_dates_match
     from ..data.results import _name_key
     from ..sim.draws import SIZE_NAME
-    tmap = ({_norm_name(t.get("name")): t for t in tournaments
-             if isinstance(t, dict) and t.get("name")} if isinstance(tournaments, list) else {})
-    seen: set = set()
+    # Cross-artifact joins use provider identity, never mutable sponsor/display titles.
+    # A single ESPN event can be renamed between the tournament card and bracket build;
+    # conversely, two different ESPN events can legitimately share the same display name.
+    # Older/id-less artifacts may still join, including when ESPN identity reached only
+    # one of the two payloads, but only when one candidate has BOTH date overlap and at
+    # least two shared real players. Two conflicting provider identities can never be
+    # overridden by that evidence, and a date window alone is not identity.
+    tournament_rows = ([(index, tournament)
+                        for index, tournament in enumerate(tournaments)
+                        if isinstance(tournament, dict)]
+                       if isinstance(tournaments, list) else [])
+    tournaments_by_identity: dict[str, list[tuple[int, dict]]] = {}
+    for index, tournament in tournament_rows:
+        stable_entity = _event_stable_entity(tournament)
+        if stable_entity:
+            tournaments_by_identity.setdefault(stable_entity, []).append((index, tournament))
+    matched_tournament_indexes: set[int] = set()
+    bracket_matches: list[tuple[str, str, bool]] = []
     source_attachments: dict[str, dict] = {}
     for index, ev in enumerate(brackets):
         if not isinstance(ev, dict):
-            out.append(f"{tour}: brackets.json has a non-object entry")
+            _add_finding(
+                out, "output.bracket.entry_invalid",
+                f"{tour}: brackets.json has a non-object entry",
+                severity="error", entity="artifact:brackets.json",
+                evidence={"index": index, "valueType": type(ev).__name__})
             continue
         name = ev.get("name")
-        seen.add(_norm_name(name))
+        event_entity = _event_entity(ev)
+        stable_entity = _event_stable_entity(ev)
+        provider_entity = _event_provider_entity(ev)
+        exact_matches = tournaments_by_identity.get(stable_entity, []) if stable_entity else []
+        if exact_matches:
+            matches = exact_matches
+        else:
+            matches = [
+                (tournament_index, tournament)
+                for tournament_index, tournament in tournament_rows
+                # The exact-identity branch above already handled equal provider IDs.
+                # If both remaining rows carry provider IDs, they conflict and no amount
+                # of circumstantial date/player evidence may join them. Evidence fallback
+                # is reserved for pairs where at least one side is genuinely provider-idless.
+                if not (provider_entity and _event_provider_entity(tournament))
+                and _event_evidence_matches(ev, tournament)
+            ]
+            if len(matches) != 1:
+                matches = []
+        t = matches[0][1] if matches else None
+        # When only tournaments.json received the provider identity, use that resolved
+        # identity for every bracket finding. Otherwise a sponsor/date-derived bracket
+        # fingerprint would churn even though the evidence join proved the ESPN event.
+        if t is not None and provider_entity is None:
+            event_entity = _event_provider_entity(t) or event_entity
+        matched_tournament_indexes.update(index for index, _ in matches)
+        bracket_matches.append((event_entity, _norm_name(name), t is not None))
         rounds = ev.get("rounds")
         size = ev.get("bracketSize")
         status = ev.get("status")
         if not isinstance(rounds, list) or not rounds:
-            out.append(f"{tour}: bracket {name!r} has no rounds")
+            _add_finding(
+                out, "output.bracket.geometry_invalid",
+                f"{tour}: bracket {name!r} has no rounds",
+                severity="error", entity=event_entity,
+                evidence={"roundsType": type(rounds).__name__})
             continue
         if status not in _STATUSES:
-            out.append(f"{tour}: bracket {name!r} has bad status {status!r}")
+            _add_finding(
+                out, "output.bracket.status_invalid",
+                f"{tour}: bracket {name!r} has bad status {status!r}",
+                severity="error", entity=event_entity,
+                evidence={"status": repr(status)})
 
         # Provenance is part of a published bracket, not optional decoration. It makes the
         # first-party/Wikipedia fallback observable and prevents a source-specific field from
@@ -1595,49 +2455,100 @@ def _check_brackets(out: list, tour: str, brackets: list, tournaments) -> None:
                 "sourceId": source_id, "sourceUrl": source_url,
             }
         if source not in _DRAW_SOURCE_HOSTS:
-            out.append(f"{tour}: bracket {name!r} has invalid drawSource {source!r}")
+            _add_finding(
+                out, "output.bracket.draw_source_invalid",
+                f"{tour}: bracket {name!r} has invalid drawSource {source!r}",
+                severity="error", entity=event_entity,
+                evidence={"drawSource": repr(source)})
         if not source_id:
-            out.append(f"{tour}: bracket {name!r} is missing drawSourceId")
+            _add_finding(
+                out, "output.bracket.draw_source_id_missing",
+                f"{tour}: bracket {name!r} is missing drawSourceId",
+                severity="error", entity=event_entity, evidence={})
         host = urllib.parse.urlparse(str(source_url or "")).hostname
         if source in _DRAW_SOURCE_HOSTS and host != _DRAW_SOURCE_HOSTS[source]:
-            out.append(f"{tour}: bracket {name!r} drawSource {source!r} has URL host "
-                       f"{host!r} (expected {_DRAW_SOURCE_HOSTS[source]!r})")
+            _add_finding(
+                out, "output.bracket.draw_source_host_invalid",
+                f"{tour}: bracket {name!r} drawSource {source!r} has URL host "
+                f"{host!r} (expected {_DRAW_SOURCE_HOSTS[source]!r})",
+                severity="error", entity=event_entity,
+                evidence={"source": str(source), "actualHost": repr(host),
+                          "expectedHost": _DRAW_SOURCE_HOSTS[source]})
         if source in ("atp", "wta"):
             if not espn_id:
-                out.append(f"{tour}: bracket {name!r} official draw is missing espnId provenance")
+                _add_finding(
+                    out, "output.bracket.espn_provenance_missing",
+                    f"{tour}: bracket {name!r} official draw is missing espnId provenance",
+                    severity="error", entity=event_entity, evidence={})
             if source != tour:
-                out.append(f"{tour}: bracket {name!r} uses the other tour's official source {source!r}")
+                _add_finding(
+                    out, "output.bracket.official_source_wrong_tour",
+                    f"{tour}: bracket {name!r} uses the other tour's official source {source!r}",
+                    severity="error", entity=event_entity,
+                    evidence={"source": str(source)})
             evidence = ev.get("drawEvidencePlayers")
             field_evidence = ev.get("drawEvidenceFieldPlayers")
             if (not isinstance(evidence, int) or not isinstance(field_evidence, int)
                     or field_evidence < 2 or evidence < 2 or evidence * 4 < field_evidence * 3):
-                out.append(f"{tour}: bracket {name!r} official draw matches only "
-                           f"{evidence!r}/{field_evidence!r} event players (minimum 75%)")
+                _add_finding(
+                    out, "output.bracket.field_evidence_insufficient",
+                    f"{tour}: bracket {name!r} official draw matches only "
+                    f"{evidence!r}/{field_evidence!r} event players (minimum 75%)",
+                    severity="error", entity=event_entity,
+                    evidence={"matchedPlayers": repr(evidence),
+                              "fieldPlayers": repr(field_evidence), "minimumFraction": 0.75})
             if not official_dates_match(
                     ev.get("start"), ev.get("end") or ev.get("start"),
                     ev.get("drawSourceStart"), ev.get("drawSourceEnd")):
-                out.append(f"{tour}: bracket {name!r} official draw calendar overlap is too small for "
-                           f"the tournament ({ev.get('drawSourceStart')}..{ev.get('drawSourceEnd')} "
-                           f"vs {ev.get('start')}..{ev.get('end')})")
+                _add_finding(
+                    out, "output.bracket.calendar_evidence_insufficient",
+                    f"{tour}: bracket {name!r} official draw calendar overlap is too small for "
+                    f"the tournament ({ev.get('drawSourceStart')}..{ev.get('drawSourceEnd')} "
+                    f"vs {ev.get('start')}..{ev.get('end')})",
+                    severity="error", entity=event_entity,
+                    evidence={"drawStart": ev.get("drawSourceStart"),
+                              "drawEnd": ev.get("drawSourceEnd"), "eventStart": ev.get("start"),
+                              "eventEnd": ev.get("end")})
 
         # structure: power-of-two size, rounds halve to a single final, labels match width
         if not _pow2(size):
-            out.append(f"{tour}: bracket {name!r} bracketSize {size!r} is not a power of two")
+            _add_finding(
+                out, "output.bracket.geometry_invalid",
+                f"{tour}: bracket {name!r} bracketSize {size!r} is not a power of two",
+                severity="error", entity=event_entity,
+                evidence={"bracketSize": repr(size), "reason": "not_power_of_two"})
         r0 = rounds[0].get("matches") or []
         if isinstance(size, int) and 2 * len(r0) != size:
-            out.append(f"{tour}: bracket {name!r} round 0 has {len(r0)} matches (expected {size // 2})")
+            _add_finding(
+                out, "output.bracket.geometry_invalid",
+                f"{tour}: bracket {name!r} round 0 has {len(r0)} matches (expected {size // 2})",
+                severity="error", entity=event_entity,
+                evidence={"round": 0, "matches": len(r0), "expected": size // 2})
         for k in range(len(rounds) - 1):
             a, b = len(rounds[k].get("matches") or []), len(rounds[k + 1].get("matches") or [])
             if b * 2 != a:
-                out.append(f"{tour}: bracket {name!r} round {k} has {a} matches, next has {b} (must halve)")
+                _add_finding(
+                    out, "output.bracket.geometry_invalid",
+                    f"{tour}: bracket {name!r} round {k} has {a} matches, next has {b} (must halve)",
+                    severity="error", entity=event_entity,
+                    evidence={"round": k, "matches": a, "nextMatches": b})
         if len(rounds[-1].get("matches") or []) != 1:
-            out.append(f"{tour}: bracket {name!r} final round is not a single match")
+            _add_finding(
+                out, "output.bracket.geometry_invalid",
+                f"{tour}: bracket {name!r} final round is not a single match",
+                severity="error", entity=event_entity,
+                evidence={"finalMatches": len(rounds[-1].get("matches") or [])})
         for rnd in rounds:
             ms = rnd.get("matches") or []
             want = SIZE_NAME.get(2 * len(ms))
             if want and rnd.get("round") != want:
-                out.append(f"{tour}: bracket {name!r} round {rnd.get('round')!r} mislabelled "
-                           f"(expected {want!r} for {len(ms)} matches)")
+                _add_finding(
+                    out, "output.bracket.geometry_invalid",
+                    f"{tour}: bracket {name!r} round {rnd.get('round')!r} mislabelled "
+                    f"(expected {want!r} for {len(ms)} matches)",
+                    severity="error", entity=event_entity,
+                    evidence={"actualRound": repr(rnd.get("round")), "expectedRound": want,
+                              "matches": len(ms)})
 
         # drawSize: count round-0 slots the way tournaments.json drawSize does — field_pool is
         # the non-null complete-draw slots, which INCLUDES unresolved qualifier placeholders (an
@@ -1647,48 +2558,98 @@ def _check_brackets(out: list, tour: str, brackets: list, tournaments) -> None:
         nonbye0 = [p for m in r0 for p in (m.get("a"), m.get("b")) if p is not None]
         ds = ev.get("drawSize")
         if isinstance(ds, int) and len(nonbye0) != ds:
-            out.append(f"{tour}: bracket {name!r} has {len(nonbye0)} round-0 slots but drawSize {ds}")
-        t = tmap.get(_norm_name(name))
+            _add_finding(
+                out, "output.bracket.geometry_invalid",
+                f"{tour}: bracket {name!r} has {len(nonbye0)} round-0 slots but drawSize {ds}",
+                severity="error", entity=event_entity,
+                evidence={"roundZeroSlots": len(nonbye0), "drawSize": ds})
         if t and isinstance(t.get("drawSize"), int) and ds != t.get("drawSize"):
-            out.append(f"{tour}: bracket {name!r} drawSize {ds} != tournaments.json {t.get('drawSize')}")
+            _add_finding(
+                out, "output.bracket.tournament_draw_size_mismatch",
+                f"{tour}: bracket {name!r} drawSize {ds} != tournaments.json {t.get('drawSize')}",
+                severity="error", entity=event_entity,
+                evidence={"bracketDrawSize": ds, "tournamentDrawSize": t.get("drawSize")})
 
         # final decidedness mirrors the tournament rule (no live event names a champion)
         final_m = (rounds[-1].get("matches") or [{}])[0]
         fw = final_m.get("winner")
         if status == "completed" and fw is None:
-            out.append(f"{tour}: completed bracket {name!r} final match is undecided")
+            _add_finding(
+                out, "output.bracket.completed_final_undecided",
+                f"{tour}: completed bracket {name!r} final match is undecided",
+                severity="error", entity=event_entity, evidence={})
         if status in ("live", "upcoming") and fw is not None:
-            out.append(f"{tour}: {status} bracket {name!r} final match already decided")
+            _add_finding(
+                out, "output.bracket.final_decided_prematurely",
+                f"{tour}: {status} bracket {name!r} final match already decided",
+                severity="error", entity=event_entity,
+                evidence={"status": status, "winner": repr(fw)})
 
         # per-match: winner validity, prob range, prob/source presence, upset orientation,
         # and feeder consistency (a decided winner must seat in the right next-round slot)
         for k, rnd in enumerate(rounds):
             ms = rnd.get("matches") or []
             for j, m in enumerate(ms):
+                match_entity = _match_entity(
+                    m,
+                    event_entity=event_entity,
+                    player_a=m.get("a"),
+                    player_b=m.get("b"),
+                    fallback=f"round:{k}:match:{j}",
+                )
                 w = m.get("winner")
                 if w not in ("a", "b", None):
-                    out.append(f"{tour}: bracket {name!r} winner {w!r} not in a/b/null")
+                    _add_finding(
+                        out, "output.bracket.winner_value_invalid",
+                        f"{tour}: bracket {name!r} winner {w!r} not in a/b/null",
+                        severity="error", entity=match_entity,
+                        evidence={"winner": repr(w)})
                 elif w in ("a", "b") and not m.get(w):
-                    out.append(f"{tour}: bracket {name!r} decided match has null winning side {w!r}")
+                    _add_finding(
+                        out, "output.bracket.winner_side_missing",
+                        f"{tour}: bracket {name!r} decided match has null winning side {w!r}",
+                        severity="error", entity=match_entity,
+                        evidence={"winner": w})
                 p, src = m.get("p"), m.get("probSource")
                 if p is not None and not _is_prob(p):
-                    out.append(f"{tour}: bracket {name!r} match p={p!r} out of [0,1]")
+                    _add_finding(
+                        out, "output.bracket.probability_invalid",
+                        f"{tour}: bracket {name!r} match p={p!r} out of [0,1]",
+                        severity="error", entity=match_entity,
+                        evidence={"probability": repr(p)})
                 if src not in ("logged", "model", None):
-                    out.append(f"{tour}: bracket {name!r} probSource {src!r} invalid")
+                    _add_finding(
+                        out, "output.bracket.probability_source_invalid",
+                        f"{tour}: bracket {name!r} probSource {src!r} invalid",
+                        severity="error", entity=match_entity,
+                        evidence={"probabilitySource": repr(src)})
                 if (p is None) != (src is None):
-                    out.append(f"{tour}: bracket {name!r} p/probSource presence mismatch (p={p!r}, src={src!r})")
+                    _add_finding(
+                        out, "output.bracket.probability_source_mismatch",
+                        f"{tour}: bracket {name!r} p/probSource presence mismatch (p={p!r}, src={src!r})",
+                        severity="error", entity=match_entity,
+                        evidence={"probability": repr(p), "probabilitySource": repr(src)})
                 up = m.get("upset")
                 if up is not None and p is not None and w in ("a", "b"):
                     won_p = p if w == "a" else 1.0 - p
                     if bool(up) != (won_p < 0.5):
-                        out.append(f"{tour}: bracket {name!r} upset flag disagrees with p ({p})")
+                        _add_finding(
+                            out, "output.bracket.upset_flag_mismatch",
+                            f"{tour}: bracket {name!r} upset flag disagrees with p ({p})",
+                            severity="error", entity=match_entity,
+                            evidence={"probability": p, "winner": w, "upset": repr(up)})
                 if w in ("a", "b") and k + 1 < len(rounds):
                     won = m.get(w)
                     nxt_ms = rounds[k + 1].get("matches") or []
                     nxt = nxt_ms[j // 2] if j // 2 < len(nxt_ms) else None
                     side = (nxt.get("a") if j % 2 == 0 else nxt.get("b")) if nxt else None
                     if side is not None and won is not None and _norm_name(side) != _norm_name(won):
-                        out.append(f"{tour}: bracket {name!r} round {k} winner {won!r} not fed to next round (found {side!r})")
+                        _add_finding(
+                            out, "output.bracket.advancement_mismatch",
+                            f"{tour}: bracket {name!r} round {k} winner {won!r} not fed to next round (found {side!r})",
+                            severity="error", entity=match_entity,
+                            evidence={"round": k, "winner": repr(won),
+                                      "nextRoundPlayer": repr(side)})
 
         # champion agrees with this payload AND tournaments.json. Compare on the
         # accent/punct-insensitive name key, not casefold: the bracket slot carries the
@@ -1697,27 +2658,49 @@ def _check_brackets(out: list, tour: str, brackets: list, tournaments) -> None:
         if status == "completed" and fw in ("a", "b"):
             champ = final_m.get(fw)
             if ev.get("champion") and champ and _name_key(champ) != _name_key(ev.get("champion")):
-                out.append(f"{tour}: bracket {name!r} final winner {champ!r} != champion {ev.get('champion')!r}")
+                _add_finding(
+                    out, "output.bracket.champion_mismatch",
+                    f"{tour}: bracket {name!r} final winner {champ!r} != champion {ev.get('champion')!r}",
+                    severity="error", entity=event_entity,
+                    evidence={"finalWinner": repr(champ),
+                              "bracketChampion": repr(ev.get("champion"))})
             if t and t.get("champion") and champ and _name_key(champ) != _name_key(t.get("champion")):
-                out.append(f"{tour}: bracket {name!r} champion {champ!r} != tournaments.json {t.get('champion')!r}")
+                _add_finding(
+                    out, "output.bracket.tournament_champion_mismatch",
+                    f"{tour}: bracket {name!r} champion {champ!r} != tournaments.json {t.get('champion')!r}",
+                    severity="error", entity=event_entity,
+                    evidence={"bracketChampion": repr(champ),
+                              "tournamentChampion": repr(t.get("champion"))})
 
         _flag_placeholders(out, tour, f"bracket {name!r}",
                            (p for rnd in rounds for m in (rnd.get("matches") or [])
-                            for p in (m.get("a"), m.get("b"))))
+                            for p in (m.get("a"), m.get("b"))),
+                           entity=event_entity)
 
-    from .draws import duplicate_draw_source_attachments
-    for detail in duplicate_draw_source_attachments(source_attachments):
-        out.append(f"{tour}: brackets.json {detail}")
+    from .draws import duplicate_draw_source_incidents
+    for identity, detail in duplicate_draw_source_incidents(source_attachments):
+        _add_finding(
+            out, "output.draw_source.duplicate_attachment",
+            f"{tour}: brackets.json {detail}",
+            severity="error", entity=f"draw-source:{identity}",
+            evidence={"artifact": "brackets.json", "detail": detail})
 
     # cross-presence: hasBracket <=> a brackets.json entry (both directions)
     if isinstance(tournaments, list):
-        for t in tournaments:
-            if isinstance(t, dict) and t.get("hasBracket") and _norm_name(t.get("name")) not in seen:
-                out.append(f"{tour}: tournaments.json {t.get('name')!r} hasBracket but no brackets.json entry")
-    if tmap:
-        for nm in seen:
-            if nm not in tmap:
-                out.append(f"{tour}: brackets.json entry {nm!r} has no tournaments.json event")
+        for index, t in tournament_rows:
+            if t.get("hasBracket") and index not in matched_tournament_indexes:
+                _add_finding(
+                    out, "output.bracket.entry_missing",
+                    f"{tour}: tournaments.json {t.get('name')!r} hasBracket but no brackets.json entry",
+                    severity="error", entity=_event_entity(t), evidence={})
+    if tournament_rows:
+        for event_entity, normalized_name, matched in bracket_matches:
+            if not matched:
+                _add_finding(
+                    out, "output.bracket.tournament_missing",
+                    f"{tour}: brackets.json entry {normalized_name!r} "
+                    "has no tournaments.json event",
+                    severity="error", entity=event_entity, evidence={})
 
 
 def _check_kalshi_ledger(out: list, tour: str, rows: list[dict]) -> None:
@@ -1738,14 +2721,23 @@ def _check_kalshi_ledger(out: list, tour: str, rows: list[dict]) -> None:
         ts = pd.to_datetime(r.get("price_ts"), utc=True, errors="coerce")
         anchor = pd.to_datetime(rd, utc=True, errors="coerce")
         if pd.isna(ts) or pd.isna(anchor):
-            out.append(f"{tour}: kalshi ledger scored row {tick} lacks a parseable "
-                       f"price_ts/result_date ({r.get('price_ts')!r}, {rd!r})")
+            _add_finding(
+                out, "output.kalshi_ledger.timestamp_invalid",
+                f"{tour}: kalshi ledger scored row {tick} lacks a parseable "
+                f"price_ts/result_date ({r.get('price_ts')!r}, {rd!r})",
+                severity="error", entity=f"kalshi:{tick}",
+                evidence={"priceTs": repr(r.get("price_ts")), "resultDate": repr(rd)})
         else:
             anchor += pd.Timedelta(hours=PREMATCH_UTC_HOUR)
             if ts > anchor:
-                out.append(f"{tour}: kalshi ledger scored row {tick} quoted after its "
-                           f"08:00 anchor ({r.get('price_ts')} > {rd} 08:00Z) — "
-                           f"occurrence-anchored/in-play print")
+                _add_finding(
+                    out, "output.kalshi_ledger.quote_after_anchor",
+                    f"{tour}: kalshi ledger scored row {tick} quoted after its "
+                    f"08:00 anchor ({r.get('price_ts')} > {rd} 08:00Z) — "
+                    f"occurrence-anchored/in-play print",
+                    severity="error", entity=f"kalshi:{tick}",
+                    evidence={"priceTs": str(r.get("price_ts")), "resultDate": str(rd),
+                              "anchorHourUtc": PREMATCH_UTC_HOUR})
             elif ts <= anchor - pd.Timedelta(seconds=CANDLE_LOOKBACK_S):
                 mids = []
                 for c in ("mid_a", "mid_b"):
@@ -1754,18 +2746,31 @@ def _check_kalshi_ledger(out: list, tour: str, rows: list[dict]) -> None:
                     except ValueError:
                         pass
                 if any(not (1 - EXTREME_CARRY_MID < m < EXTREME_CARRY_MID) for m in mids):
-                    out.append(f"{tour}: kalshi ledger scored row {tick} carries a "
-                               f"settled-extreme window-edge quote (mids {mids}) — "
-                               f"post-result carry print")
+                    _add_finding(
+                        out, "output.kalshi_ledger.settled_quote_carried",
+                        f"{tour}: kalshi ledger scored row {tick} carries a "
+                        f"settled-extreme window-edge quote (mids {mids}) — "
+                        f"post-result carry print",
+                        severity="error", entity=f"kalshi:{tick}",
+                        evidence={"mids": mids, "extremeCarryMid": EXTREME_CARRY_MID})
         ka_res, a_won = r.get("kalshi_result_a"), r.get("a_won")
         if (ka_res in ("yes", "no") and a_won in ("0", "1")
                 and (ka_res == "yes") != (a_won == "1")):
-            out.append(f"{tour}: kalshi ledger scored row {tick} settlement "
-                       f"contradicts its joined result — mis-joined match")
+            _add_finding(
+                out, "output.kalshi_ledger.settlement_mismatch",
+                f"{tour}: kalshi ledger scored row {tick} settlement "
+                f"contradicts its joined result — mis-joined match",
+                severity="error", entity=f"kalshi:{tick}",
+                evidence={"kalshiResultA": ka_res, "aWon": a_won})
         key = (frozenset((r.get("player_a", ""), r.get("player_b", ""))), rd)
         if key in seen:
-            out.append(f"{tour}: kalshi ledger scores one result twice "
-                       f"({seen[key]} and {tick}, {rd})")
+            _add_finding(
+                out, "output.kalshi_ledger.result_scored_twice",
+                f"{tour}: kalshi ledger scores one result twice "
+                f"({seen[key]} and {tick}, {rd})",
+                severity="error",
+                entity=f"result:{':'.join(sorted(_player_identity_key(p) for p in key[0]))}:{rd}",
+                evidence={"tickers": [seen[key], tick], "resultDate": str(rd)})
         else:
             seen[key] = tick
 
@@ -1780,8 +2785,157 @@ def _player_identity_key(name: object) -> str:
     return name_key(PLAYER_ALIASES.get(key, name))
 
 
-def cross_tour_problems(outputs: dict) -> list[str]:
-    """Problems only visible with BOTH tours' boards in hand.
+def _identity_value(value: object) -> str:
+    """Return a provider identity scalar without manufacturing IDs from nulls."""
+    if value is None:
+        return ""
+    try:
+        if pd.isna(value):
+            return ""
+    except (TypeError, ValueError):
+        return ""
+    text = str(value).strip()
+    return "" if text.casefold() in {"nan", "none", "null"} else text
+
+
+def _event_entity(event: dict) -> str:
+    """Stable event identity for finding fingerprints; display names are evidence only."""
+    espn_id = next((value for value in (
+        _identity_value(event.get("espnId")),
+        _identity_value(event.get("espn_id")),
+    ) if value), "")
+    if espn_id:
+        return f"espn:{espn_id}"
+    coverage_key = _identity_value(event.get("coverageKey"))
+    if coverage_key:
+        if coverage_key.casefold().startswith("espn:"):
+            return f"espn:{coverage_key.split(':', 1)[1]}"
+        return f"coverage:{coverage_key}"
+    draw_source_id = _identity_value(event.get("drawSourceId"))
+    if draw_source_id:
+        source = _identity_value(event.get("drawSource")) or "provider"
+        return f"draw:{source}:{draw_source_id}"
+    start = _identity_value(event.get("start"))
+    end = _identity_value(event.get("end"))
+    if start or end:
+        return f"event-window:{start}:{end}"
+    return "event:unidentified"
+
+
+def _event_provider_entity(event: dict) -> str | None:
+    """Exact event identity usable across tournament and bracket artifacts.
+
+    ``drawSourceId`` identifies the source draw and deliberately exists only in the
+    bracket payload, so it remains a useful finding identity but is not a cross-artifact
+    event key. ESPN identity can arrive directly or through an ``espn:`` coverage key.
+    """
+    espn_id = next((value for value in (
+        _identity_value(event.get("espnId")),
+        _identity_value(event.get("espn_id")),
+    ) if value), "")
+    if espn_id:
+        return f"espn:{espn_id}"
+    coverage_key = _identity_value(event.get("coverageKey"))
+    if coverage_key.casefold().startswith("espn:"):
+        return _event_entity({"coverageKey": coverage_key})
+    return None
+
+
+def _event_stable_entity(event: dict) -> str | None:
+    """Non-window identity that can conclusively match when both artifacts carry it."""
+    entity = _event_entity(event)
+    if entity == "event:unidentified" or entity.startswith("event-window:"):
+        return None
+    return entity
+
+
+def _event_real_player_keys(event: dict) -> set[str]:
+    """Canonical real-player evidence carried by either event artifact."""
+    players = {
+        row.get("name")
+        for row in (event.get("projection") or [])
+        if isinstance(row, dict)
+    }
+    players |= {event.get("champion"), event.get("runnerUp")}
+    for rounds_key in ("rounds", "bracket"):
+        for rnd in event.get(rounds_key) or []:
+            if not isinstance(rnd, dict):
+                continue
+            for match in rnd.get("matches") or []:
+                if isinstance(match, dict):
+                    players |= {match.get("a"), match.get("b")}
+    return {_player_identity_key(player) for player in players if _is_real_name(player)}
+
+
+def _event_evidence_matches(bracket: dict, tournament: dict) -> bool:
+    """Evidence join when at least one event artifact lacks an ESPN identity."""
+    from ..data.draws_official import official_dates_match
+
+    if not official_dates_match(
+            bracket.get("start"), bracket.get("end") or bracket.get("start"),
+            tournament.get("start"), tournament.get("end") or tournament.get("start")):
+        return False
+    return len(_event_real_player_keys(bracket) & _event_real_player_keys(tournament)) >= 2
+
+
+def _remembered_bracket_event_entities(tournaments: object,
+                                        prev: dict | None) -> dict[str, str]:
+    """Keep a bracket-loss baseline until its event leaves the active board.
+
+    A missing bracket must remain missing on the second run rather than disappearing from
+    the baseline and falsely recovering. Legacy display-name state is bridged for rollout;
+    all newly persisted identity is provider/event based.
+    """
+    cards = tournaments if isinstance(tournaments, list) else []
+    active = {
+        _event_entity(card): card for card in cards
+        if isinstance(card, dict) and card.get("name")
+        and card.get("status") in ("live", "upcoming")
+    }
+    previous = prev or {}
+    raw_entities = previous.get("bracket_event_entities") or {}
+    prior_entities = set(raw_entities) if isinstance(raw_entities, (dict, list)) else set()
+    legacy_names = set(previous.get("bracket_events") or [])
+    remembered: dict[str, str] = {}
+    for entity, card in active.items():
+        if card.get("hasBracket"):
+            remembered[entity] = str(card["name"])
+        elif entity in prior_entities:
+            remembered[entity] = (str(raw_entities.get(entity))
+                                  if isinstance(raw_entities, dict)
+                                  and raw_entities.get(entity) else str(card["name"]))
+        elif _norm_name(card.get("name")) in legacy_names:
+            remembered[entity] = str(card["name"])
+    return remembered
+
+
+def _match_entity(match: dict, *, event_entity: str | None = None,
+                  player_a: object = None, player_b: object = None,
+                  fallback: str = "unidentified") -> str:
+    """Prefer a match ID; otherwise bind an unordered canonical pair to its event."""
+    match_id = next((value for value in (
+        _identity_value(match.get("matchId")),
+        _identity_value(match.get("match_id")),
+        _identity_value(match.get("id")),
+    ) if value), "")
+    if match_id:
+        return f"match:{match_id}"
+    base = event_entity or _event_entity(match)
+    if base == "event:unidentified":
+        date = _identity_value(match.get("date"))
+        if date:
+            base = f"event-date:{date}"
+    pair = sorted(filter(None, (
+        _player_identity_key(player_a),
+        _player_identity_key(player_b),
+    )))
+    if pair:
+        return f"{base}#players:{':'.join(pair)}"
+    return f"{base}#{fallback}"
+
+
+def cross_tour_findings(outputs: dict) -> list[HealthFinding]:
+    """Typed findings only visible with BOTH tours' boards in hand.
 
     A combined event is one venue, one week, one court — the DC Open and every Slam ship a
     card on each tour. When those two cards disagree about the surface, at least one of them
@@ -1789,28 +2943,39 @@ def cross_tour_problems(outputs: dict) -> list[str]:
     the DC Open as Grass in the middle of the hard-court swing and every single-tour invariant
     passed. Advisory, because which side is wrong is not knowable from here.
 
-    ``outputs`` is ``{tour: read_outputs(tour)}``. Events are matched on the normalised
-    display name plus a real date overlap, so two same-named events in different weeks
-    (a tour's spring and autumn editions) are never compared.
+    ``outputs`` is ``{tour: read_outputs(tour)}``. Combined ATP/WTA cards share ESPN's
+    event registry ID. Display names are never a join key because sponsor titles can differ
+    across tours or change mid-event; id-less cards are skipped rather than guessed.
     """
     per: dict[str, dict] = {}
     for tour, oc in sorted(outputs.items()):
         for t in ((oc.get("data") or {}).get("tournaments") or []):
-            if isinstance(t, dict) and t.get("name"):
-                per.setdefault(_norm_name(t["name"]), {})[tour] = t
-    out: list[str] = []
-    for cards in (per[k] for k in sorted(per)):
+            event_id = _identity_value(t.get("espnId")) if isinstance(t, dict) else ""
+            if event_id:
+                per.setdefault(event_id, {})[tour] = t
+    out = _FindingCollector("cross", None)
+    for event_id, cards in sorted(per.items()):
         if len(cards) < 2:
             continue
         ta, tb = sorted(cards)
         a, b = cards[ta], cards[tb]
-        if _overlap_days(a, b) < 2:
-            continue
         sa, sb = a.get("surface"), b.get("surface")
         if sa and sb and sa != sb:
-            out.append(f"{ta}/{tb}: tournament {a.get('name')!r} surface split across tours "
-                       f"({ta}={sa}, {tb}={sb}) — one board is wrong about the court")
-    return out
+            _add_finding(
+                out, "cross.tournament.surface_mismatch",
+                f"{ta}/{tb}: tournament {a.get('name')!r} surface split across tours "
+                f"({ta}={sa}, {tb}={sb}) — one board is wrong about the court",
+                severity="warning", entity=f"espn:{event_id}",
+                evidence={"tours": [ta, tb], "surfaces": {ta: sa, tb: sb},
+                          "espnId": event_id,
+                          "names": {ta: str(a.get("name") or ""),
+                                    tb: str(b.get("name") or "")}})
+    return out.findings
+
+
+def cross_tour_problems(outputs: dict) -> list[str]:
+    """Compatibility strings for callers not yet consuming health-finding-v1."""
+    return _finding_messages(cross_tour_findings(outputs))
 
 
 def _overlap_days(a: dict, b: dict) -> int:
@@ -1847,9 +3012,16 @@ def _tournament_name_problems(out: list, tour: str, ts: list) -> None:
     named = [t for t in ts if isinstance(t, dict) and t.get("name")]
     dup = {k for k, n in Counter(_norm_name(t["name"]) for t in named).items() if n > 1}
     for key in sorted(dup):
-        names = sorted({t["name"] for t in named if _norm_name(t["name"]) == key})
-        out.append(f"{tour}: tournaments.json lists the same event more than once "
-                   f"({', '.join(names)}) — a naming/dedup split")
+        duplicated = [t for t in named if _norm_name(t["name"]) == key]
+        names = sorted({t["name"] for t in duplicated})
+        starts = sorted(str(t.get("start") or "") for t in duplicated)
+        entities = sorted({_event_entity(t) for t in duplicated})
+        _add_finding(
+            out, "output.tournament.possible_duplicate_card",
+            f"{tour}: tournaments.json lists the same event more than once "
+            f"({', '.join(names)}) — a naming/dedup split",
+            severity="warning", entity=f"duplicate-event:{'|'.join(entities)}",
+            evidence={"names": names, "starts": starts, "reason": "duplicate_name"})
 
     def _real_field(t: dict) -> set:
         return {p.get("name") for p in t.get("projection", []) if is_real(p.get("name"))}
@@ -1870,8 +3042,16 @@ def _tournament_name_problems(out: list, tour: str, ts: list) -> None:
         split = len(shared) >= 3 or (
             min(len(fa), len(fb)) >= 2 and (shared == fa or shared == fb))
         if split:
-            out.append(f"{tour}: {a['name']!r} and {b['name']!r} overlap in dates and share "
-                       f"{len(shared)} players — likely one event under two names (YoY rename?)")
+            pair_key = "|".join(sorted({_event_entity(a), _event_entity(b)}))
+            _add_finding(
+                out, "output.tournament.possible_duplicate_card",
+                f"{tour}: {a['name']!r} and {b['name']!r} overlap in dates and share "
+                f"{len(shared)} players — likely one event under two names (YoY rename?)",
+                severity="warning",
+                entity=f"event-pair:{pair_key}",
+                evidence={"names": [str(a["name"]), str(b["name"])],
+                          "sharedPlayers": sorted(map(str, shared)),
+                          "overlapDays": _overlap_days(a, b)})
 
 
 def _check_method(out: list, tour: str, method: dict, meta: dict | None) -> None:
@@ -1884,40 +3064,83 @@ def _check_method(out: list, tour: str, method: dict, meta: dict | None) -> None
     missing = [k for k in required
                if not isinstance(method.get(k), dict)]
     if missing:
-        out.append(f"{tour}: method.json missing section(s) {', '.join(missing)}")
+        _add_finding(
+            out, "output.method.section_missing",
+            f"{tour}: method.json missing section(s) {', '.join(missing)}",
+            severity="error", entity="artifact:method.json",
+            evidence={"sections": missing})
         return
     if method.get("tour") != tour:
-        out.append(f"{tour}: method.json says tour={method.get('tour')!r}")
+        _add_finding(
+            out, "output.method.tour_mismatch",
+            f"{tour}: method.json says tour={method.get('tour')!r}",
+            severity="error", entity="artifact:method.json",
+            evidence={"expected": tour, "actual": repr(method.get("tour"))})
     elo = method["elo"]
     for key, ok in (("ratingScale", lambda v: v > 0), ("kScale", lambda v: v > 0),
                     ("surfaceBlend", lambda v: 0 <= v <= 1), ("movCap", lambda v: v >= 1)):
         v = elo.get(key)
         if not isinstance(v, (int, float)) or not ok(v):
-            out.append(f"{tour}: method.json elo.{key}={v!r} out of range")
+            _add_finding(
+                out, "output.method.elo_parameter_invalid",
+                f"{tour}: method.json elo.{key}={v!r} out of range",
+                severity="error", entity=f"artifact:method.json#elo:{key}",
+                evidence={"parameter": key, "value": repr(v)})
     mults = method["tiers"].get("kMult")
     if not isinstance(mults, dict) or not mults or \
             any(not isinstance(v, (int, float)) or not 0.3 < v < 2.0 for v in mults.values()):
-        out.append(f"{tour}: method.json tiers.kMult implausible ({mults!r})")
+        _add_finding(
+            out, "output.method.tier_multiplier_invalid",
+            f"{tour}: method.json tiers.kMult implausible ({mults!r})",
+            severity="error", entity="artifact:method.json#tiers:kMult",
+            evidence={"value": repr(mults)})
     comb = method["combiner"]
     nfeat = comb.get("featureCount")
     if nfeat != len(FEATURES):
-        out.append(f"{tour}: method.json featureCount {nfeat} != {len(FEATURES)} (schema drift)")
+        _add_finding(
+            out, "output.method.feature_count_invalid",
+            f"{tour}: method.json featureCount {nfeat} != {len(FEATURES)} (schema drift)",
+            severity="error", entity="artifact:method.json#combiner:featureCount",
+            evidence={"actual": nfeat, "expected": len(FEATURES)})
     feats = (meta or {}).get("features")
     if isinstance(feats, list) and nfeat != len(feats):
-        out.append(f"{tour}: method.json featureCount {nfeat} != meta.features {len(feats)}")
+        _add_finding(
+            out, "output.method.meta_feature_count_mismatch",
+            f"{tour}: method.json featureCount {nfeat} != meta.features {len(feats)}",
+            severity="error", entity="artifact:method.json#combiner:featureCount",
+            evidence={"methodCount": nfeat, "metaCount": len(feats)})
     if not isinstance(comb.get("nBag"), int) or comb["nBag"] < 1:
-        out.append(f"{tour}: method.json combiner.nBag={comb.get('nBag')!r} invalid")
+        _add_finding(
+            out, "output.method.bag_count_invalid",
+            f"{tour}: method.json combiner.nBag={comb.get('nBag')!r} invalid",
+            severity="error", entity="artifact:method.json#combiner:nBag",
+            evidence={"value": repr(comb.get("nBag"))})
     if tour == "wta":
         gate = method["stateGate"]
         expected = WTA_DUAL_STATE_GATE_THRESHOLD
         if gate.get("enabled") is not (expected is not None):
-            out.append(f"{tour}: method.json stateGate.enabled={gate.get('enabled')!r} "
-                       f"does not match config")
+            _add_finding(
+                out, "output.method.state_gate_enabled_mismatch",
+                f"{tour}: method.json stateGate.enabled={gate.get('enabled')!r} "
+                f"does not match config",
+                severity="error", entity="artifact:method.json#stateGate:enabled",
+                evidence={"actual": repr(gate.get("enabled")),
+                          "expected": expected is not None})
         if gate.get("minMainMatches") != expected:
-            out.append(f"{tour}: method.json stateGate.minMainMatches="
-                       f"{gate.get('minMainMatches')!r} (expected {expected!r})")
+            _add_finding(
+                out, "output.method.state_gate_threshold_mismatch",
+                f"{tour}: method.json stateGate.minMainMatches="
+                f"{gate.get('minMainMatches')!r} (expected {expected!r})",
+                severity="error", entity="artifact:method.json#stateGate:minMainMatches",
+                evidence={"actual": repr(gate.get("minMainMatches")),
+                          "expected": repr(expected)})
         if gate.get("trainingPopulation") != "main-only":
-            out.append(f"{tour}: method.json stateGate training population is not main-only")
+            _add_finding(
+                out, "output.method.state_gate_population_mismatch",
+                f"{tour}: method.json stateGate training population is not main-only",
+                severity="error", entity="artifact:method.json#stateGate:trainingPopulation",
+                evidence={"actual": repr(gate.get("trainingPopulation")),
+                          "expected": "main-only"})
 
 
 def _coverage_summary(coverage: object, tournaments: object) -> dict:
@@ -1935,12 +3158,24 @@ def _coverage_summary(coverage: object, tournaments: object) -> dict:
 def _check_event_coverage(out: list, tour: str, coverage: dict, tournaments: list) -> None:
     """Every independently observed begun event occurs exactly once on the board."""
     if coverage.get("version") != 1:
-        out.append(f"{tour}: event_coverage.json version {coverage.get('version')!r} is not 1")
+        _add_finding(
+            out, "output.event_coverage.version_invalid",
+            f"{tour}: event_coverage.json version {coverage.get('version')!r} is not 1",
+            severity="error", entity="artifact:event_coverage.json",
+            evidence={"actual": repr(coverage.get("version")), "expected": 1})
     if coverage.get("tour") != tour:
-        out.append(f"{tour}: event_coverage.json says tour={coverage.get('tour')!r}")
+        _add_finding(
+            out, "output.event_coverage.tour_mismatch",
+            f"{tour}: event_coverage.json says tour={coverage.get('tour')!r}",
+            severity="error", entity="artifact:event_coverage.json",
+            evidence={"actual": repr(coverage.get("tour")), "expected": tour})
     events = coverage.get("events")
     if not isinstance(events, list):
-        out.append(f"{tour}: event_coverage.json events is not a list")
+        _add_finding(
+            out, "output.event_coverage.events_invalid",
+            f"{tour}: event_coverage.json events is not a list",
+            severity="error", entity="artifact:event_coverage.json",
+            evidence={"valueType": type(events).__name__})
         return
 
     expected: dict[str, list[str]] = {}
@@ -1951,11 +3186,19 @@ def _check_event_coverage(out: list, tour: str, coverage: dict, tournaments: lis
             continue
         expected.setdefault(str(event["key"]), []).append(str(event["name"]))
     if malformed:
-        out.append(f"{tour}: event_coverage.json has {malformed} malformed expected event(s)")
+        _add_finding(
+            out, "output.event_coverage.expected_event_invalid",
+            f"{tour}: event_coverage.json has {malformed} malformed expected event(s)",
+            severity="error", entity="artifact:event_coverage.json",
+            evidence={"malformedEvents": malformed})
     for key, names in sorted(expected.items()):
         if len(names) > 1:
-            out.append(f"{tour}: event_coverage.json repeats coverage key {key} "
-                       f"for {len(names)} expected events")
+            _add_finding(
+                out, "output.event_coverage.expected_key_duplicate",
+                f"{tour}: event_coverage.json repeats coverage key {key} "
+                f"for {len(names)} expected events",
+                severity="error", entity=_event_entity({"coverageKey": key}),
+                evidence={"coverageKey": key, "eventNames": names})
 
     shipped = Counter()
     shell_names: dict[str, str] = {}
@@ -1972,52 +3215,88 @@ def _check_event_coverage(out: list, tour: str, coverage: dict, tournaments: lis
                 shell_names[str(key)] = str(card.get("name"))
     if missing_keys:
         shown = ", ".join(repr(n) for n in missing_keys[:3])
-        out.append(f"{tour}: tournaments.json has {len(missing_keys)} card(s) without a "
-                   f"coverageKey ({shown})")
+        _add_finding(
+            out, "output.event_coverage.card_key_missing",
+            f"{tour}: tournaments.json has {len(missing_keys)} card(s) without a "
+            f"coverageKey ({shown})",
+            severity="error", entity="artifact:tournaments.json",
+            evidence={"eventNames": [str(name) for name in missing_keys]})
 
     for key, names in sorted(expected.items()):
         count = shipped[key]
         name = names[0]
         if count == 0:
-            out.append(f"{tour}: begun tournament {name!r} (coverage key {key}) is missing "
-                       f"from tournaments.json")
+            _add_finding(
+                out, "output.event_coverage.missing_card",
+                f"{tour}: begun tournament {name!r} (coverage key {key}) is missing "
+                f"from tournaments.json",
+                severity="error", entity=_event_entity({"coverageKey": key}),
+                evidence={"name": name, "coverageKey": key})
         elif count > 1:
-            out.append(f"{tour}: begun tournament {name!r} coverage key {key} appears "
-                       f"{count} times in tournaments.json")
+            _add_finding(
+                out, "output.event_coverage.card_duplicate",
+                f"{tour}: begun tournament {name!r} coverage key {key} appears "
+                f"{count} times in tournaments.json",
+                severity="error", entity=_event_entity({"coverageKey": key}),
+                evidence={"eventName": name, "coverageKey": key, "count": count})
 
     recorded = coverage.get("shippedKeys")
     actual = sorted(key for key, count in shipped.items() for _ in range(count))
     if not isinstance(recorded, list) or sorted(str(k) for k in recorded) != actual:
-        out.append(f"{tour}: event_coverage.json shippedKeys does not match tournaments.json")
+        _add_finding(
+            out, "output.event_coverage.shipped_keys_mismatch",
+            f"{tour}: event_coverage.json shippedKeys does not match tournaments.json",
+            severity="error", entity="artifact:event_coverage.json",
+            evidence={"recorded": list(map(str, recorded)) if isinstance(recorded, list) else None,
+                      "actual": actual})
 
     recorded_shells = coverage.get("shellKeys")
     actual_shells = sorted(shell_names)
     if not isinstance(recorded_shells, list) or sorted({str(k) for k in recorded_shells}) != actual_shells:
-        out.append(f"{tour}: event_coverage.json shellKeys does not match coverageOnly cards")
+        _add_finding(
+            out, "output.event_coverage.shell_keys_mismatch",
+            f"{tour}: event_coverage.json shellKeys does not match coverageOnly cards",
+            severity="error", entity="artifact:event_coverage.json",
+            evidence={"recorded": list(map(str, recorded_shells))
+                      if isinstance(recorded_shells, list) else None,
+                      "actual": actual_shells})
     for key in actual_shells:
-        out.append(f"{tour}: begun tournament {shell_names[key]!r} (coverage key {key}) is "
-                   f"represented only by a coverage shell")
+        _add_finding(
+            out, "output.event_coverage.shell_only",
+            f"{tour}: begun tournament {shell_names[key]!r} (coverage key {key}) is "
+            f"represented only by a coverage shell",
+            severity="error", entity=_event_entity({"coverageKey": key}),
+            evidence={"eventName": shell_names[key], "coverageKey": key})
 
 
-def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = None) -> list[str]:
-    """Pure given a read_outputs() dict; prev is the previous run's output snapshot
-    ({"matches", "forecast_lines"}) for monotonicity, or None on the first run."""
-    out: list[str] = []
+def output_findings(tour: str, oc: dict, now: pd.Timestamp,
+                    prev: dict | None = None) -> list[HealthFinding]:
+    """Typed produced-artifact findings; pure for one read_outputs() snapshot."""
+    out = _FindingCollector("output", tour)
     data = oc.get("data", {})
     prev = prev or {}
     for stem in oc.get("missing", []):
-        out.append(f"{tour}: {stem}.json missing")
+        _add_finding(out, "output.artifact.required_missing", f"{tour}: {stem}.json missing",
+                     entity=f"artifact:{stem}.json", evidence={"artifact": f"{stem}.json"})
     for stem in oc.get("corrupt", []):
-        out.append(f"{tour}: {stem}.json is present but unparseable")
+        _add_finding(out, "output.artifact.required_unparseable",
+                     f"{tour}: {stem}.json is present but unparseable",
+                     entity=f"artifact:{stem}.json", evidence={"artifact": f"{stem}.json"})
     for filename in oc.get("missing_files", []):
-        out.append(f"{tour}: referenced artifact {filename!r} missing or unsafe")
+        _add_finding(out, "output.artifact.referenced_missing",
+                     f"{tour}: referenced artifact {filename!r} missing or unsafe",
+                     entity=f"artifact:{filename}", evidence={"artifact": filename})
     for filename in oc.get("corrupt_files", []):
-        out.append(f"{tour}: referenced artifact {filename!r} is unparseable")
+        _add_finding(out, "output.artifact.referenced_unparseable",
+                     f"{tour}: referenced artifact {filename!r} is unparseable",
+                     entity=f"artifact:{filename}", evidence={"artifact": filename})
     draw_cache = oc.get("draw_cache")
     if isinstance(draw_cache, dict):
-        from .draws import duplicate_draw_source_attachments
-        for detail in duplicate_draw_source_attachments(draw_cache):
-            out.append(f"{tour}: tournament_draws.json {detail}")
+        from .draws import duplicate_draw_source_incidents
+        for identity, detail in duplicate_draw_source_incidents(draw_cache):
+            _add_finding(out, "output.draw_source.duplicate_attachment",
+                         f"{tour}: tournament_draws.json {detail}",
+                         entity=f"draw-source:{identity}", evidence={"detail": detail})
     offseason = _offseason(now)
 
     meta = data.get("meta")
@@ -2025,63 +3304,101 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
         feats = meta.get("features")
         nfeat = len(feats) if isinstance(feats, list) else None
         if nfeat != len(FEATURES):
-            out.append(f"{tour}: meta.features has {nfeat} entries (expected {len(FEATURES)})")
+            _add_finding(out, "output.meta.feature_count_mismatch",
+                         f"{tour}: meta.features has {nfeat} entries (expected {len(FEATURES)})",
+                         entity="artifact:meta.json", evidence={"actual": nfeat, "expected": len(FEATURES)})
         if isinstance(feats, list) and any(
                 any(token in str(feature).lower() for token in ("expect", "performance", "residual"))
                 for feature in feats):
-            out.append(f"{tour}: display-only expectation metric leaked into meta.features")
+            _add_finding(out, "output.meta.display_feature_leak",
+                         f"{tour}: display-only expectation metric leaked into meta.features",
+                         entity="artifact:meta.json")
         n = meta.get("matches")
         population_version = meta.get("matchPopulationVersion")
         if not _plain_int(population_version) or population_version != MATCH_POPULATION_VERSION:
-            out.append(f"{tour}: meta.matchPopulationVersion={population_version!r} "
-                       f"(expected {MATCH_POPULATION_VERSION})")
+            _add_finding(out, "output.population.match_version_mismatch",
+                         f"{tour}: meta.matchPopulationVersion={population_version!r} "
+                         f"(expected {MATCH_POPULATION_VERSION})",
+                         entity=f"match-population:{tour}",
+                         evidence={"actual": population_version, "expected": MATCH_POPULATION_VERSION})
         model_population_version = meta.get("modelPopulationVersion")
         if (not _plain_int(model_population_version)
                 or model_population_version != MATCH_POPULATION_VERSION):
-            out.append(f"{tour}: meta.modelPopulationVersion={model_population_version!r} "
-                       f"does not match current population {MATCH_POPULATION_VERSION}")
+            _add_finding(out, "output.population.model_version_mismatch",
+                         f"{tour}: meta.modelPopulationVersion={model_population_version!r} "
+                         f"does not match current population {MATCH_POPULATION_VERSION}",
+                         entity=f"match-population:{tour}", evidence={
+                             "actual": model_population_version, "expected": MATCH_POPULATION_VERSION})
         if tour == "wta":
             expected_gate = WTA_DUAL_STATE_GATE_THRESHOLD
             if ("dualStateThreshold" not in meta
                     or meta.get("dualStateThreshold") != expected_gate):
-                out.append(f"{tour}: meta.dualStateThreshold="
-                           f"{meta.get('dualStateThreshold')!r} (expected {expected_gate!r})")
+                _add_finding(out, "output.population.dual_state_threshold_mismatch",
+                             f"{tour}: meta.dualStateThreshold="
+                             f"{meta.get('dualStateThreshold')!r} (expected {expected_gate!r})",
+                             entity="model-population:wta", evidence={
+                                 "actual": meta.get("dualStateThreshold"), "expected": expected_gate})
             expected_ready = expected_gate is not None
             if meta.get("dualStateReady") is not expected_ready:
-                out.append(f"{tour}: meta.dualStateReady={meta.get('dualStateReady')!r} "
-                           f"(expected {expected_ready!r})")
+                _add_finding(out, "output.population.dual_state_ready_mismatch",
+                             f"{tour}: meta.dualStateReady={meta.get('dualStateReady')!r} "
+                             f"(expected {expected_ready!r})", entity="model-population:wta",
+                             evidence={"actual": meta.get("dualStateReady"),
+                                       "expected": expected_ready})
         floor = HEALTH_MIN_MATCHES.get(tour, 0)
         if not _plain_int(n) or n < floor:
-            out.append(f"{tour}: meta.matches {n} below floor {floor}")
+            _add_finding(out, "output.population.match_count_below_floor",
+                         f"{tour}: meta.matches {n} below floor {floor}",
+                         entity=f"match-population:v{population_version}",
+                         evidence={"matches": n, "floor": floor, "version": population_version})
         else:
             high, high_version = _population_high_water(tour, meta, prev)
             if (high_version == population_version == model_population_version
                     and _plain_int(high) and n < high - 50):
-                out.append(f"{tour}: meta.matches dropped {high} -> {n}")
+                _add_finding(out, "output.population.match_count_drop",
+                             f"{tour}: meta.matches dropped {high} -> {n}",
+                             entity=f"match-population:v{population_version}",
+                             evidence={"highWater": high, "matches": n,
+                                       "version": population_version})
         if tour == "wta":
             wta125 = meta.get("wta125Matches")
             if not isinstance(wta125, int) or isinstance(wta125, bool):
-                out.append("wta: meta.wta125Matches missing/unparseable")
+                _add_finding(out, "output.population.wta125_audit_missing",
+                             "wta: meta.wta125Matches missing/unparseable",
+                             entity="model-population:wta")
             elif wta125 != 0:
-                out.append(f"wta: model contains {wta125} WTA 125 match(es) while "
-                           "INCLUDE_WTA_125 is disabled")
+                _add_finding(out, "output.population.wta125_policy_leak",
+                             f"wta: model contains {wta125} WTA 125 match(es) while "
+                             "INCLUDE_WTA_125 is disabled", entity="model-population:wta",
+                             evidence={"matches": wta125})
             excluded_125 = meta.get("excludedWta125Matches")
             excluded_unknown = meta.get("excludedUnclassifiedWtaLiveMatches")
             for field, value in (("excludedWta125Matches", excluded_125),
                                  ("excludedUnclassifiedWtaLiveMatches", excluded_unknown)):
                 if (not isinstance(value, int) or isinstance(value, bool) or value < 0):
-                    out.append(f"wta: meta.{field} missing/invalid ({value!r})")
+                    _add_finding(out, "output.population.exclusion_audit_invalid",
+                                 f"wta: meta.{field} missing/invalid ({value!r})",
+                                 entity=f"meta:{field}", evidence={"value": value})
             if isinstance(excluded_unknown, int) and excluded_unknown > 0:
-                out.append(f"wta: {excluded_unknown} unclassified live match(es) withheld "
-                           "from model ingestion")
+                _add_finding(out, "output.population.unclassified_live_withheld",
+                             f"wta: {excluded_unknown} unclassified live match(es) withheld "
+                             "from model ingestion", severity="warning",
+                             entity="model-population:wta", evidence={"matches": excluded_unknown})
         ap, players = meta.get("activePlayers"), data.get("players")
         if isinstance(players, list) and ap is not None and len(players) != ap:
-            out.append(f"{tour}: players.json has {len(players)} rows but meta.activePlayers={ap}")
+            _add_finding(out, "output.players.active_count_mismatch",
+                         f"{tour}: players.json has {len(players)} rows but meta.activePlayers={ap}",
+                         entity="artifact:players.json", evidence={"rows": len(players), "active": ap})
         age = _age_days(meta.get("lastUpdated"), now)
         if age is None:
-            out.append(f"{tour}: meta.lastUpdated missing/unparseable ({meta.get('lastUpdated')!r})")
+            _add_finding(out, "output.meta.build_timestamp_invalid",
+                         f"{tour}: meta.lastUpdated missing/unparseable ({meta.get('lastUpdated')!r})",
+                         entity="artifact:meta.json", evidence={"lastUpdated": meta.get("lastUpdated")})
         elif age > HEALTH_MAX_BUILD_AGE_DAYS:
-            out.append(f"{tour}: outputs last built {age}d ago (max {HEALTH_MAX_BUILD_AGE_DAYS})")
+            _add_finding(out, "output.meta.build_stale",
+                         f"{tour}: outputs last built {age}d ago (max {HEALTH_MAX_BUILD_AGE_DAYS})",
+                         severity="warning", entity="artifact-generation",
+                         evidence={"ageDays": age, "maxDays": HEALTH_MAX_BUILD_AGE_DAYS})
         # Retrain liveness. The check above cannot see this: the hourly quick refresh
         # rewrites lastUpdated while reusing the saved predictor, so a daily retrain that
         # has been red for days keeps shipping a freshly-stamped site off a rotting model
@@ -2089,9 +3406,12 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
         # rather than alert on every tour until the next full run fills it in.
         trained = _age_days(meta.get("modelTrainedAt"), now)
         if trained is not None and trained > HEALTH_MAX_MODEL_AGE_DAYS:
-            out.append(f"{tour}: model last retrained {trained}d ago "
-                       f"(max {HEALTH_MAX_MODEL_AGE_DAYS}) — the daily full run is failing while "
-                       f"the quick refresh keeps deploying")
+            _add_finding(out, "output.model.training_stale",
+                         f"{tour}: model last retrained {trained}d ago "
+                         f"(max {HEALTH_MAX_MODEL_AGE_DAYS}) — the daily full run is failing while "
+                         f"the quick refresh keeps deploying", severity="warning",
+                         entity=f"predictor:{tour}", evidence={
+                             "ageDays": trained, "maxDays": HEALTH_MAX_MODEL_AGE_DAYS})
 
     method = data.get("method")
     if isinstance(method, dict):
@@ -2100,10 +3420,17 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
     players = data.get("players")
     if isinstance(players, list) and players:
         if [p.get("eloRank") for p in players] != list(range(1, len(players) + 1)):
-            out.append(f"{tour}: players.json eloRank not contiguous 1..{len(players)}")
+            _add_finding(out, "output.players.rank_order_invalid",
+                         f"{tour}: players.json eloRank not contiguous 1..{len(players)}",
+                         entity="artifact:players.json", evidence={"players": len(players)})
         if any(not p.get("name") or p.get("elo") is None for p in players):
-            out.append(f"{tour}: players.json has a null name or elo")
-        _flag_placeholders(out, tour, "players.json", (p.get("name") for p in players))
+            _add_finding(out, "output.players.required_field_missing",
+                         f"{tour}: players.json has a null name or elo",
+                         entity="artifact:players.json")
+        _flag_placeholders(
+            out, tour, "players.json", (p.get("name") for p in players),
+            entity="artifact:players.json",
+        )
         # enrichment fields are nullable by design (old snapshots lack the keys), but a
         # PRESENT value must be sane: a units slip (64.2 for 0.642) or junk height would
         # ship wrong numbers to every board that renders them
@@ -2111,40 +3438,56 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
                  if p.get("heightCm") is not None
                  and not (isinstance(p.get("heightCm"), int) and 140 <= p["heightCm"] <= 225)]
         if bad_h:
-            out.append(f"{tour}: players.json heightCm implausible for {len(bad_h)} player(s), "
-                       f"e.g. {bad_h[0][0]!r}={bad_h[0][1]!r} (expect int in 140..225)")
+            _add_finding(out, "output.players.height_invalid",
+                         f"{tour}: players.json heightCm implausible for {len(bad_h)} player(s), "
+                         f"e.g. {bad_h[0][0]!r}={bad_h[0][1]!r} (expect int in 140..225)",
+                         entity="artifact:players.json", evidence={"count": len(bad_h),
+                                                                    "example": list(bad_h[0])})
         bad_pct = [(p.get("name"), k, p.get(k)) for p in players for k in _PLAYER_PCT_FIELDS
                    if p.get(k) is not None and not _is_prob(p.get(k))]
         if bad_pct:
             n0, k0, v0 = bad_pct[0]
-            out.append(f"{tour}: players.json {k0}={v0!r} for {n0!r} out of [0,1] "
-                       f"({len(bad_pct)} bad value(s))")
+            _add_finding(out, "output.players.percentage_invalid",
+                         f"{tour}: players.json {k0}={v0!r} for {n0!r} out of [0,1] "
+                         f"({len(bad_pct)} bad value(s))", entity="artifact:players.json",
+                         evidence={"count": len(bad_pct), "player": n0, "field": k0, "value": v0})
         if not offseason:
             frac = sum(1 for p in players if p.get("liveRank") is None) / len(players)
             if frac > HEALTH_MAX_LIVERANK_NULL_FRAC:
-                out.append(f"{tour}: {frac:.0%} of top players have no liveRank "
-                           f"(max {HEALTH_MAX_LIVERANK_NULL_FRAC:.0%}) — rankings source may have drifted")
+                _add_finding(out, "output.players.live_rank_coverage_low",
+                             f"{tour}: {frac:.0%} of top players have no liveRank "
+                             f"(max {HEALTH_MAX_LIVERANK_NULL_FRAC:.0%}) — rankings source may have drifted",
+                             severity="warning", entity="artifact:players.json",
+                             evidence={"fraction": frac, "maxFraction": HEALTH_MAX_LIVERANK_NULL_FRAC})
 
     matrix_index = data.get("matrix-index")
     if isinstance(matrix_index, dict):
         _check_matrix_shards(out, tour, matrix_index, oc.get("shards") or {})
         if (isinstance(meta, dict) and meta.get("modelTrainedAt")
                 and matrix_index.get("generation") != meta.get("modelTrainedAt")):
-            out.append(f"{tour}: matrix-index.json generation disagrees with meta.modelTrainedAt")
+            _add_finding(out, "output.generation.matrix_mismatch",
+                         f"{tour}: matrix-index.json generation disagrees with meta.modelTrainedAt",
+                         entity="artifact:matrix-index.json")
     profile_index = data.get("profile-index")
     if isinstance(profile_index, dict):
         _check_profile_shards(out, tour, profile_index, oc.get("shards") or {}, players)
         if (isinstance(meta, dict) and meta.get("modelTrainedAt")
                 and profile_index.get("generation") != meta.get("modelTrainedAt")):
-            out.append(f"{tour}: profile-index.json generation disagrees with meta.modelTrainedAt")
+            _add_finding(out, "output.generation.profile_mismatch",
+                         f"{tour}: profile-index.json generation disagrees with meta.modelTrainedAt",
+                         entity="artifact:profile-index.json")
 
     ts = data.get("tournaments")
     event_ranges: dict[str, tuple[pd.Timestamp, pd.Timestamp, str]] = {}
     if isinstance(ts, list):
         if not ts and not offseason:
-            out.append(f"{tour}: tournaments.json is empty")
+            _add_finding(out, "output.tournament.board_empty",
+                         f"{tour}: tournaments.json is empty", severity="warning",
+                         entity="artifact:tournaments.json")
         elif ts and not offseason and not any(t.get("status") in ("live", "upcoming") for t in ts):
-            out.append(f"{tour}: tournaments.json has no live/upcoming event")
+            _add_finding(out, "output.tournament.no_active_event",
+                         f"{tour}: tournaments.json has no live/upcoming event", severity="warning",
+                         entity="artifact:tournaments.json")
         for t in ts:
             if isinstance(t, dict):
                 _check_tournament(out, tour, t, now)
@@ -2161,8 +3504,10 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
         for eid, names in sorted(ids.items()):
             if len(names) > 1:
                 shown = ", ".join(repr(n) for n in names)
-                out.append(f"{tour}: espnId {eid} ships on {len(names)} cards ({shown}) — "
-                           f"one event projected twice, so at least one is a partial record")
+                _add_finding(out, "output.tournament.duplicate_card",
+                             f"{tour}: espnId {eid} ships on {len(names)} cards ({shown}) — "
+                             f"one event projected twice, so at least one is a partial record",
+                             entity=f"espn:{eid}", evidence={"espnId": eid, "names": names})
         for t in ts:
             if not isinstance(t, dict) or not t.get("espnId"):
                 continue
@@ -2176,15 +3521,38 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
         # to an impossible 256-slot bracket, taking the whole board down. Losing the bracket
         # is the visible early warning. Sentinel-only by construction: `--gate` passes
         # prev=None, so this can never block a deploy, only tell a human.
-        was = set(prev.get("bracket_events") or [])
-        if was:
-            now_live = {_norm_name(t["name"]) for t in ts if isinstance(t, dict) and t.get("name")
-                        and t.get("status") in ("live", "upcoming")}
-            has_now = {_norm_name(t["name"]) for t in ts if isinstance(t, dict) and t.get("name")
-                       and t.get("hasBracket")}
-            for gone in sorted((was & now_live) - has_now):
-                out.append(f"{tour}: live tournament {gone!r} lost its bracket since the "
-                           f"previous run — its cached complete draw may have aged out")
+        live_cards = {
+            _event_entity(t): t for t in ts
+            if isinstance(t, dict) and t.get("name")
+            and t.get("status") in ("live", "upcoming")
+        }
+        has_now = {
+            _event_entity(t) for t in ts
+            if isinstance(t, dict) and t.get("name") and t.get("hasBracket")
+        }
+        previous_entities = prev.get("bracket_event_entities") or {}
+        was_entities = set(previous_entities)
+        lost_entities = (was_entities & set(live_cards)) - has_now
+        if not was_entities:
+            # One-release bridge from the legacy display-name state. Identity for the finding
+            # still comes from the current card; sponsor prose is used only to locate it.
+            was_names = set(prev.get("bracket_events") or [])
+            lost_entities = {
+                entity for entity, card in live_cards.items()
+                if _norm_name(card.get("name")) in was_names and entity not in has_now
+            }
+        for gone_entity in sorted(lost_entities):
+            gone = live_cards[gone_entity].get("name")
+            if gone:
+                _add_finding(out, "output.tournament.bracket_lost",
+                             f"{tour}: live tournament {gone!r} lost its bracket since the "
+                             f"previous run — its cached complete draw may have aged out",
+                             severity="warning", entity=gone_entity,
+                             evidence={
+                                 "previousName": previous_entities.get(gone_entity)
+                                 if isinstance(previous_entities, dict) else None,
+                                 "currentName": gone,
+                             })
         _tournament_name_problems(out, tour, ts)
 
     coverage = data.get("event_coverage")
@@ -2222,37 +3590,60 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
     up = data.get("upcoming")
     if isinstance(up, list):
         if not up and not offseason:
-            out.append(f"{tour}: upcoming feed is empty")
+            _add_finding(out, "output.upcoming.feed_empty",
+                         f"{tour}: upcoming feed is empty", severity="warning",
+                         entity="artifact:upcoming.json")
         for m in up:
+            match_entity = _match_entity(
+                m,
+                player_a=m.get("playerA"),
+                player_b=m.get("playerB"),
+            )
             if m.get("playerA") and m.get("playerA") == m.get("playerB"):
-                out.append(f"{tour}: upcoming feed row has identical players ({m.get('playerA')!r})")
+                _add_finding(out, "output.upcoming.identical_players",
+                             f"{tour}: upcoming feed row has identical players ({m.get('playerA')!r})",
+                             entity=match_entity)
             if not _is_prob(m.get("pA")):
-                out.append(f"{tour}: upcoming feed pA={m.get('pA')!r} out of [0,1]")
+                _add_finding(out, "output.upcoming.probability_invalid",
+                             f"{tour}: upcoming feed pA={m.get('pA')!r} out of [0,1]",
+                             entity=match_entity, evidence={"pA": m.get("pA")})
             components = m.get("components")
             if (not isinstance(components, dict)
                     or set(components) != {"eloBlend", "pointModel", "combiner"}
                     or any(not _is_prob(value) for value in components.values())):
-                out.append(f"{tour}: upcoming prediction components are missing/malformed")
+                _add_finding(out, "output.upcoming.components_invalid",
+                             f"{tour}: upcoming prediction components are missing/malformed",
+                             entity=match_entity)
             elif abs(float(components["combiner"]) - float(m.get("pA", -1))) > 1e-4:
-                out.append(f"{tour}: upcoming combiner component disagrees with pA")
+                _add_finding(out, "output.upcoming.combiner_mismatch",
+                             f"{tour}: upcoming combiner component disagrees with pA",
+                             entity=match_entity, evidence={
+                                 "combiner": components["combiner"], "pA": m.get("pA")})
             _check_prediction_evidence(
                 out, tour, f"upcoming {m.get('playerA')!r} vs {m.get('playerB')!r}",
                 m.get("evidence"), m.get("playerA"), m.get("playerB"), m.get("pA"),
+                entity=match_entity,
             )
             if m.get("forecast") is not None:
                 _check_forecast_history(
                     out, tour, f"upcoming {m.get('playerA')!r} vs {m.get('playerB')!r}",
-                    m.get("forecast"), current=m.get("pA"))
+                    m.get("forecast"), current=m.get("pA"), entity=match_entity)
             eid = str(m.get("espnId") or "")
             day = pd.to_datetime(m.get("date"), errors="coerce")
             if eid in event_ranges and pd.notna(day):
                 start, end, event_name = event_ranges[eid]
                 if day < start or day > end:
-                    out.append(f"{tour}: upcoming match on {m.get('date')} falls outside "
-                               f"{event_name!r} event bounds {start.date()}..{end.date()} "
-                               f"(espnId {eid})")
-        _flag_placeholders(out, tour, "upcoming feed",
-                           (n for m in up for n in (m.get("playerA"), m.get("playerB"))))
+                    _add_finding(out, "output.upcoming.date_outside_event",
+                                 f"{tour}: upcoming match on {m.get('date')} falls outside "
+                                 f"{event_name!r} event bounds {start.date()}..{end.date()} "
+                                 f"(espnId {eid})", entity=match_entity, evidence={
+                                     "date": m.get("date"), "start": str(start.date()),
+                                     "end": str(end.date()), "espnId": eid})
+        _flag_placeholders(
+            out, tour, "upcoming feed",
+            (n for m in up for n in (m.get("playerA"), m.get("playerB"))),
+            entity="artifact:upcoming.json",
+        )
         _check_watch_ranking(out, tour, up, scenario_index, oc.get("shards") or {})
 
         # The complete bracket and scoreboard upcoming feed are independent artifacts,
@@ -2271,19 +3662,34 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
                     bracket_round = next(iter(rounds))
                     upcoming_round = str(match.get("round") or "")
                     if upcoming_round and upcoming_round != bracket_round:
-                        out.append(f"{tour}: upcoming round {upcoming_round} disagrees with "
-                                   f"bracket round {bracket_round} for {a!r} vs {b!r} "
-                                   f"(espnId {eid})")
+                        _add_finding(out, "output.upcoming.bracket_round_mismatch",
+                                     f"{tour}: upcoming round {upcoming_round} disagrees with "
+                                     f"bracket round {bracket_round} for {a!r} vs {b!r} "
+                                     f"(espnId {eid})", entity=_match_entity(
+                                         match, event_entity=f"espn:{eid}",
+                                         player_a=a, player_b=b),
+                                     evidence={"upcomingRound": upcoming_round,
+                                               "bracketRound": bracket_round})
 
     fx = data.get("fixtures")
     if isinstance(fx, list):
         seen_fixtures: dict[tuple[str, str, str], list[dict]] = {}
         for f in fx:
             mp = f.get("modelProb")
+            fixture_entity = _match_entity(
+                f,
+                player_a=f.get("winner"),
+                player_b=f.get("loser"),
+            )
             if not _is_prob(mp):
-                out.append(f"{tour}: fixtures.json modelProb={mp!r} out of [0,1]")
+                _add_finding(out, "output.fixture.probability_invalid",
+                             f"{tour}: fixtures.json modelProb={mp!r} out of [0,1]",
+                             entity=fixture_entity, evidence={"modelProb": mp})
             elif bool(f.get("upset")) != (mp < 0.5):
-                out.append(f"{tour}: fixtures.json upset flag disagrees with modelProb ({mp})")
+                _add_finding(out, "output.fixture.upset_flag_mismatch",
+                             f"{tour}: fixtures.json upset flag disagrees with modelProb ({mp})",
+                             entity=fixture_entity, evidence={"modelProb": mp,
+                                                               "upset": f.get("upset")})
             # Cross-source copies can disagree on sponsor title, round, score and tiebreak
             # detail. The same ordered pair cannot complete twice on one calendar date
             # unless a round-robin event legitimately rematches them in a later round. Keep
@@ -2296,9 +3702,13 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
                                   and old.get("round") and f.get("round")
                                   and old.get("round") != f.get("round"))), None)
             if prior is not None:
-                out.append(f"{tour}: fixtures.json duplicates one completed fixture "
-                           f"({winner!r} d. {loser!r} on {date}; "
-                           f"{prior.get('event')!r} and {f.get('event')!r})")
+                _add_finding(out, "output.fixture.duplicate_completed_match",
+                             f"{tour}: fixtures.json duplicates one completed fixture "
+                             f"({winner!r} d. {loser!r} on {date}; "
+                             f"{prior.get('event')!r} and {f.get('event')!r})",
+                             entity=fixture_entity, evidence={"date": date,
+                                                               "events": [prior.get("event"),
+                                                                          f.get("event")]})
             if all(key):
                 priors.append(f)
             eid = str(f.get("espnId") or "")
@@ -2306,9 +3716,12 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
             if eid in event_ranges and pd.notna(day):
                 start, end, event_name = event_ranges[eid]
                 if day < start or day > end:
-                    out.append(f"{tour}: completed fixture on {f.get('date')} falls outside "
-                               f"{event_name!r} event bounds {start.date()}..{end.date()} "
-                               f"(espnId {eid})")
+                    _add_finding(out, "output.fixture.date_outside_event",
+                                 f"{tour}: completed fixture on {f.get('date')} falls outside "
+                                 f"{event_name!r} event bounds {start.date()}..{end.date()} "
+                                 f"(espnId {eid})", entity=fixture_entity, evidence={
+                                     "date": f.get("date"), "start": str(start.date()),
+                                     "end": str(end.date()), "espnId": eid})
             if eid and _is_real_name(winner) and _is_real_name(loser):
                 rounds = bracket_rounds.get(
                     (eid, frozenset((_player_identity_key(winner),
@@ -2317,13 +3730,33 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
                     bracket_round = next(iter(rounds))
                     fixture_round = str(f.get("round") or "")
                     if fixture_round and fixture_round != bracket_round:
-                        out.append(f"{tour}: fixture round {fixture_round} disagrees with "
-                                   f"bracket round {bracket_round} for {winner!r} vs "
-                                   f"{loser!r} (espnId {eid})")
+                        _add_finding(out, "output.fixture.bracket_round_mismatch",
+                                     f"{tour}: fixture round {fixture_round} disagrees with "
+                                     f"bracket round {bracket_round} for {winner!r} vs "
+                                     f"{loser!r} (espnId {eid})", entity=fixture_entity,
+                                     evidence={"fixtureRound": fixture_round,
+                                               "bracketRound": bracket_round})
 
     fc = oc.get("forecast")
-    if fc is not None and isinstance(prev.get("forecast_lines"), int) and fc["lines"] < prev["forecast_lines"]:
-        out.append(f"{tour}: forecast log shrank {prev['forecast_lines']} -> {fc['lines']} lines")
+    forecast_baseline = _forecast_high_water(None, prev)
+    if fc is None and forecast_baseline is not None:
+        # Treat disappearance as the terminal form of the same append-only regression,
+        # rather than opening a second incident when a shrunken file is subsequently lost.
+        # With no persisted baseline an absent log is still a legitimate fresh-clone state.
+        _add_finding(out, "output.forecast_log.shrank",
+                     f"{tour}: forecast log disappeared after reaching "
+                     f"{forecast_baseline} lines",
+                     entity=f"forecast-log:{tour}", evidence={
+                         "highWaterLines": forecast_baseline,
+                         "lines": 0,
+                         "artifactState": "absent",
+                     })
+    elif (fc is not None and _plain_int(fc.get("lines"))
+          and forecast_baseline is not None and fc["lines"] < forecast_baseline):
+        _add_finding(out, "output.forecast_log.shrank",
+                     f"{tour}: forecast log shrank {forecast_baseline} -> {fc['lines']} lines",
+                     entity=f"forecast-log:{tour}", evidence={
+                         "highWaterLines": forecast_baseline, "lines": fc["lines"]})
     if fc is not None:
         # liveness: the log appends on every run while any upcoming match exists, so a
         # present-but-frozen max(as_of) means the track step is silently failing (or the
@@ -2332,8 +3765,11 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
         fc_age = _age_days(fc.get("max_as_of"), now)
         max_fc = HEALTH_OFFSEASON_RELAX_DAYS if offseason else HEALTH_MAX_FORECAST_AGE_DAYS
         if fc_age is not None and fc_age > max_fc:
-            out.append(f"{tour}: forecast log last advanced {fc_age}d ago (max {max_fc}) "
-                       f"— the track step may be silently failing")
+            _add_finding(out, "output.forecast_log.stale",
+                         f"{tour}: forecast log last advanced {fc_age}d ago (max {max_fc}) "
+                         f"— the track step may be silently failing", severity="warning",
+                         entity=f"forecast-log:{tour}", evidence={
+                             "ageDays": fc_age, "maxDays": max_fc})
 
     kl = oc.get("kalshi_ledger")
     if isinstance(kl, list):
@@ -2344,22 +3780,32 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
         mf = tr.get("matchForecasts") or {}
         g, p, lg = mf.get("graded"), mf.get("pending"), mf.get("logged")
         if all(isinstance(x, int) for x in (g, p, lg)) and g + p != lg:
-            out.append(f"{tour}: track.json graded+pending ({g}+{p}) != logged ({lg})")
+            _add_finding(out, "output.tracking.count_mismatch",
+                         f"{tour}: track.json graded+pending ({g}+{p}) != logged ({lg})",
+                         entity=f"forecast-tracking:{tour}", evidence={
+                             "graded": g, "pending": p, "logged": lg})
         for call in mf.get("recent") or []:
             if isinstance(call, dict) and call.get("forecast") is not None:
                 _check_forecast_history(
                     out, tour, f"completed {call.get('playerA')!r} vs {call.get('playerB')!r}",
-                    call.get("forecast"))
+                    call.get("forecast"), entity=_match_entity(
+                        call,
+                        player_a=call.get("playerA"),
+                        player_b=call.get("playerB"),
+                    ))
         # Model-decay advisory: track.py owns the thresholds (config DRIFT_*) and ships the
         # verdict; we only surface it. Advisory, never deploy-blocking — like market lag,
         # a re-tune recommendation is a benchmark signal, not a build dependency.
         dr = mf.get("drift")
         if isinstance(dr, dict) and dr.get("status") == "drift":
-            out.append(f"{tour}: forecast drift over last {dr.get('n')} graded "
-                       f"({dr.get('windowDays')}d): live logloss {dr.get('logloss')} vs "
-                       f"self-expected {dr.get('expectedLogloss')} (d=+{dr.get('d')}, "
-                       f"t={dr.get('t')}) — model scoring worse than its stated confidence; "
-                           f"re-tune recommended")
+            _add_finding(out, "output.model.forecast_drift",
+                         f"{tour}: forecast drift over last {dr.get('n')} graded "
+                         f"({dr.get('windowDays')}d): live logloss {dr.get('logloss')} vs "
+                         f"self-expected {dr.get('expectedLogloss')} (d=+{dr.get('d')}, "
+                         f"t={dr.get('t')}) — model scoring worse than its stated confidence; "
+                         f"re-tune recommended", severity="warning", entity=f"predictor:{tour}",
+                         evidence={key: dr.get(key) for key in (
+                             "n", "windowDays", "logloss", "expectedLogloss", "d", "t")})
 
     performance = data.get("performance")
     if isinstance(performance, dict):
@@ -2377,11 +3823,89 @@ def output_problems(tour: str, oc: dict, now: pd.Timestamp, prev: dict | None = 
         if pd.notna(oos_end) and pd.notna(last):
             lag = int((oos_end - last).days)
             if lag > HEALTH_MAX_MARKET_LAG_DAYS:
-                out.append(f"{tour}: market.json odds coverage ends {mk['lastMatchedDate']} but "
-                           f"scored matches run to {mk['oosEnd']} ({lag}d gap, max "
-                           f"{HEALTH_MAX_MARKET_LAG_DAYS}) — did the odds feed drop a book?")
+                _add_finding(out, "output.market.coverage_stale",
+                             f"{tour}: market.json odds coverage ends {mk['lastMatchedDate']} but "
+                             f"scored matches run to {mk['oosEnd']} ({lag}d gap, max "
+                             f"{HEALTH_MAX_MARKET_LAG_DAYS}) — did the odds feed drop a book?",
+                             severity="warning", entity=f"market-benchmark:{tour}", evidence={
+                                 "lastMatchedDate": mk["lastMatchedDate"], "oosEnd": mk["oosEnd"],
+                                 "lagDays": lag, "maxDays": HEALTH_MAX_MARKET_LAG_DAYS})
 
-    return out
+    return out.findings
+
+
+def output_problems(tour: str, oc: dict, now: pd.Timestamp,
+                    prev: dict | None = None) -> list[str]:
+    """Legacy prose compatibility wrapper around ``output_findings``."""
+    return _finding_messages(output_findings(tour, oc, now, prev))
+
+
+def _serialize_findings(findings: list[HealthFinding]) -> list[dict]:
+    """Coalesce repeated observations sharing one stable incident identity."""
+    groups: dict[str, list[HealthFinding]] = {}
+    for finding in findings:
+        groups.setdefault(finding.fingerprint, []).append(finding)
+    serialized = []
+    rank = {"info": 0, "warning": 1, "error": 2}
+    for fingerprint in sorted(groups):
+        group = groups[fingerprint]
+        if len(group) == 1:
+            serialized.append(group[0].as_dict())
+            continue
+        first = group[0]
+        severity = max((finding.severity for finding in group), key=rank.__getitem__)
+        messages = sorted({finding.message for finding in group})
+        occurrences = sorted(
+            (finding.evidence for finding in group),
+            key=lambda evidence: json.dumps(
+                evidence, sort_keys=True, separators=(",", ":"), ensure_ascii=False),
+        )
+        combined = HealthFinding(
+            code=first.code, severity=severity, scope=first.scope, tour=first.tour,
+            entity=first.entity,
+            evidence={"occurrences": occurrences},
+            message="\n".join(messages),
+        )
+        serialized.append(combined.as_dict())
+    return serialized
+
+
+def _structured_findings(report: dict, *, actionable_only: bool = False) -> list[dict]:
+    findings = report.get("findings")
+    if not isinstance(findings, list):
+        return []
+    valid = []
+    for finding in findings:
+        if not isinstance(finding, dict) or finding.get("schema") != FINDING_SCHEMA:
+            continue
+        try:
+            typed = HealthFinding(
+                code=finding["code"], severity=finding["severity"], scope=finding["scope"],
+                tour=finding.get("tour"), entity=finding.get("entity"),
+                evidence=finding["evidence"], message=finding["message"],
+            )
+        except (KeyError, TypeError, ValueError):
+            continue
+        canonical = typed.as_dict()
+        if (finding.get("fingerprint") != canonical["fingerprint"]
+                or finding.get("revision") != canonical["revision"]):
+            continue
+        valid.append(canonical)
+    return ([finding for finding in valid if finding["severity"] != "info"]
+            if actionable_only else valid)
+
+
+def _finding_transitions(current: list[dict], previous: list[dict]) -> dict[str, list[str]]:
+    cur = {finding["fingerprint"]: finding for finding in current
+           if finding.get("severity") != "info"}
+    old = {finding["fingerprint"]: finding for finding in previous
+           if finding.get("severity") != "info"}
+    return {
+        "activated": sorted(cur.keys() - old.keys()),
+        "updated": sorted(key for key in cur.keys() & old.keys()
+                          if cur[key].get("revision") != old[key].get("revision")),
+        "resolved": sorted(old.keys() - cur.keys()),
+    }
 
 
 def format_issue_body(report: dict, run_url: str | None = None,
@@ -2413,12 +3937,73 @@ def format_issue_body(report: dict, run_url: str | None = None,
     return "\n".join(lines)
 
 
+def format_finding_issue_body(finding: dict, report: dict, run_url: str | None = None,
+                              health_url: str | None = None) -> str:
+    """One durable GitHub issue body, keyed independently from mutable evidence/prose."""
+    key, revision = finding["fingerprint"], finding["revision"]
+    observed_at = report.get("generated") or report.get("generatedAt") or "?"
+    message = str(finding["message"])
+    if len(message) > 8_000:
+        message = f"{message[:8_000]}\n… truncated ({len(message) - 8_000} characters omitted)"
+    evidence = json.dumps(finding.get("evidence") or {}, indent=2, sort_keys=True,
+                          ensure_ascii=False, allow_nan=False)
+    if len(evidence) > 40_000:
+        omitted = len(evidence) - 40_000
+        evidence = f"{evidence[:40_000]}\n… truncated ({omitted} characters omitted)"
+    lines = [
+        f"<!-- data-health-key: {key} -->",
+        f"<!-- data-health-revision: {revision} -->",
+        "",
+        f"The pipeline observed **{finding['code']}** on {observed_at}.",
+        "",
+        f"- Severity: `{finding['severity']}`",
+        f"- Scope: `{finding['scope']}`",
+        f"- Tour: `{finding.get('tour') or 'cross-tour'}`",
+        f"- Entity: `{finding.get('entity') or 'global'}`",
+        "",
+        "### Observation",
+        "",
+        message,
+        "",
+        "### Evidence",
+        "",
+        "```json",
+        evidence,
+        "```",
+    ]
+    if run_url:
+        lines += ["", f"Observed run: {str(run_url)[:2_048]}"]
+    if health_url:
+        lines += ["", f"Live status page: {str(health_url)[:2_048]}"]
+    lines += [
+        "", "### Fix it in a new session", "",
+        f"> Investigate and resolve health finding `{finding['code']}` for "
+        f"`{finding.get('entity') or 'global'}`. Reproduce with `cd tennis_model && "
+        "PYTHONPATH=src python -m tennis_model.data.health`, then repair the producer and "
+        "add a broken+clean incident replay before changing the invariant.",
+    ]
+    body = "\n".join(lines)
+    if len(body) > FINDING_ISSUE_BODY_MAX_CHARS:
+        # Defense in depth for future fields: never let a huge observation make the
+        # incident itself unreportable. Markers and repair context are always retained.
+        overflow = len(body) - FINDING_ISSUE_BODY_MAX_CHARS
+        marker = f"\n… final body cap applied ({overflow} characters omitted) …\n"
+        tail_chars = 12_000
+        head_chars = FINDING_ISSUE_BODY_MAX_CHARS - tail_chars - len(marker)
+        body = body[:head_chars] + marker + body[-tail_chars:]
+    return body
+
+
 def main() -> int:
     import argparse
     ap = argparse.ArgumentParser()
     ap.add_argument("--strict", action="store_true", help="exit non-zero on any problem")
     ap.add_argument("--issue-body", action="store_true",
                     help="print a GitHub-issue body from the existing health.json (empty if ok)")
+    ap.add_argument("--findings-json", action="store_true",
+                    help="print the validated structured finding list from health.json")
+    ap.add_argument("--finding-body", action="store_true",
+                    help="print one finding issue body selected by FINDING_KEY")
     ap.add_argument("--gate", action="store_true",
                     help="pre-deploy gate: exit non-zero on any produced-OUTPUT integrity "
                          "problem (not source freshness / run-over-run deltas); does not write "
@@ -2427,10 +4012,44 @@ def main() -> int:
                     help="with --gate, atomically write a structured blocking/advisory report")
     args = ap.parse_args()
 
-    health_path = OUTPUT_DIR / "health.json"
+    health_path = Path(os.environ.get("HEALTH_REPORT") or OUTPUT_DIR / "health.json")
 
     if args.gate_report is not None and not args.gate:
         ap.error("--gate-report requires --gate")
+
+    if args.findings_json or args.finding_body:
+        try:
+            report = json.loads(health_path.read_text())
+            raw = report.get("findings")
+            findings = _structured_findings(report)
+            findings_ok = report.get("findingsOk", report.get("ok"))
+            snapshot = report.get("findingSnapshot")
+            expected_snapshot = os.environ.get("FINDING_SNAPSHOT")
+            if (report.get("findingSchema") != FINDING_SCHEMA or not isinstance(raw, list)
+                    or len(findings) != len(raw)
+                    or len({finding["fingerprint"] for finding in findings}) != len(findings)
+                    or snapshot not in {"authoritative", "partial"}
+                    or (expected_snapshot is not None and snapshot != expected_snapshot)
+                    or not isinstance(findings_ok, bool)
+                    or findings_ok != (not any(
+                        finding["severity"] != "info" for finding in findings))):
+                raise ValueError("structured finding contract mismatch")
+        except (OSError, ValueError, TypeError, KeyError) as exc:
+            print(f"::error::could not load structured health findings: {exc}")
+            return 1
+        if args.findings_json:
+            print(json.dumps(findings, separators=(",", ":"), ensure_ascii=False,
+                             allow_nan=False))
+            return 0
+        key = os.environ.get("FINDING_KEY")
+        finding = next((item for item in findings if item["fingerprint"] == key), None)
+        if finding is None:
+            print(f"::error::health finding {key!r} is not active")
+            return 1
+        print(format_finding_issue_body(
+            finding, report, run_url=os.environ.get("GITHUB_RUN_URL"),
+            health_url=os.environ.get("HEALTH_PAGE_URL")))
+        return 0
 
     if args.issue_body:
         if not health_path.exists():
@@ -2451,24 +4070,33 @@ def main() -> int:
         # sentinel's prev-snapshot/issue flow untouched). A failure keeps the last good deploy
         # live rather than shipping a wrong one; a stale-but-correct site beats a fresh-wrong one.
         now = pd.Timestamp(datetime.now(UTC).date())
-        blocking: list[dict[str, str]] = []
-        advisory: list[dict[str, str]] = []
+        blocking: list[dict] = []
+        advisory: list[dict] = []
+        gate_findings: list[HealthFinding] = []
         outs = {tour: read_outputs(tour) for tour in TOURS}
         for tour in TOURS:
-            for pr in output_problems(tour, outs[tour], now, prev=None):
-                if _gate_blocks(pr):
-                    blocking.append({"scope": tour, "problem": pr})
-                    print(f"  GATE/{tour}: BLOCK {pr}")
+            for finding in output_findings(tour, outs[tour], now, prev=None):
+                gate_findings.append(finding)
+                item = {"scope": tour, "problem": finding.message,
+                        "finding": finding.as_dict()}
+                if _gate_blocks(finding):
+                    blocking.append(item)
+                    print(f"  GATE/{tour}: BLOCK {finding.message}")
                 else:
-                    advisory.append({"scope": tour, "problem": pr})
-                    print(f"  GATE/{tour}: warn  {pr}  (advisory — post-deploy sentinel handles it)")
-        for pr in cross_tour_problems(outs):
-            if _gate_blocks(pr):
-                blocking.append({"scope": "cross", "problem": pr})
-                print(f"  GATE/cross: BLOCK {pr}")
+                    advisory.append(item)
+                    print(f"  GATE/{tour}: warn  {finding.message}  "
+                          "(advisory — post-deploy sentinel handles it)")
+        for finding in cross_tour_findings(outs):
+            gate_findings.append(finding)
+            item = {"scope": "cross", "problem": finding.message,
+                    "finding": finding.as_dict()}
+            if _gate_blocks(finding):
+                blocking.append(item)
+                print(f"  GATE/cross: BLOCK {finding.message}")
             else:
-                advisory.append({"scope": "cross", "problem": pr})
-                print(f"  GATE/cross: warn  {pr}  (advisory — post-deploy sentinel handles it)")
+                advisory.append(item)
+                print(f"  GATE/cross: warn  {finding.message}  "
+                      "(advisory — post-deploy sentinel handles it)")
         if args.gate_report is not None:
             try:
                 sentinel_paths = {
@@ -2481,6 +4109,13 @@ def main() -> int:
                     "schema": "predeploy-gate-v1",
                     "generatedAt": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
                     "ok": not blocking,
+                    "findingSchema": FINDING_SCHEMA,
+                    # The gate intentionally omits source freshness and prev-based checks.
+                    # Reporters may update findings present here, but absence is not recovery.
+                    "findingSnapshot": "partial",
+                    "findingsOk": not any(
+                        finding.severity != "info" for finding in gate_findings),
+                    "findings": _serialize_findings(gate_findings),
                     "blocking": blocking,
                     "advisory": advisory,
                 })
@@ -2506,22 +4141,29 @@ def main() -> int:
     # is the precise stamp the /health page shows and ages client-side.
     report, all_problems = {"generated": str(now.date()),
                             "generatedAt": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                            "findingSchema": FINDING_SCHEMA,
+                            "findingSnapshot": "authoritative",
                             "eventCoverage": {}, "tours": {}}, []
+    all_findings: list[HealthFinding] = []
     outs = {tour: read_outputs(tour) for tour in TOURS}
-    # Cross-tour problems belong to no single tour; attach them to the first so they ride
-    # the existing issue/dedup flow (report-data-health.sh reads health.json `ok`).
-    cross = cross_tour_problems(outs)
+    # Cross-tour problems belong to no single tour; attach them to the first only for the
+    # legacy nested prose flow. Their canonical structured copy remains scope=cross.
+    cross_findings = cross_tour_findings(outs)
     for tour in TOURS:
         h = tour_health(tour, now)
         checks = source_checks(tour, h, now)
-        p = [r["problem"] for r in checks if r["problem"]]
+        source_typed = source_findings(tour, h, now)
+        p = _finding_messages(source_typed)
         prev_out = ((prev or {}).get("tours", {}).get(tour, {}) or {}).get("output") or {}
         oc = outs[tour]
-        op = output_problems(tour, oc, now, prev_out) + (cross if tour == TOURS[0] else [])
+        output_typed = output_findings(tour, oc, now, prev_out)
+        nested_cross = cross_findings if tour == TOURS[0] else []
+        op = _finding_messages(output_typed + nested_cross)
         meta = oc["data"].get("meta") or {}
         high_water, high_water_version = _population_high_water(tour, meta, prev_out)
         h["checks"] = checks
         h["problems"] = p
+        h["findings"] = _serialize_findings(source_typed)
         h["output"] = {
             "matches": meta.get("matches"),
             "match_population_version": meta.get("matchPopulationVersion"),
@@ -2534,27 +4176,41 @@ def main() -> int:
                 meta.get("excludedUnclassifiedWtaLiveMatches"),
             "model_trained_at": meta.get("modelTrainedAt"),
             "forecast_lines": (oc["forecast"] or {}).get("lines"),
+            "forecast_high_water_lines": _forecast_high_water(
+                (oc["forecast"] or {}).get("lines"), prev_out),
             "forecast_max_as_of": (oc["forecast"] or {}).get("max_as_of"),
             # Feeds the lost-bracket sentinel on the NEXT run (see output_problems).
             "bracket_events": sorted(
                 _norm_name(t["name"])
                 for t in (oc["data"].get("tournaments") or [])
                 if isinstance(t, dict) and t.get("name") and t.get("hasBracket")),
+            "bracket_event_entities": _remembered_bracket_event_entities(
+                oc["data"].get("tournaments"), prev_out),
             "problems": op,
+            "findings": _serialize_findings(output_typed + nested_cross),
         }
         report["eventCoverage"][tour] = _coverage_summary(
             oc["data"].get("event_coverage"), oc["data"].get("tournaments"))
         report["tours"][tour] = h
         all_problems += p + op
+        all_findings += source_typed + output_typed + nested_cross
         print(f"  health/{tour}: results to {h['date_max']}, stats to {h['stats_date_max']}, "
               f"season stats {h['cur_year_stats_fraction']}; {len(op)} output problem(s)")
-    report["ok"] = not all_problems
-    # Issue-traffic dedup for the hourly sentinel: the report step only comments/reds a
-    # quick run when the problem set CHANGED (day-granular `now` keeps age strings stable
-    # within a UTC day, so this flaps at most once per day, not hourly).
-    prev_problems = sorted(p for t in ((prev or {}).get("tours") or {}).values()
-                           for p in (t.get("problems") or []) + ((t.get("output") or {}).get("problems") or []))
-    report["problems_changed"] = sorted(all_problems) != prev_problems
+    report["findings"] = _serialize_findings(all_findings)
+    active = [finding for finding in report["findings"] if finding["severity"] != "info"]
+    previous_findings = _structured_findings(prev or {})
+    report["findingTransitions"] = _finding_transitions(
+        report["findings"], previous_findings)
+    report["ok"] = not active
+    # Mutable evidence has its own revision/update transition, but cannot become a new
+    # incident merely because an age/count or wording changed.
+    current_state = sorted((finding["fingerprint"], finding["severity"])
+                           for finding in active)
+    previous_state = sorted((finding["fingerprint"], finding["severity"])
+                            for finding in previous_findings
+                            if finding["severity"] != "info")
+    report["findings_changed"] = current_state != previous_state
+    report["problems_changed"] = report["findings_changed"]  # compatibility alias
 
     _write_json_atomic(health_path, report)
     # Mirror for the (hidden) /health page — the CI check step runs before the site
@@ -2567,7 +4223,7 @@ def main() -> int:
         print(f"  (health.json web mirror skipped: {e})")
     for pr in all_problems:
         print(f"  HEALTH: {pr}")
-    if args.strict and all_problems:
+    if args.strict and active:
         return 1
     return 0
 

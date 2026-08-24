@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -23,6 +24,8 @@ import tempfile
 from pathlib import Path
 
 import pytest
+
+from tennis_model.data import health as data_health
 
 REPO = Path(__file__).resolve().parents[2]
 SCRIPT = REPO / ".github" / "scripts" / "report-deploy-health.sh"
@@ -45,6 +48,10 @@ pytestmark = pytest.mark.skipif(_BASH is None, reason="bash unavailable (non-CI 
 # redded run 30106835566 after a perfectly clean deploy.
 _GH_STUB = """#!/usr/bin/env bash
 echo "$1 $2" >> "$GH_CALLS"
+if [ -n "${GH_CALLS_FULL:-}" ]; then
+  printf '%q ' "$@" >> "$GH_CALLS_FULL"
+  printf '\n' >> "$GH_CALLS_FULL"
+fi
 if [ "$1" = "api" ]; then
   if [ "${GH_FAIL_API:-}" = "1" ]; then
     echo 'non-200 OK status code: 504 Gateway Timeout' >&2
@@ -57,12 +64,33 @@ if [ "$1 $2" = "pr create" ] && [ "${GH_FAIL_PR:-}" = "1" ]; then
   echo 'pull request create failed: GraphQL: GitHub Actions is not permitted to create or approve pull requests (createPullRequest)' >&2
   exit 1
 fi
+if [ "$1 $2" = "issue create" ] && [ "${GH_FAIL_CREATE:-}" = "1" ]; then
+  echo 'issue create failed: 503 Service Unavailable' >&2
+  exit 1
+fi
+if [ "$1 $2" = "issue reopen" ] && [ "${GH_FAIL_REOPEN:-}" = "1" ]; then
+  echo 'issue reopen failed: 503 Service Unavailable' >&2
+  exit 1
+fi
+if [ "$1 $2" = "issue comment" ] && [ "${GH_FAIL_COMMENT:-}" = "1" ]; then
+  echo 'issue comment failed: 503 Service Unavailable' >&2
+  exit 1
+fi
+if [ "$1 $2" = "issue edit" ] && [ "${GH_FAIL_EDIT:-}" = "1" ]; then
+  echo 'issue edit failed: 503 Service Unavailable' >&2
+  exit 1
+fi
+if [ "$1 $2" = "issue close" ] && [ "${GH_FAIL_CLOSE:-}" = "1" ]; then
+  echo 'issue close failed: 503 Service Unavailable' >&2
+  exit 1
+fi
 if [ "$1 $2" = "issue list" ]; then
   if [ "${GH_FAIL_LIST:-}" = "1" ]; then
     echo 'non-200 OK status code: 504 Gateway Timeout' >&2
     exit 1
   fi
   case "$*" in
+    *"--label data-health"*) echo "${FAKE_DATA_ISSUES_JSON:-[]}" ;;
     *pipeline-health-full*) echo "${FAKE_PIPELINE_FULL:-$FAKE_EXISTING}" ;;
     *pipeline-health-quick-data*) echo "${FAKE_PIPELINE_QUICK_DATA:-$FAKE_EXISTING}" ;;
     *pipeline-health-quick-web*) echo "${FAKE_PIPELINE_QUICK_WEB:-$FAKE_EXISTING}" ;;
@@ -76,7 +104,8 @@ exit 0
 """
 
 
-def _run_script(script: Path, extra_env: dict, existing: str = "", fail_list: bool = False):
+def _run_script(script: Path, extra_env: dict, existing: str = "", fail_list: bool = False,
+                full_calls: list[str] | None = None):
     """Run an alert script with a stubbed `gh`. Returns (exit_code, [gh subcommands])."""
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
@@ -84,10 +113,13 @@ def _run_script(script: Path, extra_env: dict, existing: str = "", fail_list: bo
         (tmp / "gh").chmod(0o755)
         calls = tmp / "calls.txt"
         calls.write_text("", encoding="utf-8")
+        detailed = tmp / "calls-full.txt"
+        detailed.write_text("", encoding="utf-8")
         env = {
             **os.environ,
             "PATH": f"{tmp}{os.pathsep}{os.environ.get('PATH', '')}",
             "GH_CALLS": str(calls),
+            "GH_CALLS_FULL": str(detailed),
             "FAKE_EXISTING": existing,
             "GH_FAIL_LIST": "1" if fail_list else "",
             "GH_RETRY_SLEEP": "0",          # keep the retry path instant under test
@@ -96,6 +128,9 @@ def _run_script(script: Path, extra_env: dict, existing: str = "", fail_list: bo
         }
         p = subprocess.run([_BASH, str(script)], env=env, capture_output=True,
                            text=True, timeout=60)
+        if full_calls is not None:
+            full_calls.extend(
+                line for line in detailed.read_text(encoding="utf-8").splitlines() if line)
         return p.returncode, [ln for ln in calls.read_text(encoding="utf-8").splitlines() if ln]
 
 
@@ -109,26 +144,90 @@ def _run(outcome: str, existing: str = "", mode: str = "full", verify_log: str |
     }, existing=existing, fail_list=fail_list)
 
 
-def _run_data(ok: str, existing: str = "", mode: str = "full", changed: str = "True",
-              fail_list: bool = False):
-    return _run_script(DATA_SCRIPT, {
-        "OK": ok,
-        "CHANGED": changed,
-        "MODE": mode,
-        "HEALTH_PAGE_URL": "https://deuce-forecast.web.app/health/",
-        # the real command needs the package + a built health.json; the body content is
-        # not what this file tests (the branch logic is)
-        "HEALTH_BODY_CMD": "echo fake-health-body",
-    }, existing=existing, fail_list=fail_list)
+_KEY_A = "hf1:" + "a" * 64
+_KEY_B = "hf1:" + "b" * 64
+_REV_A = "hr1:" + "1" * 64
+_REV_B = "hr1:" + "2" * 64
+_REV_C = "hr1:" + "3" * 64
 
 
-def _run_with_step_output(script: Path, env: dict, *, existing: str = "", fail_list: bool = False):
+def _finding(key: str = _KEY_A, revision: str = _REV_A, *, severity: str = "error",
+             code: str = "source.results.stale", tour: str | None = "atp",
+             entity: str = "merged-results:atp", evidence: dict | None = None) -> dict:
+    return {
+        "schema": "health-finding-v1", "fingerprint": key, "revision": revision,
+        "code": code, "severity": severity,
+        "scope": "cross" if tour is None else code.split(".", 1)[0],
+        "tour": tour, "entity": entity, "evidence": evidence or {"ageDays": 9},
+        "message": f"{tour or 'cross'}: fixture finding {code}",
+    }
+
+
+def _data_issue(number: int, key: str = _KEY_A, revision: str = _REV_A,
+                *, state: str = "OPEN", title: str | None = None) -> dict:
+    return {
+        "number": number, "state": state,
+        "title": title or "[data-health] ATP structured finding",
+        "body": (f"<!-- data-health-key: {key} -->\n"
+                 f"<!-- data-health-revision: {revision} -->\nbody"),
+    }
+
+
+def _legacy_issue(number: int = 9, *, state: str = "OPEN") -> dict:
+    return {"number": number, "state": state, "title": "Data-health check failed",
+            "body": "legacy aggregate body"}
+
+
+def _run_data(findings: list[dict] | object, *, issues: list[dict] | None = None,
+              mode: str = "full", fail_list: bool = False, with_output: bool = False,
+              extra_env: dict | None = None, full_calls: list[str] | None = None):
+    """Run the structured reporter with real JSON/body contracts and a stubbed gh."""
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        findings_path = tmp / "findings.json"
+        if isinstance(findings, str):
+            findings_path.write_text(findings, encoding="utf-8")
+        else:
+            findings_path.write_text(json.dumps(findings), encoding="utf-8")
+        body_helper = tmp / "body.py"
+        body_helper.write_text(
+            """import json, os, sys
+items = json.load(open(sys.argv[1], encoding='utf-8'))
+item = next(x for x in items if x['fingerprint'] == os.environ['FINDING_KEY'])
+if os.environ.get('FAKE_BODY_MISMATCH') == '1':
+    item = {**item, 'fingerprint': 'hf1:' + '0' * 64}
+print(f\"<!-- data-health-key: {item['fingerprint']} -->\")
+print(f\"<!-- data-health-revision: {item['revision']} -->\")
+print(item['message'])
+if os.environ.get('FAKE_BODY_OVERSIZE') == '1':
+    print('x' * 60_001)
+""", encoding="utf-8", newline="\n")
+        env = {
+            "MODE": mode,
+            "HEALTH_PAGE_URL": "https://deuce-forecast.web.app/health/",
+            "FINDINGS_CMD": f"cat {shlex.quote(str(findings_path))}",
+            "FINDING_BODY_CMD": (f"{shlex.quote(sys.executable)} "
+                                 f"{shlex.quote(str(body_helper))} "
+                                 f"{shlex.quote(str(findings_path))}"),
+            "FAKE_DATA_ISSUES_JSON": json.dumps(issues or []),
+            "PYTHON_BIN": sys.executable,
+            **(extra_env or {}),
+        }
+        if not with_output:
+            return _run_script(
+                DATA_SCRIPT, env, fail_list=fail_list, full_calls=full_calls)
+        return _run_with_step_output(
+            DATA_SCRIPT, env, fail_list=fail_list, full_calls=full_calls)
+
+
+def _run_with_step_output(script: Path, env: dict, *, existing: str = "", fail_list: bool = False,
+                          full_calls: list[str] | None = None):
     with tempfile.NamedTemporaryFile("w", delete=False, encoding="utf-8") as f:
         output_path = f.name
     try:
         code, calls = _run_script(
             script, {**env, "GITHUB_OUTPUT": output_path}, existing=existing,
-            fail_list=fail_list)
+            fail_list=fail_list, full_calls=full_calls)
         output = Path(output_path).read_text(encoding="utf-8")
     finally:
         os.unlink(output_path)
@@ -156,6 +255,11 @@ def _stage_outcomes(kind: str = "full", **overrides: str) -> str:
 
 def _outputs(value: str) -> dict[str, str]:
     return dict(line.split("=", 1) for line in value.splitlines() if "=" in line)
+
+
+def _full_argv(calls: list[str]) -> list[list[str]]:
+    """Undo the stub's Bash `%q` logging so assertions can inspect exact targets/flags."""
+    return [shlex.split(call) for call in calls]
 
 
 def _run_pipeline(*, context: str = "refresh", kind: str = "full",
@@ -310,27 +414,65 @@ def test_api_outage_on_a_failing_deploy_still_reds_but_files_nothing():
 
 
 def test_data_api_outage_on_healthy_data_stays_green():
-    code, calls = _run_data("True", fail_list=True)
+    code, calls = _run_data([], fail_list=True)
     assert code == 0, "an API 504 redded a run whose data health was fine"
     assert "issue create" not in calls and "issue close" not in calls
 
 
 def test_data_api_outage_on_failing_data_still_reds_but_files_nothing():
-    code, calls = _run_data("False", fail_list=True)
+    code, calls = _run_data([_finding()], fail_list=True)
     assert code == 1
     assert "issue create" not in calls and "issue comment" not in calls
 
 
+def test_data_malformed_issue_inventory_is_unknown_not_a_healthy_false_red():
+    code, calls = _run_data([], extra_env={"FAKE_DATA_ISSUES_JSON": "not json"})
+    assert code == 0
+    assert calls == ["label create", "issue list"]
+
+
+def test_data_malformed_issue_inventory_still_reds_active_findings_without_mutation():
+    code, calls = _run_data(
+        [_finding()], extra_env={"FAKE_DATA_ISSUES_JSON": "not json"})
+    assert code == 1
+    assert calls == ["label create", "issue list"]
+
+
+@pytest.mark.parametrize(
+    "issues",
+    [
+        [{"number": 7, "state": "OPEN", "title": "x", "body": None}],
+        [_data_issue(7), _data_issue(7)],
+        [{
+            "number": 7,
+            "state": "OPEN",
+            "title": "ambiguous",
+            "body": (
+                f"<!-- data-health-key: {_KEY_A} -->\n"
+                f"<!-- data-health-key: {_KEY_B} -->\n"
+                f"<!-- data-health-revision: {_REV_A} -->"
+            ),
+        }],
+        [{
+            "number": 7,
+            "state": "OPEN",
+            "title": "malformed marker",
+            "body": f"<!-- data-health-key: not-a-key -->\n"
+                    f"<!-- data-health-revision: {_REV_A} -->",
+        }],
+    ],
+)
+def test_data_ambiguous_issue_inventory_never_creates_a_duplicate(issues):
+    code, calls = _run_data([_finding()], issues=issues)
+    assert code == 1
+    assert calls == ["label create", "issue list"]
+
+
 def test_specialist_reporters_publish_actual_issue_representation():
-    data_env = {"OK": "False", "CHANGED": "True", "MODE": "full",
-                "HEALTH_BODY_CMD": "echo body", "HEALTH_PAGE_URL": "https://example/health"}
-    code, _, output = _run_with_step_output(DATA_SCRIPT, data_env)
+    code, _, output = _run_data([_finding()], with_output=True)
     assert code == 1 and output == {"represented": "true"}
-    code, _, output = _run_with_step_output(DATA_SCRIPT, data_env, fail_list=True)
+    code, _, output = _run_data([_finding()], with_output=True, fail_list=True)
     assert code == 1 and output == {"represented": "false"}
-    code, _, output = _run_with_step_output(
-        DATA_SCRIPT, {**data_env, "HEALTH_BODY_CMD": "false"})
-    assert code != 0 and output == {"represented": "false"}
 
     deploy_env = {"OUTCOME": "failure", "MODE": "full", "SITE_URL": "https://example"}
     code, _, output = _run_with_step_output(SCRIPT, deploy_env)
@@ -339,50 +481,241 @@ def test_specialist_reporters_publish_actual_issue_representation():
     assert code == 1 and output == {"represented": "false"}
 
 
-# --- the data-health alert matrix (was inline in refresh.yml, untested) -------------------
+# --- per-finding data-health desired-state reconciliation ---------------------------------
+
+def test_data_reporter_crosses_the_real_health_cli_contract(tmp_path):
+    typed = data_health.HealthFinding(
+        code="source.results.stale", severity="error", scope="source", tour="atp",
+        entity="merged-results:atp", evidence={"ageDays": 9},
+        message="atp: newest completed match is 9d old",
+    ).as_dict()
+    report_path = tmp_path / "health.json"
+    report_path.write_text(json.dumps({
+        "generated": "2026-08-23",
+        "findingSchema": data_health.FINDING_SCHEMA,
+        "findingSnapshot": "authoritative",
+        "ok": False,
+        "findings": [typed],
+    }), encoding="utf-8")
+    python = shlex.quote(sys.executable)
+    module = f"{python} -m tennis_model.data.health"
+    detailed: list[str] = []
+
+    code, calls = _run_script(DATA_SCRIPT, {
+        "MODE": "quick",
+        "HEALTH_REPORT": str(report_path),
+        "FINDING_SNAPSHOT": "authoritative",
+        "HEALTH_PAGE_URL": "https://deuce-forecast.web.app/health/",
+        "PYTHONPATH": str(REPO / "tennis_model" / "src"),
+        "FINDINGS_CMD": f"{module} --findings-json",
+        "FINDING_BODY_CMD": f"{module} --finding-body",
+        "PYTHON_BIN": sys.executable,
+        "FAKE_DATA_ISSUES_JSON": "[]",
+    }, full_calls=detailed)
+
+    assert code == 1 and calls == ["label create", "issue list", "issue create"]
+    create = next(argv for argv in _full_argv(detailed) if argv[:2] == ["issue", "create"])
+    assert typed["code"] in create[5] and typed["entity"] in create[5]
 
 def test_data_health_ok_with_no_issue_is_quiet():
-    code, calls = _run_data("True")
+    code, calls = _run_data([])
     assert code == 0
     assert calls == ["label create", "issue list"]
 
 
-def test_data_health_ok_closes_an_open_issue():
-    """Recovery auto-closes within the hour, on any mode."""
-    for mode in ("full", "quick"):
-        code, calls = _run_data("True", existing="9", mode=mode)
-        assert code == 0
-        assert calls == ["label create", "issue list", "issue comment", "issue close"]
+def test_data_health_rejects_unknown_mode_before_github_mutation():
+    code, calls, output = _run_data([], mode="unexpected", with_output=True)
+    assert code == 1 and calls == [] and output == {"represented": "false"}
+
+
+def test_data_health_info_findings_do_not_open_or_keep_incidents_alive():
+    code, calls = _run_data([_finding(severity="info")], issues=[_data_issue(9)])
+    assert code == 0
+    assert calls == ["label create", "issue list", "issue comment", "issue close"]
 
 
 def test_data_health_failure_opens_an_issue_and_reds_the_run():
     """Onset: one issue, one email, run goes red — on quick runs too."""
     for mode in ("full", "quick"):
-        code, calls = _run_data("False", mode=mode)
+        code, calls = _run_data([_finding()], mode=mode)
         assert code == 1, f"onset on {mode} must red"
         assert calls == ["label create", "issue list", "issue create"]
 
 
+def test_data_health_create_uses_exact_keyed_title_label_and_body_file():
+    detailed: list[str] = []
+    code, _calls = _run_data([_finding()], mode="quick", full_calls=detailed)
+    assert code == 1
+    create = next(argv for argv in _full_argv(detailed) if argv[:2] == ["issue", "create"])
+    assert create[:4] == ["issue", "create", "--label", "data-health"]
+    assert create[4:6] == ["--title", "[data-health] ATP · source.results.stale · merged-results:atp"]
+    assert create[6] == "--body-file" and Path(create[7]).name.startswith("body-")
+
+
+def test_data_health_body_marker_mismatch_is_unrepresented_and_never_creates():
+    code, calls, output = _run_data(
+        [_finding()], mode="quick", with_output=True,
+        extra_env={"FAKE_BODY_MISMATCH": "1"})
+    assert code == 1 and output == {"represented": "false"}
+    assert calls == ["label create", "issue list"]
+
+
+def test_data_health_oversized_body_is_unrepresented_and_never_creates():
+    code, calls, output = _run_data(
+        [_finding()], mode="quick", with_output=True,
+        extra_env={"FAKE_BODY_OVERSIZE": "1"})
+    assert code == 1 and output == {"represented": "false"}
+    assert calls == ["label create", "issue list"]
+
+
 def test_data_health_standing_failure_comments_and_reds_on_full():
     """The daily heartbeat."""
-    code, calls = _run_data("False", existing="9", mode="full", changed="False")
+    code, calls = _run_data([_finding()], issues=[_data_issue(9)], mode="full")
     assert code == 1
     assert calls == ["label create", "issue list", "issue comment"]
 
 
 def test_data_health_standing_failure_stays_green_on_unchanged_quick():
-    """A red quick job never saves the data cache, so the prev health.json feeding
-    problems_changed would stay stale and every hourly run would re-red."""
-    code, calls = _run_data("False", existing="9", mode="quick", changed="False")
+    """Identity lives in the fingerprint, so unchanged quick runs are silent."""
+    code, calls = _run_data([_finding()], issues=[_data_issue(9)], mode="quick")
     assert code == 0
-    assert calls == ["label create", "issue list"]          # no comment, no duplicate issue
+    assert calls == ["label create", "issue list"]
 
 
-def test_data_health_standing_failure_comments_once_when_the_problem_set_changes():
-    """A NEW problem on top of a standing one must still be recorded, without redding."""
-    code, calls = _run_data("False", existing="9", mode="quick", changed="True")
+def test_data_health_evidence_revision_updates_one_issue_without_new_onset():
+    current = _finding(revision=_REV_B, evidence={"ageDays": 10})
+    code, calls = _run_data([current], issues=[_data_issue(9, revision=_REV_A)], mode="quick")
     assert code == 0
-    assert calls == ["label create", "issue list", "issue comment"]
+    assert calls == ["label create", "issue list", "issue comment", "issue edit"]
+
+
+def test_data_health_revision_edit_failure_stays_represented_and_retries_later():
+    detailed: list[str] = []
+    current = _finding(revision=_REV_B, evidence={"ageDays": 10})
+    code, calls, output = _run_data(
+        [current], issues=[_data_issue(9, revision=_REV_A)], mode="quick",
+        with_output=True, extra_env={"GH_FAIL_EDIT": "1"}, full_calls=detailed)
+    assert code == 0 and output == {"represented": "true"}
+    assert calls == ["label create", "issue list", "issue comment", "issue edit"]
+    argv = _full_argv(detailed)
+    assert next(call for call in argv if call[:2] == ["issue", "comment"])[2] == "9"
+    edit = next(call for call in argv if call[:2] == ["issue", "edit"])
+    assert edit[2] == "9" and edit[3] == "--body-file"
+
+
+def test_data_health_multi_finding_recovery_is_independent():
+    findings = [_finding(), _finding(_KEY_B, _REV_B, code="output.meta.missing",
+                                     entity="meta:wta", tour="wta")]
+    issues = [_data_issue(10), _data_issue(11, _KEY_B, _REV_B)]
+    code, calls = _run_data(findings, issues=issues, mode="quick")
+    assert code == 0 and calls == ["label create", "issue list"]
+
+    code, calls = _run_data([findings[1]], issues=issues, mode="quick")
+    assert code == 0
+    assert calls == ["label create", "issue list", "issue comment", "issue close"]
+
+
+def test_partial_gate_snapshot_dedupes_present_key_without_resolving_absent_incidents():
+    gate = _finding(
+        _KEY_B, _REV_B, code="output.meta.missing", entity="meta:wta", tour="wta")
+    issues = [
+        _legacy_issue(8),
+        _data_issue(9, _KEY_A, _REV_A),  # unrelated source-health incident
+        _data_issue(10, _KEY_B, _REV_B),
+        _data_issue(11, _KEY_B, _REV_B),  # duplicate of the present gate finding
+    ]
+    detailed: list[str] = []
+
+    code, calls, output = _run_data(
+        [gate], issues=issues, mode="quick", with_output=True,
+        extra_env={"FINDING_SNAPSHOT": "partial"}, full_calls=detailed)
+
+    assert code == 0 and output == {"represented": "true"}
+    assert calls == ["label create", "issue list", "issue comment", "issue close"]
+    mutations = [argv for argv in _full_argv(detailed)
+                 if argv[:2] in (["issue", "comment"], ["issue", "close"])]
+    assert [argv[2] for argv in mutations] == ["11", "11"]
+    assert all("Recovered:" not in " ".join(argv) for argv in mutations)
+
+
+def test_data_health_recurrence_reopens_the_original_issue():
+    code, calls = _run_data([_finding()], issues=[_data_issue(12, state="CLOSED")],
+                            mode="quick")
+    assert code == 1
+    assert calls == ["label create", "issue list", "issue reopen", "issue comment",
+                     "issue edit"]
+    assert "issue create" not in calls
+
+
+def test_data_health_reopen_failure_is_unrepresented_and_red():
+    detailed: list[str] = []
+    code, calls, output = _run_data(
+        [_finding()], issues=[_data_issue(12, state="CLOSED")], mode="quick",
+        with_output=True, extra_env={"GH_FAIL_REOPEN": "1"}, full_calls=detailed)
+    assert code == 1 and output == {"represented": "false"}
+    assert calls == ["label create", "issue list", "issue reopen"]
+    assert next(call for call in _full_argv(detailed)
+                if call[:2] == ["issue", "reopen"]) == ["issue", "reopen", "12"]
+
+
+def test_data_health_open_duplicate_outranks_lower_closed_history():
+    issues = [
+        _data_issue(5, state="CLOSED"),
+        _data_issue(10, state="OPEN"),
+    ]
+    code, calls = _run_data([_finding()], issues=issues, mode="quick")
+    assert code == 0
+    assert calls == ["label create", "issue list"]
+
+
+def test_data_health_legacy_migration_creates_keys_before_retiring_aggregate():
+    findings = [_finding(), _finding(_KEY_B, _REV_B, code="output.meta.missing",
+                                     entity="meta:wta", tour="wta")]
+    code, calls = _run_data(findings, issues=[_legacy_issue()], mode="quick")
+    assert code == 0, "migration of an already-represented failure is not a new onset"
+    assert calls == ["label create", "issue list", "issue create", "issue create",
+                     "issue comment", "issue close"]
+
+
+def test_data_health_failed_migration_keeps_legacy_as_the_owner():
+    code, calls, output = _run_data(
+        [_finding()], issues=[_legacy_issue()], mode="quick", with_output=True,
+        extra_env={"GH_FAIL_CREATE": "1"})
+    assert code == 0 and output == {"represented": "true"}
+    assert calls == ["label create", "issue list", "issue create"]
+    assert "issue close" not in calls, "legacy owner was retired before keyed creation"
+
+
+def test_data_health_unrepresented_create_failure_reds_and_publishes_false():
+    code, calls, output = _run_data(
+        [_finding()], mode="quick", with_output=True,
+        extra_env={"GH_FAIL_CREATE": "1"})
+    assert code == 1 and output == {"represented": "false"}
+    assert calls == ["label create", "issue list", "issue create"]
+
+
+def test_data_health_clean_run_retires_the_legacy_aggregate():
+    code, calls = _run_data([], issues=[_legacy_issue()], mode="quick")
+    assert code == 0
+    assert calls == ["label create", "issue list", "issue comment", "issue close"]
+
+
+def test_data_health_recovery_close_failure_stays_green_and_defers_cleanup():
+    detailed: list[str] = []
+    code, calls, output = _run_data(
+        [], issues=[_data_issue(9)], mode="quick", with_output=True,
+        extra_env={"GH_FAIL_CLOSE": "1"}, full_calls=detailed)
+    assert code == 0 and output == {"represented": "true"}
+    assert calls == ["label create", "issue list", "issue comment", "issue close"]
+    assert next(call for call in _full_argv(detailed)
+                if call[:2] == ["issue", "close"]) == ["issue", "close", "9"]
+
+
+@pytest.mark.parametrize("payload", ["not json", {}, [_finding(), _finding()]])
+def test_data_health_malformed_or_duplicate_manifest_reds_without_issue_mutation(payload):
+    code, calls = _run_data(payload)
+    assert code == 1
+    assert calls == []
 
 
 # --- pipeline/workflow failures that the two specialist reporters do not own -------------
@@ -414,6 +747,57 @@ def test_pipeline_failure_opens_a_mode_keyed_issue_with_gate_evidence():
     assert "bad odds" in body
 
 
+@pytest.mark.parametrize(("kind", "report_outcome"), [
+    ("full", "failure"),
+    ("quick-data", "failure"),
+    ("quick-data", "success"),
+    ("quick-web", "failure"),
+])
+def test_typed_gate_findings_are_owned_without_a_duplicate_pipeline_issue(kind, report_outcome):
+    skipped = {
+        "gate": "failure", "health": "skipped", "setup_node": "skipped",
+        "restore_next": "skipped", "build": "skipped", "deploy": "skipped",
+        "verifydeploy": "skipped", "snapshot": "skipped", "persist": "skipped",
+        "mirror": "skipped", "reportdata": report_outcome,
+    }
+    code, calls, output, body, log = _run_pipeline(
+        kind=kind, outcomes=_stage_outcomes(kind, **skipped),
+        extra_env={"DATA_REPRESENTED": "true"})
+
+    assert code == 0, log
+    assert _outputs(output) == {"handled": "true", "state": "owned"}
+    assert calls == []
+    assert body == ""
+
+
+def test_owned_gate_failure_cannot_close_an_unverified_generic_pipeline_incident():
+    outcomes = _stage_outcomes(
+        "full", gate="failure", health="skipped", setup_node="skipped",
+        restore_next="skipped", build="skipped", deploy="skipped",
+        verifydeploy="skipped", snapshot="skipped", persist="skipped",
+        reportdata="failure")
+    code, calls, output, body, log = _run_pipeline(
+        kind="full", outcomes=outcomes, existing_by_key={"full": "44"},
+        extra_env={"DATA_REPRESENTED": "true"})
+
+    assert code == 0, log
+    assert _outputs(output) == {"handled": "true", "state": "owned"}
+    assert calls == []
+    assert body == ""
+
+
+def test_unrepresented_gate_failure_still_falls_back_to_pipeline_issue():
+    outcomes = _stage_outcomes(
+        "quick-data", gate="failure", health="skipped", setup_node="skipped",
+        restore_next="skipped", build="skipped", deploy="skipped",
+        verifydeploy="skipped", reportdata="failure")
+    code, calls, output, body, _ = _run_pipeline(
+        kind="quick-data", outcomes=outcomes,
+        extra_env={"DATA_REPRESENTED": "false"})
+    assert code == 1 and _outputs(output) == {"handled": "true", "state": "failure"}
+    assert calls[-1] == "issue create" and "gate: failure" in body
+
+
 def test_pipeline_issue_prioritizes_blockers_in_an_oversized_gate_report():
     payload = {
         "schema": "predeploy-gate-v1", "ok": False,
@@ -428,7 +812,7 @@ def test_pipeline_issue_prioritizes_blockers_in_an_oversized_gate_report():
     try:
         code, _, _, body, _ = _run_pipeline(
             kind="full", outcomes=_stage_outcomes("full", gate="failure"),
-            extra_env={"GATE_REPORT": report})
+            extra_env={"GATE_REPORT": report, "DATA_REPRESENTED": "false"})
     finally:
         os.unlink(report)
     assert code == 1 and "ROOT BLOCKER" in body
@@ -495,7 +879,9 @@ def test_pipeline_issue_api_unknown_preserves_signal_without_guessing():
     assert code == 0 and _outputs(output) == {"handled": "true", "state": "healthy"}
     assert calls.count("issue list") == 3 and "issue close" not in calls
     failed = _stage_outcomes("full", gate="failure")
-    code, calls, output, _, _ = _run_pipeline(kind="full", outcomes=failed, fail_list=True)
+    code, calls, output, _, _ = _run_pipeline(
+        kind="full", outcomes=failed, fail_list=True,
+        extra_env={"DATA_REPRESENTED": "false"})
     assert code == 1 and _outputs(output) == {"handled": "false", "state": "failure"}
     assert "issue create" not in calls and "issue comment" not in calls
 
@@ -783,6 +1169,14 @@ def test_workflow_invokes_this_script():
     wf = WORKFLOW.read_text(encoding="utf-8")
     assert ".github/scripts/report-deploy-health.sh" in wf
     assert ".github/scripts/report-data-health.sh" in wf
+    report_block = wf[wf.index("- name: Report data health"):wf.index("- name: Report deploy health")]
+    assert "steps.health.outcome == 'success' || steps.gate.outcome == 'failure'" in report_block
+    assert "predeploy-gate.json" in report_block and "data/output/health.json" in report_block
+    assert "FINDING_SNAPSHOT:" in report_block
+    assert "steps.gate.outcome == 'failure' && 'partial' || 'authoritative'" in report_block
+    assert "OK=$(" not in report_block and "CHANGED=$(" not in report_block
+    data_script = DATA_SCRIPT.read_text(encoding="utf-8")
+    assert "--findings-json" in data_script and "--finding-body" in data_script
     assert ".github/scripts/report-pipeline-health.sh" in wf
     assert MODE_SCRIPT.exists(), f"missing {MODE_SCRIPT}"
     assert ".github/scripts/decide-mode.sh" in wf

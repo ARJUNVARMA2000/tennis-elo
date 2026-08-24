@@ -174,6 +174,9 @@ def test_duplicate_draw_source_attachments_are_quarantined():
     assert set(clean) == {"718-2026"}
     assert len(findings) == 1
     assert "188-2026" in findings[0] and "189-2026" in findings[0]
+    assert draws.duplicate_draw_source_incidents(payload)[0][0] == (
+        "wikipedia:2026 wimbledon – women's singles"
+    )
 
 
 def test_rejected_current_cache_entry_is_not_restored_by_retention(tmp_path, monkeypatch):

@@ -1,0 +1,353 @@
+{
+  "schema": "health-incident-replay-v1",
+  "cases": [
+    {
+      "id": "wta-duplicate-stable-event-card",
+      "description": "Minimized replay of one WTA event reaching the final board as two cards.",
+      "history": {
+        "issues": [2],
+        "commits": ["37aeb3d", "b8ec851"]
+      },
+      "tour": "wta",
+      "seam": "output",
+      "asOf": "2026-07-09",
+      "expected": {
+        "code": "output.tournament.duplicate_card",
+        "severity": "error",
+        "scope": "output",
+        "entity": "espn:888-2026",
+        "channel": "predeploy"
+      },
+      "variants": {
+        "broken": {
+          "patches": [
+            {
+              "op": "set_json",
+              "target": "output/tournaments.json",
+              "pointer": "/0/espnId",
+              "value": "888-2026"
+            },
+            {
+              "op": "set_json",
+              "target": "output/tournaments.json",
+              "pointer": "/1/espnId",
+              "value": "888-2026"
+            },
+            {
+              "op": "set_json",
+              "target": "output/brackets.json",
+              "pointer": "/0/espnId",
+              "value": "888-2026"
+            }
+          ]
+        },
+        "clean": {
+          "patches": [
+            {
+              "op": "set_json",
+              "target": "output/tournaments.json",
+              "pointer": "/0/espnId",
+              "value": "887-2026"
+            },
+            {
+              "op": "set_json",
+              "target": "output/tournaments.json",
+              "pointer": "/1/espnId",
+              "value": "888-2026"
+            },
+            {
+              "op": "set_json",
+              "target": "output/brackets.json",
+              "pointer": "/0/espnId",
+              "value": "888-2026"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "wta-fresh-overlay-future-year",
+      "description": "The Iasi final arrived as 2029/7/20 and defeated a one-sided freshness age check.",
+      "history": {
+        "issues": [15],
+        "commits": ["00a30ee", "a8f7dd7"]
+      },
+      "tour": "wta",
+      "seam": "source",
+      "asOf": "2026-08-07",
+      "expected": {
+        "code": "source.fresh_overlay.future_date",
+        "severity": "info",
+        "scope": "source",
+        "entity": "fresh-overlay:wta",
+        "channel": "informational"
+      },
+      "variants": {
+        "broken": {
+          "patches": [
+            {
+              "op": "write_text",
+              "target": "fresh/2026.csv",
+              "value": "tourney_date\n2026/8/05\n2029/7/20\n"
+            }
+          ]
+        },
+        "clean": {
+          "patches": [
+            {
+              "op": "write_text",
+              "target": "fresh/2026.csv",
+              "value": "tourney_date\n2026/8/05\n"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "atp-bracket-geometry-mismatch",
+      "description": "Minimized form of a draw whose declared entrants disagree with its round-zero seats.",
+      "history": {
+        "issues": [],
+        "commits": ["693fbea", "638d02c"]
+      },
+      "tour": "atp",
+      "seam": "output",
+      "asOf": "2026-07-09",
+      "expected": {
+        "code": "output.bracket.geometry_invalid",
+        "severity": "error",
+        "scope": "output",
+        "entity": "espn:718-2026",
+        "channel": "predeploy"
+      },
+      "variants": {
+        "broken": {
+          "patches": [
+            {
+              "op": "set_json",
+              "target": "output/brackets.json",
+              "pointer": "/0/espnId",
+              "value": "718-2026"
+            },
+            {
+              "op": "set_json",
+              "target": "output/brackets.json",
+              "pointer": "/0/drawSize",
+              "value": 3
+            },
+            {
+              "op": "set_json",
+              "target": "output/tournaments.json",
+              "pointer": "/1/espnId",
+              "value": "718-2026"
+            }
+          ]
+        },
+        "clean": {
+          "patches": [
+            {
+              "op": "set_json",
+              "target": "output/brackets.json",
+              "pointer": "/0/espnId",
+              "value": "718-2026"
+            },
+            {
+              "op": "set_json",
+              "target": "output/brackets.json",
+              "pointer": "/0/drawSize",
+              "value": 4
+            },
+            {
+              "op": "set_json",
+              "target": "output/tournaments.json",
+              "pointer": "/1/espnId",
+              "value": "718-2026"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "atp-population-high-water-drop",
+      "description": "Issue 21's 52-row loss must remain an incident until the population recovers.",
+      "history": {
+        "issues": [21],
+        "commits": ["339287b"]
+      },
+      "tour": "atp",
+      "seam": "output",
+      "asOf": "2026-07-09",
+      "previousOutput": {
+        "matches": 300000,
+        "match_population_version": 4,
+        "high_water_matches": 300000,
+        "high_water_match_population_version": 4
+      },
+      "expected": {
+        "code": "output.population.match_count_drop",
+        "severity": "error",
+        "scope": "output",
+        "entity": "match-population:v4",
+        "channel": "sentinel"
+      },
+      "variants": {
+        "broken": {
+          "patches": [
+            {
+              "op": "set_json",
+              "target": "output/meta.json",
+              "pointer": "/matches",
+              "value": 299948
+            }
+          ]
+        },
+        "clean": {
+          "patches": [
+            {
+              "op": "set_json",
+              "target": "output/meta.json",
+              "pointer": "/matches",
+              "value": 300000
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "wta-duplicate-official-draw-source",
+      "description": "Toronto and Cincinnati must not retain the same official source id or URL.",
+      "history": {
+        "issues": [],
+        "commits": ["339287b"]
+      },
+      "tour": "wta",
+      "seam": "output",
+      "asOf": "2026-07-09",
+      "expected": {
+        "code": "output.draw_source.duplicate_attachment",
+        "severity": "error",
+        "scope": "output",
+        "entity": "draw-source:wta:806",
+        "channel": "predeploy"
+      },
+      "variants": {
+        "broken": {
+          "patches": [
+            {
+              "op": "write_json",
+              "target": "live/tournament_draws.json",
+              "value": {
+                "421-2026": {
+                  "source": "wta",
+                  "espnId": "421-2026",
+                  "sourceId": "806",
+                  "sourceUrl": "https://wtafiles.wtatennis.com/pdf/draws/2026/806/MDS.pdf"
+                },
+                "718-2026": {
+                  "source": "wta",
+                  "espnId": "718-2026",
+                  "sourceId": "806",
+                  "sourceUrl": "https://wtafiles.wtatennis.com/pdf/draws/2026/806/MDS.pdf"
+                }
+              }
+            }
+          ]
+        },
+        "clean": {
+          "patches": [
+            {
+              "op": "write_json",
+              "target": "live/tournament_draws.json",
+              "value": {
+                "421-2026": {
+                  "source": "wta",
+                  "espnId": "421-2026",
+                  "sourceId": "806",
+                  "sourceUrl": "https://wtafiles.wtatennis.com/pdf/draws/2026/806/MDS.pdf"
+                },
+                "718-2026": {
+                  "source": "wta",
+                  "espnId": "718-2026",
+                  "sourceId": "1017",
+                  "sourceUrl": "https://wtafiles.wtatennis.com/pdf/draws/2026/1017/MDS.pdf"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "atp-espn-total-transport-failure",
+      "description": "A 28-query ESPN outage must differ from a successfully empty acquisition window.",
+      "history": {
+        "issues": [],
+        "commits": ["d09cea0", "339287b"]
+      },
+      "tour": "atp",
+      "seam": "source",
+      "asOf": "2026-07-09",
+      "expected": {
+        "code": "source.espn.total_transport_failure",
+        "severity": "error",
+        "scope": "source",
+        "entity": "espn-scoreboard:atp",
+        "channel": "sentinel"
+      },
+      "variants": {
+        "broken": {
+          "patches": [
+            {
+              "op": "write_json",
+              "target": "live/espn_acquisition.json",
+              "value": {
+                "schema": "espn-acquisition-v1",
+                "tour": "atp",
+                "completedAt": "2026-07-09T12:00:00Z",
+                "status": "total_transport_failure",
+                "eventCount": 0,
+                "queries": {
+                  "attempted": 28,
+                  "succeeded": 0,
+                  "failed": 28
+                },
+                "overlay": {
+                  "status": "retained_last_good",
+                  "updatedFiles": [],
+                  "retainedFiles": ["live.csv", "fields.json", "upcoming.csv"],
+                  "lastGoodAt": "2026-07-08T12:00:00Z"
+                }
+              }
+            }
+          ]
+        },
+        "clean": {
+          "patches": [
+            {
+              "op": "write_json",
+              "target": "live/espn_acquisition.json",
+              "value": {
+                "schema": "espn-acquisition-v1",
+                "tour": "atp",
+                "completedAt": "2026-07-09T12:00:00Z",
+                "status": "success",
+                "eventCount": 1,
+                "queries": {
+                  "attempted": 28,
+                  "succeeded": 28,
+                  "failed": 0
+                },
+                "overlay": {
+                  "status": "updated",
+                  "updatedFiles": ["live.csv", "fields.json", "upcoming.csv"],
+                  "retainedFiles": [],
+                  "lastGoodAt": "2026-07-09T12:00:00Z"
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

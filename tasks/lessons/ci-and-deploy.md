@@ -245,3 +245,13 @@ Indexed in [`../lessons.md`](../lessons.md).
   probes bare user-facing URLs and asserts the deployed split, so query cache-busting cannot
   conceal a real outage. **How to apply:** if content must be fresh on every request, decide
   explicitly whether it should be stored at all; zero TTL and no storage are not equivalent.
+
+- **Issue automation reconciles desired state, and only an authoritative snapshot may prove an
+  absent finding recovered.** (2026-08-23, per-finding health reporter) A failed pre-deploy gate
+  contains only output/cross findings. Treating that partial snapshot like the complete post-run
+  sentinel would close unrelated source and run-over-run incidents merely because the gate could
+  not observe them. **How to apply:** mark snapshot authority explicitly. Partial reports may
+  create, reopen, update, and de-duplicate findings they contain, but must never resolve absent
+  keys or retire a legacy aggregate; only the complete sentinel may do that. When issue inventory
+  is unavailable or malformed, do no speculative mutation, keep active unrepresented failures red,
+  and let clean runs defer cleanup without manufacturing a pipeline failure.

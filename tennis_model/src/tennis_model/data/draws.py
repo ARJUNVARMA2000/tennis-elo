@@ -14,6 +14,7 @@ frontier when none of the complete sources succeeds.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import urllib.parse
 from datetime import UTC, datetime, timedelta
@@ -122,8 +123,8 @@ def _canonical_source_url(value: object) -> str:
         (parsed.scheme.lower(), parsed.netloc.lower(), path, "", ""))
 
 
-def _duplicate_source_groups(draws: dict) -> list[tuple[set[str], str]]:
-    """Cache keys and evidence for a source id/URL attached to distinct ESPN events."""
+def _duplicate_source_groups(draws: dict) -> list[tuple[set[str], str, str]]:
+    """Cache keys, stable source identity, and evidence for duplicate attachments."""
     markers: dict[tuple[str, str, str], dict[str, set[str]]] = {}
     for key, entry in draws.items():
         if not isinstance(entry, dict):
@@ -145,32 +146,51 @@ def _duplicate_source_groups(draws: dict) -> list[tuple[set[str], str]]:
     # The same two bad rows normally collide on both id and URL. Merge those reasons into
     # one finding so health output is actionable rather than duplicated.
     grouped: dict[frozenset[str], list[str]] = {}
+    grouped_markers: dict[frozenset[str], list[tuple[str, str, str]]] = {}
     event_ids: dict[frozenset[str], set[str]] = {}
-    for (kind, source, value), by_event in markers.items():
+    for marker, by_event in markers.items():
         if len(by_event) < 2:
             continue
+        kind, source, value = marker
         keys = frozenset(key for cache_keys in by_event.values() for key in cache_keys)
         label = f"{kind} {source}:{value}" if source else f"{kind} {value}"
         grouped.setdefault(keys, []).append(label)
+        grouped_markers.setdefault(keys, []).append(marker)
         event_ids.setdefault(keys, set()).update(by_event)
 
-    return [
-        (set(keys), f"{' and '.join(sorted(reasons))} attached to multiple ESPN events: "
-                    f"{', '.join(sorted(event_ids[keys]))}")
-        for keys, reasons in grouped.items()
-    ]
+    incidents = []
+    for keys, reasons in grouped.items():
+        markers_for_group = grouped_markers[keys]
+        ids = sorted((source, value) for kind, source, value in markers_for_group
+                     if kind == "drawSourceId")
+        if len(ids) == 1:
+            identity = f"{ids[0][0]}:{ids[0][1]}"
+        else:
+            # A canonical URL is stable evidence too, but keep it out of issue titles and
+            # fingerprints. Hashing also bounds identities for unusually long Wikipedia URLs.
+            identity_payload = json.dumps(sorted(markers_for_group), separators=(",", ":"))
+            identity = f"markers:{hashlib.sha256(identity_payload.encode()).hexdigest()[:20]}"
+        detail = (f"{' and '.join(sorted(reasons))} attached to multiple ESPN events: "
+                  f"{', '.join(sorted(event_ids[keys]))}")
+        incidents.append((set(keys), identity, detail))
+    return incidents
+
+
+def duplicate_draw_source_incidents(draws: dict) -> list[tuple[str, str]]:
+    """Stable source identity plus human evidence for health finding emitters."""
+    return [(identity, detail) for _keys, identity, detail in _duplicate_source_groups(draws)]
 
 
 def duplicate_draw_source_attachments(draws: dict) -> list[str]:
     """Human-readable duplicate attachment findings for health/output validation."""
-    return [detail for _keys, detail in _duplicate_source_groups(draws)]
+    return [detail for _identity, detail in duplicate_draw_source_incidents(draws)]
 
 
 def _quarantine_duplicate_sources(draws: dict) -> tuple[dict, list[str]]:
     groups = _duplicate_source_groups(draws)
-    bad = {key for keys, _detail in groups for key in keys}
+    bad = {key for keys, _identity, _detail in groups for key in keys}
     return ({key: entry for key, entry in draws.items() if str(key) not in bad},
-            [detail for _keys, detail in groups])
+            [detail for _keys, _identity, detail in groups])
 
 
 def _retained(entry: dict, cutoff: str) -> bool:

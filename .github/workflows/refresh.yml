@@ -345,17 +345,18 @@ jobs:
             echo "not Monday - skipping snapshot"
           fi
 
-      # Turn the health.json written by the pre-build check into an actionable alert
-      # AFTER the deploy (an alert must never cost a deploy): file (or comment on) a single
-      # `data-health` GitHub issue carrying the specific problems + a ready-to-paste fix
-      # prompt, auto-close it on recovery, and red the run so GitHub also emails the owner.
-      # Runs on EVERY mode, dedup'd so a standing failure alerts once, not 24x/day. The
-      # branch logic (dedup, mode throttling, and the unreachable-API case) lives in
+      # Turn the typed sentinel or blocking gate report into actionable alerts. This step
+      # stays after the deploy path (an alert must never cost a valid deploy): reconcile one durable
+      # `data-health` GitHub issue per stable structured finding, independently closing
+      # only the findings that recovered. Runs on EVERY mode; a standing finding alerts
+      # once rather than 24x/day. The branch logic (identity, lifecycle, mode throttling,
+      # legacy migration, and the unreachable-API case) lives in
       # .github/scripts/report-data-health.sh so it is directly testable — see
-      # tennis_model/tests/test_workflow_alerts.py. Only the health.json read stays here.
+      # tennis_model/tests/test_workflow_alerts.py. Only report-path plumbing stays here.
       # A GITHUB_TOKEN-authenticated issue write can't re-trigger this workflow, so no loop.
       - name: Report data health
         id: reportdata
+        if: ${{ always() && (steps.health.outcome == 'success' || steps.gate.outcome == 'failure') }}
         working-directory: tennis_model
         env:
           PYTHONPATH: src
@@ -365,14 +366,14 @@ jobs:
           # must still produce a working status link on the paths where the deploy was
           # skipped or failed — which is exactly when the health report matters most.
           HEALTH_PAGE_URL: ${{ env.SITE_URL }}/health/
+          # A blocking gate stops before the sentinel write. Its report carries the same
+          # typed findings so those incidents still receive independent durable issues.
+          HEALTH_REPORT: ${{ steps.gate.outcome == 'failure' && format('{0}/predeploy-gate.json', runner.temp) || 'data/output/health.json' }}
+          # A gate report covers output/cross checks only. Its absent keys cannot resolve
+          # source or prev-based incidents owned by the full sentinel snapshot.
+          FINDING_SNAPSHOT: ${{ steps.gate.outcome == 'failure' && 'partial' || 'authoritative' }}
           MODE: ${{ steps.mode.outputs.mode }}
-        run: |
-          # Plain assignments, not `export VAR=$(...)`: a bare assignment propagates a
-          # failed command substitution under `bash -e`, an export builtin masks it.
-          OK=$(python -c "import json; print(json.load(open('data/output/health.json'))['ok'])")
-          CHANGED=$(python -c "import json; print(json.load(open('data/output/health.json')).get('problems_changed', True))")
-          export OK CHANGED
-          bash "$GITHUB_WORKSPACE/.github/scripts/report-data-health.sh"
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/report-data-health.sh"
 
       # Turn the post-deploy verification into an actionable alert. The branch logic
       # (dedup, mode throttling, and the skipped-vs-failed distinction) lives in

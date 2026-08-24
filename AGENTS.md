@@ -36,10 +36,11 @@ cd web && npm test && npm run lint                        # web tests + lint
 
 ## Hard rules
 - **Two gates guard what ships, and a new failure class extends one of them.** Pre-upload data
-  integrity: `output_problems()` in `tennis_model/src/tennis_model/data/health.py` (`--gate`,
+  integrity: typed `output_findings()` in `tennis_model/src/tennis_model/data/health.py` (`--gate`;
+  `output_problems()` is only the legacy message wrapper),
   wired into `refresh.yml` on both full and quick). Post-deploy live serving:
   `web/scripts/verify-deploy.mjs` (`npm run verify:deploy`), alerted via a dedup'd
-  `deploy-health` issue. Those two functions and their tests (`tennis_model/tests/test_health.py`,
+  `deploy-health` issue. Those two functions and their tests (`tennis_model/tests/test_health*.py`,
   `web/tests/verify-deploy.test.ts`) are the spec — read them instead of trusting a prose summary
   here. When something wrong reaches the user, the fix is the bug **and** a new invariant plus a
   test in whichever gate should have caught it.

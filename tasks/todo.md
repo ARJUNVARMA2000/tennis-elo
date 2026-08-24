@@ -5359,3 +5359,55 @@ Status: complete and live.
   verification, and all terminal health reporters passed.
 - Pipeline alert issue #25 closed automatically after recovery. Local `HEAD` and `origin/master`
   both resolved to `6692cfe` before this tasks-only completion note.
+
+## Historical reliability audit — Round 2A/2B (2026-08-23)
+
+Status: implementation complete and production deployment authorized by owner; deployment pending.
+
+- [x] Introduce a versioned structured health-finding contract with stable code, severity, scope,
+      tour/entity identity, evidence, message, and deterministic fingerprint. Preserve legacy prose
+      lists during migration so the web page, fix prompts, and existing consumers remain compatible.
+- [x] Move gate blocking/advisory decisions and report change detection off prose substring matching
+      and onto typed severity/fingerprints; classify benign informational notes separately so they do
+      not make an otherwise healthy deployment amber.
+- [x] Give the data-health reporter a tested per-finding lifecycle with explicit active/resolved
+      identity, exact recovery, mode throttling, and GitHub-API UNKNOWN behavior without rotating
+      unrelated symptoms through one mutable issue.
+- [x] Add a production-shaped incident replay manifest with minimized broken and clean controls that
+      traverse the real final health/gate seam and assert stable finding codes for the highest-value
+      historical event, date, draw, population, source-attachment, and acquisition failures.
+- [x] Add schema/fingerprint uniqueness, compatibility, reporter-migration, negative, recovery, and
+      replay-manifest tests; prove each replay bites by checking both broken and clean variants.
+- [x] Run repository-wide Ruff, focused and full Python tests, the real pre-deploy integrity gate,
+      workflow linters/shell tests, web tests/lint/type-check/build, and `git diff --check`; obtain an
+      adversarial review and append the completion evidence before release.
+- [ ] Commit on a `codex/` branch, fetch/reconcile the latest remote history, fast-forward `master`,
+      push deliberately, and monitor tests, Firebase deployment, live verification, and all health
+      reporters through successful production recovery.
+
+### Pre-deploy review
+
+- Round 2A replaces prose-coupled health identity with strict `health-finding-v1` records and keeps
+  legacy messages as compatibility output. Fingerprints use invariant code/scope/tour plus stable
+  provider entity; mutable severity, evidence, and wording form a separate revision. Informational
+  source notes stay visible without making the site or issue automation look unhealthy.
+- The data reporter now reconciles one durable issue per actionable fingerprint across onset,
+  recurrence, evidence update, duplicate cleanup, independent recovery, legacy migration, and
+  unreadable GitHub inventory. A failed gate supplies an explicitly partial snapshot: it can
+  create/update findings it observed but cannot close unrelated source or run-over-run incidents.
+  Specialist-owned red runs likewise cannot claim an older generic pipeline incident recovered.
+- Round 2B replays six historical failures with minimized broken and globally clean controls. The
+  pre-deploy cases cross the real gate report; sentinel and informational cases cross the real
+  serialized health write. Clean controls contain zero actionable findings and every incident owns
+  one stable expected code/entity/channel.
+- Adversarial review caught and closed false-recovery, issue-recurrence, timestamp-flapping,
+  sponsor-title identity, id-less/one-sided event join, bracket/forecast baseline, oversized-body,
+  degraded-note, and replay-seam gaps before release. The final CI/reporter review found no blocker;
+  the two final health findings (one-sided IDs and total forecast-log disappearance) were repaired
+  and re-reviewed with lifecycle regressions.
+- Verification on the final tree: all 798 Python tests and 284 web tests pass; repository-wide Ruff,
+  330 affected health/reporter/replay tests, the real current-data pre-deploy gate, TypeScript, the
+  production build of all 24 static routes, changed-script Bash/ShellCheck, `refresh.yml` Actionlint,
+  and `git diff --check` pass. ESLint exits with zero errors and the same nine pre-existing React hook
+  warnings. Repository-wide shell/workflow lint additionally reports unchanged findings in two
+  alias-proposal paths; the Round 2 scripts and workflow are clean.

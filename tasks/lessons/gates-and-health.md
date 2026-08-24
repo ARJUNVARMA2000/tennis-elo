@@ -279,3 +279,25 @@ Indexed in [`../lessons.md`](../lessons.md).
   consumer, keep the independent gate blocking, and migrate durable append-only identity through a
   narrowly validated bridge. The bridge must be fail-closed on missing, ambiguous, non-knockout, or
   mismatched event/player evidence and remain usable after the live bracket ages out.
+
+- **An incident fingerprint is the invariant plus stable provider identity; observation details are
+  a revision, not a new incident.** (2026-08-23, typed health findings) Sponsor titles, player
+  orientation, changing counts, timestamps, and rewritten prose all changed while the underlying
+  failure persisted. Using any of them as issue identity would rotate alerts instead of preserving
+  one diagnosis and one recovery. **How to apply:** key findings on code/scope/tour and the strongest
+  provider entity available (event ID, match ID, or canonical player pair within an event). Keep
+  severity, message, and bounded evidence in a separately hashed revision; coalesce repeated
+  observations deterministically and test that renames/reordering preserve the fingerprint. When
+  joining two artifacts, matching provider IDs are conclusive and conflicting IDs reject; if only
+  one side carries an ID, unambiguous date-plus-player evidence may establish the join and propagate
+  that stronger identity instead of treating partial provenance as either proof or disproof.
+
+- **A run-over-run regression needs a durable high-water or remembered baseline, not merely the
+  previous observed value.** (2026-08-23, repeated shrink/bracket-loss review) After the first bad
+  run, copying its smaller forecast count or missing-bracket state forward made the same failure
+  disappear on run two even though nothing recovered; treating an entirely absent forecast log as
+  “no numeric value to compare” was the same blind spot at zero. **How to apply:** ratchet monotonic
+  quantities at their last good high-water and remember expected resources until their owning event
+  exits its active lifecycle. Once a baseline exists, absence is a regression too. Test the first
+  failure, an unchanged second failure, total disappearance, true restoration, and legitimate
+  lifecycle completion.

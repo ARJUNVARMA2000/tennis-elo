@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   type CheckRow, type HealthReport,
@@ -30,9 +31,21 @@ describe("checkTone / checkStatusLabel", () => {
   });
 
   it("passing with a note (shadowed source) is amber 'covered'", () => {
-    const r = row({ note: "frozen upstream, but shadowed" });
+    const r = row({ note: "frozen upstream, but shadowed", noteLevel: "degraded" });
     expect(checkTone(r)).toBe("warn");
     expect(checkStatusLabel(r)).toBe("covered");
+  });
+
+  it("keeps legacy noted rows degraded when noteLevel is absent", () => {
+    const r = row({ note: "legacy covered note" });
+    expect(checkTone(r)).toBe("warn");
+    expect(checkStatusLabel(r)).toBe("covered");
+  });
+
+  it("renders an informational note without an amber health signal", () => {
+    const r = row({ note: "season is young", noteLevel: "info" });
+    expect(checkTone(r)).toBe("muted");
+    expect(checkStatusLabel(r)).toBe("info");
   });
 
   it("failing is red 'fail' even with a note", () => {
@@ -65,8 +78,14 @@ describe("overall", () => {
 
   it("a noted (shadowed) row degrades to warn without problems", () => {
     const r = report();
-    r.tours.atp.checks = [row({ note: "shadowed" })];
+    r.tours.atp.checks = [row({ note: "shadowed", noteLevel: "degraded" })];
     expect(overall(r)).toEqual({ tone: "warn", problems: 0, noted: 1 });
+  });
+
+  it("an informational note stays visible without degrading overall health", () => {
+    const r = report();
+    r.tours.atp.checks = [row({ note: "season is young", noteLevel: "info" })];
+    expect(overall(r)).toEqual({ tone: "ok", problems: 0, noted: 0 });
   });
 
   it("sentinel problems win over notes and count across source + output", () => {
@@ -91,5 +110,13 @@ describe("fmtValue / fmtLimit", () => {
 
   it("missing values are an em dash", () => {
     expect(fmtValue(row({ value: null }))).toBe("—");
+  });
+});
+
+describe("health page note wiring", () => {
+  it("uses the shared row tone for expanded info instead of hard-coded amber", () => {
+    const source = readFileSync(new URL("../app/health/page.tsx", import.meta.url), "utf8");
+    expect(source).toContain("style={{ color: TONE_COLOR[checkTone(c)] }}");
+    expect(source).not.toContain('text-[var(--color-champ)]');
   });
 });
