@@ -5098,25 +5098,26 @@ Status: proposed; awaiting owner check-in before implementation.
 
 ## Historical incident + one-off-fix automation audit (2026-08-22)
 
-Status: audit in progress; implementation awaits owner check-in.
+Status: complete; all four implementation rounds were subsequently authorized, shipped, and
+verified in production.
 
-- [ ] Inventory every repository commit from inception through current HEAD, classifying routine
+- [x] Inventory every repository commit from inception through current HEAD, classifying routine
       data/merge churn separately from substantive incidents, fixes, safeguards, and operational
       changes; correlate repository evidence with GitHub issue and workflow-alert history.
-- [ ] For each failure class, record its root cause, original detection path, regression coverage,
+- [x] For each failure class, record its root cause, original detection path, regression coverage,
       present coverage in the pre-upload integrity gate or post-deploy verifier, and any remaining
       interval where a bad artifact or stale service can look green.
-- [ ] Find repeated manual or one-off remedies that can become shared invariants, contract/parity
+- [x] Find repeated manual or one-off remedies that can become shared invariants, contract/parity
       tests, deterministic registry proposals, state-machine checks, scheduled canaries, or reusable
       CI alert helpers. Rank candidates by recurrence, user impact, detection latency, false-positive
       risk, maintenance cost, and overlap with safeguards that already shipped later in history.
-- [ ] Reconcile the resulting recommendations with current uncommitted work and the latest git log,
+- [x] Reconcile the resulting recommendations with current uncommitted work and the latest git log,
       then append a review containing the hash-backed incident map and a small implementation slate
       with exact files/tests. Do not change production behavior until the owner approves that slate.
 
 ### Review
 
-Audit status: complete; production implementation awaits owner check-in.
+Audit status: complete; production implementation and final Round 4 enforcement are live.
 
 - [x] Accounted for all 308 production commits through `origin/master` `b1b8579`: 128 in
       `316a209..b220ed5`, four late-July-9 bridge commits, 110 from July 10-31, and 66 from
@@ -5507,8 +5508,8 @@ becomes blocking.
 
 ## Historical reliability audit — Round 4A/4B artifact integrity (2026-08-24)
 
-Status: Round 4A is live and its legacy QUICK, parentless FULL, and child QUICK migration sequence
-is proven; the reviewed flag-free Round 4B cutover is ready for production deployment.
+Status: complete and live. Round 4A's legacy QUICK, parentless FULL, and child QUICK migration is
+proven, and the flag-free Round 4B cutover is enforced in production.
 
 - [x] Round 4A predictor shadow: keep `predictor.pkl` rollback-readable while writing a strict,
       bounded, non-public envelope with exact bytes/hash, runtime and dependency identity, exact
@@ -5528,10 +5529,10 @@ is proven; the reviewed flag-free Round 4B cutover is ready for production deplo
 - [x] After Round 3 is live, deploy Round 4A deliberately; confirm both predictor envelopes, one
       accepted two-tour lineage manifest, a successful full bootstrap, and a subsequent quick
       carry-forward run in the production cache and live verifier.
-- [ ] Round 4B enforcement: remove legacy predictor and mirror fallback, make lineage failures
+- [x] Round 4B enforcement: remove legacy predictor and mirror fallback, make lineage failures
       blocking, rebuild static artifacts when accepted lineage is unavailable, make the existing
       exact live-graph verification mandatory, deploy, and verify issue/report recovery.
-- [ ] Reconcile the final history audit, production commits/runs/live hashes, lessons, and any
+- [x] Reconcile the final history audit, production commits/runs/live hashes, lessons, and any
       intentionally deferred lower-priority follow-ups before closing the audit goal.
 
 ### Round 4A local review
@@ -5583,8 +5584,8 @@ is proven; the reviewed flag-free Round 4B cutover is ready for production deplo
 
 ## Historical reliability audit — Round 4B enforcement cutover plan (2026-08-24)
 
-Status: implemented locally as one flag-free cutover and independently adversarially approved; the
-ordered FULL and child-QUICK production evidence is complete and the cutover is ready to deploy.
+Status: complete and live as one flag-free cutover after independent adversarial approval and the
+ordered FULL/child-QUICK production proof.
 
 ### Required live evidence
 
@@ -5706,3 +5707,24 @@ ordered FULL and child-QUICK production evidence is complete and the cutover is 
       the FULL origin and exact hashes while 432 current records originate in the child. Gate,
       22/22 live verification, every reporter, private 404 probes, and cache save
       `tennis-data-32761968258-1` passed with live `ok=true` and zero open incident.
+- [x] Strict enforcement shipped in `7ba7b78` with migration documentation at `479b6c9`. Local gates
+      passed 1,098 Python tests, 322 web tests, Ruff, TypeScript, Actionlint, Node syntax, ESLint with
+      zero errors and the same nine existing warnings, the 24-route production build, and the prior
+      isolated 4/4 real-browser smoke; independent adversarial review found no remaining blocker.
+- [x] Strict production run `32762789376` restored `tennis-data-32761968258-1`, selected QUICK with
+      FULL paths skipped, passed the blocking lineage gate, and published accepted child release
+      `4c207c28-240d-427f-95a3-f048f99af392` with parent
+      `566e3982-397b-435c-a293-8a9af9b7b91f`. Its 453-artifact manifest SHA-256
+      `ee124c06ed74414500d84b57b93f1d5432c8de2c2bac5b22f43c63d6b415e7a6` matches independently
+      fetched live bytes; both predictor UUIDs remain unchanged; 21 records retain the parent FULL
+      origin and 432 originate in the strict child.
+- [x] The same strict run passed CI (including real-browser smoke), exact accepted publication,
+      authoritative health, Firebase, the mandatory 453-artifact verifier with all 16 known private
+      paths returning exact 404s, 22/22 serving checks, data/deploy/pipeline and terminal reporters,
+      and cache save `tennis-data-32762789376-1`. Live health is `ok=true`, the accepted release/hash
+      match the manifest, and GitHub has zero open incident.
+- [x] Final history recount resolves production `origin/master` to `479b6c9`: 330 commits from
+      inception, including the exact 13-commit Round 3/4 delta after `b6b1511`. The final audit report
+      records that its own documentation-only reconciliation commit is self-excluded. Progress-based
+      event liveness, a second transport-only verifier confirmation, and a static external-I/O audit
+      remain explicitly deferred lower-priority proposals rather than known open defects.

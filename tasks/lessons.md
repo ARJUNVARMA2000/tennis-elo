@@ -302,3 +302,6 @@ New lesson → append the entry to the matching topic file and add its lead line
 - Treat a current same-event scheduled matchup as positive draw-replacement evidence only when exact
   opponent continuity identifies one unique vacated slot. See
   [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md).
+- Establish the descriptor-validated release root before every mutation entry point, including a
+  cold single-tour/debug revocation. See
+  [`lessons/gates-and-health.md`](lessons/gates-and-health.md).

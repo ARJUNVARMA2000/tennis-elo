@@ -397,3 +397,11 @@ Indexed in [`../lessons.md`](../lessons.md).
 - **Strict predictor enforcement supersedes the temporary legacy-envelope exception.** (2026-08-24,
   Round 4B cutover) Readers reject every marker-present state and every envelope-free payload before
   payload read or deserialization; QUICK's controlled rebuild is the only migration path.
+
+- **Every mutation entry point must establish the trusted release root, including cold partial
+  runs.** (2026-08-24, final Round 4B audit) The all-tour release path initialized and descriptor-
+  validated a missing output root, but the single-tour revocation path assumed it already existed.
+  A fresh developer checkout therefore failed before it could safely revoke anything. **How to
+  apply:** initialize and validate the same trusted ATP/WTA root before every all-tour or partial
+  revocation, then keep partial runs non-publishing. Test the cold-cache path without mocking the
+  root helper.
