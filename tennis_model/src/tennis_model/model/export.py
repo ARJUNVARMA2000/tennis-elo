@@ -72,9 +72,13 @@ def _finite(x):
 def _write(tour: str, name: str, data, *, compact: bool = False) -> None:
     out = output_dir(tour)
     out.mkdir(parents=True, exist_ok=True)
-    with open(out / name, "w", encoding="utf-8") as f:
-        options = {"separators": (",", ":")} if compact else {"indent": 2}
-        json.dump(_finite(data), f, ensure_ascii=False, **options)
+    path = out / name
+    options = {"separators": (",", ":")} if compact else {"indent": 2}
+    raw = json.dumps(_finite(data), ensure_ascii=False, **options).encode("utf-8")
+    # Same-directory temp + fsync + replace makes the completed bytes durable before
+    # their current-run lineage proof is restored. Rewrites invalidate older proof first.
+    from ..artifact_lineage import write_produced_artifact
+    write_produced_artifact(tour, path, raw)
 
 
 def _active(elo) -> list:
@@ -617,7 +621,8 @@ def _surface_of(oos):  # oos lacks surface; return empty to skip gracefully
 def build_meta(df, players, accuracy, trained_at: str | None = None,
                model_population_version: int | None = None,
                dual_state_threshold: int | None = None,
-               dual_state_ready: bool = False) -> dict:
+               dual_state_ready: bool = False,
+               predictor_artifact_id: str | None = None) -> dict:
     """`lastUpdated` is when this JSON was written; `modelTrainedAt` is when the predictor
     behind it was trained. They diverge on every quick refresh — which republishes the
     saved pickle — so only the latter can reveal a daily retrain that has been failing.
@@ -629,6 +634,10 @@ def build_meta(df, players, accuracy, trained_at: str | None = None,
         "tour": df["tour"].iloc[0] if "tour" in df else "atp",
         "lastUpdated": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "modelTrainedAt": trained_at,
+        # Stable generation identity from inside predictor.pkl. The private envelope binds
+        # this UUID to exact pickle bytes; the release manifest independently requires the
+        # same UUID, closing the chain from cached model to every public artifact generation.
+        "predictorArtifactId": predictor_artifact_id,
         "dataThrough": s["date_max"], "modelVersion": __version__,
         # Rollout marker for the private operational receipt. Health treats a missing
         # stage-status file as legacy-silent only when this producer marker is absent.
@@ -996,6 +1005,7 @@ def export_all(tour, df, elo, srv, meta, predictor, oos=None, *, full: bool = Tr
         getattr(predictor, "_match_population_version", None),
         getattr(predictor, "_dual_state_threshold", None),
         getattr(predictor, "_has_lower_state", False),
+        getattr(predictor, "artifact_id", None),
     ))
     if static:
         _write(tour, "method.json", build_method(tour))

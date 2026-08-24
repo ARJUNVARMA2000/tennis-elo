@@ -25,7 +25,7 @@ from tennis_model.config import (
     PLAYER_ALIASES,
     WTA_DUAL_STATE_GATE_THRESHOLD,
 )
-from tennis_model.model.features import FEATURES, FeatureParams
+from tennis_model.model.features import FEATURES
 from tennis_model.model.predict import TennisPredictor
 
 from tennis_model import timing
@@ -61,55 +61,73 @@ def _pred(clf, tour="atp") -> TennisPredictor:
     )
 
 
-def test_predictor_schema_guard():
-    assert pipeline._predictor_current(_pred(_Clf(list(FEATURES))), "atp")
-    assert not pipeline._predictor_current(_pred(_Clf(list(FEATURES)[:-2])), "atp")   # stale cache
-    assert not pipeline._predictor_current(_pred(_Clf(list(FEATURES)[::-1])), "atp")  # order matters
+def test_predictor_current_delegates_to_the_shared_strict_guard(monkeypatch):
+    from tennis_model.model import artifact
+    from tennis_model.model.artifact import (
+        PredictorArtifactError,
+        PredictorArtifactReason,
+    )
+
+    predictor = object()
+    calls = []
+
+    def accept(value, tour, *, allow_legacy_id):
+        calls.append((value, tour, allow_legacy_id))
+
+    monkeypatch.setattr(artifact, "validate_predictor_structure", accept)
+    assert pipeline._predictor_current(predictor, "atp")
+    assert calls == [(predictor, "atp", True)]
+
+    def reject(*_args, **_kwargs):
+        raise PredictorArtifactError(PredictorArtifactReason.BOOSTER_INVALID)
+
+    monkeypatch.setattr(artifact, "validate_predictor_structure", reject)
+    assert not pipeline._predictor_current(predictor, "atp")
+
+
+def test_predictor_schema_guard_is_fail_closed_for_unfitted_or_opaque_stubs():
+    """The old guard assumed an unreadable booster was current; Round 4A rebuilds it."""
+    assert not pipeline._predictor_current(_pred(_Clf(list(FEATURES))), "atp")
 
     class _Opaque:
         def get_booster(self):
             raise AttributeError("no booster")
 
-    assert pipeline._predictor_current(_pred(_Opaque()), "atp")   # un-introspectable: assume current
-    print("ok test_predictor_schema_guard")
+    assert not pipeline._predictor_current(_pred(_Opaque()), "atp")
 
 
-def test_predictor_feat_param_guard():
-    """FeatureParams drift must trigger a quick-mode rebuild: pickles that shipped
-    with fp=None (pipeline.build_tour pre-fix) heal on the next hourly run, and a
-    FEAT_PARAM_OVERRIDES change can't keep serving a combiner trained on the old
-    thresholds."""
-    assert pipeline._predictor_current(_pred(_Clf(list(FEATURES)), "wta"), "wta")   # fresh build
+def test_quick_rebuilds_when_envelope_or_payload_preflight_rejects_cache(monkeypatch):
+    from tennis_model.model.artifact import (
+        PredictorArtifactError,
+        PredictorArtifactReason,
+    )
 
-    shipped = _pred(_Clf(list(FEATURES)), "wta")
-    shipped.fp = None                                # what pipeline.build_tour used to pickle
-    assert not pipeline._predictor_current(shipped, "wta")
+    frame = object()
+    rebuilt = object()
+    calls = []
+    monkeypatch.setattr(pipeline, "load_matches", lambda _tour: frame)
+    monkeypatch.setattr(pipeline, "_health_manifest", lambda *_args: None)
 
-    legacy = _pred(_Clf(list(FEATURES)), "atp")
-    del legacy.fp                                    # pre-refactor pickle
-    assert pipeline._predictor_current(legacy, "atp")   # defaults == atp params: no needless rebuild
+    def reject(_tour):
+        raise PredictorArtifactError(
+            PredictorArtifactReason.PAYLOAD_CHECKSUM_MISMATCH
+        )
 
-    drift = _pred(_Clf(list(FEATURES)), "wta")
-    drift.fp = FeatureParams(peak_age=99.0)          # config moved since this pickle was trained
-    assert not pipeline._predictor_current(drift, "wta")
+    monkeypatch.setattr(pipeline.TennisPredictor, "load", staticmethod(reject))
+    monkeypatch.setattr(
+        pipeline,
+        "build_tour",
+        lambda tour, do_backtest, **kwargs: calls.append(
+            (tour, do_backtest, kwargs)
+        ) or rebuilt,
+    )
 
-    # a cross-tour pickle mixup self-reports the wrong tour; the explicit arg catches it
-    assert not pipeline._predictor_current(_pred(_Clf(list(FEATURES)), "wta"), "atp")
-    print("ok test_predictor_feat_param_guard")
-
-
-def test_predictor_player_alias_guard():
-    fresh = _pred(_Clf(list(FEATURES)), "atp")
-    assert pipeline._predictor_current(fresh, "atp")
-
-    stale = _pred(_Clf(list(FEATURES)), "atp")
-    stale.player_aliases = ()
-    assert not pipeline._predictor_current(stale, "atp")
-
-    legacy = _pred(_Clf(list(FEATURES)), "atp")
-    del legacy.player_aliases
-    assert not pipeline._predictor_current(legacy, "atp")
-    print("ok test_predictor_player_alias_guard")
+    assert pipeline.build_tour_quick("atp", mirror=False) is rebuilt
+    assert calls == [(
+        "atp",
+        False,
+        {"run_kalshi": False, "mirror": False},
+    )]
 
 
 def test_player_aliases_are_versioned_with_the_match_population():
@@ -122,39 +140,6 @@ def test_player_aliases_are_versioned_with_the_match_population():
         4,
         "3d7719b3cfe88de5e1ff43b8a0c53b6e8555863046ef1589776a746fb1af6261",
     ), "PLAYER_ALIASES changed: advance MATCH_POPULATION_VERSION and update this contract"
-
-
-def test_predictor_match_population_guard():
-    """A quick export cannot reuse rating state walked over a different match
-    population and then label the resulting JSON with the current population version."""
-    fresh = _pred(_Clf(list(FEATURES)), "wta")
-    assert pipeline._predictor_current(fresh, "wta")
-
-    stale = _pred(_Clf(list(FEATURES)), "wta")
-    stale.match_population_version = MATCH_POPULATION_VERSION - 1
-    assert not pipeline._predictor_current(stale, "wta")
-
-    legacy = _pred(_Clf(list(FEATURES)), "wta")
-    del legacy.match_population_version
-    assert not pipeline._predictor_current(legacy, "wta")
-    print("ok test_predictor_match_population_guard")
-
-
-def test_predictor_dual_state_guard():
-    fresh = _pred(_Clf(list(FEATURES)), "wta")
-    assert pipeline._predictor_current(fresh, "wta")
-
-    disabled = _pred(_Clf(list(FEATURES)), "wta")
-    disabled.dual_state_threshold = None
-    assert not pipeline._predictor_current(disabled, "wta")
-
-    partial = _pred(_Clf(list(FEATURES)), "wta")
-    partial.lower_ctx = None
-    assert not pipeline._predictor_current(partial, "wta")
-
-    legacy = _pred(_Clf(list(FEATURES)), "wta")
-    del legacy.dual_state_threshold
-    assert not pipeline._predictor_current(legacy, "wta")
 
 
 def test_alias_stale_quick_rebuild_defers_kalshi_to_shared_budget(monkeypatch):
@@ -241,6 +226,7 @@ def test_current_quick_export_reuses_model_bound_artifacts(monkeypatch):
     monkeypatch.setattr(pipeline, "load_matches", lambda tour: frame)
     monkeypatch.setattr(pipeline, "_health_manifest", lambda tour, df: calls.append(("health", tour, df)))
     monkeypatch.setattr(pipeline.TennisPredictor, "load", lambda tour: predictor)
+    monkeypatch.setattr(pipeline, "_predictor_current", lambda predictor, tour: True)
     monkeypatch.setattr(
         pipeline,
         "export_all",
@@ -277,7 +263,7 @@ def test_quick_tour_exports_overlap_and_preserve_requested_mapping(monkeypatch, 
     active, peak = 0, 0
     lock = threading.Lock()
 
-    def build(tour):
+    def build(tour, **kwargs):
         nonlocal active, peak
         with lock:
             active += 1
@@ -301,7 +287,10 @@ def test_quick_tour_exports_overlap_and_preserve_requested_mapping(monkeypatch, 
 
     calls = []
     monkeypatch.setattr(
-        pipeline, "build_tour_quick", lambda tour: calls.append(tour) or f"{tour}-frame")
+        pipeline,
+        "build_tour_quick",
+        lambda tour, **kwargs: calls.append(tour) or f"{tour}-frame",
+    )
     assert pipeline._build_quick_tours(["wta"]) == {"wta": "wta-frame"}
     assert calls == ["wta"]
 
@@ -495,17 +484,38 @@ def test_quick_refresh_updates_current_atp_stats_before_export(monkeypatch):
         lambda tours: calls.append(("rankings", tuple(tours))),
     )
     frames = {"atp": object(), "wta": object()}
+    context, carried = object(), object()
+    monkeypatch.setattr(
+        pipeline,
+        "_begin_shadow_release",
+        lambda mode: calls.append(("lineage-begin", mode)) or (context, carried),
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "_seal_shadow_release",
+        lambda mode, got, ctx, prior, produced: calls.append(
+            ("lineage-seal", mode, got, ctx, prior, produced.snapshot())
+        ),
+    )
     monkeypatch.setattr(
         pipeline,
         "build_tour_quick",
-        lambda tour: calls.append(("build", tour)) or frames[tour],
+        lambda tour, **kwargs: calls.append(
+            ("build", tour, kwargs.get("mirror"))
+        ) or frames[tour],
     )
     monkeypatch.setattr(
         pipeline,
         "_quick_kalshi",
         lambda tours, got: calls.append(("kalshi", tuple(tours), got)),
     )
-    monkeypatch.setattr(pipeline, "_kalshi_report", lambda tours: calls.append(("report", tuple(tours))))
+    monkeypatch.setattr(
+        pipeline,
+        "_kalshi_report",
+        lambda tours, **kwargs: calls.append(
+            ("report", tuple(tours), kwargs.get("mirror"))
+        ),
+    )
 
     monkeypatch.setattr(sys, "argv", ["pipeline", "--tour", "all", "--quick"])
     pipeline.main()
@@ -515,17 +525,197 @@ def test_quick_refresh_updates_current_atp_stats_before_export(monkeypatch):
         ("draws", ("atp", "wta"), shared_events),
         ("rankings", ("atp", "wta")),
     ]
-    assert set(calls[4:6]) == {("build", "atp"), ("build", "wta")}
-    assert calls[6:] == [
+    assert calls[4] == ("lineage-begin", "quick")
+    assert set(calls[5:7]) == {
+        ("build", "atp", False), ("build", "wta", False)
+    }
+    assert calls[7:9] == [
         ("kalshi", ("atp", "wta"), frames),
-        ("report", ("atp", "wta")),
+        ("report", ("atp", "wta"), False),
     ]
+    seal = calls[9]
+    assert seal[:5] == ("lineage-seal", "quick", frames, context, carried)
+    assert seal[5] == {"atp": (), "wta": ()}
 
     calls.clear()
     monkeypatch.setattr(sys, "argv", ["pipeline", "--tour", "wta", "--quick"])
     pipeline.main()
     assert not any(call[0] == "atp_stats" for call in calls)
-    assert ("build", "wta") in calls
+    assert ("build", "wta", True) in calls
+    assert not any(call[0].startswith("lineage-") for call in calls)
+    assert ("report", ("wta",), None) in calls
+
+
+def test_full_all_uses_one_parent_release_and_never_worker_mirrors(monkeypatch):
+    calls = []
+    context, carried = object(), object()
+    frames = {"atp": object(), "wta": object()}
+    monkeypatch.setattr(
+        pipeline,
+        "_begin_shadow_release",
+        lambda mode: calls.append(("begin", mode)) or (context, carried),
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "build_tour",
+        lambda tour, backtest, **kwargs: calls.append(
+            ("build", tour, backtest, kwargs.get("mirror"))
+        ) or frames[tour],
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "_kalshi_report",
+        lambda tours, **kwargs: calls.append(
+            ("report", tuple(tours), kwargs.get("mirror"))
+        ),
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "_seal_shadow_release",
+        lambda mode, got, ctx, prior, produced: calls.append(
+            ("seal", mode, got, ctx, prior, produced.snapshot())
+        ),
+    )
+    monkeypatch.setattr(sys, "argv", ["pipeline", "--tour", "all", "--backtest"])
+
+    pipeline.main()
+
+    assert calls[:4] == [
+        ("begin", "full"),
+        ("build", "atp", True, False),
+        ("build", "wta", True, False),
+        ("report", ("atp", "wta"), False),
+    ]
+    assert calls[4][:5] == ("seal", "full", frames, context, carried)
+    assert calls[4][5] == {"atp": (), "wta": ()}
+
+
+def test_release_source_identity_binds_registry_fields_time_and_producer(
+    monkeypatch, tmp_path
+):
+    """The whole-tour fingerprint covers direct simulation/event inputs too.
+
+    These caches are not derivable from the normalized match fingerprint: changing
+    either can change brackets, tournament coverage, and forecasts without touching a
+    match row.  Time and producer revision also distinguish byte-changing generation
+    runs whose external inputs happen to be identical.
+    """
+    live = tmp_path / "live" / "atp"
+    live.mkdir(parents=True)
+    (live / "rankings.json").write_text("[]")
+    (live / "fields.json").write_text('{"event": ["A"]}')
+    (live / "events.json").write_text('[{"espnId": 1}]')
+    monkeypatch.setattr(pipeline, "live_dir", lambda _tour: live)
+
+    class _Frame:
+        attrs = {"normalizedInputFingerprint": "normalized-v1"}
+        columns = ()
+        dtypes = ()
+
+        def __len__(self):
+            return 0
+
+    frame = _Frame()
+    pipeline._bind_frame_release_stage_input(
+        frame,
+        "forecastProducts",
+        {"outputs": {"performance.json": {"sha256": "4" * 64}}},
+    )
+    first = pipeline._release_source_identity(
+        "atp",
+        frame,
+        "full",
+        release_created_at="2026-08-24T12:00:00Z",
+        producer_revision="git:" + "a" * 40,
+        accepted_parent={"releaseId": "parent-a", "manifestSha256": "1" * 64},
+    )
+    assert first["releaseCreatedAt"] == "2026-08-24T12:00:00Z"
+    assert first["producerRevision"] == "git:" + "a" * 40
+    assert first["acceptedParent"]["manifestSha256"] == "1" * 64
+    assert first["fields"]["state"] == "present"
+    assert first["events"]["state"] == "present"
+
+    (live / "fields.json").write_text('{"event": ["B"]}')
+    second = pipeline._release_source_identity(
+        "atp",
+        frame,
+        "full",
+        release_created_at="2026-08-24T12:00:00Z",
+        producer_revision="git:" + "a" * 40,
+        accepted_parent={"releaseId": "parent-a", "manifestSha256": "1" * 64},
+    )
+    assert second["fields"]["sha256"] != first["fields"]["sha256"]
+    assert second["events"] == first["events"]
+    from tennis_model.artifact_lineage import source_fingerprint
+    assert source_fingerprint(first) != source_fingerprint(second)
+
+    different_parent = dict(second)
+    different_parent["acceptedParent"] = {
+        "releaseId": "parent-b", "manifestSha256": "2" * 64
+    }
+    assert source_fingerprint(different_parent) != source_fingerprint(second)
+    for key, value in (
+        ("releaseCreatedAt", "2026-08-24T12:00:01Z"),
+        ("producerRevision", "git:" + "b" * 40),
+    ):
+        changed = dict(second)
+        changed[key] = value
+        assert source_fingerprint(changed) != source_fingerprint(second)
+    changed_event = dict(second)
+    changed_event["events"] = dict(second["events"], sha256="3" * 64)
+    assert source_fingerprint(changed_event) != source_fingerprint(second)
+    assert source_fingerprint(second) == source_fingerprint(dict(second))
+
+    pipeline._bind_frame_release_stage_input(
+        frame,
+        "forecastProducts",
+        {"outputs": {"performance.json": {"sha256": "5" * 64}}},
+    )
+    stale_input_changed = pipeline._release_source_identity(
+        "atp",
+        frame,
+        "full",
+        release_created_at="2026-08-24T12:00:00Z",
+        producer_revision="git:" + "a" * 40,
+        accepted_parent=None,
+    )
+    bootstrap_baseline = dict(second, acceptedParent=None)
+    assert stale_input_changed["stageInputs"] != bootstrap_baseline["stageInputs"]
+    assert source_fingerprint(stale_input_changed) != source_fingerprint(
+        bootstrap_baseline
+    )
+
+
+def test_producer_revision_prefers_ci_sha_and_hashes_local_source(monkeypatch, tmp_path):
+    monkeypatch.setenv("GITHUB_SHA", "A" * 40)
+    assert pipeline._producer_revision(tmp_path) == "git:" + "a" * 40
+
+    monkeypatch.setenv("GITHUB_SHA", "a" * 40 + "\n")
+    fallback = tmp_path / "fallback"
+    fallback.mkdir()
+    (fallback / "only.py").write_text("VALUE = 1\n")
+    assert pipeline._producer_revision(fallback).startswith("src1:")
+
+    monkeypatch.delenv("GITHUB_SHA")
+    package = tmp_path / "package"
+    (package / "nested").mkdir(parents=True)
+    (package / "a.py").write_text("VALUE = 1\n")
+    (package / "nested" / "b.py").write_text("VALUE = 2\n")
+    first = pipeline._producer_revision(package)
+    assert first.startswith("src1:")
+    assert first == pipeline._producer_revision(package)
+
+    (package / "nested" / "b.py").write_text("VALUE = 3\n")
+    assert pipeline._producer_revision(package) != first
+    changed_python = pipeline._producer_revision(package)
+
+    (package / "ignored.txt").write_text("not runtime input\n")
+    assert pipeline._producer_revision(package) == changed_python
+    (package / "venue.csv").write_text("venue,value\nA,1\n")
+    with_resource = pipeline._producer_revision(package)
+    assert with_resource != changed_python
+    (package / "venue.csv").write_text("venue,value\nA,2\n")
+    assert pipeline._producer_revision(package) != with_resource
 
 
 

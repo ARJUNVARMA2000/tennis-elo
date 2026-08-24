@@ -23,6 +23,8 @@ from tennis_model.model.train import (
     _combiner_rows,
     _fit_fold,
     _orient_for_cal,
+    full_xgb_params,
+    production_xgb_params,
     walk_forward_state_gate,
 )
 
@@ -135,6 +137,18 @@ def test_xgb_params_for_reads_adopted_overrides():
     assert xgb_params_for("atp") == {}            # ATP sweep rejected: defaults stand
     assert xgb_params_for("wta") is not xgb_params_for("wta")   # defensive copy
     print("ok test_xgb_params_for_reads_adopted_overrides")
+
+
+def test_full_xgb_params_are_the_complete_member_contract():
+    params = full_xgb_params({"max_depth": 9, "random_state": 7}, bag_index=3)
+    assert params["max_depth"] == 9
+    assert params["random_state"] == 10
+    assert params["early_stopping_rounds"] == 40
+    assert params["objective"] == "binary:logistic"
+    assert params["eval_metric"] == "logloss"
+    assert params["tree_method"] == "hist"
+    assert production_xgb_params("wta")["max_depth"] == 7
+    assert production_xgb_params("atp", bag_index=4)["random_state"] == 4
 
 
 def test_fit_fold_respects_overrides():

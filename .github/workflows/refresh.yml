@@ -192,21 +192,23 @@ jobs:
           PYTHONPATH: src
         run: python -m tennis_model.data.health --gate --gate-report "$RUNNER_TEMP/predeploy-gate.json"
 
-      # A web-only push deliberately reuses the most recent cached producer output. The
-      # gate above runs FIRST because red jobs also save caches; only validated JSON is
-      # allowed to cross into the static site's public tree.
-      - name: Mirror validated cached data (web-only push)
+      # Publication is one parent-owned release boundary after the semantic gate. Data
+      # runs accept the sealed ATP+WTA candidate and mirror every byte named by its manifest;
+      # web-only pushes may mirror only a previously gate-accepted cached release. Round 4A
+      # is a shadow rollout: invalid/missing lineage falls back to the same two-tour JSON
+      # mirror only after removing stale public manifest metadata. A failed fallback is fatal.
+      - name: Publish validated release data
         id: mirror
-        if: steps.mode.outputs.mode == 'quick' && steps.scope.outputs.scope == 'web'
+        working-directory: tennis_model
+        env:
+          PYTHONPATH: src
         run: |
-          for tour in atp wta; do
-            mkdir -p "web/public/data/$tour"
-            find "web/public/data/$tour" -maxdepth 1 -type f -name '*.json' -delete
-            find "tennis_model/data/output/$tour" -maxdepth 1 -type f -name '*.json' \
-              ! -name 'health-source.json' ! -name 'stage-status.json' \
-              ! -name 'stage-status.private' \
-              -exec cp {} "web/public/data/$tour/" \;
-          done
+          if [ "${{ steps.scope.outputs.scope }}" = "web" ]; then
+            python -m tennis_model.artifact_lineage publish --scope web
+          else
+            python -m tennis_model.artifact_lineage publish --scope data \
+              --semantic-gate-passed --validator predeploy-integrity-gate-v1
+          fi
 
       # Durably persist the append-only forecast log (the data cache is evictable, so
       # commit it back). Once daily on the full run keeps history to one commit/day; the

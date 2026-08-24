@@ -8,8 +8,14 @@
 //
 // Usage:
 //   node scripts/verify-deploy.mjs [--base <url>] [--expect-generated-at <iso>]
-//   VERIFY_BASE_URL=... EXPECT_GENERATED_AT=... npm run verify:deploy
+//       [--expected-health <path>]
+//   VERIFY_BASE_URL=... EXPECT_GENERATED_AT=... EXPECTED_HEALTH_PATH=... npm run verify:deploy
 // Exits non-zero if any check fails, so it can gate/alert in the workflow.
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { INDEXABLE_ROUTES, ROUTES } from "./routes.mjs";
 import {
   parseCacheControl,
@@ -45,6 +51,9 @@ function argVal(flag) {
 }
 const BASE = (argVal("--base") || process.env.VERIFY_BASE_URL || "https://deuce-forecast.web.app").replace(/\/$/, "");
 const EXPECT_GENERATED_AT = argVal("--expect-generated-at") || process.env.EXPECT_GENERATED_AT || "";
+const EXPECTED_HEALTH_PATH = argVal("--expected-health")
+  || process.env.EXPECTED_HEALTH_PATH
+  || "out/data/health.json";
 const ORIGIN = new URL(BASE).origin;
 const GOOGLE_SITE_VERIFICATION = "A9r3zgELsRVJ1tEyVaDH4heFNcEeDXIvZ_KzRH__eHQ";
 // Freshness may lag deploy by a few seconds of CDN propagation; poll before failing.
@@ -53,6 +62,572 @@ const FRESH_TRIES = Number(process.env.FRESH_TRIES) || (EXPECT_GENERATED_AT ? 12
 const FRESH_DELAY_MS = Number(process.env.FRESH_DELAY_MS) || 5000;
 const FETCH_TRIES = Number(process.env.FETCH_TRIES) || 2;
 const FETCH_RETRY_DELAY_MS = Number(process.env.FETCH_RETRY_DELAY_MS) || 500;
+
+const LINEAGE_SCHEMA = "artifact-lineage-v1";
+const LINEAGE_MANIFEST_PATH = "/data/release-manifest.json";
+const LINEAGE_HEALTH_PATH = "/data/health.json";
+const LINEAGE_MANIFEST_MAX_BYTES = 2 * 1024 * 1024;
+const LINEAGE_HEALTH_MAX_BYTES = 8 * 1024 * 1024;
+const LINEAGE_ARTIFACT_MAX_BYTES = 32 * 1024 * 1024;
+const LINEAGE_RELEASE_MAX_BYTES = 512 * 1024 * 1024;
+const LINEAGE_MAX_ARTIFACTS = 1024;
+const LINEAGE_MAX_INDEX_REFERENCES = 512;
+const LINEAGE_MAX_JSON_DEPTH = 64;
+const LINEAGE_MAX_JSON_NODES = 1_000_000;
+const LINEAGE_FETCH_BATCH = 16;
+const LINEAGE_MAX_FILENAME_CHARS = 160;
+const LINEAGE_MAX_PRODUCER_CHARS = 160;
+const LINEAGE_FUTURE_SKEW_MS = 5 * 60 * 1000;
+const LINEAGE_TOURS = ["atp", "wta"];
+const LINEAGE_MANIFEST_FIELDS = ["artifacts", "createdAt", "mode", "parent", "releaseId", "schema"];
+const LINEAGE_RECORD_FIELDS = [
+  "bytes",
+  "originRelease",
+  "path",
+  "predictorArtifactId",
+  "producer",
+  "role",
+  "sha256",
+  "sourceFingerprint",
+];
+const LINEAGE_SUMMARY_FIELDS = ["manifestSha256", "releaseId", "schema", "status", "tours"];
+const LINEAGE_FIXED_CORE = new Set([
+  "brackets.json",
+  "draws.json",
+  "event_coverage.json",
+  "fixtures.json",
+  "meta.json",
+  "method.json",
+  "performance.json",
+  "players.json",
+  "ratings_history.json",
+  "tournaments.json",
+]);
+const LINEAGE_INDEX_ROLES = new Map([
+  ["matrix-index.json", "matrix-index"],
+  ["profile-index.json", "profile-index"],
+  ["scenario-index.json", "scenario-index"],
+  ["upcoming-index.json", "upcoming-index"],
+]);
+const LINEAGE_OPTIONAL_EVALUATION = new Set([
+  "accuracy.json",
+  "kalshi.json",
+  "market.json",
+  "track.json",
+]);
+const LINEAGE_DYNAMIC_PATTERNS = new Map([
+  ["matrix-shard", /^matrix-[A-Za-z0-9][A-Za-z0-9._-]*\.json$/],
+  ["profile-shard", /^profile-[0-9a-f]{16}\.json$/],
+  ["scenario-shard", /^scenario-[A-Za-z0-9][A-Za-z0-9._-]*\.json$/],
+  ["upcoming-event", /^upcoming-event-[A-Za-z0-9][A-Za-z0-9._-]*\.json$/],
+  ["upcoming-evidence", /^upcoming-evidence-[A-Za-z0-9][A-Za-z0-9._-]*\.json$/],
+]);
+const LINEAGE_ROLES = new Set([
+  "public-core",
+  ...LINEAGE_INDEX_ROLES.values(),
+  ...LINEAGE_DYNAMIC_PATTERNS.keys(),
+  "evaluation",
+]);
+const UUID4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+const SHA256_RE = /^[0-9a-f]{64}$/;
+const SOURCE_FINGERPRINT_RE = /^sf1:[0-9a-f]{64}$/;
+const PRODUCER_RE = /^[A-Za-z0-9][A-Za-z0-9_.:/@+-]*$/;
+const JSON_FILENAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*\.json$/;
+const UTC_TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?Z$/;
+
+function lineageMust(condition, message) {
+  if (!condition) throw new Error(message);
+}
+
+function exactFields(value, expected) {
+  return value !== null
+    && typeof value === "object"
+    && !Array.isArray(value)
+    && JSON.stringify(Object.keys(value).sort()) === JSON.stringify(expected);
+}
+
+function sha256(raw) {
+  return createHash("sha256").update(raw).digest("hex");
+}
+
+/**
+ * Parse UTF-8 JSON while rejecting duplicate object keys and bounding depth/node count.
+ * JSON.parse alone silently keeps the last duplicate key, which would let the live verifier
+ * interpret different lineage from the Python acceptance gate.
+ *
+ * @param {Uint8Array} raw
+ * @param {string} label
+ * @returns {unknown}
+ */
+export function parseStrictLineageJson(raw, label = "lineage JSON") {
+  let text;
+  try {
+    text = new TextDecoder("utf-8", { fatal: true }).decode(raw);
+  } catch {
+    throw new Error(`${label} is not valid UTF-8`);
+  }
+
+  let position = 0;
+  let nodes = 0;
+  const fail = (detail) => {
+    throw new Error(`${label} is not strict bounded JSON (${detail})`);
+  };
+  const whitespace = () => {
+    while (position < text.length && " \t\r\n".includes(text[position])) position += 1;
+  };
+  const parseString = () => {
+    if (text[position] !== "\"") fail("string expected");
+    const start = position;
+    position += 1;
+    while (position < text.length) {
+      const code = text.charCodeAt(position);
+      if (text[position] === "\"") {
+        position += 1;
+        try {
+          return JSON.parse(text.slice(start, position));
+        } catch {
+          fail("invalid string escape");
+        }
+      }
+      if (code < 0x20) fail("unescaped control character");
+      if (text[position] === "\\") {
+        position += 1;
+        if (position >= text.length || !'"\\/bfnrtu'.includes(text[position])) {
+          fail("invalid string escape");
+        }
+        if (text[position] === "u") {
+          const escape = text.slice(position + 1, position + 5);
+          if (!/^[0-9a-fA-F]{4}$/.test(escape)) fail("invalid unicode escape");
+          position += 4;
+        }
+      }
+      position += 1;
+    }
+    fail("unterminated string");
+  };
+  const parseValue = (depth) => {
+    whitespace();
+    nodes += 1;
+    if (nodes > LINEAGE_MAX_JSON_NODES || depth > LINEAGE_MAX_JSON_DEPTH) {
+      fail("structure exceeds bounds");
+    }
+    const token = text[position];
+    if (token === "{") {
+      position += 1;
+      whitespace();
+      const keys = new Set();
+      if (text[position] === "}") {
+        position += 1;
+        return;
+      }
+      while (position < text.length) {
+        whitespace();
+        const key = parseString();
+        if (keys.has(key)) fail(`duplicate object key ${JSON.stringify(key)}`);
+        keys.add(key);
+        whitespace();
+        if (text[position] !== ":") fail("colon expected");
+        position += 1;
+        parseValue(depth + 1);
+        whitespace();
+        if (text[position] === "}") {
+          position += 1;
+          return;
+        }
+        if (text[position] !== ",") fail("object comma expected");
+        position += 1;
+      }
+      fail("unterminated object");
+    }
+    if (token === "[") {
+      position += 1;
+      whitespace();
+      if (text[position] === "]") {
+        position += 1;
+        return;
+      }
+      while (position < text.length) {
+        parseValue(depth + 1);
+        whitespace();
+        if (text[position] === "]") {
+          position += 1;
+          return;
+        }
+        if (text[position] !== ",") fail("array comma expected");
+        position += 1;
+      }
+      fail("unterminated array");
+    }
+    if (token === "\"") {
+      parseString();
+      return;
+    }
+    const remainder = text.slice(position);
+    const number = remainder.match(/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/);
+    if (number) {
+      if (!Number.isFinite(Number(number[0]))) fail("non-finite number");
+      position += number[0].length;
+      return;
+    }
+    for (const literal of ["true", "false", "null"]) {
+      if (remainder.startsWith(literal)) {
+        position += literal.length;
+        return;
+      }
+    }
+    fail("value expected");
+  };
+
+  parseValue(0);
+  whitespace();
+  if (position !== text.length) fail("trailing content");
+  try {
+    return JSON.parse(text);
+  } catch {
+    fail("invalid JSON syntax");
+  }
+}
+
+async function responseBytes(response, limit, label) {
+  const declaredLength = response.headers.get("content-length");
+  if (declaredLength && /^\d+$/.test(declaredLength)) {
+    lineageMust(Number(declaredLength) <= limit, `${label} exceeds the ${limit}-byte cap`);
+  }
+  if (!response.body || typeof response.body.getReader !== "function") {
+    const raw = new Uint8Array(await response.arrayBuffer());
+    lineageMust(raw.byteLength <= limit, `${label} exceeds the ${limit}-byte cap`);
+    return raw;
+  }
+  const reader = response.body.getReader();
+  const chunks = [];
+  let total = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const chunk = value instanceof Uint8Array ? value : new Uint8Array(value);
+    total += chunk.byteLength;
+    if (total > limit) {
+      await reader.cancel();
+      throw new Error(`${label} exceeds the ${limit}-byte cap`);
+    }
+    chunks.push(chunk);
+  }
+  const raw = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    raw.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return raw;
+}
+
+function validUtcTimestamp(value) {
+  if (typeof value !== "string" || value.length > 40 || !UTC_TIMESTAMP_RE.test(value)) return false;
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) return false;
+  // Date.parse normalizes invalid calendar dates such as February 30. Pin the components
+  // that precede fractional seconds so those spellings cannot cross the language boundary.
+  return new Date(parsed).toISOString().slice(0, 19) === value.slice(0, 19);
+}
+
+/**
+ * Return the accepted local lineage expectation, or null during the Round 4A legacy-shadow
+ * fallback. Once status is `accepted`, every field is strict and malformed data fails closed.
+ *
+ * @param {unknown} health
+ * @returns {{schema: string, status: string, releaseId: string, manifestSha256: string, tours: string[]}|null}
+ */
+export function expectedArtifactLineage(health) {
+  const summary = health && typeof health === "object" && !Array.isArray(health)
+    ? health.artifactLineage
+    : null;
+  if (!summary || typeof summary !== "object" || Array.isArray(summary)
+      || summary.status !== "accepted") return null;
+  lineageMust(
+    exactFields(summary, LINEAGE_SUMMARY_FIELDS),
+    "accepted local health artifactLineage fields do not match artifact-lineage-v1",
+  );
+  lineageMust(summary.schema === LINEAGE_SCHEMA, `accepted local lineage schema is ${String(summary.schema)}`);
+  lineageMust(UUID4_RE.test(summary.releaseId), "accepted local lineage releaseId is not a canonical UUID4");
+  lineageMust(SHA256_RE.test(summary.manifestSha256), "accepted local lineage manifestSha256 is invalid");
+  lineageMust(
+    JSON.stringify(summary.tours) === JSON.stringify(LINEAGE_TOURS),
+    "accepted local lineage tours must be exactly atp,wta",
+  );
+  return summary;
+}
+
+function expectedRole(filename, role) {
+  if (LINEAGE_FIXED_CORE.has(filename)) return role === "public-core";
+  if (LINEAGE_INDEX_ROLES.has(filename)) return role === LINEAGE_INDEX_ROLES.get(filename);
+  if (LINEAGE_OPTIONAL_EVALUATION.has(filename)) return role === "evaluation";
+  return LINEAGE_DYNAMIC_PATTERNS.has(role) && LINEAGE_DYNAMIC_PATTERNS.get(role).test(filename);
+}
+
+/** @param {unknown} manifest */
+export function validateArtifactLineageManifest(manifest, expected, observedAt = new Date()) {
+  lineageMust(
+    exactFields(manifest, LINEAGE_MANIFEST_FIELDS),
+    "release manifest top-level fields do not match artifact-lineage-v1",
+  );
+  lineageMust(manifest.schema === LINEAGE_SCHEMA, `release manifest schema is ${String(manifest.schema)}`);
+  lineageMust(UUID4_RE.test(manifest.releaseId), "release manifest releaseId is not a canonical UUID4");
+  lineageMust(manifest.releaseId === expected.releaseId, "release manifest releaseId differs from local health");
+  lineageMust(
+    manifest.parent === null || (UUID4_RE.test(manifest.parent) && manifest.parent !== manifest.releaseId),
+    "release manifest parent is invalid",
+  );
+  lineageMust(validUtcTimestamp(manifest.createdAt), "release manifest createdAt is not a bounded UTC timestamp");
+  lineageMust(
+    Date.parse(manifest.createdAt) <= observedAt.getTime() + LINEAGE_FUTURE_SKEW_MS,
+    "release manifest is implausibly future-dated",
+  );
+  lineageMust(manifest.mode === "full" || manifest.mode === "quick", "release manifest mode is unknown");
+  lineageMust(
+    manifest.mode !== "quick" || manifest.parent !== null,
+    "quick release manifest requires an accepted parent",
+  );
+  lineageMust(
+    Array.isArray(manifest.artifacts)
+      && manifest.artifacts.length > 0
+      && manifest.artifacts.length <= LINEAGE_MAX_ARTIFACTS,
+    "release manifest artifact list is empty or oversized",
+  );
+
+  const paths = [];
+  const tours = new Set();
+  let totalBytes = 0;
+  for (const record of manifest.artifacts) {
+    lineageMust(
+      exactFields(record, LINEAGE_RECORD_FIELDS),
+      "release manifest artifact fields do not match artifact-lineage-v1",
+    );
+    const path = record.path;
+    lineageMust(
+      typeof path === "string"
+        && path.length <= "wta/".length + LINEAGE_MAX_FILENAME_CHARS
+        && !path.includes("\\")
+        && path.split("/").length === 2,
+      `unsafe declared artifact path ${String(path)}`,
+    );
+    const [tour, filename] = path.split("/");
+    lineageMust(LINEAGE_TOURS.includes(tour), `unknown artifact tour in ${path}`);
+    lineageMust(
+      filename.length <= LINEAGE_MAX_FILENAME_CHARS
+        && !filename.includes("..")
+        && JSON_FILENAME_RE.test(filename),
+      `unsafe declared artifact path ${path}`,
+    );
+    lineageMust(LINEAGE_ROLES.has(record.role), `unknown artifact role for ${path}`);
+    lineageMust(expectedRole(filename, record.role), `artifact role does not match ${path}`);
+    lineageMust(
+      Number.isInteger(record.bytes)
+        && record.bytes > 0
+        && record.bytes <= LINEAGE_ARTIFACT_MAX_BYTES,
+      `invalid artifact byte count for ${path}`,
+    );
+    lineageMust(SHA256_RE.test(record.sha256), `invalid artifact SHA-256 for ${path}`);
+    lineageMust(
+      typeof record.producer === "string"
+        && record.producer.length > 0
+        && record.producer.length <= LINEAGE_MAX_PRODUCER_CHARS
+        && PRODUCER_RE.test(record.producer),
+      `invalid artifact producer for ${path}`,
+    );
+    lineageMust(
+      typeof record.sourceFingerprint === "string"
+        && SOURCE_FINGERPRINT_RE.test(record.sourceFingerprint),
+      `invalid source fingerprint for ${path}`,
+    );
+    lineageMust(UUID4_RE.test(record.predictorArtifactId), `invalid predictor artifact id for ${path}`);
+    lineageMust(UUID4_RE.test(record.originRelease), `invalid origin release id for ${path}`);
+    paths.push(path);
+    tours.add(tour);
+    totalBytes += record.bytes;
+    lineageMust(totalBytes <= LINEAGE_RELEASE_MAX_BYTES, "release artifact bytes exceed the cap");
+  }
+  lineageMust(
+    paths.every((path, index) => index === 0 || paths[index - 1] < path),
+    "release manifest artifact records must be uniquely and exactly sorted by path",
+  );
+  lineageMust(
+    JSON.stringify([...tours].sort()) === JSON.stringify(LINEAGE_TOURS),
+    "release manifest must cover exactly ATP and WTA",
+  );
+  for (const tour of LINEAGE_TOURS) {
+    for (const filename of [...LINEAGE_FIXED_CORE, ...LINEAGE_INDEX_ROLES.keys()]) {
+      lineageMust(paths.includes(`${tour}/${filename}`), `release manifest is missing ${tour}/${filename}`);
+    }
+  }
+  lineageMust(
+    manifest.parent !== null
+      || manifest.artifacts.every((record) => record.originRelease === manifest.releaseId),
+    "bootstrap release artifacts must originate in their release",
+  );
+  return manifest;
+}
+
+function validateIndexClosure(manifest, indexPayloads) {
+  const records = new Map(manifest.artifacts.map((record) => [record.path, record]));
+  const referenced = new Set();
+  const declareReference = (tour, filename, role) => {
+    lineageMust(typeof filename === "string", `${tour} index contains a non-string shard reference`);
+    const path = `${tour}/${filename}`;
+    lineageMust(!referenced.has(path), `release indexes contain duplicate shard reference ${path}`);
+    referenced.add(path);
+    const record = records.get(path);
+    lineageMust(record && record.role === role, `release index reference ${path} is not declared as ${role}`);
+  };
+
+  for (const tour of LINEAGE_TOURS) {
+    const matrix = indexPayloads.get(`${tour}/matrix-index.json`);
+    lineageMust(
+      matrix && typeof matrix === "object"
+        && matrix.surfaces && typeof matrix.surfaces === "object"
+        && !Array.isArray(matrix.surfaces),
+      `${tour} matrix index is malformed`,
+    );
+    let matrixReferences = 0;
+    for (const formats of Object.values(matrix.surfaces || {})) {
+      lineageMust(formats && typeof formats === "object" && !Array.isArray(formats), `${tour} matrix index is malformed`);
+      for (const filename of Object.values(formats)) {
+        matrixReferences += 1;
+        declareReference(tour, filename, "matrix-shard");
+      }
+    }
+    lineageMust(matrixReferences <= LINEAGE_MAX_INDEX_REFERENCES, `${tour} matrix index exceeds its reference cap`);
+
+    const profiles = indexPayloads.get(`${tour}/profile-index.json`);
+    lineageMust(Array.isArray(profiles?.profiles), `${tour} profile index is malformed`);
+    lineageMust(profiles.profiles.length <= LINEAGE_MAX_INDEX_REFERENCES, `${tour} profile index exceeds its reference cap`);
+    for (const row of profiles.profiles) declareReference(tour, row?.file, "profile-shard");
+
+    const scenarios = indexPayloads.get(`${tour}/scenario-index.json`);
+    lineageMust(Array.isArray(scenarios?.events), `${tour} scenario index is malformed`);
+    lineageMust(scenarios.events.length <= LINEAGE_MAX_INDEX_REFERENCES, `${tour} scenario index exceeds its reference cap`);
+    for (const row of scenarios.events) declareReference(tour, row?.file, "scenario-shard");
+
+    const upcoming = indexPayloads.get(`${tour}/upcoming-index.json`);
+    lineageMust(Array.isArray(upcoming?.events), `${tour} upcoming index is malformed`);
+    lineageMust(
+      upcoming.events.length * 2 <= LINEAGE_MAX_INDEX_REFERENCES,
+      `${tour} upcoming index exceeds its reference cap`,
+    );
+    for (const row of upcoming.events) {
+      declareReference(tour, row?.file, "upcoming-event");
+      declareReference(tour, row?.evidenceFile, "upcoming-evidence");
+    }
+  }
+
+  const declaredDynamic = manifest.artifacts
+    .filter((record) => LINEAGE_DYNAMIC_PATTERNS.has(record.role))
+    .map((record) => record.path)
+    .sort();
+  lineageMust(
+    JSON.stringify([...referenced].sort()) === JSON.stringify(declaredDynamic),
+    "release manifest dynamic shard set does not match its index graph",
+  );
+}
+
+/**
+ * Verify one accepted live release without sampling. The fetcher is injected for deterministic
+ * adversarial tests and is normally the retrying production fetch wrapper.
+ *
+ * @param {{base: string, expectedHealth: unknown, fetcher?: typeof fetch, observedAt?: Date}} options
+ */
+export async function verifyArtifactLineageRelease({
+  base,
+  expectedHealth,
+  fetcher = fetch,
+  observedAt = new Date(),
+}) {
+  const expected = expectedArtifactLineage(expectedHealth);
+  if (expected === null) return { skipped: true, artifactCount: 0, releaseId: null, fetchedPaths: [] };
+
+  const normalizedBase = String(base).replace(/\/$/, "");
+  const healthResponse = await fetcher(normalizedBase + LINEAGE_HEALTH_PATH, { cache: "no-store" });
+  lineageMust(healthResponse.status === 200, `${LINEAGE_HEALTH_PATH} -> ${healthResponse.status}`);
+  lineageMust(
+    contentTypeOk(healthResponse.headers.get("content-type"), LINEAGE_HEALTH_PATH),
+    `${LINEAGE_HEALTH_PATH} served as ${healthResponse.headers.get("content-type")}`,
+  );
+  const liveHealth = parseStrictLineageJson(
+    await responseBytes(healthResponse, LINEAGE_HEALTH_MAX_BYTES, LINEAGE_HEALTH_PATH),
+    "deployed health",
+  );
+  const liveExpected = expectedArtifactLineage(liveHealth);
+  lineageMust(liveExpected !== null, "deployed health has no accepted artifactLineage summary");
+  lineageMust(
+    LINEAGE_SUMMARY_FIELDS.every((field) => JSON.stringify(liveExpected[field]) === JSON.stringify(expected[field])),
+    "deployed health artifactLineage differs from local accepted health",
+  );
+
+  const manifestResponse = await fetcher(normalizedBase + LINEAGE_MANIFEST_PATH, { cache: "no-store" });
+  lineageMust(manifestResponse.status === 200, `${LINEAGE_MANIFEST_PATH} -> ${manifestResponse.status}`);
+  lineageMust(
+    contentTypeOk(manifestResponse.headers.get("content-type"), LINEAGE_MANIFEST_PATH),
+    `${LINEAGE_MANIFEST_PATH} served as ${manifestResponse.headers.get("content-type")}`,
+  );
+  const manifestBytes = await responseBytes(
+    manifestResponse,
+    LINEAGE_MANIFEST_MAX_BYTES,
+    LINEAGE_MANIFEST_PATH,
+  );
+  lineageMust(
+    sha256(manifestBytes) === expected.manifestSha256,
+    "live release manifest digest differs from local accepted health",
+  );
+  const manifest = validateArtifactLineageManifest(
+    parseStrictLineageJson(manifestBytes, "release manifest"),
+    expected,
+    observedAt,
+  );
+
+  const fetchedPaths = [];
+  const indexPayloads = new Map();
+  for (let start = 0; start < manifest.artifacts.length; start += LINEAGE_FETCH_BATCH) {
+    const batch = manifest.artifacts.slice(start, start + LINEAGE_FETCH_BATCH);
+    const verified = await Promise.all(batch.map(async (record) => {
+      const urlPath = `/data/${record.path}`;
+      const response = await fetcher(normalizedBase + urlPath, { cache: "no-store" });
+      lineageMust(response.status === 200, `${urlPath} -> ${response.status}`);
+      lineageMust(
+        contentTypeOk(response.headers.get("content-type"), urlPath),
+        `${urlPath} served as ${response.headers.get("content-type")}`,
+      );
+      const raw = await responseBytes(response, LINEAGE_ARTIFACT_MAX_BYTES, urlPath);
+      lineageMust(raw.byteLength === record.bytes, `${urlPath} byte count differs from release manifest`);
+      lineageMust(sha256(raw) === record.sha256, `${urlPath} digest differs from release manifest`);
+      let indexPayload = null;
+      if (LINEAGE_INDEX_ROLES.has(record.path.split("/")[1])) {
+        indexPayload = parseStrictLineageJson(raw, urlPath);
+      }
+      return { path: record.path, indexPayload };
+    }));
+    for (const item of verified) {
+      fetchedPaths.push(item.path);
+      if (item.indexPayload !== null) indexPayloads.set(item.path, item.indexPayload);
+    }
+  }
+  validateIndexClosure(manifest, indexPayloads);
+  lineageMust(fetchedPaths.length === manifest.artifacts.length, "not every declared release artifact was fetched");
+  return {
+    skipped: false,
+    artifactCount: manifest.artifacts.length,
+    releaseId: manifest.releaseId,
+    fetchedPaths,
+  };
+}
+
+export function loadExpectedHealth(path) {
+  try {
+    const raw = readFileSync(path);
+    return parseStrictLineageJson(raw, `expected health ${path}`);
+  } catch (error) {
+    if (error?.code === "ENOENT") return {};
+    throw error;
+  }
+}
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -66,6 +641,7 @@ async function fetchT(url, opts = {}, ms = 30000) {
 }
 
 // ---- check runner -----------------------------------------------------------
+async function main() {
 const results = [];
 async function check(name, fn) {
   try {
@@ -217,6 +793,28 @@ await check(
     throw new Error(`stale: live generatedAt "${last}" != expected "${EXPECT_GENERATED_AT}" after ${FRESH_TRIES} tries`);
   },
 );
+
+await check("release lineage: exact accepted artifact graph", async () => {
+  const expectedHealth = loadExpectedHealth(EXPECTED_HEALTH_PATH);
+  if (expectedArtifactLineage(expectedHealth) === null) {
+    return "legacy shadow fallback (no accepted local lineage)";
+  }
+  let lastError;
+  for (let attempt = 0; attempt < FRESH_TRIES; attempt++) {
+    try {
+      const result = await verifyArtifactLineageRelease({
+        base: BASE,
+        expectedHealth,
+        fetcher: fetchT,
+      });
+      return `${result.artifactCount} exact artifact(s), release ${result.releaseId}`;
+    } catch (error) {
+      lastError = error;
+      if (attempt < FRESH_TRIES - 1) await sleep(FRESH_DELAY_MS);
+    }
+  }
+  throw lastError;
+});
 
 await check("coverage: every begun event is on the live site exactly once", async () => {
   let last = [];
@@ -381,4 +979,10 @@ if (failed.length) {
   console.error(`\n${failed.length} FAILED:`);
   for (const r of failed) console.error(`  - ${r.name}: ${r.detail}`);
 }
-process.exit(failed.length ? 1 : 0);
+return failed.length ? 1 : 0;
+}
+
+const entrypoint = process.argv[1] ? resolve(process.argv[1]) : "";
+if (entrypoint === fileURLToPath(import.meta.url)) {
+  process.exit(await main());
+}

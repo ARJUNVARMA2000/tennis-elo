@@ -65,6 +65,7 @@ XGB_DEFAULTS = dict(
     tree_method="hist", n_jobs=0, random_state=0,  # explicit: sweeps A/B paired fits
 )
 EARLY_STOPPING_ROUNDS = 40   # on the calibration season; n_estimators is only a cap
+FINAL_TRAIN_SEED = 12345
 
 # the knobs sweeps tune (published in method.json) — not the plumbing args above
 _XGB_DISPLAY_KEYS = ("n_estimators", "max_depth", "learning_rate", "subsample",
@@ -84,6 +85,26 @@ def _xgb(**overrides):
     params = dict(XGB_DEFAULTS)
     params.update(overrides)
     return xgb.XGBClassifier(**params)
+
+
+def full_xgb_params(overrides: dict | None = None, *, bag_index: int = 0) -> dict:
+    """Every constructor parameter used by one fitted bag member.
+
+    This is the serialization contract as well as the training source of truth: the
+    predictor envelope must describe the complete requested XGBoost configuration,
+    including the early-stopping setting and each bag member's distinct tree seed.
+    """
+    if type(bag_index) is not int or bag_index < 0:
+        raise ValueError("bag_index must be a non-negative integer")
+    params = {**XGB_DEFAULTS, **(overrides or {})}
+    params["random_state"] = int(params["random_state"]) + bag_index
+    params["early_stopping_rounds"] = EARLY_STOPPING_ROUNDS
+    return params
+
+
+def production_xgb_params(tour: str, *, bag_index: int = 0) -> dict:
+    """Complete XGBoost parameters for a production tour bag member."""
+    return full_xgb_params(xgb_params_for(tour), bag_index=bag_index)
 
 
 class BaggedClassifier:
@@ -204,12 +225,10 @@ def _fit_fold(core: pd.DataFrame, cal: pd.DataFrame, seed: int,
     k=0 member is the incumbent fit, so n_bag=1 is bit-identical to the single fit).
     `sample_weight` aligns with `core` rows (orientation flips don't reorder)."""
     Xcal, ycal = make_oriented_xy(cal, seed=seed + 1)
-    xo = dict(xgb_overrides or {})
-    base_rs = int(xo.pop("random_state", 0))   # honor an override as the bag-0 seed
     clfs = []
     for k in range(n_bag):
         Xtr, ytr = make_oriented_xy(core, seed=seed + 100_000 * k)
-        clf = _xgb(early_stopping_rounds=EARLY_STOPPING_ROUNDS, random_state=base_rs + k, **xo)
+        clf = _xgb(**full_xgb_params(xgb_overrides, bag_index=k))
         clf.fit(Xtr, ytr, sample_weight=sample_weight,
                 eval_set=[(Xcal, ycal)], verbose=False)
         clfs.append(clf)
@@ -434,7 +453,8 @@ def train_final(feat: pd.DataFrame, min_train_year: int = 1991, cal_days: int = 
     cal_rows = feat[feat["date"] >= cutoff]
     pooled = (oos["p_raw"].to_numpy()
               if oos is not None and "p_raw" in oos and len(oos) >= _MIN_POOLED else None)
-    clf, cal_model = _fit_fold(core, cal_rows, seed=12345, calibrator=cal, pooled_raw=pooled,
+    clf, cal_model = _fit_fold(core, cal_rows, seed=FINAL_TRAIN_SEED,
+                               calibrator=cal, pooled_raw=pooled,
                                xgb_overrides=xgb_overrides, n_bag=n_bag)
     return clf, cal_model, FEATURES
 

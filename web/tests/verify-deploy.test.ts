@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
@@ -28,6 +29,420 @@ import {
   mutableCacheControlOk,
   artifactIndexRefs,
 } from "@/scripts/verify-deploy-lib.mjs";
+import {
+  expectedArtifactLineage,
+  parseStrictLineageJson,
+  validateArtifactLineageManifest,
+  verifyArtifactLineageRelease,
+} from "@/scripts/verify-deploy.mjs";
+
+type ReleaseRecord = {
+  path: string;
+  role: string;
+  bytes: number;
+  sha256: string;
+  producer: string;
+  sourceFingerprint: string;
+  predictorArtifactId: string;
+  originRelease: string;
+};
+
+type LineageFixture = {
+  health: {
+    generatedAt: string;
+    artifactLineage: {
+      schema: string;
+      status: string;
+      releaseId: string;
+      manifestSha256: string;
+      tours: string[];
+    };
+  };
+  manifest: {
+    schema: string;
+    releaseId: string;
+    parent: string | null;
+    createdAt: string;
+    mode: string;
+    artifacts: ReleaseRecord[];
+  };
+  manifestBytes: Uint8Array;
+  files: Map<string, Uint8Array>;
+};
+
+const LINEAGE_RELEASE_ID = "11111111-1111-4111-8111-111111111111";
+const LINEAGE_PREDICTOR_ID = "22222222-2222-4222-8222-222222222222";
+const LINEAGE_ENCODER = new TextEncoder();
+const LINEAGE_DECODER = new TextDecoder();
+const lineageBytes = (value: unknown) => LINEAGE_ENCODER.encode(JSON.stringify(value));
+const lineageDigest = (raw: Uint8Array) => createHash("sha256").update(raw).digest("hex");
+
+const lineageFixed = [
+  "brackets.json",
+  "draws.json",
+  "event_coverage.json",
+  "fixtures.json",
+  "meta.json",
+  "method.json",
+  "performance.json",
+  "players.json",
+  "ratings_history.json",
+  "tournaments.json",
+];
+
+function lineageRole(filename: string): string {
+  if (lineageFixed.includes(filename)) return "public-core";
+  if (filename === "matrix-index.json") return "matrix-index";
+  if (filename === "profile-index.json") return "profile-index";
+  if (filename === "scenario-index.json") return "scenario-index";
+  if (filename === "upcoming-index.json") return "upcoming-index";
+  if (filename.startsWith("matrix-")) return "matrix-shard";
+  if (filename.startsWith("profile-")) return "profile-shard";
+  if (filename.startsWith("scenario-")) return "scenario-shard";
+  if (filename.startsWith("upcoming-event-")) return "upcoming-event";
+  if (filename.startsWith("upcoming-evidence-")) return "upcoming-evidence";
+  return "evaluation";
+}
+
+function buildLineageFixture(extraMatrixShards = 0): LineageFixture {
+  const files = new Map<string, Uint8Array>();
+  for (const tour of ["atp", "wta"]) {
+    for (const filename of lineageFixed) {
+      files.set(`${tour}/${filename}`, lineageBytes({ tour, filename }));
+    }
+    const matrices = [
+      "matrix-hard-bo3.json",
+      ...Array.from({ length: extraMatrixShards }, (_, i) => `matrix-extra-${String(i).padStart(3, "0")}.json`),
+    ];
+    files.set(`${tour}/matrix-index.json`, lineageBytes({
+      generation: "generation-1",
+      surfaces: {
+        Hard: Object.fromEntries(matrices.map((filename, i) => [String(i + 3), filename])),
+      },
+    }));
+    files.set(`${tour}/profile-index.json`, lineageBytes({
+      generation: "generation-1",
+      profiles: [{ name: "Player", file: "profile-0123456789abcdef.json" }],
+    }));
+    files.set(`${tour}/scenario-index.json`, lineageBytes({
+      schemaVersion: 1,
+      generation: "generation-1",
+      events: [{ name: "Open", file: "scenario-open.json" }],
+    }));
+    files.set(`${tour}/upcoming-index.json`, lineageBytes({
+      schema: "upcoming-v2",
+      schemaVersion: 2,
+      generation: "generation-1",
+      highlights: [],
+      events: [{
+        name: "Open",
+        file: "upcoming-event-open.json",
+        evidenceFile: "upcoming-evidence-open.json",
+      }],
+    }));
+    for (const filename of matrices) {
+      files.set(`${tour}/${filename}`, lineageBytes({ generation: "generation-1", filename }));
+    }
+    files.set(`${tour}/profile-0123456789abcdef.json`, lineageBytes({
+      generation: "generation-1", name: "Player",
+    }));
+    files.set(`${tour}/scenario-open.json`, lineageBytes({
+      generation: "generation-1", event: { name: "Open" },
+    }));
+    files.set(`${tour}/upcoming-event-open.json`, lineageBytes({
+      generation: "generation-1", event: { name: "Open" },
+    }));
+    files.set(`${tour}/upcoming-evidence-open.json`, lineageBytes({
+      generation: "generation-1", event: { name: "Open" },
+    }));
+    for (const filename of ["accuracy.json", "kalshi.json", "market.json", "track.json"]) {
+      files.set(`${tour}/${filename}`, lineageBytes({ tour, filename, optional: true }));
+    }
+  }
+
+  const artifacts = [...files.entries()].map(([path, raw]) => ({
+    path,
+    role: lineageRole(path.split("/")[1]),
+    bytes: raw.byteLength,
+    sha256: lineageDigest(raw),
+    producer: "pipeline.export:v1",
+    sourceFingerprint: `sf1:${"a".repeat(64)}`,
+    predictorArtifactId: LINEAGE_PREDICTOR_ID,
+    originRelease: LINEAGE_RELEASE_ID,
+  })).sort((a, b) => a.path.localeCompare(b.path));
+  const manifest = {
+    schema: "artifact-lineage-v1",
+    releaseId: LINEAGE_RELEASE_ID,
+    parent: null,
+    createdAt: "2025-08-24T12:00:00.000000Z",
+    mode: "full",
+    artifacts,
+  };
+  const manifestBytes = lineageBytes(manifest);
+  return {
+    health: {
+      generatedAt: "2026-08-24T12:00:00Z",
+      artifactLineage: {
+        schema: "artifact-lineage-v1",
+        status: "accepted",
+        releaseId: LINEAGE_RELEASE_ID,
+        manifestSha256: lineageDigest(manifestBytes),
+        tours: ["atp", "wta"],
+      },
+    },
+    manifest,
+    manifestBytes,
+    files,
+  };
+}
+
+function withLineageManifest(
+  fixture: LineageFixture,
+  mutate: (manifest: LineageFixture["manifest"]) => void,
+): LineageFixture {
+  const manifest = structuredClone(fixture.manifest);
+  mutate(manifest);
+  const manifestBytes = lineageBytes(manifest);
+  return {
+    ...fixture,
+    manifest,
+    manifestBytes,
+    health: {
+      generatedAt: fixture.health.generatedAt,
+      artifactLineage: {
+        ...fixture.health.artifactLineage,
+        manifestSha256: lineageDigest(manifestBytes),
+      },
+    },
+  };
+}
+
+function lineageFetcher(
+  fixture: LineageFixture,
+  overrides: Map<string, { body?: Uint8Array; status?: number; contentType?: string }> = new Map(),
+) {
+  const calls: string[] = [];
+  const fetcher = async (input: string | URL | Request): Promise<Response> => {
+    const url = new URL(typeof input === "string" || input instanceof URL ? input : input.url);
+    calls.push(url.pathname);
+    if (url.pathname === "/data/health.json") {
+      const override = overrides.get("health.json") || {};
+      return new Response(new Uint8Array(override.body || lineageBytes(fixture.health)).buffer, {
+        status: override.status || 200,
+        headers: { "content-type": override.contentType || "application/json" },
+      });
+    }
+    if (url.pathname === "/data/release-manifest.json") {
+      const override = overrides.get("release-manifest.json") || {};
+      return new Response(new Uint8Array(override.body || fixture.manifestBytes).buffer, {
+        status: override.status || 200,
+        headers: { "content-type": override.contentType || "application/json" },
+      });
+    }
+    const path = url.pathname.replace(/^\/data\//, "");
+    const override = overrides.get(path) || {};
+    const body = override.body || fixture.files.get(path) || lineageBytes({ error: "missing" });
+    return new Response(new Uint8Array(body).buffer, {
+      status: override.status || (fixture.files.has(path) ? 200 : 404),
+      headers: { "content-type": override.contentType || "application/json" },
+    });
+  };
+  return { fetcher, calls };
+}
+
+describe("accepted release lineage verification", () => {
+  it("skips only the Round 4A legacy-shadow state and fails malformed accepted summaries", async () => {
+    expect(expectedArtifactLineage({})).toBeNull();
+    expect(expectedArtifactLineage({ artifactLineage: { status: "legacy" } })).toBeNull();
+    await expect(verifyArtifactLineageRelease({
+      base: "https://example.com",
+      expectedHealth: {},
+      fetcher: async () => { throw new Error("legacy mode must not fetch lineage"); },
+    })).resolves.toMatchObject({ skipped: true, artifactCount: 0 });
+
+    expect(() => expectedArtifactLineage({
+      artifactLineage: { status: "accepted", schema: "artifact-lineage-v1" },
+    })).toThrow(/fields do not match/);
+  });
+
+  it("fetches every declared fixed, dynamic, and optional artifact with no sampling", async () => {
+    const fixture = buildLineageFixture(35);
+    const { fetcher, calls } = lineageFetcher(fixture);
+    const result = await verifyArtifactLineageRelease({
+      base: "https://example.com/",
+      expectedHealth: fixture.health,
+      fetcher,
+      observedAt: new Date("2026-08-24T12:01:00Z"),
+    });
+
+    const expectedPaths = fixture.manifest.artifacts.map((record) => record.path);
+    expect(result).toMatchObject({
+      skipped: false,
+      artifactCount: expectedPaths.length,
+      releaseId: LINEAGE_RELEASE_ID,
+      fetchedPaths: expectedPaths,
+    });
+    expect(new Set(calls.slice(2))).toEqual(
+      new Set(expectedPaths.map((path) => `/data/${path}`)),
+    );
+    expect(calls).toContain("/data/atp/brackets.json");
+    expect(calls).toContain("/data/wta/tournaments.json");
+    expect(calls).toContain("/data/atp/profile-0123456789abcdef.json");
+    expect(calls).toContain("/data/wta/upcoming-evidence-open.json");
+    expect(calls).toContain("/data/atp/kalshi.json");
+    expect(calls).toContain("/data/wta/matrix-extra-034.json");
+    expect(calls).toHaveLength(expectedPaths.length + 2);
+  });
+
+  it.each([
+    ["first fixed", "atp/brackets.json"],
+    ["last fixed", "wta/tournaments.json"],
+    ["dynamic profile", "atp/profile-0123456789abcdef.json"],
+    ["dynamic upcoming", "wta/upcoming-evidence-open.json"],
+    ["optional evaluation", "atp/kalshi.json"],
+    ["beyond the first fetch batch", "wta/matrix-extra-031.json"],
+  ])("rejects an exact-length mutation in the %s artifact", async (_label, path) => {
+    const fixture = buildLineageFixture(35);
+    const original = fixture.files.get(path)!;
+    const mutated = original.slice();
+    mutated[Math.floor(mutated.length / 2)] ^= 1;
+    const { fetcher } = lineageFetcher(fixture, new Map([[path, { body: mutated }]]));
+    await expect(verifyArtifactLineageRelease({
+      base: "https://example.com",
+      expectedHealth: fixture.health,
+      fetcher,
+      observedAt: new Date("2026-08-24T12:01:00Z"),
+    })).rejects.toThrow(new RegExp(`${path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} digest differs`));
+  });
+
+  it("rejects truncation, a missing artifact, and JSON MIME fall-through", async () => {
+    const fixture = buildLineageFixture();
+    const path = "atp/players.json";
+    const raw = fixture.files.get(path)!;
+
+    const truncated = lineageFetcher(fixture, new Map([[path, { body: raw.slice(0, -1) }]]));
+    await expect(verifyArtifactLineageRelease({
+      base: "https://example.com", expectedHealth: fixture.health, fetcher: truncated.fetcher,
+    })).rejects.toThrow(/players\.json byte count differs/);
+
+    const missing = lineageFetcher(fixture, new Map([[path, { status: 404 }]]));
+    await expect(verifyArtifactLineageRelease({
+      base: "https://example.com", expectedHealth: fixture.health, fetcher: missing.fetcher,
+    })).rejects.toThrow(/players\.json -> 404/);
+
+    const mime = lineageFetcher(fixture, new Map([[path, { contentType: "text\/html" }]]));
+    await expect(verifyArtifactLineageRelease({
+      base: "https://example.com", expectedHealth: fixture.health, fetcher: mime.fetcher,
+    })).rejects.toThrow(/players\.json served as text\/html/);
+  });
+
+  it("rejects manifest MIME and exact-byte digest mismatches before trusting schema", async () => {
+    const fixture = buildLineageFixture();
+    const wrongDigest = structuredClone(fixture.health);
+    wrongDigest.artifactLineage.manifestSha256 = "0".repeat(64);
+    const served = lineageFetcher({ ...fixture, health: wrongDigest });
+    await expect(verifyArtifactLineageRelease({
+      base: "https://example.com", expectedHealth: wrongDigest, fetcher: served.fetcher,
+    })).rejects.toThrow(/manifest digest differs/);
+
+    const mime = lineageFetcher(fixture, new Map([
+      ["release-manifest.json", { contentType: "text/html" }],
+    ]));
+    await expect(verifyArtifactLineageRelease({
+      base: "https://example.com", expectedHealth: fixture.health, fetcher: mime.fetcher,
+    })).rejects.toThrow(/release-manifest\.json served as text\/html/);
+  });
+
+  it("rejects a current deployed health stamp whose lineage summary is from another release", async () => {
+    const fixture = buildLineageFixture();
+    const deployedHealth = structuredClone(fixture.health);
+    deployedHealth.artifactLineage.releaseId = "33333333-3333-4333-8333-333333333333";
+    expect(deployedHealth.generatedAt).toBe(fixture.health.generatedAt);
+    const served = lineageFetcher(fixture, new Map([
+      ["health.json", { body: lineageBytes(deployedHealth) }],
+    ]));
+    await expect(verifyArtifactLineageRelease({
+      base: "https://example.com", expectedHealth: fixture.health, fetcher: served.fetcher,
+    })).rejects.toThrow(/deployed health artifactLineage differs from local accepted health/);
+  });
+
+  it.each([
+    ["schema", (fixture: LineageFixture) => withLineageManifest(fixture, (manifest) => {
+      manifest.schema = "artifact-lineage-v0";
+    }), /schema is artifact-lineage-v0/],
+    ["unsafe path", (fixture: LineageFixture) => withLineageManifest(fixture, (manifest) => {
+      manifest.artifacts[0].path = "atp/../escape.json";
+      manifest.artifacts.sort((a, b) => a.path.localeCompare(b.path));
+    }), /unsafe declared artifact path/],
+    ["duplicate path", (fixture: LineageFixture) => withLineageManifest(fixture, (manifest) => {
+      manifest.artifacts.push(structuredClone(manifest.artifacts[0]));
+      manifest.artifacts.sort((a, b) => a.path.localeCompare(b.path));
+    }), /uniquely and exactly sorted/],
+    ["missing WTA tour", (fixture: LineageFixture) => withLineageManifest(fixture, (manifest) => {
+      manifest.artifacts = manifest.artifacts.filter((record) => record.path.startsWith("atp/"));
+    }), /exactly ATP and WTA/],
+    ["noncanonical timestamp", (fixture: LineageFixture) => withLineageManifest(fixture, (manifest) => {
+      manifest.createdAt = "2025-08-24 12:00:00Z";
+    }), /createdAt is not a bounded UTC timestamp/],
+    ["parentless quick release", (fixture: LineageFixture) => withLineageManifest(fixture, (manifest) => {
+      manifest.mode = "quick";
+    }), /quick release manifest requires an accepted parent/],
+    ["carried bootstrap artifact", (fixture: LineageFixture) => withLineageManifest(fixture, (manifest) => {
+      manifest.artifacts[0].originRelease = "33333333-3333-4333-8333-333333333333";
+    }), /bootstrap release artifacts must originate/],
+  ])("rejects a bad %s contract", async (_label, makeFixture, message) => {
+    const fixture = makeFixture(buildLineageFixture());
+    const { fetcher } = lineageFetcher(fixture);
+    await expect(verifyArtifactLineageRelease({
+      base: "https://example.com",
+      expectedHealth: fixture.health,
+      fetcher,
+      observedAt: new Date("2026-08-24T12:01:00Z"),
+    })).rejects.toThrow(message);
+  });
+
+  it("rejects release identity and expected-tour mismatches from local health", async () => {
+    const fixture = buildLineageFixture();
+    const wrongRelease = structuredClone(fixture.health);
+    wrongRelease.artifactLineage.releaseId = "33333333-3333-4333-8333-333333333333";
+    const releaseFetch = lineageFetcher({ ...fixture, health: wrongRelease });
+    await expect(verifyArtifactLineageRelease({
+      base: "https://example.com", expectedHealth: wrongRelease, fetcher: releaseFetch.fetcher,
+    })).rejects.toThrow(/releaseId differs from local health/);
+
+    const wrongTours = structuredClone(fixture.health);
+    wrongTours.artifactLineage.tours = ["atp"];
+    expect(() => expectedArtifactLineage(wrongTours)).toThrow(/exactly atp,wta/);
+  });
+
+  it("rejects duplicate manifest keys, invalid bounds, and an index graph omission", async () => {
+    const fixture = buildLineageFixture();
+    const text = LINEAGE_DECODER.decode(fixture.manifestBytes);
+    const duplicateBytes = LINEAGE_ENCODER.encode(
+      text.replace('{"schema":', '{"schema":"artifact-lineage-v1","schema":'),
+    );
+    expect(() => parseStrictLineageJson(duplicateBytes, "release manifest")).toThrow(/duplicate object key/);
+
+    const oversized = structuredClone(fixture.manifest);
+    oversized.artifacts[0].bytes = 32 * 1024 * 1024 + 1;
+    expect(() => validateArtifactLineageManifest(
+      oversized,
+      fixture.health.artifactLineage,
+      new Date("2026-08-24T12:01:00Z"),
+    )).toThrow(/invalid artifact byte count/);
+
+    const omitted = withLineageManifest(fixture, (manifest) => {
+      manifest.artifacts = manifest.artifacts.filter(
+        (record) => record.path !== "atp/profile-0123456789abcdef.json",
+      );
+    });
+    const omittedFetch = lineageFetcher(omitted);
+    await expect(verifyArtifactLineageRelease({
+      base: "https://example.com", expectedHealth: omitted.health, fetcher: omittedFetch.fetcher,
+      observedAt: new Date("2026-08-24T12:01:00Z"),
+    })).rejects.toThrow(/profile-0123456789abcdef\.json is not declared/);
+  });
+});
 
 describe("artifactIndexRefs", () => {
   it("returns every safe matrix and profile shard reference", () => {

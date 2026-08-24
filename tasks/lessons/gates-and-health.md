@@ -327,3 +327,23 @@ Indexed in [`../lessons.md`](../lessons.md).
   bounded private receipt tied to the exact replacement bytes; write both atomically in a
   fail-closed order, include both in the consumer fingerprint, and replay the real production
   sequence through failure and clean recovery.
+
+- **Separately atomic files are not an atomic artifact pair.** (2026-08-24, Round 4A predictor
+  envelope) Writing `predictor.pkl` and its envelope with two atomic replaces still leaves a crash
+  window where new bytes have no sidecar; treating every missing sidecar as legacy launders that
+  interrupted publication into the compatibility path. **How to apply:** durably publish a bounded
+  pending marker before either replacement, bind it to the intended payload identity, then write
+  payload and envelope in order and remove the marker last. Readers must reject every marker-present
+  state before deserialization and admit envelope-free bytes only when they are provably genuine
+  legacy artifacts.
+
+- **A manifest and acceptance receipt are revocable validity pointers, not monotone history.**
+  (2026-08-24, Round 4A release lineage) A previous success becomes false the instant any covered
+  output starts changing; recording produced paths before durable completion or leaving acceptance
+  in place during a rewrite lets a crash bless mixed generations. **How to apply:** revoke acceptance
+  and manifest before the first mutation; record individual outputs only after atomic write plus
+  directory fsync, and logical batches only after every member completes. Seal one exact two-tour
+  public-data graph from current proof or exact accepted carry-forward, bind retained inputs and the
+  accepted parent into provenance, accept only after the semantic gate, copy declared files before
+  the public manifest, and postvalidate the exact destination. Any failed publication must revoke
+  stale proof before fallback; inability to do so is fatal.

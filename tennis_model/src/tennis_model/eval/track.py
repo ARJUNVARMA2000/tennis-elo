@@ -938,9 +938,18 @@ def grade(tour: str, df: pd.DataFrame, *, status: dict | None = None) -> dict:
     }
     out_path = output_dir(tour) / "track.json"
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
-    (output_dir(tour) / "performance.json").write_text(
-        json.dumps(performance, ensure_ascii=False, indent=2), encoding="utf-8")
+    performance_path = output_dir(tour) / "performance.json"
+    from ..artifact_lineage import write_produced_artifact_batch
+    write_produced_artifact_batch(tour, (
+        (
+            out_path,
+            json.dumps(out, ensure_ascii=False, indent=2).encode("utf-8"),
+        ),
+        (
+            performance_path,
+            json.dumps(performance, ensure_ascii=False, indent=2).encode("utf-8"),
+        ),
+    ))
     return out
 
 

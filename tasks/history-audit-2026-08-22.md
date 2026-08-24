@@ -2,8 +2,10 @@
 
 Audited through production `origin/master` at `b6b1511` (2026-08-23): all 317 commits from
 inception are accounted for. The original commit-by-commit audit stopped at `b1b8579`; the exact
-nine-commit reconciliation through current production appears below. Uncommitted Round 3 behavior
-is inspected only to avoid duplicate recommendations and is not treated as shipped.
+nine-commit reconciliation through current production appears below. Local `master` is one commit
+ahead at `bbe3d0b`, where Round 3 is reviewed and committed but not deployed. The reviewed Round 4A
+shadow implementation on the current branch builds on that commit, is likewise local-only, and is
+not treated as shipped.
 
 ### Current reconciliation (2026-08-24)
 
@@ -12,7 +14,9 @@ Rounds 2A-2B shipped in `9f6bd41`. Together they close the original four highest
 terminal workflow/gate incident reporting, a non-ratcheting population baseline, same-run ESPN
 acquisition receipts, and stable per-finding health identity with production-shaped replay tests.
 Round 3 (durable stage receipts, one participant-state vocabulary, and deterministic real-browser
-CI) is in final review; the predictor envelope and whole-build lineage remain the staged Round 4.
+CI) is reviewed and committed locally as `bbe3d0b`; explicit production approval and live
+verification remain pending. Round 4A's predictor envelope and exact two-tour public-data graph
+lineage are implemented and reviewed locally in shadow mode, with publication staged behind Round 3.
 
 ## Executive conclusion
 
@@ -21,7 +25,8 @@ eventually converted into a reusable invariant, provenance field, deterministic 
 pre-deploy gate, post-deploy verifier, or tested CI helper. At the original cutoff, the remaining
 gap was less "we need more checks" than "some existing failures lose their identity or never reach
 the issue system." Rounds 1 and 2 closed that gap; the current residual risk is artifact integrity
-before unpickling and across a whole published generation.
+before unpickling and across the exact two-tour public-data graph. Round 4A now mitigates that risk
+locally, but production still has neither envelope nor accepted lineage evidence.
 
 The original audit identified four findings for immediate action; all four are now shipped:
 
@@ -215,14 +220,14 @@ against real push-test and gate failures and recovered exactly.
 
 | Failure class | Repeated evidence | What now exists | Residual gap |
 |---|---|---|---|
-| Event/player identity | #2, #9-15; sponsor renames, aliases, placeholders, lost ids | ESPN-id registry, evidence joins, alias proposer/falsifier, exact-once coverage, source-attachment uniqueness | Shared source-aware participant/draw-state vocabulary is in Round 3 final review |
+| Event/player identity | #2, #9-15; sponsor renames, aliases, placeholders, lost ids | ESPN-id registry, evidence joins, alias proposer/falsifier, exact-once coverage, source-attachment uniqueness | Shared source-aware participant/draw-state vocabulary is committed locally in Round 3, not live |
 | Event/draw lifecycle | Wimbledon retry chain, stale settled draws, withdrawals, lost finals | Calendar lifecycle, active revalidation, official provenance, pre-deploy geometry/live integrity, Round 2 incident replays | Start-stamped events still lack progress-based liveness |
 | Source acquisition | LFS pointers, future dates, ESPN outage, MCP age | Payload validation, bounded retry, direct MCP and ESPN per-tour receipts, atomic last-good | No reproduced open defect after Round 1C |
-| Cache/artifact validity | Old predictor schemas, alias/population changes, draw and Firebase caches | Quick staleness guard, explicit versions, draw provenance/revalidation, release snapshot, no-store serving | Predictor unpickles before compatibility inspection; no checksum/envelope or whole-generation manifest |
+| Cache/artifact validity | Old predictor schemas, alias/population changes, draw and Firebase caches | Quick staleness guard, explicit versions, draw provenance/revalidation, release snapshot, no-store serving; local Round 4A envelope/lineage shadow | Production still unpickles before compatibility inspection and has no accepted two-tour public-data manifest |
 | Gate semantics | Bye sizes, accents, placeholders, shipped-vs-raw probability, tier severity | Typed findings/fingerprints, production replay corpus, pre-deploy gate, exact terminal reporter | No reproduced open defect after Round 2 |
-| CI control flow | Cron attribution, `bash -e`, skipped verifier, red cache persistence, I/O budgets | Tested mode/push/report/watchdog scripts, terminal mode-specific issues, unconditional cache save, 75-minute cap | Soft-fail stage receipts are in Round 3 final review |
-| Deploy/browser behavior | Header ordering, canonical cascade, mutable cache, global scroll | Post-deploy verifier and focused component/contracts | Deterministic real-browser CI is in Round 3 final review; transport-only second confirmation remains open |
-| Model/evaluation integrity | Walk/inference parity, stale artifacts, population changes, market budget | Full arbiter, parity and incident-replay tests, schema/population/alias versions, bounded Kalshi | No pre-unpickle artifact envelope or whole-generation lineage |
+| CI control flow | Cron attribution, `bash -e`, skipped verifier, red cache persistence, I/O budgets | Tested mode/push/report/watchdog scripts, terminal mode-specific issues, unconditional cache save, 75-minute cap | Soft-fail stage receipts are committed locally in Round 3, not live |
+| Deploy/browser behavior | Header ordering, canonical cascade, mutable cache, global scroll | Post-deploy verifier and focused component/contracts | Deterministic real-browser CI is committed locally in Round 3, not live; transport-only second confirmation remains open |
+| Model/evaluation integrity | Walk/inference parity, stale artifacts, population changes, market budget | Full arbiter, parity and incident-replay tests, schema/population/alias versions, bounded Kalshi; local Round 4A envelope/lineage shadow | Production has no pre-unpickle envelope or accepted two-tour public-data lineage |
 
 ## One-off fixes that were successfully standardized
 
@@ -242,7 +247,8 @@ These should be maintained, not reimplemented:
 - **One-sided freshness -> source contracts:** future-date bounds and direct acquisition/schema
   receipts replaced calendar-age guesses where cadence is not guaranteed.
 - **Invisible model staleness -> artifact versions:** trained-at, feature/schema, alias, and population
-  versions force quick rebuilds. A single artifact envelope is the remaining consolidation.
+  versions force quick rebuilds. Round 4A locally consolidates them into a pre-unpickle envelope;
+  production rollout and later fallback removal remain pending.
 - **Unbounded best effort -> explicit I/O budgets:** Kalshi, Wikipedia, downloads, jobs, and verifier
   calls acquired bounded attempts/deadlines and last-good semantics.
 - **Component validation -> final-artifact gates:** output integrity and live serving now guard what is
@@ -258,10 +264,10 @@ These should be maintained, not reimplemented:
 | P0 | Extract/test watchdog reporter and scan every workflow for inline issue mutation | **Live — Round 1A** | Very low; behavior-preserving refactor |
 | P1 | Stable `HealthFinding {code,severity,tour,entity,evidence}` plus fingerprint lifecycle | **Live — Round 2A** | Compatibility prose remains during migration |
 | P1 | Production-shape incident replay corpus with broken and clean controls | **Live — Round 2B** | Fixture upkeep is the ongoing cost |
-| P1 | Pre-unpickle predictor envelope/checksum and whole-generation lineage | **Planned — staged Round 4A/4B** | Medium design effort; shadow before enforcement |
 | P1 | Durable stage-status ledger using the active timing seam | **Live — Round 3A** | Product/evaluation criticality is explicit |
 | P1 | Canonical participant/draw-state classifier | **Live — Round 3B** | Source/context-specific policy is retained |
 | P2 | Run the existing real browser scroll/interaction smoke in CI | **Live — Round 3C** | Narrow deterministic fixture bounds runtime and flakes |
+| P1 | Pre-unpickle predictor envelope/checksum and exact two-tour public-data graph lineage | **Round 4A hardening reopened; not live** | Close no-follow filesystem and crash-durability blockers before shadow rollout |
 | P2 | Transport-only second verifier confirmation | Open; existing retry handles most cases | Low, but retries already solve most of the class |
 | P2 | Static external-I/O contract audit | Open | Useful guardrail; lower urgency than known artifact gaps |
 
@@ -313,14 +319,16 @@ latency, sharding, and US Open work.
   `test_workflow_alerts.py`.
 
 Round 1 shipped in `339287b`. Round 2 then introduced stable finding codes and the incident replay
-manifest in `9f6bd41`, before the broader participant-state and stage-ledger refactors in Round 3.
-The artifact envelope remains deliberately staged behind them in Round 4.
+manifest in `9f6bd41`. The broader participant-state, stage-ledger, and browser refactors are
+reviewed and committed locally in Round 3 as `bbe3d0b`, but remain undeployed. Round 4A's envelope
+and exact public-data graph lineage are implemented locally in shadow mode and remain staged behind
+that deployment.
 
 ## Reconciliation with post-audit work
 
 The US Open source-identity repair, WTA dual-state gate, and latency/sharding/cache work inspected in
 the original dirty tree shipped together in `339287b`; none was counted as production before that
-commit. Round 3 extends their existing timing and health seams rather than adding a parallel
+commit. Local Round 3 extends their existing timing and health seams rather than adding a parallel
 instrumentation framework, and keeps the source-attachment and model-adoption contracts intact.
 
 ## Commit coverage ledger
@@ -391,11 +399,19 @@ and incident map above. The 32 non-substantive commits are explicitly:
 - Aug 20: `aba6387` data; `7bd5ebe`, `8519492` docs; `0a58938` product.
 - Aug 21-22: `96a07c9`, `b1b8579` data only.
 
+### Local-only post-production commit — 1 commit
+
+- `bbe3d0b` — reviewed Round 3 stage observability, participant contract, and deterministic browser
+  safeguards. It is local on `master`, absent from `origin/master`, and excluded from the 317
+  production-commit total above. Round 4A working-branch changes are also excluded until released.
+
 ## Current rollout decision
 
 Rounds 1-3 are complete and live through production merge `1bcfe1b` (320 commits). Round 3 passed
 its full local release gate and production run `32745490015`, including quick regeneration, the
 pre-deploy integrity gate, Firebase publication, live verification, cache persistence, terminal
-health reporting, an independently green live health payload, and zero open issues. Round 4 remains
-a separate two-phase rollout: envelope/lineage shadow publication, one successful production
-bootstrap plus a later cache-restored quick run, then blocking enforcement.
+health reporting, an independently green live health payload, and zero open issues. Round 4A is now
+rebased but not releasable: a later audit reopened no-follow filesystem and directory-durability
+cases. After those are closed, the sequence remains shadow publication with safe legacy fallback,
+one successful full bootstrap, one successful cache-restored quick carry-forward, and only then
+Round 4B blocking enforcement.

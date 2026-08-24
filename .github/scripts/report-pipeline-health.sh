@@ -185,11 +185,11 @@ refresh_report() {
       workflow) failures="${failures}- mode/scope: unavailable or invalid\n" ;;
     esac
   else
-    required="checkout scope setup_python install_python restore_data bootstrap mode gate health setup_node restore_next build deploy verifydeploy reportdata reportdeploy savecache"
+    required="checkout scope setup_python install_python restore_data bootstrap mode gate mirror health setup_node restore_next build deploy verifydeploy reportdata reportdeploy savecache"
     case "$key" in
       full) required="$required download retrain persist snapshot" ;;
       quick-data) required="$required quick" ;;
-      quick-web) required="$required mirror" ;;
+      quick-web) ;;
       workflow) failures="${failures}- mode/scope: unavailable or invalid\n" ;;
     esac
   fi

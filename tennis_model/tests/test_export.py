@@ -17,6 +17,7 @@ from collections import deque
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
@@ -30,6 +31,26 @@ def _raise_nonfinite(tok):
 def _strict_load(text: str):
     """Parse the way a browser does — reject NaN/Infinity instead of accepting them."""
     return json.loads(text, parse_constant=_raise_nonfinite)
+
+
+def test_write_records_lineage_only_after_a_completed_close(monkeypatch, tmp_path):
+    from tennis_model import artifact_lineage as lineage
+
+    monkeypatch.setattr(export, "output_dir", lambda tour: tmp_path / tour)
+    with lineage.begin_produced_artifacts() as produced:
+        export._write("atp", "players.json", {"ok": True})
+        assert produced.snapshot("atp") == ("atp/players.json",)
+
+        original_dumps = export.json.dumps
+        monkeypatch.setattr(
+            export.json,
+            "dumps",
+            lambda *args, **kwargs: (_ for _ in ()).throw(OSError("short write")),
+        )
+        with pytest.raises(OSError, match="short write"):
+            export._write("wta", "players.json", {"ok": False})
+        assert produced.snapshot("wta") == ()
+        monkeypatch.setattr(export.json, "dumps", original_dumps)
 
 
 def test_finite_replaces_nonfinite_scalars():
@@ -281,15 +302,20 @@ def test_build_meta_separates_build_time_from_model_time():
                        "winner_name": ["A"], "loser_name": ["B"],
                        "has_stats": [True], "completed": [True], "surface_b": ["Hard"]})
     trained = "2026-07-04T04:31:07Z"
+    artifact_id = "7e15df9a-85f8-4b24-968e-f39438d31c27"
     meta = export.build_meta(df, players=[], accuracy=None, trained_at=trained,
-                             model_population_version=export.MATCH_POPULATION_VERSION)
+                             model_population_version=export.MATCH_POPULATION_VERSION,
+                             predictor_artifact_id=artifact_id)
     assert meta["modelTrainedAt"] == trained
+    assert meta["predictorArtifactId"] == artifact_id
     assert meta["stageStatusSchema"] == export.STAGE_STATUS_SCHEMA
     assert meta["modelPopulationVersion"] == export.MATCH_POPULATION_VERSION
     assert meta["dualStateThreshold"] is None and meta["dualStateReady"] is False
     assert meta["lastUpdated"] != trained and meta["lastUpdated"].endswith("Z")
     # a pickle predating the stamp must export null, not crash or fake a fresh time
-    assert export.build_meta(df, players=[], accuracy=None)["modelTrainedAt"] is None
+    legacy = export.build_meta(df, players=[], accuracy=None)
+    assert legacy["modelTrainedAt"] is None
+    assert legacy["predictorArtifactId"] is None
     _strict_load(json.dumps(export._finite(meta)))
     print("ok test_build_meta_separates_build_time_from_model_time")
 

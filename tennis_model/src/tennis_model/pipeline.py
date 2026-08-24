@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import shutil
 import threading
 import time
@@ -26,6 +27,7 @@ from .config import (
     DATA_DIR,
     KALSHI_LEDGER_DIR,
     MATCH_POPULATION_VERSION,
+    OUTPUT_DIR,
     PLAYER_ALIASES,
     TOURS,
     WEB_DATA_DIR,
@@ -95,6 +97,9 @@ class MarketScorecardNoMatchesDegraded(RuntimeError):
 # replacement; callers still receive only content digests and never private filesystem paths.
 _FILE_INPUT_IDENTITY_CACHE: dict[str, tuple[tuple[int, ...], dict]] = {}
 _FILE_INPUT_IDENTITY_CACHE_LOCK = threading.Lock()
+_PRODUCER_SOURCE_MAX_FILES = 512
+_PRODUCER_SOURCE_MAX_BYTES = 16 * 1024 * 1024
+_PRODUCER_SOURCE_SUFFIXES = frozenset({".py", ".csv"})
 
 
 def _frame_input_identity(frame) -> dict:
@@ -141,6 +146,7 @@ def _predictor_input_identity(predictor) -> dict:
     if is_dataclass(feature_params) and not isinstance(feature_params, type):
         feature_params = asdict(feature_params)
     return {
+        "artifactId": getattr(predictor, "artifact_id", None),
         "trainedAt": str(trained) if trained is not None else None,
         "populationVersion": getattr(predictor, "_match_population_version", None),
         "schemaVersion": getattr(predictor, "_inference_schema_version", None),
@@ -151,6 +157,7 @@ def _predictor_input_identity(predictor) -> dict:
             getattr(predictor, "_player_aliases", None)
         ),
         "modelVersion": __version__,
+        "sourceRevision": os.environ.get("GITHUB_SHA") or __version__,
     }
 
 
@@ -214,6 +221,47 @@ def _directory_input_identity(directory, patterns: tuple[str, ...]) -> dict:
         "state": "present",
         "files": {path.name: _file_input_identity(path) for path in paths if path.is_file()},
     }
+
+
+def _producer_revision(source_root: Path | None = None) -> str:
+    """Bind a release to the exact producer checkout or a bounded local source tree.
+
+    GitHub supplies the immutable commit SHA in production.  Local and test runs may
+    have uncommitted source, so their deterministic fallback hashes every Python module
+    under the package root instead of collapsing distinct implementations onto the
+    static package version. Committed CSV resources beside those modules are included
+    because venue altitude/timezone tables alter feature and simulation behavior.
+    """
+    github_sha = os.environ.get("GITHUB_SHA", "")
+    normalized_sha = github_sha.lower()
+    if len(github_sha) in {40, 64} and all(
+        c in "0123456789abcdef" for c in normalized_sha
+    ):
+        return f"git:{normalized_sha}"
+
+    root = (source_root or Path(__file__).resolve().parent).resolve(strict=False)
+    paths = sorted(
+        (path for path in root.rglob("*") if path.suffix in _PRODUCER_SOURCE_SUFFIXES),
+        key=lambda path: path.relative_to(root).as_posix(),
+    )
+    if not paths or len(paths) > _PRODUCER_SOURCE_MAX_FILES:
+        raise ValueError("producer source file count is outside the bounded contract")
+
+    digest = hashlib.sha256(b"tennis-model-producer-source-v1\0")
+    total_bytes = 0
+    for path in paths:
+        if path.is_symlink() or not path.is_file():
+            raise ValueError("producer source tree contains a non-regular Python file")
+        relative = path.relative_to(root).as_posix().encode("utf-8")
+        raw = path.read_bytes()
+        total_bytes += len(raw)
+        if total_bytes > _PRODUCER_SOURCE_MAX_BYTES:
+            raise ValueError("producer source bytes exceed the bounded contract")
+        digest.update(len(relative).to_bytes(4, "big"))
+        digest.update(relative)
+        digest.update(len(raw).to_bytes(8, "big"))
+        digest.update(raw)
+    return f"src1:{digest.hexdigest()}"
 
 
 def _json_input_identity(value: object) -> dict:
@@ -404,6 +452,180 @@ def _mirror(tour: str) -> None:
         shutil.copy(j, dst / j.name)
 
 
+_FRAME_PREDICTOR_ARTIFACT_ID = "_pipelinePredictorArtifactId"
+_FRAME_RELEASE_STAGE_INPUTS = "_pipelineReleaseStageInputs"
+
+
+def _bind_frame_predictor(frame, predictor) -> None:
+    """Carry validated runtime model identity to the parent release coordinator."""
+    attrs = getattr(frame, "attrs", None)
+    if isinstance(attrs, dict):
+        attrs[_FRAME_PREDICTOR_ARTIFACT_ID] = getattr(predictor, "artifact_id", None)
+
+
+def _bind_frame_release_stage_input(frame, stage: str, identity: dict) -> None:
+    """Retain the exact pre-stage view of mutable outputs consumed in this run."""
+
+    attrs = getattr(frame, "attrs", None)
+    if isinstance(attrs, dict):
+        stage_inputs = attrs.setdefault(_FRAME_RELEASE_STAGE_INPUTS, {})
+        if isinstance(stage_inputs, dict):
+            stage_inputs[stage] = identity
+
+
+def _release_source_identity(
+    tour: str,
+    frame,
+    mode: str,
+    *,
+    release_created_at: str,
+    producer_revision: str,
+    accepted_parent: dict | None,
+) -> dict:
+    """Compact aggregate identity for non-output inputs behind one tour graph."""
+    attrs = getattr(frame, "attrs", None)
+    stage_inputs = (
+        attrs.get(_FRAME_RELEASE_STAGE_INPUTS, {})
+        if isinstance(attrs, dict) else {}
+    )
+    return {
+        "tour": tour,
+        "mode": mode,
+        "modelVersion": __version__,
+        "producerRevision": producer_revision,
+        "releaseCreatedAt": release_created_at,
+        # A current artifact may read an old accuracy/profile/performance artifact on a
+        # quick or soft-fail path. The exact accepted parent manifest is the conservative
+        # transitive binding for every such retained input; bootstrap sealing requires all
+        # graph nodes to have current-run production proof instead.
+        "acceptedParent": accepted_parent,
+        # Captured immediately before a stage reads mutable retained/current outputs.
+        # This closes bootstrap provenance too, where no accepted-parent hash exists.
+        "stageInputs": _json_input_identity(
+            stage_inputs if isinstance(stage_inputs, dict) else {}
+        ),
+        "matches": _frame_input_identity(frame),
+        "rankings": _file_input_identity(live_dir(tour) / "rankings.json"),
+        "fields": _file_input_identity(live_dir(tour) / "fields.json"),
+        "events": _file_input_identity(live_dir(tour) / "events.json"),
+        "upcoming": _upcoming_source_identity(tour),
+        "forecastLog": _forecast_log_input_identity(tour),
+        "odds": _directory_input_identity(odds_dir(tour), ("*.xlsx", "*.csv")),
+        "kalshiLedger": _file_input_identity(
+            KALSHI_LEDGER_DIR / f"{tour}.csv"
+        ),
+        "charting": _directory_input_identity(
+            DATA_DIR / "raw" / "charting", ("*.csv", "*.json")
+        ),
+    }
+
+
+def _begin_shadow_release(mode: str):
+    """Snapshot a valid accepted parent before the first output writer, if one exists."""
+    from .artifact_lineage import (
+        ArtifactLineageError,
+        begin_release,
+        carry_forward_release,
+        unbless_release_for_mutation,
+    )
+
+    carried = None
+    try:
+        # Source and destination intentionally coincide in the production cache: the
+        # validated manifest records are the immutable prior snapshot used for exact
+        # carry decisions while writers replace files below it.
+        carried = carry_forward_release(OUTPUT_DIR, OUTPUT_DIR)
+    except (ArtifactLineageError, OSError) as exc:
+        reason = getattr(getattr(exc, "reason", None), "value", type(exc).__name__)
+        print(f"  lineage/{mode}: no accepted parent ({reason}); shadow bootstrap")
+    accepted = carried.accepted if carried is not None else None
+    context = begin_release(mode, accepted_prior=accepted)
+    # The carried manifest/receipt are now immutable in memory. Remove their durable
+    # pointers before the first public artifact can be mutated, so a host crash exposes
+    # an explicitly unblessed candidate rather than an old pointer over mixed bytes.
+    unbless_release_for_mutation(OUTPUT_DIR)
+    return context, carried
+
+
+def _seal_shadow_release(mode: str, frames: dict, context, carried, produced):
+    """Draft and seal one ATP+WTA manifest; failure remains observational in Round 4A."""
+    from .artifact_lineage import (
+        ArtifactLineageError,
+        ArtifactProvenance,
+        ReleaseCoordinator,
+        shadow_draft_tour_release,
+        source_fingerprint,
+    )
+
+    coordinator = ReleaseCoordinator(context)
+    try:
+        producer_revision = _producer_revision()
+    except (OSError, ValueError) as exc:
+        print(
+            f"  lineage/{mode}: shadow producer revision unavailable "
+            f"({type(exc).__name__})"
+        )
+        return None
+    accepted_parent = None
+    if carried is not None:
+        accepted_parent = {
+            "releaseId": carried.accepted.release_id,
+            "manifestSha256": carried.accepted.release.manifest_sha256,
+        }
+    for tour in TOURS:
+        try:
+            frame = frames[tour]
+            attrs = getattr(frame, "attrs", None)
+            artifact_id = (
+                attrs.get(_FRAME_PREDICTOR_ARTIFACT_ID)
+                if isinstance(attrs, dict) else None
+            )
+            provenance = ArtifactProvenance(
+                producer=f"tennis_model.pipeline@{producer_revision}",
+                source_fingerprint=source_fingerprint(
+                    _release_source_identity(
+                        tour,
+                        frame,
+                        mode,
+                        release_created_at=context.created_at,
+                        producer_revision=producer_revision,
+                        accepted_parent=accepted_parent,
+                    )
+                ),
+                predictor_artifact_id=artifact_id,
+            )
+            result = shadow_draft_tour_release(
+                OUTPUT_DIR,
+                tour,
+                context,
+                provenance,
+                carried=carried,
+                produced_paths=produced.snapshot(tour),
+            )
+        except (ArtifactLineageError, KeyError, OSError, TypeError) as exc:
+            reason = getattr(getattr(exc, "reason", None), "value", type(exc).__name__)
+            print(f"  lineage/{tour}: shadow draft unavailable ({reason})")
+            return None
+        if result.draft is None:
+            for issue in result.issues:
+                print(f"  lineage/{tour}: shadow {issue.reason.value}"
+                      f"{f' ({issue.path})' if issue.path else ''}")
+            return None
+        coordinator.merge(result.draft)
+
+    try:
+        release = coordinator.seal(OUTPUT_DIR)
+    except (ArtifactLineageError, OSError) as exc:
+        reason = getattr(getattr(exc, "reason", None), "value", type(exc).__name__)
+        print(f"  lineage/{mode}: shadow seal unavailable ({reason})")
+        return None
+    print(
+        f"  lineage/{mode}: sealed {release.release_id} "
+        f"({len(release.records)} exact artifacts, {release.manifest_sha256[:12]})"
+    )
+    return release
+
+
 def _prepare_upcoming(tour: str, predictor, df) -> list[dict] | None:
     """Price the live schedule once for both tracking and the published snapshot."""
     try:
@@ -434,11 +656,13 @@ def _track(tour: str, predictor, df, enriched: list[dict] | None = None) -> None
     """Log point-in-time forecasts + (re)grade them (writes track.json). Best-effort:
     a tracking failure must never break the build/deploy."""
     try:
+        tracking_sources = _tracking_source_identity(tour)
+        _bind_frame_release_stage_input(df, "tracking", tracking_sources)
         with _receipt_stage(
             tour, "tracking", _frame_input_identity(df),
             _predictor_input_identity(predictor),
             _enriched_input_identity(enriched),
-            _tracking_source_identity(tour),
+            tracking_sources,
         ) as attempt:
             from .eval.track import log_and_grade
             status: dict = {}
@@ -455,11 +679,13 @@ def _forecast_products(tour: str, predictor, df,
                        enriched: list[dict] | None = None) -> None:
     """Publish history/performance decorations after the current snapshot is logged."""
     try:
+        forecast_sources = _forecast_products_source_identity(tour)
+        _bind_frame_release_stage_input(df, "forecastProducts", forecast_sources)
         with _receipt_stage(
             tour, "forecast_products", _frame_input_identity(df),
             _predictor_input_identity(predictor),
             _enriched_input_identity(enriched),
-            _forecast_products_source_identity(tour),
+            forecast_sources,
         ):
             from .model.export import export_forecast_products
             export_forecast_products(tour, predictor, df, enriched=enriched)
@@ -587,11 +813,12 @@ def _quick_kalshi(tours, frames: dict) -> None:
         print(f"  kalshi/quick: skipped ({e})")
 
 
-def _kalshi_report(tours) -> None:
+def _kalshi_report(tours, *, mirror: bool = True) -> None:
     """Regenerate the cross-tour Kalshi scorecard (kalshi.json + report.md) from the
-    ledger CSVs, then re-mirror so the fresh kalshi.json reaches web/public/data (the
-    first _mirror ran before the report existed). Reads the committed CSVs, so it also
-    republishes kalshi.json on quick runs / after a data-cache eviction. Best-effort."""
+    ledger CSVs. Single-tour/legacy callers may mirror immediately; exact all-tour runs
+    leave publication to the post-gate release coordinator so the final Kalshi bytes are
+    inside the same manifest. Reads the committed CSVs, so it also republishes kalshi.json
+    on quick runs / after a data-cache eviction. Best-effort."""
     try:
         report_inputs = _kalshi_report_input_identity(tours)
         with ExitStack() as stack:
@@ -601,16 +828,19 @@ def _kalshi_report(tours) -> None:
                 ))
             from .eval.kalshi_report import build_report
             build_report()
-            for tour in report_inputs["tours"]:
-                _mirror(tour)
+            if mirror:
+                for tour in report_inputs["tours"]:
+                    _mirror(tour)
     except Exception as e:                                   # noqa: BLE001 — never fatal
         print(f"  kalshi-report: skipped ({e})")
 
 
-def build_tour(tour: str, do_backtest: bool, *, run_kalshi: bool = True):
+def build_tour(tour: str, do_backtest: bool, *, run_kalshi: bool = True,
+               mirror: bool = True):
     """Full build: re-walk ratings, retrain the combiner, write every JSON (daily).
     ``run_kalshi=False`` is used only by a quick-mode compatibility rebuild so the
-    caller can keep both tours under the shared hourly benchmark budget."""
+    caller can keep both tours under the shared hourly benchmark budget. The all-tour
+    release coordinator also sets ``mirror=False`` until the semantic gate accepts it."""
     print(f"\n=== {tour.upper()} === loading matches + building features...")
     threshold = WTA_DUAL_STATE_GATE_THRESHOLD if tour == "wta" else None
     # Keep the user-facing/health population main-only.  The WTA overlay is loaded a
@@ -669,6 +899,7 @@ def build_tour(tour: str, do_backtest: bool, *, run_kalshi: bool = True):
         dual_state_threshold=threshold,
     )
     predictor.save()
+    _bind_frame_predictor(df, predictor)
 
     export_all(tour, df, elo, srv, meta, predictor, oos=oos)
     if oos is not None:
@@ -678,7 +909,8 @@ def build_tour(tour: str, do_backtest: bool, *, run_kalshi: bool = True):
     _forecast_products(tour, predictor, df, enriched)  # this run's snapshot reaches same deploy
     if run_kalshi:
         _kalshi(tour, df, oos)                         # daily historical benchmark repair
-    _mirror(tour)
+    if mirror:
+        _mirror(tour)
     return df
 
 
@@ -698,7 +930,11 @@ def _market_scorecard(tour: str, oos) -> None:
                 attempt.mark_failure(MarketScorecardNoMatchesDegraded(
                     "market scorecard joined zero OOS matches"
                 ))
-            (output_dir(tour) / "market.json").write_text(json.dumps(sc, indent=2))
+            path = output_dir(tour) / "market.json"
+            from .artifact_lineage import write_produced_artifact
+            write_produced_artifact(
+                tour, path, json.dumps(sc, indent=2).encode("utf-8")
+            )
             print(f"  market/{tour}: matched={sc.get('matched')} "
                   f"model={sc.get('model', {}).get('brier')} "
                   f"market={sc.get('market', {}).get('brier')} "
@@ -708,49 +944,25 @@ def _market_scorecard(tour: str, oos) -> None:
 
 
 def _predictor_current(predictor, tour: str) -> bool:
-    """True unless the saved predictor is stale: trained on a different feature
-    schema (e.g. a cached predictor.pkl predating a feature addition — scoring it
-    against freshly assembled frames would crash inside XGBoost), or carrying
-    FeatureParams that differ from the tour's current config — its combiner was
-    trained on frames built with other thresholds (e.g. a pickle that shipped with
-    fp=None, or one predating a FEAT_PARAM_OVERRIDES adoption), or rating state
-    walked over a different match-population contract."""
+    """Fail closed unless every cached predictor field and fitted object is current.
+
+    The artifact reader performs this validation after strict envelope/hash preflight;
+    the quick guard deliberately repeats it at its reuse decision so an opaque booster,
+    unfitted calibrator, partial state bundle, or legacy raw-field shape can only trigger
+    a controlled full rebuild.  The one Round 4A legacy loader assigns a deterministic
+    UUIDv5 after unpickling; that ID is admitted here while every structural/config
+    invariant remains identical to the UUIDv4 envelope path.
+    """
+    from .model.artifact import PredictorArtifactError, validate_predictor_structure
+
     try:
-        trained = list(predictor.clf.get_booster().feature_names or [])
-        if trained != list(FEATURES):
-            return False
-    except Exception:                                        # noqa: BLE001 — can't introspect: assume schema-current
-        pass
-    try:
-        if predictor._fp != feat_params_for(tour):
-            return False
-    except Exception:                                        # noqa: BLE001 — foreign fp shape (cross-version pickle): rebuild
+        validate_predictor_structure(predictor, tour, allow_legacy_id=True)
+    except PredictorArtifactError:
         return False
-    try:
-        if predictor._match_population_version != MATCH_POPULATION_VERSION:
-            return False
-    except Exception:                                        # noqa: BLE001 — legacy/foreign pickle: rebuild
-        return False
-    try:
-        if predictor._inference_schema_version != 3:
-            return False
-    except Exception:                                        # noqa: BLE001 — legacy context mirror: rebuild
-        return False
-    expected_gate = WTA_DUAL_STATE_GATE_THRESHOLD if tour == "wta" else None
-    try:
-        if predictor._dual_state_threshold != expected_gate:
-            return False
-        if bool(expected_gate is not None) != bool(predictor._has_lower_state):
-            return False
-    except Exception:                                        # noqa: BLE001 — legacy/partial dual state: rebuild
-        return False
-    try:
-        return predictor._player_aliases == tuple(sorted(PLAYER_ALIASES.items()))
-    except Exception:                                        # noqa: BLE001 — legacy/foreign pickle: rebuild
-        return False
+    return True
 
 
-def build_tour_quick(tour: str):
+def build_tour_quick(tour: str, *, mirror: bool = True):
     """Quick refresh (intra-day): reuse the saved predictor's states, re-pull live
     results, regenerate JSON. No re-walk or retrain; warm-cache tours export in parallel.
     to persist from the last full run (the workflow caches data/output)."""
@@ -758,25 +970,38 @@ def build_tour_quick(tour: str):
     threshold = WTA_DUAL_STATE_GATE_THRESHOLD if tour == "wta" else None
     df = load_matches(tour, include_lower=False) if threshold is not None else load_matches(tour)
     _health_manifest(tour, df)
-    predictor = TennisPredictor.load(tour)
+    from .model.artifact import PredictorArtifactError
+    try:
+        predictor = TennisPredictor.load(tour)
+    except PredictorArtifactError as exc:
+        print(
+            f"  quick: saved predictor rejected ({exc.reason.value}) -> full rebuild"
+        )
+        return build_tour(
+            tour, do_backtest=False, run_kalshi=False, mirror=mirror
+        )
     if not _predictor_current(predictor, tour):
         print("  quick: saved predictor is stale (feature schema, FeatureParams, match "
               "population, or player aliases) -> full rebuild")
-        return build_tour(tour, do_backtest=False, run_kalshi=False)
+        return build_tour(
+            tour, do_backtest=False, run_kalshi=False, mirror=mirror
+        )
+    _bind_frame_predictor(df, predictor)
     export_all(tour, df, predictor.elo, predictor.srv, predictor.meta, predictor,
                oos=None, full=False)
     enriched = _prepare_upcoming(tour, predictor, df)
     _track(tour, predictor, df, enriched)
     _forecast_products(tour, predictor, df, enriched)
-    _mirror(tour)
+    if mirror:
+        _mirror(tour)
     return df
 
 
-def _build_quick_tours(tours: list[str]) -> dict:
+def _build_quick_tours(tours: list[str], *, mirror: bool = True) -> dict:
     """Build independent tour outputs concurrently after shared downloads complete."""
     def build_one(tour: str):
         with _stage(f"{tour.upper()} forecast export"):
-            return build_tour_quick(tour)
+            return build_tour_quick(tour, mirror=mirror)
 
     if len(tours) <= 1:
         return {tour: build_one(tour) for tour in tours}
@@ -820,11 +1045,24 @@ def main():
             download_tournament_draws(tours, events_by_tour=events_by_tour)
         with _stage("live rankings"):
             download_rankings(tours)
-        frames = _build_quick_tours(tours)
-        with _stage("Kalshi quick benchmark"):
-            _quick_kalshi(tours, frames)
-        with _stage("Kalshi report"):
-            _kalshi_report(tours)
+        if tuple(tours) == tuple(TOURS):
+            from .artifact_lineage import begin_produced_artifacts
+            with begin_produced_artifacts() as produced:
+                context, carried = _begin_shadow_release("quick")
+                frames = _build_quick_tours(tours, mirror=False)
+                with _stage("Kalshi quick benchmark"):
+                    _quick_kalshi(tours, frames)
+                with _stage("Kalshi report"):
+                    _kalshi_report(tours, mirror=False)
+                _seal_shadow_release(
+                    "quick", frames, context, carried, produced
+                )
+        else:
+            frames = _build_quick_tours(tours)
+            with _stage("Kalshi quick benchmark"):
+                _quick_kalshi(tours, frames)
+            with _stage("Kalshi report"):
+                _kalshi_report(tours)
         return
 
     if args.download:
@@ -837,10 +1075,20 @@ def main():
         download_tournament_draws(tours, events_by_tour=events_by_tour)
         download_rankings(tours)
 
-    for tour in tours:
-        build_tour(tour, args.backtest)
-
-    _kalshi_report(tours)
+    if tuple(tours) == tuple(TOURS):
+        from .artifact_lineage import begin_produced_artifacts
+        with begin_produced_artifacts() as produced:
+            context, carried = _begin_shadow_release("full")
+            frames = {
+                tour: build_tour(tour, args.backtest, mirror=False)
+                for tour in tours
+            }
+            _kalshi_report(tours, mirror=False)
+            _seal_shadow_release("full", frames, context, carried, produced)
+    else:
+        for tour in tours:
+            build_tour(tour, args.backtest)
+        _kalshi_report(tours)
 
 
 if __name__ == "__main__":

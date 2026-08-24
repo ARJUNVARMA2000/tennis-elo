@@ -5501,6 +5501,69 @@ Pre-deploy and production review complete.
   are informational source notes. A final fetch confirmed `origin/master` at `1bcfe1b` before this
   tasks-only completion note; `tasks/**` is excluded from the production trigger.
 
-Round 4 will add the pre-unpickle predictor envelope and whole-build lineage manifest after this
-release establishes the shared status/criticality vocabulary; the manifest will shadow before it
+Round 4 adds the pre-unpickle predictor envelope and exact two-tour public-data graph manifest after
+this release establishes the shared status/criticality vocabulary; the manifest shadows before it
 becomes blocking.
+
+## Historical reliability audit — Round 4A/4B artifact integrity (2026-08-24)
+
+Status: Round 3 is live; Round 4A has been rebased for a new blocking filesystem-safety review and is
+not approved for production until the hardening checklist below passes.
+
+- [x] Round 4A predictor shadow: keep `predictor.pkl` rollback-readable while writing a strict,
+      bounded, non-public envelope with exact bytes/hash, runtime and dependency identity, exact
+      model/configuration and required inference-state structure, stable artifact ID, durable pending
+      marker before payload/envelope publication, and fail-closed validation for every present
+      envelope. Permit genuinely legacy envelope-free pickles during the shadow window until a full
+      retrain creates the new pair and Round 4B removes fallback.
+- [x] Round 4A lineage shadow: generate one shared ATP/WTA release identity, discover the complete
+      fixed/indexed two-tour public-data JSON graph, hash exact bytes with explicit producer/source/predictor
+      provenance, accept carry-forward only from a fully validated and gate-accepted prior release,
+      and copy declared files before the manifest. Keep shadow findings informational until a full
+      production bootstrap and following quick run prove the cache transition.
+- [x] Add strict schema/bound/path/hash/atomic/crash/rollback/red-cache/concurrent-tour tests plus
+      predictor bag/calibrator/state and lineage graph/mirror/acceptance negative controls. Run the
+      repository-wide release gate and obtain independent adversarial review.
+- [ ] After Round 3 is live, deploy Round 4A deliberately; confirm both predictor envelopes, one
+      accepted two-tour lineage manifest, a successful full bootstrap, and a subsequent quick
+      carry-forward run in the production cache and live verifier.
+- [ ] Round 4B enforcement: remove legacy predictor and mirror fallback, make lineage failures
+      blocking, rebuild static artifacts when accepted lineage is unavailable, make the existing
+      exact live-graph verification mandatory, deploy, and verify issue/report recovery.
+- [ ] Reconcile the final history audit, production commits/runs/live hashes, lessons, and any
+      intentionally deferred lower-priority follow-ups before closing the audit goal.
+
+### Round 4A local review
+
+- Predictor loading now verifies a bounded strict envelope and the exact payload bytes before any
+  deserialization, then checks the concrete five-booster bag, calibrator, configuration, model
+  identity, and required ATP/WTA inference-state structure. A durable pending marker closes every
+  crash window between the separately atomic payload and envelope writes; quick reuse shares the
+  same guard and rebuilds on rejection. The plain pickle remains readable by the rollback loader.
+- One shared release records the exact public-data JSON graph for both tours. Produced artifacts are
+  proven only after durable writes, logical output batches become valid together, carry-forward is
+  admitted only from an exact accepted parent, and source provenance binds retained pre-stage inputs.
+  Acceptance is written only after the semantic gate; every mutation first revokes stale validity.
+- The earlier 956-Python/308-web pre-deploy pass remains useful baseline evidence, but a later writer
+  audit reopened ancestor-overlap, destination-symlink, post-copy mutation, symlinked-directory prune,
+  predictor-envelope symlink, and directory-fsync cases. Those are blocking correctness/security
+  findings; the prior SHIP verdict is withdrawn until failing-first regressions close all of them.
+- No envelope, accepted release receipt, or lineage manifest has been claimed in production. Round 3
+  is live at merge `1bcfe1b`; Round 4A publication remains pending behind the hardening, complete
+  release gate, and fresh adversarial review, followed by the full-bootstrap and quick-carry
+  observations required before Round 4B.
+
+### Round 4A reopened hardening plan
+
+- [ ] Reject source/destination roots that are equal or ancestor-related before any prune/copy, using
+      canonical no-follow checks that cannot erase or mutate the source tree.
+- [ ] Reject symlinks at every source and destination path component, including tour directories,
+      undeclared directory entries, predictor payload/envelope/pending files, and paths escaping the
+      trusted release root; prove rejection occurs before reads, deserialization, deletion, or copy.
+- [ ] Revalidate the complete copied destination graph from fresh file descriptors immediately before
+      manifest publication; a source or destination mutation after copy must revoke proof and fail.
+- [ ] Make prune/copy publication crash-durable by fsyncing every changed directory before manifest or
+      acceptance publication, and add injected-failure tests for each ordering boundary.
+- [ ] Rerun focused artifact/lineage/pipeline/verifier suites, all Python and web tests, repository
+      lint/type/build/browser/integrity gates, production-shaped legacy/full/quick rehearsals, and an
+      independent adversarial review before committing or deploying Round 4A.

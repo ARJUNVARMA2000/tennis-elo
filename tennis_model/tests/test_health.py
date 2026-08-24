@@ -2691,6 +2691,76 @@ def test_output_numbered_qualifier_as_model_favourite_is_flagged():
                    for p in health.output_problems("atp", _oc(data=d2), NOW))
     print("ok test_output_numbered_qualifier_as_model_favourite_is_flagged")
 
+
+def test_lineage_shadow_observation_is_informational_and_redacts_detail(monkeypatch):
+    from tennis_model import artifact_lineage as lineage
+
+    issue = lineage.LineageIssue(
+        code="output.lineage.manifest_invalid",
+        severity="info",
+        reason=lineage.LineageReason.MANIFEST_INVALID,
+        tour="atp",
+        path="atp/meta.json",
+    )
+    monkeypatch.setattr(
+        lineage,
+        "inspect_release",
+        lambda *args, **kwargs: lineage.LineageState(
+            state="invalid", release=None, issues=(issue,)
+        ),
+    )
+
+    summary, findings = health._lineage_observation(require_accepted=True)
+    assert summary == {
+        "schema": "artifact-lineage-v1",
+        "status": "invalid",
+        "releaseId": None,
+        "manifestSha256": None,
+        "tours": ["atp", "wta"],
+    }
+    assert findings["wta"] == []
+    assert len(findings["atp"]) == 1
+    finding = findings["atp"][0]
+    assert finding.severity == "info" and not health._gate_blocks(finding)
+    assert finding.entity == "atp/meta.json"
+    assert set(finding.evidence) == {"state", "reason", "path"}
+
+
+def test_accepted_lineage_summary_is_exact_and_live_verifier_ready(monkeypatch, tmp_path):
+    from tennis_model import artifact_lineage as lineage
+
+    release_id = "11111111-1111-4111-8111-111111111111"
+    digest = "a" * 64
+    release = lineage.ValidatedRelease(
+        root=tmp_path,
+        manifest={"releaseId": release_id, "artifacts": []},
+        manifest_bytes=b"{}\n",
+        manifest_sha256=digest,
+    )
+    accepted = lineage.AcceptedRelease(
+        release=release,
+        receipt={},
+        receipt_bytes=b"{}\n",
+    )
+    monkeypatch.setattr(
+        lineage,
+        "inspect_release",
+        lambda *args, **kwargs: lineage.LineageState(
+            state="accepted", release=accepted
+        ),
+    )
+
+    summary, findings = health._lineage_observation(require_accepted=True)
+    assert summary == {
+        "schema": "artifact-lineage-v1",
+        "status": "accepted",
+        "releaseId": release_id,
+        "manifestSha256": digest,
+        "tours": ["atp", "wta"],
+    }
+    assert findings == {"atp": [], "wta": []}
+
+
 if __name__ == "__main__":
     test_problems_fresh_is_clean()
     test_problems_future_dated_match_flagged()

@@ -166,3 +166,13 @@ Indexed in [`../lessons.md`](../lessons.md).
   +0.00098±0.00066. **How to apply:** when a gate promises protection, include the complete fitted
   path—features, model, and calibration—in the invariant, and assert exact output parity on every
   protected row rather than inferring safety from routing logic.
+
+- **A checksum is not a pickle compatibility contract, and inspecting the object after unpickling
+  is already too late.** (2026-08-24, Round 4A predictor envelope) A payload hash proves only that
+  bytes did not change; it says nothing about the runtime, library versions, feature order, tuned
+  parameters, bag membership, calibrator, tour, or inference-state shape those bytes require.
+  **How to apply:** bound and parse a strict non-public envelope, verify its exact payload length and
+  SHA-256 plus runtime/dependency/configuration contract before deserialization, then validate the
+  concrete predictor, every fitted booster, calibrator, and required state structure afterward.
+  Make quick reuse call the same guard so the fast path cannot bypass the release contract; keep any
+  legacy exception explicit, observable, and temporary.

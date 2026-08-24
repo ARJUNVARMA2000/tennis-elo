@@ -262,3 +262,15 @@ New lesson → append the entry to the matching topic file and add its lead line
   [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md).
 - Gate fixture identities explicitly so the general browser verifier remains usable with real data.
   See [`lessons/web.md`](lessons/web.md).
+
+## Artifact-integrity additions (2026-08-24)
+
+- Validate exact bytes, runtime, dependencies, configuration, and concrete fitted/state structure
+  around—not merely after—pickle deserialization. See
+  [`lessons/model-research.md`](lessons/model-research.md).
+- Close separately atomic payload/envelope crash windows with a durable pending marker, and treat
+  release acceptance/manifest files as revocable validity pointers. See
+  [`lessons/gates-and-health.md`](lessons/gates-and-health.md).
+- Keep fallback through observed legacy, full-bootstrap, and quick-carry production states; a failed
+  shadow publication must revoke stale proof before exact fallback. See
+  [`lessons/ci-and-deploy.md`](lessons/ci-and-deploy.md).

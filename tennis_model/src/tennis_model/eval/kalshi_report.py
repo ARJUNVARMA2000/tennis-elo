@@ -385,7 +385,11 @@ def build_report(tours=TOURS) -> dict:
         }
         d = output_dir(t)
         d.mkdir(parents=True, exist_ok=True)
-        (d / "kalshi.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        path = d / "kalshi.json"
+        from ..artifact_lineage import write_produced_artifact
+        write_produced_artifact(
+            t, path, json.dumps(payload, indent=2).encode("utf-8")
+        )
 
     print(f"  kalshi-report: {headline.get('pooled', {}).get('n', 0)} scored matches "
           f"-> {KALSHI_LEDGER_DIR / 'report.md'}")

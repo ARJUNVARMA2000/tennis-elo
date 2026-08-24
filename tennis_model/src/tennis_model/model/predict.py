@@ -9,7 +9,7 @@ are set neutral for hypothetical matchups; head-to-head comes from career histor
 from __future__ import annotations
 
 import math
-import pickle
+import uuid
 from datetime import UTC, datetime
 
 import numpy as np
@@ -62,6 +62,7 @@ EVIDENCE_GROUPS: dict[str, tuple[str, ...]] = {
     "h2h": ("h2h_diff", "h2h_surface_diff", "log1p_h2h_total"),
     "style": tuple(STYLE_DIFFS),
 }
+INFERENCE_SCHEMA_VERSION = 3
 
 
 class TennisPredictor:
@@ -92,13 +93,17 @@ class TennisPredictor:
         self.match_population_version = MATCH_POPULATION_VERSION
         # Bump when prediction-time state/semantics change without changing FEATURES.
         # Quick mode must not reuse a pickle whose context lacks the rest/fatigue mirror.
-        self.inference_schema_version = 3
+        self.inference_schema_version = INFERENCE_SCHEMA_VERSION
         # When this model was trained. Derived here rather than at the call sites (both of
         # them construct straight out of train_final) so no path can ship an unstamped
         # pickle — same reasoning as `fp` above. It rides INSIDE the pickle on purpose: the
         # file mtime is laundered by an actions/cache restore, and every JSON export stamps
         # itself with now(), so this is the only honest record of model age.
         self.trained_at = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+        # Stable identity for this trained generation.  It is intentionally independent
+        # from the envelope's payload digest: the UUID can ride inside the plain pickle
+        # without creating a circular hash, while SHA-256 binds the exact serialized bytes.
+        self.artifact_id = str(uuid.uuid4())
 
     @property
     def _fp(self):
@@ -494,16 +499,17 @@ class TennisPredictor:
 
     # -- persistence ---------------------------------------------------------------
     def save(self, path=None) -> None:
+        from .artifact import save_predictor_artifact
+
         path = path or predictor_path(self.tour)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, "wb") as fh:
-            pickle.dump(self, fh)
+        save_predictor_artifact(self, path)
 
     @staticmethod
     def load(tour: str = "atp", path=None) -> TennisPredictor:
+        from .artifact import load_predictor_artifact
+
         path = path or predictor_path(tour)
-        with open(path, "rb") as fh:
-            return pickle.load(fh)
+        return load_predictor_artifact(path, tour)
 
 
 def fit_predictor(tour: str = "atp", save: bool = True) -> TennisPredictor:

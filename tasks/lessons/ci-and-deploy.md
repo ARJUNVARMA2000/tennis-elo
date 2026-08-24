@@ -255,3 +255,14 @@ Indexed in [`../lessons.md`](../lessons.md).
   keys or retire a legacy aggregate; only the complete sentinel may do that. When issue inventory
   is unavailable or malformed, do no speculative mutation, keep active unrepresented failures red,
   and let clean runs defer cleanup without manufacturing a pipeline failure.
+
+- **A shadow cache migration needs production evidence from both sides of the transition before
+  fallback can be removed.** (2026-08-24, Round 4A artifact rollout) Unit tests can prove the legacy,
+  full, and quick branches individually, but they cannot prove that the production cache actually
+  crossed them with the expected files and identities. **How to apply:** observe three ordered live
+  states: safe legacy fallback on the old cache, a successful full bootstrap that creates both
+  predictor envelopes and one accepted two-tour public-data manifest, then a successful quick run
+  that carries only the exact accepted parent. Keep shadow findings informational through that
+  sequence. A failed shadow publication must first remove stale acceptance/manifest proof and clean
+  undeclared/private public files before legacy fallback; if stale proof cannot be revoked or the
+  fallback cannot complete exactly, fail the job instead of claiming a degraded success.

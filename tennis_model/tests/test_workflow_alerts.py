@@ -240,7 +240,7 @@ def _stage_outcomes(kind: str = "full", **overrides: str) -> str:
              "verifydeploy snapshot reportdata reportdeploy savecache failpersist faildownload")
     values = {name: "skipped" for name in names.split()}
     for name in ("checkout", "scope", "setup_python", "install_python", "restore_data",
-                 "bootstrap", "mode", "gate", "health", "setup_node", "restore_next",
+                 "bootstrap", "mode", "gate", "mirror", "health", "setup_node", "restore_next",
                  "build", "deploy", "verifydeploy", "reportdata", "reportdeploy", "savecache"):
         values[name] = "success"
     if kind == "full":
@@ -248,7 +248,7 @@ def _stage_outcomes(kind: str = "full", **overrides: str) -> str:
     elif kind == "quick-data":
         values["quick"] = "success"
     elif kind == "quick-web":
-        values["mirror"] = "success"
+        pass
     values.update(overrides)
     return "\n".join(f"{name}={values[name]}" for name in names.split())
 
@@ -839,6 +839,12 @@ def test_unexpected_required_skip_is_a_pipeline_failure():
     code, _, _, body, _ = _run_pipeline(kind="quick-data", outcomes=outcomes)
     assert code == 1 and "build: skipped" in body
 
+    # Publication now owns every mode, not only a web-only push. A skipped lineage/
+    # legacy mirror must never be mistaken for a healthy data refresh.
+    outcomes = _stage_outcomes("full", mirror="skipped")
+    code, _, _, body, _ = _run_pipeline(kind="full", outcomes=outcomes)
+    assert code == 1 and "mirror: skipped" in body
+
 
 def test_data_and_deploy_failures_keep_their_existing_issue_owners():
     owned = _stage_outcomes("quick-data", verifydeploy="failure", reportdeploy="failure",
@@ -1248,12 +1254,15 @@ def test_pipeline_reporters_cover_the_job_tail_and_terminal_failures():
 def test_web_push_keeps_both_integrity_gates_and_uses_cached_mirror():
     wf = WORKFLOW.read_text(encoding="utf-8")
     assert "steps.scope.outputs.scope != 'web'" in wf
-    assert "steps.scope.outputs.scope == 'web'" in wf
+    assert 'if [ "${{ steps.scope.outputs.scope }}" = "web" ]; then' in wf
     assert "python -m tennis_model.data.health --gate" in wf
     assert "python -m tennis_model.data.health" in wf
     assert "Verify live Firebase deploy" in wf
-    assert "! -name 'health-source.json' ! -name 'stage-status.json'" in wf
-    assert "! -name 'stage-status.private'" in wf
+    assert "python -m tennis_model.artifact_lineage publish --scope web" in wf
+    assert "python -m tennis_model.artifact_lineage publish --scope data" in wf
+    assert "--semantic-gate-passed --validator predeploy-integrity-gate-v1" in wf
+    assert wf.index("id: gate") < wf.index("id: mirror") < wf.index("id: health")
+    assert "find \"tennis_model/data/output/$tour\"" not in wf
 
 
 def test_deploy_inputs_are_cached_and_firebase_tooling_is_immutable():

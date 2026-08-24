@@ -194,6 +194,53 @@ def _finding_messages(findings: list[HealthFinding], *, actionable_only: bool = 
             if not actionable_only or finding.severity != "info"]
 
 
+def _lineage_observation(*, require_accepted: bool) -> tuple[dict, dict[str, list[HealthFinding]]]:
+    """Inspect the whole release once and translate shadow issues into typed findings.
+
+    Round 4A is observational: every lineage issue is informational, so neither the
+    semantic gate nor the ordinary health verdict can be made red by the new format.
+    Raw parser/IO detail remains private; the public contract carries only a stable reason,
+    safe relative artifact path, and state. Global release issues are attached to both
+    tours because one shared manifest owns both payloads.
+    """
+    from ..artifact_lineage import AcceptedRelease, inspect_release
+
+    state = inspect_release(
+        OUTPUT_DIR,
+        require_accepted=require_accepted,
+        shadow=True,
+    )
+    accepted = state.release if isinstance(state.release, AcceptedRelease) else None
+    release = accepted.release if accepted is not None else state.release
+    summary = {
+        "schema": "artifact-lineage-v1",
+        "status": state.state,
+        "releaseId": release.release_id if release is not None else None,
+        "manifestSha256": release.manifest_sha256 if release is not None else None,
+        "tours": list(TOURS),
+    }
+    by_tour: dict[str, list[HealthFinding]] = {tour: [] for tour in TOURS}
+    for issue in state.issues:
+        affected = (issue.tour,) if issue.tour in TOURS else tuple(TOURS)
+        for tour in affected:
+            reason = issue.reason.value
+            path = issue.path
+            by_tour[tour].append(HealthFinding(
+                code=issue.code,
+                severity="info",
+                scope="output",
+                tour=tour,
+                entity=path or "release",
+                evidence={"state": state.state, "reason": reason, "path": path},
+                message=(
+                    f"{tour.upper()} release-lineage shadow: "
+                    f"{reason.replace('-', ' ')}"
+                    + (f" ({path})" if path else "")
+                ),
+            ))
+    return summary, by_tour
+
+
 def _write_json_atomic(path, payload: object) -> None:
     """Write JSON without ever exposing a partial file to the next workflow step."""
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -4256,9 +4303,12 @@ def main() -> int:
         advisory: list[dict] = []
         gate_findings: list[HealthFinding] = []
         outs = {tour: read_outputs(tour) for tour in TOURS}
+        _, lineage_findings = _lineage_observation(require_accepted=False)
         for tour in TOURS:
-            for finding in output_findings(
-                    tour, outs[tour], now, prev=None, observed_at=observed_at):
+            tour_findings = output_findings(
+                tour, outs[tour], now, prev=None, observed_at=observed_at
+            ) + lineage_findings[tour]
+            for finding in tour_findings:
                 gate_findings.append(finding)
                 item = {"scope": tour, "problem": finding.message,
                         "finding": finding.as_dict()}
@@ -4330,6 +4380,8 @@ def main() -> int:
                             "eventCoverage": {}, "tours": {}}, []
     all_findings: list[HealthFinding] = []
     outs = {tour: read_outputs(tour) for tour in TOURS}
+    lineage_summary, lineage_findings = _lineage_observation(require_accepted=True)
+    report["artifactLineage"] = lineage_summary
     # Cross-tour problems belong to no single tour; attach them to the first only for the
     # legacy nested prose flow. Their canonical structured copy remains scope=cross.
     cross_findings = cross_tour_findings(outs)
@@ -4341,7 +4393,8 @@ def main() -> int:
         prev_out = ((prev or {}).get("tours", {}).get(tour, {}) or {}).get("output") or {}
         oc = outs[tour]
         output_typed = output_findings(
-            tour, oc, now, prev_out, observed_at=observed_at)
+            tour, oc, now, prev_out, observed_at=observed_at
+        ) + lineage_findings[tour]
         nested_cross = cross_findings if tour == TOURS[0] else []
         op = _finding_messages(output_typed + nested_cross)
         meta = oc["data"].get("meta") or {}
