@@ -56,7 +56,7 @@ def test_parse_official_text_numbers_repeated_unresolved_qualifier_slots():
     assert len(set(slot for slot in draw["slots"] if slot is not None)) == 96
 
 
-def test_parse_current_wta_glued_qll_ligature_as_distinct_qualifiers():
+def test_parse_current_wta_glued_qll_ligature_as_distinct_unresolved_slots():
     """Cincinnati 2026 uses `3Q/LL Qualiﬁer/LL` with a glued entry code and ﬁ ligature."""
     lines = ["Cincinnati Open", "August 13-23 2026", "Main Draw Singles"]
     for i in range(1, 9):
@@ -68,8 +68,8 @@ def test_parse_current_wta_glued_qll_ligature_as_distinct_qualifiers():
     draw = official.parse_official_text("\n".join(lines))
 
     assert draw is not None
-    assert draw["slots"][2] == "Qualifier 1"
-    assert draw["slots"][5] == "Qualifier 2"
+    assert draw["slots"][2] == "Qualifier/Unresolved 1"
+    assert draw["slots"][5] == "Qualifier/Unresolved 2"
     assert len(set(draw["slots"])) == 8
 
 
@@ -83,9 +83,36 @@ def test_parse_current_atp_spaced_qualifier_lucky_loser_as_distinct_seats():
     draw = official.parse_official_text("\n".join(lines))
 
     assert draw is not None
-    assert draw["slots"][2] == "Qualifier 1"
-    assert draw["slots"][5] == "Qualifier 2"
+    assert draw["slots"][2] == "Qualifier/Unresolved 1"
+    assert draw["slots"][5] == "Qualifier/Unresolved 2"
     assert len(set(draw["slots"])) == 8
+
+
+def test_parse_official_text_preserves_unresolved_entry_roles():
+    lines = ["Test Open", "August 1-7 2026", "Main Draw Singles"]
+    roles = (
+        "Q   Qualifier",
+        "LL   Lucky Loser",
+        "WC   Wildcard",
+        "ALT   Alternate",
+        "Q/LL   Qualifier / Lucky Loser",
+        "TBD",
+    )
+    for index, role in enumerate(roles, 1):
+        lines.append(f" {index}   {role}")
+    lines.extend((
+        " 7       PLAYER 7, Test          USA",
+        " 8       PLAYER 8, Test          USA",
+    ))
+
+    draw = official.parse_official_text("\n".join(lines))
+
+    assert draw is not None
+    assert draw["slots"] == [
+        "Qualifier 1", "Lucky Loser 1", "Qualifier/Wildcard 1",
+        "Qualifier/Alternate 1", "Qualifier/Unresolved 1",
+        "Qualifier/Unresolved 2", "Test Player 7", "Test Player 8",
+    ]
 
 
 def test_clipped_surname_without_comma_is_a_slot_and_reconciles_to_live_field():

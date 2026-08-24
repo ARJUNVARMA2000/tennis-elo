@@ -88,6 +88,18 @@ def _graded(p, won, date="2026-06-15", version="0.1.0"):
             "p_winner": p if won else 1.0 - p}
 
 
+def test_read_log_retains_valid_rows_and_reports_malformed_lines(tmp_path):
+    _setup(tmp_path)
+    path = track.FORECAST_DIR / "atp.jsonl"
+    path.write_text('{"type":"match","p":0.6}\nnot-json\n{"type":"match","p":0.7}\n')
+    status: dict = {}
+
+    rows = track._read_log(path, status=status)
+
+    assert [row["p"] for row in rows] == [0.6, 0.7]
+    assert status == {"malformedLines": 1}
+
+
 def _graded_batch(n, p, wins, **kw):
     return [_graded(p, i < wins, **kw) for i in range(n)]
 

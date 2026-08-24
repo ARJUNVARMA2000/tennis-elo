@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, Suspense, useContext, useEffect, useRef, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { MotionConfig } from "framer-motion";
 import { resolveTour, setSearchTour } from "@/lib/url";
 
@@ -14,6 +14,14 @@ const Ctx = createContext<{ tour: Tour; setTour: (t: Tour) => void }>({
   setTour: () => {},
 });
 
+function mirrorTourUrl(tour: Tour) {
+  window.history.replaceState(
+    null,
+    "",
+    `${window.location.pathname}${setSearchTour(window.location.search, tour)}${window.location.hash}`,
+  );
+}
+
 /** Reconciles the ?tour= URL param with the context on every navigation:
     an explicit param wins (shared links open what the sender saw); a param-less
     URL while WTA is active gets canonicalized so the state is always shareable.
@@ -23,12 +31,10 @@ const Ctx = createContext<{ tour: Tour; setTour: (t: Tour) => void }>({
 function TourUrlBridge() {
   const { tour, setTour } = useContext(Ctx);
   const searchParams = useSearchParams();
-  const router = useRouter();
-  const pathname = usePathname();
   // URL→state applies only when the search string actually CHANGED (a navigation:
   // back/forward, cross-link). On a toggle the effect fires with tour updated but
   // searchParams still stale — applying the old param there would revert the toggle.
-  const lastSearch = useRef<string | null>(null);
+  const lastSearch = useRef(searchParams.toString());
   useEffect(() => {
     const q = searchParams.toString();
     const navigated = lastSearch.current !== q;
@@ -36,30 +42,37 @@ function TourUrlBridge() {
     const param = searchParams.get("tour");
     if (param === "atp" || param === "wta") {
       if (navigated && param !== tour) setTour(param);
-    } else if (tour === "wta") {
-      router.replace(`${pathname}${setSearchTour(q, tour)}`, { scroll: false });
+    } else if (navigated && tour === "wta") {
+      mirrorTourUrl(tour);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, tour, pathname]);
+  }, [searchParams, tour]);
   return null;
 }
 
 export function TourProvider({ children }: { children: React.ReactNode }) {
   const [tour, setTourState] = useState<Tour>("atp");
-  const router = useRouter();
-  const pathname = usePathname();
   useEffect(() => {
     // initial load precedence: URL param > saved preference > atp.
     // window.location is read directly so the provider itself needs no Suspense.
     const param = new URLSearchParams(window.location.search).get("tour");
     const t = resolveTour(param, localStorage.getItem("tour"));
     setTourState(t);
-    if (param === "atp" || param === "wta") localStorage.setItem("tour", param);
+    if (param === "atp" || param === "wta") {
+      localStorage.setItem("tour", param);
+    } else if (t === "wta") {
+      mirrorTourUrl(t);
+    }
   }, []);
   const set = (t: Tour) => {
     setTourState(t);
     localStorage.setItem("tour", t);
-    router.replace(`${pathname}${setSearchTour(window.location.search, t)}`, { scroll: false });
+    // This state change is already local; using an asynchronous framework navigation for its URL mirror
+    // can lose a rapid WTA -> ATP transition while the previous replacement is settling
+    // (the page shows ATP but remains shareably tagged ?tour=wta). Next observes native
+    // history updates when the caller does not pass Next's own internal history marker. Use
+    // the browser pathname so a configured basePath and any anchor both survive the mirror.
+    mirrorTourUrl(t);
   };
   return (
     <Ctx.Provider value={{ tour, setTour: set }}>

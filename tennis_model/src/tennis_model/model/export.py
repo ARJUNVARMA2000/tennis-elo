@@ -44,7 +44,7 @@ from ..data.bracket_rounds import (
 from ..data.charting import build_profiles, name_key
 from ..data.rankings import load_rankings
 from ..data.results import summary
-from ..timing import timed
+from ..timing import STAGE_STATUS_SCHEMA, timed
 from .features import FEATURES, STYLE_FEATURES
 
 ACTIVE_DAYS = 550
@@ -630,6 +630,9 @@ def build_meta(df, players, accuracy, trained_at: str | None = None,
         "lastUpdated": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "modelTrainedAt": trained_at,
         "dataThrough": s["date_max"], "modelVersion": __version__,
+        # Rollout marker for the private operational receipt. Health treats a missing
+        # stage-status file as legacy-silent only when this producer marker is absent.
+        "stageStatusSchema": STAGE_STATUS_SCHEMA,
         "matchPopulationVersion": MATCH_POPULATION_VERSION,
         # Unlike the data-policy version above, this comes from inside predictor.pkl.
         # Their equality proves cached rating state was walked over the rows now claimed.

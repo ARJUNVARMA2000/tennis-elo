@@ -175,12 +175,14 @@ def _healthy_shards() -> dict:
 
 
 def _oc(data=None, missing=None, corrupt=None, forecast=("keep",), kalshi_ledger=None,
-        shards=None, missing_files=None, corrupt_files=None, draw_cache=None) -> dict:
+        shards=None, missing_files=None, corrupt_files=None, draw_cache=None,
+        draw_cache_status=None) -> dict:
     return {"data": _healthy_data() if data is None else data,
             "missing": missing or [], "corrupt": corrupt or [],
             "shards": _healthy_shards() if shards is None else shards,
             "missing_files": missing_files or [], "corrupt_files": corrupt_files or [],
             "draw_cache": draw_cache,
+            "draw_cache_status": draw_cache_status or {"state": "missing"},
             "forecast": {"lines": 200, "max_as_of": "2026-07-09"} if forecast == ("keep",) else forecast,
             "kalshi_ledger": kalshi_ledger}
 
@@ -1441,6 +1443,25 @@ def test_output_retained_draw_cache_duplicate_is_blocking_even_when_old_event_is
     assert "188-2026" in hit[0] and "189-2026" in hit[0]
 
 
+def test_output_malformed_draw_cache_is_typed_warning_and_clean_cache_recovers():
+    malformed = _oc(draw_cache_status={
+        "state": "malformed", "errorType": "JSONDecodeError"})
+    findings = health.output_findings("atp", malformed, NOW)
+    hit = [item for item in findings if item.code == "output.draw_cache.invalid"]
+    assert len(hit) == 1
+    assert hit[0].severity == "warning"
+    assert hit[0].entity == "artifact:tournament_draws.json"
+    assert hit[0].evidence == {
+        "state": "malformed", "errorType": "JSONDecodeError"}
+    assert not health._gate_blocks(hit[0])
+
+    clean = _oc(draw_cache={}, draw_cache_status={"state": "valid"})
+    assert not [
+        item for item in health.output_findings("atp", clean, NOW)
+        if item.code == "output.draw_cache.invalid"
+    ]
+
+
 def test_output_bracket_early_draw_with_qualifiers_is_clean():
     """An early-captured draw carries unresolved 'Qualifier N' placeholders. tournaments.json
     drawSize counts them (field_pool = non-null slots), so the bracket check must too — else
@@ -1500,9 +1521,17 @@ def test_output_bracket_hasBracket_needs_entry():
 
 
 def test_output_bracket_placeholder_token_leaks():
-    d = _healthy_data()
-    d["brackets"][0]["rounds"][0]["matches"][0]["b"] = "Qualifier"   # bare token = leak; "Qualifier 3" is fine
-    assert any("placeholder" in p.lower() for p in health.output_problems("atp", _oc(data=d), NOW))
+    for bare in ("Qualifier", "Lucky Loser", "Wildcard", "Alternate", "TBD"):
+        d = _healthy_data()
+        d["brackets"][0]["rounds"][0]["matches"][0]["b"] = bare
+        assert any("contains placeholder name(s)" in p
+                   for p in health.output_problems("atp", _oc(data=d), NOW)), bare
+    # Numbered placeholders are legitimate distinct bracket seats, never player-list rows.
+    for numbered in ("Qualifier 3", "Lucky Loser 2", "Wildcard 1", "Alternate 4", "Unresolved 1"):
+        d = _healthy_data()
+        d["brackets"][0]["rounds"][0]["matches"][0]["b"] = numbered
+        assert not any("contains placeholder name(s)" in p
+                       for p in health.output_problems("atp", _oc(data=d), NOW)), numbered
     print("ok test_output_bracket_placeholder_token_leaks")
     print("ok test_output_completed_nonpower_of_two_is_fine")
 
@@ -1583,7 +1612,10 @@ def test_output_placeholder_name_leak():
     is the form real draws actually use, and why 22 of the DC Open's 24 projected "players"
     shipped unflagged. Both forms are caught now, via the same `is_real` the draw machinery
     and the modelFavorite check use."""
-    for ghost in ("TBD", "Qualifier 30", "Lucky Loser", "Bye"):
+    for ghost in (
+        "TBD", "Qualifier 30", "Lucky Loser 2", "Wildcard 1", "Alternate 1",
+        "Unresolved 1", "Bye",
+    ):
         d = _healthy_data()
         d["tournaments"][0]["level"] = "ATP 500"          # a tier where board quality blocks
         d["tournaments"][0]["projection"][0]["name"] = ghost
@@ -2412,6 +2444,56 @@ def test_read_outputs_detects_missing_and_corrupt(tmp_path=None):
     assert "players" in oc["missing"] and "upcoming-index" in oc["missing"]
     assert oc["forecast"] is None                                  # no forecast_log in the temp root
     print("ok test_read_outputs_detects_missing_and_corrupt")
+
+
+def test_read_outputs_preserves_malformed_draw_cache_state_and_recovers(
+        tmp_path, monkeypatch):
+    from tennis_model.data import draws
+
+    output = tmp_path / "output" / "atp"
+    live = tmp_path / "live" / "atp"
+    output.mkdir(parents=True)
+    live.mkdir(parents=True)
+    cache = live / "tournament_draws.json"
+    cache.write_text("{ not json", encoding="utf-8")
+    monkeypatch.setattr(health, "output_dir", lambda _tour: output)
+    monkeypatch.setattr(health, "live_dir", lambda _tour: live)
+    monkeypatch.setattr(health, "DATA_DIR", tmp_path / "data")
+
+    malformed = health.read_outputs("atp")
+    assert malformed["draw_cache"] is None
+    assert malformed["draw_cache_status"] == {
+        "state": "malformed", "errorType": "JSONDecodeError"}
+
+    cache.write_text("{}", encoding="utf-8")
+    cache_identity = draws._content_identity(cache.read_bytes())
+    draws._write_draw_cache_status(
+        live,
+        [{"source": "complete-draw-cache", "errorType": "JSONDecodeError"}],
+        cache_identity=cache_identity,
+    )
+    carried = health.read_outputs("atp")
+    assert carried["draw_cache"] == {}
+    assert carried["draw_cache_status"] == {
+        "state": "degraded",
+        "failures": [{
+            "source": "complete-draw-cache", "errorType": "JSONDecodeError"}],
+    }
+    carried_finding = next(
+        item for item in health.output_findings("atp", carried, NOW)
+        if item.code == "output.draw_cache.invalid"
+    )
+    assert carried_finding.severity == "warning"
+    assert carried_finding.evidence == {
+        "state": "degraded",
+        "failureTypes": ["complete-draw-cache:JSONDecodeError"],
+    }
+
+    draws._write_draw_cache_status(
+        live, [], cache_identity=cache_identity)
+    recovered = health.read_outputs("atp")
+    assert recovered["draw_cache"] == {}
+    assert recovered["draw_cache_status"] == {"state": "valid"}
 
 
 def test_read_outputs_flags_nan_as_corrupt():

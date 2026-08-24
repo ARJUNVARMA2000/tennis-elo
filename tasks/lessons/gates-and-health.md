@@ -301,3 +301,29 @@ Indexed in [`../lessons.md`](../lessons.md).
   exits its active lifecycle. Once a baseline exists, absence is a regression too. Test the first
   failure, an unchanged second failure, total disappearance, true restoration, and legitimate
   lifecycle completion.
+
+- **Operational detail is not public incident evidence.** (2026-08-24, durable stage receipts)
+  Exception messages, file paths, URLs, attempt timestamps, durations, and changing input hashes
+  are useful in a private receipt but can leak credentials and force an otherwise identical hourly
+  failure to comment forever. **How to apply:** publish only a controlled error category and stable
+  criticality; keep raw bounded detail private; make a repeated same-category failure retain the
+  same finding revision; and test serialization with bearer tokens, query secrets, and local paths.
+
+- **An observability file needs its own rollout and corruption contract.** (2026-08-24,
+  `stage-status-v1`) Treating missing, malformed, and unreadable receipts alike can overwrite the
+  only evidence before health reads it, while warning on every pre-rollout clone creates noise.
+  **How to apply:** distinguish absence from corruption; preserve malformed state; stamp a normal
+  product artifact when the receipt is expected; require the product-stage set only after that
+  marker appears; and keep receipt-write failure from masking the stage's real outcome.
+
+- **A private artifact's exclusion must remain safe under rollback, and a degradation receipt must
+  survive the producer that caused it.** (2026-08-24, Round 3 final review) Excluding
+  `stage-status.json` in the new mirror protected only forward deployments: the previous mirror
+  copied every `*.json`, so rolling code back could publish private exception prose. Separately,
+  the draw reader noticed a corrupt cache, but the refresh then rewrote it to valid `{}` before the
+  observed stage ran, laundering the failure into success. **How to apply:** make operational
+  artifacts ineligible for old public globs by location or suffix, and test them with the actual
+  previous copier. Carry a producer's controlled failure category across its cleanup/rewrite in a
+  bounded private receipt tied to the exact replacement bytes; write both atomically in a
+  fail-closed order, include both in the consumer fingerprint, and replay the real production
+  sequence through failure and clean recovery.

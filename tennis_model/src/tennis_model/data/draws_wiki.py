@@ -28,6 +28,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections import Counter
 from datetime import UTC, datetime, timedelta
 
 from ..config import (
@@ -40,6 +41,16 @@ from ..config import (
     WIKI_UA,
     live_dir,
 )
+from .participants import (
+    ParticipantContext,
+    ParticipantKind,
+    ParticipantSource,
+    canonical_placeholder,
+    classify_participant,
+    draw_is_settled,
+    is_real_participant,
+    placeholder_label,
+)
 
 # `mwparserfromhell` is imported lazily inside _parse_bracket so cache readers never need it.
 
@@ -50,10 +61,11 @@ _SPONSOR_NOISE = {"efg", "atp", "wta", "presented", "by", "powered"}
 # search for "... Open ... singles" can match the wrong Open, e.g. the Australian Open).
 _TITLE_GENERIC = {"open", "cup", "championships", "international", "classic", "masters",
                   "tennis", "grand", "prix", "trophy", "championship", "tour"}
-# No-wikilink slot labels that are placeholders, not players (a real player — even a
-# wildcard — carries a [[link]]). "Bye" is handled separately (a true bye = empty slot).
-_PLACEHOLDER = {"qualifier", "q", "ll", "lucky loser", "wc", "wildcard", "alt", "alternate"}
 _SENTINEL = object()   # RD1 slot param absent (a bye position, seed sits in RD2)
+
+
+class _LinkedIdentity(str):
+    """Transient positive identity evidence while one Wiki bracket is being parsed."""
 
 
 _GET_ATTEMPTS = 3
@@ -161,18 +173,35 @@ def _slot_name(value) -> str | None:
 
     A real player (incl. wildcards) is a [[wikilink]] — take its target, stripping any
     "(tennis)" disambiguator so it matches the model's spelling. Otherwise the slot is a
-    placeholder: "Bye" (true bye -> None) or an as-yet-undetermined qualifier/lucky-loser/
-    empty slot -> the literal "Qualifier" (the caller makes it unique)."""
+    placeholder: "Bye" (true bye -> None) or the canonical role label for an as-yet-
+    undetermined qualifier/lucky-loser/wildcard/alternate/empty seat (the caller numbers it)."""
     links = value.filter_wikilinks()
     if links:
-        return re.sub(r"\s*\([^)]*\)\s*$", "", str(links[0].title)).strip()
-    text = value.strip_code().strip()
-    low = text.lower()
-    if "bye" in low:
+        name = re.sub(r"\s*\([^)]*\)\s*$", "", str(links[0].title)).strip()
+        # The target, not display text such as ``WC``, is identity evidence. A target that is
+        # itself only a reserved role cannot survive as distinguishable identity in the
+        # string-only artifact, so keep it a placeholder and fail closed.
+        participant = classify_participant(
+            name,
+            source=ParticipantSource.WIKIPEDIA,
+            context=ParticipantContext.LINKED_IDENTITY,
+        )
+        if participant.is_real:
+            return _LinkedIdentity(name)
+        if participant.is_placeholder:
+            return placeholder_label(participant.kind)
         return None
-    if not text or low in _PLACEHOLDER or "qualif" in low:
-        return "Qualifier"
-    return text                                   # red-link player (no article yet)
+    text = value.strip_code().strip()
+    participant = classify_participant(
+        text,
+        source=ParticipantSource.WIKIPEDIA,
+        context=ParticipantContext.OPENING_DRAW_SLOT,
+    )
+    if participant.kind is ParticipantKind.BYE:
+        return None
+    if participant.is_placeholder:
+        return placeholder_label(participant.kind)
+    return text                                   # unlinked/red-link player (no article yet)
 
 
 def _team(tmpl, rd: str, i: int):
@@ -197,9 +226,10 @@ def _parse_bracket(wikitext: str) -> dict | None:
 
     Each `{N}TeamBracket-Compact-...` template is one bracket SECTION (N leaves). Its first
     round is the N/2 matches over leaves (1,2),(3,4),…; a match whose two RD1 leaves are
-    both absent is a seed BYE — that seed rides in RD2-team{k} (k = match index), so we
-    seat it against a None. Concatenating every section's ordered leaf slots in document
-    order rebuilds the full 2^k draw, byes as None, unique "Qualifier N" placeholders.
+    both absent is a seed BYE only when a real seed rides in RD2-team{k} (k = match index),
+    so we seat that player against None. Other omissions stay unresolved. Concatenating every
+    section's ordered leaf slots in document order rebuilds the full 2^k draw, proven byes as
+    None, and unresolved entrant roles as unique placeholders.
     Returns {slots, seeds, bestOf} or None when no bracket template is present or the
     result isn't a clean power-of-two draw."""
     import mwparserfromhell
@@ -207,7 +237,7 @@ def _parse_bracket(wikitext: str) -> dict | None:
     slots: list = []
     seeds: dict = {}
     best_of = 3
-    ph = 0
+    placeholders: Counter[ParticipantKind] = Counter()
     for tmpl in code.filter_templates():
         name = str(tmpl.name)
         if "Bracket" not in name or "Compact" not in name:
@@ -220,16 +250,42 @@ def _parse_bracket(wikitext: str) -> dict | None:
         leaves = int(m.group(1))
         for k in range(1, leaves // 2 + 1):       # k-th first-round match of the section
             lv, rv = _team(tmpl, "RD1", 2 * k - 1), _team(tmpl, "RD1", 2 * k)
-            left = None if lv is _SENTINEL else _slot_name(lv)
-            right = None if rv is _SENTINEL else _slot_name(rv)
+            # An absent parameter is not itself proof of a bye: early articles also omit an
+            # unresolved entrant. Explicit ``Bye`` parses to None. The compact-template bye
+            # encoding with both leaves absent is accepted only when RD2 positively names the
+            # carried player; every other omission remains an explicit unresolved seat.
+            left = "Unresolved" if lv is _SENTINEL else _slot_name(lv)
+            right = "Unresolved" if rv is _SENTINEL else _slot_name(rv)
             if lv is _SENTINEL and rv is _SENTINEL:
                 bye = _team(tmpl, "RD2", k)        # both leaves absent -> a seed's bye
-                left, right = (None if bye is _SENTINEL else _slot_name(bye)), None
+                carried = None if bye is _SENTINEL else _slot_name(bye)
+                carried_participant = classify_participant(
+                    carried,
+                    source=ParticipantSource.WIKIPEDIA,
+                    context=(ParticipantContext.LINKED_IDENTITY
+                             if isinstance(carried, _LinkedIdentity)
+                             else ParticipantContext.OPENING_DRAW_SLOT),
+                )
+                if carried_participant.is_real:
+                    left, right = carried, None
+                else:
+                    left, right = "Unresolved", "Unresolved"
             pair = []
             for nm, idx in ((left, 2 * k - 1), (right, 2 * k)):
-                if nm == "Qualifier":
-                    ph += 1
-                    nm = f"Qualifier {ph}"
+                participant = classify_participant(
+                    nm,
+                    source=ParticipantSource.WIKIPEDIA,
+                    context=(ParticipantContext.LINKED_IDENTITY
+                             if isinstance(nm, _LinkedIdentity)
+                             else ParticipantContext.OPENING_DRAW_SLOT),
+                )
+                if participant.is_placeholder:
+                    placeholders[participant.kind] += 1
+                    nm = canonical_placeholder(
+                        participant.kind, placeholders[participant.kind])
+                elif isinstance(nm, _LinkedIdentity):
+                    # The source marker exists only during parsing; artifacts retain strings.
+                    nm = str(nm)
                 if nm is not None:
                     sd = _seed_of(tmpl, idx)
                     if sd is not None:
@@ -255,7 +311,7 @@ def fetch_draw(event: str, year: int, tour: str, meta: dict) -> dict | None:
         return None                               # article exists but no draw posted yet
     return {
         **draw,
-        "drawSize": len(draw["slots"]),
+        "drawSize": sum(slot is not None for slot in draw["slots"]),
         "start": meta.get("start"), "end": meta.get("end"), "espnId": meta.get("espnId"),
         "title": title,
         "url": "https://en.wikipedia.org/wiki/" + urllib.parse.quote(title.replace(" ", "_")),
@@ -441,7 +497,7 @@ def wiki_upcoming_rows(tour: str) -> list:
     (tourney_name, tourney_date, round, playerA, playerB) — so the schedule board and the
     forecast log price the whole first round the moment the official draw is released.
 
-    Byes and not-yet-named qualifier slots are skipped (nothing to price). Read-only: no
+    Byes and all not-yet-named entrant slots are skipped (nothing to price). Read-only: no
     network, no parser dependency."""
     path = live_dir(tour) / "wiki_draws.json"
     if not path.exists():
@@ -469,7 +525,8 @@ def _rows_from_draws(draws: dict, today: str | None = None) -> list:
         rnd = _ROUND_BY_SIZE.get(len(slots), "R64")
         for i in range(0, len(slots) - 1, 2):
             a, b = slots[i], slots[i + 1]
-            if a and b and not str(a).startswith("Qualifier") and not str(b).startswith("Qualifier"):
+            if (is_real_participant(a, context=ParticipantContext.OPENING_DRAW_SLOT)
+                    and is_real_participant(b, context=ParticipantContext.OPENING_DRAW_SLOT)):
                 rows.append({"tourney_name": name, "tourney_date": start,
                              "round": rnd, "playerA": a, "playerB": b})
     return rows
@@ -502,23 +559,23 @@ def _draw_is_settled(slots, draw_size: object = None) -> bool:
     """True when every named slot in a captured draw is a real player.
 
     "A draw doesn't change once released" holds only for a draw captured AFTER qualifying
-    resolves. Capture it earlier and the `Qualifier N` slots are placeholders that Wikipedia
+    resolves. Capture it earlier and its numbered entrant-role slots are placeholders that Wikipedia
     later replaces with real names — so such a capture must not be kept forever. Wikipedia can
     also encode an unresolved qualifier as ``None``, which is otherwise indistinguishable from
     a legitimate bye in the slot list. When the cached entry carries the published draw size,
-    require exactly that many real entrants. The predicate is `sim.bracket.is_real`, the one
-    `health.py` already uses for modelFavorite, so ingestion and the gate cannot disagree about
-    what counts as a placeholder.
+    require exactly that many real entrants. The shared participant classifier keeps ingestion,
+    simulation, event evidence, and the health gate on the same definition of a placeholder.
     """
-    from ..sim.bracket import is_real
-    named = [s for s in (slots or []) if s is not None]
-    if not named or not all(is_real(s) for s in named):
-        return False
     try:
         expected = int(draw_size) if draw_size is not None else None
-    except (TypeError, ValueError):
+        expected = expected if expected is not None and expected > 0 else None
+    except (TypeError, ValueError, OverflowError):
         expected = None
-    return expected is None or expected <= 0 or len(named) == expected
+    return draw_is_settled(
+        slots,
+        expected_entrants=expected,
+        source=ParticipantSource.WIKIPEDIA,
+    )
 
 
 def download_wiki_draws(tours=TOURS) -> None:

@@ -1252,6 +1252,8 @@ def test_web_push_keeps_both_integrity_gates_and_uses_cached_mirror():
     assert "python -m tennis_model.data.health --gate" in wf
     assert "python -m tennis_model.data.health" in wf
     assert "Verify live Firebase deploy" in wf
+    assert "! -name 'health-source.json' ! -name 'stage-status.json'" in wf
+    assert "! -name 'stage-status.private'" in wf
 
 
 def test_deploy_inputs_are_cached_and_firebase_tooling_is_immutable():

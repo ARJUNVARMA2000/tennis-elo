@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:browser": "node scripts/run-browser-smoke.mjs",
     "verify": "node scripts/verify.mjs",
     "verify:deploy": "node scripts/verify-deploy.mjs"
   },

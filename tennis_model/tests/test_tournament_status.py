@@ -469,8 +469,8 @@ def test_placeholder_heavy_draw_withholds_odds_entirely():
     from tennis_model.sim.tournaments import projection_is_meaningful
 
     assert projection_is_meaningful(["A", "B", "C", "D"])
-    assert projection_is_meaningful(["A", "B", "Qualifier 1", "Qualifier 2"])   # exactly half
-    assert not projection_is_meaningful(["A", "Qualifier 1", "Qualifier 2", "Qualifier 3"])
+    assert projection_is_meaningful(["A", "B", "Qualifier 1", "Lucky Loser 1"])  # exactly half
+    assert not projection_is_meaningful(["A", "Wildcard 1", "Alternate 1", "Unresolved 1"])
     assert not projection_is_meaningful([f"Qualifier {i}" for i in range(8)])
     assert not projection_is_meaningful([])
 

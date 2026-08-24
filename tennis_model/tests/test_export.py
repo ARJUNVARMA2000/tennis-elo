@@ -284,6 +284,7 @@ def test_build_meta_separates_build_time_from_model_time():
     meta = export.build_meta(df, players=[], accuracy=None, trained_at=trained,
                              model_population_version=export.MATCH_POPULATION_VERSION)
     assert meta["modelTrainedAt"] == trained
+    assert meta["stageStatusSchema"] == export.STAGE_STATUS_SCHEMA
     assert meta["modelPopulationVersion"] == export.MATCH_POPULATION_VERSION
     assert meta["dualStateThreshold"] is None and meta["dualStateReady"] is False
     assert meta["lastUpdated"] != trained and meta["lastUpdated"].endswith("Z")

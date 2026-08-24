@@ -498,17 +498,23 @@ def _forecast_history(records: list[dict], player_a: object,
     }
 
 
-def _read_log(path) -> list:
+def _read_log(path, *, status: dict | None = None) -> list:
     if not path.exists():
         return []
     out = []
+    malformed = 0
     for line in path.read_text(encoding="utf-8").splitlines():
         line = line.strip()
         if line:
             try:
                 out.append(json.loads(line))
             except json.JSONDecodeError:
+                malformed += 1
                 continue
+    if status is not None and malformed:
+        # The same log is read during append and grade. Keep the actual number of bad
+        # persisted lines rather than double-counting both passes.
+        status["malformedLines"] = max(status.get("malformedLines", 0), malformed)
     return out
 
 
@@ -521,7 +527,8 @@ def _read_json(path):
 # ---------------------------------------------------------------------------
 def log_forecasts(tour: str, predictor, df: pd.DataFrame,
                   upcoming: pd.DataFrame | None, as_of: str, *,
-                  enriched: list[dict] | None = None) -> int:
+                  enriched: list[dict] | None = None,
+                  status: dict | None = None) -> int:
     """Append new match + tournament forecasts to the log. Returns # records added.
 
     Idempotent: a matchup is logged once (first sighting locks the forecast), and a
@@ -529,7 +536,7 @@ def log_forecasts(tour: str, predictor, df: pd.DataFrame,
     """
     FORECAST_DIR.mkdir(parents=True, exist_ok=True)
     path = FORECAST_DIR / f"{tour}.jsonl"
-    existing = _read_log(path)
+    existing = _read_log(path, status=status)
     # match forecasts: one locked P(playerA wins) per scheduled matchup (first sighting).
     # Name-resolution / surface inference / pricing live in model.upcoming.enrich_upcoming,
     # shared with the web schedule board so the two can never disagree on a matchup.
@@ -852,9 +859,9 @@ def _drift_block(graded: list, baseline: dict | None,
     return out
 
 
-def grade(tour: str, df: pd.DataFrame) -> dict:
+def grade(tour: str, df: pd.DataFrame, *, status: dict | None = None) -> dict:
     """Read the log, score it against `df`'s results, write + return track.json."""
-    log = _read_log(FORECAST_DIR / f"{tour}.jsonl")
+    log = _read_log(FORECAST_DIR / f"{tour}.jsonl", status=status)
     bridges = _forecast_match_bridges(tour, log)
     # A pre-v2 first-sighting and the later ID-backed migration row are one decision.
     # Keep the earliest provenance once and recover its registry ID from later evidence.
@@ -938,7 +945,8 @@ def grade(tour: str, df: pd.DataFrame) -> dict:
 
 
 def log_and_grade(tour: str, predictor, df: pd.DataFrame, *,
-                  enriched: list[dict] | None = None) -> dict:
+                  enriched: list[dict] | None = None,
+                  status: dict | None = None) -> dict:
     """Pipeline entry point: log today's forecasts, then (re)grade the whole log."""
     # Hour-granular timestamps make snapshot retries idempotent while retaining the exact
     # quote-time ordering the Kalshi ledger needs. Older date-only lines remain valid.
@@ -948,10 +956,10 @@ def log_and_grade(tour: str, predictor, df: pd.DataFrame, *,
             n = log_forecasts(
                 tour, predictor, df,
                 None if enriched is not None else load_upcoming(tour),
-                as_of, enriched=enriched,
+                as_of, enriched=enriched, status=status,
             )
         with timed(tour, "tracking.grade"):
-            out = grade(tour, df)
+            out = grade(tour, df, status=status)
     mf = out["matchForecasts"]
     print(f"  track/{tour}: +{n} logged, {mf['graded']} graded / {mf['pending']} pending; "
           f"tournament odds graded for {out['tournamentOdds']['events']} event(s)")

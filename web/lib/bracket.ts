@@ -67,19 +67,40 @@ export const SECTION_SLOTS = 16;
 
 const norm = (s: string) => s.trim().toLowerCase();
 
+const NUMBERED_ROLE = String.raw`(?:\s*(?:(?:#|no\.?\s*)?\d+|\(\s*\d+\s*\)))?`;
+// `Qualifier/<role> N` is the serialized compatibility envelope. The prior browser only
+// understood a Qualifier/Lucky Loser prefix, so warmed caches remain non-real after rollback;
+// current readers recover the more precise role after the slash.
+const PLACEHOLDER_PATTERNS: [RegExp, string][] = [
+  [new RegExp(`^(?:q|qualifier|qualifying)${NUMBERED_ROLE}$`, "i"), "Qualifier"],
+  [new RegExp(`^(?:ll|lucky\\s+loser)${NUMBERED_ROLE}$`, "i"), "Lucky Loser"],
+  [new RegExp(`^(?:(?:qualifier/)?(?:wc|wild\\s*card))${NUMBERED_ROLE}$`, "i"), "Wildcard"],
+  [new RegExp(`^(?:(?:qualifier/)?(?:alt|alternate))${NUMBERED_ROLE}$`, "i"), "Alternate"],
+  [new RegExp(`^(?:q|qualifier)/(?:ll|lucky\\s+loser)${NUMBERED_ROLE}$`, "i"), "Unresolved"],
+  [new RegExp(`^(?:qualifier/unresolved|(?:tbd|tba)(?:\\s*(?:[-–—:/]\\s*)?(?:opponent|player|winner))?|unknown|unresolved|pending|awaiting(?:\\s+(?:winner|opponent))?)${NUMBERED_ROLE}$`, "i"), "Unresolved"],
+  [new RegExp(`^bye${NUMBERED_ROLE}$`, "i"), "Bye"],
+];
+
+function placeholderLabel(name: string | null): string | null {
+  if (!name) return null;
+  const value = name.trim().replace(/\s*\/\s*/g, "/");
+  return PLACEHOLDER_PATTERNS.find(([pattern]) => pattern.test(value))?.[1] ?? null;
+}
+
 export function isPlaceholder(name: string | null): boolean {
-  return !!name && /^(qualifier|lucky loser)\b/i.test(name.trim());
+  return placeholderLabel(name) !== null;
 }
 
 export function isRealSlot(name: string | null): name is string {
   return !!name && name.trim() !== "" && !isPlaceholder(name);
 }
 
-/** What to render in a slot: a real name, "Qualifier" for a placeholder, or "Bye"
+/** What to render in a slot: a real name, its unresolved entrant role, or "Bye"
     (round 0) / "TBD" (a later round whose feeder isn't decided). */
 export function sideLabel(name: string | null, roundIndex: number): string {
   if (isRealSlot(name)) return name;
-  if (isPlaceholder(name)) return "Qualifier";
+  const role = placeholderLabel(name);
+  if (role) return role;
   return roundIndex === 0 ? "Bye" : "TBD";
 }
 

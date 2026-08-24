@@ -232,3 +232,33 @@ New lesson → append the entry to the matching topic file and add its lead line
 - A pre-deploy gate can stop publication after an earlier append-only writer has persisted the bad
   identity; fix the producer, retain the gate, and bridge the durable identity from exact evidence.
   See [`lessons/gates-and-health.md`](lessons/gates-and-health.md).
+
+## Query-only URL transition addition (2026-08-24)
+
+- A state control's URL mirror must survive the reverse transition without reusing the framework's
+  internal history marker; browser-test A -> B -> A and assert active control, rendered data, and
+  copied URL after settling. See [`lessons/web.md`](lessons/web.md).
+
+## Participant-contract additions (2026-08-24)
+
+- A serialized participant vocabulary must be migrated and parity-tested in every runtime that
+  consumes it. See [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md).
+- Resolve ambiguous provider nulls before normalization and never use an equally partial field as
+  proof of completeness. See [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md).
+
+## Stage-observability additions (2026-08-24)
+
+- Keep detailed stage errors private and public incident revisions stable across identical retries.
+  See [`lessons/gates-and-health.md`](lessons/gates-and-health.md).
+- Give observability artifacts explicit rollout, missing, malformed, and incomplete-state semantics.
+  See [`lessons/gates-and-health.md`](lessons/gates-and-health.md).
+- Make private artifacts ineligible for the previous mirror and bind degradation evidence to the
+  exact generation that rewrote its source. See
+  [`lessons/gates-and-health.md`](lessons/gates-and-health.md).
+
+## Rollback and browser-fixture additions (2026-08-24)
+
+- Serialize warmed caches so both current and rollback readers remain fail-closed. See
+  [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md).
+- Gate fixture identities explicitly so the general browser verifier remains usable with real data.
+  See [`lessons/web.md`](lessons/web.md).

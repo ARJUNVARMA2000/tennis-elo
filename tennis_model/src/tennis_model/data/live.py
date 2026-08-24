@@ -26,6 +26,7 @@ import pandas as pd
 
 from ..config import PLAYER_ALIASES, TOURS, live_dir
 from .names import name_key
+from .participants import ParticipantContext, ParticipantSource, classify_participant
 from .timezones import local_date
 
 # `site.web.api`, NOT the `site.api` host this used until 2026-08-04. That edge began
@@ -36,13 +37,6 @@ SCOREBOARD = "https://site.web.api.espn.com/apis/site/v2/sports/tennis/{tour}/sc
 _ACQUISITION_SCHEMA = "espn-acquisition-v1"
 _ACQUISITION_FILE = "espn_acquisition.json"
 _OVERLAY_FILES = ("live.csv", "fields.json", "upcoming.csv")
-
-# ESPN fills an undetermined slot in a scheduled match (opponent awaiting a prior
-# result, or a draw not yet published) with a pseudo-athlete named "TBD" — a
-# placeholder, not a player. It must never enter a field / matchup / result row:
-# one leaked "TBD" makes a 128-player Slam draw count 129.
-_PLACEHOLDER_NAMES = {"tbd", "tba", "bye", "qualifier"}
-
 
 class ScoreboardUnavailable(RuntimeError):
     """Every scoreboard query failed — the overlay is blind, not merely idle."""
@@ -56,8 +50,15 @@ def _athlete_name(c: dict | None) -> str | None:
     predictor correctly drops the short-lived duplicate identity, an unnormalized upcoming
     row can no longer resolve to that player's rating and silently disappears.
     """
-    nm = ((c or {}).get("athlete") or {}).get("displayName")
-    if not isinstance(nm, str) or nm.strip().lower() in _PLACEHOLDER_NAMES:
+    athlete = ((c or {}).get("athlete") or {})
+    nm = athlete.get("displayName")
+    participant = classify_participant(
+        nm,
+        source=ParticipantSource.ESPN,
+        context=ParticipantContext.ATHLETE,
+        provider_id=athlete.get("id"),
+    )
+    if not participant.is_real:
         return None
     return PLAYER_ALIASES.get(name_key(nm), nm)
 

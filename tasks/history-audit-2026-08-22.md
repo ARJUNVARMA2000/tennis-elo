@@ -1,47 +1,58 @@
 # Historical incidents and one-off-fix automation audit
 
-Audited through production `origin/master` at `b1b8579` (2026-08-22). Local `HEAD`
-`8519492` is behind production only by two generated eval-log commits, `96a07c9` and
-`b1b8579`. The dirty worktree was inspected only to avoid duplicate recommendations; none of
-its uncommitted behavior is treated as shipped.
+Audited through production `origin/master` at `b6b1511` (2026-08-23): all 317 commits from
+inception are accounted for. The original commit-by-commit audit stopped at `b1b8579`; the exact
+nine-commit reconciliation through current production appears below. Uncommitted Round 3 behavior
+is inspected only to avoid duplicate recommendations and is not treated as shipped.
+
+### Current reconciliation (2026-08-24)
+
+Rounds 1A-1C shipped in `339287b`, the ESPN round-identity follow-up shipped in `6692cfe`, and
+Rounds 2A-2B shipped in `9f6bd41`. Together they close the original four highest-priority gaps:
+terminal workflow/gate incident reporting, a non-ratcheting population baseline, same-run ESPN
+acquisition receipts, and stable per-finding health identity with production-shaped replay tests.
+Round 3 (durable stage receipts, one participant-state vocabulary, and deterministic real-browser
+CI) is in final review; the predictor envelope and whole-build lineage remain the staged Round 4.
 
 ## Executive conclusion
 
 The project has already done the most important thing right: most serious one-time repairs were
 eventually converted into a reusable invariant, provenance field, deterministic identity rule,
-pre-deploy gate, post-deploy verifier, or tested CI helper. The remaining reliability gap is less
-"we need more checks" than "some existing failures lose their identity or never reach the issue
-system."
+pre-deploy gate, post-deploy verifier, or tested CI helper. At the original cutoff, the remaining
+gap was less "we need more checks" than "some existing failures lose their identity or never reach
+the issue system." Rounds 1 and 2 closed that gap; the current residual risk is artifact integrity
+before unpickling and across a whole published generation.
 
-Four findings deserve action first:
+The original audit identified four findings for immediate action; all four are now shipped:
 
-1. **Pipeline and gate failures have no immediate durable incident path.** GitHub returned 96
+1. **Pipeline and gate failures had no immediate durable incident path.** GitHub returned 96
    failed runs in the audited period; 91 were `refresh.yml`. Twenty-seven failures were repeated
    executions of only three gate-blocked SHAs. A failed pipeline or pre-deploy gate skips the data
    health reporter; the deploy reporter correctly no-ops because verification never ran. The only
    durable fallback is the 26-hour watchdog, and successful QUICK runs can hide a FULL-only failure.
-2. **Health findings have no stable identity.** `source_checks()` is structured, but
-   `output_problems()` returns prose, `_gate_blocks()` infers severity from substrings, and one
-   mutable `data-health` issue is reused for every symptom. Issues #10, #14, and #15 each changed
+2. **Health findings had no stable identity.** `source_checks()` was structured, but
+   `output_problems()` returned prose, `_gate_blocks()` inferred severity from substrings, and one
+   mutable `data-health` issue was reused for every symptom. Issues #10, #14, and #15 each changed
    meaning while open.
-3. **The population-drop baseline ratchets after a bad run.** Issue #21 reported ATP matches
+3. **The population-drop baseline ratcheted after a bad run.** Issue #21 reported ATP matches
    `284445 -> 284393`; no restoration commit or data update occurred. The next run compared against
    284393 and auto-closed. The baseline must remain at the last accepted high-water value until
    recovery or an explicit population-version change.
-4. **A total ESPN acquisition failure can stay green.** The August outage was visible in logs for
+4. **A total ESPN acquisition failure could stay green.** The August outage was visible in logs for
    roughly 13 refreshes, but `download_live()` caught the error and returned no tour result. The
    health system learned only later from stale tournament state. Acquisition needs a same-run
    success/failure receipt.
 
-No production code was changed during this audit. The recommended implementation round appears
-under [Proposed implementation slate](#proposed-implementation-slate).
+The original audit itself changed no production code. Its subsequent implementation and production
+evidence are recorded in `tasks/todo.md` and summarized in this reconciliation.
 
 ## Scope and accounting
 
-Every one of the 308 production commits from repository inception through `b1b8579` was inspected
-or placed in an explicit non-substantive bucket. GitHub issues, PR-number gaps, issue comments,
-workflow outcomes, representative failed-run logs, the two production gates, their tests, and the
-topic lesson files were reconciled with the commit history.
+Every one of the original 308 production commits through `b1b8579` was inspected or placed in an
+explicit non-substantive bucket; the nine later commits through `b6b1511` were then reconciled the
+same way. GitHub issues, PR-number gaps, issue comments, workflow outcomes, representative
+failed-run logs, the two production gates, their tests, and the topic lesson files were reconciled
+with the commit history.
 
 | Range | Commits | Accounting |
 |---|---:|---|
@@ -49,17 +60,27 @@ topic lesson files were reconciled with the commit history.
 | late July 9 bridge | 4 | `4646488`, `04756c3`, `006c963`, `8f0e41e`; export/UI/explorer/IA features |
 | July 10-31 | 110 | 78 substantive, 16 generated-data, 12 docs, 2 runtime bumps, 2 monitoring drills |
 | August 1-22 | 66 | 27 fixes, 8 product/architecture features, 1 alias adoption, 21 generated-data, 9 docs |
-| **Total** | **308** | **186 substantive/product/hardening; 122 routine/docs/data/research/merge/drill** |
+| Post-cutoff, Aug 23 | 9 | 3 substantive/product/hardening; 6 routine/docs/generated/style |
+| **Total** | **317** | **189 substantive/product/hardening; 128 routine/docs/data/research/merge/drill/style** |
 
-The commit-message test heuristic is already strong: 87 subjects begin with `fix`, and 76 of those
+The post-cutoff ledger is exact:
+
+- Substantive: `339287b` (Rounds 1A-1C and broader reliability hardening), `6692cfe` (ESPN
+  bracket-evidenced round reconciliation), and `9f6bd41` (Rounds 2A-2B).
+- Routine/docs/generated/style: `28661bb`, `11dbebc`, `f373fd7`, `b1db0d4`, `b744c99`, and
+  `b6b1511`.
+
+The commit-message test heuristic is already strong: 88 subjects begin with `fix`, and 77 of those
 touch a test path in the same commit. The 11 exceptions are mostly dependency/lock repairs, data
 healing, docs/visual corrections, or coverage arriving in an adjacent commit. A blanket "fix must
 touch tests" rule would be noisy; executable incident/invariant coverage is a better standard.
 
 GitHub numbering is also fully reconciled: #1 and #16 are pull requests, not missing incidents.
-There are 20 closed issues: 14 `data-health`, 5 `deploy-health`, and 1 `watchdog`. Median closure time
-was about 1.6 hours overall (5.1 hours for data health and 55 minutes for deploy health), but closure
-is not always recovery—#21 is the counterexample.
+At the original cutoff there were 20 closed issues: 14 `data-health`, 5 `deploy-health`, and 1
+`watchdog`. Three post-cutoff `pipeline-health` incidents (#23-#25) bring the current total to 23,
+all closed. Original median closure time was about 1.6 hours overall (5.1 hours for data health and
+55 minutes for deploy health), but closure was not always recovery—#21 is the counterexample that
+Round 1B standardized.
 
 ## Reliability evolution
 
@@ -123,8 +144,8 @@ August exposed the same classes at more realistic product seams:
 
 - `9c17a08`, `83e3b3e`, `6dff794`, and `51e16a8` repaired WTA population policy, event-only lifecycle
   evidence, year-wide dedup/finals/tiers, and one-day fragments.
-- `d09cea0` distinguished total ESPN failure from a quiet week, but the caller still catches and
-  prints the failure without producing a same-run health receipt.
+- `d09cea0` distinguished total ESPN failure from a quiet week, but the caller still caught and
+  printed the failure without producing a same-run health receipt; Round 1C later closed that seam.
 - `cf4de59` and `29b3c0c` were explicit withdrawal stopgaps. `853deb9` replaced them with
   evidence-derived withdrawal handling—the right pattern for converting a one-off into a rule.
 - `a8f7dd7`, `0b2cc03`, `d34ab0c`, `c752e97`, `6b1de8c`, and `1d593f3` progressively standardized
@@ -152,18 +173,20 @@ August exposed the same classes at more realistic product seams:
 | #11 | Mifel title/tier wrong | Fixed in `68e452a`; metadata validation retained |
 | #12 | Generali remained upcoming and Kitzbuhel split | Fixed by lifecycle invariants and the ESPN-id/evidence/cache chain |
 | #13 | Coverage shells restored events but lost recorded finals | Fixed by non-conflicting final retention (`42dc9be`) |
-| #14 | Began as WTA count loss, then rotated through lifecycle, tier, and split-event findings | Fix chain `9c17a08` -> `83e3b3e` -> `6dff794` -> `51e16a8`; fingerprint gap remains |
+| #14 | Began as WTA count loss, then rotated through lifecycle, tier, and split-event findings | Fix chain `9c17a08` -> `83e3b3e` -> `6dff794` -> `51e16a8`; per-finding identity standardized in Round 2A |
 | #15 | Future 2029 WTA row, then a Warsaw withdrawal | Fixed by `0b2cc03`/`29b3c0c`; standardized by `853deb9` |
 | #17 | Hagen start-date provenance looked like stalled live play | Fixed by `28c1715`/`babcdf1`; progress-based liveness remains a gap |
 | #18 | One aborted GET fabricated 13 downstream canonical failures | Transport/cascade noise; fixed by dependency-aware retry (`3bfc541`) |
 | #19 | Bare mutable Firebase cache keys timed out while query variants returned | Real cache configuration defect; fixed by `7ac8aa9` |
 | #20 | Same-SHA first attempt had unrelated aborted GETs; retry passed | Transport/rollout noise; no distinct product fix |
-| #21 | ATP count fell 52 rows and issue auto-closed next run without restoration | **Open design defect:** ratcheting comparison baseline |
+| #21 | ATP count fell 52 rows and issue auto-closed next run without restoration | Fixed by the version-keyed non-ratcheting high-water baseline in Round 1B (`339287b`) |
 | #22 | 91-day charting content age was treated as transport failure | Fixed by direct transport/schema health and last-good input (`49d43bd`) |
+| #23 | First Round 1 deploy failed reusable tests on Ruff import ordering | New terminal push-tests reporter opened the exact incident and closed it after `11dbebc` recovered |
+| #24, #25 | Winston-Salem upcoming rounds disagreed with complete-bracket rounds and blocked two quick deploys | New gate reporter preserved the exact findings; bracket-evidence reconciliation `6692cfe` standardized the repair and both lifecycles closed |
 
-The issue system itself detects user-visible output problems quickly, but it currently confuses an
-issue label with an incident identity. That makes closure metrics optimistic and hides whether one
-root cause recovered or was merely replaced by another symptom.
+At the original cutoff, the issue system detected user-visible output problems quickly but
+confused an issue label with an incident identity. Round 2A replaced that mutable bucket with one
+lifecycle per stable finding fingerprint, so recovery now means that exact symptom disappeared.
 
 ## Workflow-failure audit
 
@@ -181,23 +204,25 @@ wrong artifact never deployed. But it then skipped `Data health check` and `Repo
 finding. The same blind path applies to pipeline/build failures, and a master-push test failure can
 prevent the refresh job—and any in-job reporter—from starting at all.
 
-The daily watchdog cannot be the primary answer. It asks only whether *any* refresh succeeded in 26
-hours, so hourly QUICK success can mask a broken FULL retrain. Its issue branching also still lives
-inline in `.github/workflows/watchdog.yml`; the existing "no inline alert logic" test scans only
-`refresh.yml`, contrary to the repository's current CI rule.
+At the audit cutoff, the daily watchdog could not be the primary answer. It asked only whether
+*any* refresh succeeded in 26 hours, so hourly QUICK success could mask a broken FULL retrain. Its
+issue branching also lived inline in `.github/workflows/watchdog.yml`, while the meta-test scanned
+only `refresh.yml`. Round 1A added mode-specific terminal reporting, extracted the watchdog helper,
+and expanded the tested no-inline-issue-mutation contract. Issues #23-#25 then exercised that path
+against real push-test and gate failures and recovered exactly.
 
 ## Recurring failure classes and present coverage
 
 | Failure class | Repeated evidence | What now exists | Residual gap |
 |---|---|---|---|
-| Event/player identity | #2, #9-15; sponsor renames, aliases, placeholders, lost ids | ESPN-id registry, evidence joins, alias proposer/falsifier, exact-once coverage | Participant/draw-state vocabulary remains distributed; current US Open work is closing source-attachment uniqueness |
-| Event/draw lifecycle | Wimbledon retry chain, stale settled draws, withdrawals, lost finals | Calendar lifecycle, active revalidation, official provenance, pre-deploy geometry and live integrity | Start-stamped events lack progress-based liveness; realistic incident replay is sparse |
-| Source acquisition | LFS pointers, future dates, ESPN outage, MCP age | Payload validation, bounded retry, direct MCP transport/schema receipt, atomic last-good | ESPN total-failure receipt is not propagated into health |
+| Event/player identity | #2, #9-15; sponsor renames, aliases, placeholders, lost ids | ESPN-id registry, evidence joins, alias proposer/falsifier, exact-once coverage, source-attachment uniqueness | Shared source-aware participant/draw-state vocabulary is in Round 3 final review |
+| Event/draw lifecycle | Wimbledon retry chain, stale settled draws, withdrawals, lost finals | Calendar lifecycle, active revalidation, official provenance, pre-deploy geometry/live integrity, Round 2 incident replays | Start-stamped events still lack progress-based liveness |
+| Source acquisition | LFS pointers, future dates, ESPN outage, MCP age | Payload validation, bounded retry, direct MCP and ESPN per-tour receipts, atomic last-good | No reproduced open defect after Round 1C |
 | Cache/artifact validity | Old predictor schemas, alias/population changes, draw and Firebase caches | Quick staleness guard, explicit versions, draw provenance/revalidation, release snapshot, no-store serving | Predictor unpickles before compatibility inspection; no checksum/envelope or whole-generation manifest |
-| Gate semantics | Bye sizes, accents, placeholders, shipped-vs-raw probability, tier severity | Extensive `output_problems()` tests and pre-deploy gate | Severity and dedup still depend on prose; blocked gates do not file incidents |
-| CI control flow | Cron attribution, `bash -e`, skipped verifier, red cache persistence, I/O budgets | Tested mode/push/report scripts, unconditional cache save, 75-minute cap | No terminal workflow-health reporter; watchdog branching untested/inline |
-| Deploy/browser behavior | Header ordering, canonical cascade, mutable cache, global scroll | Post-deploy verifier and focused component/contracts | Existing real browser smoke is not in CI; transport-only failures can still page on first occurrence |
-| Model/evaluation integrity | Walk/inference parity, stale artifacts, population changes, market budget | Full arbiter, parity tests, schema/population/alias versions, bounded Kalshi | No pre-unpickle artifact envelope; cross-layer incident corpus missing |
+| Gate semantics | Bye sizes, accents, placeholders, shipped-vs-raw probability, tier severity | Typed findings/fingerprints, production replay corpus, pre-deploy gate, exact terminal reporter | No reproduced open defect after Round 2 |
+| CI control flow | Cron attribution, `bash -e`, skipped verifier, red cache persistence, I/O budgets | Tested mode/push/report/watchdog scripts, terminal mode-specific issues, unconditional cache save, 75-minute cap | Soft-fail stage receipts are in Round 3 final review |
+| Deploy/browser behavior | Header ordering, canonical cascade, mutable cache, global scroll | Post-deploy verifier and focused component/contracts | Deterministic real-browser CI is in Round 3 final review; transport-only second confirmation remains open |
+| Model/evaluation integrity | Walk/inference parity, stale artifacts, population changes, market budget | Full arbiter, parity and incident-replay tests, schema/population/alias versions, bounded Kalshi | No pre-unpickle artifact envelope or whole-generation lineage |
 
 ## One-off fixes that were successfully standardized
 
@@ -211,8 +236,9 @@ These should be maintained, not reimplemented:
   field comparison plus whole-artifact refresh.
 - **"Complete" cache shortcuts -> provenance-aware revalidation:** settled geometry alone no longer
   proves identity or active immutability.
-- **Inline alert guesses -> typed/tested reporters:** data/deploy issue matrices now distinguish
-  failure, skip, recovery, and API UNKNOWN. The watchdog is the remaining exception.
+- **Inline alert guesses -> typed/tested reporters:** data/deploy/pipeline/watchdog issue matrices
+  now distinguish failure, skip, recovery, and API UNKNOWN; Round 1A brought the final watchdog
+  branch under the same tested helper contract.
 - **One-sided freshness -> source contracts:** future-date bounds and direct acquisition/schema
   receipts replaced calendar-age guesses where cadence is not guaranteed.
 - **Invisible model staleness -> artifact versions:** trained-at, feature/schema, alias, and population
@@ -224,20 +250,20 @@ These should be maintained, not reimplemented:
 
 ## Ranked automation opportunities
 
-| Priority | Proposal | Why now | False-positive / maintenance risk |
+| Priority | Proposal | Current status | False-positive / maintenance risk |
 |---|---|---|---|
-| P0 | Unified `pipeline-health` reporter: exact in-job stage outcomes plus terminal workflow job | Closes the verified gate/pipeline/test alert gap and prevents FULL-only failures hiding behind QUICK success | Low if skipped/unknown are typed and deploy-health remains separate |
-| P0 | Non-ratcheting population high-water baseline keyed by population version | Fixes confirmed false recovery #21 | Low; explicit version is the intentional reset |
-| P0 | ESPN per-tour acquisition receipt surfaced through health | Converts a logged total outage into a same-run page instead of waiting for stale event state | Low if absence and transport failure remain distinct |
-| P0 | Extract/test watchdog reporter and scan every workflow for inline issue mutation | Brings the final alert workflow under the repository's own contract | Very low; behavior-preserving refactor |
-| P1 | Stable `HealthFinding {code,severity,tour,entity,evidence}` plus fingerprint lifecycle | Stops issues #10/#14/#15 from becoming rotating buckets; removes substring severity | Medium migration; preserve legacy strings during rollout |
-| P1 | Production-shape incident replay corpus with broken and clean controls | Catches the real combined seams missed by synthetic tests and lets new gates shadow before blocking | Low runtime risk; fixture upkeep is the cost |
-| P1 | Pre-unpickle predictor envelope/checksum and whole-generation lineage | Generalizes repeated schema/version/cache fixes and rejects mixed output generations | Medium design effort; stage rollout by artifact |
-| P1 | Durable stage-status ledger using the active timing seam | Makes soft-fail market/tracking/Kalshi/manifest stages visible with last success and input fingerprint | Low if product vs evaluation severity is explicit |
-| P1 | Canonical participant/draw-state classifier | Replaces repeated local parsing of Qualifier/LL/Bye/TBD and duplicated "settled/meaningful" logic | Medium refactor risk; replay corpus should precede it |
-| P2 | Run the existing real browser scroll/interaction smoke in CI | Prevents global CSS/interaction regressions such as `1e345cd` before deploy | Some flake/runtime cost; keep a narrow deterministic fixture |
-| P2 | Transport-only second verifier confirmation | Reduces #18/#20-style noise while paging real contract failures immediately | Low, but retries already solve most of the class |
-| P2 | Static external-I/O contract audit | Prevents new loops omitting timeout, retry, deadline, mode budget, or UNKNOWN behavior | Useful guardrail; less urgent than known live gaps |
+| P0 | Unified `pipeline-health` reporter: exact in-job stage outcomes plus terminal workflow job | **Live — Round 1A** | Low; skipped/unknown are typed and deploy-health remains separate |
+| P0 | Non-ratcheting population high-water baseline keyed by population version | **Live — Round 1B** | Low; explicit version is the intentional reset |
+| P0 | ESPN per-tour acquisition receipt surfaced through health | **Live — Round 1C** | Low; absence and transport failure remain distinct |
+| P0 | Extract/test watchdog reporter and scan every workflow for inline issue mutation | **Live — Round 1A** | Very low; behavior-preserving refactor |
+| P1 | Stable `HealthFinding {code,severity,tour,entity,evidence}` plus fingerprint lifecycle | **Live — Round 2A** | Compatibility prose remains during migration |
+| P1 | Production-shape incident replay corpus with broken and clean controls | **Live — Round 2B** | Fixture upkeep is the ongoing cost |
+| P1 | Pre-unpickle predictor envelope/checksum and whole-generation lineage | **Planned — staged Round 4A/4B** | Medium design effort; shadow before enforcement |
+| P1 | Durable stage-status ledger using the active timing seam | **Final review — Round 3A** | Product/evaluation criticality is explicit |
+| P1 | Canonical participant/draw-state classifier | **Final review — Round 3B** | Source/context-specific policy is retained |
+| P2 | Run the existing real browser scroll/interaction smoke in CI | **Final review — Round 3C** | Narrow deterministic fixture bounds runtime and flakes |
+| P2 | Transport-only second verifier confirmation | Open; existing retry handles most cases | Low, but retries already solve most of the class |
+| P2 | Static external-I/O contract audit | Open | Useful guardrail; lower urgency than known artifact gaps |
 
 ### Rules that are not worth adding
 
@@ -250,7 +276,7 @@ These should be maintained, not reimplemented:
 - Do not make a new blocking check from a synthetic helper case alone. Replay a production-shaped
   broken and clean control, then run it advisory/shadow before promotion.
 
-## Proposed implementation slate
+## Implementation slate
 
 This is deliberately small enough to review and land without colliding with the current model,
 latency, sharding, and US Open work.
@@ -286,19 +312,16 @@ latency, sharding, and US Open work.
   `test_live_parse.py`, `test_pipeline_guard.py`, `test_health.py`, and
   `test_workflow_alerts.py`.
 
-Round 2 should introduce stable finding codes and the incident replay manifest before attempting
-the broader participant-state, artifact-envelope, or stage-ledger refactors.
+Round 1 shipped in `339287b`. Round 2 then introduced stable finding codes and the incident replay
+manifest in `9f6bd41`, before the broader participant-state and stage-ledger refactors in Round 3.
+The artifact envelope remains deliberately staged behind them in Round 4.
 
-## Reconciliation with current uncommitted work
+## Reconciliation with post-audit work
 
-Do not duplicate the active US Open repair. The dirty tree already contains exact per-tour/event
-Wikipedia locators, generic-name fail-closed behavior, active settled-cache identity revalidation,
-duplicate source-id/URL quarantine, blocking pre-upload checks, post-deploy provenance verification,
-and focused tests.
-
-The same tree also contains unshipped WTA dual-state gating and latency/sharding/cache work. A later
-stage-status ledger should extend the new timing seam instead of adding a second instrumentation
-framework. Workflow and `health.py` changes in Round 1 must be rebased carefully around those edits.
+The US Open source-identity repair, WTA dual-state gate, and latency/sharding/cache work inspected in
+the original dirty tree shipped together in `339287b`; none was counted as production before that
+commit. Round 3 extends their existing timing and health seams rather than adding a parallel
+instrumentation framework, and keeps the source-attachment and model-adoption contracts intact.
 
 ## Commit coverage ledger
 
@@ -368,8 +391,8 @@ and incident map above. The 32 non-substantive commits are explicitly:
 - Aug 20: `aba6387` data; `7bd5ebe`, `8519492` docs; `0a58938` product.
 - Aug 21-22: `96a07c9`, `b1b8579` data only.
 
-## Decision requested
+## Current rollout decision
 
-Approve or revise Round 1A-1C before implementation. They are independent enough to land as three
-small reviewed commits, but 1A should go first because it makes failures in the later rounds
-immediately actionable.
+Rounds 1 and 2 are complete and live. Round 3 must pass its full release gate and production
+verification before the two-phase Round 4 rollout begins: envelope/lineage shadow publication,
+one successful production bootstrap, then blocking enforcement.

@@ -77,9 +77,16 @@ from ..config import (
     stats_dir,
 )
 from ..model.features import FEATURES
-from ..sim.bracket import is_real
+from ..timing import (
+    PRODUCT_STAGE_MAX_SUCCESS_AGE_HOURS,
+    PRODUCT_STAGE_NAMES,
+    STAGE_STATUS_FILENAME,
+    STAGE_STATUS_SCHEMA,
+    validate_stage_status,
+)
 from .charting import _GENDER, CHARTING_DIR
 from .names import name_key
+from .participants import classify_participant, is_real_participant
 from .results import load_matches
 from .surface import LEVEL_VOCAB
 
@@ -693,7 +700,6 @@ _REQUIRED_OUTPUTS = ("meta", "players", "tournaments", "event_coverage", "bracke
                      "matrix-index", "ratings_history", "profile-index", "draws", "fixtures", "method",
                      "scenario-index", "performance")
 _OPTIONAL_OUTPUTS = ("accuracy", "track", "market")
-_PLACEHOLDER_NAMES = {"tbd", "tba", "bye", "qualifier"}   # mirror data/live.py
 _EVIDENCE_KEYS = (
     "surfaceElo", "serveReturn", "form", "rest", "home", "h2h", "style",
 )
@@ -704,11 +710,8 @@ _WATCH_WEIGHTS = {
 
 
 def _is_real_name(x: object) -> bool:
-    """True if this names an actual player. Delegates to the draw machinery's own
-    predicate so the numbered forms ("Qualifier 30") it already understands cannot
-    disagree with what the health gate considers a placeholder."""
-    from ..sim.bracket import is_real
-    return bool(is_real(x))
+    """True if the shared provider-aware vocabulary says this names an actual player."""
+    return is_real_participant(x)
 
 _STATUSES = {"live", "upcoming", "completed"}
 _DRAW_STATES = {"real", "partial", "seeded", "final", "unavailable"}
@@ -828,6 +831,9 @@ def read_outputs(tour: str) -> dict:
 
     Returns {"data": {stem: parsed}, "missing": [required stems absent],
              "corrupt": [stems present but unparseable OR carrying NaN/Infinity],
+             "stage_status": {"state": "missing"|"malformed"|"valid", ...},
+             "draw_cache_status": {
+                 "state": "missing"|"malformed"|"unreadable"|"degraded"|"valid"},
              "forecast": {"lines": int, "max_as_of": str|None} | None,
              "kalshi_ledger": [row dicts] | None}.
     """
@@ -843,6 +849,20 @@ def read_outputs(tour: str) -> dict:
             data[stem] = json.loads(f.read_text(), parse_constant=_reject_nonfinite)
         except (ValueError, OSError):
             corrupt.append(stem)
+    stage_status: dict = {"state": "missing"}
+    stage_path = d / STAGE_STATUS_FILENAME
+    if stage_path.exists():
+        try:
+            stage_payload = json.loads(
+                stage_path.read_text(encoding="utf-8"), parse_constant=_reject_nonfinite)
+            stage_status = {"state": "valid", "receipt": validate_stage_status(
+                stage_payload, tour)}
+        except (ValueError, OSError, TypeError) as exc:
+            stage_status = {
+                "state": "malformed",
+                "errorType": type(exc).__name__,
+                "error": f"{type(exc).__name__}: {str(exc)[:300]}",
+            }
     shards, missing_files, corrupt_files = {}, [], []
     refs = []
     matrix_index = data.get("matrix-index")
@@ -910,14 +930,31 @@ def read_outputs(tour: str) -> dict:
                 }})
         data["upcoming"] = upcoming
     draw_cache = None
+    draw_cache_status: dict = {"state": "missing"}
     draw_cache_path = live_dir(tour) / "tournament_draws.json"
-    if draw_cache_path.exists():
-        try:
-            parsed = json.loads(
-                draw_cache_path.read_text(), parse_constant=_reject_nonfinite)
-            draw_cache = parsed if isinstance(parsed, dict) else None
-        except (ValueError, OSError):
-            draw_cache = None
+    try:
+        parsed = json.loads(
+            draw_cache_path.read_text(), parse_constant=_reject_nonfinite)
+        if not isinstance(parsed, dict):
+            raise TypeError("tournament_draws.json must contain an object")
+        draw_cache = parsed
+        draw_cache_status = {"state": "valid"}
+    except FileNotFoundError:
+        pass
+    except OSError as exc:
+        draw_cache_status = {
+            "state": "unreadable", "errorType": type(exc).__name__}
+    except (TypeError, ValueError) as exc:
+        draw_cache_status = {
+            "state": "malformed", "errorType": type(exc).__name__}
+    from .draws import draw_cache_refresh_failures
+    refresh_failures = draw_cache_refresh_failures(tour, directory=live_dir(tour))
+    if refresh_failures:
+        if draw_cache_status["state"] in {"missing", "valid"}:
+            draw_cache_status = {
+                "state": "degraded", "failures": refresh_failures}
+        else:
+            draw_cache_status["refreshFailures"] = refresh_failures
     forecast = None
     fc = DATA_DIR / "forecast_log" / f"{tour}.jsonl"
     if fc.exists():
@@ -944,8 +981,9 @@ def read_outputs(tour: str) -> dict:
     return {"data": data, "missing": missing, "corrupt": corrupt,
             "shards": shards, "missing_files": missing_files,
             "corrupt_files": corrupt_files,
-            "draw_cache": draw_cache,
-            "forecast": forecast, "kalshi_ledger": ledger}
+            "draw_cache": draw_cache, "draw_cache_status": draw_cache_status,
+            "forecast": forecast, "kalshi_ledger": ledger,
+            "stage_status": stage_status}
 
 
 def _is_prob(x) -> bool:
@@ -1036,14 +1074,25 @@ def _age_days(iso, now: pd.Timestamp):
     return int((now_utc - ts).days)
 
 
-def _flag_placeholders(out: list, tour: str, where: str, names, *, entity: str) -> None:
-    bad = sorted({n for n in names if isinstance(n, str) and n.strip().lower() in _PLACEHOLDER_NAMES})
-    if bad:
+def _flag_placeholders(out: list, tour: str, where: str, names, *, entity: str,
+                       allow_numbered: bool = False) -> None:
+    bad: set[str] = set()
+    for name in names:
+        if not isinstance(name, str):
+            continue
+        participant = classify_participant(name)
+        if participant.is_real:
+            continue
+        if allow_numbered and participant.is_numbered_placeholder:
+            continue
+        bad.add(name)
+    ordered = sorted(bad)
+    if ordered:
         _add_finding(
             out, "output.participant.placeholder_name",
-            f"{tour}: {where} contains placeholder name(s) {bad}",
+            f"{tour}: {where} contains placeholder name(s) {ordered}",
             severity="error", entity=entity,
-            evidence={"where": where, "names": bad})
+            evidence={"where": where, "names": ordered})
 
 
 def _check_matrix(out: list, tour: str, mx: dict) -> None:
@@ -2675,7 +2724,7 @@ def _check_brackets(out: list, tour: str, brackets: list, tournaments) -> None:
         _flag_placeholders(out, tour, f"bracket {name!r}",
                            (p for rnd in rounds for m in (rnd.get("matches") or [])
                             for p in (m.get("a"), m.get("b"))),
-                           entity=event_entity)
+                           entity=event_entity, allow_numbered=True)
 
     from .draws import duplicate_draw_source_incidents
     for identity, detail in duplicate_draw_source_incidents(source_attachments):
@@ -3024,7 +3073,8 @@ def _tournament_name_problems(out: list, tour: str, ts: list) -> None:
             evidence={"names": names, "starts": starts, "reason": "duplicate_name"})
 
     def _real_field(t: dict) -> set:
-        return {p.get("name") for p in t.get("projection", []) if is_real(p.get("name"))}
+        return {p.get("name") for p in t.get("projection", [])
+                if is_real_participant(p.get("name"))}
 
     for a, b in itertools.combinations(named, 2):
         if _norm_name(a["name"]) == _norm_name(b["name"]) or _overlap_days(a, b) < 2:
@@ -3269,12 +3319,122 @@ def _check_event_coverage(out: list, tour: str, coverage: dict, tournaments: lis
             evidence={"eventName": shell_names[key], "coverageKey": key})
 
 
+def _stage_success_overdue(value: object, observed_at: pd.Timestamp) -> bool:
+    stamp = pd.to_datetime(value, utc=True, errors="coerce") if value else pd.NaT
+    if pd.isna(stamp):
+        return False
+    now_utc = observed_at if observed_at.tzinfo else observed_at.tz_localize("UTC")
+    return now_utc - stamp > pd.Timedelta(hours=PRODUCT_STAGE_MAX_SUCCESS_AGE_HOURS)
+
+
+def _public_stage_error_type(value: object) -> str:
+    """Safe, stable public category; detailed exception prose stays in the private receipt."""
+    text = str(value or "StageError")
+    return text if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_.-]{0,119}", text) else "StageError"
+
+
+def _check_pipeline_stage_status(
+    out: _FindingCollector,
+    tour: str,
+    snapshot: object,
+    observed_at: pd.Timestamp,
+    *,
+    expected: bool,
+) -> None:
+    """Surface durable soft-fail outcomes without turning them into deploy blockers."""
+    if not isinstance(snapshot, dict) or snapshot.get("state") == "missing":
+        # Rollout/fresh clones have no receipt until the first attempted stage. Absence alone
+        # proves failure only after meta declares that this producer version owns the receipt.
+        if expected:
+            _add_finding(
+                out,
+                "output.pipeline_stage.receipt_missing",
+                f"{tour}: expected private {STAGE_STATUS_FILENAME} is missing",
+                severity="warning",
+                entity=f"artifact:{STAGE_STATUS_FILENAME}",
+                evidence={"expectedSchema": STAGE_STATUS_SCHEMA},
+            )
+        return
+    if snapshot.get("state") != "valid":
+        _add_finding(
+            out,
+            "output.pipeline_stage.receipt_malformed",
+            f"{tour}: {STAGE_STATUS_FILENAME} is present but malformed",
+            severity="warning",
+            entity=f"artifact:{STAGE_STATUS_FILENAME}",
+            evidence={
+                "errorType": _public_stage_error_type(snapshot.get("errorType")),
+            },
+        )
+        return
+
+    receipt = snapshot.get("receipt") or {}
+    if expected:
+        missing_stages = sorted(PRODUCT_STAGE_NAMES - set(receipt.get("stages") or {}))
+        if missing_stages:
+            _add_finding(
+                out,
+                "output.pipeline_stage.receipt_incomplete",
+                f"{tour}: {STAGE_STATUS_FILENAME} lacks expected product stage(s) "
+                f"{missing_stages}",
+                severity="warning",
+                entity=f"artifact:{STAGE_STATUS_FILENAME}",
+                evidence={"missingStages": missing_stages},
+            )
+    for stage, record in sorted((receipt.get("stages") or {}).items()):
+        criticality = record["criticality"]
+        if record["outcome"] == "failure":
+            error_type = _public_stage_error_type(record["error"].get("type"))
+            evidence = {
+                "criticality": criticality,
+                "errorType": error_type,
+            }
+            _add_finding(
+                out,
+                "output.pipeline_stage.current_failure",
+                f"{tour}: pipeline stage {stage!r} most recently failed ({error_type})",
+                severity="warning" if criticality == "product" else "info",
+                entity=f"pipeline-stage:{stage}",
+                evidence=evidence,
+            )
+            # One continuing failure is one incident. Per-attempt timestamps, duration,
+            # inputs, and detailed errors remain private so an hourly retry neither leaks
+            # provider detail nor churns the public issue revision.
+            continue
+
+        if criticality != "product":
+            continue
+        if _stage_success_overdue(record.get("lastSuccessAt"), observed_at):
+            _add_finding(
+                out,
+                "output.pipeline_stage.success_overdue",
+                f"{tour}: product pipeline stage {stage!r} has not succeeded within "
+                f"{PRODUCT_STAGE_MAX_SUCCESS_AGE_HOURS}h",
+                severity="warning",
+                entity=f"pipeline-stage:{stage}",
+                evidence={
+                    "lastSuccessAt": record["lastSuccessAt"],
+                    "maxHours": PRODUCT_STAGE_MAX_SUCCESS_AGE_HOURS,
+                    "lastSuccessInputFingerprint": record["lastSuccessInputFingerprint"],
+                },
+            )
+
+
 def output_findings(tour: str, oc: dict, now: pd.Timestamp,
-                    prev: dict | None = None) -> list[HealthFinding]:
+                    prev: dict | None = None, *,
+                    observed_at: pd.Timestamp | None = None) -> list[HealthFinding]:
     """Typed produced-artifact findings; pure for one read_outputs() snapshot."""
     out = _FindingCollector("output", tour)
     data = oc.get("data", {})
     prev = prev or {}
+    meta = data.get("meta")
+    _check_pipeline_stage_status(
+        out,
+        tour,
+        oc.get("stage_status"),
+        observed_at if observed_at is not None else now,
+        expected=isinstance(meta, dict) and meta.get("stageStatusSchema") == STAGE_STATUS_SCHEMA,
+    )
     for stem in oc.get("missing", []):
         _add_finding(out, "output.artifact.required_missing", f"{tour}: {stem}.json missing",
                      entity=f"artifact:{stem}.json", evidence={"artifact": f"{stem}.json"})
@@ -3290,6 +3450,28 @@ def output_findings(tour: str, oc: dict, now: pd.Timestamp,
         _add_finding(out, "output.artifact.referenced_unparseable",
                      f"{tour}: referenced artifact {filename!r} is unparseable",
                      entity=f"artifact:{filename}", evidence={"artifact": filename})
+    draw_cache_status = oc.get("draw_cache_status")
+    if (isinstance(draw_cache_status, dict)
+            and draw_cache_status.get("state") in {
+                "degraded", "malformed", "unreadable"}):
+        state = str(draw_cache_status["state"])
+        evidence = {"state": state}
+        if draw_cache_status.get("errorType"):
+            evidence["errorType"] = str(draw_cache_status["errorType"])
+        failures = draw_cache_status.get("failures") or []
+        if failures:
+            evidence["failureTypes"] = sorted({
+                f"{item.get('source')}:{item.get('errorType')}"
+                for item in failures if isinstance(item, dict)
+            })
+        _add_finding(
+            out,
+            "output.draw_cache.invalid",
+            f"{tour}: tournament_draws.json is present but {state}",
+            severity="warning",
+            entity="artifact:tournament_draws.json",
+            evidence=evidence,
+        )
     draw_cache = oc.get("draw_cache")
     if isinstance(draw_cache, dict):
         from .draws import duplicate_draw_source_incidents
@@ -3299,7 +3481,6 @@ def output_findings(tour: str, oc: dict, now: pd.Timestamp,
                          entity=f"draw-source:{identity}", evidence={"detail": detail})
     offseason = _offseason(now)
 
-    meta = data.get("meta")
     if isinstance(meta, dict):
         feats = meta.get("features")
         nfeat = len(feats) if isinstance(feats, list) else None
@@ -4069,13 +4250,15 @@ def main() -> int:
         # and are reported by the post-deploy sentinel. Never writes health.json (leaves the
         # sentinel's prev-snapshot/issue flow untouched). A failure keeps the last good deploy
         # live rather than shipping a wrong one; a stale-but-correct site beats a fresh-wrong one.
-        now = pd.Timestamp(datetime.now(UTC).date())
+        observed_at = pd.Timestamp(datetime.now(UTC))
+        now = observed_at.normalize().tz_localize(None)
         blocking: list[dict] = []
         advisory: list[dict] = []
         gate_findings: list[HealthFinding] = []
         outs = {tour: read_outputs(tour) for tour in TOURS}
         for tour in TOURS:
-            for finding in output_findings(tour, outs[tour], now, prev=None):
+            for finding in output_findings(
+                    tour, outs[tour], now, prev=None, observed_at=observed_at):
                 gate_findings.append(finding)
                 item = {"scope": tour, "problem": finding.message,
                         "finding": finding.as_dict()}
@@ -4136,7 +4319,8 @@ def main() -> int:
         except ValueError:
             prev = None
 
-    now = pd.Timestamp(datetime.now(UTC).date())
+    observed_at = pd.Timestamp(datetime.now(UTC))
+    now = observed_at.normalize().tz_localize(None)
     # `generated` stays day-granular (problem strings key off it for dedup); generatedAt
     # is the precise stamp the /health page shows and ages client-side.
     report, all_problems = {"generated": str(now.date()),
@@ -4156,7 +4340,8 @@ def main() -> int:
         p = _finding_messages(source_typed)
         prev_out = ((prev or {}).get("tours", {}).get(tour, {}) or {}).get("output") or {}
         oc = outs[tour]
-        output_typed = output_findings(tour, oc, now, prev_out)
+        output_typed = output_findings(
+            tour, oc, now, prev_out, observed_at=observed_at)
         nested_cross = cross_findings if tour == TOURS[0] else []
         op = _finding_messages(output_typed + nested_cross)
         meta = oc["data"].get("meta") or {}

@@ -260,6 +260,10 @@ def test_is_real_classifies_slots():
     assert not is_real(None)
     assert not is_real("Qualifier 3")
     assert not is_real("Lucky Loser")
+    assert not is_real("Wildcard 2")
+    assert not is_real("Alternate 4")
+    assert not is_real("Unresolved 1")
+    assert not is_real("TBD")
     assert not is_real("")
 
 

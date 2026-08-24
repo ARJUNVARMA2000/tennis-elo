@@ -22,6 +22,7 @@ import re
 import time
 import urllib.error
 import urllib.request
+from collections import Counter
 from datetime import UTC, date, datetime
 from functools import lru_cache
 from pathlib import Path
@@ -29,16 +30,19 @@ from pathlib import Path
 from pypdf import PdfReader
 
 from ..config import OFFICIAL_DRAW_ID_OVERRIDES, historical_dir, live_dir
+from .participants import (
+    ParticipantContext,
+    ParticipantKind,
+    ParticipantSource,
+    canonical_placeholder,
+    classify_participant,
+)
 from .results import _name_key
 
 ATP_PDF = "https://www.protennislive.com/posting/{year}/{source_id}/mds.pdf"
 WTA_PDF = "https://wtafiles.wtatennis.com/pdf/draws/{year}/{source_id}/MDS.pdf"
 PDF_UA = "Mozilla/5.0 (compatible; Deuce tennis draw monitor)"
 _ENTRY_CODES = frozenset({"A", "ALT", "JE", "JR", "LL", "NG", "PR", "Q", "Q/LL", "SE", "WC"})
-_UNRESOLVED_SLOT_LABELS = frozenset({
-    "alt", "alternate", "ll", "lucky loser", "q", "qualifier", "qualifier/ll",
-    "qualifier/lucky loser", "tba", "tbd", "wc", "wildcard",
-})
 _GENERIC_EVENT_TOKENS = frozenset({"atp", "by", "championships", "classic", "ladies",
                                    "men", "open", "presented", "tennis", "the", "wta", "women"})
 _MONTHS = {m.lower(): i for i, m in enumerate(
@@ -194,15 +198,20 @@ def parse_official_text(text: str, best_of: int = 3) -> dict | None:
         return None
     slots: list[str | None] = []
     seeds: dict[str, int] = {}
-    placeholder = 0
+    placeholders: Counter[ParticipantKind] = Counter()
     for i in range(1, size + 1):
         player, seed = rows[i]
-        unresolved = (" ".join(player.strip().casefold().replace("ﬁ", "fi").split())
-                      if isinstance(player, str) else "")
-        unresolved = re.sub(r"\s*/\s*", "/", unresolved)
-        if unresolved in _UNRESOLVED_SLOT_LABELS:
-            placeholder += 1
-            player = f"Qualifier {placeholder}"
+        participant = classify_participant(
+            player,
+            source=ParticipantSource.OFFICIAL,
+            context=ParticipantContext.OPENING_DRAW_SLOT,
+        )
+        if participant.is_placeholder:
+            placeholders[participant.kind] += 1
+            player = canonical_placeholder(
+                participant.kind, placeholders[participant.kind])
+        elif participant.kind is ParticipantKind.BYE:
+            player = None
         slots.append(player)
         if player and seed is not None:
             seeds[player] = seed

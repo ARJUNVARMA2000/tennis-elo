@@ -49,25 +49,38 @@ def _tier_context(level: str | None, tour: str) -> float:
     return float(mults.get(key, default)) if key else float(default)
 
 
-def load_upcoming(tour: str) -> pd.DataFrame:
+def load_upcoming(tour: str, *, status: dict | None = None) -> pd.DataFrame:
     """The tour's scheduled / in-progress matchups: ESPN's day-by-day feed unioned with the
     full first round from any released complete draw (so the board shows every opening-round
     match at release, not just the handful ESPN has named). Deduped by event + unordered
     player pair (ESPN wins ties). A missing or corrupt source is a no-op, never fatal."""
     frames = []
+    failures: list[dict[str, str]] = []
     path = live_dir(tour) / "upcoming.csv"
     if path.exists():
         try:
-            frames.append(pd.read_csv(path, encoding="utf-8"))
-        except Exception:  # noqa: BLE001 — a corrupt upcoming file must not break anything
-            pass
+            frame = pd.read_csv(path, encoding="utf-8")
+            missing = sorted(set(UPCOMING_COLS) - set(frame.columns))
+            if missing:
+                failures.append({"source": "espn-upcoming", "errorType": "SchemaError"})
+            else:
+                frames.append(frame)
+        except Exception as exc:  # noqa: BLE001 — retain other provider input
+            failures.append({"source": "espn-upcoming", "errorType": type(exc).__name__})
     try:
         from ..data.draws import tournament_draw_upcoming_rows
-        rows = tournament_draw_upcoming_rows(tour)
+        draw_status: dict = {}
+        rows = tournament_draw_upcoming_rows(tour, status=draw_status)
+        failures.extend(
+            item for item in (draw_status.get("failures") or [])
+            if isinstance(item, dict)
+        )
         if rows:
             frames.append(pd.DataFrame(rows))
-    except Exception:  # noqa: BLE001 — the complete-draw overlay is a bonus, never fatal
-        pass
+    except Exception as exc:  # noqa: BLE001 — ESPN rows remain usable
+        failures.append({"source": "complete-draw", "errorType": type(exc).__name__})
+    if status is not None:
+        status["failures"] = failures
     if not frames:
         return pd.DataFrame(columns=UPCOMING_COLS)
     df = pd.concat(frames, ignore_index=True).reindex(columns=UPCOMING_COLS)

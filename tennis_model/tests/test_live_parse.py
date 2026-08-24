@@ -316,8 +316,12 @@ def test_every_parsed_row_carries_the_stable_event_id():
 
 def test_placeholder_names_dropped():
     # the shared competitor->name gate: placeholder pseudo-athletes map to None
-    for nm in ("TBD", "tbd", " TBD ", "TBA", "Bye", "Qualifier"):
+    for nm in (
+        "TBD", "tbd", " TBD ", "TBA", "Bye", "Qualifier", "Qualifier 3",
+        "Lucky Loser", "Wildcard", "Alternate", "Q/LL",
+    ):
         assert live._athlete_name({"athlete": {"displayName": nm}}) is None, nm
+    assert live._athlete_name({"athlete": {"id": "0", "displayName": "Awaiting Winner"}}) is None
     assert live._athlete_name({"athlete": {"displayName": "Aaron Ace"}}) == "Aaron Ace"
     # Verified aliases apply at the common ESPN boundary, so upcoming/fields/results all
     # resolve after the duplicate rating identity is removed by a full rebuild.

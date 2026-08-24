@@ -91,6 +91,11 @@ def _budget_spent() -> bool:
     return _DEADLINE is not None and time.monotonic() >= _DEADLINE
 
 
+def budget_spent() -> bool:
+    """Public observation seam for a caller's enclosing :func:`time_budget`."""
+    return _budget_spent()
+
+
 def _remaining_budget() -> float | None:
     """Seconds left in the active budget, or None when the caller is unbounded."""
     return None if _DEADLINE is None else max(0.0, _DEADLINE - time.monotonic())
@@ -356,7 +361,7 @@ def _provisional_quote(ma: dict, mb: dict) -> dict:
 
 
 def refresh_snapshots(tour: str, backfill_since: str | None = None,
-                      recent_days: int | None = None) -> dict:
+                      recent_days: int | None = None, *, status: dict | None = None) -> dict:
     """Fetch settled + open markets, pair them, finalize pre-match prices from
     candles for events past their scheduled start. Returns the updated cache.
 
@@ -371,13 +376,17 @@ def refresh_snapshots(tour: str, backfill_since: str | None = None,
               if (e.get("price") or {}).get("kind") in ("candle", "none")}
 
     raw: list[dict] = []
-    for status in ("settled", "open"):
-        got = fetch_markets(tour, status,
+    failed_sweeps: list[str] = []
+    succeeded_sweeps = 0
+    for market_status in ("settled", "open"):
+        got = fetch_markets(tour, market_status,
                             frozen=None if backfill_since else frozen,
                             since=backfill_since)
         if got is None:
-            print(f"  kalshi/{tour}: {status} sweep failed — keeping cache")
+            print(f"  kalshi/{tour}: {market_status} sweep failed — keeping cache")
+            failed_sweeps.append(market_status)
         else:
+            succeeded_sweeps += 1
             raw.extend(got)
 
     paired, skip_now = pair_events(raw)
@@ -437,6 +446,13 @@ def refresh_snapshots(tour: str, backfill_since: str | None = None,
     os.replace(tmp, d / "snapshots.json")
     print(f"  kalshi/{tour}: {len(events)} events cached "
           f"(+{n_new} new, {n_frozen} prices frozen, {len(skipped)} skipped)")
+    if status is not None:
+        status.update({
+            "sweepsAttempted": 2,
+            "sweepsSucceeded": succeeded_sweeps,
+            "failedSweeps": failed_sweeps,
+            "budgetSpent": _budget_spent(),
+        })
     return snaps
 
 

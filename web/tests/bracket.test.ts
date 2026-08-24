@@ -50,16 +50,45 @@ describe("slot labels", () => {
   it("classifies real / placeholder / bye / tbd", () => {
     expect(isRealSlot("Jannik Sinner")).toBe(true);
     expect(isRealSlot(null)).toBe(false);
-    expect(isPlaceholder("Qualifier 7")).toBe(true);
-    expect(isPlaceholder("Lucky Loser")).toBe(true);
+    for (const placeholder of [
+      "Qualifier 7", "Lucky Loser 2", "Wildcard 3", "Alternate 1", "Unresolved 4",
+      "Qualifier/Wildcard 3", "Qualifier/Alternate 1", "Qualifier/Unresolved 4",
+      "Q/LL", "Qualifier (8)", "TBD opponent", "TBA - player", "Bye",
+    ]) {
+      expect(isPlaceholder(placeholder)).toBe(true);
+      expect(isRealSlot(placeholder)).toBe(false);
+    }
     expect(isPlaceholder("Jannik Sinner")).toBe(false);
+    expect(isPlaceholder("Qualifier Smith")).toBe(false);
+    expect(isRealSlot("Qualifier Smith")).toBe(true);
   });
 
-  it("sideLabel: bye only in round 0, TBD later, Qualifier collapses the number", () => {
+  it("sideLabel preserves unresolved roles and uses null geometry by round", () => {
     expect(sideLabel(null, 0)).toBe("Bye");
     expect(sideLabel(null, 3)).toBe("TBD");
     expect(sideLabel("Qualifier 12", 0)).toBe("Qualifier");
+    expect(sideLabel("Lucky Loser 2", 0)).toBe("Lucky Loser");
+    expect(sideLabel("Qualifier/Wildcard 1", 0)).toBe("Wildcard");
+    expect(sideLabel("Qualifier/Alternate 4", 0)).toBe("Alternate");
+    expect(sideLabel("Qualifier/Unresolved 3", 0)).toBe("Unresolved");
     expect(sideLabel("Carlos Alcaraz", 2)).toBe("Carlos Alcaraz");
+  });
+
+  it("keeps serialized roles safe under the pre-Round-3 browser policy", () => {
+    const legacyPlaceholder = (name: string) => /^(qualifier|lucky loser)\b/i.test(name.trim());
+    const serialized = [
+      ["Qualifier 3", "Qualifier"],
+      ["Lucky Loser 3", "Lucky Loser"],
+      ["Qualifier/Wildcard 3", "Wildcard"],
+      ["Qualifier/Alternate 3", "Alternate"],
+      ["Qualifier/Unresolved 3", "Unresolved"],
+    ] as const;
+
+    for (const [slot, label] of serialized) {
+      expect(legacyPlaceholder(slot)).toBe(true);
+      expect(isRealSlot(slot)).toBe(false);
+      expect(sideLabel(slot, 0)).toBe(label);
+    }
   });
 });
 
