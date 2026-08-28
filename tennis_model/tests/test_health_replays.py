@@ -49,7 +49,7 @@ def _safe_target(target: object) -> bool:
 
 def test_incident_replay_manifest_contract() -> None:
     assert MANIFEST["schema"] == "health-incident-replay-v1"
-    assert len(CASES) == 6
+    assert len(CASES) == 7
     ids = [case["id"] for case in CASES]
     codes = [case["expected"]["code"] for case in CASES]
     assert len(ids) == len(set(ids)) and all(_CASE_ID_RE.fullmatch(case_id) for case_id in ids)

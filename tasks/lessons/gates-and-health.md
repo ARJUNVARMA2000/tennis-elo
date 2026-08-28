@@ -405,3 +405,11 @@ Indexed in [`../lessons.md`](../lessons.md).
   apply:** initialize and validate the same trusted ATP/WTA root before every all-tour or partial
   revocation, then keep partial runs non-publishing. Test the cold-cache path without mocking the
   root helper.
+
+- **Lifecycle health needs producer evidence and competition-specific calendar semantics.**
+  (2026-08-28, US Open) A generic three-day upcoming grace contradicted the known fact that ESPN's
+  Grand Slam span begins with a full qualifying week, producing a permanent warning before the
+  main draw. Status alone also could not reveal that qualifying rows had falsely created a live
+  card. **How to apply:** export the positive main-draw evidence used by the producer and gate it;
+  keep the ordinary three-day delay signal, but give Grand Slams the documented seven-day
+  qualifying window. Add a paired broken/clean production replay before changing the invariant.

@@ -490,6 +490,8 @@ HEALTH_MAX_UPCOMING_START_LAG_DAYS = 3  # an "upcoming" event whose start date i
                                         # ESPN start dates include QUALIFYING, so a main draw
                                         # legitimately reads "upcoming" for a couple of days
                                         # (and every Slam does, for a week).
+HEALTH_MAX_SLAM_UPCOMING_START_LAG_DAYS = 7  # Slam event spans begin with qualifying;
+                                             # the singles main draw can start a week later.
 HEALTH_MAX_LIVE_EVENT_AGE_DAYS = 2    # a "live" event whose newest match is older than this
                                       # has either lost its final and stuck live (Iasi sat live
                                       # for 9 days) or gone blind mid-draw (2026-08-05: ESPN
@@ -607,10 +609,12 @@ OFFICIAL_DRAW_ID_OVERRIDES: dict[str, dict[str, str]] = {
 # ADDING A NEW YEAR: check which city each tour is in before copying the previous entry.
 EVENT_DISPLAY_NAME_OVERRIDES: dict[str, dict[str, str]] = {
     "atp": {
+        "189": "US Open",
         "421-2026": "Montreal",
         "421": "Canada",
     },
     "wta": {
+        "189": "US Open",
         "421-2026": "Toronto",
         "421": "Canada",
     },

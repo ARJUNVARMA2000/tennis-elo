@@ -56,6 +56,7 @@ from ..config import (
     HEALTH_MAX_MARKET_LAG_DAYS,
     HEALTH_MAX_MODEL_AGE_DAYS,
     HEALTH_MAX_RESULT_AGE_DAYS,
+    HEALTH_MAX_SLAM_UPCOMING_START_LAG_DAYS,
     HEALTH_MAX_STATS_AGE_DAYS,
     HEALTH_MAX_UPCOMING_START_LAG_DAYS,
     HEALTH_MIN_MATCHES,
@@ -2224,6 +2225,23 @@ def _check_tournament(out: list, tour: str, t: dict, now: pd.Timestamp | None = 
     force = bool(t.get("coverageOnly"))
     event_entity = _event_entity(t)
     ds, size, alive, champ = t.get("drawStatus"), t.get("drawSize"), t.get("aliveCount"), t.get("champion")
+    main_draw_matches = t.get("mainDrawMatchCount")
+    if not force:
+        if (not isinstance(main_draw_matches, int) or isinstance(main_draw_matches, bool)
+                or main_draw_matches < 0):
+            _add_finding(
+                out, "output.tournament.main_draw_match_count_invalid",
+                f"{tour}: tournament {name!r} mainDrawMatchCount "
+                f"{main_draw_matches!r} is missing or invalid",
+                severity="error", entity=event_entity,
+                evidence={"mainDrawMatchCount": repr(main_draw_matches)})
+        elif status == "live" and main_draw_matches == 0:
+            _add_finding(
+                out, "output.tournament.live_without_main_draw",
+                f"{tour}: live tournament {name!r} has no observed main-draw matches — "
+                "qualifying results cannot start the main-draw lifecycle",
+                severity="error", entity=event_entity,
+                evidence={"mainDrawMatchCount": 0, "status": "live"})
     if status not in _STATUSES:
         _add_finding(
             out, "output.tournament.status_invalid",
@@ -2345,6 +2363,9 @@ def _check_tournament(out: list, tour: str, t: dict, now: pd.Timestamp | None = 
     if status == "upcoming" and now is not None:
         end_age = _age_days(t.get("end"), now)
         start_age = _age_days(t.get("start"), now)
+        max_start_lag = (HEALTH_MAX_SLAM_UPCOMING_START_LAG_DAYS
+                         if t.get("level") == "Grand Slam"
+                         else HEALTH_MAX_UPCOMING_START_LAG_DAYS)
         if end_age is not None and end_age > 0:
             _add_finding(
                 out, "output.tournament.upcoming_after_end",
@@ -2354,17 +2375,17 @@ def _check_tournament(out: list, tour: str, t: dict, now: pd.Timestamp | None = 
                 severity=_tier_severity(t.get("level"), force=force), entity=event_entity,
                 evidence={"end": t.get("end"), "ageDays": end_age,
                           "level": repr(t.get("level"))})
-        elif start_age is not None and start_age > HEALTH_MAX_UPCOMING_START_LAG_DAYS:
+        elif start_age is not None and start_age > max_start_lag:
             # Advisory at every tier: ESPN start dates include qualifying, so a main draw
             # legitimately reads "upcoming" for a day or two — and a Slam for a whole week.
             _add_finding(
                 out, "output.tournament.live_transition_late",
                 f"{tour}: upcoming tournament {name!r} started {t.get('start')} "
-                f"({start_age}d ago, max {HEALTH_MAX_UPCOMING_START_LAG_DAYS}) but "
+                f"({start_age}d ago, max {max_start_lag}) but "
                 f"has not flipped live",
                 severity="warning", entity=event_entity,
                 evidence={"start": t.get("start"), "ageDays": start_age,
-                          "maxDays": HEALTH_MAX_UPCOMING_START_LAG_DAYS})
+                          "maxDays": max_start_lag})
     # A finished event has exactly one player left standing. Palermo shipped as completed
     # WITH a champion and aliveCount 32 of 32: the authoritative draw supplied the field
     # while the results supplied the eliminations, and the two never joined. Settled-draw
@@ -2480,6 +2501,74 @@ def _check_tournament(out: list, tour: str, t: dict, now: pd.Timestamp | None = 
             severity=_tier_severity(t.get("level"), force=force), entity=event_entity,
             evidence={"players": [repr(g) for g in ghosts],
                       "level": repr(t.get("level"))})
+
+
+def _check_bracket_upcoming_probability_parity(
+    out: list,
+    tour: str,
+    brackets: list,
+    upcoming: list,
+) -> None:
+    """Require one pending match to carry one probability across bracket and schedule.
+
+    Identity is the stable ESPN event ID plus factual bracket round plus canonical unordered
+    player pair. Display names are deliberately absent from the key. Completed bracket
+    prices are locked historical snapshots and therefore outside this current-price check.
+    """
+    pending: dict[tuple[str, str, frozenset[str]], list[dict]] = {}
+    for event in brackets:
+        if not isinstance(event, dict):
+            continue
+        event_id = str(event.get("espnId") or "").strip()
+        if not event_id:
+            continue
+        for rnd in event.get("rounds") or []:
+            round_name = str(rnd.get("round") or "").strip()
+            for match in rnd.get("matches") or []:
+                a, b = match.get("a"), match.get("b")
+                if (match.get("winner") is not None
+                        or not (_is_real_name(a) and _is_real_name(b))):
+                    continue
+                pair = frozenset((_player_identity_key(a), _player_identity_key(b)))
+                if round_name and len(pair) == 2:
+                    pending.setdefault((event_id, round_name, pair), []).append(match)
+
+    for match in upcoming:
+        if not isinstance(match, dict):
+            continue
+        event_id = str(match.get("espnId") or "").strip()
+        round_name = str(match.get("round") or "").strip()
+        a, b = match.get("playerA"), match.get("playerB")
+        if not event_id or not round_name or not (_is_real_name(a) and _is_real_name(b)):
+            continue
+        pair = frozenset((_player_identity_key(a), _player_identity_key(b)))
+        hits = pending.get((event_id, round_name, pair), [])
+        if len(hits) != 1 or not _is_prob(match.get("pA")):
+            continue
+        bracket_match = hits[0]
+        bracket_a = bracket_match.get("a")
+        upcoming_p = float(match["pA"])
+        expected = (upcoming_p if _player_identity_key(bracket_a) == _player_identity_key(a)
+                    else 1.0 - upcoming_p)
+        bracket_p = bracket_match.get("p")
+        source = bracket_match.get("probSource")
+        if (source != "model" or not _is_prob(bracket_p)
+                or abs(float(bracket_p) - expected) > 1.1e-4):
+            _add_finding(
+                out, "output.bracket.upcoming_probability_mismatch",
+                f"{tour}: bracket and schedule probabilities disagree for {a!r} vs "
+                f"{b!r} in {round_name} (espnId {event_id})",
+                severity="error",
+                entity=_match_entity(
+                    match, event_entity=f"espn:{event_id}", player_a=a, player_b=b),
+                evidence={
+                    "bracketProbabilityA": repr(bracket_p),
+                    "expectedBracketProbabilityA": round(expected, 4),
+                    "scheduleProbabilityA": upcoming_p,
+                    "bracketProbabilitySource": repr(source),
+                    "round": round_name,
+                },
+            )
 
 
 def _check_brackets(out: list, tour: str, brackets: list, tournaments) -> None:
@@ -3898,6 +3987,8 @@ def output_findings(tour: str, oc: dict, now: pd.Timestamp,
             entity="artifact:upcoming.json",
         )
         _check_watch_ranking(out, tour, up, scenario_index, oc.get("shards") or {})
+        if isinstance(br, list):
+            _check_bracket_upcoming_probability_parity(out, tour, br, up)
 
         # The complete bracket and scoreboard upcoming feed are independent artifacts,
         # joined only on stable ESPN event identity. When an exact real-player pair appears

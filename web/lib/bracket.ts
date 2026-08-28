@@ -53,11 +53,14 @@ export type BracketEvent = {
 };
 
 /** Minimal shape of tournaments.json needed for the reach-odds join (no duplication of
-    the projection into brackets.json — the two are matched client-side by event name). */
+    the projection into brackets.json — the two are matched by stable event identity). */
 export type TournamentLite = {
   name: string;
+  espnId?: string | null;
   projection?: { name: string; reach?: Record<string, number> }[];
 };
+
+export type EventIdentity = { name: string; espnId?: string | null };
 
 export function drawSourceLabel(source: BracketEvent["drawSource"]): string {
   return source === "wikipedia" ? "Wikipedia fallback draw" : `${source.toUpperCase()} official draw`;
@@ -176,9 +179,26 @@ export function resolveEventIndex(events: BracketEvent[], eParam: string | null)
 
 export type ReachMap = Record<string, Record<string, number>>;
 
-/** Per-player reach odds for an event, joined from tournaments.json by name. */
-export function reachFor(tournaments: TournamentLite[] | null, eventName: string): ReachMap {
-  const t = tournaments?.find((x) => norm(x.name) === norm(eventName));
+function tournamentFor(
+  tournaments: TournamentLite[] | null,
+  event: EventIdentity,
+): TournamentLite | undefined {
+  const eventId = String(event.espnId ?? "").trim();
+  if (eventId) {
+    const exact = tournaments?.find((candidate) => String(candidate.espnId ?? "") === eventId);
+    if (exact) return exact;
+    // Compatibility for a genuinely id-less older artifact only. A conflicting provider ID
+    // can never be overridden by a matching sponsor/display name.
+    return tournaments?.find((candidate) => !candidate.espnId
+      && norm(candidate.name) === norm(event.name));
+  }
+  return tournaments?.find((candidate) => !candidate.espnId
+    && norm(candidate.name) === norm(event.name));
+}
+
+/** Per-player reach odds for an event, joined from tournaments.json by stable identity. */
+export function reachFor(tournaments: TournamentLite[] | null, event: EventIdentity): ReachMap {
+  const t = tournamentFor(tournaments, event);
   const out: ReachMap = {};
   for (const p of t?.projection ?? []) if (p.reach) out[p.name] = p.reach;
   return out;
@@ -187,10 +207,10 @@ export function reachFor(tournaments: TournamentLite[] | null, eventName: string
 /** The leading title contenders (champion odds, desc) for the event header strip. */
 export function titleContenders(
   tournaments: TournamentLite[] | null,
-  eventName: string,
+  event: EventIdentity,
   n = 3,
 ): { name: string; p: number }[] {
-  const t = tournaments?.find((x) => norm(x.name) === norm(eventName));
+  const t = tournamentFor(tournaments, event);
   return [...(t?.projection ?? [])]
     .map((p) => ({ name: p.name, p: p.reach?.Champion ?? 0 }))
     .filter((x) => x.p > 0)

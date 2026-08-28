@@ -7,8 +7,8 @@ const players = [
   { name: "Félix Auger-Aliassime", eloRank: 9 },
 ];
 const brackets = [
-  { name: "Cincinnati", status: "upcoming", surface: "Hard" },
-  { name: "Montreal", status: "live", surface: "Hard" },
+  { name: "Cincinnati", espnId: "718-2026", status: "upcoming", surface: "Hard" },
+  { name: "Montreal", espnId: "421-2026", status: "live", surface: "Hard" },
 ];
 
 describe("commandResults", () => {
@@ -27,6 +27,10 @@ describe("commandResults", () => {
     expect(commandResults("cinc", "atp", players, brackets)[0]).toMatchObject({
       kind: "tournament", label: "Cincinnati",
     });
+    const params = new URLSearchParams(
+      commandResults("cinc", "atp", players, brackets)[0].href.split("?")[1],
+    );
+    expect(params.get("e")).toBe("718-2026");
   });
 
   it("is accent-insensitive and preserves the active tour in links", () => {

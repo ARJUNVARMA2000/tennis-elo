@@ -5728,3 +5728,25 @@ ordered FULL/child-QUICK production proof.
       records that its own documentation-only reconciliation commit is self-excluded. Progress-based
       event liveness, a second transport-only verifier confirmation, and a static external-I/O audit
       remain explicitly deferred lower-priority proposals rather than known open defects.
+
+## 2026-08-28 — US Open draw production readiness
+
+- [ ] Establish independent ground truth for both 2026 US Open singles draws from the official US
+      Open site and compare it with the exact Wikipedia draw locators used by the pipeline: identity,
+      128-player geometry, ordered first-round pairings, seeds, unresolved qualifying seats, dates,
+      and provider provenance.
+- [ ] Reproduce every current production finding and audit all draw consumers/artifacts (`tournaments`,
+      `brackets`, `upcoming`, event coverage, health, release lineage, and every relevant web route),
+      including probability bounds/sums and round-reach monotonicity.
+- [ ] Repair each producer defect found and extend the appropriate pre-upload or post-deploy invariant
+      with failing-first regression coverage; preserve stable `espnId` identity and fail-closed source
+      attachment rules.
+- [ ] Run the targeted and full Python/web test suites, lint/type/build checks, local data health gate,
+      and deployment verifier in proportion to the production risk.
+- [ ] Reconcile repository facts against the final git history, commit only the scoped changes, push
+      `master`, follow the production refresh through deployment, and independently verify the live
+      accepted release, all US Open surfaces, numeric consistency, health status, and incident closure.
+
+### Review
+
+- Pending implementation and production evidence.

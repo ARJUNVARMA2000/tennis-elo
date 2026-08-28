@@ -22,6 +22,7 @@ from tennis_model.sim.bracket import is_real
 from tennis_model.sim.tournaments import (
     _date_basis,
     _dedup_by_display_name,
+    _main_draw_ko_rows,
     _price_event_bracket,
     build_tournaments,
     project_tournament,
@@ -537,6 +538,71 @@ def test_completed_projection_excludes_qualifying_field():
     assert t["status"] == "completed" and t["drawSize"] == 128
     assert t["champion"] == "M0" and all(p["name"].startswith("M") for p in t["projection"])
     print("ok test_completed_projection_excludes_qualifying_field")
+
+
+def test_qualifying_only_rows_cannot_flip_a_released_main_draw_live(monkeypatch):
+    """US Open 2026 replay: ESPN's event window already contained qualifying results,
+    and those rows carried a knockout-looking R128 label.  With a released 128-slot draw
+    attached, they are still not evidence that the main draw has begun."""
+    rows = [
+        dict(
+            tourney_name="US Open",
+            espn_id="189-2026",
+            date=pd.Timestamp("2026-08-26"),
+            round="R128",
+            winner_name=f"Q{i}",
+            loser_name=f"Q{i + 8}",
+            surface_b="Hard",
+            best_of=3,
+            tourney_level="Q",
+            draw_level="qual",
+        )
+        for i in range(8)
+    ]
+    frame = pd.DataFrame(rows)
+
+    assert _main_draw_ko_rows(frame).empty
+    assert project_tournament(
+        _PRED,
+        "US Open",
+        frame,
+        "wta",
+        known=set(),
+        top_set=None,
+        resolve=lambda name: name,
+        tournament_draw={"slots": [f"P{i}" for i in range(16)], "bestOf": 3},
+        espn_id="189-2026",
+        n_sims=20,
+        seed=1,
+    ) is None
+
+    # End-to-end recovery: once the results-driven path declines qualifying-only evidence,
+    # build_tournaments must still pick up the cached released draw through the pre-start path.
+    from tennis_model.sim import tournaments as tournament_module
+    draw = {
+        "name": "US Open", "espnId": "189-2026",
+        "start": "2026-08-24", "end": "2026-09-13",
+        "slots": [f"P{i}" for i in range(16)], "seeds": {}, "bestOf": 3,
+        "source": "wikipedia", "sourceId": "2026 US Open – Women's singles",
+        "sourceUrl": "https://en.wikipedia.org/wiki/2026_US_Open_%E2%80%93_Women%27s_singles",
+    }
+    monkeypatch.setattr(tournament_module, "_load_fields", lambda _tour: {})
+    monkeypatch.setattr(tournament_module, "_load_upcoming", lambda _tour: {})
+    monkeypatch.setattr(tournament_module, "_load_upcoming_bounds", lambda _tour: {})
+    monkeypatch.setattr(
+        tournament_module, "_load_tournament_draws", lambda _tour: {"189-2026": draw})
+    monkeypatch.setattr(tournament_module, "load_registry", lambda _tour: {"events": {
+        "189-2026": {
+            "name": "US Open", "names": ["US Open"],
+            "start": "2026-08-24", "end": "2026-09-13",
+        },
+    }})
+
+    cards = build_tournaments(_PRED, frame, "wta", n_sims=20, seed=1)
+    us_open = next(card for card in cards if card.get("espnId") == "189-2026")
+    assert us_open["status"] == "upcoming"
+    assert us_open["mainDrawMatchCount"] == 0
+    assert us_open["bracket"] is not None
 
 
 def test_completed_projection_keeps_authoritative_wiki_field():

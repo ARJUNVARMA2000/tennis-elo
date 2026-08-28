@@ -50,6 +50,10 @@ def test_public_label_prefers_identity_joined_archive_name_without_fuzzy_matchin
     eastbourne = "Lexus Eastbourne Open"
     assert ev.display_event_name(
         "wta", eastbourne, known_names={eastbourne, "Eastbourne"}) == "Eastbourne"
+    # Official branding is the uppercase country abbreviation on both tours, regardless
+    # of ESPN's title casing in a particular feed snapshot.
+    assert ev.display_event_name("atp", "Us Open", "189-2026") == "US Open"
+    assert ev.display_event_name("wta", "US Open", "189-2026") == "US Open"
 
 
 def test_rename_appends_to_the_alias_table():

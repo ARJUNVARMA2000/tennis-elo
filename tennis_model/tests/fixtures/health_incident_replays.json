@@ -348,6 +348,46 @@
           ]
         }
       }
+    },
+    {
+      "id": "wta-qualifying-result-false-live-main-draw",
+      "description": "US Open qualifying results must not flip a released but unstarted main draw live.",
+      "history": {
+        "issues": [45],
+        "commits": ["4e67cba"]
+      },
+      "tour": "wta",
+      "seam": "output",
+      "asOf": "2026-08-28",
+      "expected": {
+        "code": "output.tournament.live_without_main_draw",
+        "severity": "error",
+        "scope": "output",
+        "entity": "espn:1-2026",
+        "channel": "predeploy"
+      },
+      "variants": {
+        "broken": {
+          "patches": [
+            {
+              "op": "set_json",
+              "target": "output/tournaments.json",
+              "pointer": "/0/mainDrawMatchCount",
+              "value": 0
+            }
+          ]
+        },
+        "clean": {
+          "patches": [
+            {
+              "op": "set_json",
+              "target": "output/tournaments.json",
+              "pointer": "/0/mainDrawMatchCount",
+              "value": 1
+            }
+          ]
+        }
+      }
     }
   ]
 }

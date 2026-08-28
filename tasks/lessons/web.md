@@ -169,3 +169,18 @@ Indexed in [`../lessons.md`](../lessons.md).
   (2026-08-24, Round 4B cutover) A new JSON output must also be classified in the lineage contract.
   All-tour runs seal it into the release graph and only the post-gate accepted publisher may mirror
   its exact declared bytes into `web/public/data/`; single-tour/debug runs never publish.
+
+- **Two views of one pending match must publish one contextual forecast.** (2026-08-28, US Open)
+  The Schedule used the full combiner context while Brackets recomputed plain win probability, so
+  every ATP opening match and nearly every WTA opening match displayed different odds. **How to
+  apply:** build factual bracket geometry first, use it to resolve schedule round context, then write
+  the rounded schedule probability back into the pending bracket by stable event ID, round, and
+  alias-aware unordered player identity. Preserve locked prices for completed matches and gate
+  cross-artifact parity before publication.
+
+- **Every event link and cross-artifact lookup uses stable identity, including convenience UI.**
+  (2026-08-28, US Open) Command search encoded a display name in `?e=`, and bracket title odds joined
+  to tournaments by normalized label. Both worked only while sponsor/title text happened to agree.
+  **How to apply:** carry `espnId` through lightweight client types, URL builders, and projection
+  lookups; permit a name fallback only when the candidate artifact is genuinely ID-less, never when
+  two provider IDs conflict.

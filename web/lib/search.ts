@@ -3,7 +3,12 @@ import { NAV_ITEMS } from "@/lib/navigation";
 import { pairHref, playerHref, setSearchParam, setSearchTour, withTour } from "@/lib/url";
 
 export type SearchPlayer = { name: string; eloRank?: number | null };
-export type SearchBracket = { name: string; status?: string; surface?: string };
+export type SearchBracket = {
+  name: string;
+  espnId?: string | null;
+  status?: string;
+  surface?: string;
+};
 export type CommandResult = {
   key: string;
   kind: "page" | "player" | "tournament" | "prediction";
@@ -95,9 +100,10 @@ export function commandResults(
     for (const [rank, bracket] of brackets.entries()) {
       const score = matchScore(bracket.name, query);
       if (score == null) continue;
-      const search = setSearchTour(setSearchParam("", "e", bracket.name), tour);
+      const eventKey = bracket.espnId || bracket.name;
+      const search = setSearchTour(setSearchParam("", "e", eventKey), tour);
       results.push({
-        key: `tournament:${bracket.name}`,
+        key: `tournament:${eventKey}`,
         kind: "tournament",
         label: bracket.name,
         desc: [bracket.surface, bracket.status, "bracket"].filter(Boolean).join(" · "),

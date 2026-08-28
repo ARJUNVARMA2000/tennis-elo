@@ -395,3 +395,18 @@ Indexed in [`../lessons.md`](../lessons.md).
   same-event extra candidate in each vacated slot, fold completed results, and accept only one
   unique candidate whose scheduled/in-progress opponent equals the opponent that slot owes. Keep
   mass-absence, partial-field, unrelated-card, and ambiguity guards fail-closed.
+
+- **Qualifying activity is not a main-draw lifecycle transition.** (2026-08-28, US Open) ESPN
+  placed qualifying results and the released main draw under the same stable event ID, and some
+  qualifying rows carried a knockout-looking `R128` label. Falling back from an empty explicit
+  `draw_level == main` selection to all rows therefore marked the women's main draw live before it
+  began. **How to apply:** when provenance exists, keep an empty main-draw selection empty; accept
+  `main` plus policy-excluded main-event `chall`, never `qual`; emit the observed main-draw match
+  count on every projected card; and gate a live card whose count is zero.
+
+- **A persisted provider ID must retain every candidate attribute that affects the product.**
+  (2026-08-28, ATP US Open) The first ATP draw lookup carried archive level `G`, but a later
+  unsettled-draw refresh preferred the saved ID without that metadata and could rewrite men's
+  `bestOf` from five to three. **How to apply:** enrich preferred IDs from the provider catalog
+  before fetching, and replay the first fetch -> ID persistence -> unsettled refetch sequence for
+  formats derived from candidate metadata.

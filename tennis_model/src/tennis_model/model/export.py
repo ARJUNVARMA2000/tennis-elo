@@ -35,7 +35,7 @@ import numpy as np
 import pandas as pd
 
 from .. import __version__
-from ..config import MATCH_POPULATION_VERSION, SURFACES, output_dir
+from ..config import MATCH_POPULATION_VERSION, PLAYER_ALIASES, SURFACES, output_dir
 from ..data.bracket_rounds import (
     BracketRoundIndex,
     build_bracket_round_index,
@@ -446,6 +446,66 @@ def build_upcoming(predictor, df, tour: str, *, enriched: list[dict] | None = No
     )
 
 
+def align_pending_bracket_prices(brackets: list[dict], upcoming: list[dict]) -> None:
+    """Make pending bracket matches use the exact contextual schedule forecast in place.
+
+    Both artifacts describe one match, so they join on stable ESPN ID, factual bracket
+    round, and canonical unordered player pair.  Name-only joins and ambiguous keys are
+    deliberately ignored. Completed matches retain their locked pre-match log price.
+    """
+    def identity_key(value: object) -> str:
+        key = name_key(value)
+        return name_key(PLAYER_ALIASES.get(key, value))
+
+    scheduled: dict[tuple[str, str, frozenset[str]], list[dict]] = {}
+    for row in upcoming:
+        event_id = str(row.get("espnId") or "").strip()
+        round_name = str(row.get("round") or "").strip()
+        a, b = row.get("playerA"), row.get("playerB")
+        p_a = row.get("pA")
+        pair = frozenset((identity_key(a), identity_key(b))) if a and b else frozenset()
+        if (not event_id or not round_name or len(pair) != 2
+                or not isinstance(p_a, (int, float)) or isinstance(p_a, bool)
+                or not math.isfinite(float(p_a)) or not 0.0 <= float(p_a) <= 1.0):
+            continue
+        scheduled.setdefault((event_id, round_name, pair), []).append(row)
+
+    for event in brackets:
+        event_id = str(event.get("espnId") or "").strip()
+        if not event_id:
+            continue
+        for rnd in event.get("rounds") or []:
+            round_name = str(rnd.get("round") or "").strip()
+            for match in rnd.get("matches") or []:
+                if match.get("winner") is not None:
+                    continue
+                a, b = match.get("a"), match.get("b")
+                pair = frozenset((identity_key(a), identity_key(b))) if a and b else frozenset()
+                hits = scheduled.get((event_id, round_name, pair), [])
+                if len(pair) != 2 or len(hits) != 1:
+                    continue
+                row = hits[0]
+                p_a = float(row["pA"])
+                oriented = (p_a if identity_key(a) == identity_key(row.get("playerA"))
+                            else 1.0 - p_a)
+                match["p"] = round(oriented, 4)
+                match["probSource"] = "model"
+                match["upset"] = None
+
+
+def _align_published_bracket_prices(tour: str, upcoming: list[dict]) -> None:
+    """Apply :func:`align_pending_bracket_prices` to this generation's bracket artifact."""
+    path = output_dir(tour) / "brackets.json"
+    try:
+        brackets = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError):
+        return  # the output gate reports the missing/corrupt artifact precisely
+    if not isinstance(brackets, list):
+        return
+    align_pending_bracket_prices(brackets, upcoming)
+    _write(tour, "brackets.json", brackets)
+
+
 UPCOMING_SCHEMA = "upcoming-v2"
 UPCOMING_EVENT_SCHEMA = "upcoming-event-v1"
 UPCOMING_EVIDENCE_SCHEMA = "upcoming-evidence-v1"
@@ -560,6 +620,10 @@ def export_forecast_products(tour: str, predictor, df, *,
     generation = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     with timed(tour, "upcoming.decorate_and_shard"):
         upcoming = build_upcoming(predictor, df, tour, enriched=enriched)
+        # Brackets are built first so their factual round index can inform contextual
+        # schedule pricing. Once that shared forecast exists, write it back into the other
+        # view before release sealing; one pending match must never show two probabilities.
+        _align_published_bracket_prices(tour, upcoming)
         upcoming_index, upcoming_shards = build_upcoming_shards(upcoming, generation)
         _write(tour, "upcoming-index.json", upcoming_index)
         _write_shards(tour, "upcoming", upcoming_shards)

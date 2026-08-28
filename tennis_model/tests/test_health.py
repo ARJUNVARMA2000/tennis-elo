@@ -105,6 +105,7 @@ def _healthy_data() -> dict:
         "tournaments": [{"name": "Test Open", "surface": "Grass", "level": "ATP 250",
                          "bestOf": 3, "status": "live",
                          "drawStatus": "real", "drawSize": 128, "aliveCount": 7, "champion": None,
+                         "mainDrawMatchCount": 1,
                          "coverageKey": "espn:1-2026",
                          "hasBracket": False,
                          "projection": [{"name": "P0", "champion": 0.5, "final": 0.6, "sf": 0.8,
@@ -113,6 +114,7 @@ def _healthy_data() -> dict:
                         {"name": "Mini Open", "surface": "Hard", "level": "ATP 250",
                          "bestOf": 3, "status": "completed",
                          "drawStatus": "real", "drawSize": 4, "aliveCount": 1, "champion": "A",
+                         "mainDrawMatchCount": 3,
                          "coverageKey": "espn:2-2026",
                          "hasBracket": True, "projection": []}],
         "event_coverage": {"version": 1, "tour": "atp", "buildDate": "2026-07-09",
@@ -1537,6 +1539,7 @@ def test_output_bracket_early_draw_with_qualifiers_is_clean():
     d["tournaments"] = [{"name": "Gstaad", "surface": "Clay", "level": "ATP 250",
                          "bestOf": 3, "status": "upcoming",
                          "drawStatus": "real", "drawSize": 28, "aliveCount": 28, "champion": None,
+                         "mainDrawMatchCount": 0,
                          "coverageKey": "espn:7-2026", "hasBracket": True, "projection": []}]
     d["event_coverage"] = {
         "version": 1, "tour": "atp", "buildDate": "2026-07-09",
@@ -2093,7 +2096,8 @@ def test_upcoming_event_that_already_ended_or_never_started():
     def _card(level, start, end, status="upcoming"):
         d = _healthy_data()
         d["tournaments"][0].update(name="Future Open", status=status, level=level,
-                                   start=start, end=end, champion=None)
+                                   start=start, end=end, champion=None,
+                                   mainDrawMatchCount=0)
         return health.output_problems("atp", _oc(data=d), NOW)
 
     # ended while still 'upcoming' -> blocks on a 500, warns on a 250
@@ -2108,7 +2112,75 @@ def test_upcoming_event_that_already_ended_or_never_started():
     # ...and inside the grace window nothing fires at all
     quiet = _card("ATP 500", str(NOW.date()), "2026-08-30")
     assert not any("has not flipped live" in p or "already ended" in p for p in quiet), quiet
+
+    # ESPN's Slam span begins with qualifying. The main draw can legitimately remain
+    # upcoming through the seven-day qualifying window, but not beyond it.
+    slam_quiet = _card("Grand Slam", "2026-07-02", "2026-07-20")
+    assert not any("has not flipped live" in p for p in slam_quiet), slam_quiet
+    slam_late = _card("Grand Slam", "2026-07-01", "2026-07-20")
+    assert any("has not flipped live" in p for p in slam_late), slam_late
+    non_slam_late = _card("ATP 500", "2026-07-05", "2026-07-20")
+    assert any("has not flipped live" in p for p in non_slam_late), non_slam_late
     print("ok test_upcoming_event_that_already_ended_or_never_started")
+
+
+def test_live_tournament_requires_observed_main_draw_matches():
+    """A qualifying result can share the tournament's ESPN ID and a knockout-looking
+    round label. A card may flip live only when the producer exports positive main-draw
+    match evidence."""
+    broken = _healthy_data()["tournaments"][0]
+    broken["mainDrawMatchCount"] = 0
+    out = []
+    health._check_tournament(out, "atp", broken, NOW)
+    assert [message for message in out if "no observed main-draw matches" in message]
+
+    clean = copy.deepcopy(broken)
+    clean["mainDrawMatchCount"] = 1
+    out = []
+    health._check_tournament(out, "atp", clean, NOW)
+    assert not [message for message in out if "no observed main-draw matches" in message]
+
+
+def test_pending_bracket_probability_matches_upcoming_by_stable_identity():
+    brackets = [{
+        "name": "US Open", "espnId": "189-2026", "rounds": [{
+            "round": "R128", "matches": [{
+                "a": "Player A", "b": "Player B", "winner": None,
+                "p": 0.61, "probSource": "model",
+            }],
+        }],
+    }]
+    upcoming = [{
+        "event": "Sponsor US Open", "espnId": "189-2026", "round": "R128",
+        "playerA": "Player B", "playerB": "Player A", "pA": 0.34,
+    }]
+
+    out = []
+    health._check_bracket_upcoming_probability_parity(out, "atp", brackets, upcoming)
+    assert [message for message in out if "bracket and schedule probabilities disagree" in message]
+
+    data = _healthy_data()
+    data["brackets"] = copy.deepcopy(brackets)
+    data["upcoming"] = copy.deepcopy(upcoming)
+    findings = health.output_findings("atp", _oc(data=data), NOW)
+    assert [finding for finding in findings
+            if finding.code == "output.bracket.upcoming_probability_mismatch"]
+
+    brackets[0]["rounds"][0]["matches"][0]["p"] = 0.66
+    out = []
+    health._check_bracket_upcoming_probability_parity(out, "atp", brackets, upcoming)
+    assert not [message for message in out
+                if "bracket and schedule probabilities disagree" in message]
+    data["brackets"] = copy.deepcopy(brackets)
+    findings = health.output_findings("atp", _oc(data=data), NOW)
+    assert not [finding for finding in findings
+                if finding.code == "output.bracket.upcoming_probability_mismatch"]
+
+    upcoming[0]["espnId"] = "different-2026"
+    brackets[0]["rounds"][0]["matches"][0]["p"] = 0.1
+    out = []
+    health._check_bracket_upcoming_probability_parity(out, "atp", brackets, upcoming)
+    assert out == []
 
 
 def test_lost_bracket_is_sentinel_only():

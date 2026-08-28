@@ -373,15 +373,24 @@ def _seasonal_delta(current: date, previous: date) -> int:
 
 def atp_candidate_ids(year: int, meta: dict, registry_entry: dict | None = None) -> list[dict]:
     start = _date(meta.get("start")) or date(year, 1, 1)
+    catalog = list(_atp_archive_catalog(year))
+    catalog_by_id = {str(item.get("id")): item for item in catalog if item.get("id")}
     preferred = []
     event_id = str(meta.get("espnId") or "")
     saved = str(((registry_entry or {}).get("sourceIds") or {}).get("atp") or "")
     override = str(OFFICIAL_DRAW_ID_OVERRIDES.get("atp", {}).get(event_id) or "")
     for source_id in (override, saved):
         if source_id and source_id not in {item["id"] for item in preferred}:
-            preferred.append({"id": source_id, "trusted": bool(saved)})
+            # Persisting the provider ID must not discard archive metadata that changes
+            # match format. An unsettled ATP Slam is refetched through this preferred path;
+            # without its level="G", bestOf silently regressed from five to three.
+            preferred.append({
+                **catalog_by_id.get(source_id, {}),
+                "id": source_id,
+                "trusted": source_id == saved,
+            })
     candidates = []
-    for item in _atp_archive_catalog(year):
+    for item in catalog:
         previous = _date(item.get("date"))
         if previous is None:
             continue

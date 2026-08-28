@@ -134,16 +134,23 @@ COALESCE_MIN_SHARED_PAIRS = 1
 
 
 def _main_draw_ko_rows(g: pd.DataFrame) -> pd.DataFrame:
-    """Rows eligible to prove event identity or populate a tournament card."""
+    """Rows eligible to prove event identity or populate a tournament card.
+
+    When provenance columns exist, an empty selection is evidence rather than a reason to
+    fall back.  The 2026 US Open already had qualifying results under the same ESPN event ID;
+    treating those rows as main-draw matches flipped the women's released draw live four
+    days before its first ball.
+    """
     if "winner_name" not in g.columns:
         return g.iloc[0:0]
     main = g
     if "draw_level" in g.columns:
-        rows = g[g["draw_level"] == "main"]
-        main = rows if not rows.empty else g
+        # `chall` denotes a Challenger/WTA 125 MAIN EVENT that is policy-excluded from the
+        # trained population but deliberately retained for factual lifecycle cards. `qual`
+        # alone is qualifying provenance and can never start the parent main draw.
+        main = g[g["draw_level"].isin(("main", "chall"))]
     if "round" in main.columns:
-        ko = main[main["round"].isin(_KO_ROUNDS)]
-        main = ko if not ko.empty else main
+        main = main[main["round"].isin(_KO_ROUNDS)]
     return main
 
 
@@ -719,6 +726,8 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
     # matches were default-labelled "main". Once a Slam final appears, neither class may leak
     # into a >128-player completed field and pad it to an impossible 256-slot bracket.
     main = _one_match_per_player_round(_main_draw_ko_rows(g))
+    if main.empty:
+        return None
     card_start, card_end = _card_bounds(g, event_start, event_end)
     display_name = _display_name(
         name, known or set(), tour=tour, event_id=espn_id,
@@ -917,6 +926,7 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
                 "surfaceSource": surface_src,
                 "finalRecorded": bool(has_final),
                 "drawSize": known_draw_size,
+                "mainDrawMatchCount": len(main),
                 "aliveCount": 1,
                 "champion": champ,
                 "runnerUp": runner,
@@ -974,7 +984,8 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
         # False on a completed card means "the calendar says it is over, but the final never
         # arrived" — the champion is genuinely unknown, not a builder bug.
         "finalRecorded": bool(has_final),
-        "drawSize": len(field_pool), "aliveCount": len(alive),
+        "drawSize": len(field_pool), "mainDrawMatchCount": len(main),
+        "aliveCount": len(alive),
         "champion": champ, "runnerUp": runner,
         "modelFavorite": favorite,
         "favoritePicked": bool(completed and favorite == champ),
@@ -1035,7 +1046,8 @@ def project_upcoming(predictor, name: str, wd: dict, tour: str, df: pd.DataFrame
         # ships anyway so every card carries the same schema and the gate never has to guess
         # whether an absent list means "clean" or "this producer forgot".
         "drawnNotInField": [],
-        "drawSize": len(field_pool), "aliveCount": len(field_pool),
+        "drawSize": len(field_pool), "mainDrawMatchCount": 0,
+        "aliveCount": len(field_pool),
         "champion": None, "runnerUp": None,
         "modelFavorite": favorite, "favoritePicked": False,
         "projection": proj,

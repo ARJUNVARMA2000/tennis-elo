@@ -158,19 +158,27 @@ describe("event + reach resolution", () => {
     expect(resolveEventIndex(identified, "401234")).toBe(0);
   });
 
-  it("joins reach odds + title contenders from tournaments.json by name", () => {
+  it("joins reach odds + title contenders by stable event identity", () => {
     const tournaments: TournamentLite[] = [{
-      name: "Wimbledon",
+      name: "Sponsor-renamed Wimbledon", espnId: "188-2026",
       projection: [
         { name: "Sinner", reach: { SF: 0.7, F: 0.55, Champion: 0.4 } },
         { name: "Alcaraz", reach: { SF: 0.6, F: 0.45, Champion: 0.35 } },
         { name: "Zverev", reach: { Champion: 0.1 } },
       ],
     }];
-    expect(reachFor(tournaments, "Wimbledon").Sinner.Champion).toBe(0.4);
-    expect(reachFor(tournaments, "Missing")).toEqual({});
-    const top = titleContenders(tournaments, "Wimbledon", 2);
+    const event = { name: "Wimbledon", espnId: "188-2026" };
+    expect(reachFor(tournaments, event).Sinner.Champion).toBe(0.4);
+    expect(reachFor(tournaments, { name: "Wimbledon", espnId: "999-2026" })).toEqual({});
+    const top = titleContenders(tournaments, event, 2);
     expect(top.map((t) => t.name)).toEqual(["Sinner", "Alcaraz"]);
     expect(top[0].p).toBe(0.4);
+  });
+
+  it("keeps a name fallback only for genuinely id-less legacy artifacts", () => {
+    const tournaments: TournamentLite[] = [{
+      name: "Wimbledon", projection: [{ name: "Sinner", reach: { Champion: 0.4 } }],
+    }];
+    expect(reachFor(tournaments, { name: "wimbledon" }).Sinner.Champion).toBe(0.4);
   });
 });

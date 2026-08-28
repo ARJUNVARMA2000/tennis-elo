@@ -305,3 +305,14 @@ New lesson → append the entry to the matching topic file and add its lead line
 - Establish the descriptor-validated release root before every mutation entry point, including a
   cold single-tour/debug revocation. See
   [`lessons/gates-and-health.md`](lessons/gates-and-health.md).
+
+## US Open draw readiness (2026-08-28)
+
+- Keep explicit qualifying provenance out of main-draw lifecycle evidence, and preserve provider
+  metadata that controls match format across saved-ID refreshes. See
+  [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md).
+- Gate live status on exported main-draw evidence and apply the documented Grand Slam qualifying
+  window to upcoming-transition health. See
+  [`lessons/gates-and-health.md`](lessons/gates-and-health.md).
+- Publish one contextual probability across bracket and schedule views, and use `espnId` for every
+  event link and client-side artifact join. See [`lessons/web.md`](lessons/web.md).

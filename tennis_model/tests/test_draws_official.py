@@ -214,3 +214,34 @@ def test_mifel_reviewed_locator_is_los_cabos_provider_id():
         {},
     )
     assert candidates[0]["id"] == "7480"
+
+
+def test_saved_atp_grand_slam_id_retains_best_of_five_metadata(monkeypatch, tmp_path):
+    """An unsettled Slam is fetched again through its persisted provider ID.  That
+    preferred candidate must retain the archive's Grand Slam level or the second fetch
+    silently rewrites the men's draw from best-of-five to best-of-three."""
+    field = [f"Player {i}" for i in range(1, 9)]
+    monkeypatch.setattr(official, "_atp_archive_catalog", lambda _year: ({
+        "id": "560", "name": "US Open", "date": "2025-08-24",
+        "level": "G", "edition": 2025,
+    },))
+    monkeypatch.setattr(official, "live_dir", lambda _tour: tmp_path)
+    monkeypatch.setattr(official, "_download", lambda _url, _cache: b"pdf")
+    monkeypatch.setattr(
+        official,
+        "extract_pdf_text",
+        lambda _body: _text("US Open", "August 24-September 13 2026", field),
+    )
+
+    draw, rejected = official.fetch_official_draw(
+        "atp",
+        2026,
+        {"name": "US Open", "espnId": "189-2026",
+         "start": "2026-08-24", "end": "2026-09-13"},
+        {"sourceIds": {"atp": "560"}},
+        field,
+    )
+
+    assert rejected == []
+    assert draw is not None and draw["sourceId"] == "560"
+    assert draw["bestOf"] == 5

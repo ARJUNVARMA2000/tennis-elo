@@ -294,6 +294,35 @@ def test_build_brackets_payload_splits_and_stamps():
     print("ok test_build_brackets_payload_splits_and_stamps")
 
 
+def test_pending_bracket_prices_align_to_the_contextual_schedule_forecast():
+    """Bracket and Schedule are two views of one pending match, including when their
+    player orientation is reversed. Completed logged prices and conflicting event IDs are
+    never overwritten."""
+    brackets = [{
+        "name": "US Open", "espnId": "189-2026", "rounds": [{
+            "round": "R128", "matches": [
+                {"a": "Wang Xinyu", "b": "Player B", "winner": None,
+                 "p": 0.40, "probSource": "model", "upset": None},
+                {"a": "Player C", "b": "Player D", "winner": "a",
+                 "p": 0.55, "probSource": "logged", "upset": False},
+            ],
+        }],
+    }]
+    upcoming = [
+        {"espnId": "189-2026", "round": "R128", "playerA": "Player B",
+         "playerB": "Xinyu Wang", "pA": 0.31},
+        {"espnId": "other-2026", "round": "R128", "playerA": "Player C",
+         "playerB": "Player D", "pA": 0.99},
+    ]
+
+    export.align_pending_bracket_prices(brackets, upcoming)
+
+    assert brackets[0]["rounds"][0]["matches"][0]["p"] == 0.69
+    assert brackets[0]["rounds"][0]["matches"][0]["probSource"] == "model"
+    assert brackets[0]["rounds"][0]["matches"][1]["p"] == 0.55
+    assert brackets[0]["rounds"][0]["matches"][1]["probSource"] == "logged"
+
+
 def test_build_meta_separates_build_time_from_model_time():
     """`lastUpdated` is when this JSON was written; `modelTrainedAt` is when the predictor
     was trained. The hourly quick refresh rewrites the first while reusing the pickle
@@ -552,6 +581,33 @@ def test_post_tracking_export_builds_upcoming_once_and_replaces_legacy(monkeypat
     assert calls == [enriched]
     assert (out / "upcoming-index.json").exists()
     assert not (out / "upcoming.json").exists()
+
+
+def test_post_tracking_export_publishes_the_aligned_bracket_price(monkeypatch, tmp_path):
+    out = tmp_path / "atp"
+    out.mkdir(parents=True)
+    brackets = [{
+        "name": "US Open", "espnId": "189-2026", "rounds": [{
+            "round": "R128", "matches": [{
+                "a": "Player A", "b": "Player B", "winner": None,
+                "p": 0.40, "probSource": "model", "upset": None,
+            }],
+        }],
+    }]
+    (out / "brackets.json").write_text(json.dumps(brackets), encoding="utf-8")
+    monkeypatch.setattr(export, "output_dir", lambda _tour: out)
+    rows = [{
+        "event": "US Open", "espnId": "189-2026", "date": "2026-08-30",
+        "round": "R128", "surface": "Hard", "bestOf": 5, "level": "Grand Slam",
+        "playerA": "Player A", "playerB": "Player B", "pA": 0.63,
+    }]
+    monkeypatch.setattr(export, "build_upcoming", lambda *_args, **_kwargs: rows)
+
+    export.export_forecast_products("atp", object(), pd.DataFrame(), enriched=[])
+
+    published = json.loads((out / "brackets.json").read_text(encoding="utf-8"))
+    match = published[0]["rounds"][0]["matches"][0]
+    assert match["p"] == 0.63 and match["probSource"] == "model"
 
 
 def test_matrix_and_profile_exports_are_generation_aware_shards():

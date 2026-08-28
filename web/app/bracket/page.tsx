@@ -130,7 +130,7 @@ function BracketInner() {
     );
   if (!ev) return <Empty>That event isn&apos;t available — pick another from the list.</Empty>;
 
-  const contenders = titleContenders(tournaments ?? null, ev.name);
+  const contenders = titleContenders(tournaments ?? null, ev);
   const labels = sectionLabels(ev.bracketSize);
   const tier = tournamentTier(ev.level, ev.name);
   const canForecast = !!scenarioFile;
