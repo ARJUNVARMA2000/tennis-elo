@@ -5731,22 +5731,38 @@ ordered FULL/child-QUICK production proof.
 
 ## 2026-08-28 — US Open draw production readiness
 
-- [ ] Establish independent ground truth for both 2026 US Open singles draws from the official US
+- [x] Establish independent ground truth for both 2026 US Open singles draws from the official US
       Open site and compare it with the exact Wikipedia draw locators used by the pipeline: identity,
       128-player geometry, ordered first-round pairings, seeds, unresolved qualifying seats, dates,
       and provider provenance.
-- [ ] Reproduce every current production finding and audit all draw consumers/artifacts (`tournaments`,
+- [x] Reproduce every current production finding and audit all draw consumers/artifacts (`tournaments`,
       `brackets`, `upcoming`, event coverage, health, release lineage, and every relevant web route),
       including probability bounds/sums and round-reach monotonicity.
-- [ ] Repair each producer defect found and extend the appropriate pre-upload or post-deploy invariant
+- [x] Repair each producer defect found and extend the appropriate pre-upload or post-deploy invariant
       with failing-first regression coverage; preserve stable `espnId` identity and fail-closed source
       attachment rules.
-- [ ] Run the targeted and full Python/web test suites, lint/type/build checks, local data health gate,
+- [x] Run the targeted and full Python/web test suites, lint/type/build checks, local data health gate,
       and deployment verifier in proportion to the production risk.
-- [ ] Reconcile repository facts against the final git history, commit only the scoped changes, push
+- [x] Reconcile repository facts against the final git history, commit only the scoped changes, push
       `master`, follow the production refresh through deployment, and independently verify the live
       accepted release, all US Open surfaces, numeric consistency, health status, and incident closure.
 
 ### Review
 
-- Pending implementation and production evidence.
+- Official USTA draw PDFs and schedule independently confirm two 128-player draws, seeds 1–32,
+  eight wild cards per tour, no byes, 18 ATP qualifier/lucky-loser seats, 16 WTA qualifier seats,
+  and main-draw play beginning August 30. The exact ordered fields, qualifier positions, seeds, and
+  anchor pairings match pipeline locators `2026 US Open – Men's singles` and
+  `2026 US Open – Women's singles`; ATP is best-of-five and WTA best-of-three.
+- The audit found nine WTA qualifying results incorrectly presented as live US Open main-draw
+  results after the provider corrected mutable event metadata. Commits `4b15de6` and `2fba1e7`
+  repair source-role reconciliation, quarantine qualifier-only result IDs, derive lifecycle from
+  ordered-draw progress, align schedule/bracket probabilities, and add blocking health coverage.
+- Local verification passed 1,112 Python tests, 323 web tests, touched Ruff checks, TypeScript,
+  the 24-route production build, the pre-deploy gate, and independent code review. Production push
+  run `33152827029` and explicit FULL refresh `33152853192` both completed successfully.
+- FULL release `b6d3d398-bf9d-4c35-ab99-9d53d44a8f61` sealed 457 exact artifacts under manifest
+  `174881f8cf0a7c84734700ba377d84fc05c3081cc3b730dc728d3ae8de2b321a`. Independent live
+  verification passed 22/22 serving checks plus exact ATP/WTA US Open cross-artifact and browser
+  audits: upcoming/real, 0 main-draw results, 128 alive, 47/48 published forecasts, no console
+  errors, `health.ok=true`, and the prior data-health incident closed.
