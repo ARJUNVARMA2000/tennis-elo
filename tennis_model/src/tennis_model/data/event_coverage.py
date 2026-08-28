@@ -198,9 +198,15 @@ def _result_candidates(df: pd.DataFrame, ref: pd.Timestamp, resolver: EventResol
         if group["_coverage_date"].max() < ref - pd.Timedelta(days=COVERAGE_RETENTION_DAYS):
             continue
         if "draw_level" in group.columns:
-            main = group[group["draw_level"].fillna("main").astype(str).str.lower() == "main"]
-            if not main.empty:
-                group = main
+            # Explicit qualifying provenance is evidence about the qualifying tournament,
+            # never proof that its parent main draw has begun. Keep WTA 125/Challenger main
+            # events (``chall``), but fail closed when an event group contains only ``qual``
+            # rows. The former fallback-to-whole-group turned nine US Open Q1 results into
+            # a live main-draw coverage shell on 2026-08-28.
+            roles = group["draw_level"].fillna("main").astype(str).str.lower()
+            group = group[roles.isin(("main", "chall"))]
+            if group.empty:
+                continue
         final_rows = group[group["round"] == "F"].sort_values("_coverage_date")
         champion = runner_up = None
         if not final_rows.empty:

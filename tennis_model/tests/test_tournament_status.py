@@ -576,6 +576,24 @@ def test_qualifying_only_rows_cannot_flip_a_released_main_draw_live(monkeypatch)
         seed=1,
     ) is None
 
+    # Exact production twin: the provider first persisted these rows as main/R128, then
+    # corrected their role. Geometry is an independent witness, so even the stale explicit
+    # stamp cannot make unrelated qualifying pairs start the released draw.
+    stale = frame.assign(tourney_level="GrandSlam", draw_level="main")
+    assert project_tournament(
+        _PRED,
+        "US Open",
+        stale,
+        "wta",
+        known=set(),
+        top_set=None,
+        resolve=lambda name: name,
+        tournament_draw={"slots": [f"P{i}" for i in range(16)], "bestOf": 3},
+        espn_id="189-2026",
+        n_sims=20,
+        seed=1,
+    ) is None
+
     # End-to-end recovery: once the results-driven path declines qualifying-only evidence,
     # build_tournaments must still pick up the cached released draw through the pre-start path.
     from tennis_model.sim import tournaments as tournament_module
@@ -603,6 +621,81 @@ def test_qualifying_only_rows_cannot_flip_a_released_main_draw_live(monkeypatch)
     assert us_open["status"] == "upcoming"
     assert us_open["mainDrawMatchCount"] == 0
     assert us_open["bracket"] is not None
+
+    stale_cards = build_tournaments(_PRED, stale, "wta", n_sims=20, seed=1)
+    stale_us_open = next(card for card in stale_cards if card.get("espnId") == "189-2026")
+    assert stale_us_open["status"] == "upcoming"
+    assert stale_us_open["mainDrawMatchCount"] == 0
+    assert not any(
+        match.get("winner")
+        for rnd in stale_us_open["bracket"]
+        for match in rnd["matches"]
+    )
+
+    # Positive twin: retain a real first-round result that joins P0/P1 while discarding all
+    # stale qualifying rows. The card is live with exactly one observed main-draw match.
+    real = pd.concat([
+        stale,
+        pd.DataFrame([{
+            "tourney_name": "US Open", "espn_id": "189-2026",
+            # The provider is one round wrong; the unique P0/P1 draw node is R16 and
+            # must correct this label rather than reject a genuine result.
+            "date": pd.Timestamp("2026-08-30"), "round": "R32",
+            "winner_name": "P0", "loser_name": "P1", "surface_b": "Hard",
+            "best_of": 3, "tourney_level": "GrandSlam", "draw_level": "main",
+        }]),
+    ], ignore_index=True)
+    live = project_tournament(
+        _PRED,
+        "US Open",
+        real,
+        "wta",
+        known=set(),
+        top_set=None,
+        resolve=lambda name: name,
+        tournament_draw={"slots": [f"P{i}" for i in range(16)], "bestOf": 3},
+        espn_id="189-2026",
+        n_sims=20,
+        seed=1,
+    )
+    assert live["status"] == "live" and live["mainDrawMatchCount"] == 1
+    assert live["bracket"][0]["matches"][0]["winner"] == "a"
+
+    wrong_round_only = real.tail(1).copy()
+    corrected = project_tournament(
+        _PRED,
+        "US Open",
+        wrong_round_only,
+        "wta",
+        known=set(),
+        top_set=None,
+        resolve=lambda name: name,
+        tournament_draw={"slots": [f"P{i}" for i in range(16)], "bestOf": 3},
+        espn_id="189-2026",
+        n_sims=20,
+        seed=1,
+    )
+    assert corrected["status"] == "live" and corrected["mainDrawMatchCount"] == 1
+    assert corrected["bracket"][0]["matches"][0]["winner"] == "a"
+
+    duplicate_round_labels = pd.concat([
+        wrong_round_only,
+        wrong_round_only.assign(round="R64"),
+    ], ignore_index=True)
+    deduped = project_tournament(
+        _PRED,
+        "US Open",
+        duplicate_round_labels,
+        "wta",
+        known=set(),
+        top_set=None,
+        resolve=lambda name: name,
+        tournament_draw={"slots": [f"P{i}" for i in range(16)], "bestOf": 3},
+        espn_id="189-2026",
+        n_sims=20,
+        seed=1,
+    )
+    assert deduped["status"] == "live" and deduped["mainDrawMatchCount"] == 1
 
 
 def test_completed_projection_keeps_authoritative_wiki_field():

@@ -2760,6 +2760,38 @@ def _check_brackets(out: list, tour: str, brackets: list, tournaments) -> None:
                     evidence={"actualRound": repr(rnd.get("round")), "expectedRound": want,
                               "matches": len(ms)})
 
+        # Lifecycle count and draw progression come from independent artifacts. A positive
+        # self-reported count alone is not proof that the main draw started: on 2026-08-28
+        # nine WTA US Open qualifying rows claimed main/R128 while none joined a node in the
+        # released draw. Require at least one decided match between two real draw occupants
+        # before a bracket-backed card may call itself live. Every retained result row must
+        # have such a node; bracket-only walkovers can make decided progress larger than the
+        # observed-row count, so the safe relation is count <= decided draw matches.
+        decided_real = sum(
+            1
+            for rnd in rounds
+            for match in (rnd.get("matches") or [])
+            if match.get("winner") in ("a", "b")
+            and _is_real_name(match.get("a"))
+            and _is_real_name(match.get("b"))
+        )
+        if (t and t.get("status") == "live"
+                and isinstance(t.get("mainDrawMatchCount"), int)
+                and not isinstance(t.get("mainDrawMatchCount"), bool)
+                and t.get("mainDrawMatchCount") > decided_real):
+            _add_finding(
+                out, "output.bracket.live_without_draw_progress",
+                f"{tour}: live tournament {name!r} reports "
+                f"{t.get('mainDrawMatchCount')} main-draw result(s), but its released "
+                f"bracket corroborates only {decided_real} decided match(es) between "
+                "two real entrants",
+                severity="error", entity=event_entity,
+                evidence={
+                    "mainDrawMatchCount": t.get("mainDrawMatchCount"),
+                    "decidedRealBracketMatches": decided_real,
+                    "status": "live",
+                })
+
         # drawSize: count round-0 slots the way tournaments.json drawSize does — field_pool is
         # the non-null complete-draw slots, which INCLUDES unresolved qualifier placeholders (an
         # early-captured draw legitimately carries them; the frozen-wiki capture never backfills

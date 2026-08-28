@@ -48,6 +48,37 @@ def test_begun_event_comes_from_results_even_when_projection_would_filter_it():
     assert event["start"] == "2026-07-25" and event["end"] == "2026-08-02"
 
 
+def test_qualifying_only_results_do_not_create_main_draw_coverage():
+    """A stable parent event id does not promote explicit qualifying results into a
+    begun main draw. WTA 125 main-event rows remain eligible through ``chall``."""
+    qualifying = pd.DataFrame([
+        {"tourney_name": "US Open", "espn_id": "189-2026", "date": BUILD_DATE,
+         "round": "R128", "winner_name": "Qualifier A", "loser_name": "Qualifier B",
+         "tourney_level": "Q", "draw_level": "qual"},
+    ])
+    manifest = build_event_coverage(
+        qualifying, "wta", build_date=BUILD_DATE, upcoming_df=pd.DataFrame(),
+        registry={"events": {"189-2026": {
+            "name": "US Open", "names": ["US Open"],
+            "start": "2026-08-24", "end": "2026-09-13",
+        }}},
+    )
+    assert manifest["events"] == []
+
+    main_125 = qualifying.assign(
+        tourney_name="Test 125", espn_id="999-2026", tourney_level="WTA125",
+        draw_level="chall",
+    )
+    manifest = build_event_coverage(
+        main_125, "wta", build_date=BUILD_DATE, upcoming_df=pd.DataFrame(),
+        registry={"events": {"999-2026": {
+            "name": "Test 125", "names": ["Test 125"],
+            "start": "2026-07-27", "end": "2026-08-02",
+        }}},
+    )
+    assert [event["key"] for event in manifest["events"]] == ["espn:999-2026"]
+
+
 def test_completed_fallback_preserves_a_known_final_result():
     results = pd.DataFrame([
         {"tourney_name": "Settled Open", "espn_id": "999-2026", "date": "2026-07-20",

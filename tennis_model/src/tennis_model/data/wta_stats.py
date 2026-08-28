@@ -214,6 +214,14 @@ def _match_draw_level(ev: dict, match: dict) -> str | None:
     return None
 
 
+def _match_round(ev: dict, match: dict, draw_level: str | None) -> str | None:
+    """Canonical round from the current catalogue, preserving unknown qualifying stage."""
+    round_id = str(match.get("RoundID") or "")
+    if draw_level == "qual" and round_id.isdigit():
+        return f"Q{round_id}"
+    return _round_label(round_id, int(ev["draw"] or 0))
+
+
 def _winner_first_score(m: dict, a_won: bool) -> str:
     """Serialize per-set scores winner-first in canon format ('7-6(4) 6-3')."""
     sets = []
@@ -308,9 +316,7 @@ def _match_key(ev: dict, match: dict, draw_level: str) -> str:
     if str(match.get("Winner")) not in ("2", "3"):
         return ""
     w, l = ("A", "B") if a_won else ("B", "A")
-    round_label = (f"Q{match.get('RoundID')}" if draw_level == "qual"
-                   and str(match.get("RoundID") or "").isdigit()
-                   else _round_label(str(match.get("RoundID")), int(ev["draw"] or 0)))
+    round_label = _match_round(ev, match, draw_level)
     row = {
         "tourney_id": f"{ev['year']}-W{ev['id']}",
         "winner_name": f"{match.get(f'PlayerNameFirst{w}') or ''} "
@@ -325,23 +331,36 @@ def _match_key(ev: dict, match: dict, draw_level: str) -> str:
 
 
 def scrape_tournament(ev: dict, scope: str = "main",
-                      known_keys: set[str] | None = None) -> list[dict]:
+                      known_keys: set[str] | None = None,
+                      observed_roles: dict[str, tuple[str, str, str | None]] | None = None
+                      ) -> list[dict]:
     if scope not in _SCOPES:
         raise ValueError(f"unknown WTA scrape scope {scope!r}")
     matches = _paged(f"/tournaments/{ev['id']}/{ev['year']}/matches", "matches")
     rows = []
     for m in matches:
         draw_level = _match_draw_level(ev, m)
+        source_id = str(m.get("MatchID") or "").strip()
+        source_key = (f"id:{ev['year']}-W{ev['id']}:{source_id}" if source_id else "")
+        if observed_roles is not None and source_key and draw_level is not None:
+            # The match catalogue is the source of truth for draw role.  Keep this
+            # evidence even when the requested scope excludes the match: a row already
+            # on disk may need to move between the main and lower overlays without
+            # spending another stats request.
+            observed_roles[source_key] = (
+                draw_level,
+                "Q" if draw_level == "qual" else str(ev["level"]),
+                _match_round(ev, m, draw_level),
+            )
         wanted = ((scope in ("main", "all") and draw_level == "main")
                   or (scope in ("lower", "all") and draw_level in ("chall", "qual")))
         if not wanted:
             continue
         if m.get("MatchState") != "F":
             continue
-        source_key = (f"id:{ev['year']}-W{ev['id']}:"
-                      f"{str(m.get('MatchID') or '').strip()}")
         fallback_key = _match_key(ev, m, str(draw_level))
-        if known_keys is not None and (source_key in known_keys or fallback_key in known_keys):
+        if known_keys is not None and ((source_key and source_key in known_keys)
+                                       or fallback_key in known_keys):
             continue                       # immutable row already on disk: do not re-spend API budget
         st = _get(f"/tournaments/{ev['id']}/{ev['year']}/matches/{m['MatchID']}/stats",
                   raise_on_failure=True)
@@ -395,7 +414,9 @@ def _enrich_from_local(df: pd.DataFrame, year: int) -> pd.DataFrame:
 
 
 def scrape_year(year: int, since: datetime | None = None, scope: str = "main",
-                known_keys: set[str] | None = None) -> pd.DataFrame:
+                known_keys: set[str] | None = None,
+                observed_roles: dict[str, tuple[str, str, str | None]] | None = None
+                ) -> pd.DataFrame:
     if scope not in _SCOPES:
         raise ValueError(f"unknown WTA scrape scope {scope!r}")
     events = fetch_tournaments(year, scope=scope)
@@ -409,7 +430,8 @@ def scrape_year(year: int, since: datetime | None = None, scope: str = "main",
     dead: list[str] = []
     for ev in events:
         try:
-            got = scrape_tournament(ev, scope=scope, known_keys=known_keys)
+            got = scrape_tournament(ev, scope=scope, known_keys=known_keys,
+                                    observed_roles=observed_roles)
         except WtaTransportError:
             # A rate-limit wall/outage affects every remaining event.  Abort immediately;
             # the completed-season response cache makes the next singular-year run resume.
@@ -459,6 +481,113 @@ def _existing_keys(year: int, lower: bool = False) -> set[str]:
         return set()
     old = pd.read_csv(path, low_memory=False, encoding="utf-8-sig")
     return {_row_key(r) for _, r in old.iterrows()}
+
+
+def _reclassify_existing(year: int,
+                         observed_roles: dict[str, tuple[str, str, str | None]]) -> int:
+    """Move cached source rows to the role currently reported by the catalogue.
+
+    Match stats are immutable enough to reuse, but WTA occasionally corrects
+    ``DrawLevelType`` after first publication.  Only exact source-match ids are
+    eligible here; unrelated and legacy fallback-key rows remain in their original
+    files. Role, tier, and round all follow the current catalogue. A duplicate-preserving
+    bridge is installed before either source copy is removed, so interruption can leave a
+    recoverable duplicate but cannot lose the only stats-bearing row. A second run is a
+    no-op once metadata and physical file agree with the catalogue.
+    """
+    if not observed_roles:
+        return 0
+
+    main_path, lower_path = _year_path(year), _year_path(year, lower=True)
+    frames: list[pd.DataFrame] = []
+    for path, is_lower in ((main_path, False), (lower_path, True)):
+        if not path.exists():
+            continue
+        frame = pd.read_csv(path, low_memory=False, encoding="utf-8-sig")
+        frame["__origin_lower"] = is_lower
+        frames.append(frame)
+    if not frames:
+        return 0
+
+    combined = pd.concat(frames, ignore_index=True, sort=False)
+    combined["__key"] = [_row_key(row) for _, row in combined.iterrows()]
+    combined["__target_lower"] = combined["__origin_lower"]
+    key_indices: dict[str, list[int]] = {}
+    for idx, key in combined["__key"].items():
+        if key in observed_roles:
+            key_indices.setdefault(key, []).append(idx)
+
+    changed: set[str] = set()
+    drop_indices: list[int] = []
+
+    def _value(value) -> str:
+        return "" if pd.isna(value) else str(value)
+
+    for key, indices in key_indices.items():
+        # A prior interrupted/manual repair may have left a row in both files.  Keep
+        # one copy, then route it from the same catalogue evidence as the normal case.
+        keep = indices[-1]
+        if len(indices) > 1:
+            drop_indices.extend(indices[:-1])
+            changed.add(key)
+        draw_level, tourney_level, round_label = observed_roles[key]
+        target_lower = draw_level != "main"
+        if (bool(combined.at[keep, "__origin_lower"]) != target_lower
+                or _value(combined.at[keep, "draw_level"]
+                          if "draw_level" in combined else None) != draw_level
+                or _value(combined.at[keep, "tourney_level"]
+                          if "tourney_level" in combined else None) != tourney_level
+                or _value(combined.at[keep, "round"]
+                          if "round" in combined else None) != _value(round_label)):
+            changed.add(key)
+        combined.at[keep, "draw_level"] = draw_level
+        combined.at[keep, "tourney_level"] = tourney_level
+        combined.at[keep, "round"] = round_label
+        combined.at[keep, "__target_lower"] = target_lower
+
+    if not changed:
+        return 0
+    if drop_indices:
+        combined = combined.drop(index=drop_indices)
+
+    helpers = ["__origin_lower", "__key", "__target_lower"]
+
+    def _public(mask: pd.Series) -> pd.DataFrame:
+        return combined.loc[mask].drop(columns=helpers).copy()
+
+    target_lower = combined["__target_lower"].astype(bool)
+    origin_lower = combined["__origin_lower"].astype(bool)
+    final_frames = {
+        main_path: _public(~target_lower),
+        lower_path: _public(target_lower),
+    }
+    # Movers exist in both source and destination during the bridge phase. Every metadata
+    # value is already corrected, so even a process failure leaves exact-key duplicates that
+    # merge_sources can safely collapse, never a deleted stats record or stale main role.
+    bridge_frames = {
+        main_path: _public((~target_lower) | (~origin_lower)),
+        lower_path: _public(target_lower | origin_lower),
+    }
+
+    staged = []
+    try:
+        for phase, frames_by_path in (("bridge", bridge_frames), ("final", final_frames)):
+            phase_staged = []
+            for path, frame in frames_by_path.items():
+                if not path.exists() and frame.empty:
+                    continue
+                path.parent.mkdir(parents=True, exist_ok=True)
+                tmp = path.with_suffix(f".csv.role.{phase}.tmp")
+                frame.to_csv(tmp, index=False)
+                phase_staged.append((tmp, path))
+                staged.append((tmp, path))
+            for tmp, path in phase_staged:
+                os.replace(tmp, path)
+    finally:
+        for tmp, _ in staged:
+            if tmp.exists():
+                tmp.unlink()
+    return len(changed)
 
 
 def write_year(year: int, df_new: pd.DataFrame, *, lower: bool = False) -> int:
@@ -513,13 +642,17 @@ def download_wta_stats(years=None, incremental: bool = False, scope: str = "main
     use_cache = year < now.year and not incremental
     _CACHE = (ResponseCache(stats_dir("wta") / "_httpcache" / str(year))
               if use_cache else None)
-    known: set[str] = set()
-    if scope in ("main", "all"):
-        known |= _existing_keys(year, lower=False)
-    if scope in ("lower", "all"):
-        known |= _existing_keys(year, lower=True)
+    # Read both stores for every scope.  If a known id is currently in the wrong
+    # store, the catalogue can reclassify its cached stats instead of refetching them.
+    known = _existing_keys(year, lower=False) | _existing_keys(year, lower=True)
+    observed_roles: dict[str, tuple[str, str, str | None]] = {}
     try:
-        scraped = scrape_year(year, since=since, scope=scope, known_keys=known)
+        scraped = scrape_year(year, since=since, scope=scope, known_keys=known,
+                              observed_roles=observed_roles)
+        reclassified = _reclassify_existing(year, observed_roles)
+        if reclassified:
+            print(f"    wta/stats {year}: reclassified {reclassified} cached row(s)",
+                  flush=True)
         roles = scraped.get("draw_level", pd.Series("main", index=scraped.index)).fillna("main")
         main = scraped[roles.eq("main")]
         lower_rows = scraped[roles.ne("main")]

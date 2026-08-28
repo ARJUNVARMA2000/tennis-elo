@@ -132,6 +132,18 @@ def test_canonicalize_merges_verified_cincinnati_wta_variants():
     print("ok test_canonicalize_merges_verified_cincinnati_wta_variants")
 
 
+def test_canonicalize_merges_current_shevchenko_display_with_archive_identity():
+    """ATP S0H2 changed its current display from Alexander to Aleksandr while the
+    released US Open draw retained the archive spelling. They are one player."""
+    frame = pd.DataFrame({
+        "winner_name": ["Aleksandr Shevchenko", "Alexander Shevchenko"],
+        "loser_name": ["Opponent One", "Opponent Two"],
+        "__src": [3, 0],
+    })
+    out = results._canonicalize_names(frame.copy())
+    assert set(out["winner_name"]) == {"Alexander Shevchenko"}
+
+
 def test_cincinnati_stable_and_espn_result_collapse_to_one_row(tmp_path, monkeypatch):
     """Production-shaped replay: date/event/title/tiebreak/name spelling differ, but the
     corrected round and explicit identity make these two sources one result. The stable

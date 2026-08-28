@@ -127,8 +127,10 @@ WTA_DUAL_STATE_GATE_THRESHOLD = 32
 # compared normally again. Version 2 removes the ESPN-live WTA-125 policy leak; version 3
 # stops deleting same-season rematches that repeat an earlier scoreline in another round;
 # version 4 canonicalizes the Cincinnati cross-source WTA aliases, intentionally collapsing
-# duplicate historical/live identities and making the old match-count baseline incomparable.
-MATCH_POPULATION_VERSION = 4
+# duplicate historical/live identities and making the old match-count baseline incomparable;
+# version 5 reclassifies mutable WTA ``RS...`` provider rows as qualifying, removing nine
+# 2026 US Open qualifying results that had briefly been cached as main-draw observations.
+MATCH_POPULATION_VERSION = 5
 # Lower-tier (challenger + qualifying) ingestion starts here: 5 warm-up years of
 # rating history before the 2010 tune window; the full 1978+ archive would double
 # the walk for matches that can no longer influence any scored year.
@@ -699,6 +701,11 @@ PLAYER_ALIASES: dict[str, str] = {
     # 2026-07-28 alias-proposer: both forms identify ATP player RD48.
     # https://www.atptour.com/en/players/igor-marcondes/rd48/overview
     "igor ribeiro marcondes": "Igor Marcondes",
+    # 2026-08-28 US Open cross-view audit: current ATP/ESPN display ``Aleksandr`` while
+    # the historical archive and released draw use ``Alexander`` for the same ATP S0H2
+    # profile. Keep the archive-majority spelling so ratings and bracket/schedule odds join.
+    # https://www.atptour.com/en/players/alexander-shevchenko/s0h2/bio
+    "aleksandr shevchenko": "Alexander Shevchenko",
     # 2026-07-28 alias-proposer: ATP pages use both forms under player id S0WT.
     # https://www.atptour.com/en/players/joel-schwaerzler/s0wt/overview
     "joel josef schwaerzler": "Joel Schwaerzler",

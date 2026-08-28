@@ -350,7 +350,7 @@ def _reconcile_exact_live_result(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
-def _stamp_draw_level(df: pd.DataFrame) -> pd.DataFrame:
+def _stamp_draw_level(df: pd.DataFrame, tour: str | None = None) -> pd.DataFrame:
     """Mark every row main / chall / qual, deriving from CONTENT before provenance.
 
     `_read_lower` stamps the rows it reads out of `lower_dir`, which used to be the only
@@ -373,7 +373,29 @@ def _stamp_draw_level(df: pd.DataFrame) -> pd.DataFrame:
     derived = pd.Series(pd.NA, index=df.index, dtype=object)
     derived[lvl.isin(("C", "WTA125"))] = "chall"
     derived[lvl.eq("Q")] = "qual"
-    df["draw_level"] = stamped.combine_first(derived).fillna("main")
+    resolved = stamped.combine_first(derived).fillna("main")
+
+    # WTA match catalogues are mutable while an event is being assembled. During the
+    # 2026 US Open qualifying week nine stable ``RS...`` match ids were first exposed as
+    # main draw, then corrected upstream to qualifying. Their saved explicit ``main`` stamp
+    # otherwise outranked every derivation forever and started the released main draw four
+    # days early. LS ids cover a mixture of tour main draws and WTA 125 main events, but RS
+    # is the provider's qualifying namespace throughout the stored lower archive; use only
+    # that one-directional fact as a load-time repair boundary.
+    source_ids = (df["source_match_id"].astype("string").str.strip().str.upper()
+                  if "source_match_id" in df.columns
+                  else pd.Series(pd.NA, index=df.index, dtype="string"))
+    provider_qual = (source_ids.str.startswith("RS", na=False) if tour == "wta"
+                     else pd.Series(False, index=df.index))
+    if provider_qual.any():
+        resolved = resolved.mask(provider_qual, "qual")
+        if "tourney_level" not in df.columns:
+            df["tourney_level"] = pd.NA
+        df.loc[provider_qual, "tourney_level"] = "Q"
+        if "round" in df.columns:
+            known_qual_round = df["round"].astype("string").isin(("Q1", "Q2", "Q3"))
+            df.loc[provider_qual & ~known_qual_round, "round"] = pd.NA
+    df["draw_level"] = resolved
     return df
 
 
@@ -480,7 +502,7 @@ def merge_sources(tour: str, include_lower: bool | None = None) -> pd.DataFrame:
         low["__src"] = 4
         frames.append(low)
     df = pd.concat(frames, ignore_index=True)
-    df = _stamp_draw_level(df)
+    df = _stamp_draw_level(df, tour=tour)
     df["date"] = _parse_dates(df["tourney_date"])
     df = df[df["date"].notna() & df["winner_name"].notna() & df["loser_name"].notna()].copy()
     df = _repair_corrupt_final_years(df)
@@ -746,7 +768,13 @@ def clean(df: pd.DataFrame, tour: str | None = None) -> pd.DataFrame:
     df["tier"] = df["tourney_level"].map(_tier_name)
     mults, default_mult = tier_mults(tour)
     df["tier_k"] = df["tier"].map(mults).fillna(default_mult)
-    df["round_order"] = df["round"].map(ROUND_ORDER).fillna(3).astype(int)
+    round_order = df["round"].map(ROUND_ORDER)
+    # The current WTA catalogue sometimes corrects a cached main row to qualifying while
+    # leaving RoundID blank. Unknown qualifying stage is still categorically before R128;
+    # never let the generic missing-round fallback place it at main-draw R32 order.
+    draw_level = df.get("draw_level", pd.Series("main", index=df.index))
+    unknown_qual = draw_level.eq("qual") & round_order.isna()
+    df["round_order"] = round_order.mask(unknown_qual, -1).fillna(3).astype(int)
     df["is_indoor"] = df["indoor"].map({"I": True, "O": False})
 
     parsed = df["score"].map(parse_score)

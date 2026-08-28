@@ -110,6 +110,122 @@ def test_resume_key_skips_existing_match_before_stats_request():
         ws._paged, ws._get = orig
 
 
+def test_download_reclassifies_known_source_id_without_refetching_stats():
+    """A catalogue role correction moves cached stats both ways and is idempotent."""
+    orig = (ws.stats_dir, ws.lower_dir, ws.fresh_dir, ws.historical_dir,
+            ws.fetch_tournaments, ws._paged, ws._get)
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            for name in ("stats", "lower", "fresh", "historical"):
+                (base / name).mkdir()
+            ws.stats_dir = lambda tour: base / "stats"
+            ws.lower_dir = lambda tour: base / "lower"
+            ws.fresh_dir = lambda tour: base / "fresh"
+            ws.historical_dir = lambda tour: base / "historical"
+
+            ev = _event()
+            # LS ids can legitimately appear in either store; RS ids are a
+            # qualifying-only provider family and have a separate ingestion guard.
+            row = ws._stats_row(
+                ev, _match(draw="M", match_id="LS001"), _stats(), "main"
+            )
+            assert row is not None
+            pd.DataFrame([row]).to_csv(base / "stats" / "2025.csv", index=False)
+
+            catalogue = [_match(draw="Q", round_id="", match_id="LS001")]
+            ws.fetch_tournaments = lambda year, **kwargs: [ev]
+            ws._paged = lambda *args, **kwargs: catalogue
+            ws._get = lambda *args, **kwargs: (_ for _ in ()).throw(
+                AssertionError("role correction refetched immutable match stats"))
+
+            # main scope still observes the now-qualifying catalogue row, moves its
+            # cached stats to lower, and does not call the per-match stats endpoint.
+            ws.download_wta_stats([2025], scope="main")
+            main = pd.read_csv(base / "stats" / "2025.csv")
+            lower = pd.read_csv(base / "lower" / "2025_wta_lower.csv")
+            assert main.empty and len(lower) == 1
+            assert lower.iloc[0]["draw_level"] == "qual"
+            assert lower.iloc[0]["tourney_level"] == "Q"
+            assert pd.isna(lower.iloc[0]["round"])
+            assert lower.iloc[0]["w_svpt"] == 60
+
+            # The reverse source correction reuses that same lower-file row.
+            catalogue[:] = [_match(draw="M", match_id="LS001")]
+            ws.download_wta_stats([2025], scope="main")
+            main = pd.read_csv(base / "stats" / "2025.csv")
+            lower = pd.read_csv(base / "lower" / "2025_wta_lower.csv")
+            assert len(main) == 1 and lower.empty
+            assert main.iloc[0]["draw_level"] == "main"
+            assert main.iloc[0]["tourney_level"] == "WTA500"
+            assert main.iloc[0]["round"] == "R32"
+            assert main.iloc[0]["w_svpt"] == 60
+
+            # Already-correct storage is a true no-op on a repeated catalogue walk.
+            before = (base / "stats" / "2025.csv").read_bytes()
+            ws.download_wta_stats([2025], scope="main")
+            after = (base / "stats" / "2025.csv").read_bytes()
+            assert after == before
+    finally:
+        (ws.stats_dir, ws.lower_dir, ws.fresh_dir, ws.historical_dir,
+         ws.fetch_tournaments, ws._paged, ws._get) = orig
+
+
+def test_role_reclassification_interruption_preserves_stats_in_bridge_copy():
+    """Every move is present in source and destination before final deletion. A failure
+    on the first final replace may leave a duplicate, but never lose the only stats row."""
+    orig = (ws.stats_dir, ws.lower_dir, ws.fresh_dir, ws.historical_dir, ws.os.replace)
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            for name in ("stats", "lower", "fresh", "historical"):
+                (base / name).mkdir()
+            ws.stats_dir = lambda tour: base / "stats"
+            ws.lower_dir = lambda tour: base / "lower"
+            ws.fresh_dir = lambda tour: base / "fresh"
+            ws.historical_dir = lambda tour: base / "historical"
+
+            ev = _event()
+            row = ws._stats_row(ev, _match(draw="M"), _stats(), "main")
+            assert row is not None
+            pd.DataFrame([row]).to_csv(base / "stats" / "2025.csv", index=False)
+            key = ws._row_key(pd.Series(row))
+
+            real_replace = ws.os.replace
+            calls = 0
+
+            def interrupted(source, destination):
+                nonlocal calls
+                calls += 1
+                if calls == 3:  # both duplicate-preserving bridge files are installed
+                    raise OSError("injected final-phase interruption")
+                return real_replace(source, destination)
+
+            ws.os.replace = interrupted
+            try:
+                ws._reclassify_existing(2025, {key: ("qual", "Q", None)})
+                raise AssertionError("expected injected interruption")
+            except OSError as exc:
+                assert "injected" in str(exc)
+            finally:
+                ws.os.replace = real_replace
+
+            main = pd.read_csv(base / "stats" / "2025.csv")
+            lower = pd.read_csv(base / "lower" / "2025_wta_lower.csv")
+            assert len(main) == len(lower) == 1
+            assert main.iloc[0]["w_svpt"] == lower.iloc[0]["w_svpt"] == 60
+            assert set((main.iloc[0]["draw_level"], lower.iloc[0]["draw_level"])) == {"qual"}
+
+            # The next catalogue observation heals the recoverable duplicate exactly.
+            assert ws._reclassify_existing(2025, {key: ("qual", "Q", None)}) == 1
+            assert pd.read_csv(base / "stats" / "2025.csv").empty
+            healed = pd.read_csv(base / "lower" / "2025_wta_lower.csv")
+            assert len(healed) == 1 and healed.iloc[0]["w_svpt"] == 60
+    finally:
+        (ws.stats_dir, ws.lower_dir, ws.fresh_dir, ws.historical_dir,
+         ws.os.replace) = orig
+
+
 def test_paged_stops_on_paging_blind_endpoint():
     """An endpoint that ignores page params returns the identical page forever —
     the repeated first-item signature must end the walk after one page."""

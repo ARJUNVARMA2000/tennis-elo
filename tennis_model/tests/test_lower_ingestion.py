@@ -169,6 +169,52 @@ def test_draw_level_derives_from_content_not_the_directory():
     print("ok test_draw_level_derives_from_content_not_the_directory")
 
 
+def test_wta_rs_source_identity_repairs_a_stale_explicit_main_role():
+    """Current WTA match metadata can correct a role after stats were cached. ``RS`` is
+    qualifying provider identity, so it must outrank a stale explicit main/R128 stamp at
+    every load; LS main rows and the ATP namespace remain untouched."""
+    import pandas as pd
+
+    frame = pd.DataFrame({
+        "tourney_level": ["GrandSlam", "GrandSlam"],
+        "draw_level": ["main", "main"],
+        "source_match_id": ["RS73997376", "LS73997377"],
+    })
+    wta = results._stamp_draw_level(frame.copy(), tour="wta")
+    assert list(wta["draw_level"]) == ["qual", "main"]
+    assert list(wta["tourney_level"]) == ["Q", "GrandSlam"]
+
+    atp = results._stamp_draw_level(frame.copy(), tour="atp")
+    assert list(atp["draw_level"]) == ["main", "main"]
+    assert list(atp["tourney_level"]) == ["GrandSlam", "GrandSlam"]
+
+    def check(base: Path):
+        for dirname in ("historical", "stats", "fresh", "live", "lower"):
+            for path in (base / dirname).glob("*.csv"):
+                path.unlink()
+        header = _HDR_FULL.replace(
+            "score,w_svpt", "score,draw_level,source_match_id,w_svpt")
+        _write_csv(
+            base / "stats" / "2026.csv",
+            header
+            + "2026-W905,Us Open,20260824,A Qualifier,B Qualifier,R128,"
+              "GrandSlam,6-4 6-4,main,RS73997376,60,55\n",
+        )
+        config.INCLUDE_WTA_LOWER_STATE = False
+        baseline = results.merge_sources("wta")
+        assert baseline.empty, baseline[["winner_name", "draw_level", "tourney_level"]]
+
+        config.INCLUDE_WTA_LOWER_STATE = True
+        enriched = results.merge_sources("wta")
+        row = enriched.iloc[0]
+        assert row["draw_level"] == "qual" and row["tourney_level"] == "Q"
+        assert pd.isna(row["round"])
+        cleaned = results.clean(enriched, tour="wta")
+        assert cleaned.iloc[0]["round_order"] == -1
+
+    _with_dirs(check)
+
+
 def test_atp_lower_flag_cannot_accidentally_enable_wta_state_rows():
     """WTA lower files now exist even before adoption. The already-true ATP A5 flag
     must not make those rows enter WTA state through a shared generic condition."""

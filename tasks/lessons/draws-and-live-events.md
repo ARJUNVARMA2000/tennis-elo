@@ -410,3 +410,18 @@ Indexed in [`../lessons.md`](../lessons.md).
   `bestOf` from five to three. **How to apply:** enrich preferred IDs from the provider catalog
   before fetching, and replay the first fetch -> ID persistence -> unsettled refetch sequence for
   formats derived from candidate metadata.
+
+- **A stable match ID does not make mutable provider classification immutable.** (2026-08-28,
+  US Open WTA qualifying) The WTA catalogue initially exposed nine qualifying matches as main draw,
+  then corrected the same `RS...` ids to `Q`; resume-by-id skipped them forever and an append-only
+  writer could not move them out of the main file. **How to apply:** revalidate role metadata for
+  current-season known ids without re-fetching their statistics, repartition cached rows atomically,
+  enforce provider-native qualifying identity again at the load boundary, and bump the explicit
+  model-population version before retraining.
+
+- **A released ordered draw is independent lifecycle evidence, not just display geometry.**
+  (2026-08-28, US Open WTA qualifying) All nine poisoned rows shared the parent event and claimed
+  `R128`, yet none occupied a decided node in the released main draw. **How to apply:** for an
+  ID-attached live event, forward-fold every candidate result into the authoritative draw, retain
+  only exact player-pair joins, canonicalize the round from ordered-draw geometry, and hand a
+  zero-join event back to the pre-start projection path.

@@ -182,6 +182,39 @@ def _real_match_pairs(g: pd.DataFrame) -> set[tuple[str, str]]:
     }
 
 
+def _joined_main_draw_rows(main: pd.DataFrame, rounds: list[dict]) -> pd.DataFrame:
+    """Return result rows corroborated by the authoritative forward-folded draw.
+
+    Provider role metadata is useful but not immutable during qualifying week. A result is
+    allowed to start or eliminate players from a released draw only when its unordered pair
+    occupies one decided node in that draw. The fold's unique node is authoritative for the
+    round too: providers have shipped genuine main matches one round early/late, so demanding
+    their stale label would suppress a real live event instead of repairing it.
+    """
+    joined: dict[frozenset[str], str] = {}
+    for rnd in rounds or []:
+        round_name = str(rnd.get("round") or "").strip().upper()
+        for match in rnd.get("matches") or []:
+            a, b, winner = match.get("a"), match.get("b"), match.get("winner")
+            if (winner not in ("a", "b")
+                    or not (is_real_participant(a) and is_real_participant(b))):
+                continue
+            pair = frozenset((_name_key(a), _name_key(b)))
+            if round_name and len(pair) == 2:
+                joined.setdefault(pair, round_name)
+
+    out = main.copy()
+    keep = []
+    for index, row in out.iterrows():
+        winner, loser = row.get("winner_name"), row.get("loser_name")
+        pair = frozenset((_name_key(winner), _name_key(loser)))
+        canonical_round = joined.get(pair) if len(pair) == 2 else None
+        keep.append(canonical_round is not None)
+        if canonical_round is not None:
+            out.at[index, "round"] = canonical_round
+    return out.loc[keep]
+
+
 def _one_match_per_player_round(main: pd.DataFrame) -> pd.DataFrame:
     """Keep the first source-ordered match involving each player in each knockout round.
 
@@ -850,6 +883,46 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
         # 133-player Wimbledon field and padded it to an impossible 256-slot bracket.
         field_pool = {slot for slot in resolved_draw_slots if slot is not None}
         best_of = int(tournament_draw.get("bestOf") or best_of)
+
+        # Treat the ordered draw as an independent lifecycle witness. WTA's mutable match
+        # catalogue briefly labelled nine 2026 US Open qualifying results main/R128; all
+        # nine shared the parent event but none occupied a node in its released main draw.
+        # Recompute from only corroborated rows so unjoined provider noise cannot eliminate
+        # entrants, inflate mainDrawMatchCount, or flip the event live. Returning ``None``
+        # when none join deliberately hands the event to ``project_upcoming`` below.
+        if not completed and espn_id:
+            rcols = [c for c in ("winner_name", "loser_name", "score", "round")
+                     if c in main.columns]
+            proof = bracket_rounds(
+                resolved_draw_slots,
+                main[rcols].to_dict("records") if not main.empty else [],
+                resolved_seeds,
+                withdrawn=walkovers,
+            )
+            trusted_main = _joined_main_draw_rows(main, proof)
+            round_changed = (
+                len(trusted_main) == len(main)
+                and not trusted_main["round"].astype("string").equals(
+                    main["round"].astype("string"))
+            )
+            if len(trusted_main) != len(main) or round_changed:
+                dropped = len(main) - len(trusted_main)
+                if dropped:
+                    print(f"  tournaments/{tour}: {name!r} rejected {dropped} result row(s) "
+                          "that do not join the released main draw")
+                if round_changed:
+                    print(f"  tournaments/{tour}: {name!r} corrected provider round(s) "
+                          "from released-draw geometry")
+                if trusted_main.empty:
+                    return None
+                return project_tournament(
+                    predictor, name, trusted_main.copy(), tour,
+                    known=known, top_set=top_set, espn_fields=espn_fields, resolve=resolve,
+                    matchups=matchups, tournament_draw=tournament_draw,
+                    archive_hint=archive_hint, espn_id=espn_id,
+                    event_start=event_start, event_end=event_end, dmax=dmax,
+                    n_sims=n_sims, seed=seed,
+                )
 
     if len(field_pool) < 8:              # dedup-leftover fragment, not a real draw
         return None

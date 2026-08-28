@@ -179,15 +179,15 @@
       "asOf": "2026-07-09",
       "previousOutput": {
         "matches": 300000,
-        "match_population_version": 4,
+        "match_population_version": 5,
         "high_water_matches": 300000,
-        "high_water_match_population_version": 4
+        "high_water_match_population_version": 5
       },
       "expected": {
         "code": "output.population.match_count_drop",
         "severity": "error",
         "scope": "output",
-        "entity": "match-population:v4",
+        "entity": "match-population:v5",
         "channel": "sentinel"
       },
       "variants": {
@@ -385,6 +385,50 @@
               "pointer": "/0/mainDrawMatchCount",
               "value": 1
             }
+          ]
+        }
+      }
+    },
+    {
+      "id": "wta-positive-main-count-with-undecided-draw",
+      "description": "A positive result count cannot start a released draw when none of those results joins a bracket node.",
+      "history": {
+        "issues": [45],
+        "commits": ["4b15de6"]
+      },
+      "tour": "wta",
+      "seam": "output",
+      "asOf": "2026-08-28",
+      "expected": {
+        "code": "output.bracket.live_without_draw_progress",
+        "severity": "error",
+        "scope": "output",
+        "entity": "espn:2-2026",
+        "channel": "predeploy"
+      },
+      "variants": {
+        "broken": {
+          "patches": [
+            {"op": "set_json", "target": "output/tournaments.json", "pointer": "/1/status", "value": "live"},
+            {"op": "set_json", "target": "output/tournaments.json", "pointer": "/1/champion", "value": null},
+            {"op": "set_json", "target": "output/tournaments.json", "pointer": "/1/mainDrawMatchCount", "value": 9},
+            {"op": "set_json", "target": "output/brackets.json", "pointer": "/0/status", "value": "live"},
+            {"op": "set_json", "target": "output/brackets.json", "pointer": "/0/champion", "value": null},
+            {"op": "set_json", "target": "output/brackets.json", "pointer": "/0/rounds/0/matches/0/winner", "value": null},
+            {"op": "set_json", "target": "output/brackets.json", "pointer": "/0/rounds/0/matches/1/winner", "value": null},
+            {"op": "set_json", "target": "output/brackets.json", "pointer": "/0/rounds/1/matches/0/winner", "value": null}
+          ]
+        },
+        "clean": {
+          "patches": [
+            {"op": "set_json", "target": "output/tournaments.json", "pointer": "/1/status", "value": "live"},
+            {"op": "set_json", "target": "output/tournaments.json", "pointer": "/1/champion", "value": null},
+            {"op": "set_json", "target": "output/tournaments.json", "pointer": "/1/mainDrawMatchCount", "value": 1},
+            {"op": "set_json", "target": "output/brackets.json", "pointer": "/0/status", "value": "live"},
+            {"op": "set_json", "target": "output/brackets.json", "pointer": "/0/champion", "value": null},
+            {"op": "set_json", "target": "output/brackets.json", "pointer": "/0/rounds/0/matches/0/winner", "value": "a"},
+            {"op": "set_json", "target": "output/brackets.json", "pointer": "/0/rounds/0/matches/1/winner", "value": null},
+            {"op": "set_json", "target": "output/brackets.json", "pointer": "/0/rounds/1/matches/0/winner", "value": null}
           ]
         }
       }

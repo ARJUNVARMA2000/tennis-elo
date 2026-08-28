@@ -413,3 +413,10 @@ Indexed in [`../lessons.md`](../lessons.md).
   card. **How to apply:** export the positive main-draw evidence used by the producer and gate it;
   keep the ordinary three-day delay signal, but give Grand Slams the documented seven-day
   qualifying window. Add a paired broken/clean production replay before changing the invariant.
+
+- **A producer's positive counter needs an independent cross-artifact witness.** (2026-08-28,
+  US Open WTA follow-up) `mainDrawMatchCount=9` passed the first lifecycle gate even though the
+  released bracket had zero decided matches and every scheduled R128 match was still future-dated.
+  **How to apply:** when a real bracket is published, block any live card whose main-draw result
+  count exceeds the decided matches between two real draw occupants; keep the exact broken shape
+  and valid progressed/upcoming twins in the production-replay suite.

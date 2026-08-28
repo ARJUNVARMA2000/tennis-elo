@@ -2141,6 +2141,37 @@ def test_live_tournament_requires_observed_main_draw_matches():
     assert not [message for message in out if "no observed main-draw matches" in message]
 
 
+def test_live_tournament_count_requires_progress_in_its_released_bracket():
+    """Exact US Open production contradiction: a positive count sourced from qualifying
+    cannot make a bracket-backed event live when every draw node is still undecided."""
+    data = _healthy_data()
+    tournament = data["tournaments"][1]
+    tournament.update(status="live", champion=None, runnerUp=None, mainDrawMatchCount=9)
+    bracket = data["brackets"][0]
+    bracket.update(status="live", champion=None, runnerUp=None)
+    for rnd in bracket["rounds"]:
+        for match in rnd["matches"]:
+            match.update(winner=None, score=None, upset=None)
+
+    findings = health.output_findings("atp", _oc(data=data), NOW)
+    hits = [finding for finding in findings
+            if finding.code == "output.bracket.live_without_draw_progress"]
+    assert len(hits) == 1 and hits[0].severity == "error"
+
+    # One true result plus the same nine poisoned rows must still block (10 > 1).
+    bracket["rounds"][0]["matches"][0]["winner"] = "a"
+    tournament["mainDrawMatchCount"] = 10
+    findings = health.output_findings("atp", _oc(data=data), NOW)
+    assert [finding for finding in findings
+            if finding.code == "output.bracket.live_without_draw_progress"]
+
+    # A legitimate live event with exactly one corroborated result remains clean.
+    tournament["mainDrawMatchCount"] = 1
+    findings = health.output_findings("atp", _oc(data=data), NOW)
+    assert not [finding for finding in findings
+                if finding.code == "output.bracket.live_without_draw_progress"]
+
+
 def test_pending_bracket_probability_matches_upcoming_by_stable_identity():
     brackets = [{
         "name": "US Open", "espnId": "189-2026", "rounds": [{
