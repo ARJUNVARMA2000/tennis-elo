@@ -53,6 +53,43 @@ def _num(x, default=np.nan) -> float:
         return default
 
 
+def can_predict_match(predictor, a: str, b: str) -> bool:
+    """Whether both entrants exist in the rating bundle inference would select.
+
+    WTA's adopted cold-start gate deliberately selects the lower-enriched state when
+    either entrant has fewer than the frozen number of main-draw matches.  Exporters
+    must test membership in that selected bundle, not always in ``predictor.elo``;
+    otherwise the lower state can improve backtests while lower-only draw entrants are
+    still withheld in production.  Lightweight test/legacy predictors without the
+    selector retain the historical main-state membership contract.
+    """
+    states_for = getattr(predictor, "_states_for", None)
+    if callable(states_for):
+        state = states_for(a, b)[0]
+    else:
+        main = getattr(predictor, "elo", None)
+        threshold = getattr(
+            predictor, "_dual_state_threshold",
+            getattr(predictor, "dual_state_threshold", None),
+        )
+        counts = getattr(main, "n", {})
+        state = (getattr(predictor, "lower_elo", None)
+                 if use_lower_state(counts.get(a, 0), counts.get(b, 0), threshold)
+                 else main)
+    rated = getattr(state, "overall", {})
+    return a in rated and b in rated
+
+
+def predictor_player_names(predictor) -> tuple[str, ...]:
+    """Canonical names available in any prediction-time rating bundle."""
+    names: dict[str, None] = {}
+    for attr in ("elo", "lower_elo"):
+        state = getattr(predictor, attr, None)
+        for name in getattr(state, "overall", {}):
+            names.setdefault(str(name), None)
+    return tuple(names)
+
+
 EVIDENCE_GROUPS: dict[str, tuple[str, ...]] = {
     "surfaceElo": ("elo_diff", "elo_overall_diff", "elo_surface_diff", "logit_p_blend"),
     "serveReturn": ("logit_p_point", "serve_skill_diff", "return_skill_diff"),

@@ -29,6 +29,7 @@ from ..config import (
     EVENT_CALENDAR_COMPLETE_GRACE_DAYS,
     EVENT_WITHDRAWN_PLAYERS,
     MAX_DERIVED_WITHDRAWALS,
+    PLAYER_ALIASES,
     live_dir,
 )
 from ..data.event_coverage import cached_draw_identity_aliases
@@ -36,6 +37,7 @@ from ..data.events import EventResolver, display_event_name, is_event_id, load_r
 from ..data.participants import draw_is_meaningful, is_real_participant
 from ..data.results import _name_key
 from ..data.surface import resolve_level, resolve_surface_info
+from ..model.predict import can_predict_match, predictor_player_names
 from .bracket import bracket_is_meaningful, bracket_rounds, oriented_logged, price_bracket
 from .draws import advance_slots, draw_status, live_draw, standard_seed_draw
 
@@ -1161,11 +1163,10 @@ def _price_event_bracket(predictor, t: dict, match_lines: list) -> None:
             continue                                     # a rematch in another window can't collide
         index.setdefault(frozenset((_name_key(pa), _name_key(pb))), (pa, p))
 
-    rated = predictor.elo.overall
     surface, best_of, name = t.get("surface"), t.get("bestOf"), t.get("name")
 
     def price_fn(a, b):
-        if a in rated and b in rated:
+        if can_predict_match(predictor, a, b):
             return predictor.win_prob(a, b, surface=surface, best_of=best_of, event=name)
         return None
 
@@ -1181,9 +1182,13 @@ def build_tournaments(predictor, df: pd.DataFrame, tour: str, **kw) -> list:
     draws = _load_tournament_draws(tour)
     # map ESPN player names onto the predictor's canonical spellings (accent/punct-insensitive)
     canon: dict = {}
-    for k in predictor.elo.overall:
+    for k in predictor_player_names(predictor):
         canon.setdefault(_name_key(k), k)
-    resolve = lambda n: canon.get(_name_key(n), n)
+
+    def resolve(n):
+        key = _name_key(n)
+        aliased = PLAYER_ALIASES.get(key, n)
+        return canon.get(_name_key(aliased), aliased)
     # Identity layer: the registry plus every id a cache already carries INSIDE an entry. That
     # `extra` seeding is load-bearing, not decorative — ESPN renamed the DC Open mid-event by
     # inserting a word ("Citi"), which no containment rule can bridge and which the registry

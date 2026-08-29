@@ -464,10 +464,15 @@ def scrape_year(year: int, since: datetime | None = None, scope: str = "main",
     if missing:
         print(f"    wta/stats {year}: {len(missing)} deterministic missing event endpoint(s)",
               flush=True)
-    # plain construction: rows carry CANON keys plus extras (entry/seed) that the
-    # loader's reindex-with-extras keeps for the combiner's qualifier feature
-    return pd.DataFrame(rows) if rows else pd.DataFrame(columns=[*CANON, "draw_level",
-                                                                 "source_match_id"])
+    # Plain construction: rows carry CANON keys plus extras (entry/seed) that the
+    # loader's reindex-with-extras keeps for the combiner's qualifier feature. Preserve
+    # tolerated per-event failures as machine-readable completion evidence: a current-
+    # season bootstrap can persist all successful rows, then refuse to bless the season
+    # as complete until a later resumable pass recovers every transient hard failure.
+    result = (pd.DataFrame(rows) if rows else
+              pd.DataFrame(columns=[*CANON, "draw_level", "source_match_id"]))
+    result.attrs["hard_failed_events"] = tuple(dead)
+    return result
 
 
 def _year_path(year: int, lower: bool = False):
@@ -629,7 +634,8 @@ def _one_year(years) -> int:
     return int(years[0])
 
 
-def download_wta_stats(years=None, incremental: bool = False, scope: str = "main") -> None:
+def download_wta_stats(years=None, incremental: bool = False, scope: str = "main",
+                       require_complete: bool = False) -> None:
     global _CACHE
     now = datetime.now(UTC)
     year = _one_year(years)
@@ -649,6 +655,7 @@ def download_wta_stats(years=None, incremental: bool = False, scope: str = "main
     try:
         scraped = scrape_year(year, since=since, scope=scope, known_keys=known,
                               observed_roles=observed_roles)
+        hard_failed_events = tuple(scraped.attrs.get("hard_failed_events", ()))
         reclassified = _reclassify_existing(year, observed_roles)
         if reclassified:
             print(f"    wta/stats {year}: reclassified {reclassified} cached row(s)",
@@ -665,6 +672,13 @@ def download_wta_stats(years=None, incremental: bool = False, scope: str = "main
         _CACHE = None
     print(f"  wta/stats: {year} main={n_main} lower={n_lower} rows (scope={scope})",
           flush=True)
+    if require_complete and hard_failed_events:
+        names = ", ".join(hard_failed_events[:8])
+        suffix = "..." if len(hard_failed_events) > 8 else ""
+        raise RuntimeError(
+            f"WTA API: current-season bootstrap incomplete; {len(hard_failed_events)} "
+            f"event(s) hard-failed ({names}{suffix}); successful rows were retained for retry"
+        )
 
 
 if __name__ == "__main__":

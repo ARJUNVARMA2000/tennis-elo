@@ -365,6 +365,7 @@ def test_scrape_year_tolerates_minority_dead_endpoints():
         ws.scrape_tournament = two_dead
         df = ws.scrape_year(2016)
         assert len(df) == 8, len(df)
+        assert df.attrs["hard_failed_events"] == ("E0", "E1")
 
         # 5 dead out of 10 -> majority-ish: must raise, not silently produce a husk
         def five_dead(ev, **kwargs):
@@ -381,6 +382,40 @@ def test_scrape_year_tolerates_minority_dead_endpoints():
     finally:
         ws.fetch_tournaments, ws.scrape_tournament = orig
     print("ok test_scrape_year_tolerates_minority_dead_endpoints")
+
+
+def test_complete_bootstrap_persists_partial_rows_but_refuses_completion():
+    """A minority endpoint failure must not discard acquired rows or permit the
+    caller to write its one-time completion marker."""
+    orig = (ws.stats_dir, ws.lower_dir, ws.fresh_dir, ws.historical_dir, ws.scrape_year)
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            for name in ("stats", "lower", "fresh", "historical"):
+                (base / name).mkdir()
+            ws.stats_dir = lambda tour: base / "stats"
+            ws.lower_dir = lambda tour: base / "lower"
+            ws.fresh_dir = lambda tour: base / "fresh"
+            ws.historical_dir = lambda tour: base / "historical"
+
+            row = ws._stats_row(_event(), _match(), _stats(), "qual")
+            assert row is not None
+            partial = pd.DataFrame([row])
+            partial.attrs["hard_failed_events"] = ("Interrupted Open",)
+            ws.scrape_year = lambda *args, **kwargs: partial
+
+            try:
+                ws.download_wta_stats([2026], scope="all", require_complete=True)
+                raise AssertionError("expected an incomplete-bootstrap failure")
+            except RuntimeError as exc:
+                assert "bootstrap incomplete" in str(exc)
+
+            saved = pd.read_csv(base / "lower" / "2026_wta_lower.csv")
+            assert len(saved) == 1
+            assert saved.iloc[0]["winner_name"] == "Alice Ace"
+    finally:
+        (ws.stats_dir, ws.lower_dir, ws.fresh_dir, ws.historical_dir,
+         ws.scrape_year) = orig
 
 
 def test_scrape_year_aborts_immediately_on_transport_failure():
@@ -473,5 +508,6 @@ if __name__ == "__main__":
     test_paged_runaway_cap_raises()
     test_write_year_merges_and_is_atomic()
     test_scrape_year_tolerates_minority_dead_endpoints()
+    test_complete_bootstrap_persists_partial_rows_but_refuses_completion()
     test_enrich_inherits_from_historical_archive()
     print("\nALL PASSED")

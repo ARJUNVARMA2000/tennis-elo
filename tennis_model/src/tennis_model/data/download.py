@@ -293,6 +293,28 @@ def _download_live_and_draws(tours) -> None:
     download_tournament_draws(tours, events_by_tour=events_by_tour)
 
 
+def download_current_wta_stats(*, year: int | None = None) -> None:
+    """Refresh both production WTA state roles for the current season.
+
+    A restored pre-adoption cache has no current-year lower file.  Bootstrap that one
+    season in full once; after it exists, retain the normal bounded incremental window.
+    ``scope='all'`` updates main rows and the qualifying/125 overlay atomically through
+    the scraper's role-aware writers without changing the main model population.
+    """
+    from .wta_stats import download_wta_stats
+
+    season = int(year if year is not None else datetime.now(UTC).year)
+    lower_path = lower_dir("wta") / f"{season}_wta_lower.csv"
+    marker = lower_dir("wta") / f".{season}_wta_all.complete"
+    bootstrapped = lower_path.exists() and marker.exists()
+    download_wta_stats(
+        [season], incremental=bootstrapped, scope="all",
+        require_complete=not bootstrapped,
+    )
+    if not bootstrapped:
+        _atomic_write(marker, f"wta-current-all-v1 {season}\n".encode("ascii"))
+
+
 def download_all(tours=("atp", "wta")) -> dict[str, list]:
     """Full bootstrap (used by CI / a fresh clone): historical + stats + fresh + live
     + charting. Returns {source: failed_items} for the strict health gate."""
@@ -313,8 +335,7 @@ def download_all(tours=("atp", "wta")) -> dict[str, list]:
         if f:
             failures["atp/lower"] = f
     try:
-        from .wta_stats import download_wta_stats
-        download_wta_stats(incremental=True)   # staleness is caught by data/health.py
+        download_current_wta_stats()           # staleness is caught by data/health.py
     except Exception as e:                      # noqa: BLE001 — scraper must not kill the build
         print(f"  wta/stats: scrape failed ({e})")
         failures["wta/stats"] = [str(e)]
@@ -362,8 +383,7 @@ if __name__ == "__main__":
     elif args.kind == "stats":
         _, f = download_tml_stats(full=True)
         strict_failures += [f"atp/stats:{i}" for i in f]
-        from .wta_stats import download_wta_stats
-        download_wta_stats(incremental=True)
+        download_current_wta_stats(year=this_year)
     elif args.kind == "lower":
         # explicit CLI use bootstraps the archive regardless of the experiment gate
         download_lower(full=True)

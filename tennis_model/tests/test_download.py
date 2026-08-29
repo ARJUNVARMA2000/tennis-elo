@@ -8,10 +8,74 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import tennis_model.data.charting as charting
 import tennis_model.data.download as dl
+import tennis_model.data.wta_stats as wta_stats
+
+
+def test_current_wta_refresh_bootstraps_then_incrementally_updates_both_roles(
+        monkeypatch, tmp_path):
+    """Production adopted the qualifying/125-enriched state, so its scheduled source
+    refresh must not remain main-only.  The first current-season run needs the complete
+    lower history; later runs may use the bounded incremental window."""
+    calls = []
+    monkeypatch.setattr(dl, "lower_dir", lambda _tour: tmp_path)
+    monkeypatch.setattr(
+        wta_stats, "download_wta_stats",
+        lambda *args, **kwargs: calls.append((args, kwargs)),
+    )
+
+    dl.download_current_wta_stats(year=2026)
+    assert calls == [(([2026],), {
+        "incremental": False, "scope": "all", "require_complete": True,
+    })]
+    assert (tmp_path / ".2026_wta_all.complete").read_text(encoding="ascii") == (
+        "wta-current-all-v1 2026\n"
+    )
+
+    (tmp_path / "2026_wta_lower.csv").write_text("draw_level\nqual\n", encoding="utf-8")
+    calls.clear()
+    dl.download_current_wta_stats(year=2026)
+    assert calls == [(([2026],), {
+        "incremental": True, "scope": "all", "require_complete": False,
+    })]
+
+
+def test_current_wta_refresh_does_not_trust_a_partial_lower_file(monkeypatch, tmp_path):
+    calls = []
+    monkeypatch.setattr(dl, "lower_dir", lambda _tour: tmp_path)
+    monkeypatch.setattr(
+        wta_stats, "download_wta_stats",
+        lambda *args, **kwargs: calls.append((args, kwargs)),
+    )
+    (tmp_path / "2026_wta_lower.csv").write_text("draw_level\nqual\n", encoding="utf-8")
+
+    dl.download_current_wta_stats(year=2026)
+
+    assert calls == [(([2026],), {
+        "incremental": False, "scope": "all", "require_complete": True,
+    })]
+    assert (tmp_path / ".2026_wta_all.complete").exists()
+
+
+def test_current_wta_refresh_marks_complete_only_after_a_successful_bootstrap(
+        monkeypatch, tmp_path):
+    monkeypatch.setattr(dl, "lower_dir", lambda _tour: tmp_path)
+
+    def fail_download(*_args, **kwargs):
+        assert kwargs["require_complete"] is True
+        raise RuntimeError("upstream interrupted")
+
+    monkeypatch.setattr(wta_stats, "download_wta_stats", fail_download)
+
+    with pytest.raises(RuntimeError, match="upstream interrupted"):
+        dl.download_current_wta_stats(year=2026)
+
+    assert not (tmp_path / ".2026_wta_all.complete").exists()
 
 
 def test_strict_fatal_rules():

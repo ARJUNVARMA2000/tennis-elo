@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from ..config import ROUND_ORDER, live_dir
+from ..config import PLAYER_ALIASES, ROUND_ORDER, live_dir
 from ..data.bracket_rounds import (
     BracketRoundIndex,
     load_bracket_round_index,
@@ -27,6 +27,7 @@ from ..data.results import _name_key as nkey
 from ..data.results import tier_mults
 from ..data.surface import resolve_level, resolve_surface
 from ..timing import timed
+from .predict import can_predict_match, predictor_player_names
 
 UPCOMING_COLS = ["tourney_name", "espn_id", "tourney_date", "round", "playerA", "playerB"]
 
@@ -145,11 +146,21 @@ def enrich_upcoming(predictor, df: pd.DataFrame, up_df: pd.DataFrame | None, tou
             # seam runs. Loading it here also gives forecast tracking and the schedule board
             # exactly the same round evidence without threading a second tournament graph.
             bracket_index = load_bracket_round_index(tour)
-        key2name = {nkey(n): n for n in predictor.elo.overall}       # ESPN spelling -> canonical
+        # The adopted WTA cold-start state contains legitimate lower-only players. Resolve
+        # against the union of prediction-time bundles, and apply the same explicit alias
+        # table as live/result ingestion before deciding that a scheduled entrant is unknown.
+        key2name = {nkey(n): n for n in predictor_player_names(predictor)}
+
+        def resolve_player(value):
+            key = nkey(value)
+            aliased = PLAYER_ALIASES.get(key, value)
+            return key2name.get(nkey(aliased))
+
         out = []
         for r in up_df.itertuples(index=False):
-            a, b = key2name.get(nkey(r.playerA)), key2name.get(nkey(r.playerB))
-            if not a or not b or nkey(a) == nkey(b):
+            a, b = resolve_player(r.playerA), resolve_player(r.playerB)
+            if (not a or not b or nkey(a) == nkey(b)
+                    or not can_predict_match(predictor, a, b)):
                 continue
             event_id = getattr(r, "espn_id", None)
             surface, bo = _surface_best_of(df, r.tourney_name, r.tourney_date, tour)

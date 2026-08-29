@@ -159,6 +159,39 @@ def test_name_resolution_and_month_fallback():
     assert len(out) == 1 and out[0]["surface"] == "Grass" and out[0]["best_of"] == 3
 
 
+def test_enrich_prices_lower_state_only_player_and_applies_explicit_aliases():
+    class _State:
+        def __init__(self, ratings, counts):
+            self.overall = ratings
+            self.n = counts
+
+    class _DualPred:
+        _dual_state_threshold = 32
+        elo = _State({"Elena Rybakina": 2080.0, "Xinyu Wang": 1700.0},
+                     {"Elena Rybakina": 100, "Xinyu Wang": 50})
+        lower_elo = _State(
+            {"Elena Rybakina": 2080.0, "Xinyu Wang": 1700.0, "Thea Frodin": 1490.0},
+            {"Elena Rybakina": 110, "Xinyu Wang": 55, "Thea Frodin": 1},
+        )
+
+        def win_prob(self, a, b, **_kwargs):
+            assert (a, b) in (("Thea Frodin", "Elena Rybakina"),
+                              ("Xinyu Wang", "Elena Rybakina"))
+            return 0.1
+
+    rows = _up([
+        ("Mystery Cup", "2026-07-10", "F", "Thea Frodin", "Elena Rybakina"),
+        ("Mystery Cup", "2026-07-10", "SF", "Wang Xinyu", "Elena Rybakina"),
+    ])
+
+    out = enrich_upcoming(_DualPred(), _df(), rows, "wta")
+
+    assert [(row["playerA"], row["playerB"], row["pA"]) for row in out] == [
+        ("Thea Frodin", "Elena Rybakina", 0.1),
+        ("Xinyu Wang", "Elena Rybakina", 0.1),
+    ]
+
+
 def test_drops_unknown_and_self_pairs():
     out = enrich_upcoming(_Pred(), _df(), _up([
         ("Wimbledon", "2026-07-10", "SF", "Carlos Alcaraz", "Nobody McUnknown"),  # unknown B

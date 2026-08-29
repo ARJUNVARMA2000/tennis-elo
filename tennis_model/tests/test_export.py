@@ -705,6 +705,49 @@ def test_released_draw_exports_stable_exact_scenario_contract():
     assert tournament["scenario"]["modelGeneration"] == "model-generation"
 
 
+def test_scenario_contract_accepts_a_lower_state_only_entrant():
+    import numpy as np
+
+    names = ["Lower Only", "B", "C", "D"]
+
+    class _State:
+        def __init__(self, players, counts):
+            self.overall = {name: 1 for name in players}
+            self.n = counts
+
+    class _Predictor:
+        _dual_state_threshold = 32
+        elo = _State(["B", "C", "D"], {"B": 100, "C": 100, "D": 100})
+        lower_elo = _State(names, {"Lower Only": 4, "B": 105, "C": 105, "D": 105})
+        trained_at = "model-generation"
+
+        def prediction_matrices(self, players, **_kwargs):
+            assert players == names
+            matrix = np.full((4, 4), 0.5)
+            return {key: matrix.copy() for key in ("eloBlend", "pointModel", "combiner")}
+
+    event = {
+        "name": "Exact Open", "espnId": "event-lower", "status": "upcoming",
+        "surface": "Hard", "bestOf": 3, "drawSize": 4, "bracketSize": 4,
+        "rounds": [
+            {"round": "SF", "matches": [
+                {"a": "Lower Only", "b": "B", "winner": None},
+                {"a": "C", "b": "D", "winner": None},
+            ]},
+            {"round": "F", "matches": [{"a": None, "b": None, "winner": None}]},
+        ],
+    }
+    tournament = {"name": "Exact Open", "espnId": "event-lower"}
+
+    index, shards = export.build_scenario_shards(
+        _Predictor(), [event], [tournament], "build-generation",
+    )
+
+    assert len(index["events"]) == 1
+    assert len(shards) == 1
+    assert tournament["scenario"]["file"] == index["events"][0]["file"]
+
+
 if __name__ == "__main__":
     test_finite_replaces_nonfinite_scalars()
     test_finite_recurses_into_nested_containers()

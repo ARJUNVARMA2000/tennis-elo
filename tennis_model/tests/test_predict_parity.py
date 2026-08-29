@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import tennis_model.model.predict as predict
 from tennis_model.model.features import FEATURES
-from tennis_model.model.predict import TennisPredictor
+from tennis_model.model.predict import TennisPredictor, can_predict_match
 
 
 class _Elo:
@@ -188,6 +188,31 @@ def test_wta_dual_state_gate_uses_main_counts_and_a_complete_bundle():
 
     main_elo.n = {"Alfa One": 32, "Bravo Two": 100}
     assert pred._states_for("Alfa One", "Bravo Two") == (main_elo, main_srv, main_ctx)
+
+
+def test_prediction_eligibility_uses_the_selected_rating_bundle():
+    """A lower-only entrant is precisely whom the adopted WTA cold-start state serves.
+    Publishing must recognize that state, while a player absent from both states stays
+    fail-closed instead of receiving the rating class's implicit default."""
+    main_elo, lower_elo = _Elo(), _Elo()
+    main_elo.overall = {"Established": 1800.0}
+    main_elo.n = {"Established": 100}
+    lower_elo.overall = {"Established": 1790.0, "Lower Only": 1510.0}
+    lower_elo.n = {"Established": 110, "Lower Only": 6}
+    pred = TennisPredictor(
+        clf=None, iso=None, elo=main_elo, srv=_Srv(), ctx=_Ctx(), meta={}, tour="wta",
+        lower_elo=lower_elo, lower_srv=_Srv(), lower_ctx=_Ctx(),
+        dual_state_threshold=32,
+    )
+
+    assert can_predict_match(pred, "Lower Only", "Established")
+    assert can_predict_match(pred, "Established", "Lower Only")
+    assert not can_predict_match(pred, "Unknown", "Established")
+
+    # Once both players clear the main-history gate, eligibility is main-state-owned.
+    main_elo.overall["Other Established"] = 1700.0
+    main_elo.n["Other Established"] = 50
+    assert can_predict_match(pred, "Established", "Other Established")
 
 
 def test_wta_dual_state_survives_pickle_roundtrip():

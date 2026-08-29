@@ -25,6 +25,7 @@ Kept separate from pipeline orchestration so the export surface is easy to scan:
 from __future__ import annotations
 
 import hashlib
+import itertools
 import json
 import math
 import re
@@ -46,6 +47,7 @@ from ..data.rankings import load_rankings
 from ..data.results import summary
 from ..timing import STAGE_STATUS_SCHEMA, timed
 from .features import FEATURES, STYLE_FEATURES
+from .predict import can_predict_match
 
 ACTIVE_DAYS = 550
 TOP_MATRIX = 120          # players in the precomputed pairwise matrix
@@ -868,7 +870,6 @@ def build_scenario_shards(predictor, brackets: list, tournaments: list,
     from ..sim.scenarios import exact_bracket as legacy_exact_bracket
 
     model_generation = getattr(predictor, "trained_at", None)
-    rated = set(getattr(predictor.elo, "overall", {}))
     by_id = {str(t.get("espnId")): t for t in tournaments if t.get("espnId")}
     refs = []
     shards: dict[str, dict] = {}
@@ -878,7 +879,10 @@ def build_scenario_shards(predictor, brackets: list, tournaments: list,
         players = rounds_players(rounds)
         if event.get("status") == "completed" or not event_id or not rounds or not players:
             continue
-        if any(not is_real(player) or player not in rated for player in players):
+        if any(not is_real(player) for player in players):
+            continue
+        if any(not can_predict_match(predictor, a, b)
+               for a, b in itertools.combinations(players, 2)):
             continue
         try:
             matrices = predictor.prediction_matrices(

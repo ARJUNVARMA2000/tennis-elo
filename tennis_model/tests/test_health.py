@@ -1566,6 +1566,26 @@ def test_output_bracket_prob_source_presence_coupled():
     print("ok test_output_bracket_prob_source_presence_coupled")
 
 
+def test_output_pending_real_bracket_match_requires_a_model_probability():
+    """A complete released draw with two real pending entrants must not silently ship
+    an unrated matchup. Placeholders/byes remain legal because they are not real pairs."""
+    d = _healthy_data()
+    bracket = d["brackets"][0]
+    bracket["status"] = "live"
+    bracket["champion"] = None
+    final = bracket["rounds"][-1]["matches"][0]
+    final.update(winner=None, score=None, p=None, probSource=None, upset=None)
+    tournament = next(t for t in d["tournaments"] if t["name"] == "Mini Open")
+    tournament.update(status="live", champion=None, mainDrawMatchCount=2)
+
+    findings = health.output_findings("atp", _oc(data=d), NOW)
+    hits = [item for item in findings
+            if item.code == "output.bracket.pending_probability_missing"]
+    assert len(hits) == 1
+    assert hits[0].severity == "error"
+    assert hits[0].evidence["players"] == ["A", "C"]
+
+
 def test_output_bracket_hasBracket_needs_entry():
     d = _healthy_data()
     d["brackets"] = []                                        # tournaments still claims hasBracket

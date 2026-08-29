@@ -5766,3 +5766,60 @@ ordered FULL/child-QUICK production proof.
   verification passed 22/22 serving checks plus exact ATP/WTA US Open cross-artifact and browser
   audits: upcoming/real, 0 main-draw results, 128 alive, 47/48 published forecasts, no console
   errors, `health.ok=true`, and the prior data-health incident closed.
+
+## 2026-08-29 — WTA cold-start draw entrant coverage
+
+- [x] Add failing-first acquisition tests proving the scheduled current-season WTA refresh retains
+      both main-draw rows and qualifying/WTA-125 state rows, without admitting lower rows to the
+      main model population or weakening the source-role contract.
+- [x] Add one shared prediction-time eligibility contract that recognizes a player in the state
+      bundle the adopted 32-main-match gate would select; use it for direct bracket pricing and
+      exact scenario generation, and prove lower-only entrants price while genuinely unseen entrants
+      remain fail-closed.
+- [x] Add a pre-upload invariant for a complete released draw whose entrant is absent from every
+      eligible predictor state, with production-shaped tests and an explicit diagnostic rather than
+      a silent missing forecast/scenario.
+- [x] Acquire the current 2026 WTA qualifying/125 overlay, verify Thea Frodin's canonical identity
+      and evidence, rebuild the WTA predictor and US Open outputs, and confirm the Rybakina matchup,
+      Match Center count, bracket probability parity, and scenario shard all recover.
+- [x] Run focused and full Python/web checks, the integrity gate, artifact/build verification, and
+      final git-history reconciliation. Record exact results below; do not push or deploy without
+      separate explicit authorization.
+
+### Review
+
+- The scheduled WTA refresh now requests `scope=all`, bootstraps the entire current season before
+  accepting incremental updates, and writes its completion marker only after a successful download.
+  This retains qualifying and WTA-125 rows in the lower-state archive without admitting them to the
+  main-state population. Minority event failures retain their successfully acquired rows but withhold
+  the marker so the next full pass resumes recovery. The 2026 refresh produced 1,899 main and 2,554
+  lower rows.
+- One shared eligibility function now follows the predictor's actual selected state bundle. Bracket,
+  Match Center, and scenario exporters all use it; source-name resolution also applies the maintained
+  player alias table before canonical matching. Completely unseen entrants remain fail-closed.
+- A settled/full draw containing a real-vs-real pending match without a probability is now a blocking
+  `output.bracket.pending_probability_missing` health finding. Early draws with unresolved qualifier
+  placeholders remain valid.
+- Thea Frodin is present in the 2026 lower archive from Miami qualifying (one recorded match), receives
+  lower-state Elo 1490.777, and is eligible against Elena Rybakina. The rebuilt US Open output prices
+  Frodin at 0.0577 and Rybakina at 0.9423, restores Match Center to 64 first-round matches, and emits a
+  128-player scenario shard with champion probability mass 0.99999997.
+- Verification passed 1,121 Python tests, 323 web tests, Ruff, web lint with the same nine existing
+  warnings and zero errors, the 24-route production build, `git diff --check`, and the blocking data
+  health gate. A production-shaped all-tour run sealed local release
+  `7e4da47a-91b9-4b65-9ca0-e453eacf319a` with 454 exact artifacts, then published it only to the local
+  web mirror. Nothing was committed, pushed, or deployed.
+
+## 2026-08-29 — Deploy WTA lower-state forecast coverage
+
+- [x] Review the complete working-tree diff and separate the source/test fix from incidental generated
+      verification outputs.
+- [ ] Re-run the final pre-commit checks, create a scoped commit on `master`, and confirm its contents.
+- [ ] Push `master`, follow the triggered production workflow to completion, and inspect every blocking
+      gate/reporter rather than treating the push as deployment success.
+- [ ] Independently verify the live accepted release, WTA US Open 64/64 Match Center coverage,
+      Frodin–Rybakina probability, 128-player scenario availability, health, and incident state.
+
+### Review
+
+- Pending production deployment and live verification.

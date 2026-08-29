@@ -138,6 +138,36 @@ def test_bracket_pricing_accepts_hourly_utc_forecast_timestamps():
     assert match["p"] == 0.61 and match["probSource"] == "logged"
 
 
+def test_bracket_pricing_accepts_a_lower_state_only_wta_entrant():
+    class _State:
+        def __init__(self, names, counts):
+            self.overall = {name: 1500.0 for name in names}
+            self.n = counts
+
+    class _DualPred:
+        _dual_state_threshold = 32
+        elo = _State(["Established"], {"Established": 100})
+        lower_elo = _State(["Established", "Lower Only"],
+                           {"Established": 110, "Lower Only": 5})
+
+        def win_prob(self, a, b, **_kwargs):
+            assert {a, b} == {"Established", "Lower Only"}
+            return 0.2
+
+    event = {
+        "name": "Test Open", "surface": "Hard", "bestOf": 3,
+        "start": "2026-08-01", "end": "2026-08-12",
+        "bracket": [{"round": "F", "matches": [{
+            "a": "Lower Only", "b": "Established", "winner": None,
+            "score": None, "p": None, "probSource": None, "upset": None,
+        }]}],
+    }
+
+    _price_event_bracket(_DualPred(), event, [])
+    match = event["bracket"][0]["matches"][0]
+    assert match["p"] == 0.2 and match["probSource"] == "model"
+
+
 def test_live_and_upcoming_tier_resolution_receive_stable_id(monkeypatch):
     """Card builders must not discard the identity needed to bridge a sponsor rename."""
     from tennis_model.sim import tournaments as tournament_module

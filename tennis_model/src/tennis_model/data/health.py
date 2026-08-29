@@ -2798,6 +2798,7 @@ def _check_brackets(out: list, tour: str, brackets: list, tournaments) -> None:
         # the names). Only byes (null) are excluded on both sides. Excluding placeholders here
         # would false-positive against drawSize (Gstaad's early draw, 2026-07-13).
         nonbye0 = [p for m in r0 for p in (m.get("a"), m.get("b")) if p is not None]
+        settled_draw = bool(nonbye0) and all(_is_real_name(player) for player in nonbye0)
         ds = ev.get("drawSize")
         if isinstance(ds, int) and len(nonbye0) != ds:
             _add_finding(
@@ -2871,6 +2872,15 @@ def _check_brackets(out: list, tour: str, brackets: list, tournaments) -> None:
                         f"{tour}: bracket {name!r} p/probSource presence mismatch (p={p!r}, src={src!r})",
                         severity="error", entity=match_entity,
                         evidence={"probability": repr(p), "probabilitySource": repr(src)})
+                if (settled_draw and w is None and p is None
+                        and _is_real_name(m.get("a")) and _is_real_name(m.get("b"))):
+                    _add_finding(
+                        out, "output.bracket.pending_probability_missing",
+                        f"{tour}: bracket {name!r} has no model probability for pending "
+                        f"real entrants {m.get('a')!r} vs {m.get('b')!r}",
+                        severity="error", entity=match_entity,
+                        evidence={"round": rnd.get("round"),
+                                  "players": [m.get("a"), m.get("b")]})
                 up = m.get("upset")
                 if up is not None and p is not None and w in ("a", "b"):
                     won_p = p if w == "a" else 1.0 - p
