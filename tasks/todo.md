@@ -5834,3 +5834,17 @@ ordered FULL/child-QUICK production proof.
   22 live checks. Both US Open draws are 128 players with all 64 first-round matches priced; the live
   scheduled forecast is Frodin 0.055 / Rybakina 0.945, while the fixed event/surface scenario matrix is
   0.0532 / 0.9468 by design. WTA health is clean and data-health incident #46 auto-closed after recovery.
+
+## 2026-08-29 — Consolidate branches on master
+
+- [x] Inventory the working tree, local branches, remote-tracking branches, and attached worktrees.
+- [x] Reconcile and push `master`, then query the remote directly for every branch head.
+- [x] Delete every local and remote branch except `master`, pruning stale tracking references.
+- [x] Verify `master` is clean, synchronized, and the sole remaining branch; record the exact result.
+
+### Review
+
+- After `git fetch --prune origin`, the local branch list, remote-tracking list, worktree inventory,
+  and authoritative `git ls-remote --heads origin` response each contained only `master` at
+  `d26df833fd2c1ed90b96567be2982038bae77a57`. No branch deletion was necessary; tags and stashes
+  were intentionally left untouched.
