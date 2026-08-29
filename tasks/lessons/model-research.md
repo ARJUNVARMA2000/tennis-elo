@@ -187,3 +187,13 @@ Indexed in [`../lessons.md`](../lessons.md).
   deserializing, creating a temp file, replacing, or unlinking. Keep a portable final-component
   symlink check even when `O_NOFOLLOW` is unavailable, and prove rejection happens before
   `pickle.loads` and before any external filesystem change.
+
+- **Forecast eligibility must follow the state bundle the adopted gate actually selects, not
+  baseline archive membership.** (2026-08-29, Frodin–Rybakina) The adopted WTA cold-start path
+  could select a qualifying/WTA-125 state, but scheduled acquisition omitted those current-season
+  rows and exporters independently checked only the main-state player set. A player with valid
+  lower-state evidence was therefore silently unpriced. **How to apply:** bootstrap current-season
+  main and lower rows before incremental refreshes, keep the lower rows out of the main population,
+  centralize eligibility around the predictor's selected state, and use that contract in every
+  forecast consumer. A complete draw with an unpriced real-vs-real match must block publication.
+  Treat broader ITF admission as a separate model change requiring walk-forward backtesting.

@@ -5814,12 +5814,23 @@ ordered FULL/child-QUICK production proof.
 
 - [x] Review the complete working-tree diff and separate the source/test fix from incidental generated
       verification outputs.
-- [ ] Re-run the final pre-commit checks, create a scoped commit on `master`, and confirm its contents.
-- [ ] Push `master`, follow the triggered production workflow to completion, and inspect every blocking
+- [x] Re-run the final pre-commit checks, create a scoped commit on `master`, and confirm its contents.
+- [x] Push `master`, follow the triggered production workflow to completion, and inspect every blocking
       gate/reporter rather than treating the push as deployment success.
-- [ ] Independently verify the live accepted release, WTA US Open 64/64 Match Center coverage,
+- [x] Independently verify the live accepted release, WTA US Open 64/64 Match Center coverage,
       Frodin–Rybakina probability, 128-player scenario availability, health, and incident state.
 
 ### Review
 
-- Pending production deployment and live verification.
+- Commit `0466f924` contains only the lower-state acquisition, predictor eligibility, export, health-gate,
+  test, and task-log changes. Before commit, 1,121 Python tests and 323 web tests passed, along
+  with Ruff, TypeScript, lint (zero errors and the same nine existing warnings), the 24-route production
+  build, `git diff --check`, and the blocking local data-health gate.
+- The initial quick push run `33278726237` failed closed exactly as designed because its cached predictor
+  predated the newly acquired state; the new gate blocked Frodin–Rybakina rather than publishing a partial
+  draw. The explicit full run `33278826049` then acquired 1,908 main and 2,554 lower 2026 WTA rows,
+  retrained, and passed every pre-deploy, publication, serving, and terminal reporter.
+- Production release `ce5de597-1147-4844-8ac9-f4e11687b65a` contains 454 exact artifacts and passed all
+  22 live checks. Both US Open draws are 128 players with all 64 first-round matches priced; the live
+  scheduled forecast is Frodin 0.055 / Rybakina 0.945, while the fixed event/surface scenario matrix is
+  0.0532 / 0.9468 by design. WTA health is clean and data-health incident #46 auto-closed after recovery.

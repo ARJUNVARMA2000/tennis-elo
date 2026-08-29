@@ -316,3 +316,9 @@ New lesson → append the entry to the matching topic file and add its lead line
   [`lessons/gates-and-health.md`](lessons/gates-and-health.md).
 - Publish one contextual probability across bracket and schedule views, and use `espnId` for every
   event link and client-side artifact join. See [`lessons/web.md`](lessons/web.md).
+
+## Selected-state eligibility addition (2026-08-29)
+
+- Forecast eligibility must follow the predictor state bundle the adopted gate actually selects;
+  current-season lower-state acquisition and broader population adoption are separate decisions.
+  See [`lessons/model-research.md`](lessons/model-research.md).
