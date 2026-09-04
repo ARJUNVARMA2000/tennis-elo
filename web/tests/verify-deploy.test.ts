@@ -92,7 +92,7 @@ const EXPECTED_FORBIDDEN_PATHS = [
   "/data/wta/tournament_draws-status.private",
 ];
 const EXPECTED_OPTIONAL_PATHS = ["atp", "wta"].flatMap((tour) => (
-  ["accuracy.json", "kalshi.json", "market.json", "track.json"]
+  ["accuracy.json", "kalshi.json", "market.json", "tennis-abstract.json", "track.json"]
     .map((filename) => `/data/${tour}/${filename}`)
 ));
 const LINEAGE_ENCODER = new TextEncoder();
@@ -178,7 +178,13 @@ function buildLineageFixture(extraMatrixShards = 0): LineageFixture {
     files.set(`${tour}/upcoming-evidence-open.json`, lineageBytes({
       generation: "generation-1", event: { name: "Open" },
     }));
-    for (const filename of ["accuracy.json", "kalshi.json", "market.json", "track.json"]) {
+    for (const filename of [
+      "accuracy.json",
+      "kalshi.json",
+      "market.json",
+      "tennis-abstract.json",
+      "track.json",
+    ]) {
       files.set(`${tour}/${filename}`, lineageBytes({ tour, filename, optional: true }));
     }
   }
@@ -360,7 +366,9 @@ describe("accepted release lineage verification", () => {
       ...EXPECTED_FORBIDDEN_PATHS,
       ...EXPECTED_OPTIONAL_PATHS,
     ]);
-    expect(result.absentPathCount).toBe(24);
+    expect(result.absentPathCount).toBe(
+      EXPECTED_FORBIDDEN_PATHS.length + EXPECTED_OPTIONAL_PATHS.length,
+    );
     for (const path of EXPECTED_OPTIONAL_PATHS) {
       expect(requests.find((request) => request.path === path)?.init).toMatchObject({
         cache: "no-store",

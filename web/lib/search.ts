@@ -68,7 +68,9 @@ export function commandResults(
     }
   }
 
-  for (const [rank, page] of NAV_ITEMS.entries()) {
+  const defaults = ["/", "/matches", "/schedule", "/rankings", "/bracket", "/scorecard"];
+  const pages = query ? NAV_ITEMS : defaults.flatMap((href) => NAV_ITEMS.filter((page) => page.href === href));
+  for (const [rank, page] of pages.entries()) {
     const score = matchScore(`${page.label} ${page.desc}`, query);
     if (score == null || (!query && rank > 5)) continue;
     results.push({

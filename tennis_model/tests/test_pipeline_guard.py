@@ -132,7 +132,7 @@ def test_quick_rebuilds_when_artifact_load_rejects_cache(monkeypatch, reason_nam
     assert calls == [(
         "atp",
         False,
-        {"run_kalshi": False},
+        {"run_kalshi": False, "refresh_tennis_abstract": False},
     )]
 
 
@@ -156,7 +156,7 @@ def test_alias_stale_quick_rebuild_defers_kalshi_to_shared_budget(monkeypatch):
     import tennis_model.eval.kalshi_ledger as kalshi_ledger
 
     frame = object()
-    saved, budgets, snapshots, ledgers = [], [], [], []
+    saved, budgets, snapshots, ledgers, benchmarks = [], [], [], [], []
     stale = _pred(_Clf(list(FEATURES)), "atp")
     stale.player_aliases = ()
 
@@ -188,6 +188,13 @@ def test_alias_stale_quick_rebuild_defers_kalshi_to_shared_budget(monkeypatch):
     monkeypatch.setattr(pipeline, "TennisPredictor", _RebuiltPredictor)
     monkeypatch.setattr(pipeline, "export_all", lambda *args, **kwargs: None)
     monkeypatch.setattr(pipeline, "_track", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        pipeline,
+        "_tennis_abstract_benchmark",
+        lambda tour, *_args, refresh_external: benchmarks.append(
+            (tour, refresh_external)
+        ),
+    )
     monkeypatch.setattr(kalshi, "time_budget", _time_budget)
     def refresh_snapshots(tour, recent_days=None, *, status=None):
         snapshots.append((tour, recent_days))
@@ -207,17 +214,20 @@ def test_alias_stale_quick_rebuild_defers_kalshi_to_shared_budget(monkeypatch):
     assert budgets == []
     assert snapshots == []
     assert ledgers == []
+    assert benchmarks == [("atp", False)]
 
     saved.clear()
     budgets.clear()
     snapshots.clear()
     ledgers.clear()
+    benchmarks.clear()
     pipeline.build_tour("atp", do_backtest=False)
 
     assert saved == ["atp"]
     assert budgets == [pipeline.KALSHI_FULL_BUDGET_S]
     assert snapshots == [("atp", None)]
     assert ledgers == [("atp", frame, None, True)]
+    assert benchmarks == [("atp", True)]
 
 
 def test_current_quick_export_reuses_model_bound_artifacts(monkeypatch):
@@ -247,6 +257,13 @@ def test_current_quick_export_reuses_model_bound_artifacts(monkeypatch):
         lambda tour, predictor, df, rows: calls.append(("track", rows)),
     )
     monkeypatch.setattr(
+        pipeline,
+        "_tennis_abstract_benchmark",
+        lambda tour, predictor, df, *, refresh_external: calls.append(
+            ("benchmark", refresh_external)
+        ),
+    )
+    monkeypatch.setattr(
         pipeline, "_forecast_products",
         lambda tour, predictor, df, rows: calls.append(("forecast", rows)),
     )
@@ -258,6 +275,7 @@ def test_current_quick_export_reuses_model_bound_artifacts(monkeypatch):
     assert ("health", "atp", frame) in calls
     assert calls.count(("prepare", "atp")) == 1
     assert ("track", enriched) in calls and ("forecast", enriched) in calls
+    assert ("benchmark", False) in calls
 
     calls.clear()
     assert pipeline.build_tour_quick("atp", force_static=True) is frame
@@ -351,6 +369,7 @@ def test_wta_full_build_keeps_main_exports_and_gates_secondary_state(monkeypatch
     )
     monkeypatch.setattr(pipeline, "_market_scorecard", lambda *args: None)
     monkeypatch.setattr(pipeline, "_track", lambda *args: None)
+    monkeypatch.setattr(pipeline, "_tennis_abstract_benchmark", lambda *args, **kwargs: None)
     monkeypatch.setattr(pipeline, "_forecast_products", lambda *args: None)
 
     assert pipeline.build_tour("wta", do_backtest=True, run_kalshi=False) is main_df
@@ -1013,7 +1032,7 @@ def test_a_failing_backtest_does_not_cost_the_ratings_walk():
 
     orig = (pl.load_matches, pl.build_predictor_inputs, pl.main_rows, pl.walk_forward,
             pl.train_final, pl.TennisPredictor, pl.export_all, pl._market_scorecard,
-            pl._track, pl._kalshi)
+            pl._track, pl._tennis_abstract_benchmark, pl._kalshi)
     try:
         pl.load_matches = lambda tour: "df"
         pl.build_predictor_inputs = lambda df: ("feat", "elo", "srv", "ctx", "meta")
@@ -1023,6 +1042,7 @@ def test_a_failing_backtest_does_not_cost_the_ratings_walk():
         pl.export_all = lambda *a, **k: None
         pl._market_scorecard = lambda *a, **k: None
         pl._track = lambda *a, **k: None
+        pl._tennis_abstract_benchmark = lambda *a, **k: None
         pl._kalshi = lambda *a, **k: None
 
         def _boom(*a, **k):
@@ -1034,7 +1054,7 @@ def test_a_failing_backtest_does_not_cost_the_ratings_walk():
     finally:
         (pl.load_matches, pl.build_predictor_inputs, pl.main_rows, pl.walk_forward,
          pl.train_final, pl.TennisPredictor, pl.export_all, pl._market_scorecard,
-         pl._track, pl._kalshi) = orig
+         pl._track, pl._tennis_abstract_benchmark, pl._kalshi) = orig
     print("ok test_a_failing_backtest_does_not_cost_the_ratings_walk")
 
 

@@ -1,10 +1,11 @@
 "use client";
 
+import CalibrationChart from "@/components/CalibrationChart";
 import { motion } from "framer-motion";
 import { useData, useTour } from "@/lib/tour";
 import { pct } from "@/lib/ui";
 import { PageHead, Loading, Reveal } from "@/components/bits";
-import { EASE, SPRING_SOFT } from "@/lib/motion";
+import { EASE } from "@/lib/motion";
 
 type Accuracy = {
   window: string; n: number;
@@ -81,45 +82,7 @@ export default function AccuracyPage() {
             <div className="mt-8">
               <div className="eyebrow mb-3">Calibration — predicted vs actual win rate</div>
               <div className="panel p-5">
-                {data.calibration.map((c, i) => (
-                  <div key={c.bin} className="flex items-center gap-3 py-1.5">
-                    <span className="mono w-16 text-xs text-[var(--color-faint)]">{c.bin}</span>
-                    <div className="relative h-6 flex-1">
-                      <div className="bartrack absolute inset-y-0 left-0 h-full w-full" />
-                      {/* static-width wrapper + inner scaleX: compositor-only, crisp pill caps at rest */}
-                      <div className="absolute inset-y-0 left-0" style={{ width: `${c.pred * 100}%` }}>
-                        <motion.div
-                          className="h-full w-full rounded-full"
-                          initial={{ scaleX: 0 }}
-                          whileInView={{ scaleX: 1 }}
-                          viewport={{ once: true }}
-                          transition={{ ...SPRING_SOFT, delay: Math.min(i * 0.05, 0.4) }}
-                          style={{ background: "rgba(130,143,255,0.35)", transformOrigin: "left" }}
-                        />
-                      </div>
-                      {/* full-width layer translated by its own width % ≡ old `left` %, sans layout */}
-                      <motion.div
-                        className="pointer-events-none absolute inset-0"
-                        initial={{ x: "0%", opacity: 0 }}
-                        whileInView={{ x: `${c.actual * 100}%`, opacity: 1 }}
-                        viewport={{ once: true }}
-                        transition={{ ...SPRING_SOFT, delay: Math.min(i * 0.05, 0.4) }}
-                      >
-                        <div
-                          className="absolute left-0 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[var(--color-bg)]"
-                          style={{ background: "var(--color-win)" }}
-                        />
-                      </motion.div>
-                    </div>
-                    <span className="mono w-24 text-right text-xs text-[var(--color-muted)]">
-                      {pct(c.pred, 0)} → {pct(c.actual, 0)}
-                    </span>
-                  </div>
-                ))}
-                <div className="mono mt-3 flex gap-4 text-[10px] text-[var(--color-faint)]">
-                  <span><span className="text-[var(--color-accent)]">▰</span> predicted</span>
-                  <span><span className="text-[var(--color-win)]">●</span> actual</span>
-                </div>
+                <CalibrationChart bins={data.calibration} />
               </div>
             </div>
           </Reveal>

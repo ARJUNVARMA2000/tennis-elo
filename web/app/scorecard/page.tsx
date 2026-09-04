@@ -8,6 +8,8 @@ import { PageHead, Loading, Reveal, StatCard } from "@/components/bits";
 import { rel } from "@/components/Freshness";
 import { EASE } from "@/lib/motion";
 
+import CalibrationChart from "@/components/CalibrationChart";
+
 /* ============================== types ============================== */
 type Metrics = { n: number; acc: number; logloss: number; brier: number };
 type CalBin = { bin: string; n: number; pred: number; actual: number };
@@ -101,39 +103,6 @@ const GROUPS: { title: string; match: (s: string) => boolean }[] = [
 ];
 
 /* ============================== charts ============================== */
-/** Reliability bars: predicted (accent) with the realized win-rate dot (green). */
-function CalBars({ bins }: { bins: CalBin[] }) {
-  return (
-    <div>
-      {bins.map((c, i) => (
-        <div key={c.bin} className="flex items-center gap-3 py-1">
-          <span className="mono w-14 text-[11px] text-[var(--color-faint)]">{c.bin}</span>
-          <div className="relative h-5 flex-1">
-            <div className="bartrack absolute inset-0" />
-            <div className="absolute inset-y-0 left-0" style={{ width: `${c.pred * 100}%` }}>
-              <motion.div className="h-full w-full rounded-full"
-                initial={{ scaleX: 0 }} whileInView={{ scaleX: 1 }} viewport={{ once: true }}
-                transition={{ duration: 0.5, ease: EASE, delay: Math.min(i * 0.04, 0.3) }}
-                style={{ background: "var(--color-accent-dim)", transformOrigin: "left" }} />
-            </div>
-            <motion.div className="pointer-events-none absolute inset-0"
-              initial={{ x: "0%", opacity: 0 }} whileInView={{ x: `${c.actual * 100}%`, opacity: 1 }}
-              viewport={{ once: true }} transition={{ duration: 0.5, ease: EASE, delay: Math.min(i * 0.04, 0.3) }}>
-              <div className="absolute left-0 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[var(--color-bg)]"
-                style={{ background: "var(--color-win)" }} />
-            </motion.div>
-          </div>
-          <span className="mono w-24 text-right text-[11px] text-[var(--color-muted)]">{pct(c.pred, 0)}→{pct(c.actual, 0)}</span>
-        </div>
-      ))}
-      <div className="mono mt-2 flex gap-4 text-[10px] text-[var(--color-faint)]">
-        <span><span className="text-[var(--color-accent)]">▰</span> predicted</span>
-        <span><span className="text-[var(--color-win)]">●</span> actual win-rate</span>
-      </div>
-    </div>
-  );
-}
-
 /** Horizontal accuracy ladder: each model as a bar; combiner highlighted, market anchor a dashed rule. */
 function Ladder({ models, anchor }: { models: [string, number][]; anchor: number }) {
   const lo = 0.6, hi = 0.72;
@@ -368,7 +337,7 @@ export default function ScorecardPage() {
             </div>
             <div className="panel p-5">
               <Eyebrow>Calibration — {acc.n.toLocaleString()} walk-forward matches</Eyebrow>
-              <CalBars bins={acc.calibration} />
+              <CalibrationChart bins={acc.calibration} />
             </div>
           </div>
         </section>
@@ -402,11 +371,11 @@ export default function ScorecardPage() {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <div className="mono mb-1 text-[11px] text-[var(--color-accent)]">Model</div>
-                  <CalBars bins={kalshi.calibration.model} />
+                  <CalibrationChart bins={kalshi.calibration.model} />
                 </div>
                 <div>
                   <div className="mono mb-1 text-[11px] text-[var(--color-cmp)]">Kalshi</div>
-                  <CalBars bins={kalshi.calibration.kalshi} />
+                  <CalibrationChart bins={kalshi.calibration.kalshi} />
                 </div>
               </div>
             </div>

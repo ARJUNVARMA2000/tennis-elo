@@ -8,6 +8,7 @@ import { chromium } from "playwright-core";
 import { mkdirSync } from "node:fs";
 import { getBrowserSmokeTourIdentities } from "./browser-smoke-fixture.mjs";
 import { ROUTES } from "./routes.mjs";
+import { checkFollowing, checkPerformanceNavigation } from "./product-checks.mjs";
 
 const BASE = process.env.VERIFY_BASE_URL || "http://localhost:3001";
 const SELECTED_ROUTES = process.env.VERIFY_ROUTES
@@ -44,6 +45,27 @@ async function checkRoute(page, route, view) {
     undefined,
     { timeout: 15000 },
   );
+  if (route === "/track/" && FIXTURE_TOUR_IDENTITIES) {
+    await page.getByRole("heading", {
+      name: "US Open: DEUCE vs Tennis Abstract",
+    }).waitFor({ state: "visible", timeout: 5000 });
+    await page.locator('[data-tennis-abstract-benchmark="accruing"]')
+      .waitFor({ state: "visible", timeout: 5000 });
+    await page.locator('a[href*="2026USOpenMenForecast.html"]')
+      .waitFor({ state: "visible", timeout: 5000 });
+    if (view === "desktop") {
+      await page.getByRole("button", { name: /^wta$/i }).click();
+      await page.waitForFunction(() => (
+        new URL(location.href).searchParams.get("tour") === "wta"
+        && document.querySelector('a[href*="2026USOpenWomenForecast.html"]') !== null
+      ));
+      await page.getByRole("button", { name: /^atp$/i }).click();
+      await page.waitForFunction(() => (
+        new URL(location.href).searchParams.get("tour") === null
+        && document.querySelector('a[href*="2026USOpenMenForecast.html"]') !== null
+      ));
+    }
+  }
 
   // One real state/URL interaction in the narrow CI smoke: the tour control must update
   // the shareable URL and then restore the original dataset without a stale-state race.
@@ -141,6 +163,20 @@ async function checkRoute(page, route, view) {
     await page.waitForFunction(
       (element) => element.scrollLeft > 0,
       await forest.elementHandle(),
+      { timeout: 1500 },
+    );
+  }
+  if (view === "mobile" && route === "/track/" && FIXTURE_TOUR_IDENTITIES) {
+    const reachScores = page.getByRole("region", {
+      name: "Full-field reach forecast scores",
+    });
+    await reachScores.scrollIntoViewIfNeeded();
+    await reachScores.evaluate((element) => { element.scrollLeft = 0; });
+    await reachScores.focus();
+    await page.keyboard.press("ArrowRight");
+    await page.waitForFunction(
+      (element) => element.scrollLeft > 0,
+      await reachScores.elementHandle(),
       { timeout: 1500 },
     );
   }
@@ -254,6 +290,24 @@ for (const { name, viewport } of [
     }
   }
   await page.close();
+  if (FIXTURE_TOUR_IDENTITIES) {
+    const productContext = await browser.newContext({ viewport, isMobile: name === "mobile" });
+    const product = await productContext.newPage();
+    await preparePage(product);
+    product.on("pageerror", (err) => consoleErrors.push(`${name} product: ${err.message}`));
+    checked++;
+    try {
+      await checkPerformanceNavigation(product, BASE);
+      await checkFollowing(product, BASE);
+      const fits = await product.evaluate(() => document.body.scrollWidth <= innerWidth + 1 && document.documentElement.scrollWidth <= innerWidth + 1);
+      if (!fits) throw new Error("following controls overflow the viewport");
+      console.log(`ok   ${name.padEnd(7)} following + section navigation + calibration`);
+    } catch (err) {
+      failed++;
+      console.error(`FAIL ${name} product: ${err.message}`);
+    }
+    await productContext.close();
+  }
 }
 
 await browser.close();

@@ -11,6 +11,8 @@ mkdirSync(target, { recursive: true });
 if (readdirSync(target).length) throw new Error(`browser-smoke target is not empty: ${target}`);
 
 const generation = "2026-08-24T00:00:00Z";
+const benchmarkDeltaDirection = "tennisAbstract-minus-deuce; positive favors DEUCE";
+const benchmarkStages = ["R64", "R32", "R16", "QF", "SF", "F", "W"];
 const style = {
   style_serve_dom: 0.72,
   style_placement: 0.55,
@@ -66,7 +68,19 @@ function payloads(tour) {
   }));
   const metrics = (n, acc, logloss, brier) => ({ n, acc, logloss, brier });
   const headline = paired(48, 0.011, 0.008);
+  const upcoming = names.map((name, index) => ({
+    matchId: `smoke-${tour}-${index}`, event: "Smoke Open", espnId: "smoke-2026",
+    date: "2026-09-05", round: "R32", surface: "Hard", bestOf: 3,
+    playerA: name, playerB: `Fixture Rival ${index + 1}`, pA: 0.6,
+  }));
   return {
+    "upcoming-index.json": { schema: "upcoming-v2", schemaVersion: 2, generation, count: 2,
+      events: [{ name: "Smoke Open", espnId: "smoke-2026", surface: "Hard", count: 2,
+        file: "upcoming-event-smoke.json", evidenceFile: "upcoming-evidence-smoke.json" }], highlights: upcoming },
+    "upcoming-event-smoke.json": { schema: "upcoming-event-v1", generation, matches: upcoming },
+    "upcoming-evidence-smoke.json": { schema: "upcoming-evidence-v1", generation, details: [] },
+    "tournaments.json": [],
+    "fixtures.json": [],
     "meta.json": {
       tour,
       lastUpdated: generation,
@@ -108,17 +122,99 @@ function payloads(tour) {
       bySurface: { Hard: 0.207, Clay: 0.211, Grass: 0.204 },
     },
     "track.json": {
+      tour,
+      lastUpdated: generation,
       matchForecasts: {
         logged: 96,
         graded: 84,
         pending: 12,
         overall: metrics(84, 0.69, 0.601, 0.205),
+        calibration: [{ bin: "60-70", n: 12, pred: 0.65, actual: 0.67 }],
+        bySurface: {},
+        recent: [],
         byMonth: [
           { month: "2026-06", n: 24, acc: 0.67, logloss: 0.62, brier: 0.214 },
           { month: "2026-07", n: 30, acc: 0.70, logloss: 0.59, brier: 0.201 },
           { month: "2026-08", n: 30, acc: 0.70, logloss: 0.60, brier: 0.204 },
         ],
       },
+      tournamentOdds: {
+        events: 0,
+        hitRate: null,
+        championBrier: null,
+        recent: [],
+      },
+    },
+    "tennis-abstract.json": {
+      schema: "tennis-abstract-benchmark-v1",
+      benchmark: {
+        id: "tennis-abstract",
+        name: "Tennis Abstract",
+        tour,
+        event: "US Open",
+        espnId: "189-2026",
+        season: 2026,
+      },
+      status: "accruing",
+      source: {
+        name: "Tennis Abstract",
+        url: tour === "atp"
+          ? "https://www.tennisabstract.com/current/2026USOpenMenForecast.html"
+          : "https://www.tennisabstract.com/current/2026USOpenWomenForecast.html",
+        capturedAt: "2026-08-31T00:55:47.502Z",
+      },
+      capture: {
+        captureLocalDate: "2026-08-30",
+        classification: "first-post-start-capture",
+        eligibleMatchProof: "saved scheduledDate is strictly after captureLocalDate",
+        eventTimezone: "America/New_York",
+      },
+      matchComparison: {
+        eligible: 1,
+        graded: 0,
+        pending: 1,
+        excluded: 63,
+        deuce: { n: 0, logloss: null, brier: null },
+        tennisAbstract: { n: 0, logloss: null, brier: null },
+        paired: {
+          n: 0,
+          direction: benchmarkDeltaDirection,
+          loglossDelta: null,
+          seLogloss: null,
+          brierDelta: null,
+          seBrier: null,
+        },
+        exclusionReasons: { prestart_timing_unproven: 63 },
+      },
+      reachComparison: {
+        fieldSize: 128,
+        fieldAligned: true,
+        exclusionReasons: {},
+        stages: benchmarkStages.map((stage) => ({
+          stage,
+          n: 128,
+          resolved: 0,
+          eligible: 128,
+          graded: 0,
+          pending: 128,
+          excluded: 0,
+          deuce: { n: 0, logloss: null, brier: null },
+          tennisAbstract: { n: 0, logloss: null, brier: null },
+          paired: {
+            n: 0,
+            direction: benchmarkDeltaDirection,
+            loglossDelta: null,
+            seLogloss: null,
+            brierDelta: null,
+            seBrier: null,
+          },
+          exclusionReasons: {},
+        })),
+      },
+      caveats: [
+        "This first capture was made after Day 1 began.",
+        "One tournament is descriptive evidence, not a model-selection result.",
+      ],
     },
     "market.json": {
       years: [2016, 2026],

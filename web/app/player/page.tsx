@@ -1,5 +1,7 @@
 "use client";
 
+import { FollowButton } from "@/components/Following";
+
 import { Suspense, useMemo } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -143,6 +145,7 @@ function PlayersInner() {
                 <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <div className="display text-3xl">{p.name}</div>
+                    <div className="mt-3"><FollowButton name={p.name} /></div>
                     <div className="mono mt-2 text-sm text-[var(--color-muted)]">
                       Elo {p.elo} · {p.matches} matches{p.hand ? ` · ${p.hand}-handed` : ""}{p.rankPoints ? ` · ${p.rankPoints} pts` : ""}
                     </div>

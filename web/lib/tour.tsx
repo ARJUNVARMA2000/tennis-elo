@@ -56,17 +56,19 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
     // initial load precedence: URL param > saved preference > atp.
     // window.location is read directly so the provider itself needs no Suspense.
     const param = new URLSearchParams(window.location.search).get("tour");
-    const t = resolveTour(param, localStorage.getItem("tour"));
+    let saved: string | null = null;
+    try { saved = localStorage.getItem("tour"); } catch { /* Session-only browsing. */ }
+    const t = resolveTour(param, saved);
     setTourState(t);
     if (param === "atp" || param === "wta") {
-      localStorage.setItem("tour", param);
+      try { localStorage.setItem("tour", param); } catch { /* URL still records the tour. */ }
     } else if (t === "wta") {
       mirrorTourUrl(t);
     }
   }, []);
   const set = (t: Tour) => {
     setTourState(t);
-    localStorage.setItem("tour", t);
+    try { localStorage.setItem("tour", t); } catch { /* URL still records the tour. */ }
     // This state change is already local; using an asynchronous framework navigation for its URL mirror
     // can lose a rapid WTA -> ATP transition while the previous replacement is settling
     // (the page shows ATP but remains shareably tagged ?tour=wta). Next observes native

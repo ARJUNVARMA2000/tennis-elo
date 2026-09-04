@@ -113,6 +113,7 @@ const LINEAGE_OPTIONAL_EVALUATION = new Set([
   "accuracy.json",
   "kalshi.json",
   "market.json",
+  "tennis-abstract.json",
   "track.json",
 ]);
 // These exact operational filenames come from the producer's private-output contracts. Firebase

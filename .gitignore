@@ -8,6 +8,10 @@ venv/
 tennis_model/data/raw/
 tennis_model/data/output/
 tennis_model/data/cache/
+# Prospective research keeps JSON receipts durable; frozen binary models stay private/local.
+tennis_model/data/prospective/**/*.pkl
+tennis_model/data/prospective/**/*.pkl.envelope
+tennis_model/data/prospective/**/*.pkl.envelope.pending
 web/public/data/
 
 # Node / Next

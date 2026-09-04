@@ -55,7 +55,7 @@ try {
         ...process.env,
         VERIFY_BASE_URL: base,
         VERIFY_BROWSER: process.env.VERIFY_BROWSER || "chromium",
-        VERIFY_ROUTES: process.env.VERIFY_ROUTES || "/scorecard/,/player/",
+        VERIFY_ROUTES: process.env.VERIFY_ROUTES || "/scorecard/,/player/,/track/",
         VERIFY_VIEWS: process.env.VERIFY_VIEWS || "desktop,mobile",
         VERIFY_SCREENSHOTS: process.env.VERIFY_SCREENSHOTS || "0",
         VERIFY_OFFLINE: "1",

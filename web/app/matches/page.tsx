@@ -1,6 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { setSearchParam } from "@/lib/url";
+import { FollowButton, useFollowing } from "@/components/Following";
+import { rosterName } from "@/lib/live";
 import { CallCard, Loading, PageHead, Reveal } from "@/components/bits";
 import Dropdown from "@/components/Dropdown";
 import LiveTicker, { useLiveMatches } from "@/components/LiveTicker";
@@ -26,12 +30,29 @@ type Track = { matchForecasts?: { recent?: TrackCall[] } };
 const TABS = ["live", "upcoming", "final"] as const;
 
 export default function MatchCenter() {
+  return (
+    <div data-match-center-contract="upcoming-style-links+forecast-history+watch+evidence+live-dedupe-v4"
+      data-live-schedule-contract="exact-event-unordered-pair-v1">
+      <Suspense fallback={<Loading />}><MatchCenterInner /></Suspense>
+    </div>
+  );
+}
+
+function MatchCenterInner() {
   const { tour } = useTour();
-  const [tab, setTab] = useState<Tab>("live");
-  const [event, setEvent] = useState("all");
+  const query = useSearchParams();
+  const tab: Tab = TABS.includes(query.get("tab") as Tab) ? query.get("tab") as Tab : "live";
+  const followingOnly = query.get("following") === "1";
+  const following = useFollowing();
+  const [eventState, setEventState] = useState({ tour, tab, value: "all" });
+  const event = eventState.tour === tour && eventState.tab === tab ? eventState.value : "all";
+  const setEvent = (value: string) => setEventState({ tour, tab, value });
+  const updateQuery = (key: string, value: string | null) => {
+    window.history.pushState(null, "", `${window.location.pathname}${setSearchParam(window.location.search, key, value)}${window.location.hash}`);
+  };
   const upcomingState = useUpcomingEvents(tab === "upcoming");
   const trackState = useData<Track>("track.json");
-  const rosterState = useData<{ name: string }[]>("players.json");
+  const rosterState = useData<{ name: string; elo: number }[]>("players.json");
   const live = useLiveMatches(tour);
   const roster = useMemo(
     () => new Set((rosterState.data ?? []).map((player) => player.name)),
@@ -45,15 +66,17 @@ export default function MatchCenter() {
     () => trackState.data?.matchForecasts?.recent ?? [],
     [trackState.data],
   );
-  const events = useMemo(() => {
-    const source = tab === "final" ? finals.map((row) => row.event) : upcoming.map((row) => row.event);
-    return [...new Set(source)].sort();
-  }, [tab, upcoming, finals]);
-  const shownUpcoming = event === "all" ? upcoming : upcoming.filter((row) => row.event === event);
+  const eventSource = tab === "final" ? finals.map((row) => row.event) : upcoming.map((row) => row.event);
+  const events = [...new Set(eventSource)].sort();
+  const wanted = (a: string, b: string) => !followingOnly || following.follows(a) || following.follows(b);
+  const shownUpcoming = upcoming.filter((row) => (event === "all" || row.event === event) && wanted(row.playerA, row.playerB));
   const watchlist = useMemo(() => worthWatching(shownUpcoming, 5), [shownUpcoming]);
-  const shownFinals = event === "all" ? finals : finals.filter((row) => row.event === event);
+  const shownFinals = finals.filter((row) => (event === "all" || row.event === event) && wanted(row.playerA, row.playerB));
+  const shownLive = { ...live, matches: live.matches.filter((row) => wanted(
+    rosterName(row.a, rosterState.data) ?? row.a, rosterName(row.b, rosterState.data) ?? row.b,
+  )) };
   const switchTab = (next: Tab) => {
-    setTab(next);
+    updateQuery("tab", next === "live" ? null : next);
     setEvent("all");
   };
   const onTabKeyDown = (keyboardEvent: React.KeyboardEvent<HTMLButtonElement>) => {
@@ -67,11 +90,7 @@ export default function MatchCenter() {
   };
 
   return (
-    <div
-      className="pb-16"
-      data-match-center-contract="upcoming-style-links+forecast-history+watch+evidence+live-dedupe-v4"
-      data-live-schedule-contract="exact-event-unordered-pair-v1"
-    >
+    <div className="pb-16">
       <PageHead
         eyebrow={`${tour.toUpperCase()} · match center`}
         title="Matches"
@@ -117,10 +136,29 @@ export default function MatchCenter() {
         )}
       </div>
 
+      <div className="mt-4 rounded-lg border border-[var(--color-line)] px-4 py-3" data-following-controls>
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="flex cursor-pointer items-center gap-2 text-[13px] text-[var(--color-muted)]">
+            <input type="checkbox" checked={followingOnly} disabled={!following.ready} onChange={(e) => updateQuery("following", e.target.checked ? "1" : null)} className="h-4 w-4 accent-[var(--color-accent)]" />
+            Following only <span className="mono">({following.names.length})</span>
+          </label>
+          <Dropdown compact searchable label="Follow a player" placeholder="Follow a player…" value=""
+            onChange={(name) => { if (!following.follows(name)) following.toggle(name); }}
+            options={(rosterState.data ?? []).filter((p) => !following.follows(p.name)).map((p) => ({ value: p.name, label: p.name }))}
+            className="w-full sm:ml-auto sm:w-64" />
+        </div>
+        {following.names.length > 0 && <div className="mt-3 flex flex-wrap gap-2">
+          {following.names.map((name) => <span key={name} className="flex items-center gap-2 rounded border border-[var(--color-line)] py-1 pl-2 text-[11px] text-[var(--color-muted)]">{name}<FollowButton name={name} compact /></span>)}
+        </div>}
+        <p className="mt-2 text-[11px] text-[var(--color-muted)]">{following.persistent ? `Saved on this browser · ${tour.toUpperCase()} players only.` : "Browser storage is unavailable. Your follows last for this session only."}</p>
+      </div>
+      {followingOnly && <p role="status" className="mt-3 text-[13px] text-[var(--color-muted)]">
+        {!following.names.length ? "Choose a player above to see their matches here." : `Showing matches involving your followed ${tour.toUpperCase()} players.`}
+      </p>}
       <div id="match-tabpanel" role="tabpanel" aria-labelledby={`match-tab-${tab}`}>
-        {tab === "live" && <LiveTicker live={live} standalone />}
+        {tab === "live" && <LiveTicker live={shownLive} standalone emptyMessage={followingOnly ? "None of your followed players are live right now. Try Upcoming or turn off Following only." : undefined} />}
         {tab === "upcoming" && (
-          <MatchSection loading={upcomingState.loading} error={upcomingState.error} empty={!shownUpcoming.length}>
+          <MatchSection loading={upcomingState.loading} error={upcomingState.error} empty={!shownUpcoming.length} emptyMessage={followingOnly ? "No scheduled matches for your followed players match these filters." : undefined}>
             <div className="mt-7 space-y-8">
               {watchlist.length > 0 && <Watchlist matches={watchlist} roster={roster} />}
               {groupByEvent(shownUpcoming).map((group) => (
@@ -152,7 +190,7 @@ export default function MatchCenter() {
           </MatchSection>
         )}
         {tab === "final" && (
-          <MatchSection loading={trackState.loading} error={trackState.error} empty={!shownFinals.length}>
+          <MatchSection loading={trackState.loading} error={trackState.error} empty={!shownFinals.length} emptyMessage={followingOnly ? "No graded calls for your followed players match these filters." : undefined}>
             <div className="mt-7 grid gap-3 sm:grid-cols-2">
               {shownFinals.map((call, index) => {
                 const aWon = call.actualWinner === call.playerA;
@@ -247,15 +285,17 @@ function MatchSection({
   loading,
   error,
   empty,
+  emptyMessage,
   children,
 }: {
   loading: boolean;
   error: boolean;
   empty: boolean;
+  emptyMessage?: string;
   children: React.ReactNode;
 }) {
   if (loading) return <Loading variant="cards" />;
   if (error) return <div className="panel-inset mt-7 p-6 text-sm text-[var(--color-muted)]">This match feed is temporarily unavailable.</div>;
-  if (empty) return <div className="panel-inset mt-7 p-6 text-sm text-[var(--color-muted)]">No matches in this view right now.</div>;
+  if (empty) return <div className="panel-inset mt-7 p-6 text-sm text-[var(--color-muted)]">{emptyMessage ?? "No matches in this view right now."}</div>;
   return children;
 }

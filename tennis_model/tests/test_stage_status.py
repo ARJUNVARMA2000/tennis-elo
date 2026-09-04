@@ -444,6 +444,7 @@ def test_pipeline_soft_fail_registry_covers_product_and_evaluation_stages():
         "market_scorecard": "evaluation",
         "kalshi_benchmark": "evaluation",
         "kalshi_report": "evaluation",
+        "tennis_abstract_benchmark": "evaluation",
     }
     assert {stage for stage, criticality in pipeline.PIPELINE_STAGE_CRITICALITY.items()
             if criticality == "product"} == set(timing.PRODUCT_STAGE_NAMES)

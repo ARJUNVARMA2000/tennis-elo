@@ -1,0 +1,239 @@
+{
+  "captureLocalDate": "2026-08-30",
+  "eligibleMatchIds": [
+    "v2|espn:189-2026|2026|R128|adolfo daniel vallejo|gael monfils",
+    "v2|espn:189-2026|2026|R128|alejandro tabilo|yannick hanfmann",
+    "v2|espn:189-2026|2026|R128|aleksandar kovacevic|valentin vacherot",
+    "v2|espn:189-2026|2026|R128|alex molcan|benjamin bonzi",
+    "v2|espn:189-2026|2026|R128|alexander zverev|lorenzo sonego",
+    "v2|espn:189-2026|2026|R128|andrey rublev|marin cilic",
+    "v2|espn:189-2026|2026|R128|arthur fery|lorenzo musetti",
+    "v2|espn:189-2026|2026|R128|arthur fils|stefanos tsitsipas",
+    "v2|espn:189-2026|2026|R128|ben shelton|tallon griekspoor",
+    "v2|espn:189-2026|2026|R128|botic van de zandschulp|jan choinski",
+    "v2|espn:189-2026|2026|R128|brandon nakashima|sebastian baez",
+    "v2|espn:189-2026|2026|R128|camilo ugo carabelli|jan lennard struff",
+    "v2|espn:189-2026|2026|R128|carlos alcaraz|roman safiullin",
+    "v2|espn:189-2026|2026|R128|carlos taberner|zizou bergs",
+    "v2|espn:189-2026|2026|R128|casper ruud|juan manuel cerundolo",
+    "v2|espn:189-2026|2026|R128|corentin moutet|dane sweeny",
+    "v2|espn:189-2026|2026|R128|damir dzumhur|hubert hurkacz",
+    "v2|espn:189-2026|2026|R128|daniel altmaier|zachary svajda",
+    "v2|espn:189-2026|2026|R128|darwin blanch|taylor fritz",
+    "v2|espn:189-2026|2026|R128|fabian marozsan|michael zheng",
+    "v2|espn:189-2026|2026|R128|facundo diaz acosta|quentin halys",
+    "v2|espn:189-2026|2026|R128|felix auger aliassime|rinky hijikata",
+    "v2|espn:189-2026|2026|R128|filip misolic|francisco cerundolo",
+    "v2|espn:189-2026|2026|R128|flavio cobolli|francisco comesana",
+    "v2|espn:189-2026|2026|R128|frances tiafoe|martin damm",
+    "v2|espn:189-2026|2026|R128|ignacio buse|marcos giron",
+    "v2|espn:189-2026|2026|R128|james duckworth|matteo arnaldi",
+    "v2|espn:189-2026|2026|R128|karen khachanov|roman andres burruchaga",
+    "v2|espn:189-2026|2026|R128|learner tien|nuno borges",
+    "v2|espn:189-2026|2026|R128|matteo berrettini|stan wawrinka",
+    "v2|espn:189-2026|2026|R128|rafael jodar|thanasi kokkinakis"
+  ],
+  "espnId": "189-2026",
+  "event": "US Open",
+  "eventTimezone": "America/New_York",
+  "proofs": [
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|adolfo daniel vallejo|gael monfils",
+      "playerA": "Gael Monfils",
+      "playerB": "Adolfo Daniel Vallejo",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|alejandro tabilo|yannick hanfmann",
+      "playerA": "Alejandro Tabilo",
+      "playerB": "Yannick Hanfmann",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|aleksandar kovacevic|valentin vacherot",
+      "playerA": "Aleksandar Kovacevic",
+      "playerB": "Valentin Vacherot",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|alex molcan|benjamin bonzi",
+      "playerA": "Benjamin Bonzi",
+      "playerB": "Alex Molcan",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|alexander zverev|lorenzo sonego",
+      "playerA": "Lorenzo Sonego",
+      "playerB": "Alexander Zverev",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|andrey rublev|marin cilic",
+      "playerA": "Andrey Rublev",
+      "playerB": "Marin Cilic",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|arthur fery|lorenzo musetti",
+      "playerA": "Lorenzo Musetti",
+      "playerB": "Arthur Fery",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|arthur fils|stefanos tsitsipas",
+      "playerA": "Arthur Fils",
+      "playerB": "Stefanos Tsitsipas",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|ben shelton|tallon griekspoor",
+      "playerA": "Tallon Griekspoor",
+      "playerB": "Ben Shelton",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|botic van de zandschulp|jan choinski",
+      "playerA": "Botic Van De Zandschulp",
+      "playerB": "Jan Choinski",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|brandon nakashima|sebastian baez",
+      "playerA": "Sebastian Baez",
+      "playerB": "Brandon Nakashima",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|camilo ugo carabelli|jan lennard struff",
+      "playerA": "Jan-Lennard Struff",
+      "playerB": "Camilo Ugo Carabelli",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|carlos alcaraz|roman safiullin",
+      "playerA": "Carlos Alcaraz",
+      "playerB": "Roman Safiullin",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|carlos taberner|zizou bergs",
+      "playerA": "Carlos Taberner",
+      "playerB": "Zizou Bergs",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|casper ruud|juan manuel cerundolo",
+      "playerA": "Casper Ruud",
+      "playerB": "Juan Manuel Cerundolo",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|corentin moutet|dane sweeny",
+      "playerA": "Corentin Moutet",
+      "playerB": "Dane Sweeny",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|damir dzumhur|hubert hurkacz",
+      "playerA": "Hubert Hurkacz",
+      "playerB": "Damir Dzumhur",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|daniel altmaier|zachary svajda",
+      "playerA": "Daniel Altmaier",
+      "playerB": "Zachary Svajda",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|darwin blanch|taylor fritz",
+      "playerA": "Darwin Blanch",
+      "playerB": "Taylor Fritz",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|fabian marozsan|michael zheng",
+      "playerA": "Michael Zheng",
+      "playerB": "Fabian Marozsan",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|facundo diaz acosta|quentin halys",
+      "playerA": "Facundo Diaz Acosta",
+      "playerB": "Quentin Halys",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|felix auger aliassime|rinky hijikata",
+      "playerA": "Rinky Hijikata",
+      "playerB": "Felix Auger-Aliassime",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|filip misolic|francisco cerundolo",
+      "playerA": "Francisco Cerundolo",
+      "playerB": "Filip Misolic",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|flavio cobolli|francisco comesana",
+      "playerA": "Flavio Cobolli",
+      "playerB": "Francisco Comesana",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|frances tiafoe|martin damm",
+      "playerA": "Frances Tiafoe",
+      "playerB": "Martin Damm",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|ignacio buse|marcos giron",
+      "playerA": "Ignacio Buse",
+      "playerB": "Marcos Giron",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|james duckworth|matteo arnaldi",
+      "playerA": "James Duckworth",
+      "playerB": "Matteo Arnaldi",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|karen khachanov|roman andres burruchaga",
+      "playerA": "Karen Khachanov",
+      "playerB": "Roman Andres Burruchaga",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|learner tien|nuno borges",
+      "playerA": "Learner Tien",
+      "playerB": "Nuno Borges",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|matteo berrettini|stan wawrinka",
+      "playerA": "Stan Wawrinka",
+      "playerB": "Matteo Berrettini",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|rafael jodar|thanasi kokkinakis",
+      "playerA": "Thanasi Kokkinakis",
+      "playerB": "Rafael Jodar",
+      "scheduledDate": "2026-08-31"
+    }
+  ],
+  "rule": "saved scheduledDate is strictly after captureLocalDate",
+  "schedule": {
+    "receiptRelativePath": "data/tennis_abstract/atp/189-2026/schedule-receipt.csv",
+    "relativePath": "data/raw/atp/live/upcoming.csv",
+    "sha256": "1ac1a94dc373571600a69faec2d72a914d4a100469c62492fefa6f7e5a2989ff"
+  },
+  "schema": "tennis-abstract-timing-eligibility-v1",
+  "season": 2026,
+  "sourceCapturedAt": "2026-08-31T00:55:47.502Z",
+  "sourceNormalizedSha256": "7d638fc8692e1e2f0ea64172b7f28c14299a7de3d58efa9fec9a42b8dc055ac4",
+  "tour": "atp",
+  "unprovenMatchCount": 33
+}

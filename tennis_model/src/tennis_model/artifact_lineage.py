@@ -106,6 +106,7 @@ OPTIONAL_EVALUATION_FILES = frozenset({
     "accuracy.json",
     "kalshi.json",
     "market.json",
+    "tennis-abstract.json",
     "track.json",
 })
 # Operational JSON predates the non-JSON private naming rule.  It is never public and does

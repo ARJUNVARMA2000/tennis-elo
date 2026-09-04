@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Nav from "@/components/Nav";
+import SectionNav from "@/components/SectionNav";
+import { FollowingProvider } from "@/components/Following";
 import { GitHubIcon } from "@/components/bits";
 import { TourProvider } from "@/lib/tour";
 import { APP_VIEWPORT } from "@/lib/mobile";
@@ -53,8 +55,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
         <div className="atmosphere" />
         <TourProvider>
+          <FollowingProvider>
           <Nav />
-          <main className="safe-x mx-auto w-full max-w-[1240px]">{children}</main>
+          <main className="safe-x mx-auto w-full max-w-[1240px]"><SectionNav />{children}</main>
           <footer className="safe-bottom safe-x mx-auto mt-20 w-full max-w-[1240px] border-t border-[var(--color-line)] py-8">
             <div className="flex flex-wrap items-center justify-between gap-3 text-[13px] text-[var(--color-faint)]">
               <p>
@@ -73,6 +76,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </a>
             </div>
           </footer>
+          </FollowingProvider>
         </TourProvider>
       </body>
     </html>

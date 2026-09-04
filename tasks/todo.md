@@ -5848,3 +5848,126 @@ ordered FULL/child-QUICK production proof.
   and authoritative `git ls-remote --heads origin` response each contained only `master` at
   `d26df833fd2c1ed90b96567be2982038bae77a57`. No branch deletion was necessary; tags and stashes
   were intentionally left untouched.
+
+## 2026-08-30 — Tennis Abstract US Open benchmark
+
+- [x] Resolve and inspect both 2026 Tennis Abstract US Open forecast pages, document their mutable
+      seven-stage schema and source limitations, and preserve the first normalized 128-player
+      capture for each tour before doing implementation work.
+- [x] Add a dedicated evaluation-only Tennis Abstract snapshot path with strict static-HTML parsing,
+      configured `tour + espnId` identity, ordered-draw/alias reconciliation, conditional requests,
+      normalized hashes, immutable receipts, and last-good soft-failure behavior.
+- [x] Freeze the contemporaneous full-field DEUCE reach distribution from exact propagation and pair
+      each eligible Tennis Abstract matchup with the latest DEUCE snapshot available at or before the
+      external capture; never use the public top-24 projection or any later model state.
+- [x] Build an append-only comparison ledger with explicit timing and coverage exclusions. The first
+      capture was at 2026-08-31 00:55Z after Day 1 began, so already-started matches are ineligible
+      and the receipt must not be presented as a pre-tournament forecast.
+- [x] Grade the common eligible set with paired log loss and Brier deltas (including SE), per-round
+      coverage, full-field stage-reach scores, and champion distribution scores; state walkover,
+      retirement, withdrawal, replacement, and rounded-zero handling in the payload and tests.
+- [x] Publish a compact attributed per-tour comparison artifact and add a clearly descriptive US Open
+      benchmark section to the live Track Record/Scorecard surface, including capture times, sample
+      sizes, exclusions, and the one-tournament uncertainty caveat.
+- [x] Extend append-only CI persistence, artifact/health validation, parser/grader/pipeline tests, and
+      web/deploy coverage; run focused and full Python/web verification in proportion to the change.
+- [x] Reconcile the final implementation and reported facts against the latest git history, add the
+      completed review section, and stop before commit/push/deploy unless separately authorized.
+
+### Review
+
+- Preserved the first normalized 128-player forecast tables at 2026-08-31 00:55Z and anchored their
+  exact timestamps, normalized content, DEUCE baselines, timing cohorts, and retained schedule bytes.
+  Because capture followed the start of Day 1, only matches proved for a later local date are eligible:
+  ATP is 31 eligible / 31 pending / 33 excluded and WTA is 46 / 46 / 18. No match was backfilled.
+- Froze each tour's pre-capture production predictor and exact seven-stage full-field propagation, added
+  append-only transition ledgers with digest validation and terminal-state carry-forward, and grade paired
+  match, stage-reach, and champion distributions. Walkovers and retirements settle advancement but remain
+  explicitly excluded from primary match-loss scoring; singleton paired SE is unavailable rather than zero.
+- Daily full runs conditionally refresh immutable source receipts while every quick/full run regrades the
+  fixed cohort. The optional artifact is release-lineage aware, health-gated when emitted, persisted with
+  the evaluation logs, guarded in the browser, and shown on Track Record for both tours with source,
+  capture, coverage, signed external-minus-DEUCE deltas, and one-tournament/post-start caveats.
+- Verification passed 1,176 Python tests, 334 web tests, Ruff, TypeScript, lint with zero errors and the
+  same nine existing warnings, the 24-route production build, `git diff --check`, the pre-deploy integrity
+  gate on a sealed local candidate, and 6/6 real-browser desktop/mobile checks including ATP/WTA switching
+  and keyboard horizontal scrolling. Nothing was committed, pushed, mirrored to production, or deployed.
+
+## 2026-09-04 — Product clarity and maintainability improvements
+
+User approved implementation of the five recommendations after a read-only review. Preserve the
+existing Tennis Abstract work and evaluation receipts. Implementation is authorized; deployment is separate.
+
+- [x] Consolidate match and evaluation navigation into clear section tabs while retaining existing
+      routes, tour context, and the distinction between retrospective results and frozen calls.
+- [x] Share calibration presentation across evaluation pages: show sample sizes, bounded descriptive
+      intervals, sparse-bin treatment, and accessible mobile layouts using the existing design tokens.
+- [x] Add locally saved followed players, player/profile controls, and a useful Following match filter
+      with tour isolation, robust storage handling, and explicit empty states.
+- [x] Add an evaluation-only prospective incumbent/candidate comparison workflow with immutable
+      registration, pre-match receipts, exact pairing, timing exclusions, and reproducible grading;
+      preserve the existing walk-forward adoption gate and require a real candidate before collecting.
+- [x] Extract focused health validators while retaining output_findings(), finding identities,
+      severity, and the existing pre-upload and post-deploy gate contracts.
+- [x] Run relevant Python/web tests, lint, type checks, build and browser verification; reconcile
+      repository facts with git history and append the final review and any remaining limitations.
+
+Design: preserve DEUCE's existing dark court palette, display/body/mono typography and responsive
+panels. Use one quiet section-tab row and a shared probability ruler (predicted tick, observed dot,
+interval whisker) to communicate location and evidence; avoid adding decorative dashboard cards.
+
+
+### Review
+
+- Matches now has one primary navigation entry and route-backed Match Center/Schedule/Results
+  tabs; Performance groups Overview/Historical tests/Live record. Existing URLs and command
+  search destinations remain available, and section changes retain the active tour. Results
+  remain explicitly retrospective, while Match Center finals remain frozen first-sighting calls.
+- All three evaluation pages share calibration rulers with visible sample sizes, approximate
+  Wilson 95% intervals, a small-sample treatment below 30 observations, and accessible text.
+  No model probabilities or evaluation populations were changed.
+- Follow controls appear on match cards and profiles. Match Center can filter live/upcoming/final
+  matches to followed players, manage the saved list, and preserve tab/filter state in URLs.
+  ATP/WTA storage is separate, cross-tab changes synchronize, and blocked storage stays usable
+  for the current session with an explicit persistence message.
+- Added the evaluation-only prospective research CLI and its input/operating guide. Registration
+  freezes two compatible fitted predictors, hypothesis, horizon and target count; capture retains
+  source observations and immutable paired calls; grading requires actual-start evidence and
+  retains result receipts. No candidate was invented or registered, no observations were fabricated,
+  and no collector or experiment is running. A real candidate and trustworthy timing evidence are
+  required before collection. The full walk-forward adoption gate remains unchanged.
+- Extracted common finding/identity helpers and prediction, draw, benchmark, product-stage and
+  release validators into data/health_checks/. The public output_findings() and legacy imports
+  remain intact; health.py is now 2,303 lines. Exact serialized findings (including identity,
+  severity, evidence and revisions) matched the original source on 52 complete healthy/corrupt
+  fixture variants and both current local tour outputs; release-lineage observations also matched.
+  The Kalshi purity guard's specific output-validator exception follows the moved validator.
+- Verification: 1,190 Python tests and 339 web tests passed; focused final prospective/purity checks
+  passed 17 tests. Ruff, TypeScript, web lint (zero errors, nine warnings), git diff --check and the
+  24-route production build passed. Browser checks passed 8/8 on desktop/mobile, including tab
+  Back/Forward, reloads, follow/unfollow, ATP/WTA isolation, profile/board continuity, cross-tab
+  storage, blocked storage, calibration accessibility, and section navigation. Mobile screenshots
+  confirmed both the document and body fit the 390px viewport.
+- The current local data is not deployable: the integrity gate reports an invalid ATP accuracy
+  release entry and stale WTA Abierto GNP Seguros progress. The original gate reports the same
+  conditions; enforcement was preserved. A fresh validated data release is required before deploy.
+  Existing Tennis Abstract changes and receipts were preserved. Nothing was committed, pushed,
+  or deployed; the local preview uses the existing generated data.
+
+## 2026-09-04 — Publish the approved improvements
+
+The user explicitly authorized implementation and pushing to remote, including the production
+refresh triggered by master. Remote history through 9139f64 contains six automated evaluation-log
+commits since the local base; preserve those observations alongside the local benchmark receipts.
+
+- [x] Review the completed changes and current production status. The latest completed production
+      refresh passed and there are no open health incidents; the previously reported failures are
+      confined to stale local generated data, which will not be uploaded.
+- [ ] Commit the approved implementation and reconcile remote evaluation history without losing
+      observations or changing frozen benchmark evidence.
+- [ ] Push master and follow the production workflow through tests, fresh data generation, the
+      integrity gate, deployment, and live-serving verification.
+- [ ] Confirm the live improvements, update the preview, and append the final deployment review.
+
+Deployment uses the existing CI data cache and normal regeneration/gates. Do not publish the stale
+local output or bypass either release gate.

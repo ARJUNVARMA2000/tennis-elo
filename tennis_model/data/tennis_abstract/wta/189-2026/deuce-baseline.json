@@ -1,0 +1,1823 @@
+{
+  "espnId": "189-2026",
+  "event": "US Open",
+  "method": {
+    "bestOf": 3,
+    "name": "exact-fixed-bracket-propagation",
+    "pairwiseMatrixRoundedDigits": 6,
+    "surface": "Hard",
+    "usesPlayedResults": false
+  },
+  "players": [
+    {
+      "deuceName": "Aryna Sabalenka",
+      "drawPosition": 1,
+      "name": "Aryna Sabalenka",
+      "probabilities": {
+        "F": 0.36605234,
+        "QF": 0.67948229,
+        "R16": 0.79746573,
+        "R32": 0.89875986,
+        "R64": 0.942559,
+        "SF": 0.53211848,
+        "W": 0.19232664
+      }
+    },
+    {
+      "deuceName": "Camila Osorio",
+      "drawPosition": 2,
+      "name": "Camila Osorio",
+      "probabilities": {
+        "F": 0.00027934,
+        "QF": 0.00581069,
+        "R16": 0.01665831,
+        "R32": 0.03799716,
+        "R64": 0.057441,
+        "SF": 0.00147938,
+        "W": 2.567e-05
+      }
+    },
+    {
+      "deuceName": "Renata Zarazua",
+      "drawPosition": 3,
+      "name": "Renata Zarazua",
+      "probabilities": {
+        "F": 7.303e-05,
+        "QF": 0.00366527,
+        "R16": 0.01449145,
+        "R32": 0.04350349,
+        "R64": 0.638762,
+        "SF": 0.00064776,
+        "W": 4.6e-06
+      }
+    },
+    {
+      "deuceName": "Polina Iatcenko",
+      "drawPosition": 4,
+      "name": "Polina Iatcenko",
+      "probabilities": {
+        "F": 1.223e-05,
+        "QF": 0.00109153,
+        "R16": 0.00530674,
+        "R32": 0.01973949,
+        "R64": 0.361238,
+        "SF": 0.00014414,
+        "W": 6e-07
+      }
+    },
+    {
+      "deuceName": "Aoi Ito",
+      "drawPosition": 5,
+      "name": "Aoi Ito",
+      "probabilities": {
+        "F": 6e-06,
+        "QF": 0.00081448,
+        "R16": 0.00485708,
+        "R32": 0.0666375,
+        "R64": 0.406634,
+        "SF": 8.772e-05,
+        "W": 2.6e-07
+      }
+    },
+    {
+      "deuceName": "Oksana Selekhmeteva",
+      "drawPosition": 6,
+      "name": "Oksana Selekhmeteva",
+      "probabilities": {
+        "F": 8.393e-05,
+        "QF": 0.00360847,
+        "R16": 0.01403668,
+        "R32": 0.15613925,
+        "R64": 0.593366,
+        "SF": 0.00065279,
+        "W": 5.72e-06
+      }
+    },
+    {
+      "deuceName": "Kamilla Rakhimova",
+      "drawPosition": 7,
+      "name": "Kamilla Rakhimova",
+      "probabilities": {
+        "F": 9.933e-05,
+        "QF": 0.00382398,
+        "R16": 0.01374008,
+        "R32": 0.14696931,
+        "R64": 0.224396,
+        "SF": 0.00072271,
+        "W": 6.72e-06
+      }
+    },
+    {
+      "deuceName": "Barbora Krejcikova",
+      "drawPosition": 8,
+      "name": "Barbora Krejcikova",
+      "probabilities": {
+        "F": 0.00896685,
+        "QF": 0.06815397,
+        "R16": 0.13344394,
+        "R32": 0.63025394,
+        "R64": 0.775604,
+        "SF": 0.0260622,
+        "W": 0.00176149
+      }
+    },
+    {
+      "deuceName": "Maja Chwalinska",
+      "drawPosition": 9,
+      "name": "Maja Chwalinska",
+      "probabilities": {
+        "F": 0.00146209,
+        "QF": 0.02032726,
+        "R16": 0.11221112,
+        "R32": 0.29155643,
+        "R64": 0.449969,
+        "SF": 0.0060933,
+        "W": 0.0002108
+      }
+    },
+    {
+      "deuceName": "Taylor Townsend",
+      "drawPosition": 10,
+      "name": "Taylor Townsend",
+      "probabilities": {
+        "F": 0.00289897,
+        "QF": 0.03200954,
+        "R16": 0.16662628,
+        "R32": 0.36869361,
+        "R64": 0.550031,
+        "SF": 0.01084905,
+        "W": 0.00044167
+      }
+    },
+    {
+      "deuceName": "Taylah Preston",
+      "drawPosition": 11,
+      "name": "Taylah Preston",
+      "probabilities": {
+        "F": 0.00014717,
+        "QF": 0.00498945,
+        "R16": 0.04037657,
+        "R32": 0.15184212,
+        "R64": 0.470099,
+        "SF": 0.00097623,
+        "W": 1.107e-05
+      }
+    },
+    {
+      "deuceName": "Alycia Parks",
+      "drawPosition": 12,
+      "name": "Alycia Parks",
+      "probabilities": {
+        "F": 0.00018248,
+        "QF": 0.00575882,
+        "R16": 0.05236215,
+        "R32": 0.18790784,
+        "R64": 0.529901,
+        "SF": 0.00125973,
+        "W": 1.37e-05
+      }
+    },
+    {
+      "deuceName": "Hanne Vandewinkel",
+      "drawPosition": 13,
+      "name": "Hanne Vandewinkel",
+      "probabilities": {
+        "F": 3.671e-05,
+        "QF": 0.00189724,
+        "R16": 0.01960605,
+        "R32": 0.06089355,
+        "R64": 0.339626,
+        "SF": 0.00030613,
+        "W": 2.19e-06
+      }
+    },
+    {
+      "deuceName": "Karolina Pliskova",
+      "drawPosition": 14,
+      "name": "Karolina Pliskova",
+      "probabilities": {
+        "F": 0.0015585,
+        "QF": 0.02106679,
+        "R16": 0.117502,
+        "R32": 0.23083392,
+        "R64": 0.660374,
+        "SF": 0.00633014,
+        "W": 0.00022888
+      }
+    },
+    {
+      "deuceName": "Daria Snigur",
+      "drawPosition": 15,
+      "name": "Daria Snigur",
+      "probabilities": {
+        "F": 0.00062202,
+        "QF": 0.01046608,
+        "R16": 0.06735881,
+        "R32": 0.13427224,
+        "R64": 0.237307,
+        "SF": 0.00283308,
+        "W": 7.144e-05
+      }
+    },
+    {
+      "deuceName": "Diana Shnaider",
+      "drawPosition": 16,
+      "name": "Diana Shnaider",
+      "probabilities": {
+        "F": 0.02845329,
+        "QF": 0.13703414,
+        "R16": 0.42395702,
+        "R32": 0.5740003,
+        "R64": 0.762693,
+        "SF": 0.07062685,
+        "W": 0.0073194
+      }
+    },
+    {
+      "deuceName": "Marta Kostyuk",
+      "drawPosition": 17,
+      "name": "Marta Kostyuk",
+      "probabilities": {
+        "F": 0.06350921,
+        "QF": 0.30178329,
+        "R16": 0.46602387,
+        "R32": 0.61914654,
+        "R64": 0.890111,
+        "SF": 0.12996841,
+        "W": 0.02070267
+      }
+    },
+    {
+      "deuceName": "Storm Hunter",
+      "drawPosition": 18,
+      "name": "Storm Hunter",
+      "probabilities": {
+        "F": 1.1e-05,
+        "QF": 0.001142,
+        "R16": 0.00658476,
+        "R32": 0.02584746,
+        "R64": 0.109889,
+        "SF": 0.00011694,
+        "W": 6.3e-07
+      }
+    },
+    {
+      "deuceName": "Sloane Stephens",
+      "drawPosition": 19,
+      "name": "Sloane Stephens",
+      "probabilities": {
+        "F": 1.713e-05,
+        "QF": 0.00154421,
+        "R16": 0.00798407,
+        "R32": 0.02666688,
+        "R64": 0.184081,
+        "SF": 0.00015864,
+        "W": 1.09e-06
+      }
+    },
+    {
+      "deuceName": "Clara Tauson",
+      "drawPosition": 20,
+      "name": "Clara Tauson",
+      "probabilities": {
+        "F": 0.00803915,
+        "QF": 0.09543491,
+        "R16": 0.19740123,
+        "R32": 0.32833913,
+        "R64": 0.815919,
+        "SF": 0.02417123,
+        "W": 0.00150496
+      }
+    },
+    {
+      "deuceName": "Kimberly Birrell",
+      "drawPosition": 21,
+      "name": "Kimberly Birrell",
+      "probabilities": {
+        "F": 5.298e-05,
+        "QF": 0.00439747,
+        "R16": 0.02015984,
+        "R32": 0.12698551,
+        "R64": 0.538032,
+        "SF": 0.00047514,
+        "W": 3.51e-06
+      }
+    },
+    {
+      "deuceName": "Petra Marcinko",
+      "drawPosition": 22,
+      "name": "Petra Marcinko",
+      "probabilities": {
+        "F": 4.523e-05,
+        "QF": 0.00348605,
+        "R16": 0.01687801,
+        "R32": 0.10934878,
+        "R64": 0.461968,
+        "SF": 0.00038903,
+        "W": 3.04e-06
+      }
+    },
+    {
+      "deuceName": "Mccartney Kessler",
+      "drawPosition": 23,
+      "name": "Mccartney Kessler",
+      "probabilities": {
+        "F": 0.0005365,
+        "QF": 0.01712097,
+        "R16": 0.05475178,
+        "R32": 0.20479541,
+        "R64": 0.298162,
+        "SF": 0.00269798,
+        "W": 6.276e-05
+      }
+    },
+    {
+      "deuceName": "Ekaterina Alexandrova",
+      "drawPosition": 24,
+      "name": "Ekaterina Alexandrova",
+      "probabilities": {
+        "F": 0.01064475,
+        "QF": 0.10865907,
+        "R16": 0.23021643,
+        "R32": 0.55887031,
+        "R64": 0.701838,
+        "SF": 0.03053179,
+        "W": 0.00225408
+      }
+    },
+    {
+      "deuceName": "Ann Li",
+      "drawPosition": 25,
+      "name": "Ann Li",
+      "probabilities": {
+        "F": 0.00259147,
+        "QF": 0.05064823,
+        "R16": 0.1442257,
+        "R32": 0.41291831,
+        "R64": 0.725336,
+        "SF": 0.01006663,
+        "W": 0.000375
+      }
+    },
+    {
+      "deuceName": "Antonia Ruzic",
+      "drawPosition": 26,
+      "name": "Antonia Ruzic",
+      "probabilities": {
+        "F": 8.86e-05,
+        "QF": 0.00479365,
+        "R16": 0.02208625,
+        "R32": 0.09821214,
+        "R64": 0.274664,
+        "SF": 0.00061351,
+        "W": 6.6e-06
+      }
+    },
+    {
+      "deuceName": "Talia Gibson",
+      "drawPosition": 27,
+      "name": "Talia Gibson",
+      "probabilities": {
+        "F": 0.00134181,
+        "QF": 0.03082687,
+        "R16": 0.09471491,
+        "R32": 0.28235792,
+        "R64": 0.547116,
+        "SF": 0.00573422,
+        "W": 0.00016629
+      }
+    },
+    {
+      "deuceName": "Donna Vekic",
+      "drawPosition": 28,
+      "name": "Donna Vekic",
+      "probabilities": {
+        "F": 0.00047648,
+        "QF": 0.01518676,
+        "R16": 0.05577895,
+        "R32": 0.20651163,
+        "R64": 0.452884,
+        "SF": 0.00234945,
+        "W": 5.352e-05
+      }
+    },
+    {
+      "deuceName": "Elvina Kalieva",
+      "drawPosition": 29,
+      "name": "Elvina Kalieva",
+      "probabilities": {
+        "F": 9.639e-05,
+        "QF": 0.00555797,
+        "R16": 0.02480344,
+        "R32": 0.0625436,
+        "R64": 0.380683,
+        "SF": 0.00070094,
+        "W": 6.52e-06
+      }
+    },
+    {
+      "deuceName": "Lanlana Tararudee",
+      "drawPosition": 30,
+      "name": "Lanlana Tararudee",
+      "probabilities": {
+        "F": 0.00133283,
+        "QF": 0.02873485,
+        "R16": 0.08545706,
+        "R32": 0.16525815,
+        "R64": 0.619317,
+        "SF": 0.00557279,
+        "W": 0.00016995
+      }
+    },
+    {
+      "deuceName": "Katie Volynets",
+      "drawPosition": 31,
+      "name": "Katie Volynets",
+      "probabilities": {
+        "F": 5.076e-05,
+        "QF": 0.00402913,
+        "R16": 0.02034691,
+        "R32": 0.05912376,
+        "R64": 0.123982,
+        "SF": 0.00044547,
+        "W": 3.13e-06
+      }
+    },
+    {
+      "deuceName": "Linda Noskova",
+      "drawPosition": 32,
+      "name": "Linda Noskova",
+      "probabilities": {
+        "F": 0.06072946,
+        "QF": 0.32665457,
+        "R16": 0.55258678,
+        "R32": 0.71307449,
+        "R64": 0.876018,
+        "SF": 0.12481813,
+        "W": 0.01896729
+      }
+    },
+    {
+      "deuceName": "Jessica Pegula",
+      "drawPosition": 33,
+      "name": "Jessica Pegula",
+      "probabilities": {
+        "F": 0.23977441,
+        "QF": 0.60446738,
+        "R16": 0.72663286,
+        "R32": 0.84073462,
+        "R64": 0.912705,
+        "SF": 0.42166791,
+        "W": 0.11919025
+      }
+    },
+    {
+      "deuceName": "Elena Gabriela Ruse",
+      "drawPosition": 34,
+      "name": "Elena Gabriela Ruse",
+      "probabilities": {
+        "F": 0.00031252,
+        "QF": 0.00887856,
+        "R16": 0.02329036,
+        "R32": 0.05075082,
+        "R64": 0.087295,
+        "SF": 0.00209607,
+        "W": 3.122e-05
+      }
+    },
+    {
+      "deuceName": "Venus Williams",
+      "drawPosition": 35,
+      "name": "Venus Williams",
+      "probabilities": {
+        "F": 6.72e-06,
+        "QF": 0.00075732,
+        "R16": 0.00448925,
+        "R32": 0.02322829,
+        "R64": 0.262686,
+        "SF": 8.149e-05,
+        "W": 4.1e-07
+      }
+    },
+    {
+      "deuceName": "Sofia Kenin",
+      "drawPosition": 36,
+      "name": "Sofia Kenin",
+      "probabilities": {
+        "F": 0.00027126,
+        "QF": 0.01178323,
+        "R16": 0.03330576,
+        "R32": 0.08528627,
+        "R64": 0.737314,
+        "SF": 0.00222924,
+        "W": 2.101e-05
+      }
+    },
+    {
+      "deuceName": "Mananchaya Sawangkaew",
+      "drawPosition": 37,
+      "name": "Mananchaya Sawangkaew",
+      "probabilities": {
+        "F": 0.00039062,
+        "QF": 0.01398479,
+        "R16": 0.03918661,
+        "R32": 0.22689196,
+        "R64": 0.588602,
+        "SF": 0.00287592,
+        "W": 3.101e-05
+      }
+    },
+    {
+      "deuceName": "Panna Udvardy",
+      "drawPosition": 38,
+      "name": "Panna Udvardy",
+      "probabilities": {
+        "F": 5.947e-05,
+        "QF": 0.00392703,
+        "R16": 0.01377885,
+        "R32": 0.12305365,
+        "R64": 0.411398,
+        "SF": 0.0005907,
+        "W": 3.93e-06
+      }
+    },
+    {
+      "deuceName": "Shuai Zhang",
+      "drawPosition": 39,
+      "name": "Shuai Zhang",
+      "probabilities": {
+        "F": 9.776e-05,
+        "QF": 0.00489615,
+        "R16": 0.01615541,
+        "R32": 0.11546066,
+        "R64": 0.240192,
+        "SF": 0.00087166,
+        "W": 7.92e-06
+      }
+    },
+    {
+      "deuceName": "Leylah Fernandez",
+      "drawPosition": 40,
+      "name": "Leylah Fernandez",
+      "probabilities": {
+        "F": 0.00580531,
+        "QF": 0.07309429,
+        "R16": 0.1431609,
+        "R32": 0.53459374,
+        "R64": 0.759808,
+        "SF": 0.0256116,
+        "W": 0.00085907
+      }
+    },
+    {
+      "deuceName": "Jasmine Paolini",
+      "drawPosition": 41,
+      "name": "Jasmine Paolini",
+      "probabilities": {
+        "F": 0.00454208,
+        "QF": 0.05899352,
+        "R16": 0.21284715,
+        "R32": 0.514777,
+        "R64": 0.79158,
+        "SF": 0.01978702,
+        "W": 0.000746
+      }
+    },
+    {
+      "deuceName": "Veronika Erjavec",
+      "drawPosition": 42,
+      "name": "Veronika Erjavec",
+      "probabilities": {
+        "F": 7.01e-06,
+        "QF": 0.00104101,
+        "R16": 0.01085857,
+        "R32": 0.05964826,
+        "R64": 0.20842,
+        "SF": 9.8e-05,
+        "W": 3.4e-07
+      }
+    },
+    {
+      "deuceName": "Lucrezia Stefanini",
+      "drawPosition": 43,
+      "name": "Lucrezia Stefanini",
+      "probabilities": {
+        "F": 9.2e-06,
+        "QF": 0.00157463,
+        "R16": 0.01640079,
+        "R32": 0.10121121,
+        "R64": 0.314774,
+        "SF": 0.00013428,
+        "W": 3.7e-07
+      }
+    },
+    {
+      "deuceName": "Dayana Yastremska",
+      "drawPosition": 44,
+      "name": "Dayana Yastremska",
+      "probabilities": {
+        "F": 0.00049653,
+        "QF": 0.0190174,
+        "R16": 0.10457959,
+        "R32": 0.32436353,
+        "R64": 0.685226,
+        "SF": 0.00399268,
+        "W": 4.347e-05
+      }
+    },
+    {
+      "deuceName": "Viktorija Golubic",
+      "drawPosition": 45,
+      "name": "Viktorija Golubic",
+      "probabilities": {
+        "F": 0.0002019,
+        "QF": 0.00719159,
+        "R16": 0.04234596,
+        "R32": 0.08680033,
+        "R64": 0.283222,
+        "SF": 0.0015508,
+        "W": 1.859e-05
+      }
+    },
+    {
+      "deuceName": "Diane Parry",
+      "drawPosition": 46,
+      "name": "Diane Parry",
+      "probabilities": {
+        "F": 0.00533788,
+        "QF": 0.06130549,
+        "R16": 0.21123272,
+        "R32": 0.32440088,
+        "R64": 0.716778,
+        "SF": 0.02256349,
+        "W": 0.00087785
+      }
+    },
+    {
+      "deuceName": "Julia Grabher",
+      "drawPosition": 47,
+      "name": "Julia Grabher",
+      "probabilities": {
+        "F": 3.25e-06,
+        "QF": 0.00054561,
+        "R16": 0.00621064,
+        "R32": 0.02411415,
+        "R64": 0.116921,
+        "SF": 4.911e-05,
+        "W": 1.5e-07
+      }
+    },
+    {
+      "deuceName": "Sorana Cirstea",
+      "drawPosition": 48,
+      "name": "Sorana Cirstea",
+      "probabilities": {
+        "F": 0.01594385,
+        "QF": 0.128542,
+        "R16": 0.39552459,
+        "R32": 0.56468465,
+        "R64": 0.883079,
+        "SF": 0.05568931,
+        "W": 0.00314806
+      }
+    },
+    {
+      "deuceName": "Elina Svitolina",
+      "drawPosition": 49,
+      "name": "Elina Svitolina",
+      "probabilities": {
+        "F": 0.06524501,
+        "QF": 0.29654663,
+        "R16": 0.4637238,
+        "R32": 0.6207014,
+        "R64": 0.857732,
+        "SF": 0.15159404,
+        "W": 0.02156908
+      }
+    },
+    {
+      "deuceName": "Solana Sierra",
+      "drawPosition": 50,
+      "name": "Solana Sierra",
+      "probabilities": {
+        "F": 4.188e-05,
+        "QF": 0.00237758,
+        "R16": 0.01236817,
+        "R32": 0.03994967,
+        "R64": 0.142268,
+        "SF": 0.00037509,
+        "W": 3.02e-06
+      }
+    },
+    {
+      "deuceName": "Maya Joint",
+      "drawPosition": 51,
+      "name": "Maya Joint",
+      "probabilities": {
+        "F": 0.00013856,
+        "QF": 0.00540741,
+        "R16": 0.02136351,
+        "R32": 0.05924832,
+        "R64": 0.262879,
+        "SF": 0.00099491,
+        "W": 1.102e-05
+      }
+    },
+    {
+      "deuceName": "Liudmila Samsonova",
+      "drawPosition": 52,
+      "name": "Liudmila Samsonova",
+      "probabilities": {
+        "F": 0.00697389,
+        "QF": 0.07733567,
+        "R16": 0.16138593,
+        "R32": 0.28010061,
+        "R64": 0.737121,
+        "SF": 0.02616654,
+        "W": 0.00138217
+      }
+    },
+    {
+      "deuceName": "Emiliana Arango",
+      "drawPosition": 53,
+      "name": "Emiliana Arango",
+      "probabilities": {
+        "F": 2.427e-05,
+        "QF": 0.00200618,
+        "R16": 0.01304598,
+        "R32": 0.08248374,
+        "R64": 0.406436,
+        "SF": 0.00026783,
+        "W": 1.37e-06
+      }
+    },
+    {
+      "deuceName": "Xin Yu Wang",
+      "drawPosition": 54,
+      "name": "Xin Yu Wang",
+      "probabilities": {
+        "F": 0.00054161,
+        "QF": 0.01489653,
+        "R16": 0.05410065,
+        "R32": 0.20297881,
+        "R64": 0.593564,
+        "SF": 0.00343158,
+        "W": 6.368e-05
+      }
+    },
+    {
+      "deuceName": "Anna Blinkova",
+      "drawPosition": 55,
+      "name": "Anna Blinkova",
+      "probabilities": {
+        "F": 3.711e-05,
+        "QF": 0.00254081,
+        "R16": 0.01464486,
+        "R32": 0.08147505,
+        "R64": 0.166991,
+        "SF": 0.00036838,
+        "W": 2.27e-06
+      }
+    },
+    {
+      "deuceName": "Anna Kalinskaya",
+      "drawPosition": 56,
+      "name": "Anna Kalinskaya",
+      "probabilities": {
+        "F": 0.01292682,
+        "QF": 0.12578702,
+        "R16": 0.2593671,
+        "R32": 0.63306241,
+        "R64": 0.833009,
+        "SF": 0.04378634,
+        "W": 0.00250741
+      }
+    },
+    {
+      "deuceName": "Emma Navarro",
+      "drawPosition": 57,
+      "name": "Emma Navarro",
+      "probabilities": {
+        "F": 0.00295403,
+        "QF": 0.04538316,
+        "R16": 0.1245538,
+        "R32": 0.3455643,
+        "R64": 0.61975,
+        "SF": 0.01349822,
+        "W": 0.00046036
+      }
+    },
+    {
+      "deuceName": "Lois Boisson",
+      "drawPosition": 58,
+      "name": "Lois Boisson",
+      "probabilities": {
+        "F": 0.00020423,
+        "QF": 0.00861393,
+        "R16": 0.03792315,
+        "R32": 0.17109939,
+        "R64": 0.38025,
+        "SF": 0.00157819,
+        "W": 1.706e-05
+      }
+    },
+    {
+      "deuceName": "Anouk Koevermans",
+      "drawPosition": 59,
+      "name": "Anouk Koevermans",
+      "probabilities": {
+        "F": 1.122e-05,
+        "QF": 0.00113696,
+        "R16": 0.00782497,
+        "R32": 0.06961877,
+        "R64": 0.249574,
+        "SF": 0.0001326,
+        "W": 5.8e-07
+      }
+    },
+    {
+      "deuceName": "Caty Mcnally",
+      "drawPosition": 60,
+      "name": "Caty Mcnally",
+      "probabilities": {
+        "F": 0.00308405,
+        "QF": 0.05310234,
+        "R16": 0.14276813,
+        "R32": 0.41371754,
+        "R64": 0.750426,
+        "SF": 0.01460861,
+        "W": 0.00042705
+      }
+    },
+    {
+      "deuceName": "Carol Young Suh Lee",
+      "drawPosition": 61,
+      "name": "Carol Young Suh Lee",
+      "probabilities": {
+        "F": 0.00019739,
+        "QF": 0.00820557,
+        "R16": 0.03528171,
+        "R32": 0.08796574,
+        "R64": 0.497108,
+        "SF": 0.00159019,
+        "W": 1.624e-05
+      }
+    },
+    {
+      "deuceName": "Katie Boulter",
+      "drawPosition": 62,
+      "name": "Katie Boulter",
+      "probabilities": {
+        "F": 0.00031861,
+        "QF": 0.01111037,
+        "R16": 0.04274859,
+        "R32": 0.09761661,
+        "R64": 0.502892,
+        "SF": 0.00230251,
+        "W": 3.083e-05
+      }
+    },
+    {
+      "deuceName": "Sinja Kraus",
+      "drawPosition": 63,
+      "name": "Sinja Kraus",
+      "probabilities": {
+        "F": 2.12e-06,
+        "QF": 0.00038766,
+        "R16": 0.00391102,
+        "R32": 0.02303381,
+        "R64": 0.070392,
+        "SF": 3.453e-05,
+        "W": 9e-08
+      }
+    },
+    {
+      "deuceName": "Karolina Muchova",
+      "drawPosition": 64,
+      "name": "Karolina Muchova",
+      "probabilities": {
+        "F": 0.07354141,
+        "QF": 0.34516219,
+        "R16": 0.60498862,
+        "R32": 0.79138384,
+        "R64": 0.929608,
+        "SF": 0.17938114,
+        "W": 0.02471776
+      }
+    },
+    {
+      "deuceName": "Mirra Andreeva",
+      "drawPosition": 65,
+      "name": "Mirra Andreeva",
+      "probabilities": {
+        "F": 0.06406976,
+        "QF": 0.3468964,
+        "R16": 0.59770955,
+        "R32": 0.74818254,
+        "R64": 0.842781,
+        "SF": 0.16937095,
+        "W": 0.02866911
+      }
+    },
+    {
+      "deuceName": "Janice Tjen",
+      "drawPosition": 66,
+      "name": "Janice Tjen",
+      "probabilities": {
+        "F": 0.00017742,
+        "QF": 0.01008197,
+        "R16": 0.0383018,
+        "R32": 0.0902583,
+        "R64": 0.157219,
+        "SF": 0.00190363,
+        "W": 2.383e-05
+      }
+    },
+    {
+      "deuceName": "Gabriela Knutson",
+      "drawPosition": 67,
+      "name": "Gabriela Andrea Knutson",
+      "probabilities": {
+        "F": 1.372e-05,
+        "QF": 0.00221804,
+        "R16": 0.01369147,
+        "R32": 0.04721351,
+        "R64": 0.397075,
+        "SF": 0.00023884,
+        "W": 1.08e-06
+      }
+    },
+    {
+      "deuceName": "Eva Lys",
+      "drawPosition": 68,
+      "name": "Eva Lys",
+      "probabilities": {
+        "F": 0.00014396,
+        "QF": 0.00897741,
+        "R16": 0.0412288,
+        "R32": 0.11434566,
+        "R64": 0.602925,
+        "SF": 0.00155974,
+        "W": 2.026e-05
+      }
+    },
+    {
+      "deuceName": "Nikola Bartunkova",
+      "drawPosition": 69,
+      "name": "Nikola Bartunkova",
+      "probabilities": {
+        "F": 0.00283716,
+        "QF": 0.06080901,
+        "R16": 0.16485049,
+        "R32": 0.47126039,
+        "R64": 0.784009,
+        "SF": 0.01607632,
+        "W": 0.00065485
+      }
+    },
+    {
+      "deuceName": "Mayar Sherif",
+      "drawPosition": 70,
+      "name": "Mayar Sherif",
+      "probabilities": {
+        "F": 6.47e-06,
+        "QF": 0.0011715,
+        "R16": 0.00845295,
+        "R32": 0.06115809,
+        "R64": 0.215991,
+        "SF": 0.00011679,
+        "W": 4.4e-07
+      }
+    },
+    {
+      "deuceName": "Tatjana Maria",
+      "drawPosition": 71,
+      "name": "Tatjana Maria",
+      "probabilities": {
+        "F": 2.252e-05,
+        "QF": 0.00273832,
+        "R16": 0.01465086,
+        "R32": 0.07680771,
+        "R64": 0.244151,
+        "SF": 0.00034181,
+        "W": 1.99e-06
+      }
+    },
+    {
+      "deuceName": "Jelena Ostapenko",
+      "drawPosition": 72,
+      "name": "Jelena Ostapenko",
+      "probabilities": {
+        "F": 0.00146845,
+        "QF": 0.03848372,
+        "R16": 0.1211141,
+        "R32": 0.39077381,
+        "R64": 0.755849,
+        "SF": 0.01012007,
+        "W": 0.00030344
+      }
+    },
+    {
+      "deuceName": "Anastasia Potapova",
+      "drawPosition": 73,
+      "name": "Anastasia Potapova",
+      "probabilities": {
+        "F": 0.00155489,
+        "QF": 0.0458384,
+        "R16": 0.13851703,
+        "R32": 0.47264741,
+        "R64": 0.537179,
+        "SF": 0.01151205,
+        "W": 0.00029301
+      }
+    },
+    {
+      "deuceName": "Tereza Valentova",
+      "drawPosition": 74,
+      "name": "Tereza Valentova",
+      "probabilities": {
+        "F": 0.00071494,
+        "QF": 0.03039626,
+        "R16": 0.09556034,
+        "R32": 0.37780614,
+        "R64": 0.462821,
+        "SF": 0.00686978,
+        "W": 0.0001187
+      }
+    },
+    {
+      "deuceName": "Arantxa Rus",
+      "drawPosition": 75,
+      "name": "Arantxa Rus",
+      "probabilities": {
+        "F": 3.2e-06,
+        "QF": 0.00091588,
+        "R16": 0.00842403,
+        "R32": 0.09180576,
+        "R64": 0.529527,
+        "SF": 7.211e-05,
+        "W": 1.7e-07
+      }
+    },
+    {
+      "deuceName": "Leolia Jeanjean",
+      "drawPosition": 76,
+      "name": "Leolia Jeanjean",
+      "probabilities": {
+        "F": 9.8e-07,
+        "QF": 0.00038697,
+        "R16": 0.00483233,
+        "R32": 0.05774069,
+        "R64": 0.470473,
+        "SF": 2.394e-05,
+        "W": 4e-08
+      }
+    },
+    {
+      "deuceName": "Lilli Tagger",
+      "drawPosition": 77,
+      "name": "Lilli Tagger",
+      "probabilities": {
+        "F": 0.00033877,
+        "QF": 0.01737545,
+        "R16": 0.06141125,
+        "R32": 0.13105187,
+        "R64": 0.703111,
+        "SF": 0.00346034,
+        "W": 4.744e-05
+      }
+    },
+    {
+      "deuceName": "Tamara Korpatsch",
+      "drawPosition": 78,
+      "name": "Tamara Korpatsch",
+      "probabilities": {
+        "F": 2.805e-05,
+        "QF": 0.00306881,
+        "R16": 0.01540681,
+        "R32": 0.03824784,
+        "R64": 0.296889,
+        "SF": 0.00040416,
+        "W": 2.64e-06
+      }
+    },
+    {
+      "deuceName": "Ashlyn Krueger",
+      "drawPosition": 79,
+      "name": "Ashlyn Krueger",
+      "probabilities": {
+        "F": 0.00023853,
+        "QF": 0.0107648,
+        "R16": 0.039316,
+        "R32": 0.07850722,
+        "R64": 0.145454,
+        "SF": 0.0022466,
+        "W": 3.792e-05
+      }
+    },
+    {
+      "deuceName": "Amanda Anisimova",
+      "drawPosition": 80,
+      "name": "Amanda Anisimova",
+      "probabilities": {
+        "F": 0.07450657,
+        "QF": 0.41987706,
+        "R16": 0.63653221,
+        "R32": 0.75219308,
+        "R64": 0.854546,
+        "SF": 0.20787197,
+        "W": 0.03366332
+      }
+    },
+    {
+      "deuceName": "Iva Jovic",
+      "drawPosition": 81,
+      "name": "Iva Jovic",
+      "probabilities": {
+        "F": 0.00702735,
+        "QF": 0.09066485,
+        "R16": 0.2857348,
+        "R32": 0.48483594,
+        "R64": 0.651783,
+        "SF": 0.03563987,
+        "W": 0.00195261
+      }
+    },
+    {
+      "deuceName": "Magdalena Frech",
+      "drawPosition": 82,
+      "name": "Magdalena Frech",
+      "probabilities": {
+        "F": 0.00047339,
+        "QF": 0.01788856,
+        "R16": 0.0869301,
+        "R32": 0.21834228,
+        "R64": 0.348217,
+        "SF": 0.00424082,
+        "W": 7.469e-05
+      }
+    },
+    {
+      "deuceName": "Magda Linette",
+      "drawPosition": 83,
+      "name": "Magda Linette",
+      "probabilities": {
+        "F": 0.0003756,
+        "QF": 0.01766764,
+        "R16": 0.10186108,
+        "R32": 0.26625945,
+        "R64": 0.768493,
+        "SF": 0.003738,
+        "W": 5.016e-05
+      }
+    },
+    {
+      "deuceName": "Francesca Jones",
+      "drawPosition": 84,
+      "name": "Francesca Jones",
+      "probabilities": {
+        "F": 2.9e-06,
+        "QF": 0.00064827,
+        "R16": 0.00787866,
+        "R32": 0.03056232,
+        "R64": 0.231507,
+        "SF": 5.393e-05,
+        "W": 1.9e-07
+      }
+    },
+    {
+      "deuceName": "Oleksandra Oliynykova",
+      "drawPosition": 85,
+      "name": "Oleksandra Oliynykova",
+      "probabilities": {
+        "F": 0.00010211,
+        "QF": 0.00917043,
+        "R16": 0.07340979,
+        "R32": 0.22281591,
+        "R64": 0.857269,
+        "SF": 0.00151535,
+        "W": 9.59e-06
+      }
+    },
+    {
+      "deuceName": "Reese Brantmeier",
+      "drawPosition": 86,
+      "name": "Reese Brantmeier",
+      "probabilities": {
+        "F": 6e-08,
+        "QF": 3.577e-05,
+        "R16": 0.00075147,
+        "R32": 0.01006698,
+        "R64": 0.142731,
+        "SF": 1.79e-06,
+        "W": 0.0
+      }
+    },
+    {
+      "deuceName": "Mary Stoiana",
+      "drawPosition": 87,
+      "name": "Mary Stoiana",
+      "probabilities": {
+        "F": 7.547e-05,
+        "QF": 0.00613355,
+        "R16": 0.04629965,
+        "R32": 0.12891918,
+        "R64": 0.223072,
+        "SF": 0.00103868,
+        "W": 7.55e-06
+      }
+    },
+    {
+      "deuceName": "Alexandra Eala",
+      "drawPosition": 88,
+      "name": "Alexandra Eala",
+      "probabilities": {
+        "F": 0.01198205,
+        "QF": 0.13529952,
+        "R16": 0.39713445,
+        "R32": 0.63819794,
+        "R64": 0.776928,
+        "SF": 0.0532081,
+        "W": 0.00367477
+      }
+    },
+    {
+      "deuceName": "Sara Bejlek",
+      "drawPosition": 89,
+      "name": "Sara Bejlek",
+      "probabilities": {
+        "F": 0.00471745,
+        "QF": 0.07356783,
+        "R16": 0.13702266,
+        "R32": 0.55412273,
+        "R64": 0.767243,
+        "SF": 0.02506392,
+        "W": 0.00122716
+      }
+    },
+    {
+      "deuceName": "Cristina Bucsa",
+      "drawPosition": 90,
+      "name": "Cristina Bucsa",
+      "probabilities": {
+        "F": 5.562e-05,
+        "QF": 0.00429662,
+        "R16": 0.01413987,
+        "R32": 0.12192873,
+        "R64": 0.232757,
+        "SF": 0.00075081,
+        "W": 5.72e-06
+      }
+    },
+    {
+      "deuceName": "Anhelina Kalinina",
+      "drawPosition": 91,
+      "name": "Anhelina Kalinina",
+      "probabilities": {
+        "F": 0.00010021,
+        "QF": 0.0074826,
+        "R16": 0.02469722,
+        "R32": 0.19821002,
+        "R64": 0.581668,
+        "SF": 0.00129345,
+        "W": 1.122e-05
+      }
+    },
+    {
+      "deuceName": "Himeno Sakatsume",
+      "drawPosition": 92,
+      "name": "Himeno Sakatsume",
+      "probabilities": {
+        "F": 5.027e-05,
+        "QF": 0.00405783,
+        "R16": 0.01375972,
+        "R32": 0.12573852,
+        "R64": 0.418332,
+        "SF": 0.00067961,
+        "W": 5.67e-06
+      }
+    },
+    {
+      "deuceName": "Daria Kasatkina",
+      "drawPosition": 93,
+      "name": "Daria Kasatkina",
+      "probabilities": {
+        "F": 0.00030894,
+        "QF": 0.01230108,
+        "R16": 0.03113673,
+        "R32": 0.06824672,
+        "R64": 0.512344,
+        "SF": 0.00274306,
+        "W": 4.766e-05
+      }
+    },
+    {
+      "deuceName": "Paula Badosa",
+      "drawPosition": 94,
+      "name": "Paula Badosa",
+      "probabilities": {
+        "F": 0.00051227,
+        "QF": 0.01594906,
+        "R16": 0.0359019,
+        "R32": 0.07208726,
+        "R64": 0.487656,
+        "SF": 0.00401457,
+        "W": 9.316e-05
+      }
+    },
+    {
+      "deuceName": "Zeynep Sonmez",
+      "drawPosition": 95,
+      "name": "Zeynep Sonmez",
+      "probabilities": {
+        "F": 4.923e-05,
+        "QF": 0.00327529,
+        "R16": 0.01042166,
+        "R32": 0.02730486,
+        "R64": 0.068777,
+        "SF": 0.00060274,
+        "W": 6.18e-06
+      }
+    },
+    {
+      "deuceName": "Coco Gauff",
+      "drawPosition": 96,
+      "name": "Coco Gauff",
+      "probabilities": {
+        "F": 0.21292845,
+        "QF": 0.60156108,
+        "R16": 0.73292024,
+        "R32": 0.83236117,
+        "R64": 0.931223,
+        "SF": 0.43322621,
+        "W": 0.1303123
+      }
+    },
+    {
+      "deuceName": "Iga Swiatek",
+      "drawPosition": 97,
+      "name": "Iga Swiatek",
+      "probabilities": {
+        "F": 0.29199076,
+        "QF": 0.6831404,
+        "R16": 0.8212053,
+        "R32": 0.89408315,
+        "R64": 0.93795,
+        "SF": 0.42592133,
+        "W": 0.19098399
+      }
+    },
+    {
+      "deuceName": "Xiyu Wang",
+      "drawPosition": 98,
+      "name": "Xiyu Wang",
+      "probabilities": {
+        "F": 0.00012034,
+        "QF": 0.00544655,
+        "R16": 0.02013713,
+        "R32": 0.04528763,
+        "R64": 0.06205,
+        "SF": 0.00075208,
+        "W": 1.711e-05
+      }
+    },
+    {
+      "deuceName": "Nadia Podoroska",
+      "drawPosition": 99,
+      "name": "Nadia Podoroska",
+      "probabilities": {
+        "F": 6e-07,
+        "QF": 0.00018323,
+        "R16": 0.00207498,
+        "R32": 0.01306362,
+        "R64": 0.277261,
+        "SF": 9.93e-06,
+        "W": 3e-08
+      }
+    },
+    {
+      "deuceName": "Simona Waltert",
+      "drawPosition": 100,
+      "name": "Simona Waltert",
+      "probabilities": {
+        "F": 1.803e-05,
+        "QF": 0.00210061,
+        "R16": 0.01303765,
+        "R32": 0.0475656,
+        "R64": 0.722739,
+        "SF": 0.00018066,
+        "W": 1.61e-06
+      }
+    },
+    {
+      "deuceName": "Harriet Dart",
+      "drawPosition": 101,
+      "name": "Harriet Dart",
+      "probabilities": {
+        "F": 1.18e-06,
+        "QF": 0.00028013,
+        "R16": 0.00278168,
+        "R32": 0.03897595,
+        "R64": 0.19297,
+        "SF": 1.818e-05,
+        "W": 7e-08
+      }
+    },
+    {
+      "deuceName": "Peyton Stearns",
+      "drawPosition": 102,
+      "name": "Peyton Stearns",
+      "probabilities": {
+        "F": 0.00024822,
+        "QF": 0.01041112,
+        "R16": 0.03905072,
+        "R32": 0.33498088,
+        "R64": 0.80703,
+        "SF": 0.00147069,
+        "W": 3.699e-05
+      }
+    },
+    {
+      "deuceName": "Elsa Jacquemot",
+      "drawPosition": 103,
+      "name": "Elsa Jacquemot",
+      "probabilities": {
+        "F": 2.11e-06,
+        "QF": 0.00041056,
+        "R16": 0.00371531,
+        "R32": 0.04724102,
+        "R64": 0.151058,
+        "SF": 2.931e-05,
+        "W": 1.5e-07
+      }
+    },
+    {
+      "deuceName": "Marie Bouzkova",
+      "drawPosition": 104,
+      "name": "Marie Bouzkova",
+      "probabilities": {
+        "F": 0.00182251,
+        "QF": 0.03550521,
+        "R16": 0.09799723,
+        "R32": 0.57880215,
+        "R64": 0.848942,
+        "SF": 0.00745462,
+        "W": 0.00041387
+      }
+    },
+    {
+      "deuceName": "Madison Keys",
+      "drawPosition": 105,
+      "name": "Madison Keys",
+      "probabilities": {
+        "F": 0.01350213,
+        "QF": 0.1016488,
+        "R16": 0.33624563,
+        "R32": 0.58546247,
+        "R64": 0.675369,
+        "SF": 0.03371724,
+        "W": 0.00528282
+      }
+    },
+    {
+      "deuceName": "Alina Korneeva",
+      "drawPosition": 106,
+      "name": "Alina Korneeva",
+      "probabilities": {
+        "F": 0.00083362,
+        "QF": 0.01627168,
+        "R16": 0.08383298,
+        "R32": 0.22900207,
+        "R64": 0.324631,
+        "SF": 0.00350163,
+        "W": 0.00019235
+      }
+    },
+    {
+      "deuceName": "Lucie Havlickova",
+      "drawPosition": 107,
+      "name": "Lucie Havlickova",
+      "probabilities": {
+        "F": 8.55e-06,
+        "QF": 0.0011894,
+        "R16": 0.01334488,
+        "R32": 0.07897905,
+        "R64": 0.430683,
+        "SF": 0.00010247,
+        "W": 7.3e-07
+      }
+    },
+    {
+      "deuceName": "Anna Bondar",
+      "drawPosition": 108,
+      "name": "Anna Bondar",
+      "probabilities": {
+        "F": 2.057e-05,
+        "QF": 0.00217624,
+        "R16": 0.02117072,
+        "R32": 0.10655641,
+        "R64": 0.569317,
+        "SF": 0.00020605,
+        "W": 1.73e-06
+      }
+    },
+    {
+      "deuceName": "Qinwen Zheng",
+      "drawPosition": 109,
+      "name": "Qinwen Zheng",
+      "probabilities": {
+        "F": 0.00096316,
+        "QF": 0.01766281,
+        "R16": 0.09252063,
+        "R32": 0.1920821,
+        "R64": 0.542259,
+        "SF": 0.00383412,
+        "W": 0.00023194
+      }
+    },
+    {
+      "deuceName": "Kristina Liutova",
+      "drawPosition": 110,
+      "name": "Kristina Liutova",
+      "probabilities": {
+        "F": 0.00014704,
+        "QF": 0.00572633,
+        "R16": 0.03998532,
+        "R32": 0.10748093,
+        "R64": 0.457741,
+        "SF": 0.00084113,
+        "W": 2.177e-05
+      }
+    },
+    {
+      "deuceName": "Yulia Putintseva",
+      "drawPosition": 111,
+      "name": "Yulia Putintseva",
+      "probabilities": {
+        "F": 3.052e-05,
+        "QF": 0.00203021,
+        "R16": 0.01754847,
+        "R32": 0.058641,
+        "R64": 0.151326,
+        "SF": 0.00023759,
+        "W": 3.42e-06
+      }
+    },
+    {
+      "deuceName": "Belinda Bencic",
+      "drawPosition": 112,
+      "name": "Belinda Bencic",
+      "probabilities": {
+        "F": 0.01751867,
+        "QF": 0.11581674,
+        "R16": 0.39535138,
+        "R32": 0.64179597,
+        "R64": 0.848674,
+        "SF": 0.04179466,
+        "W": 0.00676734
+      }
+    },
+    {
+      "deuceName": "Naomi Osaka",
+      "drawPosition": 113,
+      "name": "Naomi Osaka",
+      "probabilities": {
+        "F": 0.04224751,
+        "QF": 0.22031254,
+        "R16": 0.55197411,
+        "R32": 0.73582217,
+        "R64": 0.883534,
+        "SF": 0.08663067,
+        "W": 0.02025035
+      }
+    },
+    {
+      "deuceName": "Anastasia Zakharova",
+      "drawPosition": 114,
+      "name": "Anastasia Zakharova",
+      "probabilities": {
+        "F": 1.835e-05,
+        "QF": 0.00153439,
+        "R16": 0.0134351,
+        "R32": 0.0418857,
+        "R64": 0.116466,
+        "SF": 0.00015716,
+        "W": 2.04e-06
+      }
+    },
+    {
+      "deuceName": "Elisabetta Cocciaretto",
+      "drawPosition": 115,
+      "name": "Elisabetta Cocciaretto",
+      "probabilities": {
+        "F": 7.075e-05,
+        "QF": 0.00403929,
+        "R16": 0.0281831,
+        "R32": 0.07645375,
+        "R64": 0.395711,
+        "SF": 0.0004756,
+        "W": 9.2e-06
+      }
+    },
+    {
+      "deuceName": "Katerina Siniakova",
+      "drawPosition": 116,
+      "name": "Katerina Siniakova",
+      "probabilities": {
+        "F": 0.00029346,
+        "QF": 0.01052779,
+        "R16": 0.05818005,
+        "R32": 0.14583837,
+        "R64": 0.604289,
+        "SF": 0.00162465,
+        "W": 4.858e-05
+      }
+    },
+    {
+      "deuceName": "Tamara Zidansek",
+      "drawPosition": 117,
+      "name": "Tamara Zidansek",
+      "probabilities": {
+        "F": 6.65e-06,
+        "QF": 0.00105026,
+        "R16": 0.01103659,
+        "R32": 0.08090038,
+        "R64": 0.392869,
+        "SF": 7.834e-05,
+        "W": 5.1e-07
+      }
+    },
+    {
+      "deuceName": "Maria Timofeeva",
+      "drawPosition": 118,
+      "name": "Maria Timofeeva",
+      "probabilities": {
+        "F": 9.063e-05,
+        "QF": 0.00532496,
+        "R16": 0.03986651,
+        "R32": 0.17538284,
+        "R64": 0.607131,
+        "SF": 0.00062606,
+        "W": 1.182e-05
+      }
+    },
+    {
+      "deuceName": "Kaitlin Quevedo",
+      "drawPosition": 119,
+      "name": "Kaitlin Quevedo",
+      "probabilities": {
+        "F": 7.95e-06,
+        "QF": 0.00098212,
+        "R16": 0.0106627,
+        "R32": 0.06775343,
+        "R64": 0.154249,
+        "SF": 8e-05,
+        "W": 6.8e-07
+      }
+    },
+    {
+      "deuceName": "Elise Mertens",
+      "drawPosition": 120,
+      "name": "Elise Mertens",
+      "probabilities": {
+        "F": 0.00514705,
+        "QF": 0.0773611,
+        "R16": 0.28666184,
+        "R32": 0.67596335,
+        "R64": 0.845751,
+        "SF": 0.01814895,
+        "W": 0.00149028
+      }
+    },
+    {
+      "deuceName": "Maria Sakkari",
+      "drawPosition": 121,
+      "name": "Maria Sakkari",
+      "probabilities": {
+        "F": 0.00119223,
+        "QF": 0.02893503,
+        "R16": 0.08386923,
+        "R32": 0.46710806,
+        "R64": 0.647249,
+        "SF": 0.00539061,
+        "W": 0.00024642
+      }
+    },
+    {
+      "deuceName": "Robin Montgomery",
+      "drawPosition": 122,
+      "name": "Robin Montgomery",
+      "probabilities": {
+        "F": 5.835e-05,
+        "QF": 0.00446438,
+        "R16": 0.01986908,
+        "R32": 0.16638124,
+        "R64": 0.352751,
+        "SF": 0.00048432,
+        "W": 6.79e-06
+      }
+    },
+    {
+      "deuceName": "Yuliia Starodubtseva",
+      "drawPosition": 123,
+      "name": "Yuliia Starodubtseva",
+      "probabilities": {
+        "F": 5.099e-05,
+        "QF": 0.0050877,
+        "R16": 0.02697482,
+        "R32": 0.28501267,
+        "R64": 0.710691,
+        "SF": 0.00048409,
+        "W": 4.8e-06
+      }
+    },
+    {
+      "deuceName": "Ella Seidel",
+      "drawPosition": 124,
+      "name": "Ella Seidel",
+      "probabilities": {
+        "F": 6.56e-06,
+        "QF": 0.00102772,
+        "R16": 0.00706389,
+        "R32": 0.08149803,
+        "R64": 0.289309,
+        "SF": 8.115e-05,
+        "W": 5.3e-07
+      }
+    },
+    {
+      "deuceName": "Darja Vidmanova",
+      "drawPosition": 125,
+      "name": "Darja Vidmanova",
+      "probabilities": {
+        "F": 0.00072398,
+        "QF": 0.01759166,
+        "R16": 0.04962606,
+        "R32": 0.09257411,
+        "R64": 0.610261,
+        "SF": 0.00319549,
+        "W": 0.00013909
+      }
+    },
+    {
+      "deuceName": "Jessica Bouzas Maneiro",
+      "drawPosition": 126,
+      "name": "Jessica Bouzas Maneiro",
+      "probabilities": {
+        "F": 6.028e-05,
+        "QF": 0.00399255,
+        "R16": 0.01812481,
+        "R32": 0.03912706,
+        "R64": 0.389739,
+        "SF": 0.00043478,
+        "W": 7.57e-06
+      }
+    },
+    {
+      "deuceName": "Thea Frodin",
+      "drawPosition": 127,
+      "name": "Thea Frodin",
+      "probabilities": {
+        "F": 3.9e-07,
+        "QF": 8.863e-05,
+        "R16": 0.00113242,
+        "R32": 0.00818568,
+        "R64": 0.055964,
+        "SF": 5.74e-06,
+        "W": 3e-08
+      }
+    },
+    {
+      "deuceName": "Elena Rybakina",
+      "drawPosition": 128,
+      "name": "Elena Rybakina",
+      "probabilities": {
+        "F": 0.23791009,
+        "QF": 0.61767987,
+        "R16": 0.79333968,
+        "R32": 0.86011315,
+        "R64": 0.944036,
+        "SF": 0.3620307,
+        "W": 0.14960698
+      }
+    }
+  ],
+  "predictor": {
+    "artifactId": "b7370c1d-76a9-4d66-8aeb-470a4c708799",
+    "trainedAt": "2026-08-29T22:11:26Z"
+  },
+  "rounds": [
+    "R64",
+    "R32",
+    "R16",
+    "QF",
+    "SF",
+    "F",
+    "W"
+  ],
+  "schema": "deuce-tournament-baseline-v1",
+  "season": 2026,
+  "sourceCapturedAt": "2026-08-31T00:55:32.513Z",
+  "sourceNormalizedSha256": "ee108855994c02d3096a2b70b3c630abd9330789b28386e44e87697d1ffa865f",
+  "tour": "wta"
+}

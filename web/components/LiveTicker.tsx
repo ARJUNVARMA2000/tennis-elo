@@ -78,9 +78,11 @@ export function useLiveMatches(tour: Tour): LiveMatchesState {
 export default function LiveTicker({
   live,
   standalone = false,
+  emptyMessage,
 }: {
   live: LiveMatchesState;
   standalone?: boolean;
+  emptyMessage?: string;
 }) {
   const { tour } = useTour();
   const { data: players } = useData<PlayerRow[]>("players.json");
@@ -123,7 +125,7 @@ export default function LiveTicker({
         <div className="panel-inset p-6 text-sm text-[var(--color-muted)]">Live scores are temporarily unavailable. Upcoming and final calls remain available in the other tabs.</div>
       )}
       {standalone && !loading && !error && !matches.length && (
-        <div className="panel-inset p-6 text-sm text-[var(--color-muted)]">No main-draw matches are live right now.</div>
+        <div className="panel-inset p-6 text-sm text-[var(--color-muted)]">{emptyMessage ?? "No main-draw matches are live right now."}</div>
       )}
       <ul role="list" className={standalone ? "grid gap-3 sm:grid-cols-2" : "flex gap-3 overflow-x-auto pb-2"}>
         {shownMatches.map((m) => (

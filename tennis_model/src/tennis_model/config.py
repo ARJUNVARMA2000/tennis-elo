@@ -38,6 +38,25 @@ def output_dir(tour: str) -> Path:
 
 
 KALSHI_LEDGER_DIR = DATA_DIR / "kalshi_ledger"   # committed CSVs + report (eval-only)
+TENNIS_ABSTRACT_DIR = DATA_DIR / "tennis_abstract"  # committed immutable benchmark receipts
+TENNIS_ABSTRACT_US_OPEN_FROZEN = {
+    "atp": {
+        "capturedAt": "2026-08-31T00:55:47.502Z",
+        "normalizedSha256": "7d638fc8692e1e2f0ea64172b7f28c14299a7de3d58efa9fec9a42b8dc055ac4",
+        "firstCaptureFileSha256": "1d5de2ac1891038f5c3049a16d3d3d2a086f30862117034bcb3544c10afe2df0",
+        "baselineSha256": "c530da6565c5c23ea149ed721b175137e5e20d483767b703a0b631cf791da7aa",
+        "eligibilitySha256": "5faa68b3f228c8ec60770815eb9438722901460498e8252e93ac0a35471b690d",
+        "scheduleReceiptSha256": "1ac1a94dc373571600a69faec2d72a914d4a100469c62492fefa6f7e5a2989ff",
+    },
+    "wta": {
+        "capturedAt": "2026-08-31T00:55:32.513Z",
+        "normalizedSha256": "ee108855994c02d3096a2b70b3c630abd9330789b28386e44e87697d1ffa865f",
+        "firstCaptureFileSha256": "1d5de2ac1891038f5c3049a16d3d3d2a086f30862117034bcb3544c10afe2df0",
+        "baselineSha256": "c508195db07385c275c50478f65a91c65775f8ae46272f9af0e58664024f700c",
+        "eligibilitySha256": "ac87d9140218bf164708b254113a4f65207b86bff8e1b2c7f33feb4041248048",
+        "scheduleReceiptSha256": "44df5ff7dcba0076eef1e8b195ee3751d24623a8ccc6ee3d75da9b0f541d3696",
+    },
+}
 
 
 def kalshi_dir(tour: str) -> Path:

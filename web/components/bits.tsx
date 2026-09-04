@@ -1,5 +1,7 @@
 "use client";
 
+import { FollowButton } from "@/components/Following";
+
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useTour } from "@/lib/tour";
@@ -255,16 +257,17 @@ export function CallCard({
         {[top, bottom].map((r, i) => (
           <div key={i}>
             <div className="flex items-center justify-between gap-3">
-              <span className="flex items-center gap-2 text-[15px]" style={{ color: r.won ? "var(--color-text)" : "var(--color-muted)" }}>
+              <span className="flex min-w-0 items-center gap-2 text-[15px]" style={{ color: r.won ? "var(--color-text)" : "var(--color-muted)" }}>
                 <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: r.won ? hi : "transparent" }} />
                 {/* relative z-10 keeps the profile links clickable above the card's
                     stretched matchup link (a plain wrapper would nest anchors) */}
                 <PlayerProfileLink
                   name={r.name}
                   profileRoster={profileRoster}
-                  className="relative z-10"
+                  className="relative z-10 min-w-0 break-words"
                   linkClassName="transition-colors hover:text-[var(--color-accent)] hover:underline"
                 />
+                <FollowButton name={r.name} compact />
               </span>
               <span className="mono text-sm" style={{ color: r.won ? "var(--color-text)" : "var(--color-muted)" }}>{pcts[i]}%</span>
             </div>

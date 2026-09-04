@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTour } from "@/lib/tour";
 import { withTour } from "@/lib/url";
-import { NAV_GROUPS } from "@/lib/navigation";
+import { NAV_GROUPS, sectionForPath } from "@/lib/navigation";
 import { SPRING } from "@/lib/motion";
 import { GitHubIcon } from "@/components/bits";
 import Freshness from "@/components/Freshness";
@@ -14,7 +14,11 @@ import CommandSearch from "@/components/CommandSearch";
 
 const GITHUB_URL = "https://github.com/ARJUNVARMA2000/tennis-elo";
 
-const isActive = (path: string, href: string) => (href === "/" ? path === "/" : path.startsWith(href));
+const isActive = (path: string, href: string) => {
+  if (href === "/matches" && sectionForPath(path)?.label === "Matches") return true;
+  if (href === "/scorecard" && sectionForPath(path)?.label === "Performance") return true;
+  return href === "/" ? path === "/" : path.startsWith(href);
+};
 const MOBILE_PRIMARY = [
   { href: "/", label: "Home", paths: ["/"] },
   { href: "/matches", label: "Matches", paths: ["/matches", "/schedule", "/results"] },

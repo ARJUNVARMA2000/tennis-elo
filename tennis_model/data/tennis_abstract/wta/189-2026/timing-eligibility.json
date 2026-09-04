@@ -1,0 +1,344 @@
+{
+  "captureLocalDate": "2026-08-30",
+  "eligibleMatchIds": [
+    "v2|espn:189-2026|2026|R128|alexandra eala|mary stoiana",
+    "v2|espn:189-2026|2026|R128|alina korneeva|madison keys",
+    "v2|espn:189-2026|2026|R128|amanda anisimova|ashlyn krueger",
+    "v2|espn:189-2026|2026|R128|anastasia potapova|tereza valentova",
+    "v2|espn:189-2026|2026|R128|anastasia zakharova|naomi osaka",
+    "v2|espn:189-2026|2026|R128|anhelina kalinina|himeno sakatsume",
+    "v2|espn:189-2026|2026|R128|ann li|antonia ruzic",
+    "v2|espn:189-2026|2026|R128|anna blinkova|anna kalinskaya",
+    "v2|espn:189-2026|2026|R128|anna bondar|lucie havlickova",
+    "v2|espn:189-2026|2026|R128|anouk koevermans|caty mcnally",
+    "v2|espn:189-2026|2026|R128|aoi ito|oksana selekhmeteva",
+    "v2|espn:189-2026|2026|R128|arantxa rus|leolia jeanjean",
+    "v2|espn:189-2026|2026|R128|aryna sabalenka|camila osorio",
+    "v2|espn:189-2026|2026|R128|belinda bencic|yulia putintseva",
+    "v2|espn:189-2026|2026|R128|clara tauson|sloane stephens",
+    "v2|espn:189-2026|2026|R128|coco gauff|zeynep sonmez",
+    "v2|espn:189-2026|2026|R128|cristina bucsa|sara bejlek",
+    "v2|espn:189-2026|2026|R128|daria kasatkina|paula badosa",
+    "v2|espn:189-2026|2026|R128|daria snigur|diana shnaider",
+    "v2|espn:189-2026|2026|R128|darja vidmanova|jessica bouzas maneiro",
+    "v2|espn:189-2026|2026|R128|diane parry|viktorija golubic",
+    "v2|espn:189-2026|2026|R128|elena rybakina|thea frodin",
+    "v2|espn:189-2026|2026|R128|elisabetta cocciaretto|katerina siniakova",
+    "v2|espn:189-2026|2026|R128|elise mertens|kaitlin quevedo",
+    "v2|espn:189-2026|2026|R128|ella seidel|yuliia starodubtseva",
+    "v2|espn:189-2026|2026|R128|elsa jacquemot|marie bouzkova",
+    "v2|espn:189-2026|2026|R128|eva lys|gabriela knutson",
+    "v2|espn:189-2026|2026|R128|francesca jones|magda linette",
+    "v2|espn:189-2026|2026|R128|harriet dart|peyton stearns",
+    "v2|espn:189-2026|2026|R128|iga swiatek|xiyu wang",
+    "v2|espn:189-2026|2026|R128|iva jovic|magdalena frech",
+    "v2|espn:189-2026|2026|R128|janice tjen|mirra andreeva",
+    "v2|espn:189-2026|2026|R128|jelena ostapenko|tatjana maria",
+    "v2|espn:189-2026|2026|R128|julia grabher|sorana cirstea",
+    "v2|espn:189-2026|2026|R128|karolina muchova|sinja kraus",
+    "v2|espn:189-2026|2026|R128|katie volynets|linda noskova",
+    "v2|espn:189-2026|2026|R128|kristina liutova|qinwen zheng",
+    "v2|espn:189-2026|2026|R128|lilli tagger|tamara korpatsch",
+    "v2|espn:189-2026|2026|R128|liudmila samsonova|maya joint",
+    "v2|espn:189-2026|2026|R128|maja chwalinska|taylor townsend",
+    "v2|espn:189-2026|2026|R128|mananchaya sawangkaew|panna udvardy",
+    "v2|espn:189-2026|2026|R128|maria sakkari|robin montgomery",
+    "v2|espn:189-2026|2026|R128|maria timofeeva|tamara zidansek",
+    "v2|espn:189-2026|2026|R128|mayar sherif|nikola bartunkova",
+    "v2|espn:189-2026|2026|R128|nadia podoroska|simona waltert",
+    "v2|espn:189-2026|2026|R128|oleksandra oliynykova|reese brantmeier"
+  ],
+  "espnId": "189-2026",
+  "event": "US Open",
+  "eventTimezone": "America/New_York",
+  "proofs": [
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|alexandra eala|mary stoiana",
+      "playerA": "Alexandra Eala",
+      "playerB": "Mary Stoiana",
+      "scheduledDate": "2026-09-01"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|alina korneeva|madison keys",
+      "playerA": "Alina Korneeva",
+      "playerB": "Madison Keys",
+      "scheduledDate": "2026-09-01"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|amanda anisimova|ashlyn krueger",
+      "playerA": "Amanda Anisimova",
+      "playerB": "Ashlyn Krueger",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|anastasia potapova|tereza valentova",
+      "playerA": "Tereza Valentova",
+      "playerB": "Anastasia Potapova",
+      "scheduledDate": "2026-09-01"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|anastasia zakharova|naomi osaka",
+      "playerA": "Anastasia Zakharova",
+      "playerB": "Naomi Osaka",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|anhelina kalinina|himeno sakatsume",
+      "playerA": "Himeno Sakatsume",
+      "playerB": "Anhelina Kalinina",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|ann li|antonia ruzic",
+      "playerA": "Antonia Ruzic",
+      "playerB": "Ann Li",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|anna blinkova|anna kalinskaya",
+      "playerA": "Anna Kalinskaya",
+      "playerB": "Anna Blinkova",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|anna bondar|lucie havlickova",
+      "playerA": "Anna Bondar",
+      "playerB": "Lucie Havlickova",
+      "scheduledDate": "2026-09-01"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|anouk koevermans|caty mcnally",
+      "playerA": "Caty Mcnally",
+      "playerB": "Anouk Koevermans",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|aoi ito|oksana selekhmeteva",
+      "playerA": "Oksana Selekhmeteva",
+      "playerB": "Aoi Ito",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|arantxa rus|leolia jeanjean",
+      "playerA": "Leolia Jeanjean",
+      "playerB": "Arantxa Rus",
+      "scheduledDate": "2026-09-01"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|aryna sabalenka|camila osorio",
+      "playerA": "Camila Osorio",
+      "playerB": "Aryna Sabalenka",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|belinda bencic|yulia putintseva",
+      "playerA": "Belinda Bencic",
+      "playerB": "Yulia Putintseva",
+      "scheduledDate": "2026-09-01"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|clara tauson|sloane stephens",
+      "playerA": "Clara Tauson",
+      "playerB": "Sloane Stephens",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|coco gauff|zeynep sonmez",
+      "playerA": "Coco Gauff",
+      "playerB": "Zeynep Sonmez",
+      "scheduledDate": "2026-09-01"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|cristina bucsa|sara bejlek",
+      "playerA": "Cristina Bucsa",
+      "playerB": "Sara Bejlek",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|daria kasatkina|paula badosa",
+      "playerA": "Paula Badosa",
+      "playerB": "Daria Kasatkina",
+      "scheduledDate": "2026-09-01"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|daria snigur|diana shnaider",
+      "playerA": "Diana Shnaider",
+      "playerB": "Daria Snigur",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|darja vidmanova|jessica bouzas maneiro",
+      "playerA": "Jessica Bouzas Maneiro",
+      "playerB": "Darja Vidmanova",
+      "scheduledDate": "2026-09-01"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|diane parry|viktorija golubic",
+      "playerA": "Diane Parry",
+      "playerB": "Viktorija Golubic",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|elena rybakina|thea frodin",
+      "playerA": "Elena Rybakina",
+      "playerB": "Thea Frodin",
+      "scheduledDate": "2026-09-01"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|elisabetta cocciaretto|katerina siniakova",
+      "playerA": "Katerina Siniakova",
+      "playerB": "Elisabetta Cocciaretto",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|elise mertens|kaitlin quevedo",
+      "playerA": "Elise Mertens",
+      "playerB": "Kaitlin Quevedo",
+      "scheduledDate": "2026-09-01"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|ella seidel|yuliia starodubtseva",
+      "playerA": "Ella Seidel",
+      "playerB": "Yuliia Starodubtseva",
+      "scheduledDate": "2026-09-01"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|elsa jacquemot|marie bouzkova",
+      "playerA": "Marie Bouzkova",
+      "playerB": "Elsa Jacquemot",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|eva lys|gabriela knutson",
+      "playerA": "Eva Lys",
+      "playerB": "Gabriela Knutson",
+      "scheduledDate": "2026-09-01"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|francesca jones|magda linette",
+      "playerA": "Francesca Jones",
+      "playerB": "Magda Linette",
+      "scheduledDate": "2026-09-01"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|harriet dart|peyton stearns",
+      "playerA": "Peyton Stearns",
+      "playerB": "Harriet Dart",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|iga swiatek|xiyu wang",
+      "playerA": "Xiyu Wang",
+      "playerB": "Iga Swiatek",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|iva jovic|magdalena frech",
+      "playerA": "Magdalena Frech",
+      "playerB": "Iva Jovic",
+      "scheduledDate": "2026-09-01"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|janice tjen|mirra andreeva",
+      "playerA": "Janice Tjen",
+      "playerB": "Mirra Andreeva",
+      "scheduledDate": "2026-09-01"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|jelena ostapenko|tatjana maria",
+      "playerA": "Jelena Ostapenko",
+      "playerB": "Tatjana Maria",
+      "scheduledDate": "2026-09-01"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|julia grabher|sorana cirstea",
+      "playerA": "Sorana Cirstea",
+      "playerB": "Julia Grabher",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|karolina muchova|sinja kraus",
+      "playerA": "Karolina Muchova",
+      "playerB": "Sinja Kraus",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|katie volynets|linda noskova",
+      "playerA": "Linda Noskova",
+      "playerB": "Katie Volynets",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|kristina liutova|qinwen zheng",
+      "playerA": "Kristina Liutova",
+      "playerB": "Qinwen Zheng",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|lilli tagger|tamara korpatsch",
+      "playerA": "Tamara Korpatsch",
+      "playerB": "Lilli Tagger",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|liudmila samsonova|maya joint",
+      "playerA": "Liudmila Samsonova",
+      "playerB": "Maya Joint",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|maja chwalinska|taylor townsend",
+      "playerA": "Taylor Townsend",
+      "playerB": "Maja Chwalinska",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|mananchaya sawangkaew|panna udvardy",
+      "playerA": "Panna Udvardy",
+      "playerB": "Mananchaya Sawangkaew",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|maria sakkari|robin montgomery",
+      "playerA": "Robin Montgomery",
+      "playerB": "Maria Sakkari",
+      "scheduledDate": "2026-09-01"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|maria timofeeva|tamara zidansek",
+      "playerA": "Maria Timofeeva",
+      "playerB": "Tamara Zidansek",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|mayar sherif|nikola bartunkova",
+      "playerA": "Mayar Sherif",
+      "playerB": "Nikola Bartunkova",
+      "scheduledDate": "2026-09-01"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|nadia podoroska|simona waltert",
+      "playerA": "Simona Waltert",
+      "playerB": "Nadia Podoroska",
+      "scheduledDate": "2026-08-31"
+    },
+    {
+      "matchId": "v2|espn:189-2026|2026|R128|oleksandra oliynykova|reese brantmeier",
+      "playerA": "Reese Brantmeier",
+      "playerB": "Oleksandra Oliynykova",
+      "scheduledDate": "2026-09-01"
+    }
+  ],
+  "rule": "saved scheduledDate is strictly after captureLocalDate",
+  "schedule": {
+    "receiptRelativePath": "data/tennis_abstract/wta/189-2026/schedule-receipt.csv",
+    "relativePath": "data/raw/wta/live/upcoming.csv",
+    "sha256": "44df5ff7dcba0076eef1e8b195ee3751d24623a8ccc6ee3d75da9b0f541d3696"
+  },
+  "schema": "tennis-abstract-timing-eligibility-v1",
+  "season": 2026,
+  "sourceCapturedAt": "2026-08-31T00:55:32.513Z",
+  "sourceNormalizedSha256": "ee108855994c02d3096a2b70b3c630abd9330789b28386e44e87697d1ffa865f",
+  "tour": "wta",
+  "unprovenMatchCount": 18
+}

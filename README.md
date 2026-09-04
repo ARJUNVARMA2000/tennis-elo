@@ -87,6 +87,11 @@ component gate in every fold but was rejected when the retrained combiner absorb
 [`research program`](tasks/research/PROGRAM.md) defines the standing protocol, and every attempt is
 recorded in the machine-readable [`research ledger`](tasks/research/ledger.tsv).
 
+An optional [`prospective comparison workflow`](tasks/research/PROSPECTIVE.md) freezes an
+incumbent and candidate before collecting future paired forecasts. It preserves source and
+timing evidence, excludes calls that cannot be proved pre-match, and supplements the arbiter
+without changing production predictions or automatically adopting a candidate.
+
 ## Architecture
 
 ```text

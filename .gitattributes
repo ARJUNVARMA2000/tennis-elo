@@ -4,3 +4,5 @@
 # developed on Windows with autocrlf on, so pin the checkout encoding rather than rely on
 # every future edit happening to preserve LF.
 *.sh text eol=lf
+# Benchmark source receipts are hashed original bytes, including provider whitespace.
+tennis_model/data/tennis_abstract/**/raw.html -text -whitespace

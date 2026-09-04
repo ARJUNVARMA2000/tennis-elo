@@ -32,6 +32,7 @@ from .config import (
     MATCH_POPULATION_VERSION,
     OUTPUT_DIR,
     PLAYER_ALIASES,
+    TENNIS_ABSTRACT_DIR,
     TOURS,
     WTA_DUAL_STATE_GATE_THRESHOLD,
     kalshi_dir,
@@ -66,6 +67,7 @@ PIPELINE_STAGE_CRITICALITY = {
     "market_scorecard": "evaluation",
     "kalshi_benchmark": "evaluation",
     "kalshi_report": "evaluation",
+    "tennis_abstract_benchmark": "evaluation",
 }
 
 
@@ -75,6 +77,10 @@ class UpcomingInputDegraded(RuntimeError):
 
 class ForecastLogDegraded(RuntimeError):
     """Forecast tracking skipped one or more malformed persisted records."""
+
+
+class TennisAbstractAcquisitionDegraded(RuntimeError):
+    """The optional external benchmark refresh failed while frozen evidence remained usable."""
 
 
 class KalshiAcquisitionDegraded(RuntimeError):
@@ -297,6 +303,37 @@ def _tracking_source_identity(tour: str) -> dict:
             tour, ("brackets.json", "tournaments.json", "accuracy.json")
         ),
     }
+
+
+def _tennis_abstract_source_identity(
+    tour: str, *, include_external: bool = False
+) -> dict:
+    """Frozen cohort and durable state read by the public benchmark.
+
+    The provider pointer is an acquisition input only. The public report is anchored to
+    the frozen first capture and deliberately omits transport status, so its release
+    provenance must not change merely because a conditional request updated ``latest``.
+    """
+    from .eval.tennis_abstract_benchmark import (
+        FIRST_CAPTURE_PATH,
+        baseline_path,
+        eligibility_path,
+        ledger_path,
+        schedule_receipt_path,
+    )
+
+    identity = {
+        "firstCapture": _file_input_identity(FIRST_CAPTURE_PATH),
+        "forecastLog": _forecast_log_input_identity(tour),
+        "baseline": _file_input_identity(baseline_path(tour)),
+        "eligibility": _file_input_identity(eligibility_path(tour)),
+        "scheduleReceipt": _file_input_identity(schedule_receipt_path(tour)),
+        "ledger": _file_input_identity(ledger_path(tour)),
+    }
+    if include_external:
+        event_root = TENNIS_ABSTRACT_DIR / tour / "189-2026"
+        identity["latestExternal"] = _file_input_identity(event_root / "latest.json")
+    return identity
 
 
 def _profile_sources_input_identity(tour: str) -> dict:
@@ -703,6 +740,56 @@ def _forecast_products(tour: str, predictor, df,
         print(f"  forecast-products/{tour}: skipped ({e})")
 
 
+def _tennis_abstract_benchmark(
+    tour: str,
+    predictor,
+    df,
+    *,
+    refresh_external: bool,
+) -> None:
+    """Grade the frozen external benchmark without becoming a release dependency."""
+    try:
+        sources = _tennis_abstract_source_identity(
+            tour, include_external=refresh_external
+        )
+        _bind_frame_release_stage_input(df, "tennisAbstractBenchmark", sources)
+        with _receipt_stage(
+            tour,
+            "tennis_abstract_benchmark",
+            _frame_input_identity(df),
+            _predictor_input_identity(predictor),
+            sources,
+            {"refreshExternal": refresh_external},
+        ) as attempt:
+            from .eval.tennis_abstract_benchmark import run_benchmark
+
+            result = run_benchmark(
+                tour,
+                predictor,
+                df,
+                refresh_external=refresh_external,
+            )
+            final_sources = _tennis_abstract_source_identity(tour)
+            final_sources["ledgerBefore"] = sources["ledger"]
+            _bind_frame_release_stage_input(
+                df, "tennisAbstractBenchmark", final_sources
+            )
+            if result.get("refreshError"):
+                attempt.mark_failure(TennisAbstractAcquisitionDegraded(
+                    str(result["refreshError"])
+                ))
+            report = result["report"]
+            comparison = report.get("matchComparison") or {}
+            print(
+                f"  tennis-abstract/{tour}: eligible={comparison.get('eligible', 0)} "
+                f"graded={comparison.get('graded', 0)} "
+                f"excluded={comparison.get('excluded', 0)} "
+                f"refresh={result.get('refreshStatus')}"
+            )
+    except Exception as e:  # noqa: BLE001 — external evaluation must never block release
+        print(f"  tennis-abstract/{tour}: skipped ({e})")
+
+
 def _health_manifest(tour: str, df) -> None:
     """Let the later standalone health command reuse this exact normalized frame."""
     try:
@@ -842,7 +929,13 @@ def _kalshi_report(tours) -> None:
         print(f"  kalshi-report: skipped ({e})")
 
 
-def build_tour(tour: str, do_backtest: bool, *, run_kalshi: bool = True):
+def build_tour(
+    tour: str,
+    do_backtest: bool,
+    *,
+    run_kalshi: bool = True,
+    refresh_tennis_abstract: bool = True,
+):
     """Full build: re-walk ratings, retrain the combiner, write every JSON (daily).
     ``run_kalshi=False`` is used only by a quick-mode compatibility rebuild so the
     caller can keep both tours under the shared hourly benchmark budget. Public bytes are
@@ -912,6 +1005,12 @@ def build_tour(tour: str, do_backtest: bool, *, run_kalshi: bool = True):
         _market_scorecard(tour, oos)
     enriched = _prepare_upcoming(tour, predictor, df)
     _track(tour, predictor, df, enriched)        # logs upcoming forecasts first, so
+    _tennis_abstract_benchmark(
+        tour,
+        predictor,
+        df,
+        refresh_external=refresh_tennis_abstract,
+    )
     _forecast_products(tour, predictor, df, enriched)  # this run's snapshot reaches same deploy
     if run_kalshi:
         _kalshi(tour, df, oos)                         # daily historical benchmark repair
@@ -988,19 +1087,31 @@ def build_tour_quick(
             f"  quick: saved predictor rejected ({exc.reason.value}) -> full rebuild"
         )
         return build_tour(
-            tour, do_backtest=False, run_kalshi=False
+            tour,
+            do_backtest=False,
+            run_kalshi=False,
+            refresh_tennis_abstract=False,
         )
     if not _predictor_current(predictor, tour):
         print("  quick: saved predictor is stale (feature schema, FeatureParams, match "
               "population, or player aliases) -> full rebuild")
         return build_tour(
-            tour, do_backtest=False, run_kalshi=False
+            tour,
+            do_backtest=False,
+            run_kalshi=False,
+            refresh_tennis_abstract=False,
         )
     _bind_frame_predictor(df, predictor)
     export_all(tour, df, predictor.elo, predictor.srv, predictor.meta, predictor,
                oos=None, full=force_static)
     enriched = _prepare_upcoming(tour, predictor, df)
     _track(tour, predictor, df, enriched)
+    _tennis_abstract_benchmark(
+        tour,
+        predictor,
+        df,
+        refresh_external=False,
+    )
     _forecast_products(tour, predictor, df, enriched)
     return df
 
