@@ -4,5 +4,8 @@
 # developed on Windows with autocrlf on, so pin the checkout encoding rather than rely on
 # every future edit happening to preserve LF.
 *.sh text eol=lf
-# Benchmark source receipts are hashed original bytes, including provider whitespace.
-tennis_model/data/tennis_abstract/**/raw.html -text -whitespace
+# Benchmark evidence is hashed as original bytes; never convert checkout line endings.
+tasks/research/2026-us-open-tennis-abstract-first-capture.json -text
+tennis_model/data/tennis_abstract/** -text
+# Provider whitespace is part of the immutable HTML receipt.
+tennis_model/data/tennis_abstract/**/raw.html -whitespace

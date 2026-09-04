@@ -184,3 +184,16 @@ Indexed in [`../lessons.md`](../lessons.md).
   **How to apply:** carry `espnId` through lightweight client types, URL builders, and projection
   lookups; permit a name fallback only when the candidate artifact is genuinely ID-less, never when
   two provider IDs conflict.
+
+- **A finished static preview needs both the new UI and a current accepted data snapshot.**
+  (2026-09-04, product improvements) The user saw unchanged information after implementation
+  because the preview still served old generated data and the changes had not yet been pushed.
+  **How to apply:** distinguish local completion from deployment, carry explicit push authorization
+  through the live checks, and verify the preview's served health timestamp. If using public data
+  to refresh a preview, validate its accepted manifest and every artifact digest; never publish stale
+  local output or bypass the normal release gates.
+
+- **Exercise benchmark gates with producer-generated settled reports, not only pending fixtures.**
+  (2026-09-04) Pending fixtures hid a gate that demanded independent-sample standard errors for
+  dependent tournament reach outcomes. Replay both tours through pending, partial, and final
+  states; require null reach uncertainty and reject invented estimates while preserving match SEs.

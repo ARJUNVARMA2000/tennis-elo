@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import copy
+import json
+import shutil
 
 import pandas as pd
 import pytest
+from tennis_model.eval import tennis_abstract_benchmark as benchmark
 
 from tennis_model.data import health
 
@@ -115,9 +118,9 @@ def _payload() -> dict:
     }
 
 
-def _findings(payload: dict) -> list[health.HealthFinding]:
+def _findings(payload: dict, tour: str = "atp") -> list[health.HealthFinding]:
     return health.output_findings(
-        "atp",
+        tour,
         {
             "data": {"tennis-abstract": payload},
             "missing": [],
@@ -133,9 +136,9 @@ def _findings(payload: dict) -> list[health.HealthFinding]:
     )
 
 
-def _contract_hits(payload: dict) -> list[health.HealthFinding]:
+def _contract_hits(payload: dict, tour: str = "atp") -> list[health.HealthFinding]:
     return [
-        finding for finding in _findings(payload)
+        finding for finding in _findings(payload, tour)
         if finding.code == "output.tennis_abstract.contract_invalid"
     ]
 
@@ -231,3 +234,50 @@ def test_reach_resolved_counts_must_be_monotone_by_stage() -> None:
     hits = _contract_hits(payload)
     assert len(hits) == 1
     assert "reach resolved monotonicity" in hits[0].evidence["problems"]
+
+
+@pytest.mark.parametrize("tour", ("atp", "wta"))
+@pytest.mark.parametrize("completed_rounds", (0, 1, 7), ids=("pending", "in-progress", "complete"))
+def test_produced_reach_reports_obey_the_gate_through_settlement(
+    tmp_path, monkeypatch: pytest.MonkeyPatch, tour: str, completed_rounds: int,
+) -> None:
+    # Replay the actual producer with frozen evidence and synthetic bracket outcomes.
+    # Hand-written pending-only payloads missed the deployment failure at graded n >= 2.
+    evidence = tmp_path / "evidence"
+    shutil.copytree(
+        benchmark.TENNIS_ABSTRACT_DIR / tour, evidence / tour,
+        ignore=shutil.ignore_patterns("comparison.jsonl"),
+    )
+    monkeypatch.setattr(benchmark, "TENNIS_ABSTRACT_DIR", evidence)
+    emitted = []
+    monkeypatch.setattr(
+        benchmark, "write_produced_artifact",
+        lambda _tour, _path, raw, **_kwargs: emitted.append(json.loads(raw)),
+    )
+    players = [row["name"] for row in benchmark.first_capture_snapshot(tour)["players"]]
+    results = []
+    for round_name in ("R128", "R64", "R32", "R16", "QF", "SF", "F")[:completed_rounds]:
+        winners = []
+        for winner, loser in zip(players[::2], players[1::2], strict=True):
+            results.append({
+                "espnId": "189-2026", "season": 2026, "round": round_name,
+                "winner_name": winner, "loser_name": loser, "completed": True,
+                "result_type": "completed", "startedAt": "2026-09-01T16:00:00Z",
+            })
+            winners.append(winner)
+        players = winners
+    produced = benchmark.run_benchmark(tour, object(), results)["report"]
+    assert emitted == [produced]
+    assert produced["status"] == ("complete" if completed_rounds == 7 else "accruing")
+    assert _contract_hits(produced, tour) == []
+
+    if completed_rounds:
+        assert produced["reachComparison"]["stages"][0]["graded"] == 128
+        assert produced["reachComparison"]["stages"][0]["paired"]["seLogloss"] is None
+        broken = copy.deepcopy(produced)
+        broken["reachComparison"]["stages"][0]["paired"]["seLogloss"] = 0.01
+        broken["reachComparison"]["stages"][0]["paired"]["seBrier"] = 0.01
+        findings = _contract_hits(broken, tour)
+        assert len(findings) == 1
+        assert health._gate_blocks(findings[0])
+        assert "reach stage 'R64'" in findings[0].evidence["problems"]

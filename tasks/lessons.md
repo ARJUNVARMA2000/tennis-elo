@@ -322,3 +322,10 @@ New lesson → append the entry to the matching topic file and add its lead line
 - Forecast eligibility must follow the predictor state bundle the adopted gate actually selects;
   current-season lower-state acquisition and broader population adoption are separate decisions.
   See [`lessons/model-research.md`](lessons/model-research.md).
+
+## Product publication addition (2026-09-04)
+
+- A finished static preview needs both the new UI and a current accepted data snapshot; carry
+  push authorization through live checks. See [`lessons/web.md`](lessons/web.md).
+- Exercise benchmark gates with producer-generated settled reports, not only pending fixtures.
+  See [`lessons/web.md`](lessons/web.md).

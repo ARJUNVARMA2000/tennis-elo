@@ -5963,7 +5963,7 @@ commits since the local base; preserve those observations alongside the local be
 - [x] Review the completed changes and current production status. The latest completed production
       refresh passed and there are no open health incidents; the previously reported failures are
       confined to stale local generated data, which will not be uploaded.
-- [ ] Commit the approved implementation and reconcile remote evaluation history without losing
+- [x] Commit the approved implementation and reconcile remote evaluation history without losing
       observations or changing frozen benchmark evidence.
 - [ ] Push master and follow the production workflow through tests, fresh data generation, the
       integrity gate, deployment, and live-serving verification.
@@ -5971,3 +5971,18 @@ commits since the local base; preserve those observations alongside the local be
 
 Deployment uses the existing CI data cache and normal regeneration/gates. Do not publish the stale
 local output or bypass either release gate.
+
+### Deployment gate repair
+
+Run 33912913051 passed CI but blocked publication on both graded Tennis Abstract reports.
+The producer and browser intentionally omit naive standard errors for dependent tournament
+reach outcomes; the Python gate incorrectly required them as soon as a stage had two results.
+
+- [x] Replay producer-generated reports with pending, partially graded, and completed reach stages
+      through the gate, including a negative case with invented independent-sample uncertainty.
+- [ ] Make the reach-stage validator enforce the existing no-naive-SE contract, run the regression
+      suite, push the correction, and follow the replacement release through both gates.
+
+Repair verification: the new lifecycle replay reproduced four failures before the change; all
+187 focused benchmark/health tests and Ruff passed afterward. The gate now requires null reach-stage
+SEs, matching the producer and browser, while retaining numeric paired SEs for match comparisons.

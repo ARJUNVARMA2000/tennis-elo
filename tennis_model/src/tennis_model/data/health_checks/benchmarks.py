@@ -214,7 +214,11 @@ def _check_tennis_abstract_benchmark(out: list, tour: str, payload: dict) -> Non
                     or row.get("resolved") != graded
                     or not metric_block(row.get("deuce"), expected_n=graded)
                     or not metric_block(row.get("tennisAbstract"), expected_n=graded)
-                    or not paired_block(row.get("paired"), expected_n=graded)
+                    # Reach outcomes share one bracket; the producer and browser omit
+                    # independent-sample SEs for every stage, including graded n >= 2.
+                    or not paired_block(
+                        row.get("paired"), expected_n=graded, allow_naive_se=False,
+                    )
                     or not isinstance(reasons, dict)
                     or any(not isinstance(key, str) or not count(value) or value <= 0
                            for key, value in reasons.items())
