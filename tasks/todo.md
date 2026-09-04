@@ -5965,9 +5965,9 @@ commits since the local base; preserve those observations alongside the local be
       confined to stale local generated data, which will not be uploaded.
 - [x] Commit the approved implementation and reconcile remote evaluation history without losing
       observations or changing frozen benchmark evidence.
-- [ ] Push master and follow the production workflow through tests, fresh data generation, the
+- [x] Push master and follow the production workflow through tests, fresh data generation, the
       integrity gate, deployment, and live-serving verification.
-- [ ] Confirm the live improvements, update the preview, and append the final deployment review.
+- [x] Confirm the live improvements, update the preview, and append the final deployment review.
 
 Deployment uses the existing CI data cache and normal regeneration/gates. Do not publish the stale
 local output or bypass either release gate.
@@ -5980,9 +5980,25 @@ reach outcomes; the Python gate incorrectly required them as soon as a stage had
 
 - [x] Replay producer-generated reports with pending, partially graded, and completed reach stages
       through the gate, including a negative case with invented independent-sample uncertainty.
-- [ ] Make the reach-stage validator enforce the existing no-naive-SE contract, run the regression
+- [x] Make the reach-stage validator enforce the existing no-naive-SE contract, run the regression
       suite, push the correction, and follow the replacement release through both gates.
 
 Repair verification: the new lifecycle replay reproduced four failures before the change; all
 187 focused benchmark/health tests and Ruff passed afterward. The gate now requires null reach-stage
 SEs, matching the producer and browser, while retaining numeric paired SEs for match comparisons.
+
+### Publication review
+
+- Pushed the implementation and preserved all remote/local forecast observations in e8f6fcb and
+  987c590, then corrected the settled reach validator in eeb0eb7. Frozen evidence hashes match the
+  committed Git objects, and checkout attributes preserve their original bytes across platforms.
+- Replacement production run 33914194990 completed successfully on eeb0eb7. CI passed 1,195 Python
+  tests with one skipped, 339 web tests, Ruff, TypeScript, lint with zero errors/nine warnings,
+  the production build, and 8/8 browser checks. The pre-deploy integrity gate and 22/22 live-serving
+  checks passed; the two benchmark health incidents closed automatically and no open incidents remain.
+- Live release 90816684-b082-47d8-ae7f-f00823a360d3 has health timestamp 2026-09-04T20:07:05Z.
+  The benchmark grades 28 ATP and 45 WTA eligible matches, retains 36/19 exclusions, and reports
+  all seven reach stages with the original post-start and one-tournament caveats.
+- Verified the live WTA Match Center shows the new section navigation, Following controls and
+  current scores. Refreshed the local static preview from that accepted public release, verifying
+  all 449 declared artifact hashes before replacing its data, and opened the live Match Center.
