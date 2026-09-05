@@ -1,0 +1,103 @@
+
+<html><head>
+<title>Tennis Abstract: 2026 US Open Men's Draw Forecast Forecast</title>
+<link rel="stylesheet" href="https://www.tennisabstract.com/blue/style.css" type="text/css">
+<script type="text/javascript" src="https://www.tennisabstract.com/jquery-1.7.1-min.js"></script>
+<script type="text/javascript" src="https://www.tennisabstract.com/jquery.ui.core.js"></script>
+<script type="text/javascript" src="https://www.tennisabstract.com/jquery.ui.position.js"></script>
+<script type="text/javascript" src="https://www.tennisabstract.com/jquery.ui.widget.js"></script>
+<script type="text/javascript" src="https://www.tennisabstract.com/jquery.ui.autocomplete.js"></script>
+<script type="text/javascript" src="https://www.tennisabstract.com/cgi-bin/jsplayers/mwplayerlist.js"></script>
+<script type="text/javascript" src="https://www.tennisabstract.com/navbar.js"></script>
+<script language="JavaScript">
+
+$(document).ready(function() {
+
+    if (typeof navbar !== 'undefined') {
+        $("#navbar").html(navbar);
+        }
+        
+    $('#playersearch').append($('<input>').attr('id', 'tags'));
+    var searchbox = "Player Search";        
+    $("#tags").val(searchbox);
+    $("#tags").focus(function() {
+        if ($(this).val() == searchbox) {$(this).val("");}
+        $( "#tags" ).autocomplete({
+                source: playerlist,
+                minLength: 2,
+                select: function(e, ui) {
+                    var playerselect = ui.item.value;
+                    var player = playerselect.slice(4);
+                    var mw = playerselect.slice(1,2);
+                    if (mw == 'M') {
+                        var playerurl = 'https://www.tennisabstract.com/cgi-bin/player.cgi?p=' + player.replace(/ /g, '');
+                        }
+                    else {
+                        var playerurl = 'https://www.tennisabstract.com/cgi-bin/wplayer.cgi?p=' + player.replace(/ /g, '');
+                        }                        
+                    window.open(playerurl, "_self");
+                    }
+            });
+        });
+    })
+</script>
+</head>
+<body>
+
+<div id="header">
+
+<div id="navbar">
+</div>
+
+<table width="1280px">
+<tr>
+<td valign="top" width="1280px">
+<h2>2026 US Open Men's Draw Forecast</h2>
+
+<table cellpadding=2 cellspacing=0><tr><td>Player</td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;R16</td><td align="right">&nbsp;&nbsp;QF</td><td align="right">&nbsp;&nbsp;SF</td><td align="right">&nbsp;&nbsp;F</td><td align="right">&nbsp;&nbsp;W</td></tr>
+<tr><td>(1)<a href="https://www.tennisabstract.com/cgi-bin/player.cgi?p=AlexanderZverev">Alexander Zverev</a> (GER)</td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;87.9%</td><td align="right">&nbsp;&nbsp;81.4%</td><td align="right">&nbsp;&nbsp;72.2%</td><td align="right">&nbsp;&nbsp;55.5%</td><td align="right">&nbsp;&nbsp;38.4%</td></tr>
+<tr><td>(25)<a href="https://www.tennisabstract.com/cgi-bin/player.cgi?p=AlejandroTabilo">Alejandro Tabilo</a> (CHI)</td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;12.1%</td><td align="right">&nbsp;&nbsp;7.7%</td><td align="right">&nbsp;&nbsp;4.0%</td><td align="right">&nbsp;&nbsp;1.3%</td><td align="right">&nbsp;&nbsp;0.3%</td></tr>
+<tr><td>(21)<a href="https://www.tennisabstract.com/cgi-bin/player.cgi?p=LucianoDarderi">Luciano Darderi</a> (ITA)</td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;89.5%</td><td align="right">&nbsp;&nbsp;10.8%</td><td align="right">&nbsp;&nbsp;4.5%</td><td align="right">&nbsp;&nbsp;1.1%</td><td align="right">&nbsp;&nbsp;0.2%</td></tr>
+<tr><td>(WC)<a href="https://www.tennisabstract.com/cgi-bin/player.cgi?p=DaneSweeny">Dane Sweeny</a> (AUS)</td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;10.5%</td><td align="right">&nbsp;&nbsp;0.2%</td><td align="right">&nbsp;&nbsp;0.0%</td><td align="right">&nbsp;&nbsp;0.0%</td><td align="right">&nbsp;&nbsp;0.0%</td></tr>
+<tr><td>(WC)<a href="https://www.tennisabstract.com/cgi-bin/player.cgi?p=MichaelZheng">Michael Zheng</a> (USA)</td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;48.8%</td><td align="right">&nbsp;&nbsp;25.7%</td><td align="right">&nbsp;&nbsp;5.1%</td><td align="right">&nbsp;&nbsp;1.7%</td><td align="right">&nbsp;&nbsp;0.4%</td></tr>
+<tr><td>(LL)<a href="https://www.tennisabstract.com/cgi-bin/player.cgi?p=ArthurGea">Arthur Gea</a> (FRA)</td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;51.2%</td><td align="right">&nbsp;&nbsp;27.6%</td><td align="right">&nbsp;&nbsp;5.7%</td><td align="right">&nbsp;&nbsp;1.9%</td><td align="right">&nbsp;&nbsp;0.5%</td></tr>
+<tr><td>(31)<a href="https://www.tennisabstract.com/cgi-bin/player.cgi?p=ZizouBergs">Zizou Bergs</a> (BEL)</td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;47.6%</td><td align="right">&nbsp;&nbsp;21.6%</td><td align="right">&nbsp;&nbsp;3.9%</td><td align="right">&nbsp;&nbsp;1.1%</td><td align="right">&nbsp;&nbsp;0.2%</td></tr>
+<tr><td><a href="https://www.tennisabstract.com/cgi-bin/player.cgi?p=BoticVanDeZandschulp">Botic Van De Zandschulp</a> (NED)</td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;52.4%</td><td align="right">&nbsp;&nbsp;25.0%</td><td align="right">&nbsp;&nbsp;4.7%</td><td align="right">&nbsp;&nbsp;1.5%</td><td align="right">&nbsp;&nbsp;0.3%</td></tr>
+<tr><td></td><td align="right">&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;</td></tr>
+<tr><td>Player</td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;R16</td><td align="right">&nbsp;&nbsp;QF</td><td align="right">&nbsp;&nbsp;SF</td><td align="right">&nbsp;&nbsp;F</td><td align="right">&nbsp;&nbsp;W</td></tr>
+<tr><td><a href="https://www.tennisabstract.com/cgi-bin/player.cgi?p=KarenKhachanov">Karen Khachanov</a> (RUS)</td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;55.7%</td><td align="right">&nbsp;&nbsp;14.6%</td><td align="right">&nbsp;&nbsp;4.7%</td><td align="right">&nbsp;&nbsp;1.0%</td><td align="right">&nbsp;&nbsp;0.2%</td></tr>
+<tr><td><a href="https://www.tennisabstract.com/cgi-bin/player.cgi?p=BenjaminBonzi">Benjamin Bonzi</a> (FRA)</td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;44.3%</td><td align="right">&nbsp;&nbsp;9.6%</td><td align="right">&nbsp;&nbsp;2.6%</td><td align="right">&nbsp;&nbsp;0.5%</td><td align="right">&nbsp;&nbsp;0.1%</td></tr>
+<tr><td>(17)<a href="https://www.tennisabstract.com/cgi-bin/player.cgi?p=JakubMensik">Jakub Mensik</a> (CZE)</td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;46.9%</td><td align="right">&nbsp;&nbsp;35.0%</td><td align="right">&nbsp;&nbsp;19.2%</td><td align="right">&nbsp;&nbsp;7.3%</td><td align="right">&nbsp;&nbsp;3.2%</td></tr>
+<tr><td>(14)<a href="https://www.tennisabstract.com/cgi-bin/player.cgi?p=LearnerTien">Learner Tien</a> (USA)</td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;53.1%</td><td align="right">&nbsp;&nbsp;40.7%</td><td align="right">&nbsp;&nbsp;23.4%</td><td align="right">&nbsp;&nbsp;9.5%</td><td align="right">&nbsp;&nbsp;4.4%</td></tr>
+<tr><td>(9)<a href="https://www.tennisabstract.com/cgi-bin/player.cgi?p=TaylorFritz">Taylor Fritz</a> (USA)</td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;61.5%</td><td align="right">&nbsp;&nbsp;38.5%</td><td align="right">&nbsp;&nbsp;21.9%</td><td align="right">&nbsp;&nbsp;8.8%</td><td align="right">&nbsp;&nbsp;4.0%</td></tr>
+<tr><td>(24)<a href="https://www.tennisabstract.com/cgi-bin/player.cgi?p=FranciscoCerundolo">Francisco Cerundolo</a> (ARG)</td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;38.5%</td><td align="right">&nbsp;&nbsp;19.7%</td><td align="right">&nbsp;&nbsp;9.1%</td><td align="right">&nbsp;&nbsp;2.8%</td><td align="right">&nbsp;&nbsp;1.0%</td></tr>
+<tr><td>(28)<a href="https://www.tennisabstract.com/cgi-bin/player.cgi?p=AlexanderBlockx">Alexander Blockx</a> (BEL)</td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;36.9%</td><td align="right">&nbsp;&nbsp;12.5%</td><td align="right">&nbsp;&nbsp;4.7%</td><td align="right">&nbsp;&nbsp;1.2%</td><td align="right">&nbsp;&nbsp;0.3%</td></tr>
+<tr><td>(5)<a href="https://www.tennisabstract.com/cgi-bin/player.cgi?p=FlavioCobolli">Flavio Cobolli</a> (ITA)</td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;63.1%</td><td align="right">&nbsp;&nbsp;29.3%</td><td align="right">&nbsp;&nbsp;14.5%</td><td align="right">&nbsp;&nbsp;4.9%</td><td align="right">&nbsp;&nbsp;1.9%</td></tr>
+<tr><td></td><td align="right">&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;</td></tr>
+<tr><td>Player</td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;R16</td><td align="right">&nbsp;&nbsp;QF</td><td align="right">&nbsp;&nbsp;SF</td><td align="right">&nbsp;&nbsp;F</td><td align="right">&nbsp;&nbsp;W</td></tr>
+<tr><td>(7)<a href="https://www.tennisabstract.com/cgi-bin/player.cgi?p=DaniilMedvedev">Daniil Medvedev</a> (RUS)</td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;100.0%</td><td align="right">&nbsp;&nbsp;56.0%</td><td align="right">&nbsp;&nbsp;39.5%</td><td align="right">&nbsp;&nbsp;19.2%</td><td align="right">&nbsp;&nbsp;8.7%</td></tr>
+<tr><td><i>(26)<a href="https://www.tennisabstract.com/cgi-bin/player.cgi?p=ArthurRinderknech">Arthur Rinderknech</a> (FRA)</i></td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;0.0%</td><td align="right">&nbsp;&nbsp;0.0%</td><td align="right">&nbsp;&nbsp;0.0%</td><td align="right">&nbsp;&nbsp;0.0%</td><td align="right">&nbsp;&nbsp;0.0%</td></tr>
+<tr><td><i>(22)<a href="https://www.tennisabstract.com/cgi-bin/player.cgi?p=ValentinVacherot">Valentin Vacherot</a> (MON)</i></td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;0.0%</td><td align="right">&nbsp;&nbsp;0.0%</td><td align="right">&nbsp;&nbsp;0.0%</td><td align="right">&nbsp;&nbsp;0.0%</td><td align="right">&nbsp;&nbsp;0.0%</td></tr>
+<tr><td>(11)<a href="https://www.tennisabstract.com/cgi-bin/player.cgi?p=FrancesTiafoe">Frances Tiafoe</a> (USA)</td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;100.0%</td><td align="right">&nbsp;&nbsp;44.0%</td><td align="right">&nbsp;&nbsp;28.8%</td><td align="right">&nbsp;&nbsp;12.2%</td><td align="right">&nbsp;&nbsp;4.9%</td></tr>
+<tr><td><a href="https://www.tennisabstract.com/cgi-bin/player.cgi?p=AlexMichelsen">Alex Michelsen</a> (USA)</td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;100.0%</td><td align="right">&nbsp;&nbsp;69.3%</td><td align="right">&nbsp;&nbsp;25.5%</td><td align="right">&nbsp;&nbsp;8.5%</td><td align="right">&nbsp;&nbsp;2.7%</td></tr>
+<tr><td><i><a href="https://www.tennisabstract.com/cgi-bin/player.cgi?p=DanielMeridaAguilar">Daniel Merida Aguilar</a> (ESP)</i></td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;0.0%</td><td align="right">&nbsp;&nbsp;0.0%</td><td align="right">&nbsp;&nbsp;0.0%</td><td align="right">&nbsp;&nbsp;0.0%</td><td align="right">&nbsp;&nbsp;0.0%</td></tr>
+<tr><td>(27)<a href="https://www.tennisabstract.com/cgi-bin/player.cgi?p=TomasMartinEtcheverry">Tomas Martin Etcheverry</a> (ARG)</td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;100.0%</td><td align="right">&nbsp;&nbsp;30.7%</td><td align="right">&nbsp;&nbsp;6.2%</td><td align="right">&nbsp;&nbsp;1.1%</td><td align="right">&nbsp;&nbsp;0.2%</td></tr>
+<tr><td><i><a href="https://www.tennisabstract.com/cgi-bin/player.cgi?p=MarianoNavone">Mariano Navone</a> (ARG)</i></td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;0.0%</td><td align="right">&nbsp;&nbsp;0.0%</td><td align="right">&nbsp;&nbsp;0.0%</td><td align="right">&nbsp;&nbsp;0.0%</td><td align="right">&nbsp;&nbsp;0.0%</td></tr>
+<tr><td></td><td align="right">&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;</td></tr>
+<tr><td>Player</td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;R16</td><td align="right">&nbsp;&nbsp;QF</td><td align="right">&nbsp;&nbsp;SF</td><td align="right">&nbsp;&nbsp;F</td><td align="right">&nbsp;&nbsp;W</td></tr>
+<tr><td>(8)<a href="https://www.tennisabstract.com/cgi-bin/player.cgi?p=BenShelton">Ben Shelton</a> (USA)</td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;100.0%</td><td align="right">&nbsp;&nbsp;73.8%</td><td align="right">&nbsp;&nbsp;40.5%</td><td align="right">&nbsp;&nbsp;25.5%</td><td align="right">&nbsp;&nbsp;12.8%</td></tr>
+<tr><td><i><a href="https://www.tennisabstract.com/cgi-bin/player.cgi?p=DenisShapovalov">Denis Shapovalov</a> (CAN)</i></td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;0.0%</td><td align="right">&nbsp;&nbsp;0.0%</td><td align="right">&nbsp;&nbsp;0.0%</td><td align="right">&nbsp;&nbsp;0.0%</td><td align="right">&nbsp;&nbsp;0.0%</td></tr>
+<tr><td><i>(18)<a href="https://www.tennisabstract.com/cgi-bin/player.cgi?p=JiriLehecka">Jiri Lehecka</a> (CZE)</i></td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;0.0%</td><td align="right">&nbsp;&nbsp;0.0%</td><td align="right">&nbsp;&nbsp;0.0%</td><td align="right">&nbsp;&nbsp;0.0%</td><td align="right">&nbsp;&nbsp;0.0%</td></tr>
+<tr><td><a href="https://www.tennisabstract.com/cgi-bin/player.cgi?p=StefanosTsitsipas">Stefanos Tsitsipas</a> (GRE)</td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;100.0%</td><td align="right">&nbsp;&nbsp;26.2%</td><td align="right">&nbsp;&nbsp;8.0%</td><td align="right">&nbsp;&nbsp;3.1%</td><td align="right">&nbsp;&nbsp;0.9%</td></tr>
+<tr><td><i>(15)<a href="https://www.tennisabstract.com/cgi-bin/player.cgi?p=AlexanderBublik">Alexander Bublik</a> (KAZ)</i></td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;0.0%</td><td align="right">&nbsp;&nbsp;0.0%</td><td align="right">&nbsp;&nbsp;0.0%</td><td align="right">&nbsp;&nbsp;0.0%</td><td align="right">&nbsp;&nbsp;0.0%</td></tr>
+<tr><td>(20)<a href="https://www.tennisabstract.com/cgi-bin/player.cgi?p=TommyPaul">Tommy Paul</a> (USA)</td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;100.0%</td><td align="right">&nbsp;&nbsp;36.5%</td><td align="right">&nbsp;&nbsp;15.8%</td><td align="right">&nbsp;&nbsp;7.9%</td><td align="right">&nbsp;&nbsp;3.0%</td></tr>
+<tr><td><i><a href="https://www.tennisabstract.com/cgi-bin/player.cgi?p=YibingWu">Yibing Wu</a> (CHN)</i></td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;0.0%</td><td align="right">&nbsp;&nbsp;0.0%</td><td align="right">&nbsp;&nbsp;0.0%</td><td align="right">&nbsp;&nbsp;0.0%</td><td align="right">&nbsp;&nbsp;0.0%</td></tr>
+<tr><td>(2)<a href="https://www.tennisabstract.com/cgi-bin/player.cgi?p=CarlosAlcaraz">Carlos Alcaraz</a> (ESP)</td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;100.0%</td><td align="right">&nbsp;&nbsp;63.5%</td><td align="right">&nbsp;&nbsp;35.7%</td><td align="right">&nbsp;&nbsp;22.5%</td><td align="right">&nbsp;&nbsp;11.3%</td></tr>
+</table>
+</td>
+</tr>
+</table>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"592714df19074b3b85668cfe8f554b86","r":1,"spa":2}' crossorigin="anonymous"></script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3644f82fc9ae611',t:'MTc4ODYwMTYyNg=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+
+</html>
