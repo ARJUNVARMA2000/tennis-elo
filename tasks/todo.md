@@ -6133,3 +6133,17 @@ skipping the unresolved WTA match. Keep historical draw access and the forecast 
 - Git history was reconciled at f282172/f873e5d before this review. Retained the pipeline's new
   append-only forecast and comparison observations and refreshed benchmark ledger separately
   from the implementation. Changes and review are saved locally; no push/deploy was performed.
+
+## 2026-09-06 — Publish the bracket progression repair
+
+The user explicitly requested committing to the main branch and ensuring a proper deployment.
+This repository's production/default branch is `master`. The verified implementation is on
+`codex/bracket-progress-details`; remote master has advanced since the local work began.
+
+- [ ] Merge with the current remote master, preserving all independent forecast observations.
+- [ ] Check the merged changes, run any verification required by the merge, and push master.
+- [ ] Follow the production workflow through tests, data integrity, publication and live serving.
+- [ ] Verify current ATP/WTA live bracket progression and forecast disclosures; record the review.
+
+Check-in: deploy through the existing master-push workflow and its two gates. Reconcile the
+remote updates before pushing, and carry the request through verification of the live site.
