@@ -892,6 +892,16 @@ def read_outputs(tour: str) -> dict:
             data[stem] = json.loads(f.read_text(), parse_constant=_reject_nonfinite)
         except (ValueError, OSError):
             corrupt.append(stem)
+    from ..artifact_lineage import ArtifactLineageError, _read_regular_file
+    from ..model.probability_audit import AUDIT_FILENAME
+    prediction_audit = None
+    audit_path = d / AUDIT_FILENAME
+    if audit_path.exists():
+        try:
+            prediction_audit = json.loads(_read_regular_file(audit_path, 256 * 1024, trusted_root=d),
+                                          parse_constant=_reject_nonfinite)
+        except (ValueError, OSError, TypeError, ArtifactLineageError):
+            prediction_audit = None
     stage_status: dict = {"state": "missing"}
     stage_path = d / STAGE_STATUS_FILENAME
     if stage_path.exists():
@@ -1026,7 +1036,7 @@ def read_outputs(tour: str) -> dict:
             "corrupt_files": corrupt_files,
             "draw_cache": draw_cache, "draw_cache_status": draw_cache_status,
             "forecast": forecast, "kalshi_ledger": ledger,
-            "stage_status": stage_status}
+            "stage_status": stage_status, "prediction_audit": prediction_audit}
 
 
 
@@ -1302,6 +1312,23 @@ def output_findings(tour: str, oc: dict, now: pd.Timestamp,
     data = oc.get("data", {})
     prev = prev or {}
     meta = data.get("meta")
+    # Phase 2 binds this rollout marker/source identity in both producers and release carry.
+    # Legacy outputs without the marker retain their historical contract until that rollout.
+    if isinstance(meta, dict) and "predictionAuditSchema" in meta:
+        from ..model.predict import INFERENCE_SCHEMA_VERSION
+        from ..model.probability_audit import AUDIT_SCHEMA, validate_prediction_audit
+        try:
+            if meta["predictionAuditSchema"] != AUDIT_SCHEMA:
+                raise ValueError("unsupported prediction audit marker")
+            audit_now = pd.Timestamp(observed_at if observed_at is not None else now)
+            audit_now = audit_now.tz_localize("UTC") if audit_now.tzinfo is None else audit_now.tz_convert("UTC")
+            validate_prediction_audit(oc.get("prediction_audit"),
+                artifact_id=meta.get("predictorArtifactId"), inference_schema=INFERENCE_SCHEMA_VERSION,
+                source_generation=meta.get("predictionAuditSourceGeneration"), now=audit_now.to_pydatetime())
+        except (ValueError, TypeError, KeyError, OverflowError) as exc:
+            _add_finding(out, "output.prediction.independent_audit_invalid",
+                         f"{tour}: independent prediction audit failed: {str(exc)[:180]}",
+                         entity="predictor:probability", evidence={"reason":str(exc)[:180]})
     _check_pipeline_stage_status(
         out,
         tour,

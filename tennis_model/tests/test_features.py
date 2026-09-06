@@ -16,6 +16,7 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import tennis_model.model.features as features
+from tennis_model.data.style_history import StyleHistory
 from tennis_model.model.features import (
     ANTISYM,
     FEATURES,
@@ -80,12 +81,12 @@ def _joined_frame() -> pd.DataFrame:
 def test_assemble_orientation_contract():
     """Player-swap must negate every ANTISYM output and fix every SYMMETRIC one —
     the test that catches 'added to ANTISYM but not actually anti-symmetric'."""
-    orig = features.build_profiles
+    orig = features.load_style_history
     try:
-        features.build_profiles = lambda tour: {}       # style diffs -> 0, has_style -> 0
+        features.load_style_history = lambda tour: StyleHistory(tour, pd.DataFrame(), {})       # style diffs -> 0, has_style -> 0
         f = features._assemble(_joined_frame())
     finally:
-        features.build_profiles = orig
+        features.load_style_history = orig
     a, b = f.iloc[0], f.iloc[1]
     for c in ANTISYM:
         assert np.isclose(a[c], -b[c], atol=1e-9), (c, a[c], b[c])
@@ -162,14 +163,14 @@ def test_assemble_respects_feature_params():
     """Non-default layoff/peak-age params must change the assembled features — the
     guard that FeatureParams actually threads through (not silently ignored)."""
     d = _joined_frame()          # w_days_since=7, l_days_since=21; ages 24.5 / 29.0
-    orig = features.build_profiles
+    orig = features.load_style_history
     try:
-        features.build_profiles = lambda tour: {}
+        features.load_style_history = lambda tour: StyleHistory(tour, pd.DataFrame(), {})
         base = features._assemble(d)
         tuned = features._assemble(d, params=FeatureParams(layoff_days=10.0,
                                                            peak_age=29.0))
     finally:
-        features.build_profiles = orig
+        features.load_style_history = orig
     assert base["layoff_flag_diff"].iloc[0] == 0        # neither side idle > 120d
     assert tuned["layoff_flag_diff"].iloc[0] == -1      # only loser (21d) > 10d
     assert np.isclose(base["peak_age_dev_diff"].iloc[0], -0.5)   # |24.5-26.5|-|29-26.5|
@@ -230,12 +231,12 @@ def test_assemble_carries_draw_level_so_the_tier_filter_still_bites():
     challenger contamination arriving by a second route, so pin the link itself."""
     d = _joined_frame()
     d["draw_level"] = ["main", "chall"]
-    orig = features.build_profiles
+    orig = features.load_style_history
     try:
-        features.build_profiles = lambda tour: {}
+        features.load_style_history = lambda tour: StyleHistory(tour, pd.DataFrame(), {})
         f = features._assemble(d)
     finally:
-        features.build_profiles = orig
+        features.load_style_history = orig
     assert list(f["draw_level"]) == ["main", "chall"], "draw_level lost in _assemble"
     kept = features.main_rows(f)
     assert len(kept) == 1 and list(kept["draw_level"]) == ["main"], kept

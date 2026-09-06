@@ -1,8 +1,9 @@
 """Shared scoring metrics for probabilistic match predictions.
 
 Convention: `p` is the model's pre-match probability that the player who actually
-won the match would win. Accuracy / log-loss / Brier are invariant to which player
-is listed first, so this winner-oriented form is unbiased. Calibration needs a
+won the match would win, converted AFTER an outcome-independent forecast. This
+representation is orientation-invariant only when the forecasting procedure is;
+feeding the known winner to an asymmetric predictor first biases the score. Calibration needs a
 50/50 label split, so callers pass randomized-orientation (p, label) pairs.
 """
 

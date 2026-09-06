@@ -1,15 +1,21 @@
 # DEUCE model improvement — implementation and research handoff
 
-Status: **Phase 0 complete. Phases 1–7 have not started.**
+Status: **Phase 1 implementation/audit checkpoint complete; Phase 2 integration and
+freeze remain pending. Newly proven timing blocker B3-R1 must be repaired first.**
 
-Resume from the [Phase 0 review](2026-09-06-phase0-review.md),
-[fixed interface decisions](2026-09-06-phase0-interfaces.md), and
-[result summary](2026-09-06-phase0-result.json). The review records the prepared
-worktrees, snapshot identity, reproduced measurements and exact next steps.
+Resume from the [Phase 1 review](2026-09-06-phase1-review.md),
+[data/timing audit](2026-09-06-phase1-data-audit.md), and
+[result summary](2026-09-06-phase1-result.json). Code lives in the isolated coordinator
+checkout on `codex/model-foundation`; the original checkout retains its saved outputs.
+The [Phase 0 review](2026-09-06-phase0-review.md) and
+[interface decisions](2026-09-06-phase0-interfaces.md) remain the preserved baseline.
 
-Authorization update: the user requested “start with phase 0.” Preparation, evidence
-preservation, isolated workspaces, baseline checks and interface decisions are in scope.
-Model/evaluator repairs and numerical candidate searches remain later phases.
+Authorization update: the user requested “Continue to phase 1 then.” Components and
+bounded audits are implemented and tested. The receipt producer/release wiring,
+source-coverage slice, final evaluator freeze and compatible real-predictor probes
+remain explicitly outstanding in the Phase 1 review. Original acceptance bullets below
+are reference requirements, not a claim that every integration acceptance check passed.
+No numerical candidate search, data refresh, collector or deployment was started.
 
 User request: turn the completed assessment into a detailed, resumable plan, including
 dependencies and work that can run in parallel. The next implementation session should
@@ -91,6 +97,7 @@ flowchart TD
     B[1B: historical feature cutoffs and state]
     C[1C: data completeness and source audit]
     D[1D: evaluation/reporting protocol]
+    TIMING[B3-R1: repair mixed date bases and preserve availability]
     I[2: integrate, regression tests, freeze evaluator]
     BASE[3: reproduce corrected incumbent and error slices]
     ACQ[4A: acquire selected data in staging and freeze it]
@@ -105,6 +112,8 @@ flowchart TD
     P0 --> D
     A --> I
     B --> I
+    B --> TIMING
+    TIMING --> I
     D --> I
     I --> BASE
     C --> ACQ
@@ -394,6 +403,12 @@ in the pre-round protocol review rather than relabeling a failing candidate late
 ## 8. Phase 2 — integrate and freeze the corrected system
 
 Sequential, coordinator-owned. Depends on A, B1/B2 and D; C may continue independently.
+
+2026-09-06 dependency revision: the bounded B3 audit reproduced seven ATP within-event
+round/date inversions. **B3-R1 is now mandatory before freeze**, and normalized frames
+must supply justified availability/provenance or explicitly preserve unknown-time
+exclusions. The current new serve prior excludes all unproven timing and stays at
+0.62 on real archive inputs. See the Phase 1 audit for exact rows and repair criteria.
 
 Suggested integration order: probability helper/tests → temporal data/state modules →
 shared predictor and training glue → serialization/cache contracts → both pipeline modes

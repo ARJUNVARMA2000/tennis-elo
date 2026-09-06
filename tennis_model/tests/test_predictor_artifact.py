@@ -147,7 +147,10 @@ def test_roundtrip_keeps_plain_pickle_and_stable_generation_id(valid_artifact, t
     assert contract["population"]["matchPopulationVersion"] >= 1
     assert type(contract["population"]["playerAliases"]) is list
     assert contract["inference"] == {
-        "schemaVersion": 3,
+        "schemaVersion": 4,
+        "probabilityPolicy": "calibrated-pair-average-v1",
+        "stylePolicy": "mcp-retrospective-played-date-strict-before-v1",
+        "servePriorPolicy": "available-date-strict-before-v1",
         "dualStateGateThreshold": None,
     }
     assert contract["classes"]["combiner"].endswith(".BaggedClassifier")
@@ -190,6 +193,41 @@ def test_wta_dual_state_fitted_artifact_roundtrip(tmp_path):
     assert loaded.dual_state_threshold == WTA_DUAL_STATE_GATE_THRESHOLD
     assert loaded._has_lower_state
     validate_predictor_structure(loaded, "wta")
+
+
+def test_populated_temporal_state_roundtrip_and_tampering(valid_artifact, tmp_path):
+    from dataclasses import replace
+
+    from tennis_model.data.style_history import StyleHistory
+    from tennis_model.points.serve_return import run_serve_return
+    from test_temporal_features import charts, matches
+
+    source, _ = valid_artifact
+    predictor = TennisPredictor.load('atp', source)
+    predictor.style_snapshot = StyleHistory('atp', *charts(), 'a' * 64).snapshot('2025-01-03')
+    predictor.srv, _ = run_serve_return(matches().iloc[:3], params=sr_params_for('atp'))
+    path = tmp_path / 'predictor.pkl'
+    predictor.save(path)
+    loaded = TennisPredictor.load('atp', path)
+    assert loaded.style_snapshot == predictor.style_snapshot
+    pd.testing.assert_frame_equal(
+        loaded.features('Alfa One', 'Bravo Two', as_of='2025-04-01'),
+        predictor.features('Alfa One', 'Bravo Two', as_of='2025-04-01'))
+
+    mutations = [
+        lambda p: setattr(p.srv.prior_state, 'points', 999.),
+        lambda p: setattr(p.srv.prior_state, 'policy', 'unknown'),
+        lambda p: p.srv.base.clear(),
+        lambda p: setattr(p, 'style_snapshot', replace(p.style_snapshot, identity_version='stale')),
+        lambda p: setattr(p, 'style_snapshot', replace(p.style_snapshot,
+            profiles=(('alfa one', (0.,)*8, 100., 1),))),
+    ]
+    for mutate in mutations:
+        invalid = TennisPredictor.load('atp', path)
+        mutate(invalid)
+        with pytest.raises(PredictorArtifactError) as caught:
+            validate_predictor_structure(invalid, 'atp')
+        assert caught.value.reason is PredictorArtifactReason.STATE_INVALID
 
 
 @pytest.mark.parametrize("legacy", [True, False])

@@ -6294,3 +6294,62 @@ retains only its four normal-loader cache reconstructions. Five shared contracts
 the file-owner map are saved. Preparation changes only docs and the private ignore rule;
 Phase 1 repairs, evaluator maintenance, data acquisition and candidate searches have
 not started. No push or deployment occurred.
+
+## 2026-09-06 — Phase 1: model correctness and evaluation foundations
+
+The user authorized continuing to Phase 1. Work in the prepared coordinator checkout
+on `codex/model-foundation`, based on `c68c321`; preserve the Phase 0 snapshot and the
+main project's outputs. This is pre-round maintenance, not a numerical candidate search.
+The A/B/C ownership boundaries remain useful implementation boundaries; no additional
+agents are required to execute them. Phase 2's final integration/freeze and Phase 3's
+full corrected baseline runs remain separate checkpoints.
+
+- [x] A: shared calibrated pair probability, actual predictor/training consumers,
+      independent exchange/permutation/parity fixtures and private gate-witness contract.
+- [x] B1: date-indexed chart evidence, immutable saved style snapshot, prefix and artifact parity.
+- [x] B2: chronological serve-prior sufficient statistics, coherent estimator algebra,
+      population controls, serialized state and prefix tests.
+- [x] B3: audit source date bases and calibration policies; name any newly proven blocker.
+- [x] C: frozen-source event/role/stat census, independent expected denominators, lower-to-main
+      evidence and a ranked acquisition proposal with explicit unresolved coverage.
+- [x] D: outcome-independent legacy evaluation, paired block uncertainty and fixed slices,
+      experiment manifest and complete feature-cache identity; retain existing gate thresholds.
+- [x] Run focused validation, document actual results and remaining integration dependencies,
+      reconcile Git, and commit a resumable Phase 1 review without publishing or fitting candidates.
+
+Check-in: the user's “Continue to phase 1” authorizes these maintenance changes and
+their necessary tests and read-only source research. No data purchase, source ingestion
+refresh, dependency change, experiment, collector activation or deployment is in scope.
+
+
+### Review
+
+Implemented the Phase 1 components in the isolated coordinator checkout on
+`codex/model-foundation`, based on `c68c321`. The shared calibrated pair probability,
+saved temporal style/prior state and strict schema-4 artifact contract are tested with
+their inference mirrors. The evaluator now labels legacy orientation, requires exact
+paired keys, retains the existing gate and adds block uncertainty; feature-cache identity
+includes input bytes and effective settings. Final validation: 1,230 Python tests passed
+in 43.16 seconds, Ruff and diff checks passed. Real style-prefix and serialized serve
+query checks passed on both tours. No numerical model experiment or deployment occurred.
+
+See `tasks/research/2026-09-06-phase1-review.md`, its data audit, bounded CSV and JSON
+receipts for the exact implementation and next-session commands. The audit found seven
+ATP round/date inversions and promoted **B3-R1** to a blocker before Phase 2's freeze.
+Neither normalized tour has verified prior-availability columns: the new prior honestly
+excludes those observations and currently stays at 0.62. Do not claim global temporal
+correctness or a forecast improvement from the component tests.
+
+The private probability receipt builder/validator and conditional health finding are
+implemented; full/quick producer wiring, private release copying/public exclusion and
+live serving probes remain Phase 2 integration work. The original plan's compatible
+real-artifact 435-pair checks remain pending a normal schema-4 fit in Phase 3. The
+source-coverage slice awaits preserved provenance; evaluator/runner freeze is pending.
+These outstanding acceptance checks are not represented as operationally enforced.
+
+Read-only frozen-input audit: 555 WTA 2024 catalogued finished results remain unmatched
+under the recorded join policy; 313 matched WTA 2025 rows lack serve statistics, with
+no cached positive-denominator record for those 313. Expected full-calendar coverage,
+status eligibility and acquisition yield remain uncertain. A 2024-only candidate cannot
+pass the unchanged positive-tune gate. Raw/output data, original project and snapshot
+are unchanged; isolated test caches were restored and A's normal-loader caches retained.
