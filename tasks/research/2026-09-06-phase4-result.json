@@ -1,0 +1,1795 @@
+{
+  "status": "preparation-completed-to-correctness-stop",
+  "completedAt": "2026-09-06T23:44:51.705799+00:00",
+  "candidateSelected": false,
+  "candidateScoringTrials": 0,
+  "adoption": false,
+  "deployment": false,
+  "workspace": {
+    "startedAt": "2026-09-06T23:18:52.999292+00:00",
+    "sourceCommit": "c5cd3669d94fb93b7b0914e96bb28253d9e990a4",
+    "candidateCheckout": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/phase4",
+    "branch": "codex/model-phase4",
+    "files": 18791,
+    "exactByteCopy": true,
+    "distinctInodes": true,
+    "dataSymlinks": false,
+    "wallSeconds": 5.795183709007688,
+    "inventorySHA256": "7389987cb3b3f09926540ab2400e0e761c0b47f13e5211e69ac36ebf25eeecfc"
+  },
+  "contractDelta": {
+    "purpose": "Preparation implementation snapshot, not an eligible scored candidate or replacement baseline",
+    "oldContractSHA256": "add41de4629703455fad849c59dfc21a82fa569f13e91970417894127615217d",
+    "newContractSHA256": "df18e4fbe082b09de365252c22ec1840eae5e753fbe9fd2ce6fe0b2894c9e16d",
+    "sourceChanged": [
+      "ratings/dynamic.py"
+    ],
+    "unchangedRawInputs": true,
+    "unchangedRuntimeAndTourConfig": true,
+    "unchangedEvaluator": true,
+    "verificationNote": "Initial Python-object comparison failed on tuple/list representation; persisted canonical JSON comparison and frozen verifier both pass."
+  },
+  "audit": {
+    "endedAt": "2026-09-06T23:31:50.963173+00:00",
+    "wallSeconds": 158.1246345839,
+    "normalizedRows": 146078,
+    "normalizedInputFingerprint": "nm1:4b745bd573802b8b9a7a551dfc76d65bcaa786f18eb5ef93fd2064693500a431",
+    "counts": [
+      {
+        "year": 2024,
+        "event": "1003",
+        "status": "ambiguous",
+        "outcome": "incomplete-or-invalid-score",
+        "n": 1
+      },
+      {
+        "year": 2024,
+        "event": "1003",
+        "status": "present",
+        "outcome": "completed",
+        "n": 51
+      },
+      {
+        "year": 2024,
+        "event": "1005",
+        "status": "present",
+        "outcome": "completed",
+        "n": 28
+      },
+      {
+        "year": 2024,
+        "event": "1017",
+        "status": "present",
+        "outcome": "completed",
+        "n": 55
+      },
+      {
+        "year": 2024,
+        "event": "1020",
+        "status": "ambiguous",
+        "outcome": "completed",
+        "n": 2
+      },
+      {
+        "year": 2024,
+        "event": "1020",
+        "status": "present",
+        "outcome": "completed",
+        "n": 90
+      },
+      {
+        "year": 2024,
+        "event": "1020",
+        "status": "present",
+        "outcome": "incomplete-or-invalid-score",
+        "n": 1
+      },
+      {
+        "year": 2024,
+        "event": "1023",
+        "status": "ambiguous",
+        "outcome": "completed",
+        "n": 1
+      },
+      {
+        "year": 2024,
+        "event": "1023",
+        "status": "present",
+        "outcome": "completed",
+        "n": 28
+      },
+      {
+        "year": 2024,
+        "event": "1023",
+        "status": "present",
+        "outcome": "incomplete-or-invalid-score",
+        "n": 1
+      },
+      {
+        "year": 2024,
+        "event": "1024",
+        "status": "present",
+        "outcome": "completed",
+        "n": 25
+      },
+      {
+        "year": 2024,
+        "event": "1038",
+        "status": "absent",
+        "outcome": "completed",
+        "n": 93
+      },
+      {
+        "year": 2024,
+        "event": "1038",
+        "status": "present",
+        "outcome": "completed",
+        "n": 1
+      },
+      {
+        "year": 2024,
+        "event": "1039",
+        "status": "absent",
+        "outcome": "completed",
+        "n": 1
+      },
+      {
+        "year": 2024,
+        "event": "1039",
+        "status": "present",
+        "outcome": "completed",
+        "n": 26
+      },
+      {
+        "year": 2024,
+        "event": "1045",
+        "status": "present",
+        "outcome": "completed",
+        "n": 25
+      },
+      {
+        "year": 2024,
+        "event": "1049",
+        "status": "present",
+        "outcome": "completed",
+        "n": 31
+      },
+      {
+        "year": 2024,
+        "event": "1050",
+        "status": "present",
+        "outcome": "completed",
+        "n": 30
+      },
+      {
+        "year": 2024,
+        "event": "1051",
+        "status": "present",
+        "outcome": "completed",
+        "n": 26
+      },
+      {
+        "year": 2024,
+        "event": "1052",
+        "status": "present",
+        "outcome": "completed",
+        "n": 28
+      },
+      {
+        "year": 2024,
+        "event": "1052",
+        "status": "present",
+        "outcome": "incomplete-or-invalid-score",
+        "n": 1
+      },
+      {
+        "year": 2024,
+        "event": "1056",
+        "status": "present",
+        "outcome": "completed",
+        "n": 24
+      },
+      {
+        "year": 2024,
+        "event": "1074",
+        "status": "present",
+        "outcome": "completed",
+        "n": 31
+      },
+      {
+        "year": 2024,
+        "event": "1075",
+        "status": "present",
+        "outcome": "completed",
+        "n": 51
+      },
+      {
+        "year": 2024,
+        "event": "1075",
+        "status": "present",
+        "outcome": "incomplete-or-invalid-score",
+        "n": 1
+      },
+      {
+        "year": 2024,
+        "event": "1077",
+        "status": "present",
+        "outcome": "completed",
+        "n": 30
+      },
+      {
+        "year": 2024,
+        "event": "1082",
+        "status": "present",
+        "outcome": "completed",
+        "n": 28
+      },
+      {
+        "year": 2024,
+        "event": "1096",
+        "status": "present",
+        "outcome": "completed",
+        "n": 29
+      },
+      {
+        "year": 2024,
+        "event": "1121",
+        "status": "present",
+        "outcome": "completed",
+        "n": 30
+      },
+      {
+        "year": 2024,
+        "event": "2012",
+        "status": "present",
+        "outcome": "completed",
+        "n": 23
+      },
+      {
+        "year": 2024,
+        "event": "2014",
+        "status": "present",
+        "outcome": "completed",
+        "n": 27
+      },
+      {
+        "year": 2024,
+        "event": "2017",
+        "status": "present",
+        "outcome": "completed",
+        "n": 29
+      },
+      {
+        "year": 2024,
+        "event": "2036",
+        "status": "present",
+        "outcome": "completed",
+        "n": 29
+      },
+      {
+        "year": 2024,
+        "event": "2040",
+        "status": "ambiguous",
+        "outcome": "completed",
+        "n": 1
+      },
+      {
+        "year": 2024,
+        "event": "2040",
+        "status": "present",
+        "outcome": "completed",
+        "n": 29
+      },
+      {
+        "year": 2024,
+        "event": "2040",
+        "status": "present",
+        "outcome": "incomplete-or-invalid-score",
+        "n": 1
+      },
+      {
+        "year": 2024,
+        "event": "2050",
+        "status": "present",
+        "outcome": "completed",
+        "n": 30
+      },
+      {
+        "year": 2024,
+        "event": "2063",
+        "status": "present",
+        "outcome": "completed",
+        "n": 28
+      },
+      {
+        "year": 2024,
+        "event": "2066",
+        "status": "present",
+        "outcome": "completed",
+        "n": 30
+      },
+      {
+        "year": 2024,
+        "event": "2072",
+        "status": "present",
+        "outcome": "completed",
+        "n": 29
+      },
+      {
+        "year": 2024,
+        "event": "2072",
+        "status": "present",
+        "outcome": "incomplete-or-invalid-score",
+        "n": 1
+      },
+      {
+        "year": 2024,
+        "event": "2074",
+        "status": "present",
+        "outcome": "completed",
+        "n": 26
+      },
+      {
+        "year": 2024,
+        "event": "2075",
+        "status": "present",
+        "outcome": "completed",
+        "n": 25
+      },
+      {
+        "year": 2024,
+        "event": "2082",
+        "status": "present",
+        "outcome": "completed",
+        "n": 29
+      },
+      {
+        "year": 2024,
+        "event": "2085",
+        "status": "present",
+        "outcome": "completed",
+        "n": 28
+      },
+      {
+        "year": 2024,
+        "event": "2085",
+        "status": "present",
+        "outcome": "incomplete-or-invalid-score",
+        "n": 1
+      },
+      {
+        "year": 2024,
+        "event": "2088",
+        "status": "present",
+        "outcome": "completed",
+        "n": 26
+      },
+      {
+        "year": 2024,
+        "event": "2092",
+        "status": "present",
+        "outcome": "completed",
+        "n": 24
+      },
+      {
+        "year": 2024,
+        "event": "405",
+        "status": "present",
+        "outcome": "completed",
+        "n": 30
+      },
+      {
+        "year": 2024,
+        "event": "406",
+        "status": "present",
+        "outcome": "completed",
+        "n": 26
+      },
+      {
+        "year": 2024,
+        "event": "406",
+        "status": "score-conflict",
+        "outcome": "incomplete-or-invalid-score",
+        "n": 1
+      },
+      {
+        "year": 2024,
+        "event": "466",
+        "status": "present",
+        "outcome": "completed",
+        "n": 30
+      },
+      {
+        "year": 2024,
+        "event": "528",
+        "status": "present",
+        "outcome": "completed",
+        "n": 27
+      },
+      {
+        "year": 2024,
+        "event": "609",
+        "status": "present",
+        "outcome": "completed",
+        "n": 91
+      },
+      {
+        "year": 2024,
+        "event": "609",
+        "status": "score-conflict",
+        "outcome": "incomplete-or-invalid-score",
+        "n": 1
+      },
+      {
+        "year": 2024,
+        "event": "709",
+        "status": "absent",
+        "outcome": "completed",
+        "n": 88
+      },
+      {
+        "year": 2024,
+        "event": "709",
+        "status": "present",
+        "outcome": "completed",
+        "n": 3
+      },
+      {
+        "year": 2024,
+        "event": "709",
+        "status": "score-conflict",
+        "outcome": "completed",
+        "n": 1
+      },
+      {
+        "year": 2024,
+        "event": "718",
+        "status": "present",
+        "outcome": "completed",
+        "n": 50
+      },
+      {
+        "year": 2024,
+        "event": "718",
+        "status": "score-conflict",
+        "outcome": "incomplete-or-invalid-score",
+        "n": 1
+      },
+      {
+        "year": 2024,
+        "event": "800",
+        "status": "ambiguous",
+        "outcome": "completed",
+        "n": 8
+      },
+      {
+        "year": 2024,
+        "event": "800",
+        "status": "present",
+        "outcome": "completed",
+        "n": 38
+      },
+      {
+        "year": 2024,
+        "event": "804",
+        "status": "present",
+        "outcome": "completed",
+        "n": 47
+      },
+      {
+        "year": 2024,
+        "event": "806",
+        "status": "present",
+        "outcome": "completed",
+        "n": 50
+      },
+      {
+        "year": 2024,
+        "event": "808",
+        "status": "present",
+        "outcome": "completed",
+        "n": 14
+      },
+      {
+        "year": 2024,
+        "event": "808",
+        "status": "round-conflict",
+        "outcome": "completed",
+        "n": 1
+      },
+      {
+        "year": 2024,
+        "event": "894",
+        "status": "present",
+        "outcome": "completed",
+        "n": 31
+      },
+      {
+        "year": 2024,
+        "event": "901",
+        "status": "absent",
+        "outcome": "completed",
+        "n": 1
+      },
+      {
+        "year": 2024,
+        "event": "901",
+        "status": "present",
+        "outcome": "completed",
+        "n": 123
+      },
+      {
+        "year": 2024,
+        "event": "901",
+        "status": "score-conflict",
+        "outcome": "incomplete-or-invalid-score",
+        "n": 3
+      },
+      {
+        "year": 2024,
+        "event": "902",
+        "status": "absent",
+        "outcome": "completed",
+        "n": 85
+      },
+      {
+        "year": 2024,
+        "event": "902",
+        "status": "present",
+        "outcome": "completed",
+        "n": 3
+      },
+      {
+        "year": 2024,
+        "event": "903",
+        "status": "absent",
+        "outcome": "completed",
+        "n": 125
+      },
+      {
+        "year": 2024,
+        "event": "903",
+        "status": "absent",
+        "outcome": "incomplete-or-invalid-score",
+        "n": 2
+      },
+      {
+        "year": 2024,
+        "event": "905",
+        "status": "absent",
+        "outcome": "completed",
+        "n": 122
+      },
+      {
+        "year": 2024,
+        "event": "905",
+        "status": "absent",
+        "outcome": "incomplete-or-invalid-score",
+        "n": 5
+      },
+      {
+        "year": 2025,
+        "event": "1003",
+        "status": "present",
+        "outcome": "completed",
+        "n": 53
+      },
+      {
+        "year": 2025,
+        "event": "1005",
+        "status": "present",
+        "outcome": "completed",
+        "n": 30
+      },
+      {
+        "year": 2025,
+        "event": "1017",
+        "status": "ambiguous",
+        "outcome": "completed",
+        "n": 2
+      },
+      {
+        "year": 2025,
+        "event": "1017",
+        "status": "present",
+        "outcome": "completed",
+        "n": 89
+      },
+      {
+        "year": 2025,
+        "event": "1020",
+        "status": "present",
+        "outcome": "completed",
+        "n": 90
+      },
+      {
+        "year": 2025,
+        "event": "1023",
+        "status": "present",
+        "outcome": "completed",
+        "n": 30
+      },
+      {
+        "year": 2025,
+        "event": "1024",
+        "status": "present",
+        "outcome": "completed",
+        "n": 27
+      },
+      {
+        "year": 2025,
+        "event": "1038",
+        "status": "present",
+        "outcome": "completed",
+        "n": 94
+      },
+      {
+        "year": 2025,
+        "event": "1038",
+        "status": "score-conflict",
+        "outcome": "completed",
+        "n": 1
+      },
+      {
+        "year": 2025,
+        "event": "1039",
+        "status": "absent",
+        "outcome": "completed",
+        "n": 1
+      },
+      {
+        "year": 2025,
+        "event": "1039",
+        "status": "present",
+        "outcome": "completed",
+        "n": 25
+      },
+      {
+        "year": 2025,
+        "event": "1045",
+        "status": "present",
+        "outcome": "completed",
+        "n": 27
+      },
+      {
+        "year": 2025,
+        "event": "1049",
+        "status": "absent",
+        "outcome": "completed",
+        "n": 2
+      },
+      {
+        "year": 2025,
+        "event": "1049",
+        "status": "present",
+        "outcome": "completed",
+        "n": 27
+      },
+      {
+        "year": 2025,
+        "event": "1050",
+        "status": "absent",
+        "outcome": "completed",
+        "n": 2
+      },
+      {
+        "year": 2025,
+        "event": "1050",
+        "status": "present",
+        "outcome": "completed",
+        "n": 28
+      },
+      {
+        "year": 2025,
+        "event": "1051",
+        "status": "present",
+        "outcome": "completed",
+        "n": 24
+      },
+      {
+        "year": 2025,
+        "event": "1056",
+        "status": "present",
+        "outcome": "completed",
+        "n": 24
+      },
+      {
+        "year": 2025,
+        "event": "1074",
+        "status": "present",
+        "outcome": "completed",
+        "n": 28
+      },
+      {
+        "year": 2025,
+        "event": "1075",
+        "status": "present",
+        "outcome": "completed",
+        "n": 49
+      },
+      {
+        "year": 2025,
+        "event": "1077",
+        "status": "present",
+        "outcome": "completed",
+        "n": 28
+      },
+      {
+        "year": 2025,
+        "event": "1080",
+        "status": "present",
+        "outcome": "completed",
+        "n": 31
+      },
+      {
+        "year": 2025,
+        "event": "1082",
+        "status": "present",
+        "outcome": "completed",
+        "n": 30
+      },
+      {
+        "year": 2025,
+        "event": "1096",
+        "status": "ambiguous",
+        "outcome": "completed",
+        "n": 1
+      },
+      {
+        "year": 2025,
+        "event": "1096",
+        "status": "present",
+        "outcome": "completed",
+        "n": 29
+      },
+      {
+        "year": 2025,
+        "event": "1139",
+        "status": "present",
+        "outcome": "completed",
+        "n": 30
+      },
+      {
+        "year": 2025,
+        "event": "1148",
+        "status": "present",
+        "outcome": "completed",
+        "n": 27
+      },
+      {
+        "year": 2025,
+        "event": "2012",
+        "status": "ambiguous",
+        "outcome": "completed",
+        "n": 1
+      },
+      {
+        "year": 2025,
+        "event": "2012",
+        "status": "present",
+        "outcome": "completed",
+        "n": 25
+      },
+      {
+        "year": 2025,
+        "event": "2014",
+        "status": "present",
+        "outcome": "completed",
+        "n": 25
+      },
+      {
+        "year": 2025,
+        "event": "2017",
+        "status": "present",
+        "outcome": "completed",
+        "n": 27
+      },
+      {
+        "year": 2025,
+        "event": "2040",
+        "status": "present",
+        "outcome": "completed",
+        "n": 30
+      },
+      {
+        "year": 2025,
+        "event": "2042",
+        "status": "present",
+        "outcome": "completed",
+        "n": 30
+      },
+      {
+        "year": 2025,
+        "event": "2050",
+        "status": "present",
+        "outcome": "completed",
+        "n": 30
+      },
+      {
+        "year": 2025,
+        "event": "2063",
+        "status": "present",
+        "outcome": "completed",
+        "n": 29
+      },
+      {
+        "year": 2025,
+        "event": "2066",
+        "status": "present",
+        "outcome": "completed",
+        "n": 31
+      },
+      {
+        "year": 2025,
+        "event": "2075",
+        "status": "present",
+        "outcome": "completed",
+        "n": 26
+      },
+      {
+        "year": 2025,
+        "event": "2082",
+        "status": "present",
+        "outcome": "completed",
+        "n": 30
+      },
+      {
+        "year": 2025,
+        "event": "2085",
+        "status": "present",
+        "outcome": "completed",
+        "n": 22
+      },
+      {
+        "year": 2025,
+        "event": "2088",
+        "status": "present",
+        "outcome": "completed",
+        "n": 26
+      },
+      {
+        "year": 2025,
+        "event": "2092",
+        "status": "present",
+        "outcome": "completed",
+        "n": 27
+      },
+      {
+        "year": 2025,
+        "event": "405",
+        "status": "present",
+        "outcome": "completed",
+        "n": 30
+      },
+      {
+        "year": 2025,
+        "event": "406",
+        "status": "present",
+        "outcome": "completed",
+        "n": 25
+      },
+      {
+        "year": 2025,
+        "event": "528",
+        "status": "present",
+        "outcome": "completed",
+        "n": 27
+      },
+      {
+        "year": 2025,
+        "event": "609",
+        "status": "present",
+        "outcome": "completed",
+        "n": 93
+      },
+      {
+        "year": 2025,
+        "event": "709",
+        "status": "present",
+        "outcome": "completed",
+        "n": 91
+      },
+      {
+        "year": 2025,
+        "event": "718",
+        "status": "present",
+        "outcome": "completed",
+        "n": 55
+      },
+      {
+        "year": 2025,
+        "event": "800",
+        "status": "present",
+        "outcome": "completed",
+        "n": 45
+      },
+      {
+        "year": 2025,
+        "event": "804",
+        "status": "present",
+        "outcome": "completed",
+        "n": 46
+      },
+      {
+        "year": 2025,
+        "event": "806",
+        "status": "present",
+        "outcome": "completed",
+        "n": 93
+      },
+      {
+        "year": 2025,
+        "event": "808",
+        "status": "ambiguous",
+        "outcome": "completed",
+        "n": 12
+      },
+      {
+        "year": 2025,
+        "event": "808",
+        "status": "present",
+        "outcome": "completed",
+        "n": 3
+      },
+      {
+        "year": 2025,
+        "event": "894",
+        "status": "present",
+        "outcome": "completed",
+        "n": 30
+      },
+      {
+        "year": 2025,
+        "event": "901",
+        "status": "absent",
+        "outcome": "completed",
+        "n": 1
+      },
+      {
+        "year": 2025,
+        "event": "901",
+        "status": "present",
+        "outcome": "completed",
+        "n": 124
+      },
+      {
+        "year": 2025,
+        "event": "901",
+        "status": "score-conflict",
+        "outcome": "completed",
+        "n": 1
+      },
+      {
+        "year": 2025,
+        "event": "901",
+        "status": "score-conflict",
+        "outcome": "incomplete-or-invalid-score",
+        "n": 1
+      },
+      {
+        "year": 2025,
+        "event": "902",
+        "status": "present",
+        "outcome": "completed",
+        "n": 90
+      },
+      {
+        "year": 2025,
+        "event": "903",
+        "status": "absent",
+        "outcome": "completed",
+        "n": 1
+      },
+      {
+        "year": 2025,
+        "event": "903",
+        "status": "present",
+        "outcome": "completed",
+        "n": 124
+      },
+      {
+        "year": 2025,
+        "event": "903",
+        "status": "score-conflict",
+        "outcome": "incomplete-or-invalid-score",
+        "n": 2
+      },
+      {
+        "year": 2025,
+        "event": "904",
+        "status": "present",
+        "outcome": "completed",
+        "n": 125
+      },
+      {
+        "year": 2025,
+        "event": "904",
+        "status": "score-conflict",
+        "outcome": "incomplete-or-invalid-score",
+        "n": 2
+      },
+      {
+        "year": 2025,
+        "event": "905",
+        "status": "present",
+        "outcome": "completed",
+        "n": 124
+      },
+      {
+        "year": 2025,
+        "event": "905",
+        "status": "present",
+        "outcome": "incomplete-or-invalid-score",
+        "n": 3
+      }
+    ],
+    "pilotMatches": [
+      {
+        "year": 2025,
+        "event": "901",
+        "match": "LS56920045"
+      },
+      {
+        "year": 2025,
+        "event": "901",
+        "match": "LS56920047"
+      },
+      {
+        "year": 2025,
+        "event": "901",
+        "match": "LS56920049"
+      },
+      {
+        "year": 2025,
+        "event": "901",
+        "match": "LS56920051"
+      },
+      {
+        "year": 2025,
+        "event": "901",
+        "match": "LS56920053"
+      },
+      {
+        "year": 2025,
+        "event": "903",
+        "match": "LS60690777"
+      },
+      {
+        "year": 2025,
+        "event": "903",
+        "match": "LS60690779"
+      },
+      {
+        "year": 2025,
+        "event": "903",
+        "match": "LS60690781"
+      },
+      {
+        "year": 2025,
+        "event": "903",
+        "match": "LS60690783"
+      },
+      {
+        "year": 2025,
+        "event": "903",
+        "match": "LS60690785"
+      },
+      {
+        "year": 2025,
+        "event": "904",
+        "match": "LS61511554"
+      },
+      {
+        "year": 2025,
+        "event": "904",
+        "match": "LS61511556"
+      },
+      {
+        "year": 2025,
+        "event": "904",
+        "match": "LS61511560"
+      },
+      {
+        "year": 2025,
+        "event": "904",
+        "match": "LS61511562"
+      },
+      {
+        "year": 2025,
+        "event": "904",
+        "match": "LS61511564"
+      }
+    ],
+    "absentPositiveStats": []
+  },
+  "secondProviderAndStats": {
+    "2024": [
+      {
+        "event": 709,
+        "status": "absent",
+        "outcome": "completed",
+        "corroboration": "corroborated",
+        "n": 86
+      },
+      {
+        "event": 709,
+        "status": "absent",
+        "outcome": "completed",
+        "corroboration": "unmatched",
+        "n": 2
+      },
+      {
+        "event": 709,
+        "status": "present",
+        "outcome": "completed",
+        "corroboration": "corroborated",
+        "n": 2
+      },
+      {
+        "event": 709,
+        "status": "present",
+        "outcome": "completed",
+        "corroboration": "unmatched",
+        "n": 1
+      },
+      {
+        "event": 709,
+        "status": "score-conflict",
+        "outcome": "completed",
+        "corroboration": "ambiguous",
+        "n": 1
+      },
+      {
+        "event": 902,
+        "status": "absent",
+        "outcome": "completed",
+        "corroboration": "corroborated",
+        "n": 81
+      },
+      {
+        "event": 902,
+        "status": "absent",
+        "outcome": "completed",
+        "corroboration": "unmatched",
+        "n": 4
+      },
+      {
+        "event": 902,
+        "status": "present",
+        "outcome": "completed",
+        "corroboration": "corroborated",
+        "n": 3
+      },
+      {
+        "event": 903,
+        "status": "absent",
+        "outcome": "completed",
+        "corroboration": "corroborated",
+        "n": 119
+      },
+      {
+        "event": 903,
+        "status": "absent",
+        "outcome": "completed",
+        "corroboration": "unmatched",
+        "n": 6
+      },
+      {
+        "event": 903,
+        "status": "absent",
+        "outcome": "incomplete-or-invalid-score",
+        "corroboration": "score-conflict",
+        "n": 2
+      },
+      {
+        "event": 905,
+        "status": "absent",
+        "outcome": "completed",
+        "corroboration": "corroborated",
+        "n": 115
+      },
+      {
+        "event": 905,
+        "status": "absent",
+        "outcome": "completed",
+        "corroboration": "unmatched",
+        "n": 7
+      },
+      {
+        "event": 905,
+        "status": "absent",
+        "outcome": "incomplete-or-invalid-score",
+        "corroboration": "corroborated",
+        "n": 1
+      },
+      {
+        "event": 905,
+        "status": "absent",
+        "outcome": "incomplete-or-invalid-score",
+        "corroboration": "score-conflict",
+        "n": 3
+      },
+      {
+        "event": 905,
+        "status": "absent",
+        "outcome": "incomplete-or-invalid-score",
+        "corroboration": "unmatched",
+        "n": 1
+      },
+      {
+        "event": 1038,
+        "status": "absent",
+        "outcome": "completed",
+        "corroboration": "corroborated",
+        "n": 90
+      },
+      {
+        "event": 1038,
+        "status": "absent",
+        "outcome": "completed",
+        "corroboration": "unmatched",
+        "n": 3
+      },
+      {
+        "event": 1038,
+        "status": "present",
+        "outcome": "completed",
+        "corroboration": "corroborated",
+        "n": 1
+      },
+      {
+        "event": 1049,
+        "status": "present",
+        "outcome": "completed",
+        "corroboration": "unmatched",
+        "n": 31
+      }
+    ],
+    "pilotSelected": 15,
+    "pilotCorroborated": 15,
+    "pilotWithAnyStats": 0,
+    "pilotUsableServingRows": 0,
+    "limitations": [
+      "Two provider publications may share an upstream origin.",
+      "ESPN scoreboard statistics arrays are empty; no claim about all possible ESPN endpoints.",
+      "Incomplete source scores remain unresolved even when the second provider explains the outcome.",
+      "No raw/model input admission; retrospective evidence does not prove historical publication time."
+    ]
+  },
+  "olderHistoryPilot": {
+    "year": 2015,
+    "calendarRows": 673,
+    "calendarPaginationComplete": true,
+    "WTA125Events": [
+      {
+        "year": 2015,
+        "startDate": "2015-07-27",
+        "endDate": "2015-08-02",
+        "level": "125K",
+        "tournamentGroup": {
+          "id": 1077,
+          "name": "JIUJIANG",
+          "level": "WTA 250",
+          "metadata": {
+            "swing2026": "asian",
+            "tournament_summary_heading": "Jiangxi Open",
+            "twitter": "https://x.com/jiangxiopen?lang=en",
+            "facebook": "https://www.facebook.com/jiangxiopen/",
+            "tournament_summary_text": "The Jiangxi Open is a WTA 250 tournament played on outdoor hard courts in Jiujiang, China. 32 singles players and 16 doubles teams compete at the Jiujiang International Tennis Center to earn 250 points in the standings and the right to be called Jiangxi Open champion. The event was originally founded in 2014 at the WTA 125 level and held at the Nanchang Tennis Center until 2023.",
+            "customStatus2020": "CANCELLED"
+          }
+        }
+      },
+      {
+        "year": 2015,
+        "startDate": "2015-09-08",
+        "endDate": "2015-09-13",
+        "level": "125K",
+        "tournamentGroup": {
+          "id": 1083,
+          "name": "DALIAN",
+          "level": "125K",
+          "metadata": {}
+        }
+      },
+      {
+        "year": 2015,
+        "startDate": "2015-11-09",
+        "endDate": "2015-11-15",
+        "level": "125K",
+        "tournamentGroup": {
+          "id": 1072,
+          "name": "LIMOGES 125",
+          "level": "WTA 125",
+          "metadata": {
+            "tournament_summary_heading": "OPEN BLS DE LIMOGES",
+            "tournament_summary_text": "The Open BLS de Limoges is a WTA 125 tournament played on indoor hard courts in Limoges, France. 32 singles players and eight doubles teams compete for 125 points in the standings at Palais des Sports de Beaublanc, which holds up to 6,500 fans. Originally founded in 2007, the Open BLS de Limoges has been at WTA 125-level since 2014 and is the last event of the year.",
+            "customStatus2020": "CANCELLED"
+          }
+        }
+      },
+      {
+        "year": 2015,
+        "startDate": "2015-11-09",
+        "endDate": "2015-11-15",
+        "level": "125K",
+        "tournamentGroup": {
+          "id": 1084,
+          "name": "HUA HIN",
+          "level": "125K",
+          "metadata": {
+            "twitter": "https://twitter.com/ThailandOpenHH",
+            "instagram": "https://www.instagram.com/toyotathailandopen/?hl=en",
+            "facebook": "https://www.facebook.com/WTAThailandOpen/"
+          }
+        }
+      },
+      {
+        "year": 2015,
+        "startDate": "2015-11-16",
+        "endDate": "2015-11-22",
+        "level": "125K",
+        "tournamentGroup": {
+          "id": 1059,
+          "name": "TAIPEI",
+          "level": "125K",
+          "metadata": {
+            "customStatus2020": "CANCELLED"
+          }
+        }
+      },
+      {
+        "year": 2015,
+        "startDate": "2015-11-23",
+        "endDate": "2015-11-29",
+        "level": "125K",
+        "tournamentGroup": {
+          "id": 1085,
+          "name": "CARLSBAD",
+          "level": "125K",
+          "metadata": {}
+        }
+      }
+    ],
+    "selectionRule": "Earliest two chronological WTA125 calendar events; no stats acquisition in this pilot",
+    "probes": [
+      {
+        "eventId": 1077,
+        "startDate": "2015-07-27",
+        "returnedMatches": 0,
+        "finishedSingles": 0
+      },
+      {
+        "eventId": 1083,
+        "startDate": "2015-09-08",
+        "returnedMatches": 0,
+        "finishedSingles": 0
+      }
+    ],
+    "noInputsAdmitted": true
+  },
+  "prototype": {
+    "newModule": "tennis_model/src/tennis_model/ratings/dynamic.py",
+    "newTestFile": "tennis_model/tests/test_dynamic_research.py",
+    "sourceSHA256": "9eb25f86026563bdcc0337481c2a99a12c50368d2b0cb71f7775e67f90d6bf1b",
+    "testSHA256": "3894fa130d5f15dfccaa49f073dc112a1cf6175b8ccc00422209fd577840803d",
+    "fullHistory": "blocked by raw self-match, not skipped",
+    "boundedReplay": {
+      "startedAt": "2026-09-06T23:37:44.847972+00:00",
+      "scope": "research correctness and runtime only; no candidate fit/score; cold-start contiguous 1991-2019 interval only; full warm-up blocked by 1980 self-match",
+      "params": {
+        "sigma0": 1.0,
+        "q": 0.0001
+      },
+      "driverSHA256": "fc52b6810e254306421362e5017b600513c245d976ec66cd533c07ee89ab22ac",
+      "disabledFullFrameExact": 81314,
+      "walks": {
+        "main": {
+          "rows": 81314,
+          "players": 3346,
+          "replaySeconds": 2.7796094579971395,
+          "minimumCovarianceEigenvalue": 0.028552523558768916,
+          "cutoffChecks": [
+            {
+              "cutoff": "2009-12-31",
+              "prefixRows": 53559,
+              "continuedRows": 40,
+              "maxProbabilityDifference": 0,
+              "maxExchangeError": 1.1102230246251565e-16
+            },
+            {
+              "cutoff": "2015-12-31",
+              "prefixRows": 70138,
+              "continuedRows": 40,
+              "maxProbabilityDifference": 0,
+              "maxExchangeError": 1.1102230246251565e-16
+            },
+            {
+              "cutoff": "2018-12-31",
+              "prefixRows": 78693,
+              "continuedRows": 40,
+              "maxProbabilityDifference": 0,
+              "maxExchangeError": 1.1102230246251565e-16
+            }
+          ]
+        },
+        "enriched": {
+          "rows": 85299,
+          "players": 3652,
+          "replaySeconds": 2.9085672500077635,
+          "minimumCovarianceEigenvalue": 0.028180513705915452,
+          "cutoffChecks": [
+            {
+              "cutoff": "2009-12-31",
+              "prefixRows": 53559,
+              "continuedRows": 40,
+              "maxProbabilityDifference": 0,
+              "maxExchangeError": 1.1102230246251565e-16
+            },
+            {
+              "cutoff": "2015-12-31",
+              "prefixRows": 70138,
+              "continuedRows": 40,
+              "maxProbabilityDifference": 0,
+              "maxExchangeError": 1.1102230246251565e-16
+            },
+            {
+              "cutoff": "2018-12-31",
+              "prefixRows": 81486,
+              "continuedRows": 40,
+              "maxProbabilityDifference": 0,
+              "maxExchangeError": 2.220446049250313e-16
+            }
+          ]
+        }
+      },
+      "realGateAttachment": {
+        "rows": 81314,
+        "selectedLowerRows": 27789,
+        "unchangedOriginalColumns": true
+      },
+      "disabledIncumbentFit": {
+        "year": 2010,
+        "bags": 5,
+        "rows": 2702,
+        "wallSeconds": 2.725264790991787,
+        "probabilitiesBitIdentical": true,
+        "candidateFitted": false
+      },
+      "wallSeconds": 25.880146167008206,
+      "status": "passed",
+      "endedAt": "2026-09-06T23:38:10.728118+00:00"
+    }
+  },
+  "tests": {
+    "command": "uv run (preserved Python) python -m pytest -q tests/test_dynamic_research.py tests/test_elo.py tests/test_probability.py tests/test_chronology.py tests/test_predictor_artifact.py tests/test_probability_audit.py",
+    "passed": 108,
+    "wallSeconds": 2.69,
+    "prototypeTests": 25,
+    "lint": "passed; changed module and tests",
+    "fullSuiteRun": false
+  },
+  "requests": {
+    "successful": 17,
+    "errors": 1,
+    "rateLimited": 0,
+    "downloadedBytes": 14186620,
+    "sequentialStagingOnly": true,
+    "records": [
+      {
+        "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard?dates=20240331&limit=1000",
+        "purpose": "Independent factual result corroboration only; no model input admission",
+        "year": 2024,
+        "startedEpoch": 1788737640.340372,
+        "status": 200,
+        "bytes": 1254893,
+        "sha256": "572d5bf527d537926ca800a25f86c5dffd37b84bad116ac7bd2f98762bca0a78",
+        "wallSeconds": 0.5227041244506836
+      },
+      {
+        "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard?dates=20240907&limit=1000",
+        "purpose": "Independent factual result corroboration only; no model input admission",
+        "year": 2024,
+        "startedEpoch": 1788737638.360995,
+        "status": 200,
+        "bytes": 2260697,
+        "sha256": "3e855d28dcf1eee2570433cbf426adaabad71f431b7674df19a2f0fdc7dc416c",
+        "wallSeconds": 0.32059502601623535
+      },
+      {
+        "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard?dates=20240519&limit=1000",
+        "purpose": "Independent factual result corroboration only; no model input admission",
+        "year": 2024,
+        "startedEpoch": 1788737639.685687,
+        "status": 200,
+        "bytes": 1156999,
+        "sha256": "9338f6280b7426addf5ba35af2fa25a651b1908db09e3b5471b51a3b807a69f5",
+        "wallSeconds": 0.6543078422546387
+      },
+      {
+        "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard?dates=20240505&limit=1000",
+        "purpose": "Independent factual result corroboration only; no model input admission",
+        "year": 2024,
+        "startedEpoch": 1788737638.681986,
+        "status": 200,
+        "bytes": 946711,
+        "sha256": "e61372313b018ec91d46420cfd4d091a1f97af9209f61545e6a6af1540d0e7bb",
+        "wallSeconds": 1.0032958984375
+      },
+      {
+        "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard?dates=20240608&limit=1000",
+        "purpose": "Independent factual result corroboration only; no model input admission",
+        "year": 2024,
+        "startedEpoch": 1788737638.037345,
+        "status": 200,
+        "bytes": 2150572,
+        "sha256": "a601b347582f876b3def4e70cdfa5c6f64e449a904b57129ec9de2ff09934d78",
+        "wallSeconds": 0.3230609893798828
+      },
+      {
+        "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard?dates=20250528&limit=1000",
+        "source": "ESPN, distinct from WTA statistics API",
+        "year": 2025,
+        "selectedSample": "adjudication-003/2025-serving-stat-pilot.csv",
+        "startedEpoch": 1788737397.900645,
+        "status": 200,
+        "bytes": 1852352,
+        "sha256": "a129c12a0460c6df2ba375a1041a73ad00610a2860d25c52a8adcaf8716447e4",
+        "wallSeconds": 0.27692389488220215
+      },
+      {
+        "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard?dates=20250701&limit=1000",
+        "source": "ESPN, distinct from WTA statistics API",
+        "year": 2025,
+        "selectedSample": "adjudication-003/2025-serving-stat-pilot.csv",
+        "startedEpoch": 1788737398.177751,
+        "status": 200,
+        "bytes": 1731850,
+        "sha256": "4e9d98137e7f1b2e8c660015d62b8557582d5b6b714d713da70e2d649891f83a",
+        "wallSeconds": 0.3035237789154053
+      },
+      {
+        "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard?dates=20250116&limit=1000",
+        "source": "ESPN, distinct from WTA statistics API",
+        "year": 2025,
+        "selectedSample": "adjudication-003/2025-serving-stat-pilot.csv",
+        "startedEpoch": 1788737397.595572,
+        "status": 200,
+        "bytes": 1836099,
+        "sha256": "b1bc98dad62616488f3bdabe857b2803f197916522b972d58c66b6a5af672ac3",
+        "wallSeconds": 0.30478596687316895
+      },
+      {
+        "url": "https://api.wtatennis.com/tennis/tournaments/?from=2015-01-01&to=2015-12-31&page=0&pageSize=100",
+        "startedEpoch": 1788737812.1643589,
+        "status": 200,
+        "bytes": 146313,
+        "sha256": "8bc22a4e7e3d1d0cdb70e436323226496f8b088d168650a6054ee2c0c92ceeab",
+        "wallSeconds": 2.4563210010528564
+      },
+      {
+        "url": "https://api.wtatennis.com/tennis/tournaments/?from=2015-01-01&to=2015-12-31&page=1&pageSize=100",
+        "startedEpoch": 1788737895.168374,
+        "status": 200,
+        "bytes": 146091,
+        "sha256": "cac4f55a907f13f364ce845dba677a312a1fe3ae13a7980877713c808270eca9",
+        "wallSeconds": 2.6260900497436523
+      },
+      {
+        "url": "https://api.wtatennis.com/tennis/tournaments/?from=2015-01-01&to=2015-12-31&page=2&pageSize=100",
+        "startedEpoch": 1788737897.795074,
+        "status": 200,
+        "bytes": 149144,
+        "sha256": "a83ccf3f0eecc04bc20746e359520460d446d602993f658dd54be0547e098229",
+        "wallSeconds": 2.594738006591797
+      },
+      {
+        "url": "https://api.wtatennis.com/tennis/tournaments/?from=2015-01-01&to=2015-12-31&page=3&pageSize=100",
+        "startedEpoch": 1788737900.390451,
+        "status": 200,
+        "bytes": 148590,
+        "sha256": "c5decd3e32bc5abb1ee25b35943e3c962f59ca4235b198ca75f6b1a78b0070ed",
+        "wallSeconds": 2.0867371559143066
+      },
+      {
+        "url": "https://api.wtatennis.com/tennis/tournaments/?from=2015-01-01&to=2015-12-31&page=4&pageSize=100",
+        "startedEpoch": 1788737902.477791,
+        "status": 200,
+        "bytes": 148192,
+        "sha256": "e736133f1c2cbe359145736caa46fe9e98123f4950e9913fc8c3cff1ea5d873e",
+        "wallSeconds": 2.3183889389038086
+      },
+      {
+        "url": "https://api.wtatennis.com/tennis/tournaments/?from=2015-01-01&to=2015-12-31&page=5&pageSize=100",
+        "startedEpoch": 1788737904.7966988,
+        "status": 200,
+        "bytes": 151516,
+        "sha256": "f072f9d49ac38b3bcddac9eec821c40600bbb3ccd4c008b3d28a4b1fc1089c7a",
+        "wallSeconds": 1.9221701622009277
+      },
+      {
+        "url": "https://api.wtatennis.com/tennis/tournaments/?from=2015-01-01&to=2015-12-31&page=6&pageSize=100",
+        "startedEpoch": 1788737906.71939,
+        "status": 200,
+        "bytes": 105029,
+        "sha256": "e067bb76aa497c215d4c399c672b1730d54f66f160797ece05218eaa0a0c381f",
+        "wallSeconds": 1.449002981185913
+      },
+      {
+        "url": "https://api.wtatennis.com/tennis/tournaments/1077/2015/matches?page=0&pageSize=100",
+        "startedEpoch": 1788737908.169868,
+        "status": 200,
+        "bytes": 1088,
+        "sha256": "53aa824b25a861f13f24d6507113e371c0ed95e90e9a23c39534aa7066dcc81e",
+        "wallSeconds": 0.1107630729675293
+      },
+      {
+        "url": "https://api.wtatennis.com/tennis/tournaments/1083/2015/matches?page=0&pageSize=100",
+        "startedEpoch": 1788737908.2812932,
+        "status": 200,
+        "bytes": 484,
+        "sha256": "a0b1d86a078e40ba27b31a4ae1748e8661646e7ff0bb9525f749c08a0a31adeb",
+        "wallSeconds": 0.11533880233764648
+      },
+      {
+        "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard?dates=20250116&limit=1000",
+        "source": "ESPN, distinct from WTA statistics API",
+        "year": 2025,
+        "selectedSample": "adjudication-003/2025-serving-stat-pilot.csv",
+        "startedEpoch": 1788737376.586669,
+        "error": "URLError(gaierror(8, 'nodename nor servname provided, or not known'))",
+        "wallSeconds": 0.011053800582885742
+      }
+    ]
+  },
+  "preservation": {
+    "checkedAt": "2026-09-06T23:42:04.953890+00:00",
+    "coordinatorAllDataUnchanged": true,
+    "originalAllDataUnchanged": true,
+    "candidateRawAndOutputUnchanged": true,
+    "snapshotFilesVerified": 25826,
+    "dataFilesPerWorkspace": 18791,
+    "fourDistinctInodesPerDataFile": true,
+    "candidateNoDataSymlinks": true,
+    "candidateCacheDifferences": [
+      {
+        "path": "cache/normalized-matches/wta-enriched.pkl.gz",
+        "before": {
+          "path": "cache/normalized-matches/wta-enriched.pkl.gz",
+          "bytes": 6991861,
+          "sha256": "d1cbca96b222e664e17e712d69c81c6d17e5d14d662f6043e556676f70191af4"
+        },
+        "after": {
+          "path": "cache/normalized-matches/wta-enriched.pkl.gz",
+          "bytes": 6991867,
+          "sha256": "cc18d32a7a4fbb88c6d1a30641478c3634bdd8c9596f0a4cc5f7e30a8dcbe8b0"
+        }
+      },
+      {
+        "path": "cache/normalized-matches/wta-main.pkl.gz",
+        "before": {
+          "path": "cache/normalized-matches/wta-main.pkl.gz",
+          "bytes": 5908015,
+          "sha256": "6901852b29f4260f607c1128e3e51db310aa31fd41c0b8ba9eb16d6bcb07537d"
+        },
+        "after": {
+          "path": "cache/normalized-matches/wta-main.pkl.gz",
+          "bytes": 5908433,
+          "sha256": "4c834da46abf3031913336fd4529f5e3dae02b6fbd3e333789ae6a4bc98204da"
+        }
+      }
+    ],
+    "phase3RunFilesVerified": 56
+  },
+  "failuresRetained": [
+    "adjudication-001: duplicate provider match IDs across cache/event years",
+    "adjudication-002: strict summary JSON rejected NaN; missing numeric-ID/alias canonicalization",
+    "dynamic-check-001: full history self-match",
+    "espn-pilot-001: sandbox DNS failure; public reads succeeded after approved escalation"
+  ],
+  "limitations": [
+    "491 corroborated absent completed rows are a conservative minimum, not complete upstream coverage",
+    "Historical publication time unknown; estimated match timestamps require maintenance review",
+    "The 1991-2019 cold-start replay is QA only, not a full-history scored experiment",
+    "Statistics zero yield applies to the sampled ESPN scoreboard endpoint; other sources unexhausted",
+    "2015 WTA125 match-list no-yield covers two of six events",
+    "No numerical screen or validation candidate scores; 43-column fitting adapter not implemented"
+  ],
+  "next": "Implement reviewed population/timing maintenance and a new incumbent reference, then finish full-history parity and the original eight-setting tune screen.",
+  "sourceLinks": [
+    "https://www.wtatennis.com/tournaments/905/us-open/2024/draws",
+    "https://www.tntsports.co.uk/tennis/roland-garros-women/2025/live-yuliia-starodubtseva-anastasia-potapova_mtc1577079/live-stats.shtml"
+  ],
+  "privateDrivers": {
+    "phase4-preserve.py": "4608e122a8cca52188d16a4bdbbe5b002c49565f14903ed8d084c3f3f71ec44f",
+    "phase4-source-check.py": "e3529c0b72f466a753b469b776f5c4cec4b7d3462374d5f050c9ff18937b40c7",
+    "phase4-adjudicate.py": "52e3623cafab2933d1fd08a56c1aaef2cb84759f13b81cebf1aebf9bc80bafba",
+    "phase4-dynamic-check.py": "fc52b6810e254306421362e5017b600513c245d976ec66cd533c07ee89ab22ac",
+    "phase4-older-pilot.py": "6ebd74f7e934256593439c7a6fda6684cd1b166bd77cef3e7e28b263b16fa404"
+  },
+  "runFiles": {
+    "adjudication-001/failure.json": "903b1bb9311d9e915765407489beb532962b7c0d69de49a7de16da3fd4ccd0ef",
+    "adjudication-001/registration.json": "e4392245822cfc74b1c56013ea1dbb7baea0cad2734950a912c21e495df582d6",
+    "adjudication-002/2025-serving-stat-pilot.csv": "4f4b0d087709b49024dd3fd300e50f071b5643e76fbe1d28de2eb60a0cb42d2c",
+    "adjudication-002/failure.json": "7fb1b6c100c240130b2f1225110a238d29ee679ccd8d47376a731cc9712ce86e",
+    "adjudication-002/registration.json": "b38a02523133b8bee1ed27d4bd61ca46d3dab0398c7873ae82c645ed6bebef13",
+    "adjudication-002/wta-2024-adjudication.csv": "d9c40052766a46c5f6d87a8d3466126cbe13d1c292f5f1630aac5bfe561a5e8a",
+    "adjudication-002/wta-2025-adjudication.csv": "ac0d5368e766ada53440664c76741ada06e578ef29bbe2e4211949aaa076254a",
+    "adjudication-003/2025-serving-stat-pilot.csv": "23f7d77335911cb7b9b04e7b514143eb26cf93b18d8dfc6d391bc7c4ee1db524",
+    "adjudication-003/phase1-reconciliation.csv": "f352925f7f2f0c24cf50d21e28fed60c17bf022047bc6029fb3e97bf7a1baa07",
+    "adjudication-003/registration.json": "d9fa84c7aaf18e4c3288fdfb114205e1cf779b3e00e655c3eaa567b84e8e92fb",
+    "adjudication-003/summary.json": "9d6ebee565c670a622f4a2fc7dd7b19a46070afca9a76dab687fa347cbb120ce",
+    "adjudication-003/wta-2024-adjudication.csv": "2761d1ead2f872193b12744ab465151252cc725e1156e75d7d3625900c5af7ff",
+    "adjudication-003/wta-2025-adjudication.csv": "7b797304608eaba31b4c024bcb4943a85f2a3ebdde3ad49f249251c49bf37db0",
+    "candidate-input-inventory.json": "7389987cb3b3f09926540ab2400e0e761c0b47f13e5211e69ac36ebf25eeecfc",
+    "contract-delta.json": "065c9c4c33d14a07acfe9cc20cbbb25b4fc07ecb83a8764f03159f6f35d2c748",
+    "dynamic-check-001/failure.json": "9a4469aaa615a68704bc048a2dc319bfa9acd90c63546f8d96e2ea1e608376ff",
+    "dynamic-check-001/registration.json": "f4532f71b29d8699acded89b1e9c1fd735bb66caf0203866cd0e03e76861181c",
+    "dynamic-check-001/self-matches.csv": "995fffd2a4e421371107500b814907fc1baf8895c35c2071fefade58110d0b5e",
+    "dynamic-check-002/enriched-2009-12-31.json": "547b25656532aa5c4e2152c98eca4fc5f0c035d619702e6ebdd441924ed281a1",
+    "dynamic-check-002/enriched-2015-12-31.json": "38221ee063c4df1c811ccebdce2d8f5d4cdf59b6ffd9f923c8d95d29f857d496",
+    "dynamic-check-002/enriched-2018-12-31.json": "cb7fb1b467233cc0907293525af01ebe80dbef7610b79c024fa066d679a6f29d",
+    "dynamic-check-002/enriched-dynamic.pkl": "bd5ca1f05383562dbcfd7a8326f0da1559f202794fec28d0a0cf19d58c88ab34",
+    "dynamic-check-002/enriched-final-state.json": "bce8893ff50bbdb9655f129d554be080c67df23286fc3869089834c185675f6d",
+    "dynamic-check-002/main-2009-12-31.json": "547b25656532aa5c4e2152c98eca4fc5f0c035d619702e6ebdd441924ed281a1",
+    "dynamic-check-002/main-2015-12-31.json": "38221ee063c4df1c811ccebdce2d8f5d4cdf59b6ffd9f923c8d95d29f857d496",
+    "dynamic-check-002/main-2018-12-31.json": "9e15acfafb7e4ebe1986798f7ce4fbc51bdf6e7dcca82f35cbc626c5032097ac",
+    "dynamic-check-002/main-dynamic.pkl": "40182ece0a6ad091a638be778f8fe49c65208253fa1b50de000592dc941f123d",
+    "dynamic-check-002/main-final-state.json": "34e2f0842eb565f16c048477da560bd62157529c1c257514363912ceebc494e5",
+    "dynamic-check-002/registration.json": "60202cbc93bde10b208afc23eb7e858c188c3f80cbcbb0b640d7cb5142191559",
+    "dynamic-check-002/summary.json": "0e13ac0b5c08d8ade4fc851cb3a97d64d8fa87f9c06b64182aae990f84969064",
+    "implementation-freeze.json": "2d09948079c541daef990f50130570afa92cac0a87b3e621a2b8a48fcf8e10e8",
+    "logs/adjudication-001.log": "22ef8b5269f3997e44533b7ee78df292d763b0a77fbf1f1ebf529fb3e117a85b",
+    "logs/adjudication-002.log": "64bc6f0bccf3aa75b1c57d6931e7e0f82c0e034de8e95cb8e477b8fddd8f2a1e",
+    "logs/adjudication-003.log": "35e73b3605054aedb24e7e65bb184ec6a191e5115cf837715ef4626e425e8768",
+    "logs/dynamic-check-001.log": "950d53d91035b9f9b7bf91e33bafc523fb3ea50215541b9d6797c34f11096a74",
+    "logs/dynamic-check-002.log": "165deacf54500b736422f8c1f4384505e1ffafe86f48f4815e46a09596151f9d",
+    "logs/initial-verify.json": "85750c912ca7ddc9fd3f008635cfe7b9d5c7b568799cc88901400a4659dc76b7",
+    "logs/older-2015-001.log": "98055633bf28cbfddffdb6cd2b8fd6e1163b4d4734d4195ed03a704a52a9a849",
+    "logs/older-2015-002.log": "8318a1abb9bd72c4faac584ef8547e38a903012c36399aa8c78de54ceca769cb",
+    "logs/preservation.log": "9ddc6529ed693adcf85016130ebabd6f0335c93b1bb3885bf4a1edb090bd0b89",
+    "logs/source-check-001.log": "1a2f63c2672a39dfaad4bb13f394a4a1e9f9eb223fcfd53c31698c31be313ffb",
+    "logs/tests.log": "da2da14cae67c67dad0c2dec598c1407f677122feb94c1ed86a18cf4b5a27bda",
+    "preservation.json": "3d534dc85ecf3d3cdf8cda4e3f5ce628596ad830957128431bb74f9e6e1cf8ea",
+    "setup.json": "af198122c8eb3502d2ce461b53f3dca5a4cc4c6ff9a3b9a944caccb3eb0bd60b",
+    "source-check-001/2024-second-provider.csv": "a2cb0372f8de300362db4b6c19c29da6abb0a5be37775ceabb732e4070c96d63",
+    "source-check-001/2025-stat-pilot.csv": "f1f0f1610f54dfccf7d47980faf472655debed75ff045ec5c43c1ca08ccef98d",
+    "source-check-001/summary.json": "e0e83cdc911a2c1ca0f8d739eb3a961f453008917094dd2d537f3e9c7b51478b",
+    "staging/espn-pilot-001/request.json": "6aac5d380e57f2e79e0e5ac5b0ecddaca0e96ef810a4cc8c078759de6b1777a9",
+    "staging/espn-pilot-002/20250116-request.json": "070c321be3a481745bea9cc059177a853edb86780965519bd9b096d53733ad2a",
+    "staging/espn-pilot-002/20250116.json": "b1bc98dad62616488f3bdabe857b2803f197916522b972d58c66b6a5af672ac3",
+    "staging/espn-pilot-002/20250528-request.json": "3206376c64ccf6c07be65ebdcdc10b1ab14937d91f217bf783492dfe08564982",
+    "staging/espn-pilot-002/20250528.json": "a129c12a0460c6df2ba375a1041a73ad00610a2860d25c52a8adcaf8716447e4",
+    "staging/espn-pilot-002/20250701-request.json": "939f37a30fb2cf36dc90fbeda5bfd54a4331378a123f5c32d6e2080e0264f719",
+    "staging/espn-pilot-002/20250701.json": "4e9d98137e7f1b2e8c660015d62b8557582d5b6b714d713da70e2d649891f83a",
+    "staging/espn-results-001/20240331-request.json": "34f389823bb34ce683a9293eb61d4204e158bc9541d65de121d85e8190f90493",
+    "staging/espn-results-001/20240331.json": "572d5bf527d537926ca800a25f86c5dffd37b84bad116ac7bd2f98762bca0a78",
+    "staging/espn-results-001/20240505-request.json": "c269133bfb8aceee3f3f55f7f50cdb5f5912797b9e22c4923860f13ce6d893d6",
+    "staging/espn-results-001/20240505.json": "e61372313b018ec91d46420cfd4d091a1f97af9209f61545e6a6af1540d0e7bb",
+    "staging/espn-results-001/20240519-request.json": "3fe47257cc411028680b23cd17d69bb8fea7d9a110b3922eff8e2648cead44d5",
+    "staging/espn-results-001/20240519.json": "9338f6280b7426addf5ba35af2fa25a651b1908db09e3b5471b51a3b807a69f5",
+    "staging/espn-results-001/20240608-request.json": "6562be0b3cb1d8205e5d600f2f5c0e352f7e6d64374d5d544b079a09b7f6558c",
+    "staging/espn-results-001/20240608.json": "a601b347582f876b3def4e70cdfa5c6f64e449a904b57129ec9de2ff09934d78",
+    "staging/espn-results-001/20240907-request.json": "afeca181f198b6670b8df5047dcc8627ffdf4f5e52df3543e12675be795077e6",
+    "staging/espn-results-001/20240907.json": "3e855d28dcf1eee2570433cbf426adaabad71f431b7674df19a2f0fdc7dc416c",
+    "staging/older-2015-001/calendar.json": "8bc22a4e7e3d1d0cdb70e436323226496f8b088d168650a6054ee2c0c92ceeab",
+    "staging/older-2015-001/requests.json": "ac48b707b3df90c5c511a5766649388315ec6292dd5127cf317cbad855732ca0",
+    "staging/older-2015-001/summary.json": "72164503c451ec49cf12461c7b1a0097338493a1cd442bce6e0996a5669ce758",
+    "staging/older-2015-002/calendar-1.json": "cac4f55a907f13f364ce845dba677a312a1fe3ae13a7980877713c808270eca9",
+    "staging/older-2015-002/calendar-2.json": "a83ccf3f0eecc04bc20746e359520460d446d602993f658dd54be0547e098229",
+    "staging/older-2015-002/calendar-3.json": "c5decd3e32bc5abb1ee25b35943e3c962f59ca4235b198ca75f6b1a78b0070ed",
+    "staging/older-2015-002/calendar-4.json": "e736133f1c2cbe359145736caa46fe9e98123f4950e9913fc8c3cff1ea5d873e",
+    "staging/older-2015-002/calendar-5.json": "f072f9d49ac38b3bcddac9eec821c40600bbb3ccd4c008b3d28a4b1fc1089c7a",
+    "staging/older-2015-002/calendar-6.json": "e067bb76aa497c215d4c399c672b1730d54f66f160797ece05218eaa0a0c381f",
+    "staging/older-2015-002/event-1077.json": "53aa824b25a861f13f24d6507113e371c0ed95e90e9a23c39534aa7066dcc81e",
+    "staging/older-2015-002/event-1083.json": "a0b1d86a078e40ba27b31a4ae1748e8661646e7ff0bb9525f749c08a0a31adeb",
+    "staging/older-2015-002/requests.json": "5ecc64fb1e69fc43a0f09c77f4f3864498e6f4954c50956d48511b884079bfba",
+    "staging/older-2015-002/summary.json": "fd14b6a392b77d4ef003c7e247f93095836d6f90e45977de5c6cdf3c76ee3281"
+  },
+  "committedTables": {
+    "2026-09-06-phase4-second-provider.csv": "a2cb0372f8de300362db4b6c19c29da6abb0a5be37775ceabb732e4070c96d63",
+    "2026-09-06-phase4-stat-pilot.csv": "f1f0f1610f54dfccf7d47980faf472655debed75ff045ec5c43c1ca08ccef98d",
+    "2026-09-06-phase4-wta-2024-audit.csv": "2761d1ead2f872193b12744ab465151252cc725e1156e75d7d3625900c5af7ff",
+    "2026-09-06-phase4-wta-2025-audit.csv": "7b797304608eaba31b4c024bcb4943a85f2a3ebdde3ad49f249251c49bf37db0"
+  }
+}

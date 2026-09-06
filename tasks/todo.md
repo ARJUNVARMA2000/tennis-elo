@@ -6487,3 +6487,99 @@ See `tasks/research/2026-09-06-phase3-review.md`, its result/CSV files, and
 `2026-09-06-phase4-preregistration.md`. All original/snapshot/raw/output data remain
 preserved. No source tests changed; real fit/replay checks passed. Local research
 record and docs-only original-checkout handoff use separate commits; no push/deploy.
+
+
+## 2026-09-06 — Phase 4 candidate preparation
+
+User check-in: “Keep going for round 4” authorizes the saved Phase 4 plan. Preserve
+the coordinator/Phase 3 reference and work in a separate candidate checkout. Staged
+source feasibility happens before the numerical round; no input refresh during fitting.
+
+- [ ] Create and verify an isolated candidate checkout from `c5cd366`, with distinct
+      input files and the same frozen runtime; record contracts and measured clocks.
+- [ ] Re-adjudicate the 2024 WTA 903/905 result samples and the remaining named events;
+      classify evidence, outcomes, identities and any actual population defect.
+- [ ] Run the bounded 2025 serving-stat source pilot and older-history feasibility;
+      freeze one justified data candidate or document why none is admissible.
+- [ ] Specify and implement the small uncertainty state, query-time mirror and tests;
+      retain the existing evaluator and inference artifact guards.
+- [ ] If no correctness blocker remains, run the eight registered tune-only settings
+      sequentially; preserve every result and select at most one Phase 5 candidate.
+- [ ] Verify preservation, tests and Git; commit exact results, limitations and the
+      next-session handoff. No adoption, prospective activation or deployment this phase.
+
+### Review
+
+Pending. If the result audit proves a population defect, stop candidate scoring and
+record the required maintenance and new-reference design before continuing.
+
+### Uncertainty prototype design, before implementation or screening
+
+Use a four-dimensional Gaussian per player: global logit strength plus Hard/Clay/Grass
+deviations. Initial mean zero; covariance `sigma0^2 * diag(1,.25,.25,.25)`. Before a
+query/update, add `q * elapsed_days * diag(1,.25,.25,.25)` to a copied covariance; no
+mean drift. Surface design vector selects global plus that surface. Marginal match
+probability integrates the logistic likelihood over the Gaussian strength difference
+using fixed 20-node Gauss-Hermite quadrature. Updates moment-match that same scalar
+likelihood, then project its moments back into each player's mean/covariance. Discard
+posterior cross-player covariance explicitly; retain within-player covariance.
+
+Likelihood power equals the existing tier weight, with WTA's adopted 0.72 retirement
+multiplier and existing walkover-admission policy; no extra margin-of-victory weighting.
+Record predictions before updates in the existing retrospective row order. Queries
+cannot read before the saved cutoff and never mutate state. Main and enriched WTA
+walks remain separate, selected by baseline-owned threshold-32 counts. The only proposed
+combiner addition is `logit_p_dynamic`; disabled mode bypasses it exactly.
+
+Implement this as a research-only ratings module with an explicit JSON state roundtrip,
+without production imports or changing the schema-5 loader. Tests precede any real
+screening. The eight sigma/q combinations and all numerical stop conditions remain as
+registered; no validation scoring until a candidate is selected and Phase 5 begins.
+
+Numerical design correction before screening: a 20-node Hermite grid has 0.03031
+absolute probability error at contrast mean -2 / variance 100 against independent
+adaptive integration. Replace it with 64 nodes for variance <=4 and adaptive
+normal-coordinate integration above 4 (absolute/relative tolerance 1e-11, integration
+bounds +/-12 SD, fail if numerical evidence is unresolved). This is an integration
+accuracy repair, selected without outcome scores; the eight parameter settings and
+single feature representation remain unchanged. Add independent probability and
+posterior-moment comparisons across both integration paths before real replay.
+
+A1 has established a missing-result population defect in 2024 Slams. Per the explicit
+preregistration stop condition, B2 candidate scoring and A3 candidate freezing are
+on hold. Complete source adjudication, source feasibility, research-only state tests
+and a maintenance/new-reference handoff. Do not expand Phase 4 into an unregistered
+population migration or compare a new model against incomplete history.
+
+Real-history check found one additional correctness blocker: the normalized 1980-04-30
+record at event 1980-1040 has Marcie Louie as both winner and loser. The prototype
+correctly rejects this; preserve the failed full-history attempt and the raw record.
+Do not skip it inside a scored walk or invent an opponent. For runtime and serialization
+QA only, register a separate contiguous 1991-2019 replay initialized cold at 1991;
+this is NOT certification of the full-history candidate and produces no loss comparison.
+Add a self-match rejection test. Full warm-up replay remains a maintenance prerequisite.
+
+
+### Phase 4 review and final disposition
+
+- [x] Isolated `codex/model-phase4` from coordinator `c5cd366`; 18,791 distinct data
+      files verified. Frozen coordinator and original inputs/outputs are unchanged.
+- [x] Re-adjudicated cached 2024/2025 source evidence and corrected cache-year/alias
+      errors. Corroborated 491 absent completed results in five 2024 events.
+- [x] Completed fixed 2025 stats and bounded 2015 history pilots; no usable data
+      candidate. Source responses, failures, row dispositions and hashes are preserved.
+- [x] Implemented research-only uncertainty state, exact disabled path, saved query
+      mirror and 25 new tests. 108 targeted tests and lint passed.
+- [x] Completed separately registered 1991-2019 replay/serialization QA and a five-bag
+      incumbent 2010 refit with bit-identical probabilities; measured runtime saved.
+- [ ] Full-history replay remains blocked by the raw 1980 same-player record.
+- [ ] Eight-setting tune screen and candidate selection deferred by the preregistered
+      missing-population stop condition; zero candidate scoring trials were run.
+- [x] Preserved all original/coordinator data, 25,826 snapshot files and 56 Phase 3
+      run artifacts; only two disposable candidate normalized caches changed.
+- [x] Wrote the maintenance implementation sequence and exact resume handoff in
+      `tasks/research/2026-09-06-phase4-maintenance-plan.md`, plus Phase 4 review,
+      result JSON and four row-level CSVs. No model adoption or deployment.
+
+Next is population/timing maintenance and a new reference, then finishing Phase 4
+screening. Phase 5 evaluation, future confirmation and integration remain later work.

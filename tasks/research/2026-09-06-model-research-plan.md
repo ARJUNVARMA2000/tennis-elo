@@ -1,38 +1,30 @@
 # DEUCE model improvement — implementation and research handoff
 
-Status: **Phase 3 complete: corrected baselines, diagnostics and real saved-artifact
-acceptance checks passed. Phase 4 preparation is next; no candidate was adopted.**
+Status: **Phase 4 preparation reached its registered correctness stop.** Source audit,
+staged feasibility and the uncertainty prototype are complete to that boundary. Missing
+2024 results and a raw self-match require maintenance and a new reference before the
+remaining full-history parity and eight-setting screen. No candidate has been adopted.
 
-Resume from the [Phase 3 review](2026-09-06-phase3-review.md),
-[result summary](2026-09-06-phase3-result.json), and
-[Phase 4 preregistration](2026-09-06-phase4-preregistration.md). Code remains in the isolated coordinator
-checkout on `codex/model-foundation`; the main checkout retains its original outputs.
-The [Phase 1 audit](2026-09-06-phase1-data-audit.md),
+Read the [Phase 4 review](2026-09-06-phase4-review.md),
+[machine-readable evidence](2026-09-06-phase4-result.json), and
+[maintenance/resume plan](2026-09-06-phase4-maintenance-plan.md).
+Implementation is in `.research/2026-09-06-model-foundation/worktrees/phase4` on
+`codex/model-phase4`; the coordinator retains the Phase 3 reference. The original
+checkout receives documentation only. The detailed campaign plan below remains the
+historical design; newer phase reviews supersede its initial measurements and status.
+
+Original request: a detailed, resumable research plan with dependencies and parallel
+work. The later requests to execute phases 0–4 authorize the recorded work. The
+[Phase 3 review](2026-09-06-phase3-review.md), [Phase 1 audit](2026-09-06-phase1-data-audit.md),
 [Phase 0 review](2026-09-06-phase0-review.md), and
-[interface decisions](2026-09-06-phase0-interfaces.md) remain historical evidence.
+[interface decisions](2026-09-06-phase0-interfaces.md) retain the earlier evidence.
 
-Authorization update: “Proceed to phase 3” authorized the frozen baseline sequence.
-Both five-bag 2010–2026 baselines and normal real-data schema-5 fits are complete;
-all scored feature rows and selected repeat folds matched exactly, and both 435-pair
-API probes passed. The accepted freeze remains `evaluator-freeze-v2.json`. The Phase 3
-review supersedes prior pending-fit status and records corrected metrics and limits.
-Original acceptance bullets below are reference requirements; the dated reviews give
-their current status. No numerical candidate search, source refresh, collector or
-deployment was started. “More data helps” and blanket overconfidence remain hypotheses.
-
-User request: turn the completed assessment into a detailed, resumable plan, including
-dependencies and work that can run in parallel. The next implementation session should
-start here, then read the linked evidence. This request authorizes producing the plan;
-it does not start a research run, data purchase, scheduled collector, or deployment.
-
-Planning base: `f4a221b` (deployment documentation), whose model/evaluator/web code is
-unchanged from assessed commit `e1702985bd2849905c9a4ea40c05243eca312dc7`.
-Recheck history on resume. The separate bracket deployment has completed, as recorded
-in the preceding `tasks/todo.md` entry; do not restart that deployment.
-
-All paths below are relative to `/Users/varma/Projects/DEUCE` unless a command sets
-another directory. Existing function names are navigation anchors, not frozen line
-numbers. Files explicitly marked **new/proposed** do not exist yet.
+Planning base was `f4a221b`, with model/evaluator/web code assessed at
+`e1702985bd2849905c9a4ea40c05243eca312dc7`. Recheck history on resume. The separate
+bracket deployment is complete; do not restart it. All paths below are relative to
+`/Users/varma/Projects/DEUCE` unless a command sets another directory. Function names
+are navigation anchors, not frozen line numbers. **New/proposed** labels describe the
+original plan; dated phase reviews establish which pieces now exist.
 
 ## 1. Read first; distinguish evidence from proposals
 

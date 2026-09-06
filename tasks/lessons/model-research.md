@@ -212,3 +212,10 @@ Indexed in [`../lessons.md`](../lessons.md).
   label therefore describes different populations across tours. Preserve and report the
   actual count provenance; do not compare those slices as equivalent. A semantic repair
   belongs in a separately versioned diagnostic change, never a silent mid-round relabeling.
+
+- **Validate numerical integration in the uncertainty regime the model can actually reach.** (2026-09-06)
+  A 20-node Gaussian quadrature looked adequate at the initial prior but missed a broad
+  logistic-normal probability by 0.03031 after uncertainty growth. Compare predictions
+  and posterior moments against an independent high-accuracy integral across variance
+  regimes before examining outcome scores. Use adaptive integration or fail explicitly
+  when a fixed rule is insufficient; numerical error is not a model improvement.

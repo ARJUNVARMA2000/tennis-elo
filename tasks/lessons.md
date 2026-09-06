@@ -346,3 +346,10 @@ New lesson → append the entry to the matching topic file and add its lead line
   [`lessons/model-research.md`](lessons/model-research.md). (2026-09-06)
 
 - A slice label does not establish the population its counts measure. See [`lessons/model-research.md`](lessons/model-research.md). (2026-09-06)
+
+- A cache directory is an acquisition boundary, not an event edition. See
+  [`lessons/data-sources.md`](lessons/data-sources.md). (2026-09-06)
+- Even warm-up history needs a distinct-player invariant. See
+  [`lessons/data-sources.md`](lessons/data-sources.md). (2026-09-06)
+- Validate numerical integration in the uncertainty regime the model can actually reach.
+  See [`lessons/model-research.md`](lessons/model-research.md). (2026-09-06)
