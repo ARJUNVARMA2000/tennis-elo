@@ -1,7 +1,10 @@
 # Phase 4 preparation — registered next work after Phase 3
 
-Status: **registered preparation plan; implementation has not started.** Both Phase 3
-baselines and real saved-artifact checks passed. No candidate has run.
+Status: **preparation reached the registered correctness stop; screening deferred.**
+The research-only prototype and bounded QA are implemented; no candidate has been
+scored or selected. See the [Phase 4 review](2026-09-06-phase4-review.md) and
+[maintenance handoff](2026-09-06-phase4-maintenance-plan.md). The original registration
+below is preserved; its early missing-result counts are superseded by that review.
 
 Read the [Phase 3 review](2026-09-06-phase3-review.md) and
 [machine-readable results](2026-09-06-phase3-result.json) for the accepted reference.

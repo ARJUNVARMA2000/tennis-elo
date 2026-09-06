@@ -227,3 +227,17 @@ Indexed in [`../lessons.md`](../lessons.md).
   across the exact dedup group before choosing a source survivor, and only then filter lower rows
   when state admission is off. Enabling state may add rows; it must never change which rows the two
   arms call main draw.
+
+- **A cache directory is an acquisition boundary, not an event edition.** (2026-09-06)
+  The 2024 WTA HTTP cache contains 2025 Auckland/Brisbane records, and source match IDs
+  repeat by season. An audit keyed by directory year therefore invented missing matches.
+  Join explicit record/header year and numeric event IDs (including zero-padded forms),
+  apply verified player aliases on both sides, and keep conflicts separate. Preserve
+  failed audit attempts and publish a reconciliation before using their missing counts.
+
+- **Even warm-up history needs a distinct-player invariant.** (2026-09-06)
+  The raw 1980 Berkeley R16 record names Marcie Louie, ID 200358, on both sides. It lies
+  before the scoring era but still enters historical state walks. Reject/quarantine a
+  self-pair explicitly; do not invent the opponent, silently skip it inside a comparison,
+  or treat a later-starting diagnostic replay as full-history parity. Couple the eventual
+  population repair with an independent integrity check and a versioned reference.
