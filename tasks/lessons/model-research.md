@@ -197,3 +197,11 @@ Indexed in [`../lessons.md`](../lessons.md).
   centralize eligibility around the predictor's selected state, and use that contract in every
   forecast consumer. A complete draw with an unpriced real-vs-real match must block publication.
   Treat broader ITF admission as a separate model change requiring walk-forward backtesting.
+
+- **A saved temporal state needs pending evidence as well as admitted totals.** (2026-09-06)
+  Recovering event-end availability exposed a gap: the historical walk would admit a
+  match's statistics at a later event-end date, but a predictor saved before that date
+  discarded the remaining observations. Its later forecasts therefore used another
+  prior. Preserve a validated, ordered pending queue in the artifact; a date query
+  admits eligible observations into a copied view without changing the saved state.
+  Test strict same-day exclusion, later-date walk parity and a real save/load roundtrip.
