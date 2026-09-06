@@ -1,4 +1,4 @@
-"""Assemble the leakage-free feature frame that the XGBoost combiner consumes.
+"""Assemble pre-row features under the declared retrospective chronology policy.
 
 Three chronological passes produce PRE-match signals:
   - run_elo            -> surface-blended Elo (+ overall/surface, counts)
@@ -232,8 +232,10 @@ def run_context(df: pd.DataFrame,
 
 def _run_all(df: pd.DataFrame, state_only_lower: bool = False):
     """Run the three chronological passes and assemble features; keep the states."""
+    from ..data.chronology import require_chronology
     from ..points.serve_return import sr_params_for
     from ..ratings.elo import params_for
+    require_chronology(df)
     tour = str(df["tour"].iloc[0]) if "tour" in df and len(df) else "atp"
     fp = feat_params_for(tour)
     elo_state, elo = run_elo(df, params=params_for(tour))
@@ -519,7 +521,8 @@ def _assemble(d: pd.DataFrame,
     f["loser_name"] = d["loser_name"]
     # Stable audit identity for row-exact A/B pairing.  Player/date/round_order is
     # insufficient for historical round-robin/bronze rematches (Landshut 1981).
-    for column in ("tourney_id", "round", "match_num", "source_match_id"):
+    for column in ("tourney_id", "round", "match_num", "source_match_id", "source_kind",
+                   "source_file", "date_basis", "recorded_date", "event_edition", "chronology_policy"):
         if column in d:
             f[column] = d[column]
     # Audit-only population metadata.  These are deliberately not in FEATURES:

@@ -341,3 +341,6 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - An identity mismatch can erase a result chain while derived counters agree; use scheduled
   pairings as an independent witness. See [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md).
+
+- A saved temporal state needs pending evidence as well as admitted totals. See
+  [`lessons/model-research.md`](lessons/model-research.md). (2026-09-06)

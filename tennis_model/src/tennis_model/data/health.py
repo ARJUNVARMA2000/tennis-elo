@@ -892,14 +892,17 @@ def read_outputs(tour: str) -> dict:
             data[stem] = json.loads(f.read_text(), parse_constant=_reject_nonfinite)
         except (ValueError, OSError):
             corrupt.append(stem)
-    from ..artifact_lineage import ArtifactLineageError, _read_regular_file
+    from ..artifact_lineage import ArtifactLineageError, LineageReason, _read_regular_file, _strict_json_loads
     from ..model.probability_audit import AUDIT_FILENAME
     prediction_audit = None
+    prediction_audit_sha256 = None
     audit_path = d / AUDIT_FILENAME
     if audit_path.exists():
         try:
-            prediction_audit = json.loads(_read_regular_file(audit_path, 256 * 1024, trusted_root=d),
-                                          parse_constant=_reject_nonfinite)
+            raw = _read_regular_file(audit_path, 256 * 1024, trusted_root=d.parent)
+            prediction_audit = _strict_json_loads(raw, reason=LineageReason.GRAPH_INVALID)
+            import hashlib
+            prediction_audit_sha256 = hashlib.sha256(raw).hexdigest()
         except (ValueError, OSError, TypeError, ArtifactLineageError):
             prediction_audit = None
     stage_status: dict = {"state": "missing"}
@@ -1036,7 +1039,8 @@ def read_outputs(tour: str) -> dict:
             "corrupt_files": corrupt_files,
             "draw_cache": draw_cache, "draw_cache_status": draw_cache_status,
             "forecast": forecast, "kalshi_ledger": ledger,
-            "stage_status": stage_status, "prediction_audit": prediction_audit}
+            "stage_status": stage_status, "prediction_audit": prediction_audit,
+            "prediction_audit_sha256": prediction_audit_sha256}
 
 
 
@@ -1312,19 +1316,26 @@ def output_findings(tour: str, oc: dict, now: pd.Timestamp,
     data = oc.get("data", {})
     prev = prev or {}
     meta = data.get("meta")
-    # Phase 2 binds this rollout marker/source identity in both producers and release carry.
-    # Legacy outputs without the marker retain their historical contract until that rollout.
-    if isinstance(meta, dict) and "predictionAuditSchema" in meta:
-        from ..model.predict import INFERENCE_SCHEMA_VERSION
-        from ..model.probability_audit import AUDIT_SCHEMA, validate_prediction_audit
+    # The strict private-model binding in lineage also rejects stripping both markers.
+    if isinstance(meta, dict) and ('predictionAuditSchema' in meta or meta.get('inferenceSchemaVersion') == 5):
+        from ..data.chronology import CHRONOLOGY_POLICY
+        from ..model.probability_audit import validate_audit_metadata
+        chronology = meta.get('chronology')
+        counts = chronology.get('dateBasisCounts') if isinstance(chronology, dict) else None
+        if not (isinstance(chronology, dict) and chronology.get('policy') == CHRONOLOGY_POLICY
+                and type(chronology.get('roundDateInversions')) is int and chronology['roundDateInversions'] == 0
+                and type(chronology.get('checkedMatches')) is int and chronology['checkedMatches'] == meta.get('matches')
+                and isinstance(counts, dict) and set(counts) <= {'unknown', 'played_date', 'event_start'}
+                and all(type(v) is int and v >= 0 for v in counts.values())
+                and sum(counts.values()) == chronology['checkedMatches']):
+            _add_finding(out, 'output.chronology.contract_invalid',
+                         f'{tour}: chronology policy, coverage, or round/date check is invalid',
+                         entity='model:chronology', evidence={'inferenceSchema':meta.get('inferenceSchemaVersion')})
         try:
-            if meta["predictionAuditSchema"] != AUDIT_SCHEMA:
-                raise ValueError("unsupported prediction audit marker")
             audit_now = pd.Timestamp(observed_at if observed_at is not None else now)
             audit_now = audit_now.tz_localize("UTC") if audit_now.tzinfo is None else audit_now.tz_convert("UTC")
-            validate_prediction_audit(oc.get("prediction_audit"),
-                artifact_id=meta.get("predictorArtifactId"), inference_schema=INFERENCE_SCHEMA_VERSION,
-                source_generation=meta.get("predictionAuditSourceGeneration"), now=audit_now.to_pydatetime())
+            validate_audit_metadata(oc.get('prediction_audit'), meta, now=audit_now.to_pydatetime(),
+                                    raw_sha256=oc.get('prediction_audit_sha256'))
         except (ValueError, TypeError, KeyError, OverflowError) as exc:
             _add_finding(out, "output.prediction.independent_audit_invalid",
                          f"{tour}: independent prediction audit failed: {str(exc)[:180]}",

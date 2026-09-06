@@ -270,15 +270,25 @@ def _stats_row(ev: dict, m: dict, st: dict, draw_level: str | None = None) -> di
     lf, ll = m.get(f"PlayerNameFirst{l.upper()}"), m.get(f"PlayerNameLast{l.upper()}")
     if not (wf and wl and lf and ll):
         return None
-    # real match date (falls back to the tournament start date) — keeps the same-day
-    # dedup pass and the rest/fatigue features honest
+    # Preserve the legacy selection date, but label verified timing separately.
+    # An event-start fallback is not evidence of when this match was played.
     ts = str(m.get("MatchTimeStamp") or "")[:10]
     date = ts if re.fullmatch(r"\d{4}-\d{2}-\d{2}", ts) else str(ev["start"])
+    start, end, played = (pd.to_datetime(v, errors="coerce")
+                          for v in (ev.get("start"), ev.get("end"), ts))
+    bounded = pd.notna(start) and pd.notna(end) and 0 <= (end - start).days <= 35
+    timing = {}
+    if bounded:
+        timing = {"event_start": str(start.date()), "event_end": str(end.date()),
+                  "date_evidence": f"wta-api:{ev['year']}-W{ev['id']}:{m.get('MatchID', '')}"}
+        if pd.notna(played) and start <= played <= end:
+            timing["played_date"] = str(played.date())
     draw_level = draw_level or _match_draw_level(ev, m) or "main"
     round_label = (f"Q{m.get('RoundID')}" if draw_level == "qual"
                    and str(m.get("RoundID") or "").isdigit()
                    else _round_label(str(m.get("RoundID")), int(ev["draw"] or 0)))
     row.update({
+        **timing,
         "tourney_id": f"{ev['year']}-W{ev['id']}",
         "tourney_name": ev["name"], "surface": ev["surface"], "indoor": ev["indoor"],
         "tourney_level": "Q" if draw_level == "qual" else ev["level"],

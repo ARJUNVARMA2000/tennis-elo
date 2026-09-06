@@ -225,7 +225,7 @@ def test_wta_dual_state_survives_pickle_roundtrip():
     restored = pickle.loads(pickle.dumps(pred))
     assert restored._dual_state_threshold == 32
     assert restored._has_lower_state
-    assert restored._inference_schema_version == 4
+    assert restored._inference_schema_version == 5
 
 
 def test_home_flag_threads_event():

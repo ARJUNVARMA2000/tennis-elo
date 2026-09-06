@@ -151,3 +151,35 @@ def test_changing_prior_preserves_absolute_adjusted_evidence():
     st.base['Hard'] = .55
     assert st.global_serve_skill('A') == pytest.approx((70 - .55 * 100)/(100 + k))
     assert before == (st.gsw, st.grw, st.gsp)
+
+
+def test_chart_aliases_use_the_same_normalized_identity_table_as_match_rows(monkeypatch):
+    from tennis_model import config
+
+    meta, tables = charts()
+    meta['Player 1'] = 'Old Alias'
+    tables['stats-Overview']['player'] = tables['stats-Overview'].player.replace('Alfa One', 'Old Alias')
+    monkeypatch.setitem(config.PLAYER_ALIASES, 'old alias', 'Alfa One')
+    history = StyleHistory('atp', meta, tables, 'a'*64)
+    assert history.snapshot('2025-01-03').profile('alfa one')['style_serve_dom'] == .15
+    pair = pd.DataFrame({'date':pd.to_datetime(['2025-01-03']),
+                         'winner_name':['Alfa One'],'loser_name':['Bravo Two']})
+    assert history.pair_features(pair).has_style.iloc[0] == 1
+
+
+def test_delayed_event_end_prior_survives_serialization_and_later_date_query():
+    df = matches()
+    df.loc[:1, 'stats_available_at'] = pd.Timestamp('2025-01-07')
+    df.loc[:1, 'stats_availability_basis'] = 'event_end'
+    state, _ = run_serve_return(df.iloc[:2])
+    saved = pickle.loads(pickle.dumps(state))
+    before = pickle.dumps(saved)
+    assert len(saved.pending_prior_observations) == 2
+    assert saved.at('2025-01-07').prior_state.points == 0  # strict before, not same day
+    assert saved.at('2025-01-08').prior_state.points == 400
+    _, full = run_serve_return(df)
+    view = saved.at(df.date.iloc[2])
+    assert view.avg == pytest.approx(full.prior_avg.iloc[2], abs=1e-12)
+    assert view.point_probs('A','B','Hard') == pytest.approx(
+        (full.pa_serve.iloc[2], full.pb_serve.iloc[2]), abs=1e-12)
+    assert pickle.dumps(saved) == before

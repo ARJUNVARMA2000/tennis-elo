@@ -4,6 +4,7 @@ import hashlib
 import json
 import math
 from datetime import UTC, datetime
+from pathlib import Path
 
 import numpy as np
 
@@ -43,7 +44,7 @@ def build_prediction_audit(predictor, players, contexts, *, source_generation):
                     'component':float(component)})
     return {'schema':AUDIT_SCHEMA,'policy':PROBABILITY_POLICY,
         'predictorArtifactId':predictor.artifact_id,'inferenceSchema':predictor.inference_schema_version,
-        'sourceGeneration':source_generation,'observedAt':datetime.now(UTC).isoformat(),
+        'sourceGeneration':source_generation,'observedAt':datetime.now(UTC).strftime('%Y-%m-%dT%H:%M:%SZ'),
         'players':list(players),'contexts':list(contexts),'contextFingerprint':_digest(contexts),
         'pairCount':len(evidence),'evidence':evidence,'evidenceDigest':_digest(evidence)}
 
@@ -92,3 +93,55 @@ def validate_prediction_audit(receipt, *, artifact_id, inference_schema, source_
     if worst > AUDIT_TOLERANCE:
         raise ValueError(f'prediction exchange/path discrepancy: {worst:.6g}')
     return {'pairs':len(rows),'maxError':worst}
+
+
+def write_prediction_audit(predictor, frame, players, path):
+    """Full/quick shared producer; missing real input identity or branch coverage is fatal."""
+    from ..artifact_lineage import _atomic_write_bytes
+
+    normalized = frame.attrs.get('normalizedInputFingerprint')
+    if not isinstance(normalized, str) or not normalized.startswith('nm'):
+        raise ValueError('prediction audit requires normalized input identity')
+    counts = predictor.elo.n
+    names = sorted({p['name'] for p in players} | set(counts))
+    threshold = predictor.dual_state_threshold
+    if threshold is not None:
+        hot = sorted((n for n in names if counts.get(n, 0) >= threshold), key=lambda n: (-counts[n], n))[:2]
+        cold = sorted((n for n in names if counts.get(n, 0) < threshold), key=lambda n: (counts.get(n, 0), n))[:2]
+        if len(hot) < 2 or not cold:
+            raise ValueError('prediction audit cannot exercise both WTA state branches')
+        roster = hot + cold
+    else:
+        roster = sorted(names, key=lambda n: (-counts.get(n, 0), n))[:4]
+    as_of = datetime.now(UTC).date().isoformat()
+    contexts = [{'surface':s, 'best_of':b, 'as_of':as_of}
+                for s in ('Hard', 'Clay', 'Grass') for b in (3, 5)]
+    generation = _digest({'normalizedInput':normalized, 'asOf':as_of,
+                          'artifactId':predictor.artifact_id, 'contexts':contexts})
+    receipt = build_prediction_audit(predictor, roster, contexts, source_generation=generation)
+    validate_prediction_audit(receipt, artifact_id=predictor.artifact_id,
+        inference_schema=predictor.inference_schema_version, source_generation=generation,
+        now=datetime.now(UTC))
+    raw = (json.dumps(receipt, sort_keys=True, separators=(',', ':'), allow_nan=False)+'\n').encode()
+    if len(raw) > 256 * 1024:
+        raise ValueError('prediction audit exceeds private byte bound')
+    path = Path(path)
+    _atomic_write_bytes(path, raw, trusted_root=path.parent.parent)
+    return {'predictionAuditSchema':AUDIT_SCHEMA, 'predictionAuditSourceGeneration':generation,
+            'predictionAuditSHA256':hashlib.sha256(raw).hexdigest(),
+            'predictionAuditObservedAt':receipt['observedAt'],
+            'inferenceSchemaVersion':predictor.inference_schema_version}
+
+
+def validate_audit_metadata(receipt, meta, *, now, raw_sha256=None):
+    from .predict import INFERENCE_SCHEMA_VERSION
+
+    if (meta.get('predictionAuditSchema') != AUDIT_SCHEMA
+            or meta.get('inferenceSchemaVersion') != INFERENCE_SCHEMA_VERSION
+            or not isinstance(receipt, dict)
+            or meta.get('predictionAuditObservedAt') != receipt.get('observedAt')
+            or (raw_sha256 is not None and meta.get('predictionAuditSHA256') != raw_sha256)):
+        raise ValueError('prediction audit metadata/content binding mismatch')
+    return validate_prediction_audit(receipt, artifact_id=meta.get('predictorArtifactId'),
+        inference_schema=INFERENCE_SCHEMA_VERSION,
+        source_generation=meta.get('predictionAuditSourceGeneration'), now=now)

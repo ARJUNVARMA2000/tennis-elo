@@ -205,6 +205,16 @@ def _write_strict_predictor_pair(root: Path, tour: str) -> bytes:
         "predictorArtifactId": PREDICTOR_IDS[tour],
         "modelTrainedAt": envelope["trainedAt"],
     })
+    import pandas as pd
+    from tennis_model.model.probability_audit import AUDIT_FILENAME, write_prediction_audit
+    from test_probability import predictor
+
+    pred = predictor(tour, lower=tour == 'wta')
+    pred.artifact_id = PREDICTOR_IDS[tour]
+    frame = pd.DataFrame()
+    frame.attrs['normalizedInputFingerprint'] = 'nm2:' + 'a' * 64
+    meta.update(write_prediction_audit(pred, frame, [], directory / AUDIT_FILENAME))
+    meta['lastUpdated'] = datetime.now(UTC).strftime('%Y-%m-%dT%H:%M:%SZ')
     _write_json(meta_path, meta)
     return payload
 
@@ -2954,3 +2964,39 @@ def test_future_timestamps_and_non_uuid_predictor_identity_are_rejected(tmp_path
         lineage.seal_release(
             tmp_path, lineage.merge_release_drafts(context, drafts)
         )
+
+
+def test_schema5_receipt_carries_privately_and_public_mirror_removes_it(tmp_path, monkeypatch):
+    from tennis_model.model.probability_audit import AUDIT_FILENAME
+
+    source, destination, public = (tmp_path / n for n in ('source', 'destination', 'public'))
+    _accepted_with_strict_predictors(source, monkeypatch)
+    lineage.carry_forward_release(source, destination)
+    for tour in lineage.TOURS:
+        assert (destination / tour / AUDIT_FILENAME).read_bytes() == (source / tour / AUDIT_FILENAME).read_bytes()
+        (public / tour).mkdir(parents=True)
+        (public / tour / AUDIT_FILENAME).write_text('stale private contents')
+    lineage.mirror_release(source, public, require_accepted=True)
+    assert not list(public.rglob(AUDIT_FILENAME))
+
+
+@pytest.mark.parametrize('corruption', ['missing', 'changed', 'markers-removed', 'stale'])
+def test_schema5_release_rejects_missing_or_inconsistent_private_audit(tmp_path, monkeypatch, corruption):
+    from tennis_model.model.probability_audit import AUDIT_FILENAME
+
+    _accepted_with_strict_predictors(tmp_path, monkeypatch)
+    path = tmp_path / 'atp' / AUDIT_FILENAME
+    meta_path = tmp_path / 'atp' / 'meta.json'
+    meta = json.loads(meta_path.read_text())
+    if corruption == 'missing':
+        path.unlink()
+    elif corruption == 'changed':
+        path.write_text('{}')
+    elif corruption == 'markers-removed':
+        meta = {k:v for k,v in meta.items() if not k.startswith('predictionAudit') and k != 'inferenceSchemaVersion'}
+    else:
+        meta['lastUpdated'] = '2099-01-01T00:00:00Z'
+    _write_json(meta_path, meta)
+    # Try a fresh seal as well as a load: stripping markers cannot create a valid graph.
+    with pytest.raises(lineage.ArtifactLineageError):
+        _seal(tmp_path)

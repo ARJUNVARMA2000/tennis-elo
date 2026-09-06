@@ -6353,3 +6353,99 @@ no cached positive-denominator record for those 313. Expected full-calendar cove
 status eligibility and acquisition yield remain uncertain. A 2024-only candidate cannot
 pass the unchanged positive-tune gate. Raw/output data, original project and snapshot
 are unchanged; isolated test caches were restored and A's normal-loader caches retained.
+
+## 2026-09-06 — Phase 2: timing repair, release integration and evaluator freeze
+
+The user said “Okay keep going” after the Phase 1 handoff, authorizing the documented
+next phase. Continue in the coordinator checkout on `codex/model-foundation` from
+`8080e34`; preserve the original checkout, Phase 0 snapshot and raw archive. This is
+pre-round correctness/integration work. Full corrected baseline fits are Phase 3;
+no source refresh, candidate search, dependency upgrade, push or deployment is planned.
+
+- [x] Trace B3-R1's seven inversions and the long-gap identity candidate to raw sources;
+      choose an explicit, evidence-backed chronology/availability policy before coding.
+- [x] Preserve timing/source provenance through normalization and fix the proven ordering
+      defect without inventing played timestamps; populate only justified serve-prior times.
+- [x] Add affected walk/prediction state parity and real-data regression checks; review any
+      population/version change separately from changes to prediction semantics.
+- [x] Wire independent probability-audit receipts into full and quick producers, enforce
+      metadata/artifact/input binding, and integrate private release copying/exclusion.
+- [x] Extend both health gates and producer-generated regression tests for missing/stale/
+      inconsistent witnesses and accidental public exposure.
+- [x] Complete explicit source-coverage diagnostics and research manifest-runner integration;
+      freeze evaluator/config/input/runtime identities only after correctness checks pass.
+- [x] Run required Python/Ruff and web validation, recheck preserved inputs and Git, and
+      commit an exact Phase 2 review/resume handoff including unresolved limits.
+
+Check-in: the current request authorizes implementing the previously documented Phase 2
+steps. If evidence changes the intended chronology policy or proves a new blocker,
+record the revised design here before proceeding; do not score around an unresolved defect.
+
+### Timing design decision (before implementation)
+
+Raw-file inspection and primary ATP records identify the 2024 defects as conflicting
+**event-start stamps**, not recoverable exact match times. Normalize only the three
+verified event editions (Metz/Belgrade 3–9 Nov; Winston-Salem 18–24 Aug) to their verified
+start while retaining raw dates and marking the basis as event-start. Order their rounds
+explicitly; do not turn those dates into played-time claims. Repair the single 2026
+Shelton–Nava Munich row by exact pair/date/score evidence, not event-name similarity.
+
+Preserve winning payload source/file and original date/event ID. Recover first-party
+WTA played-date/event-bound evidence read-only from the already frozen response cache,
+with exact event/match/player/result agreement; carry unique evidence across existing
+dedup groups without changing their membership. Stamp fresh WTA adapter evidence for
+future normal runs. Admit only justified played-date/event-end serve-prior observations.
+Unknown dates remain excluded. The historical benchmark remains explicitly retrospective
+where source publication times and exact played dates are unavailable; it must not be
+advertised as a certified real-time forecast archive. A new within-edition knockout
+inversion must block feature construction instead of being silently scored.
+
+Timing refinement: the first corrected replay preserves ATP's 284,893 matches and removes
+all seven inversions (17 start-stamp corrections plus the one exact event-ID repair).
+Partial WTA played-date recovery exposes mixed bases in four historical editions. When
+one exact-result donor establishes unique calendar bounds and every selected row lies
+inside them, but played-day evidence is incomplete, use the verified event start for the
+whole edition's retrospective round order. Preserve actual played dates separately for
+availability. This conservative fallback changes no selected match and never creates a
+played timestamp. Conflicting/out-of-bound evidence remains unresolved and must fail the
+inversion check. The evaluator must report how many rows use each date basis.
+
+Timing refinement after the WTA replay: Bol 2016/2017 have one uniform archive
+edition stamp exactly one day before the first-party calendar start. Permit this
+specific representation pattern only with unique verified bounds and exact-result
+donors; retain the original uniform stamp for round ordering and the verified
+calendar/played dates for availability. Mixed or larger out-of-span dates remain
+unresolved. This labels retrospective ordering rather than fabricating played dates.
+
+Saved-state refinement before freeze: event-end availability creates observations whose
+availability is later than the last walked event-start stamp. Preserve the remaining
+observations in the saved serve state and admit them into a copied date view strictly
+after their availability day. Without this mirror, a later walk would update the prior
+while the saved predictor would permanently forget it. Extend the schema-5 validation
+and serialization/parity tests in this same maintenance change.
+
+Gate integration: the public metadata now carries the declared chronology policy,
+checked row count, date-basis coverage and unresolved inversion count. The pre-upload
+health gate and live verifier reject missing/inconsistent coverage or any inversion;
+the real frame check still runs before feature construction and before either export
+mode. This operational summary is not independent proof of historical played or
+publication times; unknown-basis rows remain explicitly counted.
+
+
+### Review
+
+Phase 2 maintenance and the evaluator freeze are complete in the coordinator checkout.
+All three adopted populations preserve exact selected membership and have zero unresolved
+round/date inversions; the WTA main rows remain aligned across both states. Full/quick
+private prediction receipts, both output gates and private release copying/exclusion are
+wired and tested. Inference schema is 5; population version stays 6. Pending event-end
+statistics now survive serialization and enter copied query views at the correct date.
+
+Full suite: 1,258 Python tests passed; final runner canonicalization had four focused
+passes and an actual freeze/verify readback. Ruff passed. Web: 359 tests passed, typecheck
+and production build passed, lint had zero errors and nine unchanged warnings. Original
+and worktree raw/output inputs are preserved; isolated verified caches were restored.
+See `tasks/research/2026-09-06-phase2-review.md` and its JSON/CSV for the exact frozen
+contract, research findings and sequential Phase 3 commands. No baseline fit, numerical
+improvement claim, candidate adoption, source refresh, push or deployment occurred.
+Real fitted-artifact 435-pair probes remain explicitly assigned to Phase 3's normal fits.

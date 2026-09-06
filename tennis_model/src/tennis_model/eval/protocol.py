@@ -89,7 +89,8 @@ def paired_report(base, candidate):
                'full':np.ones(len(d),bool)}
     windows.update({f'year-{y}':years==y for y in sorted(set(years))})
     weeks = pd.to_datetime(base.date).dt.to_period('W-SUN').astype(str).to_numpy()
-    events = (base.tourney_id.astype('string').to_numpy() if 'tourney_id' in base else None)
+    event_column = 'event_edition' if 'event_edition' in base else 'tourney_id'
+    events = (base[event_column].astype('string').to_numpy() if event_column in base else None)
     out = {'protocol':PROTOCOL_VERSION, 'pairColumns':columns, 'windows':{},
            'limitations':['Event IDs are source event identities; date provenance needs the timing audit.',
                          'Week/event blocks do not remove all repeated-player dependence.']}
@@ -103,6 +104,15 @@ def paired_report(base, candidate):
             'week':block_uncertainty(dd,weeks[mask]),
             'event':block_uncertainty(dd,events[mask]) if events is not None else {'status':'missing-block-identity'}}
     masks = {}
+    out['unavailableSlices'] = []
+    for column, values in (('tour', ('atp', 'wta')),
+                           ('source_kind', ('historical', 'stats', 'fresh', 'live', 'lower')),
+                           ('date_basis', ('played_date', 'event_start', 'unknown'))):
+        if column not in base:
+            out['unavailableSlices'].append(column)
+        else:
+            for value in values:
+                masks[f'{column}:{value}'] = base[column].eq(value).to_numpy()
     for s in ('hard','clay','grass'):
         if f'surf_{s}' in base:
             masks[s] = base[f'surf_{s}'].eq(1).to_numpy()

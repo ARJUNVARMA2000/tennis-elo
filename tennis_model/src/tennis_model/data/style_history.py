@@ -31,7 +31,7 @@ def identity_version() -> str:
 
 
 def _key(name) -> str:
-    return name_key(PLAYER_ALIASES.get(str(name), str(name)))
+    return name_key(PLAYER_ALIASES.get(name_key(name), str(name)))
 
 
 def _values(tables):

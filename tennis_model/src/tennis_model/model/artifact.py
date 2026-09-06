@@ -32,6 +32,7 @@ from ..config import (
     PLAYER_ALIASES,
     WTA_DUAL_STATE_GATE_THRESHOLD,
 )
+from ..data.chronology import CHRONOLOGY_POLICY
 from ..data.style_history import STYLE_POLICY, STYLE_VERSION, StyleSnapshot, identity_version
 from ..points.serve_prior import PRIOR_POLICY, ServePriorState
 from ..points.serve_return import ServeReturnState, sr_params_for
@@ -215,6 +216,7 @@ def predictor_contract(tour: str) -> dict[str, Any]:
             "probabilityPolicy": PROBABILITY_POLICY,
             "stylePolicy": STYLE_POLICY,
             "servePriorPolicy": PRIOR_POLICY,
+            "chronologyPolicy": CHRONOLOGY_POLICY,
             "dualStateGateThreshold": gate,
         },
         "classes": {
@@ -331,7 +333,7 @@ def _validate_contract_shape(contract: Any, expected: dict[str, Any]) -> None:
     )
     if type(inference["schemaVersion"]) is not int:
         _fail_schema("contract.inference.schemaVersion must be an integer")
-    for field in ("probabilityPolicy", "stylePolicy", "servePriorPolicy"):
+    for field in ("probabilityPolicy", "stylePolicy", "servePriorPolicy", "chronologyPolicy"):
         if type(inference[field]) is not str:
             _fail_schema(f"contract.inference.{field} must be a string")
     gate = inference["dualStateGateThreshold"]
@@ -838,7 +840,7 @@ def validate_predictor_artifact_identity(
     return {
         key: envelope[key]
         for key in ("artifactId", "tour", "trainedAt", "payloadBytes", "payloadSha256")
-    }
+    } | {'inferenceSchema':envelope['contract']['inference']['schemaVersion']}
 
 
 def _deserialize(payload: bytes) -> Any:
@@ -976,6 +978,24 @@ def _validate_temporal_state(predictor):
                 invalid("serve prior cutoff is invalid")
         elif prior.last_admitted_cutoff is not None:
             invalid("empty prior has an admitted cutoff")
+        pending = vars(srv).get('pending_prior_observations')
+        if type(pending) is not tuple:
+            invalid("serve prior pending observations are missing or malformed")
+        previous = prior.last_admitted_cutoff
+        for observation in pending:
+            if type(observation) is not tuple or len(observation) != 4:
+                invalid("serve prior pending observation is malformed")
+            day, surface, points, won = observation
+            try:
+                parsed = datetime.strptime(day, '%Y-%m-%d')
+            except (ValueError, TypeError):
+                invalid("serve prior pending date is invalid")
+            if (parsed.strftime('%Y-%m-%d') != day or (previous is not None and day < previous)
+                    or surface not in ('Hard', 'Clay', 'Grass')
+                    or type(points) is not float or type(won) is not float
+                    or not np.isfinite([points, won]).all() or not 0 <= won <= points or points <= 0):
+                invalid("serve prior pending observations are invalid or unordered")
+            previous = day
         avg, base = prior.before()
         if (srv.avg != avg or (prior.points and set(srv.base) != set(base))
                 or any(s not in base or v != base[s] for s, v in srv.base.items())):

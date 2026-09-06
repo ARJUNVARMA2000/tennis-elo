@@ -23,7 +23,7 @@ remain subject to the separate chronology audit.
 
 from __future__ import annotations
 
-from copy import copy
+from copy import copy, deepcopy
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -80,6 +80,7 @@ class ServeReturnState:
     """Time-decayed, opponent-adjusted serve/return accumulators per player."""
 
     prior_state: ServePriorState = field(default_factory=ServePriorState)
+    pending_prior_observations: tuple = field(default_factory=tuple)
     avg: float = 0.62                                    # league serve-points-won
     base: dict = field(default_factory=dict)             # surface -> serve%
     params: ServeReturnParams = DEFAULT_SR_PARAMS
@@ -128,6 +129,17 @@ class ServeReturnState:
         """Read-only date view: decay queried evidence without modifying the saved state."""
         view = copy(self)
         view._query_date = np.datetime64(pd.Timestamp(as_of).to_datetime64())
+        if self.pending_prior_observations:
+            view.prior_state = deepcopy(self.prior_state)
+            cutoff = pd.Timestamp(as_of).normalize()
+            admitted = 0
+            for day, surface, points, won in self.pending_prior_observations:
+                if pd.Timestamp(day) >= cutoff:
+                    break
+                view.prior_state.observe(surface, points, won, day)
+                admitted += 1
+            view.pending_prior_observations = self.pending_prior_observations[admitted:]
+            view.avg, view.base = view.prior_state.before()
         return view
 
     def _read(self, values, name):
@@ -322,6 +334,9 @@ def run_serve_return(df: pd.DataFrame,
     # Saved state represents the completed walk, including admissible last-day observations.
     if len(df):
         advance_prior(df.date.max() + pd.Timedelta(days=1))
+    st.pending_prior_observations = tuple(
+        (str(day.date()), surface, points, won)
+        for day, surface, points, won in observations[cursor:])
     feats = pd.DataFrame(out, index=df.index)
     feats["serve_skill_diff"] = feats["w_serve_skill"] - feats["l_serve_skill"]
     feats["return_skill_diff"] = feats["w_return_skill"] - feats["l_return_skill"]

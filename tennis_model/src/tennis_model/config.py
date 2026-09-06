@@ -151,6 +151,18 @@ WTA_DUAL_STATE_GATE_THRESHOLD = 32
 # 2026 US Open qualifying results that had briefly been cached as main-draw observations.
 # Version 6 merges the Sherif full-name variants, collapsing duplicate source results.
 MATCH_POPULATION_VERSION = 6
+
+# Reviewed chronology repairs: official ATP event spans, not invented played dates.
+# Evidence and exact original rows: tasks/research/2026-09-06-phase2-review.md.
+ATP_EVENT_START_REPAIRS = {
+    '2024-341': ('2024-11-03', '2024-11-09', '2024-11-04'),
+    '2024-4787': ('2024-11-03', '2024-11-09', '2024-11-04'),
+    '2024-6242': ('2024-08-18', '2024-08-24', '2024-08-19'),
+}
+ATP_MATCH_EVENT_REPAIRS = (
+    ('2026-416', '2026-04-13', 'ben shelton', 'emilio nava',
+     '7-6,3-6,6-3', '2026-308'),
+)
 # Lower-tier (challenger + qualifying) ingestion starts here: 5 warm-up years of
 # rating history before the 2010 tune window; the full 1978+ archive would double
 # the walk for matches that can no longer influence any scored year.

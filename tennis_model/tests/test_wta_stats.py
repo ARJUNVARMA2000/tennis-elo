@@ -511,3 +511,17 @@ if __name__ == "__main__":
     test_complete_bootstrap_persists_partial_rows_but_refuses_completion()
     test_enrich_inherits_from_historical_archive()
     print("\nALL PASSED")
+
+
+def test_adapter_retains_verified_timing_without_inventing_played_dates():
+    row = ws._stats_row(_event(), _match(), _stats())
+    assert row['played_date'] == '2025-01-02'
+    assert row['event_end'] == '2025-01-07'
+    assert row['date_evidence'] == 'wta-api:2025-W99:RS001'
+    for stamp in ('', '2025-02-01T12:00:00Z', '2025-02-30'):
+        match = {**_match(), 'MatchTimeStamp': stamp}
+        row = ws._stats_row(_event(), match, _stats())
+        assert 'played_date' not in row
+        assert row['event_end'] == '2025-01-07'
+    row = ws._stats_row({**_event(), 'end': 'bad'}, _match(), _stats())
+    assert 'date_evidence' not in row

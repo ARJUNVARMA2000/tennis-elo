@@ -80,6 +80,7 @@ const EXPECTED_FORBIDDEN_PATHS = [
   "/data/atp/predictor.pkl.envelope",
   "/data/atp/predictor.pkl.envelope.pending",
   "/data/atp/stage-status.private",
+  "/data/atp/prediction-audit.private",
   "/data/atp/stage-status.json",
   "/data/atp/health-source.json",
   "/data/atp/tournament_draws-status.private",
@@ -87,6 +88,7 @@ const EXPECTED_FORBIDDEN_PATHS = [
   "/data/wta/predictor.pkl.envelope",
   "/data/wta/predictor.pkl.envelope.pending",
   "/data/wta/stage-status.private",
+  "/data/wta/prediction-audit.private",
   "/data/wta/stage-status.json",
   "/data/wta/health-source.json",
   "/data/wta/tournament_draws-status.private",
@@ -396,6 +398,7 @@ describe("accepted release lineage verification", () => {
     ["published acceptance receipt", "release-accepted.private", 200],
     ["published predictor payload", "atp/predictor.pkl", 200],
     ["redirected stage receipt", "wta/stage-status.private", 302],
+    ["published prediction audit", "atp/prediction-audit.private", 200],
     ["access-controlled health source", "atp/health-source.json", 403],
     ["failed private probe", "wta/predictor.pkl.envelope.pending", 500],
   ])("rejects a non-404 %s", async (_label, leakedPath, status) => {
@@ -1046,3 +1049,40 @@ describe("scrollShellProblems", () => {
     ]);
   });
 });
+
+it.each(["valid", "missing digest", "wrong artifact", "stale", "missing marker", "chronology"])(
+  "checks schema-5 prediction receipt metadata: %s", async (caseName) => {
+    let fixture = buildLineageFixture();
+    const meta: Record<string, unknown> = {
+      inferenceSchemaVersion: 5,
+      predictionAuditSchema: "prediction-audit-v1",
+      predictionAuditSHA256: "a".repeat(64),
+      predictionAuditSourceGeneration: "b".repeat(64),
+      predictorArtifactId: LINEAGE_PREDICTOR_ID,
+      predictionAuditObservedAt: "2026-08-24T12:00:00Z",
+      lastUpdated: "2026-08-24T12:01:00Z",
+      matches: 1,
+      chronology: { policy: "retrospective-verified-date-or-recorded-event-round-v1",
+        checkedMatches: 1, roundDateInversions: 0, dateBasisCounts: { unknown: 1 } },
+    };
+    if (caseName === "missing digest") delete meta.predictionAuditSHA256;
+    if (caseName === "wrong artifact") meta.predictorArtifactId = "another-model";
+    if (caseName === "stale") meta.predictionAuditObservedAt = "2026-08-23T12:00:00Z";
+    if (caseName === "missing marker") delete meta.predictionAuditSchema;
+    if (caseName === "chronology") delete meta.chronology;
+    const raw = lineageBytes(meta);
+    fixture.files.set("atp/meta.json", raw);
+    fixture = withLineageManifest(fixture, (manifest) => {
+      const record = manifest.artifacts.find((entry) => entry.path === "atp/meta.json")!;
+      record.bytes = raw.byteLength;
+      record.sha256 = lineageDigest(raw);
+    });
+    const { fetcher } = lineageFetcher(fixture);
+    const result = verifyArtifactLineageRelease({
+      base: "https://example.com/", expectedHealth: fixture.health, fetcher,
+      observedAt: new Date("2026-08-24T12:01:00Z"),
+    });
+    if (caseName === "valid") await expect(result).resolves.toHaveProperty("releaseId", LINEAGE_RELEASE_ID);
+    else await expect(result).rejects.toThrow(/prediction audit metadata binding|chronology contract/);
+  },
+);

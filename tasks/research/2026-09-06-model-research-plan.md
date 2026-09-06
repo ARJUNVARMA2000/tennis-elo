@@ -1,21 +1,22 @@
 # DEUCE model improvement — implementation and research handoff
 
-Status: **Phase 1 implementation/audit checkpoint complete; Phase 2 integration and
-freeze remain pending. Newly proven timing blocker B3-R1 must be repaired first.**
+Status: **Phase 2 maintenance and evaluator freeze complete. Phase 3 corrected baseline
+fits and real fitted-artifact acceptance probes are next.**
 
-Resume from the [Phase 1 review](2026-09-06-phase1-review.md),
-[data/timing audit](2026-09-06-phase1-data-audit.md), and
-[result summary](2026-09-06-phase1-result.json). Code lives in the isolated coordinator
-checkout on `codex/model-foundation`; the original checkout retains its saved outputs.
-The [Phase 0 review](2026-09-06-phase0-review.md) and
-[interface decisions](2026-09-06-phase0-interfaces.md) remain the preserved baseline.
+Resume from the [Phase 2 review](2026-09-06-phase2-review.md) and
+[result summary](2026-09-06-phase2-result.json). Code remains in the isolated coordinator
+checkout on `codex/model-foundation`; the main checkout retains its original outputs.
+The [Phase 1 audit](2026-09-06-phase1-data-audit.md),
+[Phase 0 review](2026-09-06-phase0-review.md), and
+[interface decisions](2026-09-06-phase0-interfaces.md) remain historical evidence.
 
-Authorization update: the user requested “Continue to phase 1 then.” Components and
-bounded audits are implemented and tested. The receipt producer/release wiring,
-source-coverage slice, final evaluator freeze and compatible real-predictor probes
-remain explicitly outstanding in the Phase 1 review. Original acceptance bullets below
-are reference requirements, not a claim that every integration acceptance check passed.
-No numerical candidate search, data refresh, collector or deployment was started.
+Authorization update: “Okay keep going” authorized Phase 2 after Phase 1. Timing/source
+provenance, the known ordering repairs, serialized delayed evidence, full/quick receipt
+and gate integration, fixed slices and the guarded baseline runner are complete. The
+accepted freeze is `evaluator-freeze-v2.json`, identified in the Phase 2 review. Normal
+real-data schema-5 fits and 435-pair probes remain Phase 3 work. Original acceptance
+bullets below are reference requirements; the dated reviews give their current status.
+No numerical candidate search, source refresh, collector or deployment was started.
 
 User request: turn the completed assessment into a detailed, resumable plan, including
 dependencies and work that can run in parallel. The next implementation session should
@@ -728,3 +729,13 @@ inference and artifact interfaces, existing health matrix checks, research execu
 and prospective-runner limitations. Added artifact fingerprints and reproduction recipes.
 No correctness repair, evaluator modification, candidate fit, data acquisition, purchase,
 collector activation or model deployment has been performed by this planning task.
+
+
+## 2026-09-06 Phase 2 checkpoint
+
+Phase 2 integration and freeze are complete; read the Phase 2 review before executing
+any earlier recipe. B3-R1's known inversions are resolved under the declared retrospective
+policy, with unknown played/publication times explicit. Both producer modes and both
+gates enforce the new contract. The original Phase 2 real fitted-artifact acceptance
+bullet is carried forward to Phase 3 because normal schema-5 real-data fits have not yet
+run. No performance result or adoption is inferred from the maintenance tests.

@@ -101,7 +101,7 @@ EVIDENCE_GROUPS: dict[str, tuple[str, ...]] = {
     "h2h": ("h2h_diff", "h2h_surface_diff", "log1p_h2h_total"),
     "style": tuple(STYLE_DIFFS),
 }
-INFERENCE_SCHEMA_VERSION = 4
+INFERENCE_SCHEMA_VERSION = 5
 
 
 class TennisPredictor:

@@ -147,10 +147,11 @@ def test_roundtrip_keeps_plain_pickle_and_stable_generation_id(valid_artifact, t
     assert contract["population"]["matchPopulationVersion"] >= 1
     assert type(contract["population"]["playerAliases"]) is list
     assert contract["inference"] == {
-        "schemaVersion": 4,
+        "schemaVersion": 5,
         "probabilityPolicy": "calibrated-pair-average-v1",
         "stylePolicy": "mcp-retrospective-played-date-strict-before-v1",
         "servePriorPolicy": "available-date-strict-before-v1",
+        "chronologyPolicy": "retrospective-verified-date-or-recorded-event-round-v1",
         "dualStateGateThreshold": None,
     }
     assert contract["classes"]["combiner"].endswith(".BaggedClassifier")
@@ -625,8 +626,9 @@ def test_preunpickle_identity_helper_binds_completed_pair(
     identity = validate_predictor_artifact_identity(path, "atp")
     envelope = json.loads(predictor_envelope_path(path).read_text(encoding="utf-8"))
     assert identity == {
-        key: envelope[key]
-        for key in ("artifactId", "tour", "trainedAt", "payloadBytes", "payloadSha256")
+        **{key: envelope[key]
+           for key in ("artifactId", "tour", "trainedAt", "payloadBytes", "payloadSha256")},
+        "inferenceSchema": 5,
     }
     assert identity["artifactId"] == artifact_id
     assert calls == []
@@ -973,3 +975,22 @@ def test_error_reason_is_typed_and_stable():
     assert error.reason is PredictorArtifactReason.CONTRACT_MISMATCH
     assert error.code == "contract_mismatch"
     assert str(error) == "contract_mismatch: detail"
+
+
+def test_pending_event_end_evidence_roundtrip_and_validation(valid_artifact, tmp_path):
+    from tennis_model.points.serve_return import run_serve_return
+    from test_temporal_features import matches
+
+    source, _ = valid_artifact
+    pred = TennisPredictor.load('atp', source)
+    frame = matches().iloc[:2].copy()
+    frame['stats_available_at'] = pd.Timestamp('2025-01-07')
+    frame['stats_availability_basis'] = 'event_end'
+    pred.srv, _ = run_serve_return(frame, params=sr_params_for('atp'))
+    path = tmp_path / 'predictor.pkl'
+    pred.save(path)
+    loaded = TennisPredictor.load('atp', path)
+    assert loaded.srv.at('2025-01-08').prior_state.points == 400
+    loaded.srv.pending_prior_observations = (('bad', 'Hard', 100., 50.),)
+    with pytest.raises(PredictorArtifactError, match='pending date'):
+        validate_predictor_structure(loaded, 'atp')
