@@ -1,22 +1,24 @@
 # DEUCE model improvement — implementation and research handoff
 
-Status: **Phase 2 maintenance and evaluator freeze complete. Phase 3 corrected baseline
-fits and real fitted-artifact acceptance probes are next.**
+Status: **Phase 3 complete: corrected baselines, diagnostics and real saved-artifact
+acceptance checks passed. Phase 4 preparation is next; no candidate was adopted.**
 
-Resume from the [Phase 2 review](2026-09-06-phase2-review.md) and
-[result summary](2026-09-06-phase2-result.json). Code remains in the isolated coordinator
+Resume from the [Phase 3 review](2026-09-06-phase3-review.md),
+[result summary](2026-09-06-phase3-result.json), and
+[Phase 4 preregistration](2026-09-06-phase4-preregistration.md). Code remains in the isolated coordinator
 checkout on `codex/model-foundation`; the main checkout retains its original outputs.
 The [Phase 1 audit](2026-09-06-phase1-data-audit.md),
 [Phase 0 review](2026-09-06-phase0-review.md), and
 [interface decisions](2026-09-06-phase0-interfaces.md) remain historical evidence.
 
-Authorization update: “Okay keep going” authorized Phase 2 after Phase 1. Timing/source
-provenance, the known ordering repairs, serialized delayed evidence, full/quick receipt
-and gate integration, fixed slices and the guarded baseline runner are complete. The
-accepted freeze is `evaluator-freeze-v2.json`, identified in the Phase 2 review. Normal
-real-data schema-5 fits and 435-pair probes remain Phase 3 work. Original acceptance
-bullets below are reference requirements; the dated reviews give their current status.
-No numerical candidate search, source refresh, collector or deployment was started.
+Authorization update: “Proceed to phase 3” authorized the frozen baseline sequence.
+Both five-bag 2010–2026 baselines and normal real-data schema-5 fits are complete;
+all scored feature rows and selected repeat folds matched exactly, and both 435-pair
+API probes passed. The accepted freeze remains `evaluator-freeze-v2.json`. The Phase 3
+review supersedes prior pending-fit status and records corrected metrics and limits.
+Original acceptance bullets below are reference requirements; the dated reviews give
+their current status. No numerical candidate search, source refresh, collector or
+deployment was started. “More data helps” and blanket overconfidence remain hypotheses.
 
 User request: turn the completed assessment into a detailed, resumable plan, including
 dependencies and work that can run in parallel. The next implementation session should
@@ -441,20 +443,20 @@ an immutable evaluator definition, and no unexplained mismatch with production s
 
 Sequential baseline runs. No downloads, parameter tuning or edits while they run.
 
-- [ ] Rebuild feature frames from the frozen inputs, ignoring incompatible old caches.
-- [ ] Produce full 2010–cutoff walk-forward predictions for both tours using adopted
+- [x] Rebuild feature frames from the frozen inputs, ignoring incompatible old caches.
+- [x] Produce full 2010–cutoff walk-forward predictions for both tours using adopted
       per-tour parameters and five bags. Save every scored key/probability and exclusions.
-- [ ] Preserve WTA's actual production policy. `INCLUDE_WTA_LOWER_STATE=False` does NOT
+- [x] Preserve WTA's actual production policy. `INCLUDE_WTA_LOWER_STATE=False` does NOT
       mean production lacks lower state: the threshold-32 path explicitly loads it.
       A plain `walk_forward(build_feature_frame(tour='wta'))` is not that incumbent.
-- [ ] Reproduce baseline probabilities a second time only as needed to establish
+- [x] Reproduce baseline probabilities a second time only as needed to establish
       determinism/cache validity; record exact or specified numeric equivalence.
-- [ ] Report log loss, Brier, accuracy, calibration, coverage and paired slices. Report
+- [x] Report log loss, Brier, accuracy, calibration, coverage and paired slices. Report
       legacy-to-corrected measurement changes separately from future candidate improvements.
-- [ ] Compare external forecasts only on identical eligible matches, outcome definitions
+- [x] Compare external forecasts only on identical eligible matches, outcome definitions
       and declared forecast horizons. A literature Brier of 0.196 is not a universal
       ceiling or a headroom estimate. Keep market odds evaluation-only under current rules.
-- [ ] Freeze the initial data and uncertainty hypotheses, budgets, slice targets and order
+- [x] Freeze the initial data and uncertainty hypotheses, budgets, slice targets and order
       based on these diagnostics. Log every abandoned candidate and reason.
 
 Starting API recipe at the planning tip (adapt only after the maintenance interface changes):

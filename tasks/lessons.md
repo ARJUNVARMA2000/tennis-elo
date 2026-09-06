@@ -344,3 +344,5 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - A saved temporal state needs pending evidence as well as admitted totals. See
   [`lessons/model-research.md`](lessons/model-research.md). (2026-09-06)
+
+- A slice label does not establish the population its counts measure. See [`lessons/model-research.md`](lessons/model-research.md). (2026-09-06)
