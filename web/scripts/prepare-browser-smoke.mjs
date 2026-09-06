@@ -3,7 +3,7 @@
 // a developer's machine-generated local data by accident.
 import { mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { BROWSER_SMOKE_PLAYER_NAMES } from "./browser-smoke-fixture.mjs";
+import { BROWSER_SMOKE_PLAYER_NAMES, browserSmokeBracket } from "./browser-smoke-fixture.mjs";
 
 const target = resolve(process.argv[2] || "");
 if (!process.argv[2]) throw new Error("usage: node scripts/prepare-browser-smoke.mjs <empty-data-dir>");
@@ -74,6 +74,7 @@ function payloads(tour) {
     playerA: name, playerB: `Fixture Rival ${index + 1}`, pA: 0.6,
   }));
   return {
+    ...browserSmokeBracket(tour, generation),
     "upcoming-index.json": { schema: "upcoming-v2", schemaVersion: 2, generation, count: 2,
       events: [{ name: "Smoke Open", espnId: "smoke-2026", surface: "Hard", count: 2,
         file: "upcoming-event-smoke.json", evidenceFile: "upcoming-evidence-smoke.json" }], highlights: upcoming },

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { BracketRound } from "@/lib/bracket";
-import { decodeScenario, encodeScenario, exactScenario, titleSwings } from "@/lib/scenario";
+import { decodeScenario, encodeScenario, exactScenario, forecastOutcomeLabel, forecastPercent, titleSwings } from "@/lib/scenario";
 
 const rounds: BracketRound[] = [
   { round: "SF", matches: [
@@ -20,6 +20,23 @@ const matrix = [
 ];
 
 describe("exact bracket scenarios", () => {
+  it("labels node odds as winning through that round, not reaching that round", () => {
+    const result = exactScenario(rounds, players, matrix);
+    expect(forecastOutcomeLabel(rounds, result.nodes[0].matches[1].round)).toBe("Reach final");
+    expect(forecastOutcomeLabel(rounds, result.nodes[1].matches[0].round)).toBe("Win tournament");
+    expect(forecastOutcomeLabel(rounds, "unknown")).toBe("Win this match");
+    expect(result.nodes[0].matches[1].candidates.find((row) => row.name === "C")?.p)
+      .toBe(result.reach.C.F);
+    expect(result.nodes[1].matches[0].candidates.find((row) => row.name === "C")?.p)
+      .toBe(result.reach.C.Champion);
+  });
+
+  it("does not round positive outsiders down to zero", () => {
+    expect(forecastPercent(0.00001)).toBe("<0.1%");
+    expect(forecastPercent(0.016)).toBe("1.6%");
+    expect(forecastPercent(0.65)).toBe("65%");
+  });
+
   it("matches the server propagation and conditions confirmed results", () => {
     expect(exactScenario(rounds, players, matrix).champion).toEqual([
       { name: "A", p: 0.6 }, { name: "C", p: 0.28 }, { name: "D", p: 0.12 },

@@ -1008,8 +1008,8 @@ await check("prediction explanation: grouped evidence is explicitly non-causal",
 await check("bracket lab: actual draw + exact forecast/scenario contract", async () => {
   const html = routeHtml.get("/bracket/");
   if (!html) return "route unavailable (covered by route check)";
-  must(hasBracketLabContract(html), "bracket lab contract marker missing (stale or partial deploy)");
-  return "actual+forecast+scenario-exact-v1";
+  must(hasBracketLabContract(html), "bracket lab progress/candidate-details contract missing (stale or partial deploy)");
+  return "exact forecast/scenario + remaining rounds, full draw, candidate details";
 });
 
 await check("expectation artifacts: live summary arithmetic", async () => {

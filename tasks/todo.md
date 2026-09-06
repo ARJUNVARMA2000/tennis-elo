@@ -6002,3 +6002,148 @@ SEs, matching the producer and browser, while retaining numeric paired SEs for m
 - Verified the live WTA Match Center shows the new section navigation, Following controls and
   current scores. Refreshed the local static preview from that accepted public release, verifying
   all 449 declared artifact hashes before replacing its data, and opened the live Match Center.
+
+## 2026-09-06 — Advance the bracket view with tournament progress
+
+The linked US Open actual draw still starts at R128 with eight section controls. The current
+renderer always uses the original bracket size and leading rounds (history checked at ef832b3).
+Default to the earliest unfinished round, regroup its remaining slots, and retain a full-draw
+control for historical results. Upcoming draws retain the opening round; a settled draw retains
+the final. Never skip an unfinished match because another section has advanced further.
+
+- [x] Derive the current round from confirmed results and build section geometry from the
+      remaining field while preserving original round and match identities.
+- [x] Add remaining/full draw controls and make the bracket height follow its visible match count.
+- [x] Apply the current-round boundary to the forecast draw map; expose every remaining candidate
+      behind each "others" total on hover, click/tap, and keyboard activation, with explicit
+      reach/win labels distinguishing semifinal winners from tournament winners.
+- [x] Cover mixed-round progress, byes, small draws, final/completed states, and full-draw recovery;
+      extend the live-serving contract and verify the rendered behavior.
+- [x] Run web checks, reconcile git history, record the lesson and append the review.
+
+Design check-in: retain the existing court palette, display/body/mono typography, and bracket
+cards. The useful change is structural: current-round geometry removes obsolete columns, and
+an inline candidate disclosure expands within its card without covering neighboring paths.
+
+### Review
+
+- Actual draw now defaults to its first unfinished round, retaining the final after completion.
+  Sections are rebuilt from the remaining field, so the live ATP US Open shows all eight R16
+  matches and all seven later matches together. Full draw restores R128 onward and every section.
+  Height contracts with the remaining match count. Forecast maps likewise discard settled rounds.
+- Forecast cards label the outcome explicitly: QF winners reach SF; SF winners reach the final;
+  championship candidates win the tournament. Labels use the serialized round name because
+  published Python base nodes omit the browser scenario engine's roundIndex field.
+- "Others" has a native hover preview containing every omitted positive-probability candidate.
+  Click/tap or Enter expands a scrollable list with player links; Escape collapses it. A native
+  preview avoids moving a centered card before a pointer click lands. Tiny positive odds display
+  <0.1% instead of zero. Exact probabilities and model evaluation remain unchanged.
+- Bracket query controls now use framework-observed native history. The browser replay exposed
+  an existing Forecast -> Actual transition that retained the forecast view; both directions and
+  reload now preserve the selected view and URL.
+- Validation: all 352 web tests passed, followed by 116 focused tests after the final navigation
+  repair. TypeScript and the 24-route production build passed. Final lint has zero errors and the
+  same nine existing warnings. The built route passes the extended live-serving marker contract.
+  Added the R16 progression/disclosure fixture and browser checks to the existing CI smoke runner.
+- Connected-browser checks covered current production data and the deterministic fixture: 15
+  remaining matches, eight full-draw sections, section-8 -> remaining recovery, six semifinal
+  outsiders, thirteen title outsiders, click and Enter/Escape, view switching, and reload. Desktop
+  and 390px mobile inspection confirmed the page/body stay within the viewport. The standalone
+  automated browser-smoke runner was not executed locally; these interactions were replayed in
+  the connected browser.
+- Preview uses accepted release ab12b7df-2f65-4f34-b539-933749dbfe2c, generated
+  2026-09-06T13:44:36Z. All 457 declared public artifact hashes and release closure passed the
+  existing release verifier before copying its data into the static preview. Source data was not
+  regenerated or replaced. Git history was rechecked at ef832b3 before this review. No production
+  push or deployment was performed.
+
+### User correction — WTA progression is still blocked by missing bracket results
+
+The user correctly observed that the WTA preview does not reach the promised R16 view. At
+f873e5d the UI change is present and ATP starts at R16, but accepted release
+ab12b7df-2f65-4f34-b539-933749dbfe2c has one unresolved WTA match in each of R128/R64/R32.
+R128 match 34 is Nikola Bartunkova–Mayar Sherif; its missing winner propagates through
+Bartunkova–Tatjana Maria and Mirra Andreeva–Bartunkova to a null R16 opponent for Potapova.
+The same release's profiles record all three results, including duplicate short/extended
+Mayar Sherif name forms. The upcoming event shard already names Andreeva–Potapova in R16.
+
+The earliest-unfinished-round rule therefore correctly remains at R128 on this inconsistent
+input, and the Full draw control stays hidden because no leading round can retire. The prior
+completion report was too broad: real-data browser verification covered ATP, not WTA.
+No result or winner has been inferred or patched into the accepted preview data.
+
+Follow-up: reproduce and repair the WTA result/name reconciliation at the producer, add the
+appropriate cross-artifact gate regression, regenerate a consistent accepted release, and verify
+both real tours' default progression before reporting the WTA outcome complete.
+
+## 2026-09-06 — Repair WTA progression and verify the complete bracket change
+
+Implementation authorized by the user's “Implement and double check everything.” Local source
+records tie both Mayar Sherif spellings to WTA player ID 318711; the accepted WTA draw loses the
+Bartunkova result chain while its schedule already includes Andreeva–Potapova in R16.
+
+- [x] Reproduce the result-chain failure and canonicalize the proven Sherif identity variants.
+- [x] Add an independent pre-upload invariant for a same-event scheduled matchup missing from
+      the draw, with regression coverage and valid-state exemptions.
+- [x] Regenerate current outputs through the supported pipeline and integrity gates; refresh the
+      local preview from the verified artifacts.
+- [x] Verify both real tours, full/remaining draw, forecast meanings and candidate disclosure;
+      run automated browser checks and the relevant Python/web validation.
+- [x] Record the correction lesson, reconcile history, and commit the reviewed local changes.
+
+Check-in: retain the earliest-unfinished-round rule. Repair its source evidence rather than
+skipping the unresolved WTA match. Keep historical draw access and the forecast disclosures.
+
+### Review
+
+- Corrected both extended Sherif spellings using first-party WTA ID 318711 and the existing
+  match-evidence falsifier. The regression first failed on the original source and then passed:
+  all 112 opening-through-R32 results survive canonicalization and the authoritative draw join.
+  Population version advances from 5 to 6 because deduplication changes match counts; its
+  fingerprint contract and the same-version historical drop replay advance together.
+- Added `output.bracket.scheduled_match_missing` to the pre-upload gate. It compares independent
+  scheduled pairings with the same stable event ID, round and canonical draw occupants. The old
+  accepted snapshot produces exactly the missing Andreeva–Potapova finding; ATP stays clean.
+  Tests cover the repaired pairing, reverse orientation, explicit aliases, completed matches,
+  completed events, absent draws, qualifying, placeholders and unseated entrants.
+- Refreshed current WTA stats and both tours' live sources through their normal downloaders.
+  The normal all-tour refresh rejected the incompatible saved predictors and rebuilt both.
+  The sealed release is a6754b1c-beb8-412f-af82-20bd0080a021 with 453 exact artifacts. The
+  semantic integrity gate passed, then the supported publisher accepted and mirrored the release.
+  Health generated at 2026-09-06T16:45:14Z reports zero output problems for both tours; benchmark
+  acquisition/missing-scorecard notes remain informational. No integrity check was bypassed.
+- Both regenerated US Open draws now have all 64 R128, 32 R64 and 16 R32 matches resolved.
+  The restored WTA chain is Bartunkova–Sherif 6-1 6-2, Bartunkova–Maria 6-7(5) 6-2 6-3, and
+  Andreeva–Bartunkova 6-2 7-6(5), feeding Andreeva–Potapova into R16. Forecast artifacts agree
+  on the confirmed-round boundary.
+- Validation: all 1,198 Python tests and 352 web tests passed; Ruff, TypeScript and the production
+  build passed. Web lint has zero errors and the same nine pre-existing warnings. The full
+  automated browser smoke passed 10/10 route/viewport checks. Extended the bracket smoke to
+  explicitly exercise ATP and WTA independently; the focused desktop/mobile rerun passed.
+- Rechecked the new accepted data in the connected browser for both tours: four remaining
+  columns and 15 cards, all eight historical sections, section 8 -> remaining recovery, WTA's
+  restored scores in section 5, forecast labels and minimap, six SF outsiders, thirteen title
+  outsiders, keyboard collapse, and scenario selection/reset on the formerly missing WTA pair.
+  At 390px the document stays within the viewport; at 1280px all four columns fit. Reset the
+  temporary viewport and left the user's tab on WTA actual draw, R16 onward.
+- The local serving verifier confirmed all 453 artifact hashes, 419 shard references, release
+  identity, freshness, coverage and the new bracket contract. Its complete production run was
+  16/22: six hosting checks intentionally require Firebase behavior/production-origin URLs that
+  the minimal local static server does not provide. This is not a production deployment check.
+- Git history was reconciled at f282172/f873e5d before this review. Retained the pipeline's new
+  append-only forecast and comparison observations and refreshed benchmark ledger separately
+  from the implementation. Changes and review are saved locally; no push/deploy was performed.
+
+## 2026-09-06 — Publish the bracket progression repair
+
+The user explicitly requested committing to the main branch and ensuring a proper deployment.
+This repository's production/default branch is `master`. The verified implementation is on
+`codex/bracket-progress-details`; remote master has advanced since the local work began.
+
+- [x] Merge with the current remote master, preserving all independent forecast observations.
+- [ ] Check the merged changes, run any verification required by the merge, and push master.
+- [ ] Follow the production workflow through tests, data integrity, publication and live serving.
+- [ ] Verify current ATP/WTA live bracket progression and forecast disclosures; record the review.
+
+Check-in: deploy through the existing master-push workflow and its two gates. Reconcile the
+remote updates before pushing, and carry the request through verification of the live site.

@@ -36,6 +36,22 @@ export type ScenarioArtifact = {
 
 type Distribution = Record<string, number>;
 
+/** A node stores the distribution of this match's winner, i.e. reaching the NEXT round. */
+export function forecastOutcomeLabel(rounds: BracketRound[], round: string): string {
+  // Published base nodes carry the round label but may omit roundIndex. Scenario nodes
+  // computed in the browser include both, so the label is the common artifact contract.
+  const roundIndex = rounds.findIndex((row) => row.round === round);
+  if (roundIndex < 0) return "Win this match";
+  const nextRound = rounds[roundIndex + 1]?.round;
+  if (!nextRound) return "Win tournament";
+  return `Reach ${nextRound === "F" ? "final" : nextRound}`;
+}
+
+export function forecastPercent(p: number): string {
+  if (p > 0 && p < 0.001) return "<0.1%";
+  return `${(p * 100).toFixed(p < 0.1 ? 1 : 0)}%`;
+}
+
 function confirmedWinner(match: BracketRound["matches"][number]): string | null {
   return match.winner === "a" ? match.a : match.winner === "b" ? match.b : null;
 }

@@ -9,6 +9,7 @@ import { mkdirSync } from "node:fs";
 import { getBrowserSmokeTourIdentities } from "./browser-smoke-fixture.mjs";
 import { ROUTES } from "./routes.mjs";
 import { checkFollowing, checkPerformanceNavigation } from "./product-checks.mjs";
+import { checkBracketProgress } from "./bracket-checks.mjs";
 
 const BASE = process.env.VERIFY_BASE_URL || "http://localhost:3001";
 const SELECTED_ROUTES = process.env.VERIFY_ROUTES
@@ -66,6 +67,8 @@ async function checkRoute(page, route, view) {
       ));
     }
   }
+
+  if (route === "/bracket/" && FIXTURE_TOUR_IDENTITIES) await checkBracketProgress(page);
 
   // One real state/URL interaction in the narrow CI smoke: the tour control must update
   // the shareable URL and then restore the original dataset without a stale-state race.

@@ -149,7 +149,8 @@ WTA_DUAL_STATE_GATE_THRESHOLD = 32
 # duplicate historical/live identities and making the old match-count baseline incomparable;
 # version 5 reclassifies mutable WTA ``RS...`` provider rows as qualifying, removing nine
 # 2026 US Open qualifying results that had briefly been cached as main-draw observations.
-MATCH_POPULATION_VERSION = 5
+# Version 6 merges the Sherif full-name variants, collapsing duplicate source results.
+MATCH_POPULATION_VERSION = 6
 # Lower-tier (challenger + qualifying) ingestion starts here: 5 warm-up years of
 # rating history before the 2010 tune window; the full 1978+ archive would double
 # the walk for matches that can no longer influence any scored year.
@@ -692,6 +693,11 @@ EVENT_WITHDRAWN_PLAYERS: dict[str, dict[str, dict[str, str | None]]] = {
 # relatives (the Zverevs, the Bryans). Add an entry when the health gate flags one, or when
 # `data/alias_proposer.py` opens a PR proposing one (that path is reviewed, never automatic).
 PLAYER_ALIASES: dict[str, str] = {
+    # WTA ID 318711 appears under all three spellings in the first-party 2026 stats.
+    # The extended US Open spelling otherwise hides Bartunkova's R128 win and every
+    # downstream result. Both variants pass the archive match-evidence falsifier.
+    "mayar sherif ahmed abdelaziz": "Mayar Sherif",
+    "maiar sherif ahmed abdelaziz": "Mayar Sherif",
     "daniel merida aguilar": "Daniel Merida",
     # 2026-07-29 Wimbledon duplicate: the archive's 360-match spelling and the live feed's
     # 2-match inserted-space spelling describe one player. Without this the same match walks

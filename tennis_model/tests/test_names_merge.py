@@ -98,6 +98,40 @@ def test_canonicalize_merges_a_dropped_surname_via_alias():
     names = set(out["winner_name"]) | set(out["loser_name"])
     assert "Daniel Merida Aguilar" not in names, names
     assert "Daniel Merida" in names
+
+
+def test_sherif_aliases_preserve_the_completed_us_open_result_chain():
+    """The stat-bearing extended name used to win source preference, then fail the draw join."""
+    from tennis_model.sim.bracket import bracket_rounds
+    from tennis_model.sim.tournaments import _joined_main_draw_rows, _one_match_per_player_round
+
+    slots = [f"Player {i}" for i in range(128)]
+    slots[64:72] = [
+        "Mirra Andreeva", "Janice Tjen", "Eva Lys", "Gabriela Knutson",
+        "Nikola Bartunkova", "Mayar Sherif", "Tatjana Maria", "Jelena Ostapenko",
+    ]
+    rows = []
+    frontier = slots
+    for round_name in ("R128", "R64", "R32"):
+        for a, b in zip(frontier[::2], frontier[1::2]):
+            rows.append({"winner_name": a, "loser_name": b, "round": round_name,
+                         "score": "6-1 6-2", "__src": 0})
+        frontier = frontier[::2]
+    # Same first-round result in both sources. The stats row comes first, as in production.
+    sherif = rows[34]
+    sherif["loser_name"] = "Mayar Sherif Ahmed Abdelaziz"
+    rows.append({**sherif, "loser_name": "Mayar Sherif", "__src": 2})
+    rows.append({**sherif, "loser_name": "Maiar Sherif Ahmed Abdelaziz", "__src": 1})
+    canonical = results._canonicalize_names(pd.DataFrame(rows))
+    assert set(canonical.loc[canonical.winner_name.eq("Nikola Bartunkova")
+                             & canonical["round"].eq("R128"), "loser_name"]) == {"Mayar Sherif"}
+    main = _one_match_per_player_round(canonical)
+    rounds = bracket_rounds(slots, main.to_dict("records"))
+    assert len(main) == len(_joined_main_draw_rows(main, rounds)) == 112
+    assert all(m["winner"] in ("a", "b") for r in rounds[:3] for m in r["matches"])
+    assert rounds[3]["round"] == "R16"
+    assert rounds[3]["matches"][4]["a"] == "Mirra Andreeva"
+    assert all(m["a"] and m["b"] and m["winner"] is None for m in rounds[3]["matches"])
     # the alias key is the accent/punct-folded form, so a differently-punctuated variant folds too
     df2 = pd.DataFrame({"winner_name": ["Daniel  Merida-Aguilar"], "loser_name": ["X Y"],
                         "__src": [2]})

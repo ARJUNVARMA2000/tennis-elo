@@ -2234,6 +2234,58 @@ def test_pending_bracket_probability_matches_upcoming_by_stable_identity():
     assert out == []
 
 
+def test_scheduled_pair_exposes_a_missing_bracket_result_chain():
+    """US Open WTA: R16 schedule knew Andreeva, but three missing feeders left her TBD."""
+    data = _healthy_data()
+    data["brackets"] = [{
+        "name": "US Open", "espnId": "189-2026", "status": "live", "rounds": [
+            {"round": "R128", "matches": [
+                {"a": "Mirra Andreeva", "b": "Janice Tjen", "winner": "a"},
+                {"a": "Anastasia Potapova", "b": "Other Player", "winner": "a"},
+            ]},
+            {"round": "R16", "matches": [
+                {"a": None, "b": "Anastasia Potapova", "winner": None},
+            ]},
+        ],
+    }]
+    data["upcoming"] = [{
+        "event": "Different sponsor title", "espnId": "189-2026", "round": "R16",
+        "playerA": "Anastasia Potapova", "playerB": "Mirra Andreeva", "pA": 0.2,
+    }]
+
+    def missing(d):
+        return [f for f in health.output_findings("wta", _oc(data=d), NOW)
+                if f.code == "output.bracket.scheduled_match_missing"]
+
+    findings = missing(data)
+    assert len(findings) == 1
+    assert findings[0].severity == "error"
+    assert "189-2026" in findings[0].entity
+
+    for edit in (
+        lambda d: d["upcoming"][0].update(espnId="other-2026"),
+        lambda d: d["upcoming"][0].update(round="Q3"),
+        lambda d: d["upcoming"][0].update(playerB="Qualifier 1"),
+        lambda d: d["upcoming"][0].update(playerB="Unseated Player"),
+        lambda d: d["brackets"][0].update(status="completed"),
+        lambda d: d.update(brackets=[]),
+    ):
+        valid = copy.deepcopy(data)
+        edit(valid)
+        assert missing(valid) == []
+
+    node = data["brackets"][0]["rounds"][1]["matches"][0]
+    node.update(a="Mirra Andreeva", p=0.8, probSource="model")
+    assert missing(data) == []
+    # A just-finished match can remain in the schedule briefly; no missing-match finding.
+    node.update(winner="a")
+    assert missing(data) == []
+    # Names use the same explicit aliases as the producer, in either orientation.
+    node.update(a="Mayar Sherif", winner=None)
+    data["upcoming"][0].update(playerB="Mayar Sherif Ahmed Abdelaziz")
+    assert missing(data) == []
+
+
 def test_lost_bracket_is_sentinel_only():
     """A live event that HAD a bracket and now doesn't means its cached Wikipedia draw is
     gone — the 2026-07-27 Wimbledon class, where the field then fell back to a noisy results

@@ -41,6 +41,9 @@ describe("real-browser CI smoke", () => {
           readFileSync(join(target, tour, "tennis-abstract.json"), "utf8"),
         );
         expect(profiles.profiles).toHaveLength(2);
+        const brackets = JSON.parse(readFileSync(join(target, tour, "brackets.json"), "utf8"));
+        expect(brackets[0].rounds.slice(0, 3).flatMap((r: { matches: { winner: string }[] }) => r.matches).every((m: { winner: string }) => m.winner === "a")).toBe(true);
+        expect(brackets[0].rounds[3].matches).toHaveLength(8);
         expect(kalshi.segments.length).toBeGreaterThan(0);
         expect(isTennisAbstractBenchmark(benchmark, tour as "atp" | "wta")).toBe(true);
         expect(benchmark.matchComparison.pending).toBe(1);
@@ -66,7 +69,7 @@ describe("real-browser CI smoke", () => {
     expect(workflow).toContain("playwright-core install --with-deps chromium");
     expect(workflow).toContain("npm run test:browser");
     expect(runner).toContain(
-      'VERIFY_ROUTES: process.env.VERIFY_ROUTES || "/scorecard/,/player/,/track/"',
+      'VERIFY_ROUTES: process.env.VERIFY_ROUTES || "/scorecard/,/player/,/track/,/bracket/"',
     );
     expect(runner).toContain('VERIFY_OFFLINE: "1"');
     expect(runner).toContain('VERIFY_FIXTURE_DATA: "1"');

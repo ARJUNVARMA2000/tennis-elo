@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   type BracketEvent,
+  currentRoundIndex,
   drawSourceLabel,
   finalsColumns,
   isPlaceholder,
@@ -14,6 +15,7 @@ import {
   sectionRoundCount,
   sideLabel,
   titleContenders,
+  visibleBracketSize,
   type TournamentLite,
 } from "@/lib/bracket";
 
@@ -140,6 +142,76 @@ describe("section layout", () => {
     const ev = mkEvent(16);
     expect(sectionColumns(ev, 0).map((c) => c.round)).toEqual(["R16", "QF", "SF", "F"]);
     expect(finalsColumns(ev)).toEqual([]);
+  });
+});
+
+describe("tournament progress", () => {
+  function finishThrough(ev: BracketEvent, count: number) {
+    ev.rounds.slice(0, count).forEach((round) => round.matches.forEach((match, i) => {
+      match.a = `Player ${i}`;
+      match.winner = "a";
+    }));
+  }
+
+  it("starts an unplayed draw at the opening round, including unresolved entrants", () => {
+    const ev = mkEvent(128, "Open", { status: "upcoming" });
+    ev.rounds[0].matches[0].a = "Qualifier 1";
+    expect(currentRoundIndex(ev.rounds)).toBe(0);
+    expect(currentRoundIndex([])).toBe(0);
+  });
+
+  it("shows all eight R16 matches together after the first three rounds finish", () => {
+    const ev = mkEvent(128);
+    finishThrough(ev, 3);
+    const start = currentRoundIndex(ev.rounds);
+    expect(start).toBe(3);
+    expect(sectionCount(visibleBracketSize(ev, start))).toBe(1);
+    const cols = sectionColumns(ev, 7, start); // stale selection clamps to the whole draw
+    expect(cols.map((col) => col.round)).toEqual(["R16", "QF", "SF", "F"]);
+    expect(cols.map((col) => col.matches.length)).toEqual([8, 4, 2, 1]);
+    expect(cols[0].roundIndex).toBe(3);
+    expect(cols[0].matches[7]).toEqual({ m: ev.rounds[3].matches[7], idx: 7 });
+    expect(finalsColumns(ev, start)).toEqual([]);
+    expect(sectionColumns(ev, 0)[0].round).toBe("R128"); // full history remains available
+  });
+
+  it("waits for the entire round, even if a different section has completed the next round", () => {
+    const ev = mkEvent(128);
+    finishThrough(ev, 4);
+    ev.rounds[2].matches[15].winner = null;
+    expect(currentRoundIndex(ev.rounds)).toBe(2);
+    expect(sectionColumns(ev, 1, 2)[0].matches.at(-1)?.idx).toBe(15);
+  });
+
+  it("accepts confirmed byes and walkovers without requiring a score", () => {
+    const ev = mkEvent(32);
+    finishThrough(ev, 1);
+    expect(ev.rounds[0].matches.every((match) => !match.score)).toBe(true);
+    expect(currentRoundIndex(ev.rounds)).toBe(1);
+    ev.rounds[0].matches[0].winner = null; // a missing result is not an inferred bye
+    ev.rounds[0].matches[0].b = "Qualifier/Unresolved 1";
+    expect(currentRoundIndex(ev.rounds)).toBe(0);
+  });
+
+  it.each([2, 4, 8, 16, 32, 64, 128])("preserves every match at every progression stage of a %i-slot draw", (size) => {
+    const ev = mkEvent(size);
+    for (let start = 0; start < ev.rounds.length; start++) {
+      finishThrough(ev, start);
+      expect(currentRoundIndex(ev.rounds)).toBe(start);
+      const columns = finalsColumns(ev, start);
+      for (let section = 0; section < sectionCount(visibleBracketSize(ev, start)); section++) {
+        columns.push(...sectionColumns(ev, section, start));
+      }
+      const actual = columns.flatMap((col) => col.matches.map(({ m, idx }) => {
+        expect(m).toBe(ev.rounds[col.roundIndex].matches[idx]);
+        return `${col.roundIndex}:${idx}`;
+      })).sort();
+      const expected = ev.rounds.slice(start).flatMap((round, i) => round.matches.map((_, j) => `${start + i}:${j}`)).sort();
+      expect(actual).toEqual(expected);
+    }
+    finishThrough(ev, ev.rounds.length);
+    const final = currentRoundIndex(ev.rounds);
+    expect(sectionColumns(ev, 0, final).map((col) => col.round)).toEqual(["F"]);
   });
 });
 

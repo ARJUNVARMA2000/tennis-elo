@@ -366,13 +366,16 @@ def _check_bracket_upcoming_probability_parity(
     brackets: list,
     upcoming: list,
 ) -> None:
-    """Require one pending match to carry one probability across bracket and schedule.
+    """Require scheduled draw occupants to meet, with one current price in both artifacts.
 
     Identity is the stable ESPN event ID plus factual bracket round plus canonical unordered
     player pair. Display names are deliberately absent from the key. Completed bracket
     prices are locked historical snapshots and therefore outside this current-price check.
     """
     pending: dict[tuple[str, str, frozenset[str]], list[dict]] = {}
+    represented: set[tuple[str, str, frozenset[str]]] = set()
+    event_rounds: dict[str, set[str]] = {}
+    entrants: dict[str, set[str]] = {}
     for event in brackets:
         if not isinstance(event, dict):
             continue
@@ -381,14 +384,20 @@ def _check_bracket_upcoming_probability_parity(
             continue
         for rnd in event.get("rounds") or []:
             round_name = str(rnd.get("round") or "").strip()
+            if event.get("status") != "completed" and round_name:
+                event_rounds.setdefault(event_id, set()).add(round_name)
             for match in rnd.get("matches") or []:
                 a, b = match.get("a"), match.get("b")
-                if (match.get("winner") is not None
-                        or not (_is_real_name(a) and _is_real_name(b))):
+                entrants.setdefault(event_id, set()).update(
+                    _player_identity_key(name) for name in (a, b) if _is_real_name(name))
+                if not (_is_real_name(a) and _is_real_name(b)):
                     continue
                 pair = frozenset((_player_identity_key(a), _player_identity_key(b)))
                 if round_name and len(pair) == 2:
-                    pending.setdefault((event_id, round_name, pair), []).append(match)
+                    key = (event_id, round_name, pair)
+                    represented.add(key)
+                    if match.get("winner") is None:
+                        pending.setdefault(key, []).append(match)
 
     for match in upcoming:
         if not isinstance(match, dict):
@@ -399,7 +408,24 @@ def _check_bracket_upcoming_probability_parity(
         if not event_id or not round_name or not (_is_real_name(a) and _is_real_name(b)):
             continue
         pair = frozenset((_player_identity_key(a), _player_identity_key(b)))
-        hits = pending.get((event_id, round_name, pair), [])
+        key = (event_id, round_name, pair)
+        # The schedule is independent positive evidence of a resolved pairing. A missing
+        # feeder result can otherwise leave the bracket stuck at the opening round while
+        # its own derived mainDrawMatchCount still agrees. Limit this witness to entrants
+        # in an existing active draw and one of its rounds: qualifying, absent draws and
+        # stale schedules for completed events must not be treated as missing main matches.
+        if (round_name in event_rounds.get(event_id, set()) and len(pair) == 2
+                and pair <= entrants.get(event_id, set()) and key not in represented):
+            _add_finding(
+                out, "output.bracket.scheduled_match_missing",
+                f"{tour}: scheduled match {a!r} vs {b!r} in {round_name} "
+                f"is missing from the bracket (espnId {event_id})",
+                severity="error",
+                entity=_match_entity(
+                    match, event_entity=f"espn:{event_id}", player_a=a, player_b=b),
+                evidence={"round": round_name, "players": sorted(pair)},
+            )
+        hits = pending.get(key, [])
         if len(hits) != 1 or not _is_prob(match.get("pA")):
             continue
         bracket_match = hits[0]

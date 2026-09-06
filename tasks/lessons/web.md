@@ -197,3 +197,27 @@ Indexed in [`../lessons.md`](../lessons.md).
   (2026-09-04) Pending fixtures hid a gate that demanded independent-sample standard errors for
   dependent tournament reach outcomes. Replay both tours through pending, partial, and final
   states; require null reach uncertainty and reject invented estimates while preserving match SEs.
+
+- **A live bracket must rebuild its visible geometry from the earliest unfinished round.**
+  (2026-09-06, US Open remained at R128 after R32 finished) Dropping column labels alone leaves
+  obsolete sections and can hide seven of eight R16 matches. Require every match in a round to
+  have a confirmed winner before retiring it, preserve original match identities, regroup the
+  remaining field, and keep full history accessible. Verify every progression stage and mixed
+  section completion, plus the actual rendered round and match counts.
+
+- **Forecast node percentages describe winning that node, and every residual candidate must be
+  inspectable.** (2026-09-06, the SF card's 65% was ambiguous and "others" hid its players) Label
+  the next-round outcome explicitly and expose the residual list by hover preview and click/tap.
+  Use published round names to derive labels: Python base nodes may omit roundIndex even though
+  browser-computed scenario nodes include it. Match browser fixtures to the producer shape and
+  verify against accepted live artifacts. Avoid hover expansions that re-center a card before
+  the click lands, and replay both directions of query-only view switches.
+
+- **A shared tour UI needs verification against both tours' current accepted data.**
+  (2026-09-06, WTA bracket still opened at R128 after the progression change) The synthetic WTA
+  fixture and real ATP draw progressed, but the accepted WTA draw retained Bartunkova–Sherif as
+  unresolved in R128, then null feeders in R64/R32 and Andreeva's R16 seat. The same release's
+  player profiles record those results and include both short and extended Sherif names.
+  Check the real current-round boundary for each tour before reporting the user-facing outcome
+  complete. Keep genuine unfinished matches visible; resolve missing/canonicalized result
+  evidence at its source rather than advancing the UI on a round-majority assumption.

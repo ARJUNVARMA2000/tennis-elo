@@ -19,21 +19,25 @@ import {
 export default function BracketTree({
   ev,
   section,
+  startRound = 0,
   tour,
   roster,
 }: {
   ev: BracketEvent;
   section: number;
+  startRound?: number;
   tour: Tour;
   roster: ReadonlySet<string>;
 }) {
-  const cols: BracketColumn[] = [...sectionColumns(ev, section), ...finalsColumns(ev)];
+  const cols: BracketColumn[] = [...sectionColumns(ev, section, startRound), ...finalsColumns(ev, startRound)];
+  const maxMatches = Math.max(1, ...cols.map((col) => col.matches.length));
   return (
-    <div className="overflow-x-auto pb-2">
-      <div className="flex min-h-[520px] gap-3 sm:gap-4" style={{ minWidth: cols.length * 210 }}>
+    <div className="overflow-x-auto pb-2" data-bracket-tree data-start-round={cols[0]?.round}>
+      <div className="flex gap-3 sm:gap-4" style={{ minWidth: cols.length * 210, minHeight: Math.max(180, maxMatches * 90) }}>
         {cols.map((col, i) => (
           <div
             key={`${col.round}-${i}`}
+            data-bracket-round={col.round}
             className="flex flex-1 flex-col"
             style={{ minWidth: 190, scrollSnapAlign: "start" }}
           >
@@ -77,7 +81,7 @@ function MatchCard({
       : null;
 
   return (
-    <div className="relative">
+    <div className="relative" data-bracket-match>
       <div className="panel px-2.5 py-1.5">
         <Side
           name={m.a}

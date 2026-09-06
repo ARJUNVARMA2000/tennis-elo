@@ -132,12 +132,27 @@ export type BracketColumn = {
   finals: boolean;
 };
 
+/** Only confirmed winners retire a round, including auto-advanced byes. Keep the final
+    after completion, and never let one advanced section hide another's unfinished match. */
+export function currentRoundIndex(rounds: BracketRound[]): number {
+  const firstPending = rounds.findIndex((round) => !round.matches.length
+    || round.matches.some((match) => match.winner !== "a" && match.winner !== "b"));
+  return firstPending < 0 ? Math.max(0, rounds.length - 1) : firstPending;
+}
+
+export function visibleBracketSize(ev: BracketEvent, startRound = 0): number {
+  return ev.bracketSize / (2 ** startRound);
+}
+
 /** Columns for one section: the section's slice of each leading round. */
-export function sectionColumns(ev: BracketEvent, section: number): BracketColumn[] {
-  const secRounds = sectionRoundCount(ev.bracketSize, ev.rounds.length);
+export function sectionColumns(ev: BracketEvent, section: number, startRound = 0): BracketColumn[] {
+  const size = visibleBracketSize(ev, startRound);
+  const secRounds = sectionRoundCount(size, ev.rounds.length - startRound);
+  const visibleSection = Math.max(0, Math.min(section, sectionCount(size) - 1));
   const cols: BracketColumn[] = [];
-  for (let r = 0; r < secRounds && r < ev.rounds.length; r++) {
-    const { start, count } = sectionMatchRange(section, r);
+  for (let depth = 0; depth < secRounds; depth++) {
+    const r = startRound + depth;
+    const { start, count } = sectionMatchRange(visibleSection, depth);
     const matches = ev.rounds[r].matches
       .slice(start, start + count)
       .map((m, i) => ({ m, idx: start + i }));
@@ -148,11 +163,12 @@ export function sectionColumns(ev: BracketEvent, section: number): BracketColumn
 
 /** The shared closing rounds (QF/SF/F for a slam) — empty when the whole draw already
     fits in one section. */
-export function finalsColumns(ev: BracketEvent): BracketColumn[] {
-  if (sectionCount(ev.bracketSize) <= 1) return [];
-  const secRounds = sectionRoundCount(ev.bracketSize, ev.rounds.length);
+export function finalsColumns(ev: BracketEvent, startRound = 0): BracketColumn[] {
+  const size = visibleBracketSize(ev, startRound);
+  if (sectionCount(size) <= 1) return [];
+  const secRounds = sectionRoundCount(size, ev.rounds.length - startRound);
   const cols: BracketColumn[] = [];
-  for (let r = secRounds; r < ev.rounds.length; r++) {
+  for (let r = startRound + secRounds; r < ev.rounds.length; r++) {
     cols.push({
       round: ev.rounds[r].round,
       roundIndex: r,
