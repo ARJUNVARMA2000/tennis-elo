@@ -23,3 +23,6 @@ web/.verify/
 next-env.d.ts
 
 .DS_Store
+
+# Private local research snapshots, isolated worktrees, runtimes and run logs.
+.research/

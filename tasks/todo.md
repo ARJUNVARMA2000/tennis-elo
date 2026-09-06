@@ -6179,3 +6179,94 @@ remote updates before pushing, and carry the request through verification of the
   production WTA bracket tab available. The latest pre-deployment data had independently
   recovered the missing WTA results already, so deployment proof used the new release identity
   and live UI contract in addition to the restored results.
+
+## 2026-09-06 — Assess model improvement opportunities
+
+The user requested a detailed assessment of whether more data, time or AI-assisted research
+could improve DEUCE. This entry records the assessment and a proposed next round; it does
+not supersede the separate production deployment verification above.
+
+- [x] Inspect the adopted model, research ledger, rejected ideas and prospective evaluator.
+- [x] Check local data coverage, saved paired-effect precision and player-order consistency.
+- [x] Record evidence, priorities and limitations in
+      `tasks/research/2026-09-06-model-improvement-assessment.md`.
+- [ ] Proposed implementation: correct historical information cutoffs and enforce identical
+      forecasts under player exchange; extend regression coverage and the relevant output gate.
+- [ ] Reproduce the corrected incumbent, then select bounded data and uncertainty-model
+      experiments from paired error slices under a frozen evaluation protocol.
+- [ ] Validate promising candidates with the full arbiter, production-state parity and a
+      predeclared future comparison appropriate to the effect size and update policy.
+
+Check-in: the current request is assessment. The staged implementation above is a proposal
+for review before code changes under the project's planning convention.
+
+### Review
+
+At `e170298`, both validated saved predictors give different implied probabilities when the
+same hypothetical matchup is reversed: 435 pairs per tour among the first 30 exported live
+ranks show mean discrepancies of 0.973 percentage points ATP and 1.466 WTA. Source review
+also identified current career-style profiles and full-frame serve priors in historical
+features; their effect on model scores remains unmeasured. Local data coverage and the
+saved WTA threshold-32 comparison informed the proposal. No candidate was trained or
+adopted, no production artifact was rewritten, and no deployment was initiated.
+
+## 2026-09-06 — Detailed model research plan and new-session handoff
+
+The user requested a detailed staged plan identifying dependencies, parallel work and
+the exact completed research and remaining implementation. The authoritative handoff is
+`tasks/research/2026-09-06-model-research-plan.md`, supported by the assessment and
+`tasks/research/2026-09-06-model-assessment-evidence.json`.
+
+- [x] Reconcile current code/history and separate verified findings from hypotheses.
+- [x] Record artifact identities, diagnostic recipes and limits of the available evidence.
+- [x] Define phases, shared interfaces, owners, parallel lanes, acceptance tests and budgets.
+- [x] Document the WTA dual-state baseline, research/prospective protocol limits and resume steps.
+- [ ] Phase 0: after implementation check-in, preserve inputs, isolate work and agree contracts.
+- [ ] Phase 1A: enforce player-exchange consistency across all prediction paths and gate it.
+- [ ] Phase 1B: chronological style/serve state, serialization parity and bounded timing audit.
+- [ ] Phase 1C: independent match/stat coverage census and prioritized acquisition proposal.
+- [ ] Phase 1D: outcome-independent evaluation, uncertainty reporting and cache/experiment identity.
+- [ ] Phase 2: sequential integration, complete regression verification and evaluator freeze.
+- [ ] Phase 3: reproduce the corrected ATP and dual-state WTA incumbents; inspect paired errors.
+- [ ] Phase 4A: acquire/freeze one justified data candidate in staging.
+- [ ] Phase 4B: build a bounded uncertainty-model prototype with prediction-state parity.
+- [ ] Phase 5: run data/model full A/B experiments sequentially and record every verdict.
+- [ ] Phase 6: register an appropriate future comparison and activate collection when ready.
+- [ ] Phase 7: review any adoption, rebuild through both gates and verify an authorized release.
+
+Check-in: this task creates the plan. Implementation is not started. Phases 1A/1B/1C may
+use separate workers after phase 0; the coordinator owns 1D, shared contracts and merges.
+Data acquisition and model coding may overlap in isolated roots. Different numerical
+hypothesis searches and Tier-2 arbiters remain sequential under `PROGRAM.md`.
+
+### Review
+
+Rechecked Git at `f4a221b`; its change from the assessed `e170298` is deployment
+documentation only. The plan reconciles that completed deployment, records the exact
+saved predictor IDs and hashes, distinguishes source-level look-ahead findings from
+unmeasured predictive effects, and includes acceptance criteria and session-end records.
+The next implementation action is phase 0, not another unrestricted tuning sweep.
+Only planning/evidence documentation changed; no model, evaluator, source acquisition,
+scheduled collector or deployment was changed by this task.
+
+## 2026-09-06 — Phase 0: preserve and prepare the model research baseline
+
+The user explicitly authorized Phase 0. Complete the preparation checkpoint and its
+interface decisions; do not begin the Phase 1 fixes or a candidate search in this task.
+Preparation clock recorded at 2026-09-06T21:33:48Z; code baseline is `f4a221b`, with
+the same model implementation as the assessment at `e170298`.
+
+- [x] Reconcile status/history, review the handoff and relevant research lessons, and check disk.
+- [ ] Commit the research plan/evidence and preparation log without unrelated changes.
+- [ ] Create isolated coordinator and allocated worker worktrees with independent data/runtime roots.
+- [ ] Preserve and hash inputs, normalized identities, source/config/dependency information,
+      predictor artifacts, selected player lists and archived A/B evidence in a private snapshot.
+- [ ] Reproduce the saved exchange diagnostic and WTA paired delta through the supported loader.
+- [ ] Run the incumbent Python suite and Ruff in the isolated environment; record actual timings.
+- [ ] Save decisions for shared probability, temporal style state, serve priors, evaluation
+      orientation and versioned cache/receipt contracts; assign shared-file ownership.
+- [ ] Verify snapshot/workspace isolation, reconcile Git and commit the Phase 0 review and handoff.
+
+Check-in: Phase 0 is authorized by the current request. Private snapshots and worktrees
+will live under the ignored project `.research/` directory. No source downloads,
+dependency upgrades, new model fits, collector activation or deployment are planned.
