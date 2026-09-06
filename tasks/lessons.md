@@ -338,3 +338,6 @@ New lesson → append the entry to the matching topic file and add its lead line
   inspectable. See [`lessons/web.md`](lessons/web.md).
 - A shared tour UI needs verification against both tours' current accepted data. See
   [`lessons/web.md`](lessons/web.md).
+
+- An identity mismatch can erase a result chain while derived counters agree; use scheduled
+  pairings as an independent witness. See [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md).

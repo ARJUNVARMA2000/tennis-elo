@@ -1,5 +1,19 @@
-// Behavioral coverage for the fixture's R16 draw; run on both desktop and mobile in CI.
+import { BROWSER_SMOKE_PLAYER_NAMES } from "./browser-smoke-fixture.mjs";
+
+// Exercise both tours on each viewport; shared UI alone does not prove tour-specific data.
 export async function checkBracketProgress(page) {
+  for (const tour of ["atp", "wta"]) {
+    await page.getByRole("button", { name: new RegExp(`^${tour}$`, "i") }).click();
+    await page.getByRole("button", { name: "Actual draw", exact: true }).click();
+    await page.waitForFunction(({ tour, player }) => (
+      new URL(location.href).searchParams.get("tour") === (tour === "wta" ? "wta" : null)
+      && document.querySelector("[data-bracket-tree]")?.textContent.includes(player)
+    ), { tour, player: BROWSER_SMOKE_PLAYER_NAMES[tour][0] });
+    await checkTourProgress(page);
+  }
+}
+
+async function checkTourProgress(page) {
   const tree = page.locator("[data-bracket-tree]");
   await tree.waitFor({ state: "visible" });
   const rounds = async () => tree.locator("[data-bracket-round]").evaluateAll((cols) => cols.map((col) => col.dataset.bracketRound));

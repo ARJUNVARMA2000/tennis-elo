@@ -425,3 +425,14 @@ Indexed in [`../lessons.md`](../lessons.md).
   ID-attached live event, forward-fold every candidate result into the authoritative draw, retain
   only exact player-pair joins, canonicalize the round from ordered-draw geometry, and hand a
   zero-join event back to the pre-start projection path.
+
+- **A missing identity join can erase a whole result chain while derived counters still agree.**
+  (2026-09-06, US Open WTA) Source preference kept Bartunkova's win over the extended Sherif
+  spelling. The official draw used the short name, so the forward fold lost that win, her win
+  over Maria, and her loss to Andreeva. The recursively filtered tournament count still matched
+  the damaged bracket. The independently exported schedule already knew Andreeva–Potapova in
+  R16. **How to apply:** canonicalize only identity variants corroborated by provider IDs and
+  match evidence, advance the population version when duplicates collapse, rebuild saved
+  player state, and gate scheduled pairings against the same event's draw occupants and rounds.
+  Exempt qualifying, unseated entrants, absent draws and completed-event stale schedules.
+  Verify each tour with current generated artifacts, including the formerly missing chain.

@@ -6075,3 +6075,61 @@ No result or winner has been inferred or patched into the accepted preview data.
 Follow-up: reproduce and repair the WTA result/name reconciliation at the producer, add the
 appropriate cross-artifact gate regression, regenerate a consistent accepted release, and verify
 both real tours' default progression before reporting the WTA outcome complete.
+
+## 2026-09-06 — Repair WTA progression and verify the complete bracket change
+
+Implementation authorized by the user's “Implement and double check everything.” Local source
+records tie both Mayar Sherif spellings to WTA player ID 318711; the accepted WTA draw loses the
+Bartunkova result chain while its schedule already includes Andreeva–Potapova in R16.
+
+- [x] Reproduce the result-chain failure and canonicalize the proven Sherif identity variants.
+- [x] Add an independent pre-upload invariant for a same-event scheduled matchup missing from
+      the draw, with regression coverage and valid-state exemptions.
+- [x] Regenerate current outputs through the supported pipeline and integrity gates; refresh the
+      local preview from the verified artifacts.
+- [x] Verify both real tours, full/remaining draw, forecast meanings and candidate disclosure;
+      run automated browser checks and the relevant Python/web validation.
+- [x] Record the correction lesson, reconcile history, and commit the reviewed local changes.
+
+Check-in: retain the earliest-unfinished-round rule. Repair its source evidence rather than
+skipping the unresolved WTA match. Keep historical draw access and the forecast disclosures.
+
+### Review
+
+- Corrected both extended Sherif spellings using first-party WTA ID 318711 and the existing
+  match-evidence falsifier. The regression first failed on the original source and then passed:
+  all 112 opening-through-R32 results survive canonicalization and the authoritative draw join.
+  Population version advances from 5 to 6 because deduplication changes match counts; its
+  fingerprint contract and the same-version historical drop replay advance together.
+- Added `output.bracket.scheduled_match_missing` to the pre-upload gate. It compares independent
+  scheduled pairings with the same stable event ID, round and canonical draw occupants. The old
+  accepted snapshot produces exactly the missing Andreeva–Potapova finding; ATP stays clean.
+  Tests cover the repaired pairing, reverse orientation, explicit aliases, completed matches,
+  completed events, absent draws, qualifying, placeholders and unseated entrants.
+- Refreshed current WTA stats and both tours' live sources through their normal downloaders.
+  The normal all-tour refresh rejected the incompatible saved predictors and rebuilt both.
+  The sealed release is a6754b1c-beb8-412f-af82-20bd0080a021 with 453 exact artifacts. The
+  semantic integrity gate passed, then the supported publisher accepted and mirrored the release.
+  Health generated at 2026-09-06T16:45:14Z reports zero output problems for both tours; benchmark
+  acquisition/missing-scorecard notes remain informational. No integrity check was bypassed.
+- Both regenerated US Open draws now have all 64 R128, 32 R64 and 16 R32 matches resolved.
+  The restored WTA chain is Bartunkova–Sherif 6-1 6-2, Bartunkova–Maria 6-7(5) 6-2 6-3, and
+  Andreeva–Bartunkova 6-2 7-6(5), feeding Andreeva–Potapova into R16. Forecast artifacts agree
+  on the confirmed-round boundary.
+- Validation: all 1,198 Python tests and 352 web tests passed; Ruff, TypeScript and the production
+  build passed. Web lint has zero errors and the same nine pre-existing warnings. The full
+  automated browser smoke passed 10/10 route/viewport checks. Extended the bracket smoke to
+  explicitly exercise ATP and WTA independently; the focused desktop/mobile rerun passed.
+- Rechecked the new accepted data in the connected browser for both tours: four remaining
+  columns and 15 cards, all eight historical sections, section 8 -> remaining recovery, WTA's
+  restored scores in section 5, forecast labels and minimap, six SF outsiders, thirteen title
+  outsiders, keyboard collapse, and scenario selection/reset on the formerly missing WTA pair.
+  At 390px the document stays within the viewport; at 1280px all four columns fit. Reset the
+  temporary viewport and left the user's tab on WTA actual draw, R16 onward.
+- The local serving verifier confirmed all 453 artifact hashes, 419 shard references, release
+  identity, freshness, coverage and the new bracket contract. Its complete production run was
+  16/22: six hosting checks intentionally require Firebase behavior/production-origin URLs that
+  the minimal local static server does not provide. This is not a production deployment check.
+- Git history was reconciled at f282172/f873e5d before this review. Retained the pipeline's new
+  append-only forecast and comparison observations and refreshed benchmark ledger separately
+  from the implementation. Changes and review are saved locally; no push/deploy was performed.
