@@ -6221,7 +6221,7 @@ the exact completed research and remaining implementation. The authoritative han
 - [x] Record artifact identities, diagnostic recipes and limits of the available evidence.
 - [x] Define phases, shared interfaces, owners, parallel lanes, acceptance tests and budgets.
 - [x] Document the WTA dual-state baseline, research/prospective protocol limits and resume steps.
-- [ ] Phase 0: after implementation check-in, preserve inputs, isolate work and agree contracts.
+- [x] Phase 0: after implementation check-in, preserve inputs, isolate work and agree contracts.
 - [ ] Phase 1A: enforce player-exchange consistency across all prediction paths and gate it.
 - [ ] Phase 1B: chronological style/serve state, serialization parity and bounded timing audit.
 - [ ] Phase 1C: independent match/stat coverage census and prioritized acquisition proposal.
@@ -6257,16 +6257,40 @@ Preparation clock recorded at 2026-09-06T21:33:48Z; code baseline is `f4a221b`, 
 the same model implementation as the assessment at `e170298`.
 
 - [x] Reconcile status/history, review the handoff and relevant research lessons, and check disk.
-- [ ] Commit the research plan/evidence and preparation log without unrelated changes.
-- [ ] Create isolated coordinator and allocated worker worktrees with independent data/runtime roots.
-- [ ] Preserve and hash inputs, normalized identities, source/config/dependency information,
+- [x] Commit the research plan/evidence and preparation log without unrelated changes.
+- [x] Create isolated coordinator and allocated worker worktrees with independent data/runtime roots.
+- [x] Preserve and hash inputs, normalized identities, source/config/dependency information,
       predictor artifacts, selected player lists and archived A/B evidence in a private snapshot.
-- [ ] Reproduce the saved exchange diagnostic and WTA paired delta through the supported loader.
-- [ ] Run the incumbent Python suite and Ruff in the isolated environment; record actual timings.
-- [ ] Save decisions for shared probability, temporal style state, serve priors, evaluation
+- [x] Reproduce the saved exchange diagnostic and WTA paired delta through the supported loader.
+- [x] Run the incumbent Python suite and Ruff in the isolated environment; record actual timings.
+- [x] Save decisions for shared probability, temporal style state, serve priors, evaluation
       orientation and versioned cache/receipt contracts; assign shared-file ownership.
-- [ ] Verify snapshot/workspace isolation, reconcile Git and commit the Phase 0 review and handoff.
+- [x] Verify snapshot/workspace isolation, reconcile Git and commit the Phase 0 review and handoff.
 
 Check-in: Phase 0 is authorized by the current request. Private snapshots and worktrees
 will live under the ignored project `.research/` directory. No source downloads,
 dependency upgrades, new model fits, collector activation or deployment are planned.
+
+### Review
+
+Phase 0 completed; see `tasks/research/2026-09-06-phase0-review.md`, its linked interface
+decisions and machine-readable results. The preserved source base is `f4a221b`; plan
+commit `d95afc6` seeded four isolated coordinator/A/B/C worktrees. The read-only private
+snapshot under `.research/2026-09-06-model-foundation/snapshot/` preserves 18,791 data
+files and the existing compatible runtime, with manifest SHA-256
+`8636748e1012a1fa1f5a31ea0cdd52f414acfaa78ca5123931e24d1c86473cb9`.
+
+Baseline verification: 1,198 Python tests passed (64.68 s), Ruff passed, and both saved
+predictors loaded through strict checks in all four worktrees. The 435-pair exchange
+probes and archived WTA paired delta reproduced the assessment. Normalized replays
+reconstructed ATP main/enriched 153,480/284,893 rows and WTA 128,978/146,078; enriched
+frame-value hashes exactly match the snapshot. The copied main caches contained one
+row each and were rejected normally rather than treated as the main population.
+
+All worktree raw data and model outputs are unchanged, every data file has a distinct
+inode across the original/snapshot/four worktrees, and the original project data is
+unchanged. Test-modified coordinator caches were recorded and restored; diagnostic A
+retains only its four normal-loader cache reconstructions. Five shared contracts and
+the file-owner map are saved. Preparation changes only docs and the private ignore rule;
+Phase 1 repairs, evaluator maintenance, data acquisition and candidate searches have
+not started. No push or deployment occurred.

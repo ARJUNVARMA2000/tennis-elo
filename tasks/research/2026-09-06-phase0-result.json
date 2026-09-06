@@ -1,0 +1,690 @@
+{
+  "schema": "deuce-phase0-result-v1",
+  "status": "complete",
+  "preparationStartedAt": "2026-09-06T21:33:48Z",
+  "recordedAt": "2026-09-06T21:45:39.822507+00:00",
+  "scope": "Phase 0 preservation, isolation, baseline checks and interface decisions only",
+  "sourceBaseline": "f4a221b08317e796165031202a55a2807a01b056",
+  "modelCodeBaseline": "e1702985bd2849905c9a4ea40c05243eca312dc7",
+  "snapshotSourceCommit": "d95afc6f7013b7410e5c29bf824ce4646183d782",
+  "rootBranch": "codex/model-research-preparation",
+  "privateRunRoot": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation",
+  "finalGitReceipt": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/runs/git-handoff.json",
+  "snapshot": {
+    "path": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/snapshot",
+    "manifestSha256": "8636748e1012a1fa1f5a31ea0cdd52f414acfaa78ca5123931e24d1c86473cb9",
+    "manifestEntries": 25826,
+    "dataFiles": 18791,
+    "dataBytes": 740260277,
+    "sourceArchiveSha256": "39ef9f41b60221f26afe39d55d773b96fac6ae77c8bd7ac0918b52fd21d524a5",
+    "verification": {
+      "manifestSha256": "8636748e1012a1fa1f5a31ea0cdd52f414acfaa78ca5123931e24d1c86473cb9",
+      "originalProjectDataUnchanged": true,
+      "snapshotFiles": 25826,
+      "snapshotUnchanged": true,
+      "verifiedAt": "2026-09-06T21:45:21.981845+00:00"
+    }
+  },
+  "runtime": {
+    "basePrefix": "/Users/varma/.local/share/uv/python/cpython-3.13.14-macos-aarch64-none",
+    "distributions": [
+      {
+        "name": "et_xmlfile",
+        "version": "2.0.0"
+      },
+      {
+        "name": "iniconfig",
+        "version": "2.3.0"
+      },
+      {
+        "name": "joblib",
+        "version": "1.5.3"
+      },
+      {
+        "name": "mwparserfromhell",
+        "version": "0.7.2"
+      },
+      {
+        "name": "narwhals",
+        "version": "2.24.0"
+      },
+      {
+        "name": "numpy",
+        "version": "2.5.0"
+      },
+      {
+        "name": "openpyxl",
+        "version": "3.1.5"
+      },
+      {
+        "name": "packaging",
+        "version": "26.2"
+      },
+      {
+        "name": "pandas",
+        "version": "3.0.3"
+      },
+      {
+        "name": "pluggy",
+        "version": "1.6.0"
+      },
+      {
+        "name": "pypdf",
+        "version": "6.14.2"
+      },
+      {
+        "name": "pytest",
+        "version": "8.3.3"
+      },
+      {
+        "name": "python-dateutil",
+        "version": "2.9.0.post0"
+      },
+      {
+        "name": "scikit-learn",
+        "version": "1.9.0"
+      },
+      {
+        "name": "scipy",
+        "version": "1.18.0"
+      },
+      {
+        "name": "six",
+        "version": "1.17.0"
+      },
+      {
+        "name": "threadpoolctl",
+        "version": "3.6.0"
+      },
+      {
+        "name": "xgboost",
+        "version": "3.3.0"
+      },
+      {
+        "name": "xlrd",
+        "version": "2.0.2"
+      }
+    ],
+    "executableSha256": "091704d2238fa5d3d95299894a24d02fa0cf0f874d7b1cd019f9a19b767628ab",
+    "note": "Copied site-packages per worktree; Python base runtime remains the existing uv-managed interpreter. No installs/upgrades.",
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "python": "3.13.14",
+    "resolvedExecutable": "/Users/varma/.local/share/uv/python/cpython-3.13.14-macos-aarch64-none/bin/python3.13",
+    "ruffSha256": "e6512060302354ed011db8aa17257c6aad9e2afbf4d50f711f24de800b4f7705",
+    "ruffVersion": "ruff 0.15.21",
+    "sourceExecutable": "/Users/varma/Projects/DEUCE/tennis_model/.venv/bin/python",
+    "uvVersion": "uv 0.11.28 (Homebrew 2026-07-07 aarch64-apple-darwin)"
+  },
+  "workspaces": [
+    {
+      "data": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/coordinator/tennis_model/data",
+      "inventoryVerified": true,
+      "lane": "coordinator",
+      "logs": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/coordinator/.research/phase0/logs",
+      "python": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/coordinator/tennis_model/.venv/bin/python",
+      "root": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/coordinator",
+      "ruff": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/coordinator/.research/phase0/bin/ruff",
+      "scratch": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/coordinator/.research/phase0/scratch",
+      "branch": "codex/model-foundation",
+      "runtimeProbe": {
+        "checkedAt": "2026-09-06T21:42:12.001001+00:00",
+        "lane": "coordinator",
+        "root": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/coordinator",
+        "modelDir": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/coordinator/tennis_model",
+        "prefix": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/coordinator/tennis_model/.venv",
+        "basePrefix": "/Users/varma/.local/share/uv/python/cpython-3.13.14-macos-aarch64-none",
+        "python": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/coordinator/tennis_model/.venv/bin/python",
+        "uvCache": "/private/tmp/deuce-research-coordinator-uv",
+        "packagePaths": {
+          "numpy": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/coordinator/tennis_model/.venv/lib/python3.13/site-packages/numpy/__init__.py",
+          "pandas": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/coordinator/tennis_model/.venv/lib/python3.13/site-packages/pandas/__init__.py",
+          "sklearn": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/coordinator/tennis_model/.venv/lib/python3.13/site-packages/sklearn/__init__.py",
+          "xgboost": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/coordinator/tennis_model/.venv/lib/python3.13/site-packages/xgboost/__init__.py"
+        },
+        "versions": {
+          "pandas": "3.0.3",
+          "numpy": "2.5.0",
+          "scikit-learn": "1.9.0",
+          "xgboost": "3.3.0",
+          "pytest": "8.3.3"
+        },
+        "strictLoadedArtifacts": {
+          "atp": "6698386b-2d0c-41b3-b7d8-95a72e43c1df",
+          "wta": "c28905e5-36d9-455f-b5a5-f1618372e04d"
+        },
+        "status": "passed"
+      }
+    },
+    {
+      "data": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/a/tennis_model/data",
+      "inventoryVerified": true,
+      "lane": "a",
+      "logs": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/a/.research/phase0/logs",
+      "python": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/a/tennis_model/.venv/bin/python",
+      "root": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/a",
+      "ruff": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/a/.research/phase0/bin/ruff",
+      "scratch": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/a/.research/phase0/scratch",
+      "branch": "codex/model-foundation-a",
+      "runtimeProbe": {
+        "checkedAt": "2026-09-06T21:42:11.849642+00:00",
+        "lane": "a",
+        "root": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/a",
+        "modelDir": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/a/tennis_model",
+        "prefix": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/a/tennis_model/.venv",
+        "basePrefix": "/Users/varma/.local/share/uv/python/cpython-3.13.14-macos-aarch64-none",
+        "python": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/a/tennis_model/.venv/bin/python",
+        "uvCache": "/private/tmp/deuce-research-a-uv",
+        "packagePaths": {
+          "numpy": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/a/tennis_model/.venv/lib/python3.13/site-packages/numpy/__init__.py",
+          "pandas": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/a/tennis_model/.venv/lib/python3.13/site-packages/pandas/__init__.py",
+          "sklearn": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/a/tennis_model/.venv/lib/python3.13/site-packages/sklearn/__init__.py",
+          "xgboost": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/a/tennis_model/.venv/lib/python3.13/site-packages/xgboost/__init__.py"
+        },
+        "versions": {
+          "pandas": "3.0.3",
+          "numpy": "2.5.0",
+          "scikit-learn": "1.9.0",
+          "xgboost": "3.3.0",
+          "pytest": "8.3.3"
+        },
+        "strictLoadedArtifacts": {
+          "atp": "6698386b-2d0c-41b3-b7d8-95a72e43c1df",
+          "wta": "c28905e5-36d9-455f-b5a5-f1618372e04d"
+        },
+        "status": "passed"
+      }
+    },
+    {
+      "data": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/b/tennis_model/data",
+      "inventoryVerified": true,
+      "lane": "b",
+      "logs": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/b/.research/phase0/logs",
+      "python": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/b/tennis_model/.venv/bin/python",
+      "root": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/b",
+      "ruff": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/b/.research/phase0/bin/ruff",
+      "scratch": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/b/.research/phase0/scratch",
+      "branch": "codex/model-foundation-b",
+      "runtimeProbe": {
+        "checkedAt": "2026-09-06T21:42:45.031042+00:00",
+        "lane": "b",
+        "root": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/b",
+        "modelDir": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/b/tennis_model",
+        "prefix": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/b/tennis_model/.venv",
+        "basePrefix": "/Users/varma/.local/share/uv/python/cpython-3.13.14-macos-aarch64-none",
+        "python": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/b/tennis_model/.venv/bin/python",
+        "uvCache": "/private/tmp/deuce-research-b-uv",
+        "packagePaths": {
+          "numpy": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/b/tennis_model/.venv/lib/python3.13/site-packages/numpy/__init__.py",
+          "pandas": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/b/tennis_model/.venv/lib/python3.13/site-packages/pandas/__init__.py",
+          "sklearn": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/b/tennis_model/.venv/lib/python3.13/site-packages/sklearn/__init__.py",
+          "xgboost": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/b/tennis_model/.venv/lib/python3.13/site-packages/xgboost/__init__.py"
+        },
+        "versions": {
+          "pandas": "3.0.3",
+          "numpy": "2.5.0",
+          "scikit-learn": "1.9.0",
+          "xgboost": "3.3.0",
+          "pytest": "8.3.3"
+        },
+        "strictLoadedArtifacts": {
+          "atp": "6698386b-2d0c-41b3-b7d8-95a72e43c1df",
+          "wta": "c28905e5-36d9-455f-b5a5-f1618372e04d"
+        },
+        "status": "passed"
+      }
+    },
+    {
+      "data": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/c/tennis_model/data",
+      "inventoryVerified": true,
+      "lane": "c",
+      "logs": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/c/.research/phase0/logs",
+      "python": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/c/tennis_model/.venv/bin/python",
+      "root": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/c",
+      "ruff": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/c/.research/phase0/bin/ruff",
+      "scratch": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/c/.research/phase0/scratch",
+      "branch": "codex/model-foundation-c",
+      "runtimeProbe": {
+        "checkedAt": "2026-09-06T21:42:44.940498+00:00",
+        "lane": "c",
+        "root": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/c",
+        "modelDir": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/c/tennis_model",
+        "prefix": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/c/tennis_model/.venv",
+        "basePrefix": "/Users/varma/.local/share/uv/python/cpython-3.13.14-macos-aarch64-none",
+        "python": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/c/tennis_model/.venv/bin/python",
+        "uvCache": "/private/tmp/deuce-research-c-uv",
+        "packagePaths": {
+          "numpy": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/c/tennis_model/.venv/lib/python3.13/site-packages/numpy/__init__.py",
+          "pandas": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/c/tennis_model/.venv/lib/python3.13/site-packages/pandas/__init__.py",
+          "sklearn": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/c/tennis_model/.venv/lib/python3.13/site-packages/sklearn/__init__.py",
+          "xgboost": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/c/tennis_model/.venv/lib/python3.13/site-packages/xgboost/__init__.py"
+        },
+        "versions": {
+          "pandas": "3.0.3",
+          "numpy": "2.5.0",
+          "scikit-learn": "1.9.0",
+          "xgboost": "3.3.0",
+          "pytest": "8.3.3"
+        },
+        "strictLoadedArtifacts": {
+          "atp": "6698386b-2d0c-41b3-b7d8-95a72e43c1df",
+          "wta": "c28905e5-36d9-455f-b5a5-f1618372e04d"
+        },
+        "status": "passed"
+      }
+    }
+  ],
+  "tests": {
+    "pytest": {
+      "startedAt": "2026-09-06T21:37:40.542080+00:00",
+      "endedAt": "2026-09-06T21:38:45.910855+00:00",
+      "elapsedSeconds": 65.36875525000505,
+      "exitCode": 0,
+      "cwd": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/coordinator/tennis_model",
+      "python": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/coordinator/tennis_model/.venv/bin/python",
+      "command": "python -m pytest -q",
+      "passed": 1198,
+      "reportedSeconds": 64.68
+    },
+    "ruff": {
+      "startedAt": "2026-09-06T21:37:40.539862+00:00",
+      "elapsedSeconds": 0.46690487500745803,
+      "exitCode": 0,
+      "executable": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/coordinator/.research/phase0/bin/ruff",
+      "cwd": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/coordinator/tennis_model",
+      "command": "ruff check ."
+    }
+  },
+  "diagnosticRun": {
+    "startedAt": "2026-09-06T21:38:28.096237+00:00",
+    "endedAt": "2026-09-06T21:41:48.758055+00:00",
+    "elapsedSeconds": 200.66177262499696,
+    "sourceRoot": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/a/tennis_model",
+    "python": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/a/tennis_model/.venv/bin/python",
+    "snapshotManifestSha256": "8636748e1012a1fa1f5a31ea0cdd52f414acfaa78ca5123931e24d1c86473cb9",
+    "status": "passed",
+    "codeChanges": false,
+    "downloads": false,
+    "candidateFits": false
+  },
+  "exchange": {
+    "atp": {
+      "n": 435,
+      "meanPp": 0.9731999429446007,
+      "p95Pp": 2.3420779110602137,
+      "maxPp": 4.682525020104588,
+      "artifactId": "6698386b-2d0c-41b3-b7d8-95a72e43c1df",
+      "pairsSha256": "0b06a264d3f585b1b25dd02ac1bc5b33639fbc2a2aa7bc5504b620e8fa12cf00"
+    },
+    "wta": {
+      "n": 435,
+      "meanPp": 1.4659396940550224,
+      "p95Pp": 3.677770736918533,
+      "maxPp": 6.632095007517402,
+      "artifactId": "c28905e5-36d9-455f-b5a5-f1618372e04d",
+      "pairsSha256": "fea1b6f474b3dd7f309d9e30b4923dd688caed3f966ba2880d2c578487b817b8"
+    }
+  },
+  "archivedWta": {
+    "n": 15247,
+    "deltaLogloss": 0.000982254589040282,
+    "se": 0.0006594380819309958,
+    "sd": 0.08142658551564082,
+    "lastDate": "2026-08-17 00:00:00",
+    "pairKeyColumns": [
+      "date",
+      "winner_name",
+      "loser_name",
+      "tourney_id",
+      "round",
+      "round_order",
+      "match_num",
+      "source_match_id",
+      "draw_level"
+    ]
+  },
+  "normalized": {
+    "atp-main": {
+      "rows": 153480,
+      "fingerprint": "nm1:55e839998c5208cfe88d50b723036645ece40a3a8f74026900aa0cedce11e320",
+      "frameValueHash": "4ab076e5e9aa11281d408954a8659e5dd22d399a2d3d2e67b96e9b274ddd729a",
+      "keySha256": "928c3d2f2f388572941dcb5c821e6613c84bb11526c75dd6e633f745c1fa9a96",
+      "duplicateKeyRows": 0,
+      "dateMin": "1979-12-07 00:00:00",
+      "dateMax": "2026-09-05 00:00:00",
+      "roles": {
+        "main": 153480
+      },
+      "warmupBefore1991": {
+        "statsRows": 62,
+        "bySurface": {
+          "Hard": 62
+        }
+      },
+      "completedStatsCoverage": [
+        {
+          "year": 2023,
+          "n": 2895,
+          "statsPercent": 94.6
+        },
+        {
+          "year": 2024,
+          "n": 3037,
+          "statsPercent": 98.7
+        },
+        {
+          "year": 2025,
+          "n": 2809,
+          "statsPercent": 91.2
+        },
+        {
+          "year": 2026,
+          "n": 2187,
+          "statsPercent": 94.5
+        }
+      ]
+    },
+    "atp-enriched": {
+      "rows": 284893,
+      "fingerprint": "nm1:00e8be6a824234d5ccee3ae29a1988fe9460f6be6495a4950daa51e8d0a41314",
+      "frameValueHash": "ab204c0fca094ec7d5bfa803750e47d3daf011103312885abbddca8b1cd67a66",
+      "keySha256": "d91e33d47337070148f179117febe972dde83355ee3e5440cae515932f93ff5a",
+      "duplicateKeyRows": 0,
+      "dateMin": "1979-12-07 00:00:00",
+      "dateMax": "2026-09-05 00:00:00",
+      "roles": {
+        "main": 153480,
+        "chall": 101902,
+        "qual": 29511
+      },
+      "warmupBefore1991": {
+        "statsRows": 62,
+        "bySurface": {
+          "Hard": 62
+        }
+      }
+    },
+    "wta-main": {
+      "rows": 128978,
+      "fingerprint": "nm1:9cdcb4e6e57b3ec1540d3910659ba6052e0b54048c94f4a157d13d73271a6916",
+      "frameValueHash": "aea27aef3d6c5a512c816e81a2fddc9521db4992bb4fd82782a0a7bd6dc379be",
+      "keySha256": "4584c2eb838c7855f5fc2c78081ffce6690b1f5c540e2c268cc0d9418d95296c",
+      "duplicateKeyRows": 0,
+      "dateMin": "1980-01-01 00:00:00",
+      "dateMax": "2026-09-06 00:00:00",
+      "roles": {
+        "main": 128978
+      },
+      "warmupBefore1991": {
+        "statsRows": 0,
+        "bySurface": {}
+      },
+      "completedStatsCoverage": [
+        {
+          "year": 2023,
+          "n": 2719,
+          "statsPercent": 92.2
+        },
+        {
+          "year": 2024,
+          "n": 2078,
+          "statsPercent": 100.0
+        },
+        {
+          "year": 2025,
+          "n": 2402,
+          "statsPercent": 83.4
+        },
+        {
+          "year": 2026,
+          "n": 1991,
+          "statsPercent": 99.4
+        }
+      ]
+    },
+    "wta-enriched": {
+      "rows": 146078,
+      "fingerprint": "nm1:ff186947acfb8fba3922fa98bea6ec04f26a5e851be32cf76c4dc75b180300ac",
+      "frameValueHash": "8822caed8d0f950496f68abaa16f337075845dc652cd726b40d0618da70b2455",
+      "keySha256": "34beccedb58430aff747dbae7aa0591acf29de79112c21b2bd1cd03e3520336f",
+      "duplicateKeyRows": 0,
+      "dateMin": "1980-01-01 00:00:00",
+      "dateMax": "2026-09-06 00:00:00",
+      "roles": {
+        "main": 128978,
+        "qual": 10466,
+        "chall": 6634
+      },
+      "warmupBefore1991": {
+        "statsRows": 0,
+        "bySurface": {}
+      }
+    }
+  },
+  "isolation": {
+    "allSixRootsHaveDistinctDataInodes": true,
+    "checkedAt": "2026-09-06T21:43:32.606086+00:00",
+    "dataFilesCheckedPerRoot": 18791,
+    "noWorktreeDataSymlinks": true,
+    "normalizedComparison": {
+      "atp-enriched": {
+        "equalFrameValueHash": true,
+        "rebuiltRows": 284893,
+        "savedRows": 284893
+      },
+      "atp-main": {
+        "equalFrameValueHash": false,
+        "rebuiltRows": 153480,
+        "savedRows": 1
+      },
+      "wta-enriched": {
+        "equalFrameValueHash": true,
+        "rebuiltRows": 146078,
+        "savedRows": 146078
+      },
+      "wta-main": {
+        "equalFrameValueHash": false,
+        "rebuiltRows": 128978,
+        "savedRows": 1
+      }
+    },
+    "status": "passed",
+    "workspaces": [
+      {
+        "cacheDifferences": [],
+        "dataFiles": 18791,
+        "lane": "coordinator",
+        "rawAndOutputUnchanged": true
+      },
+      {
+        "cacheDifferences": [
+          {
+            "after": {
+              "bytes": 16601624,
+              "kind": "file",
+              "path": "cache/normalized-matches/atp-enriched.pkl.gz",
+              "sha256": "b73252419266d056edadf9c3ebcbbcdd8b9be71215d14362444a9af3d0caf007"
+            },
+            "before": {
+              "bytes": 16601624,
+              "kind": "file",
+              "path": "cache/normalized-matches/atp-enriched.pkl.gz",
+              "sha256": "a10a5c802b770f9525c3142d386a27a3e8a238779a59abcf2611a892efb0ccbb"
+            },
+            "path": "cache/normalized-matches/atp-enriched.pkl.gz"
+          },
+          {
+            "after": {
+              "bytes": 8660985,
+              "kind": "file",
+              "path": "cache/normalized-matches/atp-main.pkl.gz",
+              "sha256": "e9c7ee038db61dff7c79b99a191473f02fb1a22a83c69f5caa126ed67ff3c690"
+            },
+            "before": {
+              "bytes": 1625,
+              "kind": "file",
+              "path": "cache/normalized-matches/atp-main.pkl.gz",
+              "sha256": "b4e6b6dab4b728400e37794b7540344ff0e38a92c94839490a911a220f118c81"
+            },
+            "path": "cache/normalized-matches/atp-main.pkl.gz"
+          },
+          {
+            "after": {
+              "bytes": 6685428,
+              "kind": "file",
+              "path": "cache/normalized-matches/wta-enriched.pkl.gz",
+              "sha256": "a9c0d81d4ad5b4c135528201b8b62268716a8ceed401997adc6a1a2866b718a6"
+            },
+            "before": {
+              "bytes": 6685217,
+              "kind": "file",
+              "path": "cache/normalized-matches/wta-enriched.pkl.gz",
+              "sha256": "1faf1b02c141f614e97782db903d9d58718c99fce00f63db70064235a8ead6a5"
+            },
+            "path": "cache/normalized-matches/wta-enriched.pkl.gz"
+          },
+          {
+            "after": {
+              "bytes": 5694617,
+              "kind": "file",
+              "path": "cache/normalized-matches/wta-main.pkl.gz",
+              "sha256": "2d6f6103296dc7060a85927d7da1d2655c9b07cf87064518a436f1f747b320ab"
+            },
+            "before": {
+              "bytes": 2012,
+              "kind": "file",
+              "path": "cache/normalized-matches/wta-main.pkl.gz",
+              "sha256": "f6d79cdbbefe1c0d779f33ed514d4ac13b001ad3bf3e56739d14eedbaa0c24c3"
+            },
+            "path": "cache/normalized-matches/wta-main.pkl.gz"
+          }
+        ],
+        "dataFiles": 18791,
+        "lane": "a",
+        "rawAndOutputUnchanged": true
+      },
+      {
+        "cacheDifferences": [],
+        "dataFiles": 18791,
+        "lane": "b",
+        "rawAndOutputUnchanged": true
+      },
+      {
+        "cacheDifferences": [],
+        "dataFiles": 18791,
+        "lane": "c",
+        "rawAndOutputUnchanged": true
+      }
+    ]
+  },
+  "restoredTestCaches": {
+    "restoredAt": "2026-09-06T21:43:20.798330+00:00",
+    "paths": [
+      "cache/normalized-history/atp.pkl",
+      "cache/normalized-history/wta.pkl",
+      "cache/normalized-matches/atp-main.pkl.gz",
+      "cache/normalized-matches/wta-main.pkl.gz"
+    ],
+    "source": "read-only snapshot",
+    "reason": "restore test-modified isolated coordinator caches to preserved starting bytes; normal loader must revalidate them",
+    "status": "passed"
+  },
+  "implementationDecisions": "tasks/research/2026-09-06-phase0-interfaces.md",
+  "codeChanges": false,
+  "dataDownloads": false,
+  "candidateFits": false,
+  "dependencyChanges": false,
+  "pushOrDeploy": false,
+  "phase1Started": false,
+  "evidenceFiles": [
+    {
+      "path": "runs/cache-restore.json",
+      "bytes": 433,
+      "sha256": "f39a527215bc37a0db97ce9a8096766c4c60daf024322f7390b1cac8410f19af"
+    },
+    {
+      "path": "runs/isolation-before-cache-restore.json",
+      "bytes": 5763,
+      "sha256": "31b176931e69c7ccc39210564768ef66298795fcdff655eea0f7f84c67e84b1a"
+    },
+    {
+      "path": "runs/isolation-result.json",
+      "bytes": 3529,
+      "sha256": "2a2eb87e3415755c3067f8b9d5a3c6789c53a575a673d3ef182fbc7171e2dcd4"
+    },
+    {
+      "path": "runs/pytest-result.json",
+      "bytes": 441,
+      "sha256": "d0090d4f463b400f958200d18816d58ebb59d7e604c0dfd5b8a74f6a3f9e0788"
+    },
+    {
+      "path": "runs/ruff-result.json",
+      "bytes": 387,
+      "sha256": "8b999298cde3a02f4a157047bbcacfa89653d34191ff57781508579a967825ec"
+    },
+    {
+      "path": "runs/runtime-a.json",
+      "bytes": 1614,
+      "sha256": "75d908058f44f84de0bb7ddd47b9f394fdb80cefd663b9154ad35220dd08a231"
+    },
+    {
+      "path": "runs/runtime-b.json",
+      "bytes": 1614,
+      "sha256": "7539ada35a44b3eb12e2c0ebd690d40c6feb54818b5323faf579e080d8f6ff7b"
+    },
+    {
+      "path": "runs/runtime-c.json",
+      "bytes": 1614,
+      "sha256": "1fd7062b73c4e1d721cd628ce341058f86471ff9451a1cb8ea1fb4f1591d9fc5"
+    },
+    {
+      "path": "runs/runtime-coordinator.json",
+      "bytes": 1714,
+      "sha256": "72d31d428053c26a44ca7d05a4a66498b0bcf21f6e60b5111165e909694b89bf"
+    },
+    {
+      "path": "runs/diagnostics/archived-wta-effect.json",
+      "bytes": 337,
+      "sha256": "1849cd636a03831be1cf39d07b86f43412d3754207106731d2f8c17cc2661389"
+    },
+    {
+      "path": "runs/diagnostics/exchange-summary.json",
+      "bytes": 548,
+      "sha256": "6401385ae34fa6af2c4e99c33457bcc52be2e3f96abc3494420ed7cf2b65c5e9"
+    },
+    {
+      "path": "runs/diagnostics/fingerprint-checks.json",
+      "bytes": 1392,
+      "sha256": "010f56c3e79d92942fc7e119012856edfe845a91f5c952fabfd15862a3065547"
+    },
+    {
+      "path": "runs/diagnostics/normalized-reproduction.json",
+      "bytes": 3040,
+      "sha256": "7f1952bbc93450ccb915cce7d2e7bc60afc66cff5e8f9d23cc58cdec3a7a5837"
+    },
+    {
+      "path": "runs/diagnostics/run-result.json",
+      "bytes": 566,
+      "sha256": "126ed276e95cdd2111aed4fb62fe92dee91a65332970ceb1e135585998f22837"
+    },
+    {
+      "path": "tools/check-isolation.py",
+      "bytes": 2177,
+      "sha256": "3300a16446ba8d0367ff38da969523af8de112511084494baeeb9691898de63b"
+    },
+    {
+      "path": "tools/check-runtime.py",
+      "bytes": 1442,
+      "sha256": "225d3f31b413132c418569753fb408281ea230a5faa0b15a7207eb3b1a39df8b"
+    },
+    {
+      "path": "tools/prepare.py",
+      "bytes": 11151,
+      "sha256": "5d7738d4c1f59129865b271b05d1fc19ba06efdc7dda4708cdb837733864537a"
+    },
+    {
+      "path": "tools/reproduce.py",
+      "bytes": 5743,
+      "sha256": "aecbe50faa370ddbea06e19f2864ce58db61d6ba3ddc1a06f7633a948ea38b1a"
+    }
+  ]
+}

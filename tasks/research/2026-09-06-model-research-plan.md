@@ -1,6 +1,11 @@
 # DEUCE model improvement — implementation and research handoff
 
-Status: **Phase 0 authorized and in progress. Phases 1–7 have not started.**
+Status: **Phase 0 complete. Phases 1–7 have not started.**
+
+Resume from the [Phase 0 review](2026-09-06-phase0-review.md),
+[fixed interface decisions](2026-09-06-phase0-interfaces.md), and
+[result summary](2026-09-06-phase0-result.json). The review records the prepared
+worktrees, snapshot identity, reproduced measurements and exact next steps.
 
 Authorization update: the user requested “start with phase 0.” Preparation, evidence
 preservation, isolated workspaces, baseline checks and interface decisions are in scope.
@@ -152,24 +157,24 @@ Dependencies: user check-in authorizing the implementation scope. Planning is co
 when this document is reviewed; ordinary implementation choices inside the authorized
 scope do not require repeated permission requests.
 
-- [ ] Re-read Git status/history and the latest task-log tail. Preserve independent edits.
-- [ ] Save the plan, assessment, evidence and relevant task-log entries in version control
+- [x] Re-read Git status/history and the latest task-log tail. Preserve independent edits.
+- [x] Save the plan, assessment, evidence and relevant task-log entries in version control
       before creating worktrees from commits. Stage only the intended documentation;
       do not sweep in unrelated pending changes. These documents were initially local.
-- [ ] Create an isolated maintenance branch from the verified tip. Use the repository's
+- [x] Create an isolated maintenance branch from the verified tip. Use the repository's
       `research/YYYY-MM-DD` convention for later PROGRAM rounds; maintenance work may
       use `codex/` branches. Record actual names and SHAs rather than assuming them.
-- [ ] Snapshot raw inputs, normalized-frame identity, charting files, predictors/envelopes,
+- [x] Snapshot raw inputs, normalized-frame identity, charting files, predictors/envelopes,
       config, feature schema, dependency identity, selected player lists and saved A/Bs.
       Put binaries in a private durable research directory, not Git or the web mirror.
       Record manifests and row keys; verify copied predictor artifacts normally.
-- [ ] Allocate unique worker roots and scratch/cache/output destinations; check disk space.
-- [ ] Reproduce the exchange diagnostic and the archived paired delta once against the
+- [x] Allocate unique worker roots and scratch/cache/output destinations; check disk space.
+- [x] Reproduce the exchange diagnostic and the archived paired delta once against the
       preserved files. If hashes differ, label a new observation instead of expecting
       old numbers. Never bypass a predictor contract to reproduce an obsolete binary.
-- [ ] Run the incumbent Python suite and Ruff once in the isolated environment. If it
+- [x] Run the incumbent Python suite and Ruff once in the isolated environment. If it
       fails, diagnose before candidate work. Do not silently refresh data to make it pass.
-- [ ] Write a small design decision record fixing the interfaces described below.
+- [x] Write a small design decision record fixing the interfaces described below.
 
 Interface decisions to agree before workers edit shared callers:
 
@@ -624,17 +629,18 @@ framework before its small prototype demonstrates a plausible signal.
 
 ## 15. Commands, reproduction recipes and session handoff contract
 
-On the recorded Mac, these use the existing environment without installing dependencies:
+Phase 0 verified these commands in the prepared coordinator environment, without
+installing dependencies:
 
 ```bash
-cd /Users/varma/Projects/DEUCE/tennis_model
-UV_CACHE_DIR=/private/tmp/deuce-research-uv PYTHONPATH=src \
+cd /Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/coordinator/tennis_model
+UV_CACHE_DIR=/private/tmp/deuce-research-coordinator-uv PYTHONPATH=src \
   uv run --offline --no-project --python .venv/bin/python python -m pytest -q
-UV_CACHE_DIR=/private/tmp/deuce-research-uv PYTHONPATH=src \
-  uv run --offline --no-project --python .venv/bin/python ruff check .
+../.research/phase0/bin/ruff check .
 ```
 
-Use the corresponding worker checkout path after isolation. If the environment is missing
+Use each worker's own checkout and uv-cache paths. Ruff is a copied native executable,
+not a Python script in the virtual environment. If the environment is missing
 or incompatible, resolve it in preparation using `uv` and CI-pinned requirements; do not
 upgrade packages or bypass envelope verification in a running experiment. Targeted tests
 may select the named files from the phase before the full suite.
@@ -690,8 +696,10 @@ At the end of EVERY implementation session, append to `tasks/todo.md`:
 
 Recommended next-session instruction:
 
-> Read `tasks/research/2026-09-06-model-research-plan.md`, its evidence JSON and the tail
-> of `tasks/todo.md`. Implement the explicitly authorized phases, beginning with phase 0.
+> Read `tasks/research/2026-09-06-model-research-plan.md`, the Phase 0 review and interface
+> decisions, its evidence JSON and the tail of `tasks/todo.md`. Phase 0 is complete; verify
+> the prepared workspace and implement only the subsequently authorized phases. The next
+> implementation checkpoint is Phase 1; do not recreate the snapshot or worktrees.
 > Preserve unrelated changes. Use separate workers for 1A, 1B and 1C only after contracts
 > and isolated inputs are ready; coordinate 1D and integrations centrally. Do not start
 > numerical candidate searches until the corrected incumbent and evaluator are frozen.
