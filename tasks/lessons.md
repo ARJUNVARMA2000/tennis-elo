@@ -336,3 +336,5 @@ New lesson → append the entry to the matching topic file and add its lead line
   [`lessons/web.md`](lessons/web.md).
 - Forecast node percentages describe winning that node, and every residual candidate must be
   inspectable. See [`lessons/web.md`](lessons/web.md).
+- A shared tour UI needs verification against both tours' current accepted data. See
+  [`lessons/web.md`](lessons/web.md).

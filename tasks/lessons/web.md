@@ -212,3 +212,12 @@ Indexed in [`../lessons.md`](../lessons.md).
   browser-computed scenario nodes include it. Match browser fixtures to the producer shape and
   verify against accepted live artifacts. Avoid hover expansions that re-center a card before
   the click lands, and replay both directions of query-only view switches.
+
+- **A shared tour UI needs verification against both tours' current accepted data.**
+  (2026-09-06, WTA bracket still opened at R128 after the progression change) The synthetic WTA
+  fixture and real ATP draw progressed, but the accepted WTA draw retained Bartunkova–Sherif as
+  unresolved in R128, then null feeders in R64/R32 and Andreeva's R16 seat. The same release's
+  player profiles record those results and include both short and extended Sherif names.
+  Check the real current-round boundary for each tour before reporting the user-facing outcome
+  complete. Keep genuine unfinished matches visible; resolve missing/canonicalized result
+  evidence at its source rather than advancing the UI on a round-majority assumption.

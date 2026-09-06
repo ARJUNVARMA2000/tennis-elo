@@ -6056,3 +6056,22 @@ an inline candidate disclosure expands within its card without covering neighbor
   existing release verifier before copying its data into the static preview. Source data was not
   regenerated or replaced. Git history was rechecked at ef832b3 before this review. No production
   push or deployment was performed.
+
+### User correction — WTA progression is still blocked by missing bracket results
+
+The user correctly observed that the WTA preview does not reach the promised R16 view. At
+f873e5d the UI change is present and ATP starts at R16, but accepted release
+ab12b7df-2f65-4f34-b539-933749dbfe2c has one unresolved WTA match in each of R128/R64/R32.
+R128 match 34 is Nikola Bartunkova–Mayar Sherif; its missing winner propagates through
+Bartunkova–Tatjana Maria and Mirra Andreeva–Bartunkova to a null R16 opponent for Potapova.
+The same release's profiles record all three results, including duplicate short/extended
+Mayar Sherif name forms. The upcoming event shard already names Andreeva–Potapova in R16.
+
+The earliest-unfinished-round rule therefore correctly remains at R128 on this inconsistent
+input, and the Full draw control stays hidden because no leading round can retire. The prior
+completion report was too broad: real-data browser verification covered ATP, not WTA.
+No result or winner has been inferred or patched into the accepted preview data.
+
+Follow-up: reproduce and repair the WTA result/name reconciliation at the producer, add the
+appropriate cross-artifact gate regression, regenerate a consistent accepted release, and verify
+both real tours' default progression before reporting the WTA outcome complete.
