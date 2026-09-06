@@ -197,3 +197,18 @@ Indexed in [`../lessons.md`](../lessons.md).
   (2026-09-04) Pending fixtures hid a gate that demanded independent-sample standard errors for
   dependent tournament reach outcomes. Replay both tours through pending, partial, and final
   states; require null reach uncertainty and reject invented estimates while preserving match SEs.
+
+- **A live bracket must rebuild its visible geometry from the earliest unfinished round.**
+  (2026-09-06, US Open remained at R128 after R32 finished) Dropping column labels alone leaves
+  obsolete sections and can hide seven of eight R16 matches. Require every match in a round to
+  have a confirmed winner before retiring it, preserve original match identities, regroup the
+  remaining field, and keep full history accessible. Verify every progression stage and mixed
+  section completion, plus the actual rendered round and match counts.
+
+- **Forecast node percentages describe winning that node, and every residual candidate must be
+  inspectable.** (2026-09-06, the SF card's 65% was ambiguous and "others" hid its players) Label
+  the next-round outcome explicitly and expose the residual list by hover preview and click/tap.
+  Use published round names to derive labels: Python base nodes may omit roundIndex even though
+  browser-computed scenario nodes include it. Match browser fixtures to the producer shape and
+  verify against accepted live artifacts. Avoid hover expansions that re-center a card before
+  the click lands, and replay both directions of query-only view switches.

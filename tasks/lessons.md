@@ -329,3 +329,10 @@ New lesson → append the entry to the matching topic file and add its lead line
   push authorization through live checks. See [`lessons/web.md`](lessons/web.md).
 - Exercise benchmark gates with producer-generated settled reports, not only pending fixtures.
   See [`lessons/web.md`](lessons/web.md).
+
+## Bracket progression and candidate details (2026-09-06)
+
+- A live bracket must rebuild its visible geometry from the earliest unfinished round. See
+  [`lessons/web.md`](lessons/web.md).
+- Forecast node percentages describe winning that node, and every residual candidate must be
+  inspectable. See [`lessons/web.md`](lessons/web.md).

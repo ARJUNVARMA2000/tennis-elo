@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useData, useTour } from "@/lib/tour";
 import { setSearchParam } from "@/lib/url";
 import { PageHead, Loading, Reveal, SurfacePill } from "@/components/bits";
@@ -13,10 +13,12 @@ import {
   type BracketEvent,
   type TournamentLite,
   drawSourceLabel,
+  currentRoundIndex,
   resolveEventIndex,
   sectionCount,
   sectionLabels,
   titleContenders,
+  visibleBracketSize,
 } from "@/lib/bracket";
 import {
   type ScenarioArtifact,
@@ -30,11 +32,11 @@ type PlayerRow = { name: string };
 export default function Bracket() {
   const { tour } = useTour();
   return (
-    <div className="pb-16" data-bracket-lab-contract="actual+forecast+scenario-exact-v1">
+    <div className="pb-16" data-bracket-lab-contract="actual+forecast+scenario-exact-v1" data-bracket-progress-contract="remaining-rounds+full-draw+candidate-details-v1">
       <PageHead
         eyebrow={`${tour.toUpperCase()} · draws`}
         title="Brackets"
-        sub="The complete tournament draw, round by round — first-party ATP/WTA when available, with a labeled Wikipedia fallback. Every match carries the model's pre-match win probability; ESPN results advance completed rounds with scores and upset flags."
+        sub="Follow the remaining path to the title as results come in, or open the full draw to revisit earlier rounds. Explore match forecasts, title chances, and your own what-if scenarios."
       />
       {/* useSearchParams (shareable ?e= links) needs a Suspense boundary under static export */}
       <Suspense fallback={<Loading variant="forecast" />}>
@@ -49,8 +51,6 @@ function BracketInner() {
   const { data, loading, error } = useData<BracketEvent[]>("brackets.json");
   const { data: tournaments } = useData<TournamentLite[]>("tournaments.json");
   const { data: players } = useData<PlayerRow[]>("players.json");
-  const router = useRouter();
-  const pathname = usePathname();
   const sp = useSearchParams();
   const eParam = sp.get("e");
 
@@ -58,6 +58,9 @@ function BracketInner() {
   const roster = useMemo(() => new Set((players ?? []).map((p) => p.name)), [players]);
   const idx = resolveEventIndex(events, eParam);
   const ev = events[idx];
+  const currentRound = currentRoundIndex(ev?.rounds ?? []);
+  const showFullDraw = sp.get("draw") === "full";
+  const startRound = showFullDraw ? 0 : currentRound;
   const [section, setSection] = useState(0);
   const [copied, setCopied] = useState(false);
   const scenarioFile = ev?.scenario?.file ?? ev?.scenarioFile ?? "";
@@ -78,16 +81,15 @@ function BracketInner() {
 
   useEffect(() => {
     setSection(0);
-  }, [idx, tour]);
+  }, [idx, tour, startRound]);
 
   // A stale ?e= (event dropped from the feed after a refresh) is stripped so the URL stays
   // shareable and the page falls back to the first (most relevant) event.
   useEffect(() => {
     if (eParam && events.length && !events.some((e) => String(e.espnId ?? "") === eParam
       || e.name.toLowerCase() === eParam.toLowerCase())) {
-      router.replace(`${pathname}${setSearchParam(window.location.search, "e", null)}`, { scroll: false });
+      window.history.replaceState(null, "", `${window.location.pathname}${setSearchParam(window.location.search, "e", null)}${window.location.hash}`);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eParam, events, tour]);
 
   const options: DropdownOption[] = useMemo(
@@ -102,9 +104,11 @@ function BracketInner() {
   const replaceParams = (changes: Record<string, string | null>) => {
     let search = window.location.search;
     for (const [key, value] of Object.entries(changes)) search = setSearchParam(search, key, value);
-    router.replace(`${pathname}${search}`, { scroll: false });
+    // These controls only change client state. Native history keeps reverse transitions
+    // observable without racing the router's cached query-only navigation.
+    window.history.replaceState(null, "", `${window.location.pathname}${search}${window.location.hash}`);
   };
-  const pick = (eventKey: string) => replaceParams({ e: eventKey, mode: null, p: null });
+  const pick = (eventKey: string) => replaceParams({ e: eventKey, mode: null, p: null, draw: null });
   const setMode = (next: "actual" | "forecast" | "scenario") =>
     replaceParams({ mode: next === "actual" ? null : next, p: next === "scenario" ? sp.get("p") : null });
   const setForced = (key: string, name: string | null) => {
@@ -131,7 +135,8 @@ function BracketInner() {
   if (!ev) return <Empty>That event isn&apos;t available — pick another from the list.</Empty>;
 
   const contenders = titleContenders(tournaments ?? null, ev);
-  const labels = sectionLabels(ev.bracketSize);
+  const size = visibleBracketSize(ev, startRound);
+  const labels = sectionLabels(size);
   const tier = tournamentTier(ev.level, ev.name);
   const canForecast = !!scenarioFile;
   const eventKey = String(ev.espnId || ev.name);
@@ -227,16 +232,35 @@ function BracketInner() {
         )}
       </div>
 
-      {mode === "actual" && sectionCount(ev.bracketSize) > 1 && (
+      {mode === "actual" && currentRound > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <div role="group" aria-label="Draw rounds" className="flex gap-1.5">
+            {([[false, ev.status === "completed" ? "Final result" : "Remaining rounds"], [true, "Full draw"]] as const).map(([full, label]) => (
+              <button
+                key={String(full)}
+                onClick={() => replaceParams({ draw: full ? "full" : null })}
+                aria-pressed={showFullDraw === full}
+                className="chip transition-colors"
+                style={showFullDraw === full ? { background: "var(--color-accent)", color: "var(--color-on-accent)", borderColor: "var(--color-accent)" } : undefined}
+              >{label}</button>
+            ))}
+          </div>
+          <span className="mono text-[10px] text-[var(--color-faint)]">
+            {showFullDraw ? "All rounds, including completed matches" : `${ev.rounds[startRound]?.round} onward`}
+          </span>
+        </div>
+      )}
+
+      {mode === "actual" && sectionCount(size) > 1 && (
         <div className="mt-4 flex flex-wrap gap-1.5">
           {labels.map((lab, i) => (
             <button
               key={lab}
               onClick={() => setSection(i)}
-              aria-pressed={section === i}
+              aria-pressed={Math.min(section, labels.length - 1) === i}
               className="chip transition-colors"
               style={
-                section === i
+                Math.min(section, labels.length - 1) === i
                   ? { background: "var(--color-accent)", color: "var(--color-on-accent)", borderColor: "var(--color-accent)" }
                   : undefined
               }
@@ -251,7 +275,7 @@ function BracketInner() {
         <div className="panel mt-4 p-2 sm:p-3">
           <div className="panel-inset overflow-hidden p-1 sm:p-2">
             {mode === "actual" ? (
-              <BracketTree ev={ev} section={section} tour={tour} roster={roster} />
+              <BracketTree ev={ev} section={section} startRound={startRound} tour={tour} roster={roster} />
             ) : scenarioState.loading ? (
               <Loading variant="forecast" />
             ) : scenarioState.error || !scenarioState.data || !scenarioResult ? (

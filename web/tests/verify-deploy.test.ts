@@ -1004,10 +1004,11 @@ describe("hasMatchCenterContract", () => {
 });
 
 describe("new forecast surface contracts", () => {
-  it("pins the exact three-view bracket lab", () => {
+  it("requires progressing rounds and candidate details alongside the exact three-view bracket lab", () => {
     expect(hasBracketLabContract(
-      `<div data-bracket-lab-contract="actual+forecast+scenario-exact-v1"></div>`,
+      `<div data-bracket-lab-contract="actual+forecast+scenario-exact-v1" data-bracket-progress-contract="remaining-rounds+full-draw+candidate-details-v1"></div>`,
     )).toBe(true);
+    expect(hasBracketLabContract(`<div data-bracket-lab-contract="actual+forecast+scenario-exact-v1"></div>`)).toBe(false);
     expect(hasBracketLabContract(`<div data-bracket-lab-contract="actual-v1"></div>`)).toBe(false);
   });
 

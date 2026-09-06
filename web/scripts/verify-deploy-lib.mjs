@@ -361,6 +361,8 @@ export function hasPredictionExplanationContract(html) {
 export function hasBracketLabContract(html) {
   return String(html || "").includes(
     'data-bracket-lab-contract="actual+forecast+scenario-exact-v1"',
+  ) && String(html || "").includes(
+    'data-bracket-progress-contract="remaining-rounds+full-draw+candidate-details-v1"',
   );
 }
 

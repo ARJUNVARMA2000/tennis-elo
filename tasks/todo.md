@@ -6002,3 +6002,57 @@ SEs, matching the producer and browser, while retaining numeric paired SEs for m
 - Verified the live WTA Match Center shows the new section navigation, Following controls and
   current scores. Refreshed the local static preview from that accepted public release, verifying
   all 449 declared artifact hashes before replacing its data, and opened the live Match Center.
+
+## 2026-09-06 — Advance the bracket view with tournament progress
+
+The linked US Open actual draw still starts at R128 with eight section controls. The current
+renderer always uses the original bracket size and leading rounds (history checked at ef832b3).
+Default to the earliest unfinished round, regroup its remaining slots, and retain a full-draw
+control for historical results. Upcoming draws retain the opening round; a settled draw retains
+the final. Never skip an unfinished match because another section has advanced further.
+
+- [x] Derive the current round from confirmed results and build section geometry from the
+      remaining field while preserving original round and match identities.
+- [x] Add remaining/full draw controls and make the bracket height follow its visible match count.
+- [x] Apply the current-round boundary to the forecast draw map; expose every remaining candidate
+      behind each "others" total on hover, click/tap, and keyboard activation, with explicit
+      reach/win labels distinguishing semifinal winners from tournament winners.
+- [x] Cover mixed-round progress, byes, small draws, final/completed states, and full-draw recovery;
+      extend the live-serving contract and verify the rendered behavior.
+- [x] Run web checks, reconcile git history, record the lesson and append the review.
+
+Design check-in: retain the existing court palette, display/body/mono typography, and bracket
+cards. The useful change is structural: current-round geometry removes obsolete columns, and
+an inline candidate disclosure expands within its card without covering neighboring paths.
+
+### Review
+
+- Actual draw now defaults to its first unfinished round, retaining the final after completion.
+  Sections are rebuilt from the remaining field, so the live ATP US Open shows all eight R16
+  matches and all seven later matches together. Full draw restores R128 onward and every section.
+  Height contracts with the remaining match count. Forecast maps likewise discard settled rounds.
+- Forecast cards label the outcome explicitly: QF winners reach SF; SF winners reach the final;
+  championship candidates win the tournament. Labels use the serialized round name because
+  published Python base nodes omit the browser scenario engine's roundIndex field.
+- "Others" has a native hover preview containing every omitted positive-probability candidate.
+  Click/tap or Enter expands a scrollable list with player links; Escape collapses it. A native
+  preview avoids moving a centered card before a pointer click lands. Tiny positive odds display
+  <0.1% instead of zero. Exact probabilities and model evaluation remain unchanged.
+- Bracket query controls now use framework-observed native history. The browser replay exposed
+  an existing Forecast -> Actual transition that retained the forecast view; both directions and
+  reload now preserve the selected view and URL.
+- Validation: all 352 web tests passed, followed by 116 focused tests after the final navigation
+  repair. TypeScript and the 24-route production build passed. Final lint has zero errors and the
+  same nine existing warnings. The built route passes the extended live-serving marker contract.
+  Added the R16 progression/disclosure fixture and browser checks to the existing CI smoke runner.
+- Connected-browser checks covered current production data and the deterministic fixture: 15
+  remaining matches, eight full-draw sections, section-8 -> remaining recovery, six semifinal
+  outsiders, thirteen title outsiders, click and Enter/Escape, view switching, and reload. Desktop
+  and 390px mobile inspection confirmed the page/body stay within the viewport. The standalone
+  automated browser-smoke runner was not executed locally; these interactions were replayed in
+  the connected browser.
+- Preview uses accepted release ab12b7df-2f65-4f34-b539-933749dbfe2c, generated
+  2026-09-06T13:44:36Z. All 457 declared public artifact hashes and release closure passed the
+  existing release verifier before copying its data into the static preview. Source data was not
+  regenerated or replaced. Git history was rechecked at ef832b3 before this review. No production
+  push or deployment was performed.

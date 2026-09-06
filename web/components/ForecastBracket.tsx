@@ -1,12 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import Link from "next/link";
 import type { Tour } from "@/lib/tour";
 import { playerHref, withTour } from "@/lib/url";
-import { isRealSlot } from "@/lib/bracket";
-import type { ScenarioArtifact, ScenarioNode, ScenarioResult } from "@/lib/scenario";
-import { titleSwings } from "@/lib/scenario";
+import { currentRoundIndex, isRealSlot } from "@/lib/bracket";
+import type { ScenarioArtifact, ScenarioCandidate, ScenarioNode, ScenarioResult } from "@/lib/scenario";
+import { forecastOutcomeLabel, forecastPercent, titleSwings } from "@/lib/scenario";
 
 type Pick = (key: string, name: string | null) => void;
 
@@ -25,8 +25,8 @@ export default function ForecastBracket({
   onPick: Pick;
   tour: Tour;
 }) {
-  const closing = result.nodes.slice(-3);
-  const early = result.nodes.slice(0, -3);
+  const remaining = result.nodes.slice(currentRoundIndex(artifact.rounds));
+  const closing = remaining.slice(-3);
   const champion = result.champion[0];
   const [focus, setFocus] = useState(champion?.name ?? artifact.players[0] ?? "");
   const focusName = result.reach[focus] ? focus : (champion?.name ?? artifact.players[0] ?? "");
@@ -74,23 +74,23 @@ export default function ForecastBracket({
           </div>
         </div>
       )}
-      {early.length > 0 && (
-        <div className="mb-3 flex min-w-max items-center gap-1.5 overflow-x-auto pb-1" aria-label="Draw minimap">
+      {remaining.length > 1 && (
+        <div className="mb-3 flex items-center gap-1.5 overflow-x-auto pb-1" aria-label="Draw minimap">
           <span className="eyebrow mr-1 text-[9px]">Draw map</span>
-          {result.nodes.map((round, index) => (
-            <div key={round.round} className="flex items-center gap-1.5">
+          {remaining.map((round, index) => (
+            <div key={round.round} className="flex shrink-0 items-center gap-1.5">
               <span className="mono rounded-sm border border-[var(--color-line)] px-2 py-1 text-[9px] text-[var(--color-muted)]">
                 {round.round} · {round.matches.length}
               </span>
-              {index < result.nodes.length - 1 && <span className="text-[var(--color-faint)]">→</span>}
+              {index < remaining.length - 1 && <span className="text-[var(--color-faint)]">→</span>}
             </div>
           ))}
         </div>
       )}
 
       <div className="overflow-x-auto pb-2">
-        <div className="relative mx-auto min-h-[450px] min-w-[920px] overflow-hidden rounded-lg border border-[var(--color-line)] bg-[var(--color-panel)] p-5">
-          <ConnectorLines />
+        <div className={`relative mx-auto overflow-hidden rounded-lg border border-[var(--color-line)] bg-[var(--color-panel)] p-5 ${closing.length >= 3 ? "min-h-[450px] min-w-[920px]" : "min-h-[200px]"}`}>
+          {closing.length >= 3 && <ConnectorLines />}
           {closing.length >= 3 ? (
             <SymmetricFinals
               rounds={closing}
@@ -180,7 +180,7 @@ function CompactFinals({ rounds, ...props }: {
   tour: Tour;
 }) {
   return (
-    <div className="relative z-[1] flex h-full min-h-[400px] items-stretch gap-6">
+    <div className="relative z-[1] mx-auto flex min-h-[160px] max-w-2xl items-stretch gap-6">
       {rounds.map((round) => <RoundLane key={round.round} label={round.round} nodes={round.matches} {...props} />)}
     </div>
   );
@@ -217,8 +217,11 @@ function NodeCard({ node, artifact, interactive, forced, onPick, tour, prominent
   prominent?: boolean;
 }) {
   if (!node) return <div />;
-  const shown = node.candidates.slice(0, prominent ? 3 : 2);
-  const residual = Math.max(0, 1 - shown.reduce((sum, row) => sum + row.p, 0));
+  const candidates = node.candidates.filter((row) => row.p > 0);
+  const shown = candidates.slice(0, prominent ? 3 : 2);
+  const others = candidates.slice(shown.length);
+  const residual = others.reduce((sum, row) => sum + row.p, 0);
+  const outcome = forecastOutcomeLabel(artifact.rounds, node.round);
   const tooltip = nodeTooltip(node, artifact, shown, residual);
   const source = artifact.rounds[node.roundIndex]?.matches[node.matchIndex];
   const lockable = interactive && node.status !== "confirmed" && source?.winner == null
@@ -228,6 +231,7 @@ function NodeCard({ node, artifact, interactive, forced, onPick, tour, prominent
       className={`rounded-lg border bg-[var(--color-bg)] ${prominent ? "p-3 shadow-lg" : "p-2.5"}`}
       style={{ borderColor: node.status === "confirmed" ? "var(--color-win)" : node.status === "forced" ? "var(--color-accent)" : "var(--color-line)" }}
       title={tooltip}
+      data-forecast-node={node.key}
     >
       <div className="mb-1.5 flex items-center justify-between gap-2">
         <span className="mono text-[8px] uppercase tracking-wider text-[var(--color-faint)]">{node.status}</span>
@@ -237,12 +241,13 @@ function NodeCard({ node, artifact, interactive, forced, onPick, tour, prominent
           </button>
         )}
       </div>
+      <div className="mono mb-2 text-[9px] text-[var(--color-muted)]">{outcome}</div>
       <div className="space-y-1">
         {shown.map((row, i) => {
           const content = (
             <>
               <span className="truncate">{row.name}</span>
-              <span className="mono text-[10px]">{(row.p * 100).toFixed(row.p < 0.1 ? 1 : 0)}%</span>
+              <span className="mono text-[10px]">{forecastPercent(row.p)}</span>
             </>
           );
           return lockable && node.status === "projected" ? (
@@ -261,13 +266,13 @@ function NodeCard({ node, artifact, interactive, forced, onPick, tour, prominent
           );
         })}
       </div>
-      {residual > 0.0005 && <div className="mono mt-1 text-right text-[8px] text-[var(--color-faint)]">others {(residual * 100).toFixed(1)}%</div>}
+      {others.length > 0 && <OtherCandidates candidates={others} residual={residual} outcome={outcome} tour={tour} />}
     </div>
   );
 }
 
 function nodeTooltip(node: ScenarioNode, artifact: ScenarioArtifact, shown: { name: string; p: number }[], residual: number) {
-  const lines = [`${node.round} · ${node.status}`, ...shown.map((row) => `${row.name}: ${(row.p * 100).toFixed(1)}%`),
+  const lines = [`${node.round} · ${node.status} · ${forecastOutcomeLabel(artifact.rounds, node.round)}`, ...shown.map((row) => `${row.name}: ${(row.p * 100).toFixed(1)}%`),
     `Residual field: ${(residual * 100).toFixed(1)}%`];
   if (shown.length === 2) {
     const a = artifact.players.indexOf(shown[0].name);
@@ -279,6 +284,57 @@ function nodeTooltip(node: ScenarioNode, artifact: ScenarioArtifact, shown: { na
     );
   }
   return lines.join("\n");
+}
+
+function OtherCandidates({ candidates, residual, outcome, tour }: {
+  candidates: ScenarioCandidate[];
+  residual: number;
+  outcome: string;
+  tour: Tour;
+}) {
+  const id = useId();
+  const [expanded, setExpanded] = useState(false);
+  const preview = [outcome, ...candidates.map((row) => `${row.name}: ${forecastPercent(row.p)}`)].join("\n");
+  return (
+    <div
+      className="mt-2"
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          setExpanded(false);
+          event.stopPropagation();
+        }
+      }}
+      title=""
+    >
+      <button
+        type="button"
+        aria-expanded={expanded}
+        aria-controls={id}
+        aria-label={`Other players: ${outcome.toLowerCase()}`}
+        title={preview}
+        className="mono w-full rounded px-1 py-1 text-right text-[9px] text-[var(--color-muted)] underline decoration-dotted underline-offset-4 hover:text-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-[var(--color-accent)]"
+        onClick={() => setExpanded(!expanded)}
+      >
+        others {residual > 0 && residual < 0.001 ? "<0.1" : (residual * 100).toFixed(1)}% {expanded ? "−" : "+"}
+      </button>
+      <div id={id} hidden={!expanded} className="mt-1 border-t border-[var(--color-line)] pt-2">
+        <div className="mono mb-2 text-[8px] text-[var(--color-faint)]">{outcome} · other players</div>
+        <ul className="max-h-52 space-y-1 overflow-y-auto" aria-label={`Other players: ${outcome.toLowerCase()}`} tabIndex={0}>
+          {candidates.map((row) => (
+            <li key={row.name}>
+              <Link
+                href={withTour(playerHref(row.name, tour), tour)}
+                className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 px-1 py-1 text-[11px] hover:underline"
+              >
+                <span>{row.name}</span>
+                <span className="mono text-[10px]">{forecastPercent(row.p)}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
 }
 
 function ReachFunnel({ result, focus, setFocus, tour }: {
