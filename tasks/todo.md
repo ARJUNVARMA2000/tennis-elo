@@ -6449,3 +6449,41 @@ See `tasks/research/2026-09-06-phase2-review.md` and its JSON/CSV for the exact 
 contract, research findings and sequential Phase 3 commands. No baseline fit, numerical
 improvement claim, candidate adoption, source refresh, push or deployment occurred.
 Real fitted-artifact 435-pair probes remain explicitly assigned to Phase 3's normal fits.
+
+## 2026-09-06 — Phase 3 corrected incumbent and diagnostics
+
+User check-in: “Proceed to phase 3” authorizes the Phase 2 handoff sequence. Work uses
+the coordinator at `8be9d74` and the accepted `evaluator-freeze-v2.json`; no source,
+evaluator, configuration, dependency or input changes during this measurement round.
+
+- [x] Verify the frozen contract and register fresh private run directories.
+- [x] Run the five-bag ATP then production-policy WTA 2010–2026 baselines sequentially;
+      retain predictions, row identities, coverage, exclusions, clocks and receipts.
+- [x] Establish bounded deterministic reproduction and report yearly/window/fixed-slice
+      scores, calibration and paired diagnostics without claiming candidate adoption.
+- [x] Fit both real schema-5 final predictors sequentially, save privately and reload
+      through the strict loader; run the 435-pair and WTA branch/matrix/receipt checks.
+- [x] Pre-register the next hypotheses with budgets, dependencies, slice targets and
+      negative controls; preserve unknown acquisition denominators as unknown.
+- [x] Verify preserved inputs and Git, write a durable results/resume handoff, and
+      commit the research record plus a docs-only handoff in the original checkout.
+
+### Review
+
+Phase 3 completed on frozen implementation `8be9d74`. ATP: 46,195 scored rows,
+LL 0.573954 / Brier 0.196334 / accuracy 69.212%; WTA: 42,197 rows,
+LL 0.593586 / Brier 0.204403 / accuracy 67.648%. Every eligible selected row was
+scored; all 42 feature columns reproduced exactly on every scored row. First/last
+fold probabilities were bit-identical. Both normal saved schema-5 predictors passed
+435-pair API checks (max error 1.11e-16), plus validated real producer receipts;
+WTA receipts exercise both branches. No model/evaluator/config/input changes or adoption.
+
+The report retains unknown historical availability, missing event-block identities
+(196 ATP / 411 WTA) and the ATP enriched-count slice-label limitation. WTA strong
+favourites are not globally overconfident; data yield remains unverified. Phase 4
+has a concrete source-adjudication plan and an eight-setting uncertainty screen,
+with independent staging/design work and sequential numerical decisions.
+See `tasks/research/2026-09-06-phase3-review.md`, its result/CSV files, and
+`2026-09-06-phase4-preregistration.md`. All original/snapshot/raw/output data remain
+preserved. No source tests changed; real fit/replay checks passed. Local research
+record and docs-only original-checkout handoff use separate commits; no push/deploy.

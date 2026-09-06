@@ -205,3 +205,10 @@ Indexed in [`../lessons.md`](../lessons.md).
   prior. Preserve a validated, ordered pending queue in the artifact; a date query
   admits eligible observations into a copied view without changing the saved state.
   Test strict same-day exclusion, later-date walk parity and a real save/load roundtrip.
+
+- **A slice label does not establish the population its counts measure.** (2026-09-06)
+  The frozen `low-main-experience` diagnostic reads pre-match state counts. Those are
+  main-only for WTA, but include lower history in ATP's adopted enriched walk. The same
+  label therefore describes different populations across tours. Preserve and report the
+  actual count provenance; do not compare those slices as equivalent. A semantic repair
+  belongs in a separately versioned diagnostic change, never a silent mid-round relabeling.
