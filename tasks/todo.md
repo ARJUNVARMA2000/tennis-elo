@@ -6141,9 +6141,41 @@ This repository's production/default branch is `master`. The verified implementa
 `codex/bracket-progress-details`; remote master has advanced since the local work began.
 
 - [x] Merge with the current remote master, preserving all independent forecast observations.
-- [ ] Check the merged changes, run any verification required by the merge, and push master.
-- [ ] Follow the production workflow through tests, data integrity, publication and live serving.
-- [ ] Verify current ATP/WTA live bracket progression and forecast disclosures; record the review.
+- [x] Check the merged changes, run any verification required by the merge, and push master.
+- [x] Follow the production workflow through tests, data integrity, publication and live serving.
+- [x] Verify current ATP/WTA live bracket progression and forecast disclosures; record the review.
 
 Check-in: deploy through the existing master-push workflow and its two gates. Reconcile the
 remote updates before pushing, and carry the request through verification of the live site.
+
+### Review
+
+- Merged the implementation into the current production/default branch, `master`, and pushed
+  e1702985bd2849905c9a4ea40c05243eca312dc7. Remote forecast history remains an exact prefix;
+  retained 17 distinct new ATP and 67 WTA observations. Reconciled the Kalshi ledgers through
+  their normal frozen-field upsert and regenerated the report without altering benchmark inputs.
+- The merged tree passed all 1,198 local Python tests and 352 web tests. Production CI passed
+  lint, TypeScript, build, browser smoke and all web tests; Python CI passed 1,197 tests with
+  one platform-dependent skip. Git history was rechecked against origin/master at e170298
+  before finalizing this review.
+- Production run [34059698014](https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/34059698014)
+  completed successfully on attempt 2. The first attempt published valid data, but immediate
+  live verification caught old HTML referring to a removed stylesheet and lacking the new
+  bracket marker. Bare production URLs subsequently served the current HTML and stylesheet,
+  and an independent verifier passed 22/22. Reran the failed job without weakening either gate;
+  all jobs and the rerun's 22/22 live checks passed. Deploy-health issue #51 auto-closed.
+- Final public health is `ok: true`, generated at 2026-09-06T21:23:54Z, matching the CI build.
+  Accepted release c67a8eab-02dd-4d25-9307-bfc3af1b4a26 has manifest SHA-256
+  931e406bc460ccc55cc517d09156ba6fe209371faf0f52e8798e25e66a784c53. The live gate verified
+  all 453 exact artifacts, 419 shard references, 20 required absences, seven begun events,
+  hosting behavior and the new bracket progression/candidate-details marker.
+- Verified both tours at the live US Open URL: Actual draw starts at R16; Full draw exposes all
+  eight historical sections; returning from section 8 restores the remaining draw. WTA's
+  Andreeva–Potapova pairing is present. The forecast map begins at R16, and labels explicitly
+  distinguish reaching the final from winning the tournament. ATP's displayed Zverev 65%
+  is the chance to reach the final. Residual lists expand by click/Enter, have hover previews,
+  and close with Escape; all six remaining ATP semifinal candidates were inspectable.
+- The live mobile view stays within a 390px viewport. Reset the temporary viewport and left a
+  production WTA bracket tab available. The latest pre-deployment data had independently
+  recovered the missing WTA results already, so deployment proof used the new release identity
+  and live UI contract in addition to the restored results.
