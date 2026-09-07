@@ -241,3 +241,24 @@ Indexed in [`../lessons.md`](../lessons.md).
   self-pair explicitly; do not invent the opponent, silently skip it inside a comparison,
   or treat a later-starting diagnostic replay as full-history parity. Couple the eventual
   population repair with an independent integrity check and a versioned reference.
+
+- **A calendar window is not an absence test for an event-stamped archive.** (2026-09-06)
+  The Phase 4 WTA audit called many 2024 Madrid/Rome/Miami results absent because their
+  uniform archive stamp was one day before the official calendar. The chronology policy
+  already recognized that convention. Reconcile date bases before counting missing rows:
+  require the exact edition, pair, outcome/score, round and documented event-start anchor.
+  Ordinary out-of-span played dates remain invalid. Count actual normalized membership
+  after dedup, and keep superseded audits visible rather than quietly replacing them.
+
+- **Once an event ID is corroborated, constrain the match audit to it.** (2026-09-06)
+  Shnaider–Minnen played Rome on May 7 and Parma on May 15, 2024. Both fell inside the
+  Rome calendar window, so a pair/date-overlap check manufactured a score conflict.
+  The preserved scoreboards distinguish ESPN 414-2024 from 870-2024. Establish the exact
+  event mapping from independent shared results, then retain both real matchups.
+
+- **Identical scores and rounds do not identify a same-season result.** (2026-09-06)
+  Swiatek beat Cirstea 6-1 6-1 in both Doha and Madrid's 2024 R32. A season/pair/round/games
+  key collapsed the results; adding a reviewed Madrid donor then moved Doha's survivor
+  into April. Partition reviewed donor groups using proven edition IDs before donating
+  timing or outcome facts. Preserve real rematches and check chronological round order
+  on full history before fitting; scope completeness claims to what was actually audited.

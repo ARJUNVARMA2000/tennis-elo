@@ -130,3 +130,25 @@ are closed questions — re-opening one requires the underlying space to have ch
 | Combiner training-window truncation (mty; graded version = W1d) | tuning-results-2026-07-06-autoresearch-r2.md R2-004 |
 | Tier/importance sample weighting in combiner folds (tierw; family 0-for-2 with W1d) | tuning-results-2026-07-06-autoresearch-r2.md R2-005 |
 | Cross-tour pooled combiner, tour flag or not (contamination = A5-full shape) | tuning-results-2026-07-06-autoresearch-r2.md R2-006 |
+
+
+## 2026-09-06 repaired-reference uncertainty verdict
+
+- **Reviewed WTA results — maintenance complete.** The five-edition ledger covers 528
+  expected results; normalized history actually gains 255 results and removes 23 duplicate
+  copies plus one exact invalid self-match. Earlier absence counts were overstated and
+  are superseded. Timing/source/identity integrity repairs and a new frozen reference are
+  complete. This is factual population maintenance, not a candidate feature gain. See
+  [maintenance review](2026-09-06-maintenance-review.md).
+- **Filtered Gaussian uncertainty signal — PASS-gate, DEFER-adoption.** Eight fixed
+  tune-only settings screened once; sigma0=1, daily variance=0.0001 selected. Full WTA
+  arbiter d_tune +0.000302865 ± 0.000104815, d_val +0.000239993 ± 0.000127945.
+  Validation week interval crosses zero; winner-classification accuracy falls by 0.173 pp.
+  Keep the corrected 42-column incumbent and preserve the research candidate. Do not
+  retune this grid against its exposed validation data. Serving complexity assessment,
+  a strictly saved WTA shadow artifact and fresh-cohort evidence are separate next phases;
+  no collector is active. See [completion and implementation handoff](2026-09-06-dynamic-screen-review.md).
+- **Original optional-data candidates — no admissible addition this round.** The fixed
+  2025 stats/2015 history pilots remain recorded in Phase 4. More elapsed fitting time or
+  repeating closed feature families does not supply independent evidence. A new source
+  or hypothesis requires its own availability, identity, parity and evaluation registration.
