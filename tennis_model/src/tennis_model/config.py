@@ -575,6 +575,9 @@ WIKI_TITLE_OVERRIDES: dict[str, str] = {
     # page is not necessarily a singles-bracket page, which is why draw location now belongs
     # to the first-party/source-neutral architecture instead of reusing this alias.
     "Mifel Tennis Open by Telcel Oppo": "Los Cabos Open",
+    # 2026-09-07 alias-proposer: The 2026 Wikipedia page for Barranquilla Open says it is also known as the Kia Open and classifies it as a WTA 125 event.
+    # https://en.wikipedia.org/wiki/2026_Barranquilla_Open
+    "Kia Open": "2026 Barranquilla Open",
 }
 
 # Exact Wikipedia SINGLES-DRAW locators. This is deliberately separate from the main-article
