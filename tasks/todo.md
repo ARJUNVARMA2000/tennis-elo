@@ -6694,3 +6694,41 @@ Preservation passed at 2026-09-07 02:53 UTC: original, coordinator and Phase 4 d
 unchanged; all 25,826 snapshot files and 56 Phase 3 run files verified; five distinct
 inodes per original input. Maintenance raw bytes are unchanged. Only four disposable
 normalized caches differ. Receipt: `runs/maintenance/preservation.json`.
+- [x] M3 now passes: maintenance freeze `1f531e2bf3ebb5e771a798e3eee3376a09794e94f721cd04f6230076a612c7ac`,
+  46,195 ATP and 42,422 WTA scored rows, no unexplained omissions. Both normal final
+  predictors pass strict reload, exact 42-column feature parity, first/last-fold
+  reproduction and 435-pair exchange (maximum error 1.11e-16). Existing references
+  remain unchanged. WTA final driver completed in 50.18 seconds; ATP in 71.56 seconds.
+
+## 2026-09-06 — Finish the registered uncertainty screen
+
+User check-in: “Keep going then” continues M4 and its conditional Phase 5 arbiter.
+Isolated checkout `worktrees/dynamic-screen`, branch `codex/model-dynamic-screen`,
+from tested repair `1fbe42a`. Preserve the maintenance reference and its input copies.
+
+- [ ] Clone and hash-check distinct maintenance inputs; record source/reference manifests.
+- [ ] Install/test the prepared 43-column research adapter and strict schema, with no
+      production/evaluator changes. Disabled routes delegate to the incumbent exactly.
+- [ ] Commit the tested representation and a new candidate freeze. Recheck full warm-up,
+      three historical cutoff serialization mirrors, threshold-32 attachment and disabled
+      five-bag 2010/2018 probabilities against maintenance before candidate screening.
+- [ ] Run the original eight WTA tune-only settings sequentially, five bags, 45-minute
+      cap; preserve each attempt and select at most one by positive mean tune delta.
+- [ ] If selected, run full 2010–2026 paired arbiter with unchanged inequalities and
+      week/event diagnostics. Reproduce the selected tune probabilities exactly.
+- [ ] Verify preservation, record every verdict, reconcile Git and write the precise
+      next-session handoff in this checkout and documentation-only original checkout.
+
+### Review
+
+Pending. Future confirmation and production integration remain separate. No candidate
+has been scored or selected. Prepared draft hashes and original grid are recorded in
+`runs/maintenance/dynamic-preparation.json` before any candidate numerical trial.
+
+- [x] Cloned and hash-verified 18,791 distinct inputs (5.84 seconds).
+- [x] Added the isolated 43-column adapter, retaining every existing state/evaluator test.
+      Focused suite: 31 passed; full suite: 1,325 passed in 140.56 seconds. Lint clean.
+- [x] Recorded exact adapter policy, seeds, fitting/calibration populations, eight-setting
+      order, selection rule and budget in `2026-09-06-dynamic-screen-registration.md`.
+- [ ] Full repaired-prefix temporal probes are running in the maintenance reference;
+      then freeze this committed candidate, run state parity, and start the tune screen.
