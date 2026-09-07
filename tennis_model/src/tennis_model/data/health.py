@@ -1034,7 +1034,14 @@ def read_outputs(tour: str) -> dict:
                 ledger = [dict(r) for r in csv.DictReader(f)]
         except OSError:
             ledger = None
+    from .result_ledger import load_ledger
+    try:
+        load_ledger(tour)
+        result_ledger_state = 'valid'
+    except (OSError, ValueError, KeyError, TypeError):
+        result_ledger_state = 'invalid'
     return {"data": data, "missing": missing, "corrupt": corrupt,
+            'result_ledger_state': result_ledger_state,
             "shards": shards, "missing_files": missing_files,
             "corrupt_files": corrupt_files,
             "draw_cache": draw_cache, "draw_cache_status": draw_cache_status,
@@ -1316,6 +1323,16 @@ def output_findings(tour: str, oc: dict, now: pd.Timestamp,
     data = oc.get("data", {})
     prev = prev or {}
     meta = data.get("meta")
+    if isinstance(meta, dict):
+        from .result_ledger import validate_receipt
+        for reason in validate_receipt(meta.get('resultIntegrity'), tour, meta.get('matches')):
+            _add_finding(out, f'output.results.{reason}',
+                         f'{tour}: reviewed result integrity failed ({reason})',
+                         entity='model:result-integrity', evidence={'reason':reason})
+        if oc.get('result_ledger_state') == 'invalid':
+            _add_finding(out, 'output.results.ledger_invalid',
+                         f'{tour}: reviewed result input ledger is missing or stale',
+                         entity='model:result-ledger', evidence={})
     # The strict private-model binding in lineage also rejects stripping both markers.
     if isinstance(meta, dict) and ('predictionAuditSchema' in meta or meta.get('inferenceSchemaVersion') == 5):
         from ..data.chronology import CHRONOLOGY_POLICY

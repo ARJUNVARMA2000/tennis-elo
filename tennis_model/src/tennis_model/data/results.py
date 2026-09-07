@@ -166,6 +166,9 @@ def _normalized_matches_fingerprint(tour: str, include_lower: bool) -> str:
     for code in (
         Path(__file__), Path(__file__).with_name("events.py"),
         Path(__file__).with_name("chronology.py"),
+        Path(__file__).with_name("result_ledger.py"),
+        Path(__file__).with_name("wta_results.py"),
+        Path(__file__).with_name("wta_stats.py"),
         Path(__file__).with_name("surface.py"),
         Path(__file__).with_name("scores.py"), Path(__file__).with_name("names.py"),
         Path(__file__).parents[1] / "config.py",
@@ -181,6 +184,8 @@ def _normalized_matches_fingerprint(tour: str, include_lower: bool) -> str:
     paths = [path for root in roots for path in root.glob("*.csv")
              if path.name != "upcoming.csv"]
     paths += [live_dir(tour) / "wiki_surface.json", live_dir(tour) / "wiki_category.json"]
+    from .result_ledger import LEDGER_DIR
+    paths.append(LEDGER_DIR / f'{tour}.json')
     if tour == 'wta':
         paths += list((stats_dir(tour) / '_httpcache').glob('*/*.json'))
     for path in sorted(set(paths), key=str):
@@ -475,7 +480,7 @@ def merge_sources(tour: str, include_lower: bool | None = None) -> pd.DataFrame:
     TML site for ATP, scraped for WTA) > fresh mirror (results, clean city names) >
     live ESPN overlay (same-day, but sponsor names / no surface). Rows carrying serve
     stats always beat results-only duplicates regardless of source (see the __hs sort),
-    so the stats overlay fills every match the frozen archive is missing.
+    while a separately reviewed result ledger admits factual results without stats.
     """
     hist = _read_historical(tour)
     stats = _read_dir(stats_dir(tour))
@@ -494,6 +499,12 @@ def merge_sources(tour: str, include_lower: bool | None = None) -> pd.DataFrame:
     for frame, kind in ((hist, 'historical'), (stats, 'stats'), (fresh, 'fresh'), (live, 'live')):
         frame['source_kind'] = kind
     frames = [hist, stats, fresh, live]
+    from .result_ledger import apply_quarantines, result_frame
+    reviewed = result_frame(tour)
+    if len(reviewed):
+        reviewed['__src'] = 5  # factual donor; optional stats keep their existing preference
+        reviewed['source_kind'] = 'reviewed'
+        frames.append(reviewed)
     from .. import config as _cfg
     configured_lower = ((_cfg.INCLUDE_CHALLENGERS and tour == "atp")
                         or (_cfg.INCLUDE_WTA_LOWER_STATE and tour == "wta"))
@@ -515,6 +526,7 @@ def merge_sources(tour: str, include_lower: bool | None = None) -> pd.DataFrame:
     df = _repair_corrupt_final_years(df)
     df = _drop_impossible_dates(df)
     df = _canonicalize_names(df)
+    df = apply_quarantines(df, tour)
     df = _reconcile_exact_live_result(df)
     from .chronology import annotate_sources, carry_timing_evidence, resolve_dates
     df = annotate_sources(df, tour)
@@ -559,6 +571,17 @@ def merge_sources(tour: str, include_lower: bool | None = None) -> pd.DataFrame:
     by_group = round_key.groupby(base_key).transform(_only_round)
     round_key = round_key.mask(round_key.eq("") & by_group.ne(""), by_group)
     df["__key"] = base_key + "|" + round_key
+    from .result_ledger import partition_reviewed_duplicates
+    df['__key'] = partition_reviewed_duplicates(df, df['__key'])
+    # A validated result and an optional box score are separate facts. The reviewed
+    # exact-result donor owns the outcome/score; a higher-priority stats payload may
+    # omit RET or use placeholder sets without changing whether the match finished.
+    donors = df[df.source_kind.eq('reviewed')]
+    if len(donors):
+        if donors['__key'].duplicated().any():
+            raise ValueError('reviewed real results collide in source dedup key')
+        factual_scores = df['__key'].map(donors.set_index('__key').score)
+        df['score'] = factual_scores.combine_first(df.score)
     df = carry_timing_evidence(df, df['__key'])
     # Content-level lower provenance must survive source-preference deduplication.  The
     # lower overlay loses to the historical/stats copy by design, but its role/tier is a
@@ -877,6 +900,8 @@ def load_matches(tour: str = "atp", include_lower: bool | None = None) -> pd.Dat
         # but must not re-hash every source once per soft-fail stage.  DataFrame attrs ride
         # through ordinary pipeline consumers without becoming a modeled/exported feature.
         df.attrs["normalizedInputFingerprint"] = f"nm1:{fingerprint}"
+    from .result_ledger import require_result_integrity
+    require_result_integrity(df, tour)
     thin = thin_seasons(df)
     if thin:
         counts = df["date"].dt.year.value_counts()

@@ -198,6 +198,7 @@ def predictor_contract(tour: str) -> dict[str, Any]:
     from sklearn.linear_model import LogisticRegression
     from xgboost import Booster, XGBClassifier
 
+    from ..config import REVIEWED_RESULTS
     from .predict import INFERENCE_SCHEMA_VERSION, TennisPredictor
 
     gate = WTA_DUAL_STATE_GATE_THRESHOLD if tour == "wta" else None
@@ -209,6 +210,7 @@ def predictor_contract(tour: str) -> dict[str, Any]:
         "xgboost": {"params": production_xgb_params(tour)},
         "population": {
             "matchPopulationVersion": MATCH_POPULATION_VERSION,
+            "reviewedResultsSHA256": REVIEWED_RESULTS[tour]['sha256'],
             "playerAliases": [list(pair) for pair in sorted(PLAYER_ALIASES.items())],
         },
         "inference": {
@@ -310,11 +312,14 @@ def _validate_contract_shape(contract: Any, expected: dict[str, Any]) -> None:
 
     population = _require_dict(
         contract["population"],
-        {"matchPopulationVersion", "playerAliases"},
+        {"matchPopulationVersion", "playerAliases", "reviewedResultsSHA256"},
         "contract.population",
     )
     if type(population["matchPopulationVersion"]) is not int:
         _fail_schema("contract.population.matchPopulationVersion must be an integer")
+    if (type(population['reviewedResultsSHA256']) is not str
+            or not _SHA256_RE.fullmatch(population['reviewedResultsSHA256'])):
+        _fail_schema('contract.population.reviewedResultsSHA256 is invalid')
     aliases = population["playerAliases"]
     if type(aliases) is not list or len(aliases) > 20_000:
         _fail_schema("contract.population.playerAliases must be a bounded list")

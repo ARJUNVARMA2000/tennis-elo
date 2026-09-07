@@ -18,7 +18,7 @@ import pandas as pd
 from .. import config
 from .names import name_key
 
-CHRONOLOGY_POLICY = 'retrospective-verified-date-or-recorded-event-round-v1'
+CHRONOLOGY_POLICY = 'retrospective-verified-date-or-recorded-event-round-v2'
 TIMING_COLUMNS = ('played_date', 'event_start', 'event_end', 'date_evidence')
 
 
@@ -42,6 +42,7 @@ def _cache_fingerprint(root):
 def _wta_evidence(root_text, fingerprint):
     """Only explicit exact-ID records with unique metadata and bounded played dates."""
     root = Path(root_text)
+    from .wta_results import estimated_start, numeric_id, same_edition
     candidates = {}
     for p in sorted(root.glob('*/*.json')):
         value = json.loads(p.read_text())
@@ -56,6 +57,8 @@ def _wta_evidence(root_text, fingerprint):
         if pd.isna(start) or pd.isna(end) or not 0 <= (end-start).days <= 35:
             continue
         for m in value['matches']:
+            if not same_edition({'id':group['id'], 'year':year}, m, require_record=False):
+                continue
             if m.get('DrawMatchType') != 'S' or m.get('MatchState') != 'F' or str(m.get('Winner')) not in ('2', '3'):
                 continue
             a_won = str(m['Winner']) == '2'
@@ -64,8 +67,7 @@ def _wta_evidence(root_text, fingerprint):
             if not all(names) or names[0] == names[1] or not m.get('MatchID'):
                 continue
             played = pd.to_datetime(str(m.get('MatchTimeStamp') or '')[:10], errors='coerce')
-            if pd.isna(played) or not start <= played <= end:
-                continue
+            known = not estimated_start(m) and pd.notna(played) and start <= played <= end
             sets = []
             for i in range(1, 6):
                 x, y = m.get(f'ScoreSet{i}{w}'), m.get(f'ScoreSet{i}{l}')
@@ -75,12 +77,20 @@ def _wta_evidence(root_text, fingerprint):
             score = _games(' '.join(sets))
             if not score:
                 continue
-            key = (f"{year}-W{group['id']}", str(m['MatchID']), *names, score)
-            record = (str(played.date()), str(start.date()), str(end.date()))
+            key = (f"{year}-W{numeric_id(group['id'])}", str(m['MatchID']), *names, score)
+            record = (str(played.date()) if known else None, str(start.date()), str(end.date()))
             candidates.setdefault(key, set()).add(record)
     if _cache_fingerprint(root) != fingerprint:
         raise ValueError('WTA timing evidence changed during read')
-    return {k: (*next(iter(v)), f'wta-httpcache:{fingerprint}') for k, v in candidates.items() if len(v) == 1}
+    result = {}
+    for key, records in candidates.items():
+        bounds = {r[1:] for r in records}
+        if len(bounds) != 1:
+            continue
+        days = {r[0] for r in records}
+        day = next(iter(days)) if len(days) == 1 else None
+        result[key] = (day, *next(iter(bounds)), f'wta-httpcache:{fingerprint}')
+    return result
 
 
 def annotate_sources(frame, tour):
@@ -105,30 +115,39 @@ def annotate_sources(frame, tour):
         keys = zip(out.tourney_id.astype(str), mids, out.winner_name.map(_key),
                    out.loser_name.map(_key), out.score.map(_games))
         rows = [evidence.get(key) for key in keys]
+        matched = pd.Series([row is not None for row in rows], index=out.index)
         for i, c in enumerate(TIMING_COLUMNS):
             values = pd.Series([row[i] if row else None for row in rows], index=out.index)
             if c != 'date_evidence':
                 values = pd.to_datetime(values, errors='coerce')
             out[c] = values.combine_first(out[c])
+            # Explicit estimated or conflicting timing retracts an old cache's claim.
+            if c == 'played_date':
+                out.loc[matched, c] = values.loc[matched]
     return out
 
 
 def carry_timing_evidence(frame, match_keys):
     """Unique exact-result-group timing survives payload preference; conflicts stay unknown."""
     out = frame.copy()
-    known = out.played_date.notna() & out.date_evidence.notna()
+    known = out.date_evidence.notna() & (
+        out.played_date.notna() | (out.event_start.notna() & out.event_end.notna()))
     donors = out.loc[known].copy()
     if donors.empty:
         return out
     donors['_key'] = match_keys.loc[donors.index]
     counts = donors.groupby('_key').played_date.nunique()
-    donors = donors[donors['_key'].isin(counts[counts.eq(1)].index)].drop_duplicates('_key')
+    bounds = donors.groupby('_key')[['event_start', 'event_end']].nunique()
+    conflict_keys = counts[counts.gt(1)].index.union(bounds.index[bounds.gt(1).any(axis=1)])
+    # Prefer a real played day, but preserve event-bound-only evidence too.
+    donors = donors[~donors['_key'].isin(conflict_keys)]
+    donors = donors.sort_values('played_date', na_position='last').drop_duplicates('_key')
     if not donors.empty:
         for c in TIMING_COLUMNS:
             mapping = donors.set_index('_key')[c]
             out[c] = match_keys.map(mapping).combine_first(out[c])
     # Conflicting known played days must not survive just because one payload won.
-    conflict = match_keys.isin(counts[counts.gt(1)].index)
+    conflict = match_keys.isin(conflict_keys)
     out.loc[conflict, ['played_date', 'event_start', 'event_end']] = pd.NaT
     out.loc[conflict, 'date_evidence'] = None
     return out

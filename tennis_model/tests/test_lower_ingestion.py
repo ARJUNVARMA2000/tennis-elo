@@ -13,11 +13,19 @@ import sys
 import tempfile
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import tennis_model.config as config
 import tennis_model.data.download as download
 import tennis_model.data.results as results
+
+
+@pytest.fixture(autouse=True)
+def isolated_reviewed_input(monkeypatch, tmp_path):
+    from reviewed_fixtures import empty_reviewed_scope
+    empty_reviewed_scope(monkeypatch, tmp_path / 'reviewed')
 
 _HDR_FULL = "tourney_id,tourney_name,tourney_date,winner_name,loser_name,round,tourney_level,score,w_svpt,l_svpt\n"
 

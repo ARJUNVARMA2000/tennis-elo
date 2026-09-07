@@ -150,7 +150,16 @@ WTA_DUAL_STATE_GATE_THRESHOLD = 32
 # version 5 reclassifies mutable WTA ``RS...`` provider rows as qualifying, removing nine
 # 2026 US Open qualifying results that had briefly been cached as main-draw observations.
 # Version 6 merges the Sherif full-name variants, collapsing duplicate source results.
-MATCH_POPULATION_VERSION = 6
+# Version 7 restores reviewed 2024 WTA results independently of stats and quarantines
+# one unresolvable 1980 self-pair; merges Xin Yu Wang's duplicate identity. Exact
+# ledgers are committed; missing/stale files fail.
+MATCH_POPULATION_VERSION = 7
+REVIEWED_RESULTS = {
+    'atp': {'sha256': '1381b0f3f34602eb55c11e1c02fa0d45fbfed647fa0fb6b944174ffdc5e5ac87',
+            'records': 0, 'quarantines': 0},
+    'wta': {'sha256': '6273d7786a65892c41aa3674322ff08cc7edf69cbed3dd9f2d21faed3ad2c117',
+            'records': 528, 'quarantines': 1},
+}
 
 # Reviewed chronology repairs: official ATP event spans, not invented played dates.
 # Evidence and exact original rows: tasks/research/2026-09-06-phase2-review.md.
@@ -792,6 +801,8 @@ PLAYER_ALIASES: dict[str, str] = {
     "zhang shuai": "Shuai Zhang",
     "wang xiyu": "Xiyu Wang",
     "wang xinyu": "Xinyu Wang",
+    # Exact archive/stats collision review and full-history falsifier, maintenance v7.
+    "xin yu wang": "Xinyu Wang",
     # The same cross-source Cincinnati evidence uses ESPN's full name for the stable/archive
     # nickname. Keep the 133-match historical spelling, not the five-match live fragment.
     "catherine mcnally": "Caty Mcnally",

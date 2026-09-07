@@ -353,3 +353,9 @@ New lesson → append the entry to the matching topic file and add its lead line
   [`lessons/data-sources.md`](lessons/data-sources.md). (2026-09-06)
 - Validate numerical integration in the uncertainty regime the model can actually reach.
   See [`lessons/model-research.md`](lessons/model-research.md). (2026-09-06)
+
+- A calendar window is not an absence test for an event-stamped archive. See
+  [`lessons/data-sources.md`](lessons/data-sources.md). (2026-09-06)
+- Once an event ID is corroborated, constrain the match audit to it. See
+  [`lessons/data-sources.md`](lessons/data-sources.md). (2026-09-06)
+- Same-season score/round collisions need proven edition boundaries before timing donation: [data-sources](lessons/data-sources.md).

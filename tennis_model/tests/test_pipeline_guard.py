@@ -143,8 +143,8 @@ def test_player_aliases_are_versioned_with_the_match_population():
     payload = json.dumps(sorted(PLAYER_ALIASES.items()), ensure_ascii=True, separators=(",", ":"))
     fingerprint = hashlib.sha256(payload.encode()).hexdigest()
     assert (MATCH_POPULATION_VERSION, fingerprint) == (
-        6,
-        "b25d92281dfc7853a7f14b5047db701cff77f3bec6464e3ce9a8bbd7ec099b69",
+        7,
+        "ee4e8f062904ff2f7b7bf912827a6d657ff10d3beaf31181245f2ac62d4f5ad2",
     ), "PLAYER_ALIASES changed: advance MATCH_POPULATION_VERSION and update this contract"
 
 

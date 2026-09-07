@@ -6583,3 +6583,114 @@ Add a self-match rejection test. Full warm-up replay remains a maintenance prere
 
 Next is population/timing maintenance and a new reference, then finishing Phase 4
 screening. Phase 5 evaluation, future confirmation and integration remain later work.
+
+
+## 2026-09-06 — Population maintenance and Phase 4 continuation
+
+User check-in: “Keep going” authorizes the saved maintenance sequence following Phase 4.
+Preserve the coordinator and Phase 4 commits/inputs; implement in a new maintenance
+checkout. No production deployment, purchase or prospective activation is included.
+
+- [ ] Register an isolated maintenance checkout from `51c9eb1`, distinct inputs and
+      immutable source/runtime/cutoff records; preserve all earlier research runs.
+- [ ] Implement the independently audited result ledger with strict identities, roles,
+      outcomes and provenance, keeping optional statistics separate from result admission.
+- [ ] Adjudicate the self-match and estimated-date evidence; record reviewed quarantines
+      rather than guessing, and audit both tours for the same failure classes.
+- [ ] Integrate reviewed results and completeness receipts, add typed integrity gates
+      and meaningful regression tests, and establish the population-version boundary.
+- [ ] Freeze repaired inputs; rebuild both incumbent baselines sequentially and verify
+      saved predictor/parity contracts. Report changed membership separately from loss.
+- [ ] Finish full-history dynamic-state parity and the registered eight-setting tune-only
+      screen if the maintenance gates pass; preserve every outcome and select <=1 candidate.
+- [ ] Reconcile Git, preservation and evidence; commit the implementation and exact
+      next-session handoff, with a documentation-only update in the original checkout.
+
+### Review
+
+Pending. Model gains remain unestablished until the unchanged full arbiter gate is met.
+
+### Maintenance implementation contract
+
+Use a committed, hash-pinned review ledger in the package, separate from ignored raw
+statistics. It enumerates the five reviewed 2024 WTA editions, every source record and
+its disposition, and the exact 1980 quarantine. The full package fingerprint already
+includes JSON; add it explicitly to the normalizer cache fingerprint. A result adapter
+requires matching numeric record/header edition IDs, main singles, a coherent winner,
+round and outcome. It never fabricates serving statistics or historical player profiles.
+The existing scraper gets an optional result accumulator before its known-stat skip;
+automatic admission outside the reviewed scope is not activated in this migration.
+
+Use exact ESPN event IDs established by the already corroborated rows (Madrid 413,
+Rome 414, Miami 713, Roland Garros 172, US Open 189; all 2024). The apparent Rome
+Shnaider–Minnen score conflict is a real repeated pair: Rome May 7 (6-2 6-3), Parma
+May 15 (6-4 6-3, ESPN 870). Date overlap alone mixed these. Retain both results.
+The 22 remaining completed results have unique same-edition/opponent/round/score
+evidence and explicit provider name/ID crosswalks; six retirements and one walkover
+are recorded separately. No general name-order alias rule is added.
+
+Validate expected exact result identities against the final frame independently of
+source-survivor tags. Both full and quick export check this before writing anything,
+then embed the receipt in meta. The typed output gate checks the pinned ledger identity,
+expected key counts, missing/conflicting keys, self-pair count and checked population.
+An absent receipt is a failure for population version 7. Synthetic fixtures gain the
+new contract without changing their existing assertions.
+
+Explicit estimated-start flags override previously cached played-date claims; preserve
+event bounds even without a played day. Conflicting record/header editions provide no
+timing evidence. Chronology policy advances to v2. The unknown 1980 opponent remains
+unknown: quarantine only its exact source/event/date/round/match-number/pair/score key.
+
+### Real-history adjudication correction before any scoring
+
+The 528-row coverage check correctly stopped the first WTA load, but inspection showed
+265 supposed missing results on the archive's uniform start-minus-one-day stamp, a date
+basis explicitly allowed by chronology v1/v2. They were present, mostly with stats.
+The Phase 4 calendar-window absence counts and the claimed Rome missing/conflicting
+match therefore overstate restoration. Preserve the old audit as superseded evidence.
+The receipt must recognize only the documented event-start anchor with exact event
+bounds, original stamp, verified evidence and matching ESPN edition; ordinary out-of-span
+played dates remain failures. Recount actual additions/removals from normalized history.
+
+One apparent new Madrid result is an existing Garcia–Xin Yu Wang match under the
+whitespace-split name. The repository falsifier was run on all 146,078 frozen enriched
+WTA rows: no meetings between the two spellings, canonical spelling present, no stable-ID
+contradiction. All 23 alias collision groups are exact same-edition results in 2024
+(46 rows), with archive and stats copies. Evidence and row-level review are preserved in
+`runs/maintenance/staging/xinyu-alias-review.json` and `xinyu-alias-collisions.csv`.
+Add the exact `xin yu wang` -> `Xinyu Wang` alias within the unshipped version-7 boundary;
+do not merge Xiyu Wang or add a general whitespace/name-order transformation.
+
+The next preflight caught a second concrete join error: Swiatek–Cirstea had identical
+6-1 6-1 scores and R32 labels in Doha and Madrid 2024. The broad season/pair/round/games
+key collapsed them and donated Madrid timing to Doha, which the chronology check blocked.
+Partition only reviewed donor groups by corroborated ESPN/native edition and bounds
+before outcome/timing donation. Preserve both results; unreviewed broad-key groups remain
+outside this ledger's completeness claim. Add a regression for this exact rematch.
+Population attempts 001–003 remain preserved; the next attempt uses a canonical-name
+comparison on both sides so renamed identities are not counted as additions/removals.
+
+### M0–M2 review — verified population repair
+
+- [x] Isolated maintenance checkout and 18,791 distinct input files registered.
+- [x] Added the hash-pinned, independently adjudicated 528-result WTA ledger and exact
+      1980 self-match quarantine, with scoped alias and event-bound dedup repairs.
+- [x] Added full/quick integrity receipts, typed output findings, cache checks, population
+      version 7, chronology v2 and saved-artifact ledger binding.
+- [x] Full suite: 1,319 passed; focused rematch/source suite: 70 passed. Lint fixes after
+      these runs only change import order and statement line breaks.
+- [x] `population-004` passes for ATP and both WTA state populations: all 528 reviewed
+      results, no invalid self-pairs, no chronology inversions. ATP unchanged; WTA gains
+      255 real results and removes 23 duplicates plus one self-match (net +231).
+- [x] Existing paired ordering dates remain unchanged; availability metadata changes on
+      286 WTA main and 8,161 enriched rows. No model/evaluator settings were changed.
+- [ ] Complete preservation check, commit repair, freeze/rebuild the new reference,
+      then finish the registered uncertainty screen and conditional full arbiter.
+
+See `tasks/research/2026-09-06-maintenance-review.md` for corrected evidence, failed
+attempts and the exact commands/drivers. Phase 4's absence counts are superseded.
+
+Preservation passed at 2026-09-07 02:53 UTC: original, coordinator and Phase 4 data
+unchanged; all 25,826 snapshot files and 56 Phase 3 run files verified; five distinct
+inodes per original input. Maintenance raw bytes are unchanged. Only four disposable
+normalized caches differ. Receipt: `runs/maintenance/preservation.json`.

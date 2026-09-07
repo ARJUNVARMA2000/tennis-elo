@@ -693,18 +693,22 @@ def build_meta(df, players, accuracy, trained_at: str | None = None,
                dual_state_threshold: int | None = None,
                dual_state_ready: bool = False,
                predictor_artifact_id: str | None = None,
-               prediction_audit: dict | None = None) -> dict:
+               prediction_audit: dict | None = None,
+               result_integrity: dict | None = None) -> dict:
     """`lastUpdated` is when this JSON was written; `modelTrainedAt` is when the predictor
     behind it was trained. They diverge on every quick refresh — which republishes the
     saved pickle — so only the latter can reveal a daily retrain that has been failing.
     The model population version likewise comes from the pickle, never from current config."""
     s = summary(df)
     from ..data.chronology import CHRONOLOGY_POLICY, round_date_inversions
+    from ..data.result_ledger import coverage_receipt
+    tour = df['tour'].iloc[0] if 'tour' in df and len(df) else 'atp'
     basis = df.get('date_basis', pd.Series('unknown', index=df.index)).fillna('unknown')
     levels = (df["tourney_level"].astype("string").str.replace(r"\s+", "", regex=True)
               if "tourney_level" in df else pd.Series(dtype="string"))
     return {
         **(prediction_audit or {}),
+        'resultIntegrity': (coverage_receipt(df, tour) if result_integrity is None else result_integrity),
         "chronology": {"policy": CHRONOLOGY_POLICY, "checkedMatches": len(df),
                        "roundDateInversions": len(round_date_inversions(df)),
                        "dateBasisCounts": {str(k): int(v) for k, v in basis.value_counts().items()}},
@@ -1034,6 +1038,8 @@ def export_all(tour, df, elo, srv, meta, predictor, oos=None, *, full: bool = Tr
     """
     from ..data.chronology import require_chronology
     require_chronology(df)
+    from ..data.result_ledger import require_result_integrity
+    result_integrity = require_result_integrity(df, tour)
     _clear_upcoming_outputs(tour)
     static = full or not _static_outputs_present(tour)
     build_generation = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -1092,6 +1098,7 @@ def export_all(tour, df, elo, srv, meta, predictor, oos=None, *, full: bool = Tr
         getattr(predictor, "_has_lower_state", False),
         getattr(predictor, "artifact_id", None),
         prediction_audit=audit_meta,
+        result_integrity=result_integrity,
     ))
     if static:
         _write(tour, "method.json", build_method(tour))

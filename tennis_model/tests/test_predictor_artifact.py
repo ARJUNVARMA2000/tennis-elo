@@ -146,12 +146,14 @@ def test_roundtrip_keeps_plain_pickle_and_stable_generation_id(valid_artifact, t
     assert contract["xgboost"]["params"] == production_xgb_params("atp")
     assert contract["population"]["matchPopulationVersion"] >= 1
     assert type(contract["population"]["playerAliases"]) is list
+    from tennis_model.config import REVIEWED_RESULTS
+    assert contract['population']['reviewedResultsSHA256'] == REVIEWED_RESULTS['atp']['sha256']
     assert contract["inference"] == {
         "schemaVersion": 5,
         "probabilityPolicy": "calibrated-pair-average-v1",
         "stylePolicy": "mcp-retrospective-played-date-strict-before-v1",
         "servePriorPolicy": "available-date-strict-before-v1",
-        "chronologyPolicy": "retrospective-verified-date-or-recorded-event-round-v1",
+        "chronologyPolicy": "retrospective-verified-date-or-recorded-event-round-v2",
         "dualStateGateThreshold": None,
     }
     assert contract["classes"]["combiner"].endswith(".BaggedClassifier")
@@ -325,6 +327,14 @@ def test_every_invalid_present_envelope_stops_before_unpickle(
     path = _copy_artifact(source, contract)
     envelope = json.loads(predictor_envelope_path(path).read_text(encoding="utf-8"))
     envelope["contract"]["features"][0] = "wrong"
+    _write_envelope(path, envelope)
+    cases.append((path, PredictorArtifactReason.CONTRACT_MISMATCH))
+
+    reviewed = tmp_path / 'reviewed-ledger'
+    reviewed.mkdir()
+    path = _copy_artifact(source, reviewed)
+    envelope = json.loads(predictor_envelope_path(path).read_text(encoding='utf-8'))
+    envelope['contract']['population']['reviewedResultsSHA256'] = '0' * 64
     _write_envelope(path, envelope)
     cases.append((path, PredictorArtifactReason.CONTRACT_MISMATCH))
 

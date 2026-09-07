@@ -770,9 +770,12 @@ if __name__ == "__main__":
 def test_full_and_quick_export_produce_gate_valid_private_audit(monkeypatch, tmp_path, full, tour):
     from datetime import UTC, datetime
 
+    from reviewed_fixtures import empty_reviewed_scope
     from tennis_model.data.health import output_findings, read_outputs
     from tennis_model.model.probability_audit import AUDIT_FILENAME
     from test_probability import predictor
+
+    empty_reviewed_scope(monkeypatch, tmp_path / 'reviewed')
 
     pred = predictor(tour, lower=tour == 'wta')
     frame = pd.DataFrame({'date': pd.to_datetime(['2026-08-01']), 'tour': [tour],

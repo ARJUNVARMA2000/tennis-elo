@@ -13,10 +13,19 @@ import tempfile
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import tennis_model.data.results as results
+
+
+@pytest.fixture(autouse=True)
+def isolated_reviewed_input(monkeypatch, tmp_path):
+    # These tests supply a complete synthetic source universe. The real committed
+    # repair is exercised separately in test_result_ledger, including both merge orders.
+    from reviewed_fixtures import empty_reviewed_scope
+    empty_reviewed_scope(monkeypatch, tmp_path / 'reviewed')
 
 
 # ---------------------------------------------------------------------------

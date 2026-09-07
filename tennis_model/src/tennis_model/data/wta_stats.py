@@ -226,16 +226,21 @@ def _winner_first_score(m: dict, a_won: bool) -> str:
     """Serialize per-set scores winner-first in canon format ('7-6(4) 6-3')."""
     sets = []
     for i in range(1, 6):
-        ga, gb = str(m.get(f"ScoreSet{i}A") or ""), str(m.get(f"ScoreSet{i}B") or "")
+        ga, gb = (str(m.get(f"ScoreSet{i}{side}", '')) if m.get(f"ScoreSet{i}{side}") is not None else ''
+                  for side in ('A', 'B'))
         if not ga or not gb:
             break
-        tb = str(m.get(f"ScoreTbSet{i}") or "")
+        tb = str(m.get(f"ScoreTbSet{i}")) if m.get(f"ScoreTbSet{i}") is not None else ''
         w, l = (ga, gb) if a_won else (gb, ga)
         sets.append(f"{w}-{l}({tb})" if tb else f"{w}-{l}")
     return " ".join(sets)
 
 
 def _stats_row(ev: dict, m: dict, st: dict, draw_level: str | None = None) -> dict | None:
+    from .wta_results import same_edition
+    from .wta_results import timing as result_timing
+    if not same_edition(ev, m, require_record=False):
+        return None
     a_won = str(m.get("Winner")) == "2"
     if str(m.get("Winner")) not in ("2", "3"):
         return None
@@ -274,15 +279,10 @@ def _stats_row(ev: dict, m: dict, st: dict, draw_level: str | None = None) -> di
     # An event-start fallback is not evidence of when this match was played.
     ts = str(m.get("MatchTimeStamp") or "")[:10]
     date = ts if re.fullmatch(r"\d{4}-\d{2}-\d{2}", ts) else str(ev["start"])
-    start, end, played = (pd.to_datetime(v, errors="coerce")
-                          for v in (ev.get("start"), ev.get("end"), ts))
-    bounded = pd.notna(start) and pd.notna(end) and 0 <= (end - start).days <= 35
-    timing = {}
-    if bounded:
-        timing = {"event_start": str(start.date()), "event_end": str(end.date()),
-                  "date_evidence": f"wta-api:{ev['year']}-W{ev['id']}:{m.get('MatchID', '')}"}
-        if pd.notna(played) and start <= played <= end:
-            timing["played_date"] = str(played.date())
+    try:
+        timing = result_timing(ev, m)
+    except ValueError:
+        timing = {}
     draw_level = draw_level or _match_draw_level(ev, m) or "main"
     round_label = (f"Q{m.get('RoundID')}" if draw_level == "qual"
                    and str(m.get("RoundID") or "").isdigit()
@@ -342,7 +342,8 @@ def _match_key(ev: dict, match: dict, draw_level: str) -> str:
 
 def scrape_tournament(ev: dict, scope: str = "main",
                       known_keys: set[str] | None = None,
-                      observed_roles: dict[str, tuple[str, str, str | None]] | None = None
+                      observed_roles: dict[str, tuple[str, str, str | None]] | None = None,
+                      result_records: list[dict] | None = None
                       ) -> list[dict]:
     if scope not in _SCOPES:
         raise ValueError(f"unknown WTA scrape scope {scope!r}")
@@ -368,6 +369,14 @@ def scrape_tournament(ev: dict, scope: str = "main",
             continue
         if m.get("MatchState") != "F":
             continue
+        if result_records is not None and draw_level == 'main':
+            from .wta_results import normalize_result
+            try:
+                result_records.append({'decision': 'eligible', 'row': normalize_result(ev, m),
+                                       'event': dict(ev), 'match': dict(m)})
+            except ValueError as exc:
+                result_records.append({'decision': 'review', 'reason': str(exc),
+                                       'event': dict(ev), 'match': dict(m)})
         fallback_key = _match_key(ev, m, str(draw_level))
         if known_keys is not None and ((source_key and source_key in known_keys)
                                        or fallback_key in known_keys):
