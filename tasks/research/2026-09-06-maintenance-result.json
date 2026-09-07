@@ -1,0 +1,1339 @@
+{
+  "schema": "maintenance-round-v1",
+  "recordedAt": "2026-09-07T03:10:41.964388+00:00",
+  "implementationSHA": "1fbe42a3e5c900b6b76594032e5f46b1054adbaa",
+  "status": "M0-M3 complete; M4 continuation in separate checkout",
+  "modelAdoption": false,
+  "referenceFreeze": {
+    "contractSHA256": "1f531e2bf3ebb5e771a798e3eee3376a09794e94f721cd04f6230076a612c7ac",
+    "createdAt": "2026-09-07T02:56:22.985874+00:00",
+    "dataThrough": {
+      "atp": "2026-09-05",
+      "wta": "2026-09-06"
+    },
+    "schema": "research-freeze-v1"
+  },
+  "population": {
+    "atp-enriched": {
+      "auditSchema": "canonical-membership-v2",
+      "driverSHA256": "76e247930272676b8fe6961dc9658da41d79a8b9a0ab016b83b7bc4baebad4a4",
+      "oldRows": 284893,
+      "newRows": 284893,
+      "added": 0,
+      "removed": 0,
+      "commonUniqueIdentities": 284893,
+      "oldNonuniqueRows": 0,
+      "newNonuniqueRows": 0,
+      "timingChanged": 0,
+      "inversions": [],
+      "receipt": {
+        "schema": "result-integrity-v1",
+        "tour": "atp",
+        "populationVersion": 7,
+        "ledgerSHA256": "1381b0f3f34602eb55c11e1c02fa0d45fbfed647fa0fb6b944174ffdc5e5ac87",
+        "checkedMatches": 284893,
+        "selfPairs": 0,
+        "expectedResults": 0,
+        "verifiedResults": 0,
+        "missingKeys": [],
+        "conflictingKeys": [],
+        "ambiguousKeys": [],
+        "reviewedQuarantines": 0,
+        "coverageScope": "No result-restoration scope; raw self-pair audit found none. Other coverage remains unknown.",
+        "otherCoverage": "unknown"
+      },
+      "seconds": 106.40612537495326,
+      "dateBasis": {
+        "unknown": 284501,
+        "played_date": 255,
+        "event_start": 137
+      },
+      "oldReferenceSHA256": "e6af501156efb09432f0c42a06bc3ce5abe0779aaeb33256f2f4442f5a17f315",
+      "frameSHA256": "61780c27dc50b2eb6a5ed92165d902d6865034ae162ad71e0638ae37f471c85f"
+    },
+    "wta-main": {
+      "auditSchema": "canonical-membership-v2",
+      "driverSHA256": "76e247930272676b8fe6961dc9658da41d79a8b9a0ab016b83b7bc4baebad4a4",
+      "oldRows": 128978,
+      "newRows": 129209,
+      "added": 255,
+      "removed": 24,
+      "commonUniqueIdentities": 128954,
+      "oldNonuniqueRows": 0,
+      "newNonuniqueRows": 0,
+      "timingChanged": 286,
+      "inversions": [],
+      "receipt": {
+        "schema": "result-integrity-v1",
+        "tour": "wta",
+        "populationVersion": 7,
+        "ledgerSHA256": "6273d7786a65892c41aa3674322ff08cc7edf69cbed3dd9f2d21faed3ad2c117",
+        "checkedMatches": 129209,
+        "selfPairs": 0,
+        "expectedResults": 528,
+        "verifiedResults": 528,
+        "missingKeys": [],
+        "conflictingKeys": [],
+        "ambiguousKeys": [],
+        "reviewedQuarantines": 1,
+        "coverageScope": "Only the five listed 2024 main singles catalogues; other history coverage remains unknown.",
+        "otherCoverage": "unknown"
+      },
+      "seconds": 283.0155910840258,
+      "dateBasis": {
+        "unknown": 128415,
+        "event_start": 559,
+        "played_date": 235
+      },
+      "oldReferenceSHA256": "4c834da46abf3031913336fd4529f5e3dae02b6fbd3e333789ae6a4bc98204da",
+      "frameSHA256": "1f236ef84ed9449ec464cf4d485e7d05f618210d795e6c7fc0b6b920827ada0d"
+    },
+    "wta-enriched": {
+      "auditSchema": "canonical-membership-v2",
+      "driverSHA256": "76e247930272676b8fe6961dc9658da41d79a8b9a0ab016b83b7bc4baebad4a4",
+      "oldRows": 146078,
+      "newRows": 146309,
+      "added": 255,
+      "removed": 24,
+      "commonUniqueIdentities": 146054,
+      "oldNonuniqueRows": 0,
+      "newNonuniqueRows": 0,
+      "timingChanged": 8161,
+      "inversions": [],
+      "receipt": {
+        "schema": "result-integrity-v1",
+        "tour": "wta",
+        "populationVersion": 7,
+        "ledgerSHA256": "6273d7786a65892c41aa3674322ff08cc7edf69cbed3dd9f2d21faed3ad2c117",
+        "checkedMatches": 146309,
+        "selfPairs": 0,
+        "expectedResults": 528,
+        "verifiedResults": 528,
+        "missingKeys": [],
+        "conflictingKeys": [],
+        "ambiguousKeys": [],
+        "reviewedQuarantines": 1,
+        "coverageScope": "Only the five listed 2024 main singles catalogues; other history coverage remains unknown.",
+        "otherCoverage": "unknown"
+      },
+      "seconds": 231.1534637499717,
+      "dateBasis": {
+        "unknown": 138783,
+        "played_date": 6815,
+        "event_start": 711
+      },
+      "oldReferenceSHA256": "cc18d32a7a4fbb88c6d1a30641478c3634bdd8c9596f0a4cc5f7e30a8dcbe8b0",
+      "frameSHA256": "57e6572842c6e68d9dd7165b542d7187d7f000d0afbca0040bb4c1b3e13b03fa"
+    }
+  },
+  "adjudication": {
+    "oldRows": 128978,
+    "newRows": 129209,
+    "added": 255,
+    "removed": 24,
+    "addedByEvent": {
+      "2024-W903": 127,
+      "2024-W905": 127,
+      "2024-1038": 1
+    },
+    "addedBySource": {
+      "reviewed": 254,
+      "historical": 1
+    },
+    "removedBySource": {
+      "stats": 23,
+      "historical": 1
+    },
+    "addedCompleted": 248,
+    "addedWalkovers": 1,
+    "addedOtherIncomplete": 6,
+    "addedWithBothServeDenominators": 1,
+    "removedBefore1991": 1,
+    "removed2024": 23,
+    "newSourceCounts": {
+      "historical": 123473,
+      "stats": 4924,
+      "fresh": 549,
+      "reviewed": 254,
+      "live": 9
+    },
+    "oldSHA256": "4c834da46abf3031913336fd4529f5e3dae02b6fbd3e333789ae6a4bc98204da",
+    "newSHA256": "1f236ef84ed9449ec464cf4d485e7d05f618210d795e6c7fc0b6b920827ada0d",
+    "correction": "Treat absent round as empty string in identity, as the population driver already does; 45 identical null-round rows were falsely called changed by the first supplementary diagnostic."
+  },
+  "timing": {
+    "wta-main": {
+      "changed": 286,
+      "fields": {
+        "date": 0,
+        "date_basis": 286,
+        "played_date": 274,
+        "event_start": 285,
+        "event_end": 285,
+        "stats_available_at": 286,
+        "stats_availability_basis": 286
+      },
+      "oldDateBasis": {
+        "unknown": 285,
+        "played_date": 1
+      },
+      "newDateBasis": {
+        "event_start": 284,
+        "played_date": 1,
+        "unknown": 1
+      },
+      "oldAvailability": {
+        "unknown": 285,
+        "played_date": 1
+      },
+      "newAvailability": {
+        "played_date": 273,
+        "event_end": 13
+      }
+    },
+    "wta-enriched": {
+      "changed": 8161,
+      "fields": {
+        "date": 0,
+        "date_basis": 334,
+        "played_date": 274,
+        "event_start": 8160,
+        "event_end": 8160,
+        "stats_available_at": 8161,
+        "stats_availability_basis": 8161
+      },
+      "oldDateBasis": {
+        "unknown": 8160,
+        "played_date": 1
+      },
+      "newDateBasis": {
+        "unknown": 7828,
+        "event_start": 332,
+        "played_date": 1
+      },
+      "oldAvailability": {
+        "unknown": 8160,
+        "played_date": 1
+      },
+      "newAvailability": {
+        "event_end": 7888,
+        "played_date": 273
+      }
+    }
+  },
+  "commonResults": {
+    "schema": "maintenance-common-results-v1",
+    "driverSHA256": "2f8721ad5fe2e27e5f041a4cb0384fa8705156e7a0b7f8be5c44ed0cb61d81e3",
+    "identity": [
+      "native event edition",
+      "canonical winner",
+      "canonical loser",
+      "round",
+      "games",
+      "draw role"
+    ],
+    "interpretation": "Different data/identity/chronology reference; no model adoption claim.",
+    "ambiguousPolicy": "Report and exclude nonunique identity groups from descriptive pairing.",
+    "tours": {
+      "atp": {
+        "oldScored": 46195,
+        "newScored": 46195,
+        "uniqueCommon": 46195,
+        "oldNonuniqueRows": 0,
+        "newNonuniqueRows": 0,
+        "addedMembership": 0,
+        "removedMembership": 0,
+        "changedCommonDates": 0,
+        "slices": {
+          "all": {
+            "n": 46195,
+            "oldLL": 0.5739541815713326,
+            "newLL": 0.5739541815713326,
+            "delta": 0.0,
+            "naiveSE": 0.0,
+            "probabilitiesExact": true
+          },
+          "tune": {
+            "n": 28357,
+            "oldLL": 0.562589485710041,
+            "newLL": 0.562589485710041,
+            "delta": 0.0,
+            "naiveSE": 0.0,
+            "probabilitiesExact": true
+          },
+          "validation": {
+            "n": 17838,
+            "oldLL": 0.59202059487656,
+            "newLL": 0.59202059487656,
+            "delta": 0.0,
+            "naiveSE": 0.0,
+            "probabilitiesExact": true
+          }
+        },
+        "oldSHA256": "792a687ae168b1ec7b1c09925a5cc993584e189f6f85047be36945cd6848eecb",
+        "newSHA256": "ea9707ea271dc0611865743c787089c43e646228a4e1f8f2d8724d7aa66888d2",
+        "csvSHA256": "0011c84987c206f5fb35156750b28015ce1aedf675272fc986755f7a92753595"
+      },
+      "wta": {
+        "oldScored": 42197,
+        "newScored": 42422,
+        "uniqueCommon": 42174,
+        "oldNonuniqueRows": 0,
+        "newNonuniqueRows": 0,
+        "addedMembership": 248,
+        "removedMembership": 23,
+        "changedCommonDates": 0,
+        "slices": {
+          "all": {
+            "n": 42174,
+            "oldLL": 0.5935571700879805,
+            "newLL": 0.5934375751628979,
+            "delta": 0.00011959492508263253,
+            "naiveSE": 7.257723671307879e-05,
+            "probabilitiesExact": false
+          },
+          "tune": {
+            "n": 26794,
+            "oldLL": 0.5907120326873052,
+            "newLL": 0.5906491562188603,
+            "delta": 6.287646844489458e-05,
+            "naiveSE": 4.8614571545419695e-05,
+            "probabilitiesExact": false
+          },
+          "validation": {
+            "n": 15380,
+            "oldLL": 0.5985137768183898,
+            "newLL": 0.59829537081872,
+            "delta": 0.00021840599966985947,
+            "naiveSE": 0.0001800973623695983,
+            "probabilitiesExact": false
+          }
+        },
+        "oldSHA256": "b65554084908594adaa7615c45f6600a45ebd1086e2fd6e0575ffb1c55c4f1f1",
+        "newSHA256": "74e87b8ca49ac2af8b0858a17c52d20bd18590408a2c24a2c9b21712e410df1c",
+        "csvSHA256": "1a861e16d5a10aa2da8c583cb05cc71251e6351c2db9266a6eb9d38ae01dfc11"
+      }
+    }
+  },
+  "preservationBeforeBaseline": {
+    "checkedAt": "2026-09-07T02:53:18.663417+00:00",
+    "originalAllDataUnchanged": true,
+    "coordinatorAllDataUnchanged": true,
+    "phase4AllDataUnchanged": true,
+    "maintenanceRawUnchanged": true,
+    "snapshotFilesVerified": 25826,
+    "fiveDistinctInodesPerOriginalDataFile": true,
+    "originalDataFileCount": 18791,
+    "maintenanceDerivedDifferences": [
+      {
+        "path": "cache/normalized-matches/atp-enriched.pkl.gz",
+        "before": {
+          "path": "cache/normalized-matches/atp-enriched.pkl.gz",
+          "sha256": "e6af501156efb09432f0c42a06bc3ce5abe0779aaeb33256f2f4442f5a17f315",
+          "bytes": 16957458
+        },
+        "after": {
+          "path": "cache/normalized-matches/atp-enriched.pkl.gz",
+          "bytes": 16957458,
+          "sha256": "e8cc13878c85871161f20ee919dc69786e41b104a391e16ae093882605732ee3"
+        }
+      },
+      {
+        "path": "cache/normalized-matches/atp-main.pkl.gz",
+        "before": {
+          "path": "cache/normalized-matches/atp-main.pkl.gz",
+          "sha256": "e8fe7141937020ebdcbf8c1a401b9e2aca89655fae97ca5c25f2b72dc37f64e6",
+          "bytes": 2007
+        },
+        "after": {
+          "path": "cache/normalized-matches/atp-main.pkl.gz",
+          "bytes": 2008,
+          "sha256": "9b7f6252a70674bbefdac553380b9a286f594d41473871f86a16efdb5e124388"
+        }
+      },
+      {
+        "path": "cache/normalized-matches/wta-enriched.pkl.gz",
+        "before": {
+          "path": "cache/normalized-matches/wta-enriched.pkl.gz",
+          "sha256": "cc18d32a7a4fbb88c6d1a30641478c3634bdd8c9596f0a4cc5f7e30a8dcbe8b0",
+          "bytes": 6991867
+        },
+        "after": {
+          "path": "cache/normalized-matches/wta-enriched.pkl.gz",
+          "bytes": 7036783,
+          "sha256": "5ae7ccbcaa6a851b95a2eff7286f9cf0bad7be0f234a23c185e06667d3bdba79"
+        }
+      },
+      {
+        "path": "cache/normalized-matches/wta-main.pkl.gz",
+        "before": {
+          "path": "cache/normalized-matches/wta-main.pkl.gz",
+          "sha256": "4c834da46abf3031913336fd4529f5e3dae02b6fbd3e333789ae6a4bc98204da",
+          "bytes": 5908433
+        },
+        "after": {
+          "path": "cache/normalized-matches/wta-main.pkl.gz",
+          "bytes": 5946925,
+          "sha256": "fe6ec8a55238bd3b9495981bd27533a70ece3e465c786ad0ef0699d8dbb5e20d"
+        }
+      }
+    ],
+    "phase3RunFilesVerified": 56
+  },
+  "baselines": {
+    "atp": {
+      "endedAt": "2026-09-07T02:59:16.460052+00:00",
+      "freezeSHA256": "1f531e2bf3ebb5e771a798e3eee3376a09794e94f721cd04f6230076a612c7ac",
+      "results": {
+        "dateBasisCounts": {
+          "event_start": 97,
+          "played_date": 249,
+          "unknown": 45849
+        },
+        "eligibleMainCompleted": 46195,
+        "limitations": [
+          "Retrospective event/round dates include unknown played times.",
+          "Historical publication availability is not reconstructed.",
+          "This establishes the incumbent; it is not a candidate adoption."
+        ],
+        "metrics": {
+          "acc": 0.6921203593462496,
+          "brier": 0.19633407770587089,
+          "logloss": 0.5739541815713326,
+          "n": 46195
+        },
+        "n": 46195,
+        "oosSHA256": "ea9707ea271dc0611865743c787089c43e646228a4e1f8f2d8724d7aa66888d2",
+        "pairColumns": [
+          "date",
+          "winner_name",
+          "loser_name",
+          "round_order",
+          "tour",
+          "tourney_id",
+          "round",
+          "match_num",
+          "draw_level"
+        ],
+        "scoredByYear": {
+          "2010": 2907,
+          "2011": 2889,
+          "2012": 2982,
+          "2013": 2766,
+          "2014": 2748,
+          "2015": 2833,
+          "2016": 2854,
+          "2017": 2812,
+          "2018": 2925,
+          "2019": 2641,
+          "2020": 1433,
+          "2021": 2649,
+          "2022": 2828,
+          "2023": 2895,
+          "2024": 3037,
+          "2025": 2809,
+          "2026": 2187
+        },
+        "scoredKeysSHA256": "be45c9ce58956282c17da55c2956210edfdd1d9009d83e6d0bba8daae2c692da",
+        "sourceCounts": {
+          "fresh": 82,
+          "historical": 44066,
+          "live": 114,
+          "stats": 1933
+        },
+        "tour": "atp",
+        "unscoredEligible": 0
+      },
+      "status": "complete",
+      "wallSeconds": 153.7086056250264
+    },
+    "wta": {
+      "endedAt": "2026-09-07T03:04:10.751479+00:00",
+      "freezeSHA256": "1f531e2bf3ebb5e771a798e3eee3376a09794e94f721cd04f6230076a612c7ac",
+      "results": {
+        "dateBasisCounts": {
+          "event_start": 534,
+          "played_date": 233,
+          "unknown": 41655
+        },
+        "eligibleMainCompleted": 42422,
+        "limitations": [
+          "Retrospective event/round dates include unknown played times.",
+          "Historical publication availability is not reconstructed.",
+          "This establishes the incumbent; it is not a candidate adoption."
+        ],
+        "metrics": {
+          "acc": 0.6774433077176937,
+          "brier": 0.20418070744804484,
+          "logloss": 0.5930618887966231,
+          "n": 42422
+        },
+        "n": 42422,
+        "oosSHA256": "74e87b8ca49ac2af8b0858a17c52d20bd18590408a2c24a2c9b21712e410df1c",
+        "pairColumns": [
+          "date",
+          "winner_name",
+          "loser_name",
+          "round_order",
+          "tour",
+          "tourney_id",
+          "round",
+          "match_num",
+          "source_match_id",
+          "draw_level"
+        ],
+        "scoredByYear": {
+          "2010": 2702,
+          "2011": 2702,
+          "2012": 2808,
+          "2013": 2633,
+          "2014": 2611,
+          "2015": 2547,
+          "2016": 2812,
+          "2017": 2708,
+          "2018": 2746,
+          "2019": 2525,
+          "2020": 1250,
+          "2021": 2485,
+          "2022": 2478,
+          "2023": 2719,
+          "2024": 2303,
+          "2025": 2402,
+          "2026": 1991
+        },
+        "scoredKeysSHA256": "ef5549ccc0f6e7f88224af867773ec5ab78a336e25b4b115faf09231734ee1d9",
+        "sourceCounts": {
+          "fresh": 404,
+          "historical": 36850,
+          "live": 7,
+          "reviewed": 247,
+          "stats": 4914
+        },
+        "tour": "wta",
+        "unscoredEligible": 0
+      },
+      "status": "complete",
+      "wallSeconds": 242.63782616698882
+    }
+  },
+  "finalArtifacts": {
+    "atp": {
+      "endedAt": "2026-09-07T03:06:01.205879+00:00",
+      "freezeSHA256": "1f531e2bf3ebb5e771a798e3eee3376a09794e94f721cd04f6230076a612c7ac",
+      "results": {
+        "artifactId": "aa993b0d-505a-4bce-9c5c-9f52c5307b7c",
+        "artifactSHA256": "b845677ed43d81bb773adb4f8da292648182ad7f54bc52b62fbbcbf6287a1468",
+        "costs": {
+          "exchange435Seconds": 6.5250913329655305,
+          "featureBuildSeconds": 47.08805887500057,
+          "normalFinalFitSeconds": 50.76090799999656,
+          "producerReceiptSeconds": 2.1559843749855645,
+          "saveAndValidatedLoadSeconds": 0.5859871249995194,
+          "twoFoldReproductionSeconds": 7.415189374994952
+        },
+        "deterministicFolds": [
+          {
+            "exact": true,
+            "n": 2907,
+            "probabilityColumns": [
+              "p_combiner",
+              "p_raw",
+              "p_legacy_canonical",
+              "p_legacy_winnerfirst",
+              "legacy_two_direction_loss"
+            ],
+            "year": 2010
+          },
+          {
+            "exact": true,
+            "n": 2187,
+            "probabilityColumns": [
+              "p_combiner",
+              "p_raw",
+              "p_legacy_canonical",
+              "p_legacy_winnerfirst",
+              "legacy_two_direction_loss"
+            ],
+            "year": 2026
+          }
+        ],
+        "dispositionScope": "all ATP selected rows",
+        "exchange": {
+          "context": {
+            "as_of": "2026-09-06",
+            "best_of": 3,
+            "event": null,
+            "indoor": false,
+            "round_order": 3,
+            "surface": "Hard",
+            "tier_k": 1.0
+          },
+          "csvSHA256": "9516bc00c541ba2f7dd65d9dc10759a41e34ce458b8860222c3b3de6da0c4435",
+          "maxError": 1.1102230246251565e-16,
+          "meanExchangeError": 7.911934198478127e-18,
+          "pairs": 435,
+          "rosterSHA256": "e5108c04f133a5cc57b3b9f45e6a82d5c541836192ace2050649d2a39ad8cea7",
+          "savedLoadedMatrixExact": true
+        },
+        "featureParity": {
+          "columns": 42,
+          "exact": true,
+          "rows": 46195
+        },
+        "files": {
+          "audit-validation.json": "e561d46ac4f06b938bc47e22b62f7fe714407bf243a940f83aa163e17b47d714",
+          "exchange-435.csv": "9516bc00c541ba2f7dd65d9dc10759a41e34ce458b8860222c3b3de6da0c4435",
+          "features-main.pkl": "2b2b6c3e22d5affbf77f17116dba5f597957105d93312bb366a42f19932616e7",
+          "oos.pkl": "69ba70b36876b7664e66dcf40da6cd0cb002da3aa103ea2ae43ff9448e6cddaa",
+          "population-dispositions.csv": "4383d238d4fd5f97b70639499c4ec188f851c6872cc69ffae80c019a27eeddd6",
+          "prediction-audit.private": "85aa2f983ae79702b7ecb92402a2163a69f991684d320f4a794ca141e71a2256",
+          "predictor.pkl": "b845677ed43d81bb773adb4f8da292648182ad7f54bc52b62fbbcbf6287a1468",
+          "predictor.pkl.envelope": "c3b319ed514812f6be348942cb9c7ae026b3e1b0a78a3e66880f5d1029bb06dc"
+        },
+        "finalFitPopulation": {
+          "calibrationCutoff": "2025-09-05T00:00:00",
+          "calibrationRows": 2788,
+          "coreRows": 107207,
+          "latestMainDate": "2026-09-05T00:00:00"
+        },
+        "fiveBagMembers": 5,
+        "foldPopulations": [
+          {
+            "calibration": 2951,
+            "core": 60849,
+            "test": 2907,
+            "train": 63800,
+            "warmupReuse": false,
+            "year": 2010
+          },
+          {
+            "calibration": 2907,
+            "core": 63800,
+            "test": 2889,
+            "train": 66707,
+            "warmupReuse": false,
+            "year": 2011
+          },
+          {
+            "calibration": 2889,
+            "core": 66707,
+            "test": 2982,
+            "train": 69596,
+            "warmupReuse": false,
+            "year": 2012
+          },
+          {
+            "calibration": 2982,
+            "core": 69596,
+            "test": 2766,
+            "train": 72578,
+            "warmupReuse": false,
+            "year": 2013
+          },
+          {
+            "calibration": 2766,
+            "core": 72578,
+            "test": 2748,
+            "train": 75344,
+            "warmupReuse": false,
+            "year": 2014
+          },
+          {
+            "calibration": 2748,
+            "core": 75344,
+            "test": 2833,
+            "train": 78092,
+            "warmupReuse": false,
+            "year": 2015
+          },
+          {
+            "calibration": 2833,
+            "core": 78092,
+            "test": 2854,
+            "train": 80925,
+            "warmupReuse": false,
+            "year": 2016
+          },
+          {
+            "calibration": 2854,
+            "core": 80925,
+            "test": 2812,
+            "train": 83779,
+            "warmupReuse": false,
+            "year": 2017
+          },
+          {
+            "calibration": 2812,
+            "core": 83779,
+            "test": 2925,
+            "train": 86591,
+            "warmupReuse": false,
+            "year": 2018
+          },
+          {
+            "calibration": 2925,
+            "core": 86591,
+            "test": 2641,
+            "train": 89516,
+            "warmupReuse": false,
+            "year": 2019
+          },
+          {
+            "calibration": 2641,
+            "core": 89516,
+            "test": 1433,
+            "train": 92157,
+            "warmupReuse": false,
+            "year": 2020
+          },
+          {
+            "calibration": 1433,
+            "core": 92157,
+            "test": 2649,
+            "train": 93590,
+            "warmupReuse": false,
+            "year": 2021
+          },
+          {
+            "calibration": 2649,
+            "core": 93590,
+            "test": 2828,
+            "train": 96239,
+            "warmupReuse": false,
+            "year": 2022
+          },
+          {
+            "calibration": 2828,
+            "core": 96239,
+            "test": 2895,
+            "train": 99067,
+            "warmupReuse": false,
+            "year": 2023
+          },
+          {
+            "calibration": 2895,
+            "core": 99067,
+            "test": 3037,
+            "train": 101962,
+            "warmupReuse": false,
+            "year": 2024
+          },
+          {
+            "calibration": 3037,
+            "core": 101962,
+            "test": 2809,
+            "train": 104999,
+            "warmupReuse": false,
+            "year": 2025
+          },
+          {
+            "calibration": 2809,
+            "core": 104999,
+            "test": 2187,
+            "train": 107808,
+            "warmupReuse": false,
+            "year": 2026
+          }
+        ],
+        "inferenceSchema": 5,
+        "normalFinalCalibrationDays": 365,
+        "populationDispositions": {
+          "before-2010": 103011,
+          "not-completed": 4274,
+          "scored": 46195,
+          "state-only-lower": 131413
+        },
+        "receipt": {
+          "branches": {
+            "lower": 0,
+            "main": 36
+          },
+          "maxError": 1.1102230246251565e-16,
+          "metadata": {
+            "inferenceSchemaVersion": 5,
+            "predictionAuditObservedAt": "2026-09-07T03:05:50Z",
+            "predictionAuditSHA256": "85aa2f983ae79702b7ecb92402a2163a69f991684d320f4a794ca141e71a2256",
+            "predictionAuditSchema": "prediction-audit-v1",
+            "predictionAuditSourceGeneration": "7feb28156b8ecbed246988a3e3c10e37af2c2130260390c86ae0ffe1338bcb19",
+            "predictorArtifactId": "aa993b0d-505a-4bce-9c5c-9f52c5307b7c"
+          },
+          "pairs": 36,
+          "receiptSHA256": "85aa2f983ae79702b7ecb92402a2163a69f991684d320f4a794ca141e71a2256",
+          "validatedAt": "2026-09-07T03:05:50.617045+00:00"
+        },
+        "tour": "atp"
+      },
+      "status": "complete",
+      "wallSeconds": 71.55651116702938
+    },
+    "wta": {
+      "endedAt": "2026-09-07T03:08:01.740794+00:00",
+      "freezeSHA256": "1f531e2bf3ebb5e771a798e3eee3376a09794e94f721cd04f6230076a612c7ac",
+      "results": {
+        "artifactId": "dd9e41ab-6e77-4d00-8bfd-521511fa5a18",
+        "artifactSHA256": "8cf280c43f813a6944244d585248af8d5fcbc1ff628e535f98d4e10866730e34",
+        "costs": {
+          "exchange435Seconds": 6.48940008302452,
+          "featureBuildSeconds": 25.84011545800604,
+          "normalFinalFitSeconds": 33.81012487504631,
+          "producerReceiptSeconds": 1.8956770419608802,
+          "saveAndValidatedLoadSeconds": 0.6047653330024332,
+          "twoFoldReproductionSeconds": 5.0000176670146175
+        },
+        "deterministicFolds": [
+          {
+            "exact": true,
+            "n": 2702,
+            "probabilityColumns": [
+              "p_combiner",
+              "p_raw",
+              "p_legacy_canonical",
+              "p_legacy_winnerfirst",
+              "legacy_two_direction_loss"
+            ],
+            "year": 2010
+          },
+          {
+            "exact": true,
+            "n": 1991,
+            "probabilityColumns": [
+              "p_combiner",
+              "p_raw",
+              "p_legacy_canonical",
+              "p_legacy_winnerfirst",
+              "legacy_two_direction_loss"
+            ],
+            "year": 2026
+          }
+        ],
+        "dispositionScope": "WTA main population",
+        "exchange": {
+          "context": {
+            "as_of": "2026-09-06",
+            "best_of": 3,
+            "event": null,
+            "indoor": false,
+            "round_order": 3,
+            "surface": "Hard",
+            "tier_k": 1.0
+          },
+          "csvSHA256": "f876e649b0e9e7e2196d8311de19f265f224b30b601add25952e136130a2fca5",
+          "maxError": 1.1102230246251565e-16,
+          "meanExchangeError": 4.594026308793751e-18,
+          "pairs": 435,
+          "rosterSHA256": "e5108c04f133a5cc57b3b9f45e6a82d5c541836192ace2050649d2a39ad8cea7",
+          "savedLoadedMatrixExact": true
+        },
+        "featureParity": {
+          "columns": 42,
+          "exact": true,
+          "pre2016MainLowerExactRows": 101847,
+          "rows": 42422
+        },
+        "files": {
+          "audit-validation.json": "f11e91830fe2ba804e686e245ae2732f6fbb22d6dcfb5ea34a2787e98338d76c",
+          "exchange-435.csv": "f876e649b0e9e7e2196d8311de19f265f224b30b601add25952e136130a2fca5",
+          "features-enriched.pkl": "bcf38c6898ca22bf15a30d3c66631106c96b2fe56be1afe3a3a4a3430fb1ef0d",
+          "features-main.pkl": "f16c73d1cad2e78ddd9335a615dd221007cd2477849b210c1110eb8f07d4cb07",
+          "oos.pkl": "44f3adebb283aafe92e20f8a8c8ca22d4e170505a43c91b2335ef2ed0a251cd3",
+          "population-dispositions.csv": "51e8716d82ea1eb5a73f55928a4f1204579cd65987ca832ba79126c784cb7c37",
+          "prediction-audit.private": "2e4600aaa182054d36f4efb231a121afe169e1a1b2a0a30ed8c2a99babe05a02",
+          "predictor.pkl": "8cf280c43f813a6944244d585248af8d5fcbc1ff628e535f98d4e10866730e34",
+          "predictor.pkl.envelope": "8f73df4346db01ce2dac871807828817133855cc449e1a73444b7286665bd401"
+        },
+        "finalFitPopulation": {
+          "calibrationCutoff": "2025-09-05T00:00:00",
+          "calibrationRows": 2446,
+          "coreRows": 92226,
+          "latestMainDate": "2026-09-05T00:00:00"
+        },
+        "fiveBagMembers": 5,
+        "foldPopulations": [
+          {
+            "calibration": 2636,
+            "core": 49614,
+            "test": 2702,
+            "train": 52250,
+            "warmupReuse": false,
+            "year": 2010
+          },
+          {
+            "calibration": 2702,
+            "core": 52250,
+            "test": 2702,
+            "train": 54952,
+            "warmupReuse": false,
+            "year": 2011
+          },
+          {
+            "calibration": 2702,
+            "core": 54952,
+            "test": 2808,
+            "train": 57654,
+            "warmupReuse": false,
+            "year": 2012
+          },
+          {
+            "calibration": 2808,
+            "core": 57654,
+            "test": 2633,
+            "train": 60462,
+            "warmupReuse": false,
+            "year": 2013
+          },
+          {
+            "calibration": 2633,
+            "core": 60462,
+            "test": 2611,
+            "train": 63095,
+            "warmupReuse": false,
+            "year": 2014
+          },
+          {
+            "calibration": 2611,
+            "core": 63095,
+            "test": 2547,
+            "train": 65706,
+            "warmupReuse": false,
+            "year": 2015
+          },
+          {
+            "calibration": 2547,
+            "core": 65706,
+            "test": 2812,
+            "train": 68253,
+            "warmupReuse": false,
+            "year": 2016
+          },
+          {
+            "calibration": 2812,
+            "core": 68253,
+            "test": 2708,
+            "train": 71065,
+            "warmupReuse": false,
+            "year": 2017
+          },
+          {
+            "calibration": 2708,
+            "core": 71065,
+            "test": 2746,
+            "train": 73773,
+            "warmupReuse": false,
+            "year": 2018
+          },
+          {
+            "calibration": 2746,
+            "core": 73773,
+            "test": 2525,
+            "train": 76519,
+            "warmupReuse": false,
+            "year": 2019
+          },
+          {
+            "calibration": 2525,
+            "core": 76519,
+            "test": 1250,
+            "train": 79044,
+            "warmupReuse": false,
+            "year": 2020
+          },
+          {
+            "calibration": 1250,
+            "core": 79044,
+            "test": 2485,
+            "train": 80294,
+            "warmupReuse": false,
+            "year": 2021
+          },
+          {
+            "calibration": 2485,
+            "core": 80294,
+            "test": 2478,
+            "train": 82779,
+            "warmupReuse": false,
+            "year": 2022
+          },
+          {
+            "calibration": 2478,
+            "core": 82779,
+            "test": 2719,
+            "train": 85257,
+            "warmupReuse": false,
+            "year": 2023
+          },
+          {
+            "calibration": 2719,
+            "core": 85257,
+            "test": 2303,
+            "train": 87976,
+            "warmupReuse": false,
+            "year": 2024
+          },
+          {
+            "calibration": 2303,
+            "core": 87976,
+            "test": 2402,
+            "train": 90279,
+            "warmupReuse": false,
+            "year": 2025
+          },
+          {
+            "calibration": 2402,
+            "core": 90279,
+            "test": 1991,
+            "train": 92681,
+            "warmupReuse": false,
+            "year": 2026
+          }
+        ],
+        "inferenceSchema": 5,
+        "normalFinalCalibrationDays": 365,
+        "populationDispositions": {
+          "before-2010": 83316,
+          "not-completed": 3471,
+          "scored": 42422
+        },
+        "receipt": {
+          "branches": {
+            "lower": 30,
+            "main": 6
+          },
+          "maxError": 1.1102230246251565e-16,
+          "metadata": {
+            "inferenceSchemaVersion": 5,
+            "predictionAuditObservedAt": "2026-09-07T03:07:55Z",
+            "predictionAuditSHA256": "2e4600aaa182054d36f4efb231a121afe169e1a1b2a0a30ed8c2a99babe05a02",
+            "predictionAuditSchema": "prediction-audit-v1",
+            "predictionAuditSourceGeneration": "4569b543513dd9477e435675dcdbd5a67dcf7394fad3938ea1c0947e39978146",
+            "predictorArtifactId": "dd9e41ab-6e77-4d00-8bfd-521511fa5a18"
+          },
+          "pairs": 36,
+          "receiptSHA256": "2e4600aaa182054d36f4efb231a121afe169e1a1b2a0a30ed8c2a99babe05a02",
+          "validatedAt": "2026-09-07T03:07:55.072257+00:00"
+        },
+        "tour": "wta"
+      },
+      "status": "complete",
+      "wallSeconds": 50.17749999999069
+    }
+  },
+  "metrics": [
+    {
+      "tour": "atp",
+      "window": "full",
+      "n": 46195,
+      "acc": 0.6921203593462496,
+      "logloss": 0.5739541815713326,
+      "brier": 0.19633407770587089
+    },
+    {
+      "tour": "atp",
+      "window": "tune",
+      "n": 28357,
+      "acc": 0.7041118595055894,
+      "logloss": 0.562589485710041,
+      "brier": 0.1913635518155743
+    },
+    {
+      "tour": "atp",
+      "window": "validation",
+      "n": 17838,
+      "acc": 0.6730575176589304,
+      "logloss": 0.59202059487656,
+      "brier": 0.20423570359841156
+    },
+    {
+      "tour": "wta",
+      "window": "full",
+      "n": 42422,
+      "acc": 0.6774433077176937,
+      "logloss": 0.5930618887966231,
+      "brier": 0.20418070744804484
+    },
+    {
+      "tour": "wta",
+      "window": "tune",
+      "n": 26794,
+      "acc": 0.6795924460700157,
+      "logloss": 0.5906491562188603,
+      "brier": 0.20305557841342903
+    },
+    {
+      "tour": "wta",
+      "window": "validation",
+      "n": 15628,
+      "acc": 0.6737586383414385,
+      "logloss": 0.5971984869978375,
+      "brier": 0.20610972634703992
+    }
+  ],
+  "runFiles": {
+    "atp-baseline-001/completion.json": "2c82e71d7f80b47fb99391d638094aa321f84d54bad515afb58154275fadde62",
+    "atp-baseline-001/oos.pkl": "ea9707ea271dc0611865743c787089c43e646228a4e1f8f2d8724d7aa66888d2",
+    "atp-baseline-001/registration.json": "f0088e4660bb920931795c6217e2891cb745c3b1e378c452ddca1cab2cf2c9e5",
+    "atp-final-001/audit-validation.json": "e561d46ac4f06b938bc47e22b62f7fe714407bf243a940f83aa163e17b47d714",
+    "atp-final-001/completion.json": "ee6ac118628331d1b1f1b71bd34a4971d793e37eac42d32e74ca0ce3707c42b6",
+    "atp-final-001/exchange-435.csv": "9516bc00c541ba2f7dd65d9dc10759a41e34ce458b8860222c3b3de6da0c4435",
+    "atp-final-001/features-main.pkl": "2b2b6c3e22d5affbf77f17116dba5f597957105d93312bb366a42f19932616e7",
+    "atp-final-001/oos.pkl": "69ba70b36876b7664e66dcf40da6cd0cb002da3aa103ea2ae43ff9448e6cddaa",
+    "atp-final-001/population-dispositions.csv": "4383d238d4fd5f97b70639499c4ec188f851c6872cc69ffae80c019a27eeddd6",
+    "atp-final-001/prediction-audit.private": "85aa2f983ae79702b7ecb92402a2163a69f991684d320f4a794ca141e71a2256",
+    "atp-final-001/predictor.pkl": "b845677ed43d81bb773adb4f8da292648182ad7f54bc52b62fbbcbf6287a1468",
+    "atp-final-001/predictor.pkl.envelope": "c3b319ed514812f6be348942cb9c7ae026b3e1b0a78a3e66880f5d1029bb06dc",
+    "atp-final-001/registration.json": "00d3376b92f3ce5eee40a501d91c122cdd0b4a8da732bb3af8930edca1587a0a",
+    "common-results-002/atp-common.csv": "0011c84987c206f5fb35156750b28015ce1aedf675272fc986755f7a92753595",
+    "common-results-002/result.json": "e6c994dc94a02a41b22f38b21d929ff0da63f920534575d091c5b811ae43cc7a",
+    "common-results-002/wta-common.csv": "1a861e16d5a10aa2da8c583cb05cc71251e6351c2db9266a6eb9d38ae01dfc11",
+    "dynamic-preparation.json": "6f46da5eba55c04f25c6378d2930c4b474cf8358744e58388f01e99eae5f2ae5",
+    "initial-data-inventory.json": "a55d12a1f194a1c94a228d089be91c5ce031c175683ac3d06965ddc2a9b306a3",
+    "logs/atp-baseline-001.log": "4710491d3f2f01a803b165354259d8b6ec9b066f80d1daeba0a6163d9414f80d",
+    "logs/atp-final-001.log": "1848e7fadb304f13f11b0deb163e53c6748d3e3df3709a5d29295d80dc16de22",
+    "logs/common-results-001.log": "93ebca660b780c5251819b35c7880349dc7f1cf8e972439da8b99e7f23d70810",
+    "logs/common-results-002.log": "6afe2e2de21a32fdb3be874afe31a0b374df0aa8def54df0d6da88b55bc3bf2d",
+    "logs/freeze-001.log": "e343a6f4af90e1a3fbded402b3874017412c2eb2d7f519ec5d6f500a98c06596",
+    "logs/full-001.log": "9012994778af8456fa01a8026baed17eed20bdc6fbb31763830fccc139dad7fc",
+    "logs/full-002.log": "3fdcf46c0dd9b3cfdd4926fe1275d6ba438a9643033134c0160526d13f437d6c",
+    "logs/full-003.log": "594f2554c949573b3ae7ac3d40a8da559a44d4d9cb1a965d624faa15c4d04249",
+    "logs/full-004.log": "d4770343a496c560f59d21d20d8043f1654e4004078515d4636d9969106e0758",
+    "logs/population-001.log": "591984ee655bc7ab8c9dfccc9b4d7efa569bc50886585b5fc44a327f1f816dbf",
+    "logs/population-002.log": "cb512d08ebb2e0a08f3a858dd9ab78b570d07125f8dad7609c80b87122a9da83",
+    "logs/population-003.log": "02d62ee71b3c17ec4c090ba8bfdcd5eb7d28dddbbc66ce3146fd6000519f6694",
+    "logs/population-004.log": "a84861fc754d1babf67cb11362c0db98c1c0ea717bb889a55f816b622e9fd910",
+    "logs/preservation-001.log": "e302060481fea1d0eb193f495bda7eba44d77192a081fb5f6d75364bd62ee3b1",
+    "logs/targeted-001.log": "e763e63f83cc6c9258fc54f99e0fbd4fb8fee1b8051e00bd12581a978328b4f9",
+    "logs/targeted-002.log": "0a68d7643001a184f53f082553ccdc0765bff18087a7e1d4abb326aef071e389",
+    "logs/targeted-003.log": "92acf51bedeca0110d19b85ddcda7f4f1e9b084a9888b7c3b8c66a2e74ce93eb",
+    "logs/temporal-001.log": "befa200fe6e93824724cbd9aa51cad038b8c6a8d710bc8dc56c8bd6eabda0922",
+    "logs/wta-baseline-001.log": "d7dfc78f88253c8462c23e43395ed71e4e3fbb1826e25775d2906be41f70814b",
+    "logs/wta-final-001.log": "0dacf45868a9af2fd40568e7d7f7fd1c49645ac16fa4f70020834c0c43769c19",
+    "population-001/atp-enriched.pkl": "feb2466070d31acd944359fd4aa1a9dc18e7b1fc89ac38b177b44b884ca0e2f5",
+    "population-001/failure.json": "cd77eaea1b49bf7bde6e521273beadbea0124c670b9cde7d3f2d386e6267c45e",
+    "population-002/atp-enriched-added.csv": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+    "population-002/atp-enriched-removed.csv": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+    "population-002/atp-enriched-timing-changes.csv": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+    "population-002/atp-enriched.pkl": "feb2466070d31acd944359fd4aa1a9dc18e7b1fc89ac38b177b44b884ca0e2f5",
+    "population-002/failure.json": "7ce8ca78c9dd5b9baadebf7e5677093557759b12a3e0c12548ef12ad4e848f9c",
+    "population-002/result.json": "c63ac380e8d20498ab97489415fa9bcafd286092f1e857409fa39e2b76720ec0",
+    "population-003/atp-enriched-added.csv": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+    "population-003/atp-enriched-removed.csv": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+    "population-003/atp-enriched-timing-changes.csv": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+    "population-003/atp-enriched.pkl": "6ba0726ace21952ee19388fd04b69a7ff763e632710e27cece4f75f802ac9685",
+    "population-003/failure.json": "dbe3732a118ea62bb6bd2332c464d2a070e3c78af732d513f094890f57660d80",
+    "population-003/result.json": "bebf611807136a240440e9981c84977224752250f2f6deda333db9f153157575",
+    "population-003/wta-main-added.csv": "f8fea1b4e89a9f93e829aca8039318f430bfaa23426b15394b1ad9ffc8932e7d",
+    "population-003/wta-main-removed.csv": "2df23f53bef55ff33457a65a1dc1aafdae4125829aaed7b79906f1e384e56182",
+    "population-003/wta-main-timing-changes.csv": "66d389482e60b2df2451a6da84817df8ddaee4322e5856c8040c3a45e9248184",
+    "population-003/wta-main.pkl": "0ef7bf9baa61af2323a7d19c751465e65d38a67d1f17d59126d0f4976daa420f",
+    "population-004/adjudication-main-v2.json": "3c3b2d8b8b201d0ca2674a320c006bd2cb1f95a165a432531c17d2bbf3dbe6a4",
+    "population-004/adjudication-main.json": "dfa3b28f5e38209be0b948005d2622cac1744849bd1191b0c36381bc95dd8a65",
+    "population-004/atp-enriched-added.csv": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+    "population-004/atp-enriched-removed.csv": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+    "population-004/atp-enriched-timing-changes.csv": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+    "population-004/atp-enriched.pkl": "61780c27dc50b2eb6a5ed92165d902d6865034ae162ad71e0638ae37f471c85f",
+    "population-004/result.json": "b3457026358234fc66302a3f20875839141b29db03d80d0e28b8d6fe6dd59280",
+    "population-004/reviewed-additions-main-v2.csv": "57e224b260828dce2f36f64c11e99026a85c99f32ad7e88904e5b3e77cee56e6",
+    "population-004/reviewed-additions-main.csv": "fe7930ccb107432e303f3d6598645daa9b31c2ed4b82c329fe112eb5417840b9",
+    "population-004/reviewed-removals-main-v2.csv": "4e4f7a3dd8e1d03367048de54d53469fd972b45f46d2ffff5a32ac51fb1195de",
+    "population-004/reviewed-removals-main.csv": "c3ba5b0c7bbd84e85b66770300576cadff5a983ac8de925d6b835c17bd849bbd",
+    "population-004/timing-summary.json": "bcd0909524fa2621b3d03aa5c00294c9131aa25d4dcdc5eaa0f290c471d8ccbe",
+    "population-004/wta-enriched-added.csv": "9a01e1e86677f4226008ea4323a12020ca0d25ad6027bd413942781999c6c5c9",
+    "population-004/wta-enriched-removed.csv": "5bec12ef4a6eb8d1c67be88487221c1d53fa7fc8849f18a9af6912c9c5cd73d5",
+    "population-004/wta-enriched-timing-changes.csv": "a8ee3a962703d13a878c8f0783b608869f7be2c13849f41e77ffd8469ad27867",
+    "population-004/wta-enriched.pkl": "57e6572842c6e68d9dd7165b542d7187d7f000d0afbca0040bb4c1b3e13b03fa",
+    "population-004/wta-main-added.csv": "9a01e1e86677f4226008ea4323a12020ca0d25ad6027bd413942781999c6c5c9",
+    "population-004/wta-main-removed.csv": "5bec12ef4a6eb8d1c67be88487221c1d53fa7fc8849f18a9af6912c9c5cd73d5",
+    "population-004/wta-main-timing-changes.csv": "80aab5874284848a5d5c99ddaf016ec4efc051c1a9546e549f4b9dfd19bb23be",
+    "population-004/wta-main.pkl": "1f236ef84ed9449ec464cf4d485e7d05f618210d795e6c7fc0b6b920827ada0d",
+    "preservation.json": "2543cc6d5b393cacaa4808be6b781dfe67eef0dd6897c5079b0dc6c05134d281",
+    "reference-freeze.json": "3f59e03bebc3f8979fc36ed5482c202092cfef2ee396cd81071367a48ac8acdf",
+    "setup.json": "c041420939a3c2282983edd049a807979ceb3320d286673454eaf4adb893bb84",
+    "staging/equal-id-audit.json": "50749ff50f73a99583ec253a0e055a942ae02c48f03e4fe36ac025579baf3af5",
+    "staging/identity-review.jsonl": "b4e884dcad4502ad45e0a0ddfca336703b1d6f0f2d47c810a40fe5cc02b66da4",
+    "staging/xinyu-alias-collisions.csv": "cc47ab0fbc74a4aa7785575bc295b7aea97d61bc265fb31948b40f54e2693d7c",
+    "staging/xinyu-alias-review.json": "27cea2e91add8d347de28044255c35d9652ebbde0a937b799725845e2a361137",
+    "temporal-001/atp-enriched-2024-11-03.json": "b07fedd5bc5f060cffc4c6bbefd49aed28dab78ee8a162bf44f5df3a65f963b9",
+    "temporal-001/completion.json": "7c78cb61fa06d7d89e6f1f67010ee98bbfb41e673258403db939baa52ab4b3a1",
+    "temporal-001/registration.json": "4d77af596a2d86ee95e5b935c7786b1e812fdcb85e1c0f58e17192f42e993766",
+    "temporal-001/wta-enriched-2017-06-07.json": "4ba4d3cfe86444167b1f0cf4a9ce7d61442db97a0f1c281226ab2030d6a9d5fe",
+    "temporal-001/wta-enriched-2024-04-30.json": "89b8aadde9e1a3ad8cd9001a30543790dd58355eb98f1887df195b0f5b322a2f",
+    "temporal-001/wta-main-2024-04-30.json": "15e847532afa924452c05059edc8636f0670dfbea0b48ef6e7994f909a5a6254",
+    "wta-baseline-001/completion.json": "6bc36320e3e204019256914ac8dfb8ac7bf4bd558c8fe7a04e637706fec2c6eb",
+    "wta-baseline-001/oos.pkl": "74e87b8ca49ac2af8b0858a17c52d20bd18590408a2c24a2c9b21712e410df1c",
+    "wta-baseline-001/registration.json": "5d9e83cddb6d4b6235e716eb4a538e245f69697d205b9c25e13dd6c9f0c585c1",
+    "wta-baseline-001/wta-main-reference.pkl": "1b535e90b33ab69d2c3401f87527d4aa01564a1ea2937d855c833886f0e93bfa",
+    "wta-final-001/audit-validation.json": "f11e91830fe2ba804e686e245ae2732f6fbb22d6dcfb5ea34a2787e98338d76c",
+    "wta-final-001/completion.json": "3e3b75df3c2c9e9786e1a1b148c9f4edf1b7f0f77c8fa8a0eb433dfff7e39eb8",
+    "wta-final-001/exchange-435.csv": "f876e649b0e9e7e2196d8311de19f265f224b30b601add25952e136130a2fca5",
+    "wta-final-001/features-enriched.pkl": "bcf38c6898ca22bf15a30d3c66631106c96b2fe56be1afe3a3a4a3430fb1ef0d",
+    "wta-final-001/features-main.pkl": "f16c73d1cad2e78ddd9335a615dd221007cd2477849b210c1110eb8f07d4cb07",
+    "wta-final-001/oos.pkl": "44f3adebb283aafe92e20f8a8c8ca22d4e170505a43c91b2335ef2ed0a251cd3",
+    "wta-final-001/population-dispositions.csv": "51e8716d82ea1eb5a73f55928a4f1204579cd65987ca832ba79126c784cb7c37",
+    "wta-final-001/prediction-audit.private": "2e4600aaa182054d36f4efb231a121afe169e1a1b2a0a30ed8c2a99babe05a02",
+    "wta-final-001/predictor.pkl": "8cf280c43f813a6944244d585248af8d5fcbc1ff628e535f98d4e10866730e34",
+    "wta-final-001/predictor.pkl.envelope": "8f73df4346db01ce2dac871807828817133855cc449e1a73444b7286665bd401",
+    "wta-final-001/registration.json": "e7d69830a966654592b246d63d1f34a34a382df86d4c23ce0a0e515d775121b7"
+  },
+  "temporal": {
+    "endedAt": "2026-09-07T03:17:19.851963+00:00",
+    "freezeSHA256": "1f531e2bf3ebb5e771a798e3eee3376a09794e94f721cd04f6230076a612c7ac",
+    "results": {
+      "probes": [
+        {
+          "fullHistoricalPrefix": true,
+          "futureAppendAll42FeaturesExact": true,
+          "label": "atp-enriched",
+          "maxFeatureError": 0.0,
+          "pendingBoundary": {
+            "firstAvailable": "2024-11-09",
+            "nextDayPoints": 18813.0,
+            "sameDayExcluded": true,
+            "strictSameDayPoints": 7796.0
+          },
+          "pendingPriorObservations": 76,
+          "prefixRows": 265266,
+          "requestedCutoff": "2024-11-03",
+          "seconds": 54.87094812502619,
+          "serializedQueryColumns": [
+            "elo_diff",
+            "elo_overall_diff",
+            "elo_surface_diff",
+            "logit_p_blend",
+            "logit_p_point",
+            "serve_skill_diff",
+            "return_skill_diff",
+            "rest_diff",
+            "fatigue_diff",
+            "h2h_diff",
+            "log_days_since_diff",
+            "layoff_flag_diff",
+            "form90_diff",
+            "winrate10_diff",
+            "h2h_surface_diff",
+            "log_min_srv_pts",
+            "log_min_matches",
+            "log1p_h2h_total"
+          ],
+          "serializedStateUnchanged": true,
+          "targetDate": "2024-11-10 00:00:00"
+        },
+        {
+          "fullHistoricalPrefix": true,
+          "futureAppendAll42FeaturesExact": true,
+          "label": "wta-main",
+          "maxFeatureError": 0.0,
+          "pendingBoundary": {
+            "firstAvailable": "2024-04-23",
+            "nextDayPoints": 15341.0,
+            "sameDayExcluded": true,
+            "strictSameDayPoints": 14002.0
+          },
+          "pendingPriorObservations": 94,
+          "prefixRows": 123337,
+          "requestedCutoff": "2024-04-30",
+          "seconds": 21.21371475001797,
+          "serializedQueryColumns": [
+            "elo_diff",
+            "elo_overall_diff",
+            "elo_surface_diff",
+            "logit_p_blend",
+            "logit_p_point",
+            "serve_skill_diff",
+            "return_skill_diff",
+            "rest_diff",
+            "fatigue_diff",
+            "h2h_diff",
+            "log_days_since_diff",
+            "layoff_flag_diff",
+            "form90_diff",
+            "winrate10_diff",
+            "h2h_surface_diff",
+            "log_min_srv_pts",
+            "log_min_matches",
+            "log1p_h2h_total"
+          ],
+          "serializedStateUnchanged": true,
+          "targetDate": "2024-05-06 00:00:00"
+        },
+        {
+          "fullHistoricalPrefix": true,
+          "futureAppendAll42FeaturesExact": true,
+          "label": "wta-enriched",
+          "maxFeatureError": 0.0,
+          "pendingBoundary": {
+            "firstAvailable": "2017-06-11",
+            "nextDayPoints": 1429.0,
+            "sameDayExcluded": true,
+            "strictSameDayPoints": 860.0
+          },
+          "pendingPriorObservations": 5,
+          "prefixRows": 107312,
+          "requestedCutoff": "2017-06-07",
+          "seconds": 14.574096041033044,
+          "serializedQueryColumns": [
+            "elo_diff",
+            "elo_overall_diff",
+            "elo_surface_diff",
+            "logit_p_blend",
+            "logit_p_point",
+            "serve_skill_diff",
+            "return_skill_diff",
+            "rest_diff",
+            "fatigue_diff",
+            "h2h_diff",
+            "log_days_since_diff",
+            "layoff_flag_diff",
+            "form90_diff",
+            "winrate10_diff",
+            "h2h_surface_diff",
+            "log_min_srv_pts",
+            "log_min_matches",
+            "log1p_h2h_total"
+          ],
+          "serializedStateUnchanged": true,
+          "targetDate": "2017-06-08 00:00:00"
+        },
+        {
+          "fullHistoricalPrefix": true,
+          "futureAppendAll42FeaturesExact": true,
+          "label": "wta-enriched",
+          "maxFeatureError": 0.0,
+          "pendingBoundary": {
+            "firstAvailable": "2024-05-01",
+            "nextDayPoints": 27600.0,
+            "sameDayExcluded": true,
+            "strictSameDayPoints": 27263.0
+          },
+          "pendingPriorObservations": 5,
+          "prefixRows": 133740,
+          "requestedCutoff": "2024-04-30",
+          "seconds": 24.315112708020024,
+          "serializedQueryColumns": [
+            "elo_diff",
+            "elo_overall_diff",
+            "elo_surface_diff",
+            "logit_p_blend",
+            "logit_p_point",
+            "serve_skill_diff",
+            "return_skill_diff",
+            "rest_diff",
+            "fatigue_diff",
+            "h2h_diff",
+            "log_days_since_diff",
+            "layoff_flag_diff",
+            "form90_diff",
+            "winrate10_diff",
+            "h2h_surface_diff",
+            "log_min_srv_pts",
+            "log_min_matches",
+            "log1p_h2h_total"
+          ],
+          "serializedStateUnchanged": true,
+          "targetDate": "2024-05-01 00:00:00"
+        }
+      ],
+      "scope": "State-only pickle roundtrip; strict fitted-artifact envelope checked separately by final drivers."
+    },
+    "status": "complete",
+    "wallSeconds": 119.09106533398153
+  }
+}

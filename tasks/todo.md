@@ -6732,3 +6732,64 @@ has been scored or selected. Prepared draft hashes and original grid are recorde
       order, selection rule and budget in `2026-09-06-dynamic-screen-registration.md`.
 - [ ] Full repaired-prefix temporal probes are running in the maintenance reference;
       then freeze this committed candidate, run state parity, and start the tune screen.
+
+
+### Final review — repaired reference and completed candidate gate
+
+This append completes the previously pending M0–M4 and conditional Phase 5 items;
+older progress entries remain as history.
+
+- [x] M0–M2: repaired/reviewed population and source boundaries committed as `1fbe42a`.
+      ATP remains 284,893 enriched rows; WTA main/enriched become 129,209/146,309.
+      WTA adds 255 real results and removes 23 duplicate copies plus one exact self-match.
+      All 528 independently reviewed results survive; self-pair/chronology gates pass.
+- [x] M3: both repaired five-bag references and strict normal final artifacts pass.
+      ATP scores 46,195 rows at LL 0.5739541815713326, bit-exact to Phase 3;
+      WTA scores 42,422 at LL 0.5930618887966231. Maintenance review commit `975379b`
+      includes full-prefix future-append and pending-prior tests with exact state parity.
+- [x] M4 preparation: isolated 43-column adapter/code registration committed as `8c4792f`;
+      1,325 full-suite tests and 31 focused state/adapter tests pass; lint clean.
+      Frozen candidate contract is
+      `20bdae999b8d235028af72a8160276b850211ecd38d4a9ec15a6948f84d93185`.
+      Full dynamic histories and 240 serialized continuations pass; disabled five-bag
+      2010/2018 predictions and all original columns reproduce the reference exactly.
+- [x] M4 screen: all eight registered WTA settings complete in 426.88 seconds.
+      Selected only by tune delta: sigma0=1, daily variance q=0.0001. Selection was
+      saved at 2026-09-07 03:27:38 UTC before candidate validation, SHA-256
+      `85ba263dbdf914cba8a824f4df9346cc4e1ec22925db9f4115fc7d3cf25158f4`.
+- [x] Conditional Phase 5: selected full arbiter completes in 76.04 seconds and passes
+      the unchanged gate. Tune dLL +0.000302865 ± 0.000104815 (26,794 pairs);
+      validation +0.000239993 ± 0.000127945 (15,628 pairs). Selected tune predictions
+      reproduce exactly. Validation week-bootstrap 95% interval crosses zero and
+      accuracy falls 0.173 percentage points (27 fewer correct winner classifications).
+- [x] Preservation: all protected data/source inventories, 25,826 snapshot files,
+      56 Phase 3, 77 Phase 4 and 104 maintenance run files remain exact. Six distinct
+      inodes per each original input. Four test-replaced disposable caches were preserved
+      as evidence and restored; the final candidate inventory is exact. Scoring used
+      separately hash-pinned population/features throughout. Final receipt and all 61
+      candidate run-file hashes are in `2026-09-06-dynamic-result.json`.
+- [x] Recorded all eight outcomes and the arbiter in the append-only ledger; documented
+      selection, uncertainty, accuracy tradeoff, fixed-slice scope and exact next steps.
+      Reconciled Git history before this handoff. No source edits followed passing tests.
+
+**Decision:** retain the candidate as research evidence; **defer production adoption**.
+The corrected 42-column research incumbent remains current. This is a small retrospective
+probability-quality gain, not independently confirmed future performance. Production
+has not been pushed, merged or deployed, and no prospective collector/automation is active.
+
+Read `tasks/research/2026-09-06-dynamic-screen-review.md` for the exact resume sequence.
+The next separately scoped implementation would prepare an offline WTA-specific shadow
+artifact, declare per-tour schema/state contracts, implement every serving mirror and
+strict loading check, and measure latency. Fresh-cohort design can proceed independently;
+activation needs a verified saved candidate and separate authorization. Do not repeat or
+expand the now-validation-exposed grid. Earlier optional-data pilots produced no admissible
+candidate. No further input was needed to finish this round.
+
+Current checkout: `.research/2026-09-06-model-foundation/worktrees/dynamic-screen`, branch
+`codex/model-dynamic-screen`; code `8c4792fa8fd418d29a60ef58f8d8c994fc6a5f68`.
+Corrected reference: `worktrees/maintenance`, branch `codex/model-population-repair`,
+code `1fbe42a3e5c900b6b76594032e5f46b1054adbaa`, review `975379b`.
+Maintenance contract: `1f531e2bf3ebb5e771a798e3eee3376a09794e94f721cd04f6230076a612c7ac`.
+Private evidence: `runs/maintenance` and `runs/dynamic-continuation` under the research
+root. Private driver hashes and package/input identities are recorded in the result JSONs.
+The original checkout receives documentation only; reference checkouts remain preserved.

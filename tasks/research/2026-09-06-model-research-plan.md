@@ -1,17 +1,25 @@
 # DEUCE model improvement — implementation and research handoff
 
-Status: **Phase 4 preparation reached its registered correctness stop.** Source audit,
-staged feasibility and the uncertainty prototype are complete to that boundary. Missing
-2024 results and a raw self-match require maintenance and a new reference before the
-remaining full-history parity and eight-setting screen. No candidate has been adopted.
+Status: **Phase 4, population maintenance and the conditional Phase 5 arbiter are
+complete.** The selected WTA uncertainty model passes the historical log-loss gate,
+but its small gain has a week-bootstrap interval crossing zero and lower classification
+accuracy. Retain the research candidate and **defer production adoption**. The corrected
+42-column research incumbent remains current; no production deployment has occurred.
 
-Read the [Phase 4 review](2026-09-06-phase4-review.md),
-[machine-readable evidence](2026-09-06-phase4-result.json), and
-[maintenance/resume plan](2026-09-06-phase4-maintenance-plan.md).
-Implementation is in `.research/2026-09-06-model-foundation/worktrees/phase4` on
-`codex/model-phase4`; the coordinator retains the Phase 3 reference. The original
-checkout receives documentation only. The detailed campaign plan below remains the
-historical design; newer phase reviews supersede its initial measurements and status.
+Read the [round completion and exact next steps](2026-09-06-dynamic-screen-review.md),
+[full result and artifact hashes](2026-09-06-dynamic-result.json), and
+[population maintenance review](2026-09-06-maintenance-review.md). The eight-setting
+[registration](2026-09-06-dynamic-screen-registration.md) preceded candidate outcomes.
+The repaired reference is in
+`.research/2026-09-06-model-foundation/worktrees/maintenance` on
+`codex/model-population-repair` (code `1fbe42a`, review `975379b`); the candidate is in
+`worktrees/dynamic-screen` on `codex/model-dynamic-screen` (code/registration `8c4792f`).
+The coordinator and Phase 4 preparation remain preserved. The original checkout receives
+documentation only. The detailed campaign plan below is the historical design; newer
+phase reviews supersede its initial measurements, status and execution instructions.
+In particular, the original Phase 4 absence counts were overstated and are superseded
+by the maintenance membership audit. Future confirmation and production integration
+remain separate phases; no collector or automation is active.
 
 Original request: a detailed, resumable research plan with dependencies and parallel
 work. The later requests to execute phases 0–4 authorize the recorded work. The
@@ -706,14 +714,18 @@ At the end of EVERY implementation session, append to `tasks/todo.md`:
 
 Recommended next-session instruction:
 
-> Read `tasks/research/2026-09-06-model-research-plan.md`, the Phase 0 review and interface
-> decisions, its evidence JSON and the tail of `tasks/todo.md`. Phase 0 is complete; verify
-> the prepared workspace and implement only the subsequently authorized phases. The next
-> implementation checkpoint is Phase 1; do not recreate the snapshot or worktrees.
-> Preserve unrelated changes. Use separate workers for 1A, 1B and 1C only after contracts
-> and isolated inputs are ready; coordinate 1D and integrations centrally. Do not start
-> numerical candidate searches until the corrected incumbent and evaluator are frozen.
-> Report the phase exit evidence and next exact action before handing off.
+> Read `tasks/research/2026-09-06-dynamic-screen-review.md`, the maintenance review,
+> their result JSONs, the candidate registration, and the tail of `tasks/todo.md`.
+> Phases 0–4 and the selected candidate's Phase 5 arbiter are complete. Preserve all
+> references, source manifests, private run artifacts and raw input copies. Do not
+> recreate the snapshot or repeat/expand the grid: the candidate has seen validation.
+> The corrected 42-column research incumbent stays current; uncertainty adoption is
+> deferred despite the formal historical gate pass. Any continuation starts with the
+> completion review's explicit next-phase plan: separately scoped offline WTA shadow
+> artifact/serving parity, fresh-cohort design, then an adoption decision. Record the
+> schema/state contract and plan in the live todo before implementation. Use no agents
+> unless the user authorizes them. No prospective activation, production push or merge
+> is authorized by the completed round. Reconcile current Git history before resuming.
 
 ## Planning review
 
