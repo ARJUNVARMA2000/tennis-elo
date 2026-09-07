@@ -1,25 +1,30 @@
 # DEUCE model improvement — implementation and research handoff
 
-Status: **Phase 4, population maintenance and the conditional Phase 5 arbiter are
-complete.** The selected WTA uncertainty model passes the historical log-loss gate,
-but its small gain has a week-bootstrap interval crossing zero and lower classification
-accuracy. Retain the research candidate and **defer production adoption**. The corrected
-42-column research incumbent remains current; no production deployment has occurred.
+Status: **Phases 0–4, the selected Phase 5 arbiter and offline shadow engineering
+acceptance are complete.** The WTA uncertainty candidate is saved and reproduces all
+42,422 historical predictions exactly, with modest measured query/storage overhead.
+Its small historical gain remains uncertain; **production adoption is deferred** and
+the corrected 42-column research incumbent remains current.
 
-Read the [round completion and exact next steps](2026-09-06-dynamic-screen-review.md),
-[full result and artifact hashes](2026-09-06-dynamic-result.json), and
-[population maintenance review](2026-09-06-maintenance-review.md). The eight-setting
-[registration](2026-09-06-dynamic-screen-registration.md) preceded candidate outcomes.
-The repaired reference is in
-`.research/2026-09-06-model-foundation/worktrees/maintenance` on
-`codex/model-population-repair` (code `1fbe42a`, review `975379b`); the candidate is in
-`worktrees/dynamic-screen` on `codex/model-dynamic-screen` (code/registration `8c4792f`).
-The coordinator and Phase 4 preparation remain preserved. The original checkout receives
-documentation only. The detailed campaign plan below is the historical design; newer
-phase reviews supersede its initial measurements, status and execution instructions.
-In particular, the original Phase 4 absence counts were overstated and are superseded
-by the maintenance membership audit. Future confirmation and production integration
-remain separate phases; no collector or automation is active.
+Read the [latest shadow review](2026-09-07-shadow-review.md),
+[measurements and hashes](2026-09-07-shadow-result.json), and
+[next fresh-data runner/confirmation plan](2026-09-07-shadow-confirmation-plan.md).
+The [September 6 candidate verdict](2026-09-06-dynamic-screen-review.md) and
+[maintenance review](2026-09-06-maintenance-review.md) retain the statistical and
+population evidence. Exact reproduction is not independent confirmation.
+
+Latest implementation: `.research/2026-09-06-model-foundation/worktrees/dynamic-shadow`,
+branch `codex/model-dynamic-shadow`, source/tests `250693c`.
+Corrected incumbent: `worktrees/maintenance`, `codex/model-population-repair`, code
+`1fbe42a`, review `975379b`. Earlier coordinator, Phase 4 and selected-candidate checkouts
+remain preserved. The original checkout receives documentation only. No collector,
+prospective registration, automation or production merge/push/deployment is active.
+
+The detailed campaign below is historical design. Newer reviews supersede its original
+measurements and next-session instructions. The initial Phase 4 absence counts were
+overstated; the maintenance membership audit is the corrected result. All 43 saved
+query features match, while historical walk-query parity is specifically verified on
+19 learned-state columns; rank/age snapshot differences are reported in the latest review.
 
 Original request: a detailed, resumable research plan with dependencies and parallel
 work. The later requests to execute phases 0–4 authorize the recorded work. The
@@ -714,18 +719,18 @@ At the end of EVERY implementation session, append to `tasks/todo.md`:
 
 Recommended next-session instruction:
 
-> Read `tasks/research/2026-09-06-dynamic-screen-review.md`, the maintenance review,
-> their result JSONs, the candidate registration, and the tail of `tasks/todo.md`.
-> Phases 0–4 and the selected candidate's Phase 5 arbiter are complete. Preserve all
-> references, source manifests, private run artifacts and raw input copies. Do not
-> recreate the snapshot or repeat/expand the grid: the candidate has seen validation.
-> The corrected 42-column research incumbent stays current; uncertainty adoption is
-> deferred despite the formal historical gate pass. Any continuation starts with the
-> completion review's explicit next-phase plan: separately scoped offline WTA shadow
-> artifact/serving parity, fresh-cohort design, then an adoption decision. Record the
-> schema/state contract and plan in the live todo before implementation. Use no agents
-> unless the user authorizes them. No prospective activation, production push or merge
-> is authorized by the completed round. Reconcile current Git history before resuming.
+> Read the latest `2026-09-07-shadow-review.md`, `2026-09-07-shadow-result.json`,
+> `2026-09-07-shadow-confirmation-plan.md`, the interface and live todo tail. Offline
+> engineering acceptance is complete at `250693c`; keep all completed checkouts,
+> snapshots, artifacts and exclusive run directories unchanged. Do not repeat or expand
+> the selected grid, and do not count reproduction as new performance evidence.
+> The next scope is a typed mixed-format prospective runner and its exact migration/
+> capture/grade tests. Source-version binding requires a planned fixed-candidate rebuild
+> after runner code is frozen, with exact reproduction. Activation then requires actual
+> future timestamps and trustworthy schedule/result observations. The original runner
+> intentionally rejects the shadow format; never bypass validation. Record the new plan
+> before editing, use no agents unless authorized, and do not infer production push or
+> collector activation from this completed offline phase. Reconcile Git on resume.
 
 ## Planning review
 

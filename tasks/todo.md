@@ -6848,3 +6848,51 @@ reproduction cannot count as new performance evidence.
   from tests are preserved/restored before acceptance; source inputs stay frozen.
 - [ ] Commit and freeze source, then run immutable real-data acceptance and temporal
   QA. No additional parameter search or prospective activation is included.
+
+
+### S0–S6 final review — saved shadow accepted
+
+This append completes the pending offline-serving items above; the historical entries
+remain unchanged. The user's continued instruction was carried through final verification.
+
+- [x] S0: isolated `codex/model-dynamic-shadow` from `777a38e`, seven distinct input
+  copies and explicit pre-edit interface. Original and four reference checkouts preserved.
+- [x] S1–S3: implemented shared default-preserving schema/probability dispatch, the fixed
+  WTA shadow builder/final fitter, and strictly bound atomic research persistence.
+  Source/tests committed as `250693c`; all source remained frozen during acceptance.
+- [x] S4: 88 focused tests, 1,352 full tests in 125.68 seconds, full lint passed.
+  All 76 preexisting test files and evaluator/program/workflow/web files remain exact.
+- [x] S5: rebuilt the complete candidate features and reproduced all 42,422 OOS rows,
+  all 43 columns and both raw/calibrated probabilities across all 17 folds bit-for-bit.
+  Final fit uses 92,226 core / 2,446 calibration rows and five bags. The artifact saves
+  and reloads strictly; 435 scalar/component/matrix pairs, exchange/permutation and
+  evidence checks pass. Both ordinary tours reproduce the frozen serving controls exactly.
+- [x] S5 temporal: three full historical prefixes preserve all 43 feature columns under
+  future append and all 43 query columns under save/load. All 19 learned-state query
+  features match their walk values exactly. Corrected missing indoor flags in the private
+  QA context only; residual age/rank snapshot differences are explicitly reported.
+  Current main and lower branch witnesses also pass. No historical QA forecast scores.
+- [x] S5 costs: matrix30 medians 62.54 -> 69.31 ms (+10.8%); scalar 4.73 -> 4.82 ms.
+  Model files 25.80 -> 29.12 MB. Complete feature building 35.31s, final fit 3.91s,
+  save/load 0.71/0.58s; real acceptance 119.19s. Raw samples are retained.
+- [x] S6: documented the future mixed-format runner, version migration and fixed
+  30-day/200-pair pilot design, including why it cannot resolve this tiny gain reliably.
+  No prospective registration, collector, automation, merge, push or deployment activated.
+- [x] Preservation passes: seven distinct copies of 18,791 input files, all 25,826
+  read-only snapshot files, 56 Phase 3 / 77 Phase 4 / 104 maintenance / 61 selected-model
+  run files, all protected sources and the shadow's unchanged input copy. The result
+  JSON hashes all 37 files in this phase's private run directory.
+
+**Decision:** offline engineering acceptance passes; uncertainty adoption remains deferred.
+The corrected 42-column research incumbent remains current. The small historical gain
+and winner-accuracy tradeoff are unchanged; exact reproduction is not new validation.
+See `2026-09-07-shadow-review.md`, `2026-09-07-shadow-result.json` and
+`2026-09-07-shadow-confirmation-plan.md` for the complete handoff and next dependencies.
+
+Checkout: `.research/2026-09-06-model-foundation/worktrees/dynamic-shadow`.
+Implementation freeze: `c50b69e13921cc4f3bb59eb975aea27e9c4a732c9a4746ed69c2f4b14f196828`.
+Artifact: `runs/dynamic-shadow/acceptance-001/candidate.shadow`; exact payload, source,
+selection and input hashes plus explicit loading provenance are in the result JSON.
+Private drivers and exclusive completed runs must be preserved; no reruns or retuning
+are needed. Next is a separately scoped mixed-format prospective runner, then real
+future collection. The original checkout receives documentation only.
