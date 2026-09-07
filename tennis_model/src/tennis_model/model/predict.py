@@ -301,11 +301,20 @@ class TennisPredictor:
                  event: str | None = None, as_of=None) -> pd.DataFrame:
         row = self._feature_dict(a, b, surface, best_of, indoor, tier_k, round_order,
                                  event=event, as_of=as_of)
-        return pd.DataFrame([[row[c] for c in FEATURES]], columns=FEATURES)
+        return pd.DataFrame([[row[c] for c in self.feature_columns]], columns=self.feature_columns)
+
+    @property
+    def feature_columns(self):
+        """The ordinary ordered schema; explicit research predictors override it."""
+        return FEATURES
+
+    def _combiner_probability(self, frame):
+        """One dispatch point shared by every public prediction path."""
+        return paired_probability(self.clf, self.iso, frame)
 
     # -- predictions ---------------------------------------------------------------
     def win_prob(self, a: str, b: str, **kw) -> float:
-        return float(paired_probability(self.clf, self.iso, self.features(a, b, **kw))[0])
+        return float(self._combiner_probability(self.features(a, b, **kw))[0])
 
     @staticmethod
     def _prob_from_logit(value: float) -> float:
@@ -323,11 +332,11 @@ class TennisPredictor:
         """
         row = self._feature_dict(a, b, surface, best_of, indoor, tier_k, round_order,
                                  event=event, as_of=as_of)
-        X = pd.DataFrame([[row[c] for c in FEATURES]], columns=FEATURES)
+        X = pd.DataFrame([[row[c] for c in self.feature_columns]], columns=self.feature_columns)
         return {
             "eloBlend": self._prob_from_logit(row["logit_p_blend"]),
             "pointModel": self._prob_from_logit(row["logit_p_point"]),
-            "combiner": float(paired_probability(self.clf, self.iso, X)[0]),
+            "combiner": float(self._combiner_probability(X)[0]),
         }
 
     def prediction_evidence(self, a: str, b: str, surface: str = "Hard",
@@ -345,8 +354,8 @@ class TennisPredictor:
             event=event, as_of=as_of,
         )
         elo, srv, ctx = self._states_for(a, b)
-        frame = pd.DataFrame([[row[c] for c in FEATURES]], columns=FEATURES)
-        base = float(paired_probability(self.clf, self.iso, frame)[0])
+        frame = pd.DataFrame([[row[c] for c in self.feature_columns]], columns=self.feature_columns)
+        base = float(self._combiner_probability(frame)[0])
         ref = np.datetime64(pd.Timestamp(
             as_of if as_of is not None else elo.last_date).to_datetime64())
 
@@ -417,7 +426,7 @@ class TennisPredictor:
         for key, columns in EVIDENCE_GROUPS.items():
             neutral = frame.copy()
             neutral.loc[:, list(columns)] = 0.0
-            without = float(paired_probability(self.clf, self.iso, neutral)[0])
+            without = float(self._combiner_probability(neutral)[0])
             delta_pp = (base - without) * 100.0
             signals.append({
                 "key": key,
@@ -453,11 +462,11 @@ class TennisPredictor:
                                                as_of=as_of))
                 ii.append(i)
                 jj.append(j)
-        X = pd.DataFrame(rows, columns=FEATURES)
+        X = pd.DataFrame(rows, columns=self.feature_columns)
         values = {
             "eloBlend": np.array([self._prob_from_logit(r["logit_p_blend"]) for r in rows]),
             "pointModel": np.array([self._prob_from_logit(r["logit_p_point"]) for r in rows]),
-            "combiner": paired_probability(self.clf, self.iso, X),
+            "combiner": self._combiner_probability(X),
         }
         ia, ja = np.array(ii), np.array(jj)
         for name, probs in values.items():
@@ -484,13 +493,13 @@ class TennisPredictor:
                 ))
                 ii.append(i)
                 jj.append(j)
-        frame = pd.DataFrame(rows, columns=FEATURES)
-        base = paired_probability(self.clf, self.iso, frame)
+        frame = pd.DataFrame(rows, columns=self.feature_columns)
+        base = self._combiner_probability(frame)
         ia, ja = np.asarray(ii), np.asarray(jj)
         for key, columns in EVIDENCE_GROUPS.items():
             neutral = frame.copy()
             neutral.loc[:, list(columns)] = 0.0
-            without = paired_probability(self.clf, self.iso, neutral)
+            without = self._combiner_probability(neutral)
             delta = np.asarray(base) - np.asarray(without)
             effects[key][ia, ja] = delta
             effects[key][ja, ia] = -delta
@@ -508,7 +517,7 @@ class TennisPredictor:
 
     def win_prob_matrix(self, players: list, surface: str = "Hard", best_of: int = 3,
                         indoor: bool = False, tier_k: float = 1.0, round_order: int = 3,
-                        event: str | None = None):
+                        event: str | None = None, as_of=None):
         """Pairwise P(i beats j) matrix, antisymmetrised so P[i,j] = 1 - P[j,i].
 
         Builds the upper triangle in one batched prediction (the hot path for the
@@ -516,7 +525,7 @@ class TennisPredictor:
         """
         return self.prediction_matrices(
             players, surface=surface, best_of=best_of, indoor=indoor,
-            tier_k=tier_k, round_order=round_order, event=event,
+            tier_k=tier_k, round_order=round_order, event=event, as_of=as_of,
         )["combiner"]
 
     def predict(self, a: str, b: str, surface: str = "Hard", best_of: int = 3, **kw) -> dict:

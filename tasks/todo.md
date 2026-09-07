@@ -6793,3 +6793,58 @@ Maintenance contract: `1f531e2bf3ebb5e771a798e3eee3376a09794e94f721cd04f6230076a
 Private evidence: `runs/maintenance` and `runs/dynamic-continuation` under the research
 root. Private driver hashes and package/input identities are recorded in the result JSONs.
 The original checkout receives documentation only; reference checkouts remain preserved.
+
+
+## 2026-09-07 — Offline uncertainty candidate and serving assessment
+
+User check-in: “Keep going” authorizes the next implementation in the completed handoff.
+Build in a fresh `codex/model-dynamic-shadow` checkout from `777a38e`; preserve all
+references. The fixed selected parameters remain sigma0=1 and q=0.0001. This is
+implementation/parity/complexity assessment, not a new tuning round or adoption.
+
+- [ ] S0: register a new checkout, distinct input copy and hashes of protected references;
+      record the schema/state interface and fixed acceptance checks before source edits.
+- [ ] S1: add shared prediction schema/probability hooks whose ordinary defaults retain
+      all 42 columns. Add an explicit WTA-only shadow predictor with both selected dynamic
+      states, nondestructive dated queries and the registered 43-column orientation.
+- [ ] S2: fit the fixed five-bag final shadow from main-only completed 1991+ rows and a
+      365-day calibration holdout with the existing final seed. Reuse the registered
+      training adapter. Keep adopted parameters untouched; shadow parameters live in config.
+- [ ] S3: save/load a separate strict research format: a single atomic file with bounded
+      JSON header plus exact pickle payload, runtime/configuration/population/selection
+      binding before deserialization and concrete model/state checks afterward. Reuse
+      existing secure filesystem primitives. Ordinary loaders must reject this format.
+- [ ] S4: add tests for all prediction paths, wrong/missing/corrupt states, schema/runtime/
+      provenance mismatches, pre-deserialization rejection and filesystem/crash behavior.
+      Run focused and full suites plus lint. Existing assertions/evaluator remain frozen.
+- [ ] S5: register final real-data acceptance after code commit; reproduce all frozen
+      candidate OOS features/probabilities without reselection, fit/save/reload the WTA
+      shadow, verify dated prefix/state parity and scalar/component/evidence/matrix paths.
+      Recheck existing ATP/WTA 42-column artifacts and ATP exact probabilities. Measure
+      build/save/load cost, artifact bytes and repeated scalar/30-player matrix latency.
+- [ ] S6: draft a fresh-cohort confirmation protocol using the actual saved-artifact
+      interface and existing collector constraints; keep activation pending. Reconcile
+      Git, verify protected inputs/results, commit detailed review and mirror docs here.
+
+Dependencies: S0 precedes edits; S1/S2 establish the constructor and schema for S3;
+S4 precedes frozen S5 real fits. Cohort design is independent of fitting, while activation
+requires a verified artifact. Work is sequential in this session; no agents. No new
+source downloads/dependencies, parameter search, production merge/push or collector.
+
+### Review
+
+Pending. Implementation will retain the default production 42-column contract. The
+research format is an explicit version boundary rather than prematurely advancing the
+production format. The selected candidate has already seen historical validation;
+reproduction cannot count as new performance evidence.
+
+- [x] S0–S3 implementation prepared in the isolated shadow checkout: seven distinct
+  input copies, explicit shared schema/probability hooks, fixed WTA final fitter and
+  strict single-file research persistence. Interface recorded before source edits in
+  `2026-09-07-shadow-interface.md`.
+- [x] S4: 88 focused tests pass; full suite 1,352 passed in 125.68 seconds. The first
+  new fixture omitted the required surface argument; corrected before any real fit.
+  Existing tests/assertions remain byte-identical. Four disposable normalized caches
+  from tests are preserved/restored before acceptance; source inputs stay frozen.
+- [ ] Commit and freeze source, then run immutable real-data acceptance and temporal
+  QA. No additional parameter search or prospective activation is included.
