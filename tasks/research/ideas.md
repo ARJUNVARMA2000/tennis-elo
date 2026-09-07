@@ -152,3 +152,17 @@ are closed questions — re-opening one requires the underlying space to have ch
   2025 stats/2015 history pilots remain recorded in Phase 4. More elapsed fitting time or
   repeating closed feature families does not supply independent evidence. A new source
   or hypothesis requires its own availability, identity, parity and evaluation registration.
+
+
+## 2026-09-07 uncertainty serving assessment
+
+- **Fixed uncertainty shadow — engineering acceptance passed, adoption deferred.**
+  A saved WTA 43-column model now reproduces all frozen OOS probabilities and every
+  serving route; both default tours remain exact. Matrix30 median overhead is 6.77 ms
+  (+10.8%); file growth about 3.32 MB. 1,352 tests pass. Learned-state and saved-query
+  parity are verified; inherited age/rank snapshot differences remain explicit.
+  This is implementation evidence, not another accuracy experiment. No fresh cohort
+  or collector is active. The next concrete work is a typed mixed-format runner and
+  fixed future pilot; do not reopen the already validation-exposed parameter grid.
+  See [shadow review](2026-09-07-shadow-review.md) and
+  [confirmation plan](2026-09-07-shadow-confirmation-plan.md).

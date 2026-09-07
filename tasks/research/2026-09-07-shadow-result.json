@@ -1,0 +1,892 @@
+{
+  "schema": "dynamic-shadow-assessment-v1",
+  "completedAt": "2026-09-07T17:05:30.153712+00:00",
+  "implementationCommit": "250693cffacc6bc086d7c1abe209f2f30f9a93a9",
+  "implementationFreeze": "c50b69e13921cc4f3bb59eb975aea27e9c4a732c9a4746ed69c2f4b14f196828",
+  "status": "offline shadow, exact reproduction and serving assessment complete",
+  "researchDecision": "Offline engineering acceptance passed. Retain corrected 42-column incumbent; defer uncertainty adoption pending independent fresh-data evidence.",
+  "productionAdoption": false,
+  "deployed": false,
+  "collectorActive": false,
+  "candidateReselected": false,
+  "tests": {
+    "focusedPassed": 88,
+    "focusedSeconds": 2.61,
+    "fullPassed": 1352,
+    "fullSeconds": 125.68,
+    "fullLintPassed": true,
+    "existingTestFilesUnchanged": 76
+  },
+  "acceptance": {
+    "endedAt": "2026-09-07T16:54:40.638132+00:00",
+    "freezeSHA256": "c50b69e13921cc4f3bb59eb975aea27e9c4a732c9a4746ed69c2f4b14f196828",
+    "results": {
+      "allOOSFeaturesExact": {
+        "columns": 43,
+        "rows": 42422
+      },
+      "allOOSProbabilitiesExact": true,
+      "costs": {
+        "featureBuildSeconds": 35.30757891701069,
+        "finalFitSeconds": 3.909492874983698,
+        "loadSeconds": 0.5770049589918926,
+        "reproductionSeconds": 63.56713837501593,
+        "saveSeconds": 0.7071565000223927
+      },
+      "defaultServingControls": {
+        "atp": {
+          "columns": 42,
+          "threeSurfacesExact": true
+        },
+        "wta": {
+          "columns": 42,
+          "threeSurfacesExact": true
+        }
+      },
+      "files": {
+        "candidate.shadow": "24fe25bfdb461b507f3a36db9f9b10a9787f8f3731f62f5d1aeda80a3dff1113",
+        "features-main.pkl": "fb8b976d6179d5469257e7a648e90f3db832acc15d2f50d8c6e7ee5e0eed194c",
+        "features-selected.pkl": "14d23d8af3bcfaf5fdbbdef852cfdb4c9ca74c182a97227b53d669b03bb856aa",
+        "reproduced-oos.pkl": "20a8cb1a04dd4fd136433f4f01d2261c4b2344e34fcf5b9465ba865aeeec283e"
+      },
+      "finalFit": {
+        "calibrationCutoff": "2025-09-05 00:00:00",
+        "calibrationRows": 2446,
+        "coreRows": 92226,
+        "nBag": 5
+      },
+      "folds": [
+        {
+          "bagBestIterations": [
+            132,
+            158,
+            146,
+            115,
+            141
+          ],
+          "calibration": 2636,
+          "core": 49614,
+          "test": 2702,
+          "train": 52250,
+          "warmupReuse": false,
+          "year": 2010
+        },
+        {
+          "bagBestIterations": [
+            153,
+            113,
+            130,
+            175,
+            160
+          ],
+          "calibration": 2702,
+          "core": 52250,
+          "test": 2702,
+          "train": 54952,
+          "warmupReuse": false,
+          "year": 2011
+        },
+        {
+          "bagBestIterations": [
+            268,
+            404,
+            386,
+            356,
+            347
+          ],
+          "calibration": 2702,
+          "core": 54952,
+          "test": 2808,
+          "train": 57654,
+          "warmupReuse": false,
+          "year": 2012
+        },
+        {
+          "bagBestIterations": [
+            448,
+            277,
+            424,
+            233,
+            345
+          ],
+          "calibration": 2808,
+          "core": 57654,
+          "test": 2633,
+          "train": 60462,
+          "warmupReuse": false,
+          "year": 2013
+        },
+        {
+          "bagBestIterations": [
+            341,
+            511,
+            375,
+            285,
+            413
+          ],
+          "calibration": 2633,
+          "core": 60462,
+          "test": 2611,
+          "train": 63095,
+          "warmupReuse": false,
+          "year": 2014
+        },
+        {
+          "bagBestIterations": [
+            262,
+            327,
+            399,
+            290,
+            245
+          ],
+          "calibration": 2611,
+          "core": 63095,
+          "test": 2547,
+          "train": 65706,
+          "warmupReuse": false,
+          "year": 2015
+        },
+        {
+          "bagBestIterations": [
+            226,
+            284,
+            181,
+            226,
+            245
+          ],
+          "calibration": 2547,
+          "core": 65706,
+          "test": 2812,
+          "train": 68253,
+          "warmupReuse": false,
+          "year": 2016
+        },
+        {
+          "bagBestIterations": [
+            212,
+            158,
+            197,
+            188,
+            239
+          ],
+          "calibration": 2812,
+          "core": 68253,
+          "test": 2708,
+          "train": 71065,
+          "warmupReuse": false,
+          "year": 2017
+        },
+        {
+          "bagBestIterations": [
+            343,
+            279,
+            338,
+            248,
+            356
+          ],
+          "calibration": 2708,
+          "core": 71065,
+          "test": 2746,
+          "train": 73773,
+          "warmupReuse": false,
+          "year": 2018
+        },
+        {
+          "bagBestIterations": [
+            227,
+            148,
+            150,
+            168,
+            219
+          ],
+          "calibration": 2746,
+          "core": 73773,
+          "test": 2525,
+          "train": 76519,
+          "warmupReuse": false,
+          "year": 2019
+        },
+        {
+          "bagBestIterations": [
+            259,
+            227,
+            328,
+            248,
+            214
+          ],
+          "calibration": 2525,
+          "core": 76519,
+          "test": 1250,
+          "train": 79044,
+          "warmupReuse": false,
+          "year": 2020
+        },
+        {
+          "bagBestIterations": [
+            291,
+            272,
+            300,
+            201,
+            205
+          ],
+          "calibration": 1250,
+          "core": 79044,
+          "test": 2485,
+          "train": 80294,
+          "warmupReuse": false,
+          "year": 2021
+        },
+        {
+          "bagBestIterations": [
+            183,
+            223,
+            209,
+            231,
+            202
+          ],
+          "calibration": 2485,
+          "core": 80294,
+          "test": 2478,
+          "train": 82779,
+          "warmupReuse": false,
+          "year": 2022
+        },
+        {
+          "bagBestIterations": [
+            172,
+            331,
+            186,
+            175,
+            326
+          ],
+          "calibration": 2478,
+          "core": 82779,
+          "test": 2719,
+          "train": 85257,
+          "warmupReuse": false,
+          "year": 2023
+        },
+        {
+          "bagBestIterations": [
+            165,
+            218,
+            220,
+            269,
+            230
+          ],
+          "calibration": 2719,
+          "core": 85257,
+          "test": 2303,
+          "train": 87976,
+          "warmupReuse": false,
+          "year": 2024
+        },
+        {
+          "bagBestIterations": [
+            203,
+            291,
+            184,
+            266,
+            251
+          ],
+          "calibration": 2303,
+          "core": 87976,
+          "test": 2402,
+          "train": 90279,
+          "warmupReuse": false,
+          "year": 2025
+        },
+        {
+          "bagBestIterations": [
+            110,
+            111,
+            158,
+            108,
+            136
+          ],
+          "calibration": 2402,
+          "core": 90279,
+          "test": 1991,
+          "train": 92681,
+          "warmupReuse": false,
+          "year": 2026
+        }
+      ],
+      "latency": {
+        "incumbent": {
+          "matrix30": {
+            "medianMs": 62.544000043999404,
+            "n": 7,
+            "p90Ms": 66.99356681201607,
+            "samplesSeconds": [
+              0.06273729103850201,
+              0.0625440000439994,
+              0.06233475002227351,
+              0.07283866603393108,
+              0.06309683399740607,
+              0.061985415988601744,
+              0.06181874999310821
+            ]
+          },
+          "scalar": {
+            "medianMs": 4.733187495730817,
+            "n": 50,
+            "p90Ms": 4.878174723125994,
+            "samplesSeconds": [
+              0.0051506669842638075,
+              0.0048690419644117355,
+              0.004891374963335693,
+              0.004873999976553023,
+              0.004876708029769361,
+              0.004762041033245623,
+              0.00468366703717038,
+              0.0047857920289970934,
+              0.0047254160162992775,
+              0.004772541986312717,
+              0.004637333971913904,
+              0.0048991250223480165,
+              0.004765958001371473,
+              0.004733624984510243,
+              0.004732750006951392,
+              0.004715583985671401,
+              0.004674249968957156,
+              0.0046807919861748815,
+              0.004695250012446195,
+              0.00462024996522814,
+              0.004624624969437718,
+              0.004820458998437971,
+              0.004709166008979082,
+              0.004716874973382801,
+              0.004692708025686443,
+              0.004913333978038281,
+              0.004743499972391874,
+              0.004803292045835406,
+              0.00471300003118813,
+              0.004741040989756584,
+              0.004735916969366372,
+              0.004703874990809709,
+              0.004765916964970529,
+              0.004788541002199054,
+              0.004770083993207663,
+              0.004683000035583973,
+              0.004713375004939735,
+              0.004731458961032331,
+              0.004691082984209061,
+              0.004854374972637743,
+              0.004724124970380217,
+              0.004733958980068564,
+              0.0046488749794662,
+              0.004659208003431559,
+              0.0046656670165248215,
+              0.004666666034609079,
+              0.004660375008825213,
+              0.004751250031404197,
+              0.0049201250076293945,
+              0.004781291005201638
+            ]
+          }
+        },
+        "shadow": {
+          "matrix30": {
+            "medianMs": 69.30904200999066,
+            "n": 7,
+            "p90Ms": 74.71450862940401,
+            "samplesSeconds": [
+              0.08075745904352516,
+              0.07068587501998991,
+              0.06932016700739041,
+              0.06930904200999066,
+              0.06902191595872864,
+              0.06913383299252018,
+              0.06889045797288418
+            ]
+          },
+          "scalar": {
+            "medianMs": 4.819624969968572,
+            "n": 50,
+            "p90Ms": 5.104933283291757,
+            "samplesSeconds": [
+              0.004939417005516589,
+              0.0049565829685889184,
+              0.005009540996979922,
+              0.004949583031702787,
+              0.004963541985489428,
+              0.004920167033560574,
+              0.004713833041023463,
+              0.004844582988880575,
+              0.004819124995265156,
+              0.0047557909856550395,
+              0.004814624960999936,
+              0.004795708984602243,
+              0.004729249980300665,
+              0.004742582968901843,
+              0.0048288339748978615,
+              0.004789792001247406,
+              0.004838583001401275,
+              0.004797542002052069,
+              0.004814124957192689,
+              0.004898041021078825,
+              0.004708584048785269,
+              0.004780166025739163,
+              0.004737499984912574,
+              0.004816000000573695,
+              0.004738832998555154,
+              0.004726500017568469,
+              0.004755291971378028,
+              0.004764750017784536,
+              0.0048093750374391675,
+              0.004739750002045184,
+              0.0048201249446719885,
+              0.004726832965388894,
+              0.004810917016584426,
+              0.005031707987654954,
+              0.004820499976631254,
+              0.0047985000419430435,
+              0.004766375001054257,
+              0.004889375006314367,
+              0.004768957966007292,
+              0.0049964169738814235,
+              0.0052045839838683605,
+              0.005099874979350716,
+              0.005150458018761128,
+              0.005234250042121857,
+              0.005025083024520427,
+              0.005078458983916789,
+              0.005298874981235713,
+              0.00519449997227639,
+              0.005031665961723775,
+              0.004873291996773332
+            ]
+          }
+        }
+      },
+      "provenance": {
+        "candidateFreeze": "20bdae999b8d235028af72a8160276b850211ecd38d4a9ec15a6948f84d93185",
+        "enrichedInput": "57e6572842c6e68d9dd7165b542d7187d7f000d0afbca0040bb4c1b3e13b03fa",
+        "mainInput": "1f236ef84ed9449ec464cf4d485e7d05f618210d795e6c7fc0b6b920827ada0d",
+        "referenceFreeze": "1f531e2bf3ebb5e771a798e3eee3376a09794e94f721cd04f6230076a612c7ac",
+        "selection": "85ba263dbdf914cba8a824f4df9346cc4e1ec22925db9f4115fc7d3cf25158f4"
+      },
+      "routes": {
+        "evidencePairs": 15,
+        "maxError": 1.1102230246251565e-16,
+        "nondestructive": true,
+        "pairs": 435
+      },
+      "stateBranches": [
+        {
+          "exact": true,
+          "pair": [
+            "Abigail Spears",
+            "Adriana Gersi"
+          ],
+          "state": "main"
+        },
+        {
+          "exact": true,
+          "pair": [
+            "Abigail Spears",
+            " Arnold"
+          ],
+          "state": "lower"
+        }
+      ],
+      "storage": {
+        "incumbentPayloadBytes": 25798945,
+        "shadowBytes": 29120088
+      }
+    },
+    "status": "complete",
+    "wallSeconds": 119.18966624996392
+  },
+  "historicalStateQA": {
+    "endedAt": "2026-09-07T16:56:37.685075+00:00",
+    "freezeSHA256": "c50b69e13921cc4f3bb59eb975aea27e9c4a732c9a4746ed69c2f4b14f196828",
+    "results": {
+      "probes": [
+        {
+          "artifactSHA256": "ec4ee7e3ac4e0c3b468d52382d9290ff91a962fa2bb79d59842684c40e96dafe",
+          "enrichedRows": 85268,
+          "futureAppendAll43FeaturesExact": true,
+          "mainRows": 85268,
+          "nondestructive": true,
+          "otherMatchMetadataDifferences": {
+            "age_diff": 0.1999999999999993,
+            "is_indoor": 1.0,
+            "peak_age_dev_diff": 0.1999999999999993,
+            "rankpts_diff": 0.03188574541044331
+          },
+          "pastQueryRejected": true,
+          "pendingPriorChecks": [
+            {
+              "pending": 0,
+              "state": "main"
+            },
+            {
+              "pending": 0,
+              "state": "lower"
+            }
+          ],
+          "prefixDerivation": "Original sealed inputs truncated at the recorded row counts, reset_index(drop=True), pickle protocol 5 for derived input digests.",
+          "provenance": {
+            "candidateFreeze": "20bdae999b8d235028af72a8160276b850211ecd38d4a9ec15a6948f84d93185",
+            "enrichedInput": "01a123b1f66169a9ff8bb2b2fd97b1dc732e3174483d363ff11dd3bfb729b54b",
+            "mainInput": "1d9ba2bd33119d6b25a682bcb79eda8ced7f18f62582832cddf9885ded7e34ee",
+            "referenceFreeze": "1f531e2bf3ebb5e771a798e3eee3376a09794e94f721cd04f6230076a612c7ac",
+            "selection": "85ba263dbdf914cba8a824f4df9346cc4e1ec22925db9f4115fc7d3cf25158f4"
+          },
+          "requestedCutoff": "2009-12-31",
+          "seconds": 18.302639000001363,
+          "serializedAll43QueriesExact": true,
+          "state": "main",
+          "targetDate": "2010-01-04 00:00:00",
+          "targetPair": [
+            "Kim Clijsters",
+            "Tathiana Garbin"
+          ],
+          "walkQueryColumns": [
+            "elo_diff",
+            "elo_overall_diff",
+            "elo_surface_diff",
+            "logit_p_blend",
+            "logit_p_point",
+            "serve_skill_diff",
+            "return_skill_diff",
+            "rest_diff",
+            "fatigue_diff",
+            "h2h_diff",
+            "log_days_since_diff",
+            "layoff_flag_diff",
+            "form90_diff",
+            "winrate10_diff",
+            "h2h_surface_diff",
+            "log_min_srv_pts",
+            "log_min_matches",
+            "log1p_h2h_total",
+            "logit_p_dynamic"
+          ],
+          "walkQueryMaxError": 0.0
+        },
+        {
+          "artifactSHA256": "648f0ed4f6e001c941aa0c5702cd5d232e854feaeaac09c5e153ae29a3eb8e7b",
+          "enrichedRows": 109223,
+          "futureAppendAll43FeaturesExact": true,
+          "mainRows": 107555,
+          "nondestructive": true,
+          "otherMatchMetadataDifferences": {
+            "is_indoor": 1.0,
+            "rankpts_diff": -0.09557299491154192
+          },
+          "pastQueryRejected": true,
+          "pendingPriorChecks": [
+            {
+              "pending": 0,
+              "state": "main"
+            },
+            {
+              "pending": 0,
+              "state": "lower"
+            }
+          ],
+          "prefixDerivation": "Original sealed inputs truncated at the recorded row counts, reset_index(drop=True), pickle protocol 5 for derived input digests.",
+          "provenance": {
+            "candidateFreeze": "20bdae999b8d235028af72a8160276b850211ecd38d4a9ec15a6948f84d93185",
+            "enrichedInput": "00a000eb36edb1a3ef816d7c1601d557c4a0d689f24f748ddd9449f273512084",
+            "mainInput": "741ac2cf5d8c465e7ef2ce2a820a20eb49686fed5e82e41b4fcc33b7ef61f65a",
+            "referenceFreeze": "1f531e2bf3ebb5e771a798e3eee3376a09794e94f721cd04f6230076a612c7ac",
+            "selection": "85ba263dbdf914cba8a824f4df9346cc4e1ec22925db9f4115fc7d3cf25158f4"
+          },
+          "requestedCutoff": "2017-12-31",
+          "seconds": 24.921592457976658,
+          "serializedAll43QueriesExact": true,
+          "state": "main",
+          "targetDate": "2018-01-01 00:00:00",
+          "targetPair": [
+            "Julia Goerges",
+            "Monica Puig"
+          ],
+          "walkQueryColumns": [
+            "elo_diff",
+            "elo_overall_diff",
+            "elo_surface_diff",
+            "logit_p_blend",
+            "logit_p_point",
+            "serve_skill_diff",
+            "return_skill_diff",
+            "rest_diff",
+            "fatigue_diff",
+            "h2h_diff",
+            "log_days_since_diff",
+            "layoff_flag_diff",
+            "form90_diff",
+            "winrate10_diff",
+            "h2h_surface_diff",
+            "log_min_srv_pts",
+            "log_min_matches",
+            "log1p_h2h_total",
+            "logit_p_dynamic"
+          ],
+          "walkQueryMaxError": 0.0
+        },
+        {
+          "artifactSHA256": "bf3cd8eeda8fdb5f8e6067b54e637f3dea5fa2613a729cb7a31b6c0eedffc4f8",
+          "enrichedRows": 141753,
+          "futureAppendAll43FeaturesExact": true,
+          "mainRows": 127154,
+          "nondestructive": true,
+          "otherMatchMetadataDifferences": {
+            "age_diff": -6.699999999999999,
+            "peak_age_dev_diff": 4.900000000000002,
+            "rankpts_diff": 0.0065594610571864005
+          },
+          "pastQueryRejected": true,
+          "pendingPriorChecks": [
+            {
+              "pending": 0,
+              "state": "main"
+            },
+            {
+              "pending": 0,
+              "state": "lower"
+            }
+          ],
+          "prefixDerivation": "Original sealed inputs truncated at the recorded row counts, reset_index(drop=True), pickle protocol 5 for derived input digests.",
+          "provenance": {
+            "candidateFreeze": "20bdae999b8d235028af72a8160276b850211ecd38d4a9ec15a6948f84d93185",
+            "enrichedInput": "a136906dc836041df9dc14525648c82cce3bae1790d44479f1f7f4d4ccd34d63",
+            "mainInput": "e7cbca6dd09ce882b7d9ad42fa11171d49c400650848afdb76d4a8a294126e38",
+            "referenceFreeze": "1f531e2bf3ebb5e771a798e3eee3376a09794e94f721cd04f6230076a612c7ac",
+            "selection": "85ba263dbdf914cba8a824f4df9346cc4e1ec22925db9f4115fc7d3cf25158f4"
+          },
+          "requestedCutoff": "2025-12-31",
+          "seconds": 32.00838537502568,
+          "serializedAll43QueriesExact": true,
+          "state": "lower",
+          "targetDate": "2026-01-04 00:00:00",
+          "targetPair": [
+            "Sara Bejlek",
+            "Panna Udvardy"
+          ],
+          "walkQueryColumns": [
+            "elo_diff",
+            "elo_overall_diff",
+            "elo_surface_diff",
+            "logit_p_blend",
+            "logit_p_point",
+            "serve_skill_diff",
+            "return_skill_diff",
+            "rest_diff",
+            "fatigue_diff",
+            "h2h_diff",
+            "log_days_since_diff",
+            "layoff_flag_diff",
+            "form90_diff",
+            "winrate10_diff",
+            "h2h_surface_diff",
+            "log_min_srv_pts",
+            "log_min_matches",
+            "log1p_h2h_total",
+            "logit_p_dynamic"
+          ],
+          "walkQueryMaxError": 0.0
+        }
+      ],
+      "scope": "QA of serialized historical states; reuses present fitted combiner, no historical forecast scores. Static saved player metadata can differ from metadata supplied on a later match record; reported separately."
+    },
+    "status": "complete",
+    "wallSeconds": 79.41705641598674
+  },
+  "correctedContextQA": {
+    "endedAt": "2026-09-07T17:00:07.892779+00:00",
+    "freezeSHA256": "c50b69e13921cc4f3bb59eb975aea27e9c4a732c9a4746ed69c2f4b14f196828",
+    "results": {
+      "correctedTemporalContexts": [
+        {
+          "all19LearnedStateColumnsExact": true,
+          "cutoff": "2009-12-31",
+          "matchedQueryColumns": 40,
+          "normalizedIndoor": false,
+          "originalReceiptSHA256": "43eba42b0cf26a656199036609d62b81ac88bcdb287d501751db1f8b8a37f1b4",
+          "snapshotMetadataDifferences": {
+            "age_diff": 0.1999999999999993,
+            "peak_age_dev_diff": 0.1999999999999993,
+            "rankpts_diff": 0.03188574541044331
+          },
+          "targetDate": "2010-01-04 00:00:00",
+          "targetPair": [
+            "Kim Clijsters",
+            "Tathiana Garbin"
+          ]
+        },
+        {
+          "all19LearnedStateColumnsExact": true,
+          "cutoff": "2017-12-31",
+          "matchedQueryColumns": 42,
+          "normalizedIndoor": false,
+          "originalReceiptSHA256": "3218e8ac1f665f69ebb6a8c6a57f1aa9c5db24588f26bb714032889a82955ef7",
+          "snapshotMetadataDifferences": {
+            "rankpts_diff": -0.09557299491154192
+          },
+          "targetDate": "2018-01-01 00:00:00",
+          "targetPair": [
+            "Julia Goerges",
+            "Monica Puig"
+          ]
+        },
+        {
+          "all19LearnedStateColumnsExact": true,
+          "cutoff": "2025-12-31",
+          "matchedQueryColumns": 40,
+          "normalizedIndoor": false,
+          "originalReceiptSHA256": "3ae3a72c92f0aa4efac2fa1ef857553dd25b63c371dbc5c561910f2e02cb4573",
+          "snapshotMetadataDifferences": {
+            "age_diff": -6.699999999999999,
+            "peak_age_dev_diff": 4.900000000000002,
+            "rankpts_diff": 0.0065594610571864005
+          },
+          "targetDate": "2026-01-04 00:00:00",
+          "targetPair": [
+            "Sara Bejlek",
+            "Panna Udvardy"
+          ]
+        }
+      ],
+      "correction": "temporal-001 passed bool(NaN) as indoor=True on two targets; corrected only the QA query context. The state checks and saved artifacts were valid. Residual differences are frozen player metadata versus later match metadata, inherited from the incumbent.",
+      "currentBranchWitnesses": [
+        {
+          "exact": true,
+          "mainCounts": [
+            445,
+            577
+          ],
+          "pair": [
+            "Elena Rybakina",
+            "Aryna Sabalenka"
+          ],
+          "state": "main"
+        },
+        {
+          "exact": true,
+          "mainCounts": [
+            445,
+            8
+          ],
+          "pair": [
+            "Elena Rybakina",
+            "Tena Lukas"
+          ],
+          "state": "lower"
+        }
+      ],
+      "noFitOrArtifactMutation": true
+    },
+    "status": "complete",
+    "wallSeconds": 8.499238417018205
+  },
+  "preservation": {
+    "checkedAt": "2026-09-07T17:02:23.021144+00:00",
+    "protectedDataExact": [
+      "original",
+      "coordinator",
+      "phase4",
+      "maintenance",
+      "dynamic-screen"
+    ],
+    "shadowDataExact": true,
+    "originalInputFiles": 18791,
+    "sevenDistinctCopiesPerInput": true,
+    "snapshotFilesVerified": 25826,
+    "protectedRunFilesVerified": {
+      "phase3": 56,
+      "phase4": 77,
+      "maintenance": 104,
+      "dynamic-continuation": 61
+    },
+    "protectedSourceInventoriesExact": true,
+    "existingTestFilesExact": 76,
+    "evaluatorProgramWorkflowWebExact": true,
+    "shadowFreezeVerified": true,
+    "disposableCacheRestoration": {
+      "checkedAt": "2026-09-07T16:50:49.375488+00:00",
+      "reason": "Full suite replaced disposable normalized caches; preserve fixture bytes then restore frozen copies before real acceptance. No raw source changes.",
+      "changes": [
+        {
+          "path": "cache/normalized-history/atp.pkl",
+          "testSHA256": "23f09b59cc73023b0f89566d89df5c09330129402cdfbcca5ad2a650207c5b9f",
+          "restoredSHA256": "8830bb7b2f6241293595d8734cfb5d045c8ed0475496f95a8f45ae664422475b"
+        },
+        {
+          "path": "cache/normalized-history/wta.pkl",
+          "testSHA256": "23f09b59cc73023b0f89566d89df5c09330129402cdfbcca5ad2a650207c5b9f",
+          "restoredSHA256": "b1453f261c2965aa14df8f80b751f02f26145bcef776b21f24b975cf2699bb56"
+        },
+        {
+          "path": "cache/normalized-matches/atp-main.pkl.gz",
+          "testSHA256": "424b1c8014a70ae483e3a6b200082897ca5d16d1f591cd085a3e08128303899a",
+          "restoredSHA256": "9b7f6252a70674bbefdac553380b9a286f594d41473871f86a16efdb5e124388"
+        },
+        {
+          "path": "cache/normalized-matches/wta-main.pkl.gz",
+          "testSHA256": "8a6a62e567f53626c28f738201ad2a0108400a8ece929d48d964bead913b742e",
+          "restoredSHA256": "15b258eb10be311997df27eb3a7f2f8f62d10bd198c182158654f897ffb327b1"
+        }
+      ]
+    }
+  },
+  "artifactPath": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/runs/dynamic-shadow/acceptance-001/candidate.shadow",
+  "artifactSHA256": "24fe25bfdb461b507f3a36db9f9b10a9787f8f3731f62f5d1aeda80a3dff1113",
+  "privateDrivers": {
+    "shadow-control.py": "73cb6933f7caa8f58ae5571293a9b4a6a7948313eb7f9e87f5e8bcedc2deb3cd",
+    "shadow-acceptance.py": "cf25ab062d07baee919febfa7273cb3b42470231a49e68bc371dd1941809dffd",
+    "shadow-temporal.py": "d937b64c5fb4731ca47a5c82f4251e74939a53e973a044a0e9f524208570df05",
+    "shadow-context-check.py": "cc97209f6cbbc723c79cfa6da964d9d5cddb200a965a062913327be66a39d3b3",
+    "shadow-preserve.py": "8c781102105d7fcbcccbdf5befd438902ada1d0047828a0bd92fd839a253b89d"
+  },
+  "runFilesRoot": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/runs/dynamic-shadow",
+  "runFiles": {
+    "acceptance-001/candidate.shadow": "24fe25bfdb461b507f3a36db9f9b10a9787f8f3731f62f5d1aeda80a3dff1113",
+    "acceptance-001/completion.json": "e6134234bc1e7b83d8fb20fd5f3b649394c62a0032b4f366a3260298ceb0dc3f",
+    "acceptance-001/features-main.pkl": "fb8b976d6179d5469257e7a648e90f3db832acc15d2f50d8c6e7ee5e0eed194c",
+    "acceptance-001/features-selected.pkl": "14d23d8af3bcfaf5fdbbdef852cfdb4c9ca74c182a97227b53d669b03bb856aa",
+    "acceptance-001/registration.json": "d24d403c0d55436d2ff7bd4e6e36038f8a943a75011d928222f340444818b1d5",
+    "acceptance-001/reproduced-oos.pkl": "20a8cb1a04dd4fd136433f4f01d2261c4b2344e34fcf5b9465ba865aeeec283e",
+    "acceptance-001/result.json": "a6af41d68334398849f31921d3b37a3d229965a01c56cccf747e74b898af011a",
+    "acceptance-001.log": "432e00a81ff46ab7b3bac36e84f14c16305449c3999c3d3f6d26b996d649c2a0",
+    "cache-restoration.json": "a5960898daf051dd815d457bc20b64af067e3e45bdf0850ea09c5243f15ae482",
+    "context-check-001/completion.json": "e9c96ae0be3209a1e4c5c812a8caf9df13a26d519cbab9e2a51cac504ccf80be",
+    "context-check-001/registration.json": "2898a209e250639e60ef8342d9caaa519eac557b3c263135e98f18b7ae48a5c9",
+    "context-check-001/result.json": "fdaa44c5bc8b59057de7592c9219532649ac82d7342f5598a1b3b7535eebf25b",
+    "context-check-001.log": "7ddf64a56163056d3d605e28f6f695939cffdf934b5a2e80a66c074b74724c13",
+    "control-001/result.json": "a3b2205b12e494cafc6fcd60beff81b877a84403527450ff13703d5e402004cb",
+    "control-001.log": "1b05267e442fb5193315f457a11806e90e50bb9923b561cad40bd1eb8a7814f5",
+    "full-suite-001.log": "a2423098273e1e47c7ed132502664fb4a82438e9bb3bfbd9a2f095b60259d693",
+    "implementation-freeze.json": "316e864da98a32d461fb3203f5d64741e41cf0048ba881feeec1a2dbdd48311a",
+    "initial-data-inventory.json": "46907aaf38029260d09353878da3cd272f0e161e15941d7f5adb2b8ceabad6fa",
+    "preparation.json": "83aff8c0f59d40de059a0c12c135e7bbe661d692045256bc4f9688d32dfc6f85",
+    "preservation-001.log": "676b8f4e56559f305b0cb5d95630ca9120b5499b3be5660edfa1f39dc650ab1e",
+    "preservation.json": "7a6c8137ec8432ce5240815be8465637646b81618a28a250d831a120a7a747f7",
+    "protected-data-inventories.json": "692d5702e0a6bd1c93e0166d45abdcf07f49493578fc6f2a4b8a22106961e66e",
+    "targeted-001.log": "107d39c28457b87b4891d431f2d821f7bab4b3e045cc79ce6f2663e8881fa450",
+    "targeted-002.log": "f98bb3d1873f2bb4b194442529c8c40f46e3ed19a0e606ad47c5735086af0252",
+    "temporal-001/2009-12-31.json": "43eba42b0cf26a656199036609d62b81ac88bcdb287d501751db1f8b8a37f1b4",
+    "temporal-001/2017-12-31.json": "3218e8ac1f665f69ebb6a8c6a57f1aa9c5db24588f26bb714032889a82955ef7",
+    "temporal-001/2025-12-31.json": "3ae3a72c92f0aa4efac2fa1ef857553dd25b63c371dbc5c561910f2e02cb4573",
+    "temporal-001/completion.json": "1ac278c5bc4ca90b70ffa8aa1dd7d6f8e4453e3b7c6b05345a0ae1f8f732c437",
+    "temporal-001/qa-state-2009-12-31.shadow": "ec4ee7e3ac4e0c3b468d52382d9290ff91a962fa2bb79d59842684c40e96dafe",
+    "temporal-001/qa-state-2017-12-31.shadow": "648f0ed4f6e001c941aa0c5702cd5d232e854feaeaac09c5e153ae29a3eb8e7b",
+    "temporal-001/qa-state-2025-12-31.shadow": "bf3cd8eeda8fdb5f8e6067b54e637f3dea5fa2613a729cb7a31b6c0eedffc4f8",
+    "temporal-001/registration.json": "6009d1eae6c637798916b40093d8319c2eb87a991a48d3e8331b83db1c727f99",
+    "temporal-001.log": "29c1cb1600c493189fb5407aeaece4df5a50324a3fcd6f754223edfacc83a20a",
+    "test-cache-evidence-001/cache/normalized-history/atp.pkl": "23f09b59cc73023b0f89566d89df5c09330129402cdfbcca5ad2a650207c5b9f",
+    "test-cache-evidence-001/cache/normalized-history/wta.pkl": "23f09b59cc73023b0f89566d89df5c09330129402cdfbcca5ad2a650207c5b9f",
+    "test-cache-evidence-001/cache/normalized-matches/atp-main.pkl.gz": "424b1c8014a70ae483e3a6b200082897ca5d16d1f591cd085a3e08128303899a",
+    "test-cache-evidence-001/cache/normalized-matches/wta-main.pkl.gz": "8a6a62e567f53626c28f738201ad2a0108400a8ece929d48d964bead913b742e"
+  },
+  "limits": [
+    "No new out-of-sample performance evidence: historical probabilities were reproduced, not reselected.",
+    "Validation week interval still crosses zero; historical accuracy tradeoff is unchanged.",
+    "All 43 serialized feature queries match; 19 learned-state query features match the walk. Historical rank/age metadata may differ from a frozen snapshot.",
+    "Latency is a warm local microbenchmark, not a production concurrency SLA.",
+    "Existing prospective runner accepts production-format artifacts only; mixed-format adapter and real future observations remain next work."
+  ]
+}

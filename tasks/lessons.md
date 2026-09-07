@@ -359,3 +359,8 @@ New lesson → append the entry to the matching topic file and add its lead line
 - Once an event ID is corroborated, constrain the match audit to it. See
   [`lessons/data-sources.md`](lessons/data-sources.md). (2026-09-06)
 - Same-season score/round collisions need proven edition boundaries before timing donation: [data-sources](lessons/data-sources.md).
+
+
+- Saved-query equality and historical match-row equality use different metadata;
+  normalize missing context and report state parity separately. See
+  [`lessons/model-research.md`](lessons/model-research.md). (2026-09-07)

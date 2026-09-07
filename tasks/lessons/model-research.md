@@ -219,3 +219,13 @@ Indexed in [`../lessons.md`](../lessons.md).
   and posterior moments against an independent high-accuracy integral across variance
   regimes before examining outcome scores. Use adaptive integration or fail explicitly
   when a fixed rule is insufficient; numerical error is not a model improvement.
+
+
+- **A saved-query equality check and a historical match-row check have different inputs.**
+  (2026-09-07, uncertainty shadow) All 43 features survive serialization exactly and
+  all 19 learned-state features match their historical walk values, while frozen player
+  rank/age metadata differs from what a later match row supplies. Report those contracts
+  separately; do not turn a state-parity result into a claim of complete match-context
+  equality. Normalize missing context too: `bool(NaN)` made two QA matches falsely
+  indoor, despite the training frame's neutral zero. Preserve the original diagnostic
+  and correct its input context explicitly, without changing fitted outcomes or sources.
