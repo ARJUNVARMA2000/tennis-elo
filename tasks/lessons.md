@@ -378,3 +378,6 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - A timestamp and its derived elapsed clock can agree throughout corrupted data. See
   [`lessons/model-research.md`](lessons/model-research.md). (2026-09-07)
+
+- A schedule catalogue's epoch can identify a different date from its published order. See
+  [`lessons/model-research.md`](lessons/model-research.md). (2026-09-07)

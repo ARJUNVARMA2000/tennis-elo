@@ -1,0 +1,301 @@
+{
+  "schema": "deuce-free-source-result-v1",
+  "recordedAt": "2026-09-08T03:00:46.655590+00:00",
+  "baseCommit": "2e50cb560bb7ba394eae83883b76db9ad06ecff6",
+  "status": "free-schedule-scraping-demonstrated-actual-start-unqualified",
+  "sourceReads": 6,
+  "receipts": {
+    "uso-event-schedule-page": {
+      "schema": "free-source-inspection-v1",
+      "url": "https://www.usopen.org/en_US/about/eventschedule.html",
+      "requestedAt": "2026-09-08T02:57:22.576035+00:00",
+      "purpose": "timing source qualification; no forecasts",
+      "status": 200,
+      "responseUrl": "https://www.usopen.org/en_US/about/eventschedule.html",
+      "headers": {
+        "content-type": "text/html",
+        "last-modified": "Fri, 04 Sep 2026 22:15:43 GMT",
+        "etag": "W/\"62751c542ca7f4ae74c5890494c4e91b\"",
+        "cache-control": "max-age=300",
+        "date": "Tue, 08 Sep 2026 02:57:22 GMT",
+        "content-length": "4084"
+      },
+      "rawBytes": 4084,
+      "rawSHA256": "37a4ea006d30d411c36d65118f251bafd3487ad11165475f06d9f5d51cc5af63",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T02:57:22.691766+00:00",
+      "elapsedSeconds": 0.11514979193452746
+    },
+    "uso-order-16": {
+      "schema": "free-source-inspection-v1",
+      "url": "https://www.usopen.org/en_US/scores/2026/schedule/pdf/schedulePDF16.pdf",
+      "requestedAt": "2026-09-08T02:57:21.070126+00:00",
+      "purpose": "timing source qualification; no forecasts",
+      "status": 200,
+      "responseUrl": "https://www.usopen.org/en_US/scores/2026/schedule/pdf/schedulePDF16.pdf",
+      "headers": {
+        "content-type": "application/pdf",
+        "last-modified": "Tue, 08 Sep 2026 02:00:30 GMT",
+        "etag": "W/\"e0dd0e430b866fc3d287ea5b3d202d52\"",
+        "cache-control": "max-age=150",
+        "date": "Tue, 08 Sep 2026 02:57:21 GMT"
+      },
+      "rawBytes": 154896,
+      "rawSHA256": "daa8d9a452027c352a7374e3aa7d15abc4ad35f78870d2399aed601097324f80",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T02:57:21.459893+00:00",
+      "elapsedSeconds": 0.3895829579560086
+    },
+    "uso-order-17": {
+      "schema": "free-source-inspection-v1",
+      "url": "https://www.usopen.org/en_US/scores/2026/schedule/pdf/schedulePDF17.pdf",
+      "requestedAt": "2026-09-08T02:55:30.130557+00:00",
+      "purpose": "timing source qualification; no forecasts",
+      "status": 200,
+      "responseUrl": "https://www.usopen.org/en_US/scores/2026/schedule/pdf/schedulePDF17.pdf",
+      "headers": {
+        "content-type": "application/pdf",
+        "last-modified": "Tue, 08 Sep 2026 00:26:55 GMT",
+        "etag": "W/\"ad9170c4bc6d06d0bea5e7dc185afb28\"",
+        "cache-control": "max-age=150",
+        "date": "Tue, 08 Sep 2026 02:55:30 GMT"
+      },
+      "rawBytes": 151365,
+      "rawSHA256": "b0b96a762e5ee754b129f3de1a18680c2c57a4e7ef6bd30888e1648bb0c29e7a",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T02:55:30.336801+00:00",
+      "elapsedSeconds": 0.2059540000045672
+    },
+    "uso-schedule-16": {
+      "schema": "free-source-inspection-v1",
+      "url": "https://www.usopen.org/en_US/scores/feeds/2026/schedule/schedule16.json",
+      "requestedAt": "2026-09-08T02:56:16.407255+00:00",
+      "purpose": "timing source qualification; no forecasts",
+      "status": 200,
+      "responseUrl": "https://www.usopen.org/en_US/scores/feeds/2026/schedule/schedule16.json",
+      "headers": {
+        "content-type": "application/json",
+        "last-modified": "Tue, 08 Sep 2026 02:07:44 GMT",
+        "etag": "W/\"7c55d6b18cc6d5f7915527c46a3c852d\"",
+        "cache-control": "max-age=26",
+        "date": "Tue, 08 Sep 2026 02:56:16 GMT"
+      },
+      "rawBytes": 129864,
+      "rawSHA256": "6587d00e1cea697be721f8e45960e103f903695b15c03169085c4b629a146a7c",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T02:56:16.575793+00:00",
+      "elapsedSeconds": 0.1682277499930933
+    },
+    "uso-schedule-17": {
+      "schema": "free-source-inspection-v1",
+      "url": "https://www.usopen.org/en_US/scores/feeds/2026/schedule/schedule17.json",
+      "requestedAt": "2026-09-08T02:55:06.147736+00:00",
+      "purpose": "timing source qualification; no forecasts",
+      "status": 200,
+      "responseUrl": "https://www.usopen.org/en_US/scores/feeds/2026/schedule/schedule17.json",
+      "headers": {
+        "content-type": "application/json",
+        "last-modified": "Tue, 08 Sep 2026 00:26:50 GMT",
+        "etag": "W/\"14856ea925dccd068c2a39bd8440f43e\"",
+        "cache-control": "max-age=29",
+        "date": "Tue, 08 Sep 2026 02:55:06 GMT"
+      },
+      "rawBytes": 82903,
+      "rawSHA256": "54510aa963a5f6c804ad2c835b4f465bee1391152653afbb97bb3aa264457876",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T02:55:06.396380+00:00",
+      "elapsedSeconds": 0.24796833307482302
+    },
+    "uso-schedule-days": {
+      "schema": "free-source-inspection-v1",
+      "url": "https://www.usopen.org/en_US/scores/feeds/2026/schedule/scheduleDays.json",
+      "requestedAt": "2026-09-08T02:54:19.397254+00:00",
+      "purpose": "timing source qualification; no forecasts",
+      "status": 200,
+      "responseUrl": "https://www.usopen.org/en_US/scores/feeds/2026/schedule/scheduleDays.json",
+      "headers": {
+        "content-type": "application/json",
+        "last-modified": "Tue, 08 Sep 2026 02:07:44 GMT",
+        "etag": "W/\"42b98e64d4d137971c4873dc7c3e74d2\"",
+        "cache-control": "max-age=6",
+        "date": "Tue, 08 Sep 2026 02:54:19 GMT",
+        "content-length": "11152"
+      },
+      "rawBytes": 11152,
+      "rawSHA256": "e29b25130360e6f4c113d9e975f5f8dfc56781757526390f4f8df295d6ce2e72",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T02:54:19.548332+00:00",
+      "elapsedSeconds": 0.15072637505363673
+    }
+  },
+  "census": {
+    "16": {
+      "courtsAndSessions": 17,
+      "allRows": 72,
+      "eventCodeCounts": {
+        "WS": 4,
+        "MS": 4,
+        "None": 1,
+        "WD": 8,
+        "MD": 7,
+        "GS": 16,
+        "BD": 8,
+        "BS": 16,
+        "GD": 8
+      },
+      "womenSinglesRows": 4,
+      "allExplicitNotBeforeRows": 23,
+      "displayDate": "2026-09-07",
+      "listingEpochVenueDate": "2026-09-07",
+      "listingEpochAgreesWithDisplayDate": true,
+      "allCourtEpochsAndPrintedClocksAgree": true,
+      "releaseTimeText": "7:13 PM",
+      "firstPublicationTimeEstablished": false
+    },
+    "17": {
+      "courtsAndSessions": 16,
+      "allRows": 60,
+      "eventCodeCounts": {
+        "WS": 2,
+        "MS": 2,
+        "BS": 8,
+        "WD": 4,
+        "BD": 8,
+        "GD": 8,
+        "GS": 8,
+        "MD": 8,
+        "DD": 4,
+        "UD": 4,
+        "CD": 4
+      },
+      "womenSinglesRows": 2,
+      "allExplicitNotBeforeRows": 7,
+      "displayDate": "2026-09-08",
+      "listingEpochVenueDate": "2026-09-07",
+      "listingEpochAgreesWithDisplayDate": false,
+      "allCourtEpochsAndPrintedClocksAgree": true,
+      "releaseTimeText": "7:49 PM",
+      "firstPublicationTimeEstablished": false
+    }
+  },
+  "scheduleObservationRows": 6,
+  "observedBeforePublishedTimeRows": 2,
+  "explicitNotBeforeWomenSinglesRows": 1,
+  "verifiedActualStartBounds": 0,
+  "qualification": {
+    "rawScheduleAndPDFRetrieved": true,
+    "PDFPagesVisuallyInspected": 4,
+    "PDFTextExtractionReliable": false,
+    "timezoneBasis": "America/New_York checked against every court epoch and printed session clock",
+    "scheduleSemantics": "explicit-not-before distinct from session start and sequence",
+    "revisionHistoryOrLiveLifecycleWitnessed": false,
+    "actualStartProducerQualified": false,
+    "independentPhysicalStartEvidence": false,
+    "forecastOrEvaluationInputsCreated": false
+  },
+  "preservation": {
+    "protectedRunFilesVerified": {
+      "phase3": 56,
+      "phase4": 77,
+      "maintenance": 104,
+      "dynamic-continuation": 61,
+      "dynamic-shadow": 37,
+      "prospective-shadow": 42,
+      "source-audit": 38,
+      "time-evidence": 28,
+      "start-source": 57
+    },
+    "totalProtectedRunFilesVerified": 500,
+    "frozenPackageFilesVerified": 91,
+    "trackedProgramWebWorkflowFilesExactVsStartSource": 354,
+    "completedCheckoutsClean": {
+      "coordinator": "c5cd3669d94fb93b7b0914e96bb28253d9e990a4",
+      "phase4": "51c9eb1535dc296e1464fb7c1290a779f7f34c15",
+      "maintenance": "975379b9411b1bd79937e31e5f80d412df3b5f09",
+      "dynamic-screen": "777a38e235755754e6175b294b47f48a70e90b31",
+      "dynamic-shadow": "64d62decfdc9d96e5777bb8017a29bb8d4c0993f",
+      "prospective-shadow": "3cd780af13e364c04714f7ae1d7e0b9bb7c9ba1c",
+      "source-audit": "3f4e99d64af66461e11e6e96fb164813e4144bfd",
+      "time-evidence": "129f811514cfd6b2a44edc087c42b26b45a475d4",
+      "start-source": "2e50cb560bb7ba394eae83883b76db9ad06ecff6"
+    },
+    "newTrainingCopies": 0,
+    "modelPayloadsCoveredByProtectedRunManifest": true,
+    "fullTrainingAndSnapshotInventoriesRehashedThisPhase": false,
+    "lastFullTrainingAndSnapshotVerificationUTC": "2026-09-08T01:58:44.035725+00:00"
+  },
+  "driverHashes": {
+    "free-source-probe.py": "2f0edfdefd5fb07a42eb0b0de090e84baed72f384be32fe2dfd853c93976f3e1",
+    "free-source-analyze.py": "45103a80f1b59c15a8244833a43aed6376c0bf6dad7077f07f892ee0c45bbde4"
+  },
+  "testsRunThisPhase": false,
+  "offlineSampleAndPreservationAssertionsPassed": true,
+  "modelFits": 0,
+  "livePilotActive": false,
+  "sourceProducerIntegrated": false,
+  "accountOrPurchaseCreated": false,
+  "productionChanged": false,
+  "paths": {
+    "worktree": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/free-source",
+    "runRoot": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/runs/free-source",
+    "scheduleObservations": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/runs/free-source/schedule-observations.json"
+  },
+  "primaryDocumentation": [
+    {
+      "url": "https://docs.livetennisapi.com/reference.html",
+      "verifiedOnUTC": "2026-09-08",
+      "scope": "documentation only; no account, key or authenticated sample"
+    },
+    {
+      "url": "https://docs.tennis-api.com/",
+      "verifiedOnUTC": "2026-09-08",
+      "scope": "documentation only; no account, key or authenticated sample"
+    },
+    {
+      "url": "https://sports.bzzoiro.com/docs/tennis/",
+      "verifiedOnUTC": "2026-09-08",
+      "scope": "documentation only; no account, key or authenticated sample"
+    },
+    {
+      "url": "https://sofascore.helpscoutdocs.com/article/129-sports-data-api-availability",
+      "verifiedOnUTC": "2026-09-08",
+      "scope": "documentation only; no account, key or authenticated sample"
+    }
+  ],
+  "limitations": [
+    "Published schedules are not independent measurements of physical first serve.",
+    "Only one of six WTA rows is explicit not-before, acquired after its published time.",
+    "Two future rows are first-session starts; no model forecasts were made.",
+    "No revision history or complete pre/live/terminal lifecycle witnessed.",
+    "Catalogue epoch disagrees with the day-17 printed date.",
+    "Production collector and timing-evidence producer remain unimplemented."
+  ],
+  "runFiles": {
+    "analysis.json": "f40ab31ce8d35d8723e1a15a94c4f3ca37dcfddbb7ce5e58892f9729b7058efb",
+    "pdf-review.json": "2853694273bd637b6197a56b33c6ad8d6146e9c7fdce0f905cc249bba849fef4",
+    "plan.txt": "7ef36b95a1b2eea980a92d08ba288e1178732f19c0401d7e15eac01df8b370e7",
+    "protected-run-files.json": "545c865e774e8fccfc5d6490c0ea9f0ac0051d3c61e1d00a5f93d258b69a1d5b",
+    "schedule-observations.json": "0a205bac8b81440ba4b29023f68b401235af417c7485236751fbe2320249fb5a",
+    "uso-event-schedule-page/attempt.json": "03f3a920032286c16a57698960c5091e670fcf81bc57663d07fbfe5abbb82537",
+    "uso-event-schedule-page/receipt.json": "37e50e127df5e7de8b4c709ca443c40ad97abec3723ceac73076bb80f86e846f",
+    "uso-event-schedule-page/response.bin": "37a4ea006d30d411c36d65118f251bafd3487ad11165475f06d9f5d51cc5af63",
+    "uso-order-16/attempt.json": "e46d52bb2783bebeb98b1fb77c34998b9ce02b7c5a53f6183a34efb12f44f983",
+    "uso-order-16/order-of-play-2026-09-07.pdf": "daa8d9a452027c352a7374e3aa7d15abc4ad35f78870d2399aed601097324f80",
+    "uso-order-16/receipt.json": "4e41d50af037fb5265937e2da5ff27e0d757190cee311c7d647516265f01147e",
+    "uso-order-16/response.bin": "daa8d9a452027c352a7374e3aa7d15abc4ad35f78870d2399aed601097324f80",
+    "uso-order-17/attempt.json": "6c7f3cd6ff79342f7f14e88337147485b8ad5350157f10e1a600c8b1cc4ef5a2",
+    "uso-order-17/order-of-play-2026-09-08.pdf": "b0b96a762e5ee754b129f3de1a18680c2c57a4e7ef6bd30888e1648bb0c29e7a",
+    "uso-order-17/order.txt": "6ff023291992e9f5a7a6e9514fabc72a6d2288015c4fdff71650e356d975b399",
+    "uso-order-17/receipt.json": "4492cbfd625659382edbfa8528538418b81916e417486476451bb6a612d6891f",
+    "uso-order-17/response.bin": "b0b96a762e5ee754b129f3de1a18680c2c57a4e7ef6bd30888e1648bb0c29e7a",
+    "uso-schedule-16/attempt.json": "518f2fe9019275b5afc9f6ca91c90ab2c0469e97989d78e88a1bd885c914e94a",
+    "uso-schedule-16/receipt.json": "4568f9b9cfd58b9acc9332941596a37fedb4006c29afcabd4a03a5755f9d51f0",
+    "uso-schedule-16/response.bin": "6587d00e1cea697be721f8e45960e103f903695b15c03169085c4b629a146a7c",
+    "uso-schedule-17/attempt.json": "2a728cd1143eb6882fa086d413a1eace4358237d67958a69e1dd2fdabbc56bbf",
+    "uso-schedule-17/receipt.json": "a4a4ca5f414d85fa5b18265f3e319248b44a3a7beac888619f0eb945b1259452",
+    "uso-schedule-17/response.bin": "54510aa963a5f6c804ad2c835b4f465bee1391152653afbb97bb3aa264457876",
+    "uso-schedule-days/attempt.json": "7f1c1a4a975bd1e29fc548a746e8eaddd9380ff32dcbec8db4b2286779e86f36",
+    "uso-schedule-days/receipt.json": "a2317e8dd10844dc0b7d4950391162fa4e6289ba58360f141364553c39aa122f",
+    "uso-schedule-days/response.bin": "e29b25130360e6f4c113d9e975f5f8dfc56781757526390f4f8df295d6ce2e72"
+  }
+}
