@@ -166,3 +166,19 @@ are closed questions — re-opening one requires the underlying space to have ch
   fixed future pilot; do not reopen the already validation-exposed parameter grid.
   See [shadow review](2026-09-07-shadow-review.md) and
   [confirmation plan](2026-09-07-shadow-confirmation-plan.md).
+
+
+## 2026-09-08 next-round direction — historical prediction errors
+
+- **Error-led historical mechanisms — PLANNED, hypotheses not yet selected.** The next
+  priority is tune-only diagnosis of the corrected 42-column incumbent, then up to
+  three genuinely distinct mechanisms supported by those errors. Audit against all
+  closed families above before fitting; no uncertainty-grid retune on exposed validation.
+  Freeze at most two variants per mechanism, select at most one overall finalist on
+  2010–2019, and evaluate that locked finalist on the unchanged 2020+ arbiter. Later
+  years remain reused validation, not an untouched holdout. No experiment has run.
+  See the [execution plan and required result table](2026-09-08-historical-error-round-plan.md).
+- **Live timing/source confirmation — separate dependency.** Existing collectors,
+  event audit and calibration protocol remain preserved. Their physical witness gap
+  does not block new historical experiments. Resume only with useful new evidence;
+  do not make another source survey the default next model-improvement round.

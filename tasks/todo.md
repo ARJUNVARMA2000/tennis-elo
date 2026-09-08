@@ -7402,3 +7402,36 @@ automation, live pilot or production change. Follow the timing-contract handoff;
 repeating document surveys or generating another generic auditor without new evidence.
 
 Documentation mirror receipt: accepted isolated timing-contract research at `0214834d535654bd92da28180c0d74fb6d33b41b`. Research checkout is clean; original checkout receives the five research documents plus append-only logs only. No source or model was merged.
+
+
+## 2026-09-08 — return to historical predictive improvement
+
+User direction: diagnose tuning-year incumbent errors, choose two or three new mechanisms,
+run bounded historical experiments, and deliver a tried/improved/failed comparison table.
+This planning response records that direction; no fit or experiment has started.
+Read `tasks/research/2026-09-08-historical-error-round-plan.md` before implementation.
+
+- [x] P0: reconcile the accepted reference, predictive experiment history, backlog and
+  evaluation rules; record the user's priority correction in committed lessons.
+- [x] P1: write an executable plan with reference paths, tune-only diagnostics, novelty
+  checks, bounded variants, a locked finalist, unchanged arbiter and exact result table.
+- [ ] H0: create the next isolated research checkout, verify preserved artifacts and
+  reproduce the corrected incumbent from saved walk-forward predictions.
+- [ ] H1: diagnose systematic tuning-year probability errors with predefined slices,
+  outcome-independent orientation, sample counts and year stability.
+- [ ] H2: select up to three defensible mechanisms; freeze at most two variants each,
+  budget/order/selection rules and serving-parity requirements before candidate validation.
+- [ ] H3: run bounded tune-only experiments sequentially against the same incumbent;
+  preserve all outcomes and select at most one overall finalist.
+- [ ] H4: lock the finalist, run the full historical arbiter, report paired metrics,
+  year consistency and uncertainty; retain incumbent unless replacement is justified.
+- [ ] H5: produce the comparison table/CSV, update logs and verify preservation; commit
+  isolated research and mirror documents only. Live confirmation remains separate.
+
+### Planning review
+
+The direction is adopted as the next research priority. Use historical walk-forward
+predictions, not all-history fitted-model predictions. 2020+ has prior research exposure
+and remains validation, not an untouched holdout. The plan caps model search, preserves
+the formal gate and requires honest no-improvement outcomes. No new candidate result,
+performance claim, network acquisition, dependency change or production change occurred.

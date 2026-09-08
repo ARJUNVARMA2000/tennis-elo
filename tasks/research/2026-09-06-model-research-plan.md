@@ -1,40 +1,35 @@
 # DEUCE model improvement — implementation and research handoff
 
-Status: **The bounded official timing-document review is complete. Physical start
-qualification requires an independent timed observation; no new model change is justified.**
-Four primary documents and nine rendered PDF pages were inspected. They did not establish
-a clock/error contract linking the public WTA InProgress field to physical first serve.
-The [review](2026-09-08-timing-contract-review.md), [result manifest](2026-09-08-timing-contract-result.json),
-[calibration and implementation protocol](2026-09-08-timing-calibration-protocol.md), and
-[next-session handoff](2026-09-08-timing-contract-next.md) define the evidence and next steps.
+Status: **Next priority is historical predictive improvement, following the user's
+September 8 correction.** Diagnose tuning-year errors in the corrected incumbent,
+select two or three defensible new mechanisms, and run bounded experiments with a
+clear tried/improved/failed table. No experiment under this new plan has started.
 
-Latest research checkout: `.research/2026-09-06-model-foundation/worktrees/timing-contract`,
-branch `codex/model-timing-contract`, based on `27cc95a`. Resolve its final acceptance tip
-before the next isolated round. This phase changes documents/evidence only. Existing
-[WTA event code](2026-09-08-wta-lifecycle-review.md) remains at `f355253`, order/calendar at
-`b6df856`, identity at `aab6ed0`, US Open collection at `cda5393`, and bounds at `10c07ee`.
+Read the [historical error round plan](2026-09-08-historical-error-round-plan.md) and live
+`tasks/todo.md` tail. It fixes the reference, input paths, error-analysis safeguards,
+variant budget, selection procedure, arbiter and deliverable. Hypotheses are chosen
+from observed 2010–2019 errors after checking [the backlog](ideas.md); none is invented
+in advance. At most one overall finalist reaches a new 2020+ evaluation. Those later
+years have already been examined and must not be called an untouched holdout.
 
-The two Guadalajara 2025 timelines still provide 405 events / 255 scoring records and
-zero independently qualified starts. The reported markers and completed scores reproduce.
-Only synthetic start evidence is qualified; no live registration exists. Incumbent stays
-the corrected maintenance artifact; candidate remains deferred with its prior verdict.
-No new fit, forecast, model-performance estimate, collector cadence or production change.
+Keep the corrected 42-column research incumbent as the common reference. The previous
+[uncertainty experiment](2026-09-06-dynamic-screen-review.md) remains deferred; do not
+reopen its validation-exposed grid. Saved walk-forward predictions and the corrected
+reference are documented in the [maintenance review](2026-09-06-maintenance-review.md).
+Use these historical predictions for diagnostics, not the final all-history fitted model.
 
-At 14:03:31 UTC September 8, all 635 previous run files, 91 frozen package files, both
-model payloads and 384 inherited program/web/workflow files matched; fourteen prior
-accepted checkouts were clean. There are 29 new preserved run files: **664** next-phase
-files. The previous 296 focused test passes/11.34s were not rerun in this documentation
-round; two existing event reports were reverified. Large training/snapshot inventories
-were last fully checked at 01:58:44 UTC, not rehashed here. Original DEUCE receives
-only documents/logs. The prior full suite/migration remains in its historical review.
+Latest accepted research checkout is `.research/2026-09-06-model-foundation/worktrees/timing-contract`,
+branch `codex/model-timing-contract`, acceptance `0214834d535654bd92da28180c0d74fb6d33b41b`.
+Create the next isolated research branch from the verified accepted tip; leave all old
+checkouts/runs intact. Original DEUCE continues to receive documents/logs only. Preserve
+664 run files, frozen model/package contracts and fifteen accepted research checkouts.
+Reconcile actual Git/data state before execution rather than copying old metrics forward.
 
-Next: independently bounded first-serve evidence and real live event revisions can be
-pursued separately. Implement a witness adapter only when an actual admissible witness
-supports it. The protocol defines the measurements, uncertainty arithmetic, proposed
-files, failure tests and future registration dependency. Do not repeat generic source
-shopping, unchanged pre-play reads or model fits to substitute for this measurement.
-Latest US Open WTA order capture remains September 8 at 13:32:46 UTC; no feed was reacquired
-in this round. Recheck actual time/publication before the next bounded source observation.
+Live confirmation remains a separate dependency. The [timing review](2026-09-08-timing-contract-review.md)
+and [calibration protocol](2026-09-08-timing-calibration-protocol.md) preserve the existing
+source evidence and physical-witness gap. Their work is not lost, and that gap does not
+block another historical model experiment. No new source survey, timing adapter, live
+registration, automation or production change is the default next task.
 
 The detailed campaign below is historical design. Newer reviews supersede its original
 measurements and next-session instructions. The initial Phase 4 absence counts were
@@ -735,16 +730,16 @@ At the end of EVERY implementation session, append to `tasks/todo.md`:
 
 Recommended next-session instruction:
 
-> Read the timing-contract review/result, calibration protocol, next-session handoff and
-> live todo tail. The primary-document investigation is complete; no live start producer
-> was qualified. Seek one independently bounded first-serve witness and, separately, real
-> event versions during covered play. Implement only behavior supported by that evidence.
-> Preserve 664 run files, frozen models/package and fifteen accepted research checkouts
-> after this phase is committed. Resolve the latest timing-contract acceptance tip before
-> making another isolated checkout. Original DEUCE receives documents/logs only.
-> No generic auditor, broad source shopping, arbitrary timing tolerance or new model fit
-> resolves an absent witness. No account, provider contact, automation, agents or production
-> change is implicit. Use the current clock; latest retained order was 13:32 UTC September 8.
+> Follow the September 8 historical-error-round plan and live todo tail. The user has
+> redirected the next round to predictive performance: reproduce the corrected incumbent,
+> diagnose only 2010–2019 walk-forward errors, choose up to three novel mechanisms after
+> backlog checks, and run a bounded fixed shortlist. Freeze at most one overall finalist
+> before opening new 2020+ candidate results. Report every attempt, loss/accuracy/Brier,
+> per-year consistency, paired uncertainty and an explicit replacement recommendation.
+> Reused later years are validation, not an untouched holdout. Keep the incumbent unless
+> the full gate and simplicity review justify replacement. Preserve 664 prior run files
+> and all accepted checkouts. Live confirmation remains separate; do not default back
+> to source infrastructure. No deployment, account or unattended job is included.
 
 ## Planning review
 

@@ -398,3 +398,5 @@ New lesson → append the entry to the matching topic file and add its lead line
   [`lessons/model-research.md`](lessons/model-research.md). (2026-09-08)
 
 - An official match-start definition is not a public feed's clock contract. (2026-09-08; `lessons/model-research.md`)
+
+- A blocked live-confirmation dependency must not consume the model-improvement program. (2026-09-08; `lessons/model-research.md`)
