@@ -1,35 +1,38 @@
 # DEUCE model improvement — implementation and research handoff
 
-Status: **Next priority is historical predictive improvement, following the user's
-September 8 correction.** Diagnose tuning-year errors in the corrected incumbent,
-select two or three defensible new mechanisms, and run bounded experiments with a
-clear tried/improved/failed table. No experiment under this new plan has started.
+Status: **The historical predictive round is complete: three registered trials,
+no finalist, incumbent retained.** The user-directed return to predictive experiments
+has been carried out. Read the [results](2026-09-08-historical-error-review.md),
+[comparison CSV](2026-09-08-historical-comparison.csv), [year table](2026-09-08-historical-years.csv),
+[result manifest](2026-09-08-historical-error-result.json) and [resume notes](2026-09-08-historical-error-next.md).
 
-Read the [historical error round plan](2026-09-08-historical-error-round-plan.md) and live
-`tasks/todo.md` tail. It fixes the reference, input paths, error-analysis safeguards,
-variant budget, selection procedure, arbiter and deliverable. Hypotheses are chosen
-from observed 2010–2019 errors after checking [the backlog](ideas.md); none is invented
-in advance. At most one overall finalist reaches a new 2020+ evaluation. Those later
-years have already been examined and must not be called an untouched holdout.
+The corrected 42-column WTA incumbent reproduced exactly on 26,794 tuning matches.
+Neutralizing artificial absence for first recorded appearances lost 0.000061430 log
+loss; capping per-match serve/return evidence at 40 points gained 0.000084255 overall
+but lost in 2015–2019; the 80-point cap lost 0.000025093. Positive improvement is
+incumbent loss minus candidate loss. None met the rule fixed before fitting, so no
+2020+ candidate evaluation or ATP fit ran. Every trial and uncertainty estimate is saved.
 
-Keep the corrected 42-column research incumbent as the common reference. The previous
-[uncertainty experiment](2026-09-06-dynamic-screen-review.md) remains deferred; do not
-reopen its validation-exposed grid. Saved walk-forward predictions and the corrected
-reference are documented in the [maintenance review](2026-09-06-maintenance-review.md).
-Use these historical predictions for diagnostics, not the final all-history fitted model.
+Latest research checkout: `.research/2026-09-06-model-foundation/worktrees/historical-errors`,
+branch `codex/model-historical-errors`, base `0214834`. Source/tests `3d8ce38`, formatting
+and experiment freeze `814def6`; later commits record outcomes. Resolve the final
+acceptance tip before a new isolated round. Experimental states and the default-preserving
+point-state construction hook are not production adoptions. Original DEUCE receives
+documents/logs only; the older uncertainty shadow remains a separate deferred candidate.
 
-Latest accepted research checkout is `.research/2026-09-06-model-foundation/worktrees/timing-contract`,
-branch `codex/model-timing-contract`, acceptance `0214834d535654bd92da28180c0d74fb6d33b41b`.
-Create the next isolated research branch from the verified accepted tip; leave all old
-checkouts/runs intact. Original DEUCE continues to receive documents/logs only. Preserve
-664 run files, frozen model/package contracts and fifteen accepted research checkouts.
-Reconcile actual Git/data state before execution rather than copying old metrics forward.
+Checks: 60 focused tests passed in 1.06s, including 24 new; lint and 20 real parity/control
+checks passed. The full suite was not rerun. All 664 prior run files and both frozen models
+were verified, fifteen prior checkouts were clean, and only the declared core hook differs
+from the earlier package. There are 32 new run files: **696** next-phase protected files.
+Large external inventories were last fully checked September 8 at 01:58:44 UTC and were
+not rehashed here. No data downloads, production fit/deploy or live collection occurred.
 
-Live confirmation remains a separate dependency. The [timing review](2026-09-08-timing-contract-review.md)
-and [calibration protocol](2026-09-08-timing-calibration-protocol.md) preserve the existing
-source evidence and physical-witness gap. Their work is not lost, and that gap does not
-block another historical model experiment. No new source survey, timing adapter, live
-registration, automation or production change is the default next task.
+Keep the completed mechanisms closed under this regime. A new round needs a materially
+different tuning-supported premise and its own fixed shortlist. The first-appearance
+error remains useful evidence but its proposed simple fix failed. Do not expand these
+caps or revert to timing-source surveys to manufacture progress. Live confirmation and
+its [physical timing gap](2026-09-08-timing-contract-review.md) remain separate; they did
+not block this historical round. Reused 2020+ data must never be called a fresh holdout.
 
 The detailed campaign below is historical design. Newer reviews supersede its original
 measurements and next-session instructions. The initial Phase 4 absence counts were
@@ -730,16 +733,14 @@ At the end of EVERY implementation session, append to `tasks/todo.md`:
 
 Recommended next-session instruction:
 
-> Follow the September 8 historical-error-round plan and live todo tail. The user has
-> redirected the next round to predictive performance: reproduce the corrected incumbent,
-> diagnose only 2010–2019 walk-forward errors, choose up to three novel mechanisms after
-> backlog checks, and run a bounded fixed shortlist. Freeze at most one overall finalist
-> before opening new 2020+ candidate results. Report every attempt, loss/accuracy/Brier,
-> per-year consistency, paired uncertainty and an explicit replacement recommendation.
-> Reused later years are validation, not an untouched holdout. Keep the incumbent unless
-> the full gate and simplicity review justify replacement. Preserve 664 prior run files
-> and all accepted checkouts. Live confirmation remains separate; do not default back
-> to source infrastructure. No deployment, account or unattended job is included.
+> Read the completed historical-error review, comparison, manifest and resume notes.
+> Three tune trials from two new mechanisms are finished; none earned a validation look.
+> Keep the corrected incumbent and preserve every outcome. Do not repeat the absence
+> transform or expand the point-cap grid. Another round requires a distinct evidence-backed
+> premise, tune-only selection and a new fixed shortlist. No existing trial is awaiting
+> an ATP fit or 2020+ score. Preserve 696 run files and sixteen accepted checkouts after
+> this phase is committed; original DEUCE remains documents/logs only. Live confirmation
+> is separate, and new timing-source infrastructure is not the default next task.
 
 ## Planning review
 

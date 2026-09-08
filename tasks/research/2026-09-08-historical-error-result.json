@@ -1,0 +1,233 @@
+{
+  "schema": "deuce-historical-error-round-v1",
+  "completedAt": "2026-09-08T15:09:02.769172+00:00",
+  "status": "three-registered-tune-trials-complete; no-finalist; incumbent-retained",
+  "baseCommit": "0214834d535654bd92da28180c0d74fb6d33b41b",
+  "implementationCommit": "814def65d15861ab683f2763aa482745f35a0e2e",
+  "latestExperimentLedgerCommit": "2724a9b3c6209b5f601b0b348abeeaf694fd9023",
+  "tuneYears": [
+    2010,
+    2019
+  ],
+  "tuneMatches": 26794,
+  "trials": [
+    {
+      "experiment": "HIST-01-absence-neutral",
+      "n": 26794,
+      "deltaLogloss": -6.142991349885395e-05,
+      "naiveSE": 9.630401198441757e-05,
+      "incumbentLL": 0.5906491562188603,
+      "candidateLL": 0.5907105861323592,
+      "incumbentAccuracy": 0.6795924460700157,
+      "candidateAccuracy": 0.6797417332238561,
+      "accuracyDeltaPP": 0.014928715384043834,
+      "incumbentBrier": 0.20305557841342903,
+      "candidateBrier": 0.2030756405717766,
+      "tuneWeekCILower": -0.00027219491048455013,
+      "tuneWeekCIUpper": 0.00014279924320159483,
+      "positiveTuneYears": 4,
+      "totalTuneYears": 10,
+      "firstHalfDelta": 0.0001089837884775631,
+      "secondHalfDelta": -0.00023335124906600555,
+      "validationStatus": "not evaluated; failed tune selection",
+      "validationDelta": null,
+      "verdict": "REJECT",
+      "wallSeconds": 40.11307770793792
+    },
+    {
+      "experiment": "HIST-02-point-cap-40",
+      "n": 26794,
+      "deltaLogloss": 8.425520866537034e-05,
+      "naiveSE": 0.00011880963856438683,
+      "incumbentLL": 0.5906491562188603,
+      "candidateLL": 0.590564901010195,
+      "incumbentAccuracy": 0.6795924460700157,
+      "candidateAccuracy": 0.6796297678584757,
+      "accuracyDeltaPP": 0.0037321788460054073,
+      "incumbentBrier": 0.20305557841342903,
+      "candidateBrier": 0.20301842636773215,
+      "tuneWeekCILower": -0.00016569461710872082,
+      "tuneWeekCIUpper": 0.00032006054879390046,
+      "positiveTuneYears": 6,
+      "totalTuneYears": 10,
+      "firstHalfDelta": 0.000297468180845982,
+      "secondHalfDelta": -0.0001308440381229272,
+      "validationStatus": "not evaluated; failed tune selection",
+      "validationDelta": null,
+      "verdict": "DECLINED-unstable",
+      "wallSeconds": 45.83574833290186
+    },
+    {
+      "experiment": "HIST-03-point-cap-80",
+      "n": 26794,
+      "deltaLogloss": -2.509303464052096e-05,
+      "naiveSE": 6.523038638999905e-05,
+      "incumbentLL": 0.5906491562188603,
+      "candidateLL": 0.5906742492535009,
+      "incumbentAccuracy": 0.6795924460700157,
+      "candidateAccuracy": 0.679331193550795,
+      "accuracyDeltaPP": -0.026125251922071158,
+      "incumbentBrier": 0.20305557841342903,
+      "candidateBrier": 0.20306635526681346,
+      "tuneWeekCILower": -0.00016967829320518318,
+      "tuneWeekCIUpper": 0.00012364933891528509,
+      "positiveTuneYears": 4,
+      "totalTuneYears": 10,
+      "firstHalfDelta": 0.0002211798634974621,
+      "secondHalfDelta": -0.00027354468536362026,
+      "validationStatus": "not evaluated; failed tune selection",
+      "validationDelta": null,
+      "verdict": "REJECT",
+      "wallSeconds": 45.806298375013284
+    }
+  ],
+  "selection": {
+    "selectedAt": "2026-09-08T15:06:26.364852+00:00",
+    "selected": false,
+    "candidateValidationViewed": false,
+    "results": [
+      {
+        "identifier": "HIST-01-absence-neutral",
+        "cap": null,
+        "directory": "tune-01",
+        "tuneDelta": -6.142991349885395e-05,
+        "positiveYears": 4,
+        "eligible": false
+      },
+      {
+        "identifier": "HIST-02-point-cap-40",
+        "cap": 40,
+        "directory": "tune-02",
+        "tuneDelta": 8.425520866537034e-05,
+        "positiveYears": 6,
+        "eligible": false
+      },
+      {
+        "identifier": "HIST-03-point-cap-80",
+        "cap": 80,
+        "directory": "tune-03",
+        "tuneDelta": -2.509303464052096e-05,
+        "positiveYears": 4,
+        "eligible": false
+      }
+    ]
+  },
+  "candidateValidationRuns": 0,
+  "ATPExperimentalFits": 0,
+  "newLiveReads": 0,
+  "incumbentReproduction": {
+    "endedAt": "2026-09-08T14:54:07.919952+00:00",
+    "wallSeconds": 37.9551467919955,
+    "n": 26794,
+    "probabilitiesBitIdentical": true,
+    "oosSHA256": "7b0f8730658446cb6cc13f045f08f25daf372e4842a6209316ee7e190f2dbe3f"
+  },
+  "tests": {
+    "focusedPassed": 60,
+    "seconds": 1.06,
+    "newTests": 24,
+    "fullSuiteRun": false,
+    "realParityChecks": 20,
+    "maxSavedPointQueryError": 0
+  },
+  "preservation": {
+    "protectedRunCounts": {
+      "phase3": 56,
+      "phase4": 77,
+      "maintenance": 104,
+      "dynamic-continuation": 61,
+      "dynamic-shadow": 37,
+      "prospective-shadow": 42,
+      "source-audit": 38,
+      "time-evidence": 28,
+      "start-source": 57,
+      "free-source": 26,
+      "official-schedule": 27,
+      "official-link": 19,
+      "wta-coverage": 34,
+      "wta-lifecycle": 29,
+      "timing-contract": 29
+    },
+    "protectedFiles": 664,
+    "completedCheckoutsClean": {
+      "coordinator": "c5cd3669d94fb93b7b0914e96bb28253d9e990a4",
+      "phase4": "51c9eb1535dc296e1464fb7c1290a779f7f34c15",
+      "maintenance": "975379b9411b1bd79937e31e5f80d412df3b5f09",
+      "dynamic-screen": "777a38e235755754e6175b294b47f48a70e90b31",
+      "dynamic-shadow": "64d62decfdc9d96e5777bb8017a29bb8d4c0993f",
+      "prospective-shadow": "3cd780af13e364c04714f7ae1d7e0b9bb7c9ba1c",
+      "source-audit": "3f4e99d64af66461e11e6e96fb164813e4144bfd",
+      "time-evidence": "129f811514cfd6b2a44edc087c42b26b45a475d4",
+      "start-source": "2e50cb560bb7ba394eae83883b76db9ad06ecff6",
+      "free-source": "64e70227281c1433a825fa7032a131c9a95ceb12",
+      "official-schedule": "70f5976cd9eb07ec5757674f5966c81b30c31477",
+      "official-link": "e10757fa432f08203642ef9e8fa784f77f906795",
+      "wta-coverage": "781d37b5d23b737f20ef185a25f094d32e3675d8",
+      "wta-lifecycle": "27cc95af1cb72aa56b316a6fcea30771a3d18094",
+      "timing-contract": "0214834d535654bd92da28180c0d74fb6d33b41b"
+    },
+    "modelsVerified": {
+      "maintenance/wta-final-001/predictor.pkl": "8cf280c43f813a6944244d585248af8d5fcbc1ff628e535f98d4e10866730e34",
+      "prospective-shadow/migration-001/candidate.shadow": "43dd88b1461913f11b90b6d2aa6aa82f7bbfe3ba7ad597d978c6a46b73d45fcc"
+    },
+    "frozenPackageUnchanged": 90,
+    "intentionalChangedPackageFiles": [
+      "points/serve_return.py"
+    ],
+    "priorTrackedUnchanged": 383,
+    "intentionalChangedTrackedFiles": [
+      "tennis_model/src/tennis_model/points/serve_return.py"
+    ],
+    "inheritedDataFiles": 33,
+    "trainingInputsCopied": 0,
+    "largeExternalInventoriesRehashed": false,
+    "lastFullExternalCheckUTC": "2026-09-08T01:58:44.035725+00:00"
+  },
+  "driverHashes": {
+    "historical-diagnose.py": "673e012f8d5c2cee0b77532faddc89a529bfb31f5215b65fce3cc4d9bfa99336",
+    "historical-experiments.py": "13376947e3ea3668fed10222081cba7574ae35b59ffa4b10464dcf3353288d8b",
+    "historical-closeout.py": "8343761e1b0695d9b396fe13f1d1f30aef2d3615711308da10f1176417f7803f"
+  },
+  "limitations": [
+    "Exploratory tune diagnostics and selection on already reused historical data.",
+    "Paired match SE and week bootstrap are descriptive; repeated-player dependence remains.",
+    "No 2020+ candidate results or ATP trial results were opened; no accuracy improvement adopted.",
+    "Experimental state mirrors are tested; no new production predictor artifact was integrated."
+  ],
+  "productionChanged": false,
+  "unattendedJobCreated": false,
+  "runFiles": {
+    "acceptance.json": "1318f437ba712cd6f256ba4430d160e65891cacc8be892fc995ce7c5fe299add",
+    "baseline-replay-001/completion.json": "9cd21b56acb04b1bcb73bdccbf545b67f25a7444823700b814fa2a052a2cfdab",
+    "baseline-replay-001/oos.pkl": "7b0f8730658446cb6cc13f045f08f25daf372e4842a6209316ee7e190f2dbe3f",
+    "baseline-replay-001/registration.json": "89b672447d5edf6c2adb9d46d6c8ff2270047b38895456f6a6d313622ad70591",
+    "comparison.csv": "b67d10908dd7286200a68dad2a17ff7ab7c600119490044806a9ba92c08b23b8",
+    "diagnostic-registration.json": "7221524ab375d68a09720d2138bc4122710d11d21baacfd6d7ff227dfffdf63e",
+    "diagnostic-summary.json": "6613f92f35513e49d5fa24beac965068e02cef6817129f4467bf3ee70993e3d7",
+    "diagnostics.csv": "f904bd4be87590380830f6194b4f44ced3d21cf0def42e6cf90c30c790c4093e",
+    "experiment-freeze.json": "c5222bd932248e9eb00faeff7e5ad7cb6ba50c2e7e83b3b628903921b606f164",
+    "prior-match-points.json": "c25f55c0d4efeff8e0bb2a9306950f5b753b07d7be81a218b2ac2d1a3047f746",
+    "protected-run-files.json": "96ec86407a24554e2cc6d37a80c27215df3af0e4bfee9e09bd8debefe52bfa11",
+    "pytest-focused.txt": "b5a525fe3206f45933ff5b7fb54f90c16dffd0f1b9565cd681c2dcaf9757bb9c",
+    "real-parity.json": "b0707db8f41e7e7a0e8614da8a73c91a50f0ca53f334f192e0558b8af1dcfea5",
+    "refined-diagnostics.csv": "43b9def3d56d29b34fbb380568d747362615123f3ccb7cef5cf79c398e6d2ebf",
+    "refinement-registration.json": "ac740c690cdd0646d7b8f7cc5406a99837b94488cf67762710179fbbcfb296eb",
+    "selection.json": "7023e12508ebcb7b398d74999e350c52a9416077dd01e474d57157d0d203c70c",
+    "setup.json": "b73f19a2a88f1d857cc6be718e1e9d28c6465484e1acf054c1594c6d95086bec",
+    "shortlist-registration.json": "e18dc301b9f81af15d46e98dcb26c2eba9309c760952c45305ab75c96de50fbd",
+    "tune-01/completion.json": "5aba2d54a5a87bcfdfcba3613c75b1d0cd58bbc75802f126a99acbfddee4ec7f",
+    "tune-01/oos.pkl": "468a7b4e7168089639c8edb43adead0bc605b1dd450626a050575a97804ebaaa",
+    "tune-01/registration.json": "44c5c86bffa7c3ad744ea6e7cd07e6dc21faff73403ae7ba9a8cddd3ba49b668",
+    "tune-01/states.pkl": "e19a1eb1ba89fd5a4fab031714069f9ebc1c510dce0f01d72ca6ada1fa4587cd",
+    "tune-02/completion.json": "79e3679c66e7efbc74d96745af347bc0c8f0dbe4afe23d121af857722fe080e0",
+    "tune-02/oos.pkl": "282743da607d2a8b31536cd9171f625828b8bad0c8896e859e1481b5d3b8f109",
+    "tune-02/registration.json": "3a14ff3b55f7346f5bf906390c0dec401f554a39488e334057fb67b43ea84ec1",
+    "tune-02/states.pkl": "82603d7d0a036afc90d16056a459e39c5027e6f88c242431df76e52edc7e4d1e",
+    "tune-03/completion.json": "d8c1228d2d817ce04f23da70ab91197a638b27c31474370918cb5f34bfec8d5c",
+    "tune-03/oos.pkl": "a58774d49aebd3522676477f7cbbee7d441b994c871c8ebac1d6a10600c6d62b",
+    "tune-03/registration.json": "ddffd9d6244e8b842322154dd637061a79d5c81f2d874d6b55f2079a31398e90",
+    "tune-03/states.pkl": "9ae05bf65e203dc422228cb1e0ea90453a563ab7901e78e371b5990a60ce70d0",
+    "uncertainty.json": "64040822acafab54753fe937de44e636232bbd6c7d63f01077faacb8a9da5ec8",
+    "years.csv": "e107efe99faf1b113afee9e5b4137ecc6d967c7b8f725557b4bfae8b536fbd19"
+  }
+}

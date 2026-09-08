@@ -1,6 +1,6 @@
 # Next round — historical predictive errors and bounded model experiments
 
-Status: **planned, not executed**. The user's September 8 direction makes historical
+Status: **completed: three trials, no finalist, incumbent retained**. See the [results](2026-09-08-historical-error-review.md). The following is the original execution plan. The user's September 8 direction makes historical
 predictive improvement the next priority. Live source research remains a separate
 confirmation dependency and must not displace this round. This plan supersedes the
 timing-contract handoff's recommendation about what to do next; its factual findings
@@ -160,5 +160,5 @@ runtime and artifact hashes. Separate formal gate outcome from replacement recom
 The conclusion must answer: what we tried, what improved, what failed, by how much, and
 whether any candidate earned replacement. “No improvement” is a complete result.
 
-No experiment has run under this plan. Planning reconciled original Git at `08c8f58`
+At planning time no experiment had run. Planning reconciled original Git at `08c8f58`
 and accepted research Git at `0214834`; baseline locations and backlog were checked.

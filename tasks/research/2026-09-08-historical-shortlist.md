@@ -1,5 +1,7 @@
 # Historical error round — fixed shortlist
 
+Current status: completed, no finalist. See [results](2026-09-08-historical-error-review.md). The text below records the pre-fit rationale.
+
 Registered before fitting any new candidate. Read the private `runs/historical-errors/shortlist-registration.json` for exact clock, selection rule and bounds.
 
 - HIST-01: neutralize rest/log-days/layoff pair features when one participant has no earlier recorded match. First appearance is not a known 365-day absence. One fixed variant. This replaces missing-value semantics, not a missingness flag or a layoff sweep.

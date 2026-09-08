@@ -170,7 +170,7 @@ are closed questions — re-opening one requires the underlying space to have ch
 
 ## 2026-09-08 next-round direction — historical prediction errors
 
-- **Error-led historical mechanisms — PLANNED, hypotheses not yet selected.** The next
+- **Error-led historical mechanisms — DONE, three trials/no adoption.** Historical planning note: The next
   priority is tune-only diagnosis of the corrected 42-column incumbent, then up to
   three genuinely distinct mechanisms supported by those errors. Audit against all
   closed families above before fitting; no uncertainty-grid retune on exposed validation.
@@ -182,3 +182,21 @@ are closed questions — re-opening one requires the underlying space to have ch
   event audit and calibration protocol remain preserved. Their physical witness gap
   does not block new historical experiments. Resume only with useful new evidence;
   do not make another source survey the default next model-improvement round.
+
+
+## 2026-09-08 historical error round — completed, no adoption
+
+- **HIST-01 absence-neutral — DONE-REJECT.** Neutral pair rest/log-days/layoff when
+  either player has no earlier record. New missing-value semantics, no extra column.
+  Tune ΔLL -0.000061430 ± 0.000096304; 4/10 positive years. The first-appearance error
+  does not prove this encoding caused it. No validation.
+- **HIST-02/03 player-state point caps — DONE-DECLINED/REJECT.** Per-match effective
+  point caps 40/80 preserve rates and original prior populations. Cap 40 tune ΔLL
+  +0.000084255 ± 0.000118810, 6/10 positive years, but 2015–2019 ΔLL -0.000130844.
+  Cap 80 ΔLL -0.000025093 ± 0.000065230; 4/10 positive years. Neither qualified under
+  the registered tune stability rule. No parameter expansion or validation.
+
+Three variants complete on the same 26,794 tuning matches; no finalist and no ATP trial.
+Do not retry these mechanisms in this regime without a materially new premise. Read
+the [results](2026-09-08-historical-error-review.md), [comparison](2026-09-08-historical-comparison.csv)
+and [resume notes](2026-09-08-historical-error-next.md). Live confirmation remains separate.

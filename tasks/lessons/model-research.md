@@ -339,3 +339,11 @@ Indexed in [`../lessons.md`](../lessons.md).
   Diagnose saved walk-forward predictions on tuning years, select and freeze candidates
   there, and report a concrete tried/improved/failed table. Treat reused 2020+ results as
   validation, not an untouched holdout; keep fresh prospective confirmation separate.
+
+
+- **A systematic calibration slice is a hypothesis source, not proof of its apparent cause.** (2026-09-08)
+  First recorded WTA appearances were underconfident by 6.24pp in 696 tuning matches, but
+  neutralizing their artificial 365-day absence worsened log loss. A 40-point per-match
+  serve cap gained 0.000084 overall yet lost 0.000131 in the later tuning half. Register
+  stability requirements before fitting, preserve negative results and keep a small
+  pooled gain from buying a new validation look after its required stability check fails.

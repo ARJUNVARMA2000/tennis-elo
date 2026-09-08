@@ -7497,3 +7497,26 @@ installs, production changes or new live-data work in this round.
 ### Review
 
 Pending actual diagnostics and experiments.
+
+
+### H0–H5 review — three predictive trials complete; incumbent retained
+
+- [x] H0: verified 664 prior run files and both frozen models; fifteen accepted
+  checkouts clean. All 26,794 WTA tuning predictions reproduced bit-for-bit.
+- [x] H1: fixed tune-only error tables plus a registered first-appearance refinement.
+  First recorded appearances show underconfidence; the aggregate is already calibrated.
+- [x] H2: two distinct mechanisms, three exact variants registered before fitting.
+  No closed sweep reopened; no new candidate validation viewed.
+- [x] H3: completed all three five-bag tuning trials. Absence neutralization ΔLL
+  -0.000061430; cap40 +0.000084255; cap80 -0.000025093. Exact uncertainty/year tables saved.
+- [x] H4: conditional advancement decided: none qualifies. Cap 40 loses in 2015–2019;
+  the other two lose overall. No 2020+ candidate evaluation or ATP trial was warranted.
+- [x] H5: comparison/years/diagnostic CSVs, review, manifest and handoff recorded.
+  60 focused tests pass, including 24 new; lint and 20 real parity/control checks pass.
+  All prior artifacts preserved; 32 new run files bring protection to 696.
+
+**Decision:** keep the corrected 42-column incumbent. Three actual predictive experiments
+are complete, with no gain robust enough to advance. Preserve the old uncertainty shadow
+as a separate deferred candidate. No final predictor fit, production change, live-data
+read, download, installation or automation. Do not expand this grid or default back to
+source infrastructure. Full large external inventories were not rehashed this round.
