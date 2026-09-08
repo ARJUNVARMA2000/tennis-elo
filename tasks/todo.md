@@ -7520,3 +7520,30 @@ are complete, with no gain robust enough to advance. Preserve the old uncertaint
 as a separate deferred candidate. No final predictor fit, production change, live-data
 read, download, installation or automation. Do not expand this grid or default back to
 source infrastructure. Full large external inventories were not rehashed this round.
+
+
+## 2026-09-08 — historical signal round
+
+User check-in: “We can't try more things?” authorizes another bounded predictive round.
+The previous three failures close their registered shortlist, not the research program.
+Start 15:52:33 UTC; three-hour cap. New isolated branch from accepted `c658c71`.
+No agents or external acquisition; original checkout receives documents only.
+
+- [ ] S0: verify 696 retained files, sixteen accepted checkouts and the reference models.
+- [ ] S1: predeclare and inspect tune-only residual associations for opponent-adjusted
+  recent results, recent current-surface exposure, and ranking-points trajectory; audit
+  novelty against rejected families before choosing at most three fixed candidates.
+- [ ] S2: implement selected temporal states and saved-query mirrors with causal,
+  serialization, orientation and real-prefix parity checks in the same source commit.
+- [ ] S3: freeze code and trial registration; reproduce the incumbent; run up to three
+  separate five-bag 2010–2019 trials. No combination sweep or adaptive variants.
+- [ ] S4: select at most one finalist: positive pooled gain, at least six positive years,
+  and positive gains in both tuning halves. Evaluate only that locked finalist on 2020+
+  with the unchanged full arbiter; assess ATP separately if a WTA candidate survives.
+- [ ] S5: report all trials, accuracy, yearly consistency and uncertainty; preserve
+  incumbent unless justified, commit research and mirror the results and handoff.
+
+### Review
+
+Pending new diagnostics and experiments. Earlier 2020+ exposure remains validation,
+not an untouched holdout. The earlier absence transform and 40/80-point caps stay closed.

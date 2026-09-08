@@ -401,3 +401,6 @@ New lesson → append the entry to the matching topic file and add its lead line
 - A blocked live-confirmation dependency must not consume the model-improvement program. (2026-09-08; `lessons/model-research.md`)
 
 - A systematic calibration slice is a hypothesis source, not proof of its apparent cause. (2026-09-08; `lessons/model-research.md`)
+
+
+- A closed shortlist is not an exhausted research program. (2026-09-08; `lessons/model-research.md`)

@@ -347,3 +347,11 @@ Indexed in [`../lessons.md`](../lessons.md).
   serve cap gained 0.000084 overall yet lost 0.000131 in the later tuning half. Register
   stability requirements before fitting, preserve negative results and keep a small
   pooled gain from buying a new validation look after its required stability check fails.
+
+
+- **A closed shortlist is not an exhausted research program.** (2026-09-08)
+  User correction after three small historical trials: try more mechanisms. Preserve
+  the prior round's preregistered stopping and advancement rules, but start a separately
+  registered round that seeks new information. Do not equate several failed encoding
+  or weighting tweaks with proof that the model cannot improve, and do not substitute
+  another infrastructure round for the requested predictive experiments.
