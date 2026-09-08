@@ -7292,3 +7292,28 @@ evaluators, schedule collector or identity tables. Annotations are retrospective
 forecast, fresh model-performance claim, fit, training copy, account, provider contact,
 automation, live pilot or production merge/push/deploy. Read the official-link review
 and next-session handoff; avoid another immediate duplicate overnight capture.
+
+
+## 2026-09-08 — WTA coverage and next official schedule source
+
+User check-in: “Keep going” authorizes this bounded continuation from accepted `e10757f`
+in isolated `codex/model-wta-coverage`, with no additional implementation check-in.
+
+- [ ] C0: inspect the official WTA calendar for the next events and compute transparent
+  possible match coverage in the fixed 30-day window, separating full/partial events.
+- [ ] C1: inspect the next official order source and its public transport/edition metadata;
+  preserve a bounded sample (initial budget eight HTTP reads, no retries), including
+  unpublished/empty responses. Reuse the retained WTA scripts and source helpers.
+- [ ] C2 conditional: implement a source-specific coverage/schedule adapter only where
+  actual samples justify its fields; test identity, timezone/edition, revision and
+  failed/unpublished states. Leave unsupported timing semantics explicit.
+- [ ] C3: verify all 572 prior run files and frozen models/code, record acceptance and
+  exact next-source/publication dependencies, commit research and mirror docs/logs only.
+
+No repeated US Open overnight acquisition, model fit, training copy, dependency install,
+account/trial/purchase, provider contact, subagents, scheduled automation, live evaluation,
+production merge/push or deployment. Calendar capacity is not a forecast of eligible pairs.
+
+### Review
+
+Pending real source research, justified implementation and preservation checks.
