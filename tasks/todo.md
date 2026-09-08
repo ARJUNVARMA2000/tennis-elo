@@ -7435,3 +7435,47 @@ predictions, not all-history fitted-model predictions. 2020+ has prior research 
 and remains validation, not an untouched holdout. The plan caps model search, preserves
 the formal gate and requires honest no-improvement outcomes. No new candidate result,
 performance claim, network acquisition, dependency change or production change occurred.
+
+
+## 2026-09-08 — historical error round execution
+
+User check-in: “Okay get started” authorizes H0–H5 of the recorded plan. Started at
+2026-09-08 14:50:33 UTC; three-hour cap, 45-minute diagnosis/selection checkpoint.
+Checkout `codex/model-historical-errors` from `0214834`. No agents, downloads,
+installs, production changes or new live-data work in this round.
+
+- [ ] H0 verify reference and preservation.
+- [ ] H1 tune-only systematic error diagnosis.
+- [ ] H2 register a distinct fixed shortlist, maximum three mechanisms/two variants.
+- [ ] H3 execute tune experiments and lock at most one finalist.
+- [ ] H4 conditional complete arbiter; no new validation view before selection.
+- [ ] H5 comparison table/CSV, tests/preservation, commits and document mirror.
+
+### Review
+
+Pending actual diagnostics and experiments.
+
+
+### H0–H5 review — three predictive trials complete; incumbent retained
+
+- [x] H0: verified 664 prior run files and both frozen models; fifteen accepted
+  checkouts clean. All 26,794 WTA tuning predictions reproduced bit-for-bit.
+- [x] H1: fixed tune-only error tables plus a registered first-appearance refinement.
+  First recorded appearances show underconfidence; the aggregate is already calibrated.
+- [x] H2: two distinct mechanisms, three exact variants registered before fitting.
+  No closed sweep reopened; no new candidate validation viewed.
+- [x] H3: completed all three five-bag tuning trials. Absence neutralization ΔLL
+  -0.000061430; cap40 +0.000084255; cap80 -0.000025093. Exact uncertainty/year tables saved.
+- [x] H4: conditional advancement decided: none qualifies. Cap 40 loses in 2015–2019;
+  the other two lose overall. No 2020+ candidate evaluation or ATP trial was warranted.
+- [x] H5: comparison/years/diagnostic CSVs, review, manifest and handoff recorded.
+  60 focused tests pass, including 24 new; lint and 20 real parity/control checks pass.
+  All prior artifacts preserved; 32 new run files bring protection to 696.
+
+**Decision:** keep the corrected 42-column incumbent. Three actual predictive experiments
+are complete, with no gain robust enough to advance. Preserve the old uncertainty shadow
+as a separate deferred candidate. No final predictor fit, production change, live-data
+read, download, installation or automation. Do not expand this grid or default back to
+source infrastructure. Full large external inventories were not rehashed this round.
+
+Research acceptance receipt: `c658c7149676a2e1f6032a1440e68f904bd692e6` (`codex/model-historical-errors`), source freeze `814def6`. Completed three registered trials; no finalist. Original checkout receives documents/tables/logs only; no experimental source or model was merged.
