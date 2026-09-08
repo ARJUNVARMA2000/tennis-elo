@@ -368,3 +368,6 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - A result update is not a complete settlement snapshot. See
   [`lessons/model-research.md`](lessons/model-research.md). (2026-09-07)
+
+- HTTP freshness does not establish match-time semantics; represent the bound the experiment needs. See
+  [`lessons/model-research.md`](lessons/model-research.md). (2026-09-07)

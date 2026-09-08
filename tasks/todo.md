@@ -6902,3 +6902,72 @@ final acceptance and handoff as `3cd780af13e364c04714f7ae1d7e0b9bb7c9ba1c` on
 `codex/model-prospective-shadow`. This original checkout mirrors only the four new
 handoff documents, central plan status and append-only log additions. Source/data
 remain in the isolated research checkout; no live activation or production release.
+
+## 2026-09-07 — Prospective source adapter and timing audit
+
+User check-in: “kEEP GOING” authorizes the next source-readiness phase. Create a fresh
+`codex/model-source-audit` checkout from `3cd780a`. Keep the model package and all
+accepted artifacts unchanged; source tooling lives outside `src/tennis_model`.
+
+- [ ] D0: append this scope, preserve prior run/source identities and create an exclusive
+  source-audit directory. No model fit or new duplicate training-data copy is needed.
+- [ ] D1: inspect primary documentation and a bounded sample of current ESPN/WTA raw
+  responses. Record actual local request/receive times, raw bytes, hashes, cache/status
+  headers and failures. Identify exactly which identity/context/timing fields are proved.
+- [ ] D2: implement a versioned external acquisition/audit adapter with bounded secure
+  receipts, explicit source status/identity handling and fail-closed batch conversion.
+  Preserve ambiguous or unsupported timing; never relabel estimates as actual times.
+- [ ] D2 tests: use retained provider fixtures plus negative/synthetic variations for
+  transport failures, duplicate/replaced identities, timezone/status/round distinctions,
+  exclusions, lifecycle comparison and frozen-runner integration. Keep old tests exact.
+- [ ] D3: run the tested adapter against the bounded live sample and assess readiness.
+  A source lifecycle audit may remain incomplete if real transitions have not elapsed;
+  report it precisely. Do not activate a model pilot without verified timing and cadence.
+- [ ] D4 handoff: reconcile Git, verify protected evidence/source files, commit the
+  external tooling and detailed source-readiness report, and mirror documents only here.
+
+Dependencies: initial source inspection informs mapping; tested acquisition precedes
+acceptance; live activation requires complete source evidence and execution cadence.
+No agents, paid sources, new dependencies, retuning, package changes, production push
+or unattended scheduler. Existing model/runner tests are supplemented, not rewritten.
+
+### Review
+
+Pending. Live source audit receipts are factual acquisition evidence, not backfilled
+forecasts or fresh model-performance results.
+
+
+### D0–D4 final review — source adapter accepted, live readiness unmet
+
+This append records completion without rewriting the earlier plan.
+
+- [x] D0: new `codex/model-source-audit` checkout from `3cd780a`; bounded exclusive
+  source-audit runs. No new training-data copy or model fit.
+- [x] D1: six successful public HTTP reads with real timestamps/raw receipts, plus a
+  retained local sandbox DNS failure. Primary timing documentation investigated.
+- [x] D2: external adapter and failure/output-boundary fixes committed at `c9b5b17`;
+  42 new tests, 187 focused tests passed in 7.45s, full source/research/test lint passed.
+  All 78 preexisting tests and the entire model package remain unchanged.
+- [x] D3 readiness assessment: tested real ESPN/WTA fetches succeeded. 119 completed
+  main-draw matches corroborate the event mapping; zero have verified actual timing.
+  Two provisional schedule drafts; four changed provider records across three matches;
+  no full scheduled/live/terminal lifecycle. Live export correctly refuses activation.
+- [x] D3 integration QA: unchanged full-size artifacts captured two diagnostic forecasts
+  under an explicitly simulated QA registration clock; zero graded, two pending.
+  These are `synthetic-qa`, not real forecasts, and must never be upgraded or scored live.
+- [x] D4: preservation, detailed review/result hashes and next-session R0–R3 plan recorded.
+  Seven existing/original data inventories, eight distinct copies of 18,791 inputs,
+  25,826 snapshot files and all 377 prior run files verified. Research work is committed
+  locally; only documents and append-only log entries are mirrored to the original tree.
+
+**Decision:** adapter engineering is accepted; live source qualification and pilot
+activation remain outstanding. The prior protocol may unnecessarily demand exact finish
+stamps. Next specify and test typed time bounds that retain defensible pre-play proof,
+then validate the producer before activating collection. Corrected incumbent retained;
+no new model-performance evidence, retuning, production merge/push or scheduler.
+Read `2026-09-07-source-audit-review.md`, `...-result.json` and `...-next.md` on resume.
+
+Research commit receipt: source adapter/tests `c9b5b17`; final acceptance and handoff
+`3f4e99d64af66461e11e6e96fb164813e4144bfd` on `codex/model-source-audit`.
+The research checkout is clean. This original checkout carries only the matching
+research documents and appended task/lesson/ledger entries; no source code was merged.

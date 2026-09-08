@@ -1,0 +1,205 @@
+{
+  "schema": "deuce-source-audit-result-v1",
+  "recordedAt": "2026-09-08T01:04:50.629536+00:00",
+  "implementationCommit": "c9b5b17bc7cbb78816bc5fbf8c75ceb2ee83d561",
+  "status": "engineering-accepted-live-readiness-unmet",
+  "acceptance": {
+    "implementationCommit": "c9b5b17bc7cbb78816bc5fbf8c75ceb2ee83d561",
+    "adapterSHA256": "a0c73268af8c615f56cd2c14fd0e850c1a41d05a7bbce1a62cd18d9e790b33fb",
+    "acceptedAt": "2026-09-08T00:50:28.777519+00:00",
+    "freshnessAtAcceptance": {
+      "espn": {
+        "ready": true,
+        "issues": [],
+        "httpAgeSeconds": 134.665883,
+        "matchLevelFreshnessVerified": false
+      },
+      "wta": {
+        "ready": true,
+        "issues": [],
+        "httpAgeSeconds": 126.66590699999999,
+        "matchLevelFreshnessVerified": false
+      }
+    },
+    "mapping": {
+      "wtaId": "905",
+      "year": 2026,
+      "espnId": "189-2026",
+      "sharedCompleted": 119,
+      "evidenceSHA256": "fa73bcb776b01e2c4ecb01afc498335bc57194521847274030375b4dbcf3d7bd",
+      "basis": "edition-bounds-plus-unique-pair-round-winner-games"
+    },
+    "scheduleCandidateCount": 2,
+    "untimedResultCount": 119,
+    "actualTimedResults": 0,
+    "readyForLive": false,
+    "lifecycleCounts": {
+      "incompleteLifecycle": 344
+    },
+    "changedSourceMatches": 4,
+    "qa": {
+      "evidenceKind": "synthetic-qa",
+      "captured": {
+        "captured": 2
+      },
+      "graded": 0,
+      "pending": 2,
+      "registration": "4ba231db39a34fd790a53a69bf6e72a32de573e406b24f474156c058a1522276",
+      "simulatedRegistrationClock": true,
+      "liveExportRefused": true
+    },
+    "frozenArtifactAndSourceUnchanged": true,
+    "candidateReselected": false,
+    "modelFits": 0,
+    "livePilotActive": false,
+    "driverSHA256": "9a0fbe1a757cfbbf2dd31ea32ad14e110fc0e7c79fed6d9af305cc275c448bde"
+  },
+  "preservation": {
+    "checkedAt": "2026-09-08T00:53:37.637515+00:00",
+    "protectedDataExact": [
+      "original",
+      "coordinator",
+      "phase4",
+      "maintenance",
+      "dynamic-screen",
+      "dynamic-shadow",
+      "prospective-shadow"
+    ],
+    "originalInputFiles": 18791,
+    "eightDistinctCopiesPerInput": true,
+    "snapshotFilesVerified": 25826,
+    "protectedRunFilesVerified": {
+      "phase3": 56,
+      "phase4": 77,
+      "maintenance": 104,
+      "dynamic-continuation": 61,
+      "dynamic-shadow": 37,
+      "prospective-shadow": 42
+    },
+    "protectedSourceInventoriesExact": true,
+    "existingTestFilesExact": 78,
+    "entireModelPackageUnchanged": true,
+    "programWorkflowWebExact": true,
+    "frozenRunnerContractVerified": true,
+    "newTrainingInputCopies": 0
+  },
+  "tests": {
+    "new": 42,
+    "focusedPassed": 187,
+    "focusedSeconds": 7.45,
+    "lint": "passed",
+    "preexistingTestFilesUnchanged": 78,
+    "previousFullSuitePassed": 1411,
+    "fullSuiteRerunThisPhase": false
+  },
+  "acquisition": {
+    "successfulPublicHTTPReads": 6,
+    "localSandboxDNSFailures": 1,
+    "sources": [
+      "ESPN current WTA scoreboard",
+      "WTA tournament catalogue",
+      "WTA US Open matches",
+      "one WTA completed-match statistics response"
+    ],
+    "actualTimedResultRows": 0,
+    "realForecasts": 0,
+    "freshPerformanceResults": 0,
+    "livePilotActive": false,
+    "schedulerActive": false,
+    "matchLevelFreshnessVerified": false
+  },
+  "findings": {
+    "wtaRows": 296,
+    "wtaExplicitMainSinglesRows": 124,
+    "wtaRealMainSinglesRows": 123,
+    "sharedNormallyCompletedResults": 119,
+    "completedTimeFieldsEqual": 66,
+    "espnMinusWtaFieldSeconds": {
+      "min": -300,
+      "max": 85800
+    },
+    "timeDifferenceMeaning": "Unverified source timestamp fields; not a measurement of actual start differences.",
+    "provisionalScheduleCandidates": 2,
+    "changedProviderRecords": 4,
+    "changedRealMatches": 3,
+    "fullScheduledLiveTerminalSequences": 0,
+    "lifecycleIdentities": 344,
+    "lifecycleScope": "Includes placeholders and other ESPN events; not an eligible main-tour sample count."
+  },
+  "models": {
+    "fits": 0,
+    "reselected": false,
+    "candidateArtifact": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/runs/prospective-shadow/migration-001/candidate.shadow",
+    "candidateSHA256": "43dd88b1461913f11b90b6d2aa6aa82f7bbfe3ba7ad597d978c6a46b73d45fcc",
+    "incumbentArtifact": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/runs/maintenance/wta-final-001/predictor.pkl",
+    "incumbentSHA256": "8cf280c43f813a6944244d585248af8d5fcbc1ff628e535f98d4e10866730e34",
+    "provenance": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/runs/prospective-shadow/provenance.json",
+    "packageInputFreeze": "969eb8eeb77d09f051ee52c415eb2d15e5ffa7d138e9b4149166e51eda3a355c",
+    "adoption": "deferred"
+  },
+  "paths": {
+    "worktree": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/source-audit",
+    "runs": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/runs/source-audit",
+    "syntheticQaOnly": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/runs/source-audit/acceptance-001/synthetic-qa"
+  },
+  "limitations": [
+    "No verified actual start/finish mapping in inspected feeds.",
+    "No complete source lifecycle or provider match-level latency contract validated.",
+    "Two diagnostic captures use a simulated QA registration clock and cannot be upgraded or scored as live.",
+    "Eight-result, 80-percent mapping witness rule excludes early/incomplete events.",
+    "One-match statistics inspection does not establish all WTA endpoint capabilities."
+  ],
+  "next": "Specify typed, defensible time bounds before implementing a separately versioned prospective evidence protocol; validate the evidence producer before real activation.",
+  "sourceFiles": {
+    "tennis_model/research/prospective_sources.py": "a0c73268af8c615f56cd2c14fd0e850c1a41d05a7bbce1a62cd18d9e790b33fb",
+    "tennis_model/tests/fixtures/prospective_sources/espn.json.gz": "83f20248c4e12a8c2b7ce2bc75e255faeeb7db52fa6732de9df53e4cab4a9492",
+    "tennis_model/tests/fixtures/prospective_sources/manifest.json": "d2f377b7e4f15ab0c47d74468fb9d39b62b3dea234da95830802643b05f2b22b",
+    "tennis_model/tests/fixtures/prospective_sources/wta.json.gz": "0388790014bfa220ae41c5748dec98bb60dc1e7b89891e79580b30fb3fde4dd4",
+    "tennis_model/tests/test_prospective_sources.py": "bb509af662c7a3611ef87e0fc4ad3d3c423366538e396d9af0b3d7a7ec402e22"
+  },
+  "driverSHA256": {
+    "source-audit-acceptance.py": "9a0fbe1a757cfbbf2dd31ea32ad14e110fc0e7c79fed6d9af305cc275c448bde",
+    "source-audit-preserve.py": "bf835798a7f7e7e04b5145b8f02263f1495724f43974e2425246f0be68e110a3",
+    "source-audit-probe.py": "de85b03bbbd20598b9e9378d7aa9f5995ba845915e5167a8c5ef440db01a8c1c"
+  },
+  "runFiles": {
+    "acceptance-001/analysis.json": "553012a5b9dc75a0f799af4b6b214b216e6f9f7dcad2e3ffdf0f5cbe4e3a32e8",
+    "acceptance-001/draft-batches.json": "9bd8e94b63463c9b9bfa6d395c6048bfd79ee60000a63fa6e828a39ecfb47913",
+    "acceptance-001/lifecycle.json": "715238158cc40521cb87bffb9de8ac063c092e9b380d2db9613be977cf5e459b",
+    "acceptance-001/result.json": "373cce577ac4a95fbcc34756b5d3eaafa282738d9ccc257bd2dcbe834cbd81c5",
+    "acceptance-001/synthetic-qa/.lock": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "acceptance-001/synthetic-qa/attempts/cec831894ba840da724ff98535c27abf1668f4a6191489c629829e63d8bdaa1e.json": "32ae45792632bac56077e823de63a66ea117f7ef4e201b0123465b59074d57cb",
+    "acceptance-001/synthetic-qa/candidate.shadow": "43dd88b1461913f11b90b6d2aa6aa82f7bbfe3ba7ad597d978c6a46b73d45fcc",
+    "acceptance-001/synthetic-qa/incumbent.pkl": "8cf280c43f813a6944244d585248af8d5fcbc1ff628e535f98d4e10866730e34",
+    "acceptance-001/synthetic-qa/incumbent.pkl.envelope": "8f73df4346db01ce2dac871807828817133855cc449e1a73444b7286665bd401",
+    "acceptance-001/synthetic-qa/observations/ef734f474df3ab9388584d9aae83a204c64898da468607e131b8b74533faf2c6.json": "bb3907f7cf36b5211071fc39ffdde1982b3e8a704ce84fe9a53289f4b375f841",
+    "acceptance-001/synthetic-qa/receipts/4ba3da105712cd43a62a28d511c861f2b62f2a8cfc51d972617479084d7a1e26.json": "2a87db3d9b5963beba2aeaff4067d20ad003f6ebcc2deaa4c383e9611a7e8fde",
+    "acceptance-001/synthetic-qa/receipts/58707538e743bbe643cc3bf509d65af1294009c25f143fc2fa838d934821fc1e.json": "e0417b997a49fc7a70794c16caa0cbe7eb859aee1a724d61393b6ea999b0886f",
+    "acceptance-001/synthetic-qa/registration.json": "0799b835d966d46ac5cbc06ee87639c0461298df35355aa1d111eb88cce1da8a",
+    "acceptance-001/synthetic-qa/results/abe157cb1e805d22a8154091646889bf06e8398d45f9204d89523ec839620dc1.json": "d94ea05091c8d5a925b82d2ea1071ce550198c6cab97156112f3b1bb5a6a80bd",
+    "acceptance-002.log": "47ca3f5c31ac4c4a7f367240912b060154f35a42a196bab5f973602b267d7df9",
+    "acceptance.log": "58edcccd941363d513c3a472519ce9878c6960c224610cae3dc652bdcfe23b6b",
+    "espn-accepted-001/attempt.json": "b18c36fc54ffd7d16044ed87f52a9cd6028a8ee2ada2e6c4b13ad61070694780",
+    "espn-accepted-001/receipt.json": "2352a4a3c829a16b12bec88b33b432dd1a73e1c249279ff8418db6a33a09fb0b",
+    "espn-accepted-001/response.bin": "d45a51542c83c27887e2fa68301020da4889a8131eb9ab428f926036cb6f4d9d",
+    "espn-inspect-001/receipt.json": "baf65809fddd154c1a73250bb5c67c0fc05636230daccf1fb1100a4372305ecd",
+    "espn-inspect-002/receipt.json": "26f77323fd163559fe9d05f36297c34c87fc66f338239fdb85e94503c58bac6f",
+    "espn-inspect-002/response.bin": "c8675722a077482f65846ba6ceeb57fbaf0226bb39ef6c877c6334bd8fdd10d3",
+    "final-focused-tests.txt": "dd23ec6d152ba1100cd7dd16303a09fb36bbcc097a3d039f30ffa30b7083e7c9",
+    "final-lint.txt": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+    "focused-tests.txt": "aeb3b9b10015c0c343abf64fdd783109646a6ab75c15bc859853c1c2b6471fe2",
+    "lint.txt": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+    "preservation.json": "920788c293daf500795db1638c5d72745d0d8c717106652d6ad2751fa4974f73",
+    "preservation.log": "bdc770af96ef6f8f948453063ee926bb1d18584225f51e917c1d010df70250d2",
+    "protected-run-files.json": "0356237666d862148beff4ac62914419b031cd3519ce2255817bfcf9bac73c18",
+    "wta-accepted-001/attempt.json": "803762e5bfdbc648c996d6c421229ecfd59e3d10c3c0cb8fbca7013c4d393a6c",
+    "wta-accepted-001/receipt.json": "246014469faf0046902c53a53aaa1840a658240d7c51c0a94e8fb1d236ac48fb",
+    "wta-accepted-001/response.bin": "6f1de573db8c0cb2b088c381752c787b62f2dec1a9ffbf8fb02ba1a39f91d2ac",
+    "wta-catalogue-inspect-001/receipt.json": "3a2f98405f057ea76de09ad0b957968141b24368db6ed788fcb29b2feeaf1fd0",
+    "wta-catalogue-inspect-001/response.bin": "bcce45a5b752595f26ec1992c5c41ff85f6db896c51daac874c59972f78674f4",
+    "wta-matches-inspect-001/receipt.json": "f252f2b9b5d9f5eca51f5ca28869b2c6bdc1f35693e37d873e399a4dac25dcd6",
+    "wta-matches-inspect-001/response.bin": "f211c30a3035c18015481135baa9cfbe053f57cca7f8b5a42da98fd6cbb335f4",
+    "wta-stats-inspect-001/receipt.json": "57bf2dc7dcf81ec14e302a6b860c09b4fdc73db05639822ce9c7a6aa4682fb20",
+    "wta-stats-inspect-001/response.bin": "5809390752b1fab620b124f5366d1cc13eebac7ef76399457ec7009da412fcf5"
+  }
+}
