@@ -20,7 +20,7 @@ from datetime import UTC, datetime, timedelta
 from email.utils import parsedate_to_datetime
 from pathlib import Path
 
-from tennis_model.config import ROUND_ORDER, TIER_NAMES
+from tennis_model.config import OUTPUT_DIR, ROUND_ORDER, TIER_NAMES
 from tennis_model.data.bracket_rounds import player_identity_key
 from tennis_model.data.live import _athlete_name, _score
 from tennis_model.data.participants import is_real_participant
@@ -96,6 +96,8 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
 def fetch_once(root, *, trusted_root, source, event=None, year=None):
     """One bounded attempt; preserve HTTP/transport/parse failures without fallback."""
     root = a._absolute_without_symlink_resolution(root)
+    if root.is_relative_to(a._absolute_without_symlink_resolution(OUTPUT_DIR)):
+        raise ValueError("source audit receipts cannot enter production output")
     url = endpoint(source, event=event, year=year)
     with a._open_artifact_parent(root, trusted_root=trusted_root) as (directory, name):
         os.mkdir(name, mode=0o700, dir_fd=directory)
@@ -504,8 +506,11 @@ def lifecycle(snapshots):
     for key, rows in sorted(series.items()):
         rows.sort(key=lambda r: (_time(r["observedAt"]),r["receipt"]))
         states = [r["status"] for r in rows]
-        complete = any(states[i] == "scheduled" and states[j] == "live" and states[k] == "terminal"
-                       for i in range(len(states)) for j in range(i+1,len(states)) for k in range(j+1,len(states)))
+        phase = 0
+        for state in states:
+            if phase < 3 and state == ("scheduled", "live", "terminal")[phase]:
+                phase += 1
+        complete = phase == 3
         fields = sorted({f for first,last in zip(rows,rows[1:]) for f in set(first)|set(last)
                          if f not in {"observedAt","receipt"} and first.get(f) != last.get(f)})
         ranks = {"unknown": -1, "scheduled": 0, "live": 1, "terminal": 2}
@@ -541,6 +546,8 @@ def main():
         wr,wp = read_capture(args["wta"],trusted_root=args["trusted_root"])
         output = {"analysis":audit(ep,wp),"freshness":{"espn":freshness(er),"wta":freshness(wr)}}
     print(json.dumps(output,indent=2,allow_nan=False))
+    if output.get("outcome") == "failed":
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

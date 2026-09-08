@@ -327,3 +327,20 @@ def test_diagnostic_adapter_batch_through_real_mixed_format_runner(payloads,tmp_
     report = ps.grade(root,unsupported,trusted_root=tmp_path)
     assert report['evidenceKind'] == 'synthetic-qa'
     assert report['graded'] == 0 and report['excluded'] == {'missingActualTiming':1}
+
+
+def test_failed_fetch_cli_returns_failure_status(monkeypatch,capsys,tmp_path):
+    import sys
+    monkeypatch.setattr(sys,'argv',['sources','--trusted-root',str(tmp_path),'fetch','espn',str(tmp_path/'attempt')])
+    monkeypatch.setattr(p,'fetch_once',lambda **kwargs:{'outcome':'failed','detail':'HTTP failure'})
+    with pytest.raises(SystemExit) as stopped:
+        p.main()
+    assert stopped.value.code == 1
+    assert 'HTTP failure' in capsys.readouterr().out
+
+
+def test_audit_never_writes_production_output(tmp_path,monkeypatch):
+    monkeypatch.setattr(p,'OUTPUT_DIR',tmp_path/'output')
+    with pytest.raises(ValueError,match='production output'):
+        p.fetch_once(tmp_path/'output'/'attempt',trusted_root=tmp_path,source='espn')
+    assert not (tmp_path/'output').exists()
