@@ -6980,3 +6980,37 @@ Artifact: `runs/prospective-shadow/migration-001/candidate.shadow`, SHA-256
 The result JSON hashes all 42 phase run files and three private drivers. Read
 `2026-09-07-prospective-shadow-review.md`, `...-result.json` and `...-next.md` on resume.
 The original checkout receives only docs and append-only log additions.
+
+
+## 2026-09-07 — Prospective source adapter and timing audit
+
+User check-in: “kEEP GOING” authorizes the next source-readiness phase. Create a fresh
+`codex/model-source-audit` checkout from `3cd780a`. Keep the model package and all
+accepted artifacts unchanged; source tooling lives outside `src/tennis_model`.
+
+- [ ] D0: append this scope, preserve prior run/source identities and create an exclusive
+  source-audit directory. No model fit or new duplicate training-data copy is needed.
+- [ ] D1: inspect primary documentation and a bounded sample of current ESPN/WTA raw
+  responses. Record actual local request/receive times, raw bytes, hashes, cache/status
+  headers and failures. Identify exactly which identity/context/timing fields are proved.
+- [ ] D2: implement a versioned external acquisition/audit adapter with bounded secure
+  receipts, explicit source status/identity handling and fail-closed batch conversion.
+  Preserve ambiguous or unsupported timing; never relabel estimates as actual times.
+- [ ] D2 tests: use retained provider fixtures plus negative/synthetic variations for
+  transport failures, duplicate/replaced identities, timezone/status/round distinctions,
+  exclusions, lifecycle comparison and frozen-runner integration. Keep old tests exact.
+- [ ] D3: run the tested adapter against the bounded live sample and assess readiness.
+  A source lifecycle audit may remain incomplete if real transitions have not elapsed;
+  report it precisely. Do not activate a model pilot without verified timing and cadence.
+- [ ] D4 handoff: reconcile Git, verify protected evidence/source files, commit the
+  external tooling and detailed source-readiness report, and mirror documents only here.
+
+Dependencies: initial source inspection informs mapping; tested acquisition precedes
+acceptance; live activation requires complete source evidence and execution cadence.
+No agents, paid sources, new dependencies, retuning, package changes, production push
+or unattended scheduler. Existing model/runner tests are supplemented, not rewritten.
+
+### Review
+
+Pending. Live source audit receipts are factual acquisition evidence, not backfilled
+forecasts or fresh model-performance results.
