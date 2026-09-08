@@ -392,3 +392,7 @@ New lesson → append the entry to the matching topic file and add its lead line
 - Multiple day listings in one order page are not observed temporal revisions; completed
   archives may have lost original start labels. See
   [`lessons/model-research.md`](lessons/model-research.md). (2026-09-08)
+
+- A publisher's coarse LIVE status can include OnCourt and warm-up; validate the detailed
+  event and physical clock separately. See
+  [`lessons/model-research.md`](lessons/model-research.md). (2026-09-08)

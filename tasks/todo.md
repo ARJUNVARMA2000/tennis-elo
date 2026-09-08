@@ -7292,3 +7292,59 @@ from the WTA coverage handoff when source change or independent timing work is j
 Research acceptance receipt: `781d37b5d23b737f20ef185a25f094d32e3675d8` (`codex/model-wta-coverage`),
 source/tests `b6df856dffa0f397b17f79b7511fe3bc5ff730f1`. Original checkout mirrors only this round's documents and
 append-only logs; all implementation and retained evidence remain isolated.
+
+
+## 2026-09-08 — WTA lifecycle and timing witnesses
+
+User check-in: “Keep going” authorizes this continuation from accepted `781d37b` in
+isolated `codex/model-wta-lifecycle`; no repeated implementation approval is needed.
+
+- [ ] T0: reconcile the handoff and verify the 606 preserved run files, frozen models/
+  package and accepted code before deriving further evidence.
+- [ ] T1: after the seven-hour gap, acquire one current WTA US Open page/API pair with
+  the accepted collector; compare every prior same-source observation for revisions.
+- [ ] T2: test official WTA match-event/point coverage on two already-observed completed
+  Guadalajara 2025 singles. Initial retained HTTP budget is six reads total (two for
+  current orders, four across those two matches), no retries or endpoint guessing.
+  Inspect retained primary scripts and authoritative field semantics where available.
+- [ ] T3 conditional: implement only the source interpretation supported by real new
+  evidence, with contradiction/identity/timing tests. No field becomes actual-start
+  evidence without satisfying the established independent timing contract.
+- [ ] T4: run appropriate tests/replays, verify preservation, record exact findings and
+  next dependencies, commit isolated research and mirror documents/logs only.
+
+No new model fitting, training copies, dependency installation, account/purchase/trial,
+provider contact, subagents, unattended automation, live evaluation or production deploy.
+The current date/time is 2026-09-08 around 13:30 UTC; next scheduled US Open play is later.
+
+### Review
+
+Pending bounded acquisitions, evidence-supported interpretation and acceptance checks.
+
+
+### T0–T4 review — reported WTA event timelines audited; physical qualification pending
+
+- [x] T0: verified all 606 protected prior run files, 91 frozen package files, both
+  model payloads and 377 prior program/web/workflow files; accepted checkouts preserved.
+- [x] T1: current WTA US Open order/API captured at 13:32:46 UTC after the seven-hour
+  gap; 124 main singles / 248 versions over two collections, zero revisions or gaps.
+- [x] T2: six retained reads total, four 200s and two empty point-by-point 404s. WTA's
+  Guadalajara final/semifinal event feeds contain 185/220 records and reported initial
+  OnCourt/PlayersArrived/Warmup/InProgress transitions. No physical error bound established.
+- [x] T3: external read-only event auditor at `f355253`; 59 new tests passed, 296 focused
+  tests passed in 11.34s, lint and three real offline CLI replays passed. Full timelines
+  have 255 scoring records and matching final games; no terminal F event was fabricated.
+- [x] T4: thirteen prior checkouts clean; preservation rechecked; detailed review,
+  acceptance manifest and exact next-session handoff recorded. 29 new run files produce
+  a next protection count of 635. Large external inventories were not rehashed here.
+- [ ] Remaining: independently justified physical timing/uncertainty, real live event
+  versions, and sufficient new prospective pairs before live evaluation.
+
+**Decision:** accept the reported-event source audit. Main API timestamp is 21–24 minutes
+before reported InProgress in these samples; coarse LIVE includes warm-up. Internal clock
+arithmetic alone does not qualify actual starts. Candidate unchanged/deferred, no new
+forecast/fit/score, account, provider contact, automation, live pilot or production change.
+
+Research acceptance receipt: `27cc95af1cb72aa56b316a6fcea30771a3d18094` (`codex/model-wta-lifecycle`),
+source/tests `f355253f75071cfedeafe15adf67898d52aa36e2`. Original checkout mirrors only this round's
+documents and append-only logs; implementation and raw evidence remain isolated.

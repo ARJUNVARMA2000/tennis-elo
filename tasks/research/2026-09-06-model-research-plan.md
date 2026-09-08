@@ -1,54 +1,55 @@
 # DEUCE model improvement — implementation and research handoff
 
-Status: **Official WTA order collection and calendar coverage planning are implemented;
-actual-start qualification and prospective collection remain outstanding.** Source/tests
-`b6df856` add an external WTA order observer and bounded calendar planner without changing
-models, existing collectors or evaluators. The 30-day date window has 116 possible matches
-in fully contained future events, plus a 95-match whole-draw ceiling in partially contained
-Beijing. Those 211 are an optimistic ceiling, not available eligible pairs or statistical power.
+Status: **A concrete WTA event-timeline source and tested auditor are now available;
+physical start-time qualification and prospective collection remain outstanding.**
+The Guadalajara 2025 final/semifinal provide 405 reported events, including explicit
+warm-up and in-progress markers. Full-record checks find no identity/clock contradiction
+and corroborate both final game scores. This is retrospective reported event evidence,
+not a qualified actual-start interval or a new model-performance result.
 
-Read the [WTA coverage review](2026-09-08-wta-coverage-review.md),
-[acceptance manifest](2026-09-08-wta-coverage-result.json),
-[contract](2026-09-08-wta-coverage-interface.md) and
-[next-session handoff](2026-09-08-wta-coverage-next.md).
-Eight retained public HTTP responses supplied the official calendar, order script, future
-and historical Guadalajara sources, and current WTA-rendered US Open sources. Guadalajara
-2026 is unpublished. Completed Guadalajara retains 31 main-singles listings for 27 matches
-but no original start labels. The current WTA order admits 124 singles, including one
-corroborated court-start label, two sequence-only future rows and one unresolved future time.
-No actual-start bound, first-publication proof or model forecast was produced.
+Read the [WTA lifecycle review](2026-09-08-wta-lifecycle-review.md),
+[acceptance manifest](2026-09-08-wta-lifecycle-result.json),
+[contract](2026-09-08-wta-lifecycle-interface.md) and
+[next-session handoff](2026-09-08-wta-lifecycle-next.md).
+Source/tests `f355253` add the external read-only `wta_event_audit.py`; models, existing
+collectors, identity tables and evaluators remain unchanged. Two event reads returned
+200 and two point-by-point reads returned empty 404s. A fresh WTA US Open order/API
+pair at 13:32 UTC was unchanged across 124 main singles. Six retained HTTP reads total.
 
-Latest implementation checkout: `.research/2026-09-06-model-foundation/worktrees/wta-coverage`,
-branch `codex/model-wta-coverage`, source/tests `b6df856`, based on `e10757f`. Resolve its
-final acceptance tip before the next isolated phase. The prior [identity audit](2026-09-08-official-link-review.md)
-at `aab6ed0` and [US Open collector](2026-09-07-official-schedule-review.md) at `cda5393`
-remain unchanged. Event/player identity tables still belong to their established proposer.
+Latest implementation checkout: `.research/2026-09-06-model-foundation/worktrees/wta-lifecycle`,
+branch `codex/model-wta-lifecycle`, source/tests `f355253`, based on `781d37b`. Resolve
+its final acceptance tip before the next isolated phase. The previous [coverage work](2026-09-08-wta-coverage-review.md)
+at `b6df856`, [identity audit](2026-09-08-official-link-review.md) at `aab6ed0` and
+[US Open collector](2026-09-07-official-schedule-review.md) at `cda5393` remain accepted.
 
-This round passed 237 focused tests in 8.63s, including 62 new tests, plus lint and five
-actual offline CLI operations. Three intakes reproduce 155 occurrences for 151 unique
-main-singles IDs across two editions, zero temporal revisions and one unpublished gap.
-Cross-day listings in a single page are not a temporal revision history. Synthetic QA
-and historical source intake are not prospective forecasts or live timing qualification.
+This round passed 296 focused tests in 11.34s, including 59 new tests, plus lint and
+three actual offline CLI operations. The two event timelines contain 255 scoring
+records; neither contains a terminal F event. Main API MatchTimeStamp is 21–24 minutes
+before reported InProgress in these samples. The WTA bundle maps warm-up/OnCourt to
+coarse LIVE, so a live label is not the first serve. A synthetic common clock shift
+passes internal arithmetic but remains unqualified; no physical clock error is invented.
 
 The [bounds evaluator](2026-09-07-time-evidence-review.md) remains at `10c07ee`, with
 119 old completion upper bounds and no qualified live start producer. The prior
 1,411-test full suite and migration on 129,209 selected rows remain in the
-[runner/migration review](2026-09-07-prospective-shadow-review.md); that full suite was
-not repeated here. Corrected incumbent remains `worktrees/maintenance`,
+[runner/migration review](2026-09-07-prospective-shadow-review.md); that suite was not
+repeated here. Corrected incumbent remains `worktrees/maintenance`,
 `codex/model-population-repair`, code `1fbe42a`, review `975379b`. Candidate adoption remains
 deferred; the [candidate verdict](2026-09-06-dynamic-screen-review.md) retains its findings.
 
-All 572 previous run files, 91 frozen package files, both model payloads and 365 prior
-tracked program/web/workflow files were exact; twelve completed prior checkouts were clean.
-This round adds 34 preserved files for a next protection inventory of 606. Large external
-training/snapshot inventories were last fully checked at 01:58:44 UTC and were not rehashed
-here. Original DEUCE receives documents/logs only. No unattended cadence, live evaluation,
-forecast, fit, training copy, account or production deploy is active. No new performance estimate.
+All 606 previous run files, 91 frozen package files, both model payloads and 377 prior
+tracked program/web/workflow files were exact; thirteen prior checkouts were clean.
+This round adds 29 preserved files for a next protection inventory of 635. Large external
+training/snapshot inventories were last fully checked at 01:58:44 UTC and were not
+rehashed here. Original DEUCE receives documents/logs only. No unattended cadence,
+live pilot, forecast, fit, training copy, account or production deploy is active.
 
-Next work depends on useful source publication/progression and independent timing evidence.
-Use the new manual adapter after publication, verify the next official editions, and qualify
-the timing premise before any live pilot. More result rows or another model fit cannot
-substitute for pre-play evidence. Do not repeatedly acquire unchanged overnight bytes.
+Next qualify the specific WTA InProgress field's physical semantics/clock uncertainty,
+and observe live versions when a covered tournament is playing. The Guadalajara 2026
+order was unpublished in its latest retained capture. The previous calendar's 116 fully
+contained future match slots plus 95 across partial Beijing are ceilings, not eligible
+pairs or statistical power. No live registration exists. Do not repeatedly acquire
+unchanged pre-play orders or reopen generic source shopping without a concrete new lead.
 
 The detailed campaign below is historical design. Newer reviews supersede its original
 measurements and next-session instructions. The initial Phase 4 absence counts were
@@ -749,17 +750,18 @@ At the end of EVERY implementation session, append to `tasks/todo.md`:
 
 Recommended next-session instruction:
 
-> Read `2026-09-08-wta-coverage-review.md`, its result JSON, contract, next-session handoff
-> and live todo tail. WTA order/calendar implementation `b6df856` is complete and tested;
-> reuse it. Guadalajara 2026 was unpublished; the 30-day calendar supplies at most 116
-> matches in fully contained events plus 95 across partially contained Beijing. This
-> does not establish 200 eligible pairs. Historical orders have lost original labels;
-> current court-start clocks are not actual-start proof. Advance useful publication or
-> match progression with bounded manual acquisition, and independently qualify timing.
-> No live pilot or unattended cadence exists. Preserve 606 run files and frozen models/code,
-> leave accepted checkouts intact, append a new plan, commit isolated research and mirror
-> documents/logs only. No account, provider contact, fit or production change is implicit.
-> Use no agents unless authorized. Reconcile final Git and original source times.
+> Read the WTA lifecycle review/result/contract and next-session handoff, plus the live
+> todo tail. `f355253` audits 405 real WTA event records from two Guadalajara 2025 matches;
+> two reported InProgress markers are internally consistent but physically unqualified.
+> Use the demonstrated event source and accepted order collectors. The latest current
+> US Open pair at 13:32 UTC is unchanged; no actual revision or live lifecycle was observed.
+> Next establish physical clock semantics/uncertainty and retain real live event versions
+> after useful source change. Do not substitute elapsed-clock agreement, a coarse LIVE
+> state or a main match timestamp for first-serve proof. No live pilot/cadence exists.
+> Preserve 635 run files and all frozen models/code; leave accepted checkouts intact,
+> append a bounded plan, commit isolated research and mirror documents/logs only.
+> No account, provider contact, fit, automation or production change is implicit. Use no
+> agents unless authorized. Reconcile Git and keep original source acquisition times.
 
 ## Planning review
 
