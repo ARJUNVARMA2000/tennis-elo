@@ -7140,3 +7140,49 @@ contact, model adoption, merge/push or deployment.
 Research commit receipt: free-source review and scraper handoff `64e70227281c1433a825fa7032a131c9a95ceb12`
 on `codex/model-free-source`. Research checkout clean. This checkout mirrors documents
 and append-only logs only; no model, evaluator or production integration was copied.
+
+
+## 2026-09-07 — Official schedule collector (authorized continuation)
+
+User check-in: “Build on official feeds and keep going” authorizes implementation of
+the accepted free-source handoff in isolated `codex/model-official-schedule` from `64e7022`.
+
+- [ ] U0: freeze the US Open observation, receipt and revision contract.
+- [ ] U1: implement external immutable catalogue/day collection, exact retained fixtures,
+  coverage exclusions and cumulative revision reporting; test malformed and failed updates.
+- [ ] U2: replay both retained orders; if tests pass, make at most two new public reads
+  (catalogue plus released day 17) to check a genuine revision with the collector.
+- [ ] U3: verify prior runs and frozen code/models, record acceptance and remaining timing
+  qualification work, commit research and mirror documents/logs to the original checkout.
+
+No model fit, training copy, dependencies, account, unattended collection, live pilot,
+production merge/push/deploy or general evaluator change. Schedule observations stay
+outside qualified actual-start intake. No additional check-in is needed for this scope.
+
+### Review
+
+Pending implementation, real replay, bounded acquisition and preservation checks.
+
+
+### U0–U3 review — official collector implemented and real acquisition passed
+
+- [x] U0: source-specific acquisition, normalization and immutable revision contract frozen.
+- [x] U1: external US Open collector plus 46 new tests; 146 focused tests passed in 5.19s.
+  Lint, retained imports, history CLI, failure and revision checks passed.
+- [x] U2: exactly two new public reads succeeded at 2026-09-08 03:25 UTC; current daily
+  bytes match the retained order. Six WTA matches have eight versions, zero actual revisions.
+- [x] U3: all 526 prior run files, 91 frozen package files, both models and 354 existing
+  program/web/workflow files preserved; ten completed prior checkouts clean. This phase
+  adds 27 files for a next protected inventory of 553. Review/result/handoff recorded.
+- [ ] Remaining: future explicit not-before evidence, actual subsequent lifecycle versions
+  and a justified timing premise before a qualified producer or primary live evaluation.
+
+**Decision:** manual schedule collection is implemented at `cda5393`; evidence is schedule-only.
+No unattended cadence, forecast, model fit, new training copy, account, purchase, provider
+contact, model/evaluator change, production merge/push or deployment. Read
+`2026-09-07-official-schedule-review.md` and `2026-09-07-official-schedule-next.md`.
+
+Research commit receipt: implementation `cda539332c98f5983bf6950da999e74d03d02d5e`,
+acceptance `70f5976cd9eb07ec5757674f5966c81b30c31477` on `codex/model-official-schedule`.
+Research checkout clean. This checkout mirrors documents and append-only logs only;
+collector code, test fixtures and archives remain in the isolated research paths.

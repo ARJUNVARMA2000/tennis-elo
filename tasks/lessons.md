@@ -382,3 +382,6 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - A schedule catalogue's epoch can identify a different date from its published order. See
   [`lessons/model-research.md`](lessons/model-research.md). (2026-09-07)
+
+- An official catalogue can mix match days with unrelated navigation entries. See
+  [`lessons/model-research.md`](lessons/model-research.md). (2026-09-07)
