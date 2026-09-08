@@ -7547,3 +7547,24 @@ No agents or external acquisition; original checkout receives documents only.
 
 Pending new diagnostics and experiments. Earlier 2020+ exposure remains validation,
 not an untouched holdout. The earlier absence transform and 40/80-point caps stay closed.
+
+
+### S0–S5 review — three further hypotheses, WTA surface candidate passes
+
+- [x] S0: 696 earlier files, reference models and sixteen accepted checkouts verified.
+- [x] S1: three preregistered temporal histories; tune residual evidence and fixed shortlist.
+- [x] S2: external signal states, saved-query mirrors and orientation adapter committed
+  with 17 new tests; no production package change.
+- [x] S3: exact 26,794-row incumbent replay and three five-bag trials complete. Form
+  +0.000230527 (5/10 positive years); surface +0.000697431 (8/10); rank +0.000392500 (8/10).
+- [x] S4: surface locked before validation. WTA 2020+ +0.000532760 ± 0.000311990,
+  5/7 positive years, formal gate passes. ATP tune −0.000047701, formal gate fails.
+- [x] S5: complete metric/year/uncertainty tables, review, manifest and implementation
+  handoff. 74 focused tests /1.14s, lint and six real-prefix saved queries pass.
+  Thirty-seven new run files bring protection to 733; next accepted checkout count seventeen.
+
+**Decision:** advance the fixed WTA surface candidate to saved-predictor serving assessment.
+Incumbent artifact/defaults remain unchanged. Validation week95 spans zero, so report a
+modest positive historical result. Ranking trend is an unvalidated eligible runner-up;
+form fails year consistency. No new final predictor fit, source work, acquisition or deploy.
+A completed shortlist is not an exhausted research program.
