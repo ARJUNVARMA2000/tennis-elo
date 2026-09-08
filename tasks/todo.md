@@ -6242,3 +6242,33 @@ that newly consumed input. Local archived history masked this fixture omission.
   incident replay for missing 2021 history. All 1,210 tests pass in 38.42 seconds from
   an isolated clean Git index with no developer raw/output archive; lint passes.
   Production behavior and the already-verified recovery asset are unchanged.
+
+### Production acceptance — 2026-09-08 00:45 UTC
+
+- [x] Published the repaired `data-archive/raw-archive.tar.gz`, preserving the original
+  235 files and restoring 2016–2026 WTA lower history. GitHub's asset digest matches
+  `355ecaa24e811dc525463d0d1d872dd4a28b7929f88f46a12527309bc7a11bab`.
+  The original archive and verification logs are retained in the isolated local
+  `.research/2026-09-07-deploy-repair-evidence` directory.
+- [x] Pushed implementation `df4cf56` and replay isolation correction `08871ca` to
+  production. Rechecked Git history against `origin/master` at `08871ca` before
+  finalizing this review; the separate research checkout remains untouched.
+- [x] Production run [34173159083](https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/34173159083)
+  completed successfully. Python CI passed 1,209 tests with one platform-dependent
+  skip; local clean-source verification passed all 1,210. Web CI passed 352 tests,
+  lint, type checking, static build, and all 10 route/viewport smoke checks.
+- [x] Recovery, model rebuilding, the pre-deploy integrity gate, publication, Firebase
+  deployment, and all 22 live serving checks passed. The live gate verified all
+  458 exact artifacts and 20 required absences for accepted release
+  `38882bc9-954a-4805-9b30-4579394c63f7`, manifest SHA-256
+  `9873802cb42a7377c89300469c8008c209b3965ebc1b2d957dee280a54bdd9fb`.
+- [x] Independently fetched public health and WTA brackets: health is `ok: true`,
+  generated at `2026-09-08T00:43:44Z`; both models use population version 7 with
+  no output problems. Kia is Hard/WTA 125; Montreux is Clay/WTA 125. All four
+  original incident pairings plus Tsygourova–Burel have valid model probabilities.
+- [x] All seven original data-health issues (#52, #53, #55–#59) auto-closed, as did
+  the intermediate test-failure issue #60. Redundant alias proposals #47 and #54
+  were closed after confirming their corrections are incorporated. The remote
+  issue/PR listing is empty. No model policy or integrity gate was weakened.
+
+Review complete: all repair and follow-up work above is accepted in production.
