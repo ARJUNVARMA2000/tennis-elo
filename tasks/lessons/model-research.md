@@ -265,3 +265,11 @@ Indexed in [`../lessons.md`](../lessons.md).
   directory caused failed file creation; assuming a test filename caused an empty run.
   Use absolute paths for private drivers/tools, inspect the actual test list, and preserve
   failed launch logs separately. A command launch failure is not a model experiment.
+
+
+- **A timestamp and its derived elapsed clock can agree throughout corrupted data.** (2026-09-07)
+  The US Open point sample had a constant `EpochTimeStart - ElapsedTime` for every
+  point in both matches, including 114 start-after-end rows in one match. Algebraic
+  agreement is not independent timing validation. Require field semantics, defensible
+  precision and real chronological checks before a source can establish pre-play proof;
+  retain contradictions and never repair day offsets just to make a history plausible.
