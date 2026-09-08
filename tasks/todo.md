@@ -6971,3 +6971,67 @@ Research commit receipt: source adapter/tests `c9b5b17`; final acceptance and ha
 `3f4e99d64af66461e11e6e96fb164813e4144bfd` on `codex/model-source-audit`.
 The research checkout is clean. This original checkout carries only the matching
 research documents and appended task/lesson/ledger entries; no source code was merged.
+
+## 2026-09-07 — Typed prospective time evidence
+
+User check-in: “Can you keep going?” authorizes the source-audit handoff's next phase.
+Keep all completed experiments immutable. This is evidence-engineering work, not a
+new model fit or a parameter-search round.
+
+- [ ] R0: inspect primary scheduling/timing rules, define sufficient lower/upper-bound
+  evidence and counterexamples before source edits; record an explicit version contract.
+- [ ] R1: create `codex/model-time-evidence` from the accepted source-audit checkout,
+  preserve prior hashes, and validate the supported completion producer on retained raw
+  observations. Only collect a new bounded observation if it resolves a concrete gap.
+- [ ] R2: implement the feasible typed evidence path outside the frozen model package,
+  with immutable source links, conservative interval arithmetic, conflict handling,
+  fixed intake deadlines and explicit rejection of unsupported schedule/latency claims.
+  Keep v1 receipts, model artifacts and historical scores unchanged.
+- [ ] R2 QA: add meaningful negative and real-artifact integration tests; exercise the
+  new version with explicitly synthetic timing evidence, and audit actual source
+  coverage separately. No QA evidence can become a live experiment.
+- [ ] R3 review: establish what is now usable and what live qualification still needs;
+  verify protected evidence, reconcile Git, commit a detailed review and resumable
+  implementation plan, and mirror only documents and append-only logs here.
+
+Dependencies: R0 defines the contract before R2. Completion-bound implementation and
+source qualification are independent, but live activation needs verified start evidence
+and a registered execution cadence. No agents, dependencies, model fitting, migration,
+production merge/push or unattended collector are part of this scope.
+
+### Review
+
+Pending. Exact finish times may be unnecessary; proof of pre-play capture is essential.
+
+
+### R0–R3 review — bounds evaluator and completion producer accepted
+
+- [x] R0: primary scheduling/commencement rules inspected; typed interval contract fixed
+  before implementation. No schedule/API field was promoted to actual-start proof.
+- [x] R1 completion evidence: preserved ESPN/WTA receipts supply 119 corroborated finish
+  upper bounds and 246 provider identity rows, with the original 00:48:17.709639 UTC
+  observation time. No new live scoreboard reads and zero verified start bounds.
+- [x] R2: `prospective-bounds-v2` and external evidence module committed at `10c07ee`.
+  Typed starts/completions, timing conflicts, earlier schedules, source replacements,
+  terminal disagreement, partial updates and uncertain week grouping are implemented.
+  V1/model package stays unchanged; external code hashes are pinned in registration.
+- [x] R2 QA: 58 new tests; combined 231 passed in 9.92s; full source/research/test lint
+  passed. All 82 existing tracked test/fixture files exact. Full-size acceptance took
+  10.86s: main/lower branches, exact direct probabilities, first receipt preservation,
+  missing-start exclusion, accumulated 1→2 graded QA pairs, stable endpoint/late refusal.
+- [x] R3 closeout: all 415 prior run files, 25,826 read-only snapshot files, seven protected
+  data inventories and eight copies of 18,791 original input files verified. Detailed
+  review/result/next-source plan recorded. No model fit, migration or new training copy.
+- [ ] Live qualification and activation remain outstanding: no start-evidence producer
+  or acquisition cadence is qualified. Live registration deliberately fails before files.
+
+**Decision:** the completion-time obstacle is resolved in a separately versioned evaluator;
+start evidence still requires a concrete validated source. Do not build another generic
+framework or refit the unchanged model. Next follow `2026-09-07-time-evidence-next.md`
+for bounded source/access qualification. Synthetic QA is not performance evidence and
+cannot become a live pilot. Corrected incumbent retained; no merge/push/deployment.
+
+Research commit receipt: evaluator/tests `10c07ee726632f7186522e423205d661169123ce`;
+final acceptance/handoff `129f811514cfd6b2a44edc087c42b26b45a475d4` on
+`codex/model-time-evidence`. Research checkout clean. This checkout mirrors only
+research documents and append-only logs; no implementation was merged or deployed.

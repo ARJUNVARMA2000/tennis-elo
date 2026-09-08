@@ -250,3 +250,19 @@ Indexed in [`../lessons.md`](../lessons.md).
   completed observation may establish an upper bound, while pre-play proof requires
   a defensible start lower bound. Version that change explicitly and validate the
   evidence producer before live use. Never upgrade clock-simulated QA to live evidence.
+
+
+- **A result producer must carry contradictions as well as confirmed matches.** (2026-09-07)
+  Filtering a source update down to agreeing normal results can make a later terminal
+  disagreement disappear, leaving an earlier result eligible forever. The external
+  completion producer retains conflicting terminal claims and provider identity rows;
+  the bounds evaluator excludes their affected forecasts. Test a real source fixture
+  mutated to disagree on one terminal outcome, plus an identity-only replacement update.
+  A merely delayed live/complete pair is not two contradictory terminal claims.
+
+- **Resolve the owning checkout and working directory before constructing a research command.** (2026-09-07)
+  The original checkout carries documentation while implementation files live in isolated
+  research checkouts. Reusing root-relative tennis_model paths after selecting that
+  directory caused failed file creation; assuming a test filename caused an empty run.
+  Use absolute paths for private drivers/tools, inspect the actual test list, and preserve
+  failed launch logs separately. A command launch failure is not a model experiment.

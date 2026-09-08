@@ -1,0 +1,158 @@
+{
+  "schema": "deuce-time-evidence-result-v1",
+  "recordedAt": "2026-09-08T02:03:37.123619+00:00",
+  "implementationCommit": "10c07ee726632f7186522e423205d661169123ce",
+  "status": "bounds-evaluator-accepted-live-start-producer-unqualified",
+  "acceptance": {
+    "implementationCommit": "10c07ee726632f7186522e423205d661169123ce",
+    "acceptedAt": "2026-09-08T01:57:53.541433+00:00",
+    "wallSeconds": 10.859604790923186,
+    "realSourceAudit": {
+      "completionBounds": 119,
+      "verifiedStartBounds": 0,
+      "observedAt": "2026-09-08T00:48:17.709639+00:00",
+      "sourceIdentityRows": 246,
+      "sourceResultConflicts": 0,
+      "newHTTPReads": 0,
+      "oldAcquisitionsReusedAsFresh": false
+    },
+    "qa": {
+      "evidenceKind": "synthetic-qa",
+      "registrationSHA256": "ebe598dd6660dbb3cc74527de2884f9a884261c9508fda83d1b32123eaa3b9cb",
+      "realRegistrationClock": true,
+      "captureAndSettlementClocks": "simulated after actual QA registration",
+      "pairs": [
+        [
+          "Elena Rybakina",
+          "Aryna Sabalenka"
+        ],
+        [
+          "Elena Rybakina",
+          "Tena Lukas"
+        ]
+      ],
+      "branches": [
+        "main",
+        "lower"
+      ],
+      "captured": 2,
+      "missingStartExcluded": 1,
+      "gradedByUpdate": [
+        1,
+        2
+      ],
+      "finalGraded": 2,
+      "endpointSHA256": "d0b5a957451026b974f396c44cf6c27922704d3f9161e0b1ba3f03fd06709888",
+      "endpointStable": true,
+      "lateIntakeRejected": true,
+      "directFullsizeProbabilitiesExact": true,
+      "firstReceiptExact": true
+    },
+    "liveRegistrationRefusedBeforeFiles": true,
+    "livePilotActive": false,
+    "modelFits": 0,
+    "candidateReselected": false,
+    "candidateSHA256": "43dd88b1461913f11b90b6d2aa6aa82f7bbfe3ba7ad597d978c6a46b73d45fcc",
+    "incumbentSHA256": "8cf280c43f813a6944244d585248af8d5fcbc1ff628e535f98d4e10866730e34",
+    "driverSHA256": "69307388ae0beba448543f42b9dffc82505bff7553389d3d091ed62fedd8077c"
+  },
+  "preservation": {
+    "checkedAt": "2026-09-08T01:58:44.035725+00:00",
+    "protectedDataExact": [
+      "original",
+      "coordinator",
+      "phase4",
+      "maintenance",
+      "dynamic-screen",
+      "dynamic-shadow",
+      "prospective-shadow"
+    ],
+    "originalInputFiles": 18791,
+    "eightDistinctCopiesPerInput": true,
+    "snapshotFilesVerified": 25826,
+    "protectedRunFilesVerified": {
+      "phase3": 56,
+      "phase4": 77,
+      "maintenance": 104,
+      "dynamic-continuation": 61,
+      "dynamic-shadow": 37,
+      "prospective-shadow": 42,
+      "source-audit": 38
+    },
+    "protectedSourceInventoriesExact": true,
+    "existingTestFilesExact": 82,
+    "entireModelPackageUnchanged": true,
+    "programWorkflowWebExact": true,
+    "frozenRunnerContractVerified": true,
+    "newTrainingInputCopies": 0
+  },
+  "tests": {
+    "new": 58,
+    "focusedPassed": 231,
+    "focusedSeconds": 9.92,
+    "lint": "passed",
+    "existingTrackedTestAndFixtureFilesExact": 82,
+    "priorFullSuitePassed": 1411,
+    "fullSuiteRerunThisPhase": false
+  },
+  "paths": {
+    "worktree": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/time-evidence",
+    "runs": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/runs/time-evidence",
+    "incumbent": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/runs/maintenance/wta-final-001/predictor.pkl",
+    "candidate": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/runs/prospective-shadow/migration-001/candidate.shadow",
+    "provenance": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/runs/prospective-shadow/provenance.json"
+  },
+  "frozenPackageInputContract": "969eb8eeb77d09f051ee52c415eb2d15e5ffa7d138e9b4149166e51eda3a355c",
+  "sourceFiles": {
+    "tennis_model/research/prospective_bounds.py": "6d5a97c34ed48ffaf46803163789161219737480b0924106a8e0d23793f73b7c",
+    "tennis_model/research/time_evidence.py": "61354f87d9b31880efcc6979190afdb509d173e708ad96f2d875591982f42fda",
+    "tennis_model/tests/test_time_evidence.py": "287f35f16900a23c57c32cde276e25fd64c7b3ded8ec2ee49bed385a3da70da6",
+    "tennis_model/tests/test_prospective_bounds.py": "c45bb084f545e2d3a8807e5ac157a6a00fe5972659548bd006399e9803ff81e6"
+  },
+  "unchangedAdapterSHA256": "a0c73268af8c615f56cd2c14fd0e850c1a41d05a7bbce1a62cd18d9e790b33fb",
+  "limitations": [
+    "No qualified live start producer.",
+    "119 retained completion observations are not prospective forecasts.",
+    "Two QA outcomes and capture/settlement clocks were simulated; evidence cannot become live.",
+    "Week uncertainty is withheld if any scored start interval crosses a UTC week.",
+    "No active collection cadence; no independent performance evidence or model adoption."
+  ],
+  "modelFits": 0,
+  "newLiveScoreboardRequests": 0,
+  "livePilotActive": false,
+  "productionChanged": false,
+  "driverSHA256": {
+    "time-evidence-acceptance.py": "69307388ae0beba448543f42b9dffc82505bff7553389d3d091ed62fedd8077c",
+    "time-evidence-preserve.py": "de279c77727afa14171628b9d4455a8ba10ef9691cc1bc271135a4c66c9d24f1"
+  },
+  "runFiles": {
+    "acceptance-001/registration.json": "abd400994021033bc65ae2f704176e0828985293fa7159444daf0b729375184e",
+    "acceptance-001/result.json": "7a4fe50c3bc09d52e32465f1a851d2d616e513dcab37c7be7f55254230e3d042",
+    "acceptance-001/retained-completion-batch.json": "15b549f45571181066743f6f64a8af691ccc56a1555c3a89efa04e9631f19c9f",
+    "acceptance-001/synthetic-qa/.lock": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "acceptance-001/synthetic-qa/attempts/52158ae3ebff7c92a19acb03ab280c42937a33d38c418f7058033d6ed209cc17.json": "9c004623b78f512adc84187c7ef5018795204bd8600de182d918e73f64bfb88f",
+    "acceptance-001/synthetic-qa/attempts/5e29ca563c099e3204b261e5d47d66193e38fce62f68a3b015ba86d8a6b03f90.json": "a4c9d1b0532fb4236fdfa885f816a2b098ac60a47d168a0e4e05a130016d3296",
+    "acceptance-001/synthetic-qa/attempts/faf228208ef171b56ea5323104fc11aa63d379ad0be1d8c54e03556623b513ec.json": "c350842da418c902c1b23f62be5157a259d1ab2ed6982a93220f0aff52963c8a",
+    "acceptance-001/synthetic-qa/candidate.shadow": "43dd88b1461913f11b90b6d2aa6aa82f7bbfe3ba7ad597d978c6a46b73d45fcc",
+    "acceptance-001/synthetic-qa/endpoint.json": "d0b5a957451026b974f396c44cf6c27922704d3f9161e0b1ba3f03fd06709888",
+    "acceptance-001/synthetic-qa/incumbent.pkl": "8cf280c43f813a6944244d585248af8d5fcbc1ff628e535f98d4e10866730e34",
+    "acceptance-001/synthetic-qa/incumbent.pkl.envelope": "8f73df4346db01ce2dac871807828817133855cc449e1a73444b7286665bd401",
+    "acceptance-001/synthetic-qa/observations/11b9573aff0df46d4f743f597f5c185b65615f4f9b2cf75cbe6997991a8f9c4a.json": "3e6fb86876df3ddfda41397a83dc86f924f81a68465b04e5772ef6faf4af51d6",
+    "acceptance-001/synthetic-qa/observations/bf9f1cef8bd4e314002bd5bc1eeb0a2d6aaa9bd6807d91544c7d6ff9c00d065e.json": "c5de5ae80af5eb51aa22ea11b7a5e57fa9299ccace9bcab9a0f37837a51f8568",
+    "acceptance-001/synthetic-qa/receipts/3e7166b81ab3054d3ae992ab5c16929da2cf3fab86d5b9876fca2388af695d2b.json": "5ee0778b45a47cdf19bc80cff4e564b9ff19047492d9a6d43ced2773bac789b5",
+    "acceptance-001/synthetic-qa/receipts/735cd8bf201789d12cc4bdf4699b46c231538ac80adb4a98926f76106640c9dc.json": "b9404ad5361fb05b154a48c0ca2be88eca4d323d067dfadca35f1e32e3d4318a",
+    "acceptance-001/synthetic-qa/registration.json": "e5b9a561a9079d976936ef4b17ac20deae7460261a998e6a0696a0914db18a64",
+    "acceptance-001/synthetic-qa/results/00c21c101fd6782561558b98fd4cfd5a16cdb2da3418fb5ad2306d3e961ce9e4.json": "c4350756a78b94ee8d3ea4b656c3ffc70cdb0c4ea85c0da32a1971a09b452c13",
+    "acceptance-001/synthetic-qa/results/2713d3896a72083f3df778c80eed4e900912f972f8ebbe49d14697098f310624.json": "147b7c5b04bf3f30b5e5d6ef173dc4dea4e1d804dd6fc5267407036ecfa2a654",
+    "acceptance-001/synthetic-qa/results/b9cac347106a25372863ceeb930dbdd1842b787c42e2e66d6aaa9f66e56c2fea.json": "ba5e1a63c165c171834ddb89d844772ece8ab8ff3789cd819fa5178c9d9cb209",
+    "acceptance.log": "65f2a6b9eb82dcd0030ce9dcfe8e1152a5caf3de027e81c5f251db14b8939304",
+    "focused-tests-002.txt": "fd594e7b66d8f9e783778daf6c700385e3891929c662e90e917d91fe03e4cf42",
+    "focused-tests.txt": "f68b9ee8563851c541e09887e33a9d455065652026abc2910ff4556a8f573c5a",
+    "lint.txt": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+    "local-setup-notes.json": "629ceff8c9e8025fbbac8483e87870ad8524d1eff6173d22a0dd556946b9eb06",
+    "pre-acceptance-check.json": "b920886791cba8884c79502eb627fbdc59482b181fa58ff84cdd436e49f0c4e4",
+    "preservation.json": "04289d08a1e8d4a5ca1e887d7545395e50578d11aa3c99769bc17b7f9597ad90",
+    "preservation.log": "545dc56e4404684b88cd4351fbe7f7ebaa1492e005725ba25310face57424823",
+    "protected-run-files.json": "489a5c5445ba68bd12c6182bb9400e4e89bb0e19bf6a126c53556c424c5942f5"
+  }
+}

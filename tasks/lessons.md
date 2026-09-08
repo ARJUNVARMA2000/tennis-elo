@@ -371,3 +371,8 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - HTTP freshness does not establish match-time semantics; represent the bound the experiment needs. See
   [`lessons/model-research.md`](lessons/model-research.md). (2026-09-07)
+
+- A result producer must carry contradictions as well as confirmed matches. See
+  [`lessons/model-research.md`](lessons/model-research.md). (2026-09-07)
+- Resolve the owning checkout and working directory before constructing a research command. See
+  [`lessons/model-research.md`](lessons/model-research.md). (2026-09-07)
