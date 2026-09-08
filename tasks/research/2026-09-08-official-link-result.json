@@ -1,0 +1,647 @@
+{
+  "schema": "deuce-official-link-result-v1",
+  "recordedAt": "2026-09-08T04:43:42.247703+00:00",
+  "baseCommit": "70f5976cd9eb07ec5757674f5966c81b30c31477",
+  "implementationCommit": "aab6ed05d66bac514e5b6d3903cb7924b06b6aff",
+  "status": "official-identity-audit-accepted; later-lifecycle-and-start-premise-unmet",
+  "scope": "external retrospective identity annotations; no forecast/context donation",
+  "liveHTTPReads": 4,
+  "scheduleReceipts": {
+    "catalogue": {
+      "adapterSHA256": "45d85a1db135620e614282e73213be9dbb758e7cf7203e167b3ba1083320f0a7",
+      "day": null,
+      "edition": 2026,
+      "elapsedSeconds": 0.11609654198400676,
+      "headers": {
+        "cache-control": "max-age=14",
+        "content-length": "11152",
+        "content-type": "application/json",
+        "date": "Tue, 08 Sep 2026 04:31:10 GMT",
+        "etag": "W/\"2ecc9e53d5d677acbdbec1412a36cbe6\"",
+        "last-modified": "Tue, 08 Sep 2026 04:01:02 GMT"
+      },
+      "outcome": "ok",
+      "provenance": "network-observation",
+      "rawBytes": 11152,
+      "rawComplete": true,
+      "rawSHA256": "e8d6e28a98431d10246cce39500f323bb59297a3ea0e8ad9738b29f8a82e1304",
+      "receivedAt": "2026-09-08T04:31:11.073385+00:00",
+      "requestedAt": "2026-09-08T04:31:10.956676+00:00",
+      "responseUrl": "https://www.usopen.org/en_US/scores/feeds/2026/schedule/scheduleDays.json",
+      "schema": "usopen-schedule-observation-v1",
+      "sha256": "e41aa61f24298d96af962043825b5de7b9036115be0367a14308f808e38d6347",
+      "status": 200,
+      "url": "https://www.usopen.org/en_US/scores/feeds/2026/schedule/scheduleDays.json"
+    },
+    "daily": {
+      "adapterSHA256": "45d85a1db135620e614282e73213be9dbb758e7cf7203e167b3ba1083320f0a7",
+      "day": 17,
+      "edition": 2026,
+      "elapsedSeconds": 0.10098204202950001,
+      "headers": {
+        "cache-control": "max-age=25",
+        "content-type": "application/json",
+        "date": "Tue, 08 Sep 2026 04:31:10 GMT",
+        "etag": "W/\"14856ea925dccd068c2a39bd8440f43e\"",
+        "last-modified": "Tue, 08 Sep 2026 00:26:50 GMT"
+      },
+      "outcome": "ok",
+      "provenance": "network-observation",
+      "rawBytes": 82903,
+      "rawComplete": true,
+      "rawSHA256": "54510aa963a5f6c804ad2c835b4f465bee1391152653afbb97bb3aa264457876",
+      "receivedAt": "2026-09-08T04:31:11.178276+00:00",
+      "requestedAt": "2026-09-08T04:31:11.076631+00:00",
+      "responseUrl": "https://www.usopen.org/en_US/scores/feeds/2026/schedule/schedule17.json",
+      "schema": "usopen-schedule-observation-v1",
+      "sha256": "a52dc1f1d7f079bf9b27779d13cdc68d6a253d90d3cf611332c47e9af6609c8f",
+      "status": 200,
+      "url": "https://www.usopen.org/en_US/scores/feeds/2026/schedule/schedule17.json"
+    }
+  },
+  "drawReceipts": {
+    "index": {
+      "schema": "official-draw-inspection-v1",
+      "url": "https://www.usopen.org/en_US/scores/feeds/2026/draws/draws.json",
+      "requestedAt": "2026-09-08T04:31:38.956727+00:00",
+      "purpose": "official draw identity audit; no forecasts or timing evidence",
+      "status": 200,
+      "responseUrl": "https://www.usopen.org/en_US/scores/feeds/2026/draws/draws.json",
+      "headers": {
+        "content-type": "application/json",
+        "last-modified": "Mon, 07 Sep 2026 02:15:34 GMT",
+        "etag": "W/\"1ebf2233338b4328cd0942fbf1788af5\"",
+        "cache-control": "max-age=43",
+        "date": "Tue, 08 Sep 2026 04:31:38 GMT",
+        "content-length": "6014"
+      },
+      "rawBytes": 6014,
+      "rawSHA256": "1e79eae0059f060386a7707f1a4accf57932241d209809ee3f5365e7970d11f4",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T04:31:39.051647+00:00",
+      "elapsedSeconds": 0.09459116705693305,
+      "sha256": "8d0e917743a5b721f4604465188e70a13041b5104b71b52a57fe8952feda6076"
+    },
+    "draw": {
+      "schema": "official-draw-inspection-v1",
+      "url": "https://www.usopen.org/en_US/scores/feeds/2026/draws/WS.json",
+      "requestedAt": "2026-09-08T04:32:09.411705+00:00",
+      "purpose": "official draw identity audit; no forecasts or timing evidence",
+      "status": 200,
+      "responseUrl": "https://www.usopen.org/en_US/scores/feeds/2026/draws/WS.json",
+      "headers": {
+        "content-type": "application/json",
+        "last-modified": "Tue, 08 Sep 2026 00:48:37 GMT",
+        "etag": "W/\"b51473e8adc9593d6bec5ed880a75a15\"",
+        "cache-control": "max-age=21",
+        "date": "Tue, 08 Sep 2026 04:32:09 GMT"
+      },
+      "rawBytes": 220732,
+      "rawSHA256": "366145b989d986a8a4e99d56c0d7477600e2ca8eace8c91e83cc89c4082f8095",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T04:32:09.560676+00:00",
+      "elapsedSeconds": 0.1486990419216454,
+      "sha256": "4b6828e5f91571c967149b5e291f38b92d12eb57f34cff8c20dcec6378094678"
+    }
+  },
+  "scheduleObservationUTC": "2026-09-08T04:31:11.178276+00:00",
+  "nextDaysAtObservation": [
+    {
+      "tournDay": 18,
+      "message": "Day 11: Wednesday, September 9",
+      "released": false,
+      "feedUrl": null
+    },
+    {
+      "tournDay": 19,
+      "message": "Day 12: Thursday, September 10",
+      "released": false,
+      "feedUrl": null
+    },
+    {
+      "tournDay": 20,
+      "message": "Day 13: Friday, September 11",
+      "released": false,
+      "feedUrl": null
+    },
+    {
+      "tournDay": 21,
+      "message": "Day 14: Saturday, September 12",
+      "released": false,
+      "feedUrl": null
+    },
+    {
+      "tournDay": 22,
+      "message": "Day 15: Sunday, September 13",
+      "released": false,
+      "feedUrl": null
+    }
+  ],
+  "scheduleVersions": 10,
+  "uniqueScheduledMatches": 6,
+  "actualScheduleRevisions": 0,
+  "drawRows": 127,
+  "realOfficialRows": 124,
+  "eventEvidence": {
+    "sharedCompleted": 119,
+    "officialClaimedCompleted": 120,
+    "wtaCompleted": 119,
+    "espnCompleted": 119,
+    "requiredFraction": 0.8,
+    "evidenceSHA256": "fa73bcb776b01e2c4ecb01afc498335bc57194521847274030375b4dbcf3d7bd",
+    "basis": "explicit-edition-and-unique-pair-round-winner-games"
+  },
+  "mapping": {
+    "wtaId": "905",
+    "year": 2026,
+    "espnId": "189-2026",
+    "sharedCompleted": 119,
+    "evidenceSHA256": "fa73bcb776b01e2c4ecb01afc498335bc57194521847274030375b4dbcf3d7bd",
+    "basis": "edition-bounds-plus-unique-pair-round-winner-games",
+    "officialEventCode": "WS"
+  },
+  "strictMatchLinks": 100,
+  "exclusionCounts": {
+    "invalid or unresolved official player names": 3,
+    "player-number-disagreement": 23,
+    "missing-provider-matchup": 1
+  },
+  "exclusions": [
+    {
+      "sourceMatchId": "2601",
+      "path": "/matches/124",
+      "reason": "invalid or unresolved official player names"
+    },
+    {
+      "sourceMatchId": "2602",
+      "path": "/matches/125",
+      "reason": "invalid or unresolved official player names"
+    },
+    {
+      "sourceMatchId": "2701",
+      "path": "/matches/126",
+      "reason": "invalid or unresolved official player names"
+    },
+    {
+      "sourceMatchId": "2102",
+      "path": "/matches/1",
+      "reasons": [
+        "player-number-disagreement"
+      ],
+      "terminalIssue": null,
+      "officialPlayerNumbers": {
+        "renata zarazua": "320716",
+        "polina iatcenko": "330466"
+      },
+      "wtaPlayerNumbers": {
+        "renata zarazua": "320716",
+        "polina iatcenko": "750327"
+      }
+    },
+    {
+      "sourceMatchId": "2115",
+      "path": "/matches/14",
+      "reasons": [
+        "player-number-disagreement"
+      ],
+      "terminalIssue": null,
+      "officialPlayerNumbers": {
+        "elvina kalieva": "327834",
+        "lanlana tararudee": "329651"
+      },
+      "wtaPlayerNumbers": {
+        "elvina kalieva": "380396",
+        "lanlana tararudee": "329651"
+      }
+    },
+    {
+      "sourceMatchId": "2118",
+      "path": "/matches/17",
+      "reasons": [
+        "player-number-disagreement"
+      ],
+      "terminalIssue": null,
+      "officialPlayerNumbers": {
+        "venus williams": "230220",
+        "sofia kenin": "320942"
+      },
+      "wtaPlayerNumbers": {
+        "venus williams": "18251",
+        "sofia kenin": "320942"
+      }
+    },
+    {
+      "sourceMatchId": "2124",
+      "path": "/matches/23",
+      "reasons": [
+        "player-number-disagreement"
+      ],
+      "terminalIssue": null,
+      "officialPlayerNumbers": {
+        "julia grabher": "320316",
+        "sorana cirstea": "312469"
+      },
+      "wtaPlayerNumbers": {
+        "julia grabher": "113079",
+        "sorana cirstea": "312469"
+      }
+    },
+    {
+      "sourceMatchId": "2131",
+      "path": "/matches/30",
+      "reasons": [
+        "player-number-disagreement"
+      ],
+      "terminalIssue": null,
+      "officialPlayerNumbers": {
+        "carol young suh lee": "329383",
+        "katie boulter": "319125"
+      },
+      "wtaPlayerNumbers": {
+        "carol young suh lee": "356694",
+        "katie boulter": "319125"
+      }
+    },
+    {
+      "sourceMatchId": "2133",
+      "path": "/matches/32",
+      "reasons": [
+        "player-number-disagreement"
+      ],
+      "terminalIssue": null,
+      "officialPlayerNumbers": {
+        "mirra andreeva": "331809",
+        "janice tjen": "328818"
+      },
+      "wtaPlayerNumbers": {
+        "mirra andreeva": "331809",
+        "janice tjen": "460837"
+      }
+    },
+    {
+      "sourceMatchId": "2135",
+      "path": "/matches/34",
+      "reasons": [
+        "player-number-disagreement"
+      ],
+      "terminalIssue": null,
+      "officialPlayerNumbers": {
+        "nikola bartunkova": "330364",
+        "mayar sherif": "318711"
+      },
+      "wtaPlayerNumbers": {
+        "nikola bartunkova": "721779",
+        "mayar sherif": "318711"
+      }
+    },
+    {
+      "sourceMatchId": "2139",
+      "path": "/matches/38",
+      "reasons": [
+        "player-number-disagreement"
+      ],
+      "terminalIssue": null,
+      "officialPlayerNumbers": {
+        "lilli tagger": "332150",
+        "tamara korpatsch": "319571"
+      },
+      "wtaPlayerNumbers": {
+        "lilli tagger": "906723",
+        "tamara korpatsch": "319571"
+      }
+    },
+    {
+      "sourceMatchId": "2143",
+      "path": "/matches/42",
+      "reasons": [
+        "player-number-disagreement"
+      ],
+      "terminalIssue": null,
+      "officialPlayerNumbers": {
+        "oleksandra oliynykova": "327182",
+        "reese brantmeier": "329512"
+      },
+      "wtaPlayerNumbers": {
+        "oleksandra oliynykova": "325729",
+        "reese brantmeier": "577523"
+      }
+    },
+    {
+      "sourceMatchId": "2144",
+      "path": "/matches/43",
+      "reasons": [
+        "player-number-disagreement"
+      ],
+      "terminalIssue": null,
+      "officialPlayerNumbers": {
+        "mary stoiana": "330265",
+        "alexandra eala": "330332"
+      },
+      "wtaPlayerNumbers": {
+        "mary stoiana": "679319",
+        "alexandra eala": "330332"
+      }
+    },
+    {
+      "sourceMatchId": "2146",
+      "path": "/matches/45",
+      "reasons": [
+        "player-number-disagreement"
+      ],
+      "terminalIssue": null,
+      "officialPlayerNumbers": {
+        "anhelina kalinina": "320567",
+        "himeno sakatsume": "326568"
+      },
+      "wtaPlayerNumbers": {
+        "anhelina kalinina": "320567",
+        "himeno sakatsume": "282219"
+      }
+    },
+    {
+      "sourceMatchId": "2153",
+      "path": "/matches/52",
+      "reasons": [
+        "player-number-disagreement"
+      ],
+      "terminalIssue": null,
+      "officialPlayerNumbers": {
+        "madison keys": "316959",
+        "alina korneeva": "331330"
+      },
+      "wtaPlayerNumbers": {
+        "madison keys": "316959",
+        "alina korneeva": "845268"
+      }
+    },
+    {
+      "sourceMatchId": "2154",
+      "path": "/matches/53",
+      "reasons": [
+        "player-number-disagreement"
+      ],
+      "terminalIssue": null,
+      "officialPlayerNumbers": {
+        "lucie havlickova": "330147",
+        "anna bondar": "322942"
+      },
+      "wtaPlayerNumbers": {
+        "lucie havlickova": "662257",
+        "anna bondar": "322942"
+      }
+    },
+    {
+      "sourceMatchId": "2155",
+      "path": "/matches/54",
+      "reasons": [
+        "player-number-disagreement"
+      ],
+      "terminalIssue": null,
+      "officialPlayerNumbers": {
+        "qinwen zheng": "328120",
+        "kristina liutova": "335303"
+      },
+      "wtaPlayerNumbers": {
+        "qinwen zheng": "328120",
+        "kristina liutova": "1186895"
+      }
+    },
+    {
+      "sourceMatchId": "2160",
+      "path": "/matches/59",
+      "reasons": [
+        "player-number-disagreement"
+      ],
+      "terminalIssue": null,
+      "officialPlayerNumbers": {
+        "kaitlin quevedo": "331742",
+        "elise mertens": "317964"
+      },
+      "wtaPlayerNumbers": {
+        "kaitlin quevedo": "874195",
+        "elise mertens": "317964"
+      }
+    },
+    {
+      "sourceMatchId": "2163",
+      "path": "/matches/62",
+      "reasons": [
+        "player-number-disagreement"
+      ],
+      "terminalIssue": null,
+      "officialPlayerNumbers": {
+        "darja vidmanova": "329057",
+        "jessica bouzas maneiro": "328139"
+      },
+      "wtaPlayerNumbers": {
+        "darja vidmanova": "501894",
+        "jessica bouzas maneiro": "328139"
+      }
+    },
+    {
+      "sourceMatchId": "2164",
+      "path": "/matches/63",
+      "reasons": [
+        "player-number-disagreement"
+      ],
+      "terminalIssue": null,
+      "officialPlayerNumbers": {
+        "thea frodin": "333641",
+        "elena rybakina": "324166"
+      },
+      "wtaPlayerNumbers": {
+        "thea frodin": "1018131",
+        "elena rybakina": "324166"
+      }
+    },
+    {
+      "sourceMatchId": "2201",
+      "path": "/matches/64",
+      "reasons": [
+        "player-number-disagreement"
+      ],
+      "terminalIssue": null,
+      "officialPlayerNumbers": {
+        "aryna sabalenka": "320760",
+        "polina iatcenko": "330466"
+      },
+      "wtaPlayerNumbers": {
+        "aryna sabalenka": "320760",
+        "polina iatcenko": "750327"
+      }
+    },
+    {
+      "sourceMatchId": "2218",
+      "path": "/matches/81",
+      "reasons": [
+        "player-number-disagreement"
+      ],
+      "terminalIssue": null,
+      "officialPlayerNumbers": {
+        "nikola bartunkova": "330364",
+        "tatjana maria": "310440"
+      },
+      "wtaPlayerNumbers": {
+        "nikola bartunkova": "721779",
+        "tatjana maria": "310440"
+      }
+    },
+    {
+      "sourceMatchId": "2220",
+      "path": "/matches/83",
+      "reasons": [
+        "player-number-disagreement"
+      ],
+      "terminalIssue": null,
+      "officialPlayerNumbers": {
+        "lilli tagger": "332150",
+        "amanda anisimova": "326384"
+      },
+      "wtaPlayerNumbers": {
+        "lilli tagger": "906723",
+        "amanda anisimova": "326384"
+      }
+    },
+    {
+      "sourceMatchId": "2222",
+      "path": "/matches/85",
+      "reasons": [
+        "player-number-disagreement"
+      ],
+      "terminalIssue": null,
+      "officialPlayerNumbers": {
+        "oleksandra oliynykova": "327182",
+        "alexandra eala": "330332"
+      },
+      "wtaPlayerNumbers": {
+        "oleksandra oliynykova": "325729",
+        "alexandra eala": "330332"
+      }
+    },
+    {
+      "sourceMatchId": "2223",
+      "path": "/matches/86",
+      "reasons": [
+        "player-number-disagreement"
+      ],
+      "terminalIssue": null,
+      "officialPlayerNumbers": {
+        "cristina bucsa": "321158",
+        "himeno sakatsume": "326568"
+      },
+      "wtaPlayerNumbers": {
+        "cristina bucsa": "321158",
+        "himeno sakatsume": "282219"
+      }
+    },
+    {
+      "sourceMatchId": "2309",
+      "path": "/matches/104",
+      "reasons": [
+        "player-number-disagreement"
+      ],
+      "terminalIssue": null,
+      "officialPlayerNumbers": {
+        "mirra andreeva": "331809",
+        "nikola bartunkova": "330364"
+      },
+      "wtaPlayerNumbers": {
+        "mirra andreeva": "331809",
+        "nikola bartunkova": "721779"
+      }
+    },
+    {
+      "sourceMatchId": "2503",
+      "path": "/matches/122",
+      "reasons": [
+        "missing-provider-matchup"
+      ],
+      "terminalIssue": null
+    }
+  ],
+  "associatedScheduleVersions": 10,
+  "associationAvailableAt": "2026-09-08T04:32:09.560676+00:00",
+  "actualStartBoundsQualified": 0,
+  "newForecasts": 0,
+  "modelFits": 0,
+  "newTests": 29,
+  "focusedTests": {
+    "passed": 175,
+    "elapsedSeconds": 5.32
+  },
+  "ruffPassed": true,
+  "realArchiveReplayAndCLI": "passed",
+  "preservation": {
+    "protectedRunFilesVerified": {
+      "phase3": 56,
+      "phase4": 77,
+      "maintenance": 104,
+      "dynamic-continuation": 61,
+      "dynamic-shadow": 37,
+      "prospective-shadow": 42,
+      "source-audit": 38,
+      "time-evidence": 28,
+      "start-source": 57,
+      "free-source": 26,
+      "official-schedule": 27
+    },
+    "totalProtectedRunFilesVerified": 553,
+    "frozenPackageFilesVerified": 91,
+    "priorTrackedProgramWebWorkflowFilesExact": 360,
+    "completedCheckoutsClean": {
+      "coordinator": "c5cd3669d94fb93b7b0914e96bb28253d9e990a4",
+      "phase4": "51c9eb1535dc296e1464fb7c1290a779f7f34c15",
+      "maintenance": "975379b9411b1bd79937e31e5f80d412df3b5f09",
+      "dynamic-screen": "777a38e235755754e6175b294b47f48a70e90b31",
+      "dynamic-shadow": "64d62decfdc9d96e5777bb8017a29bb8d4c0993f",
+      "prospective-shadow": "3cd780af13e364c04714f7ae1d7e0b9bb7c9ba1c",
+      "source-audit": "3f4e99d64af66461e11e6e96fb164813e4144bfd",
+      "time-evidence": "129f811514cfd6b2a44edc087c42b26b45a475d4",
+      "start-source": "2e50cb560bb7ba394eae83883b76db9ad06ecff6",
+      "free-source": "64e70227281c1433a825fa7032a131c9a95ceb12",
+      "official-schedule": "70f5976cd9eb07ec5757674f5966c81b30c31477"
+    },
+    "inheritedTrackedDataFiles": 33,
+    "newTrainingCopies": 0,
+    "modelPayloadsCoveredByProtectedRunManifest": true,
+    "fullTrainingAndSnapshotInventoriesRehashedThisPhase": false,
+    "lastFullTrainingAndSnapshotVerificationUTC": "2026-09-08T01:58:44.035725+00:00"
+  },
+  "implementationFiles": {
+    "tennis_model/research/usopen_identity.py": "82c4e99f4c39f43f922d9ce3771a073692e6a6ffe379c26e34bc5c0d2e9ff91d",
+    "tennis_model/tests/test_usopen_identity.py": "07471fff3030f8dc8303d33772d3c323c374886fd285f3d822d31c2872dfc714",
+    "tennis_model/tests/fixtures/usopen_identity/draw-index.json.gz": "9d46fb640a3951696c26ea05549dd70ba2db20af70ea5e86083285d0907130dc",
+    "tennis_model/tests/fixtures/usopen_identity/draw-ws.json.gz": "459d15fc1c32792f4c360b2c2eedee3b5bd4537ace94f143835512356c8d7463",
+    "tennis_model/tests/fixtures/usopen_identity/manifest.json": "3cfdbbea3abc2ded643a19184dce3d56e600923114e41b9ff72de0bf11a5b76a"
+  },
+  "driverHashes": {
+    "official-link-probe.py": "3d6744d5015cfe2a67631530e13dbbcd8d8d122b6f1badc1e176dcc8ead11406",
+    "official-link-verify.py": "6919deb16f31b4d0f01731a327e6ff5e7c47332c4042cc8911b6a2cff9f33b35"
+  },
+  "livePilotActive": false,
+  "unattendedCollectorActive": false,
+  "accountOrPurchaseCreated": false,
+  "productionChanged": false,
+  "runFiles": {
+    "acceptance.json": "a91e568c1bd3a538e258bbed7d3f50078afefda396e4a45c994821c80c9cbd89",
+    "draw-index/attempt.json": "5570b5bca727c69827523e50a9701bdc79a1c72539e306a9f9c608715536295e",
+    "draw-index/receipt.json": "0eaefb745204dd2c7a583c38aab15e401087de8ee42c2a160b92ce345c682b03",
+    "draw-index/response.bin": "1e79eae0059f060386a7707f1a4accf57932241d209809ee3f5365e7970d11f4",
+    "draw-ws/attempt.json": "8276cb6885e59f1ea5f0356881931ba5c06381e21bb7e699211fa167a57b3607",
+    "draw-ws/receipt.json": "d2b323196947348c0c78aba40b8b85f285a47999e3119b453c577d094d1818ea",
+    "draw-ws/response.bin": "366145b989d986a8a4e99d56c0d7477600e2ca8eace8c91e83cc89c4082f8095",
+    "identity-audit-001.json": "36f90b27ef91576b6d51b9be78a719cdbb98fc1e880eeab7cddc0a06fe06b454",
+    "protected-run-files.json": "edef2d7403a7bfcc7dba8101110eea9ad931d71469e158a48eda6ddcc44e7d77",
+    "schedule-001/catalogue/attempt.json": "40c995e0ab61098ddb1a95e7d6a9549ab4f82eb033e50d16389a09afb28d3a8e",
+    "schedule-001/catalogue/receipt.json": "08ac1d943874e980c750ed7c575aa0888489d0f13df2a7b5e9455843d76be098",
+    "schedule-001/catalogue/response.bin": "e8d6e28a98431d10246cce39500f323bb59297a3ea0e8ad9738b29f8a82e1304",
+    "schedule-001/collection.json": "cdde9dcc08fad44c5b32c47b6077000021ea0d7482fe97c1de5179f4637cc758",
+    "schedule-001/daily/attempt.json": "a145909ae2cf40929ab954415a540ab06a10b81b41b0cda9e9b649ad72b4e4ae",
+    "schedule-001/daily/receipt.json": "350c69a6c39020313333a10cc877c044a4fe5ce451a2479681e228c6c3012d0c",
+    "schedule-001/daily/response.bin": "54510aa963a5f6c804ad2c835b4f465bee1391152653afbb97bb3aa264457876",
+    "schedule-history-001.json": "c1cded300d163cecc9b4431902d367a7e317a62b7f5b2388d8340b09f468d809",
+    "timing-rule-note.json": "dbaae137989761e4fc01679b89f80f65d3b27357a0088b0383a70de94c6ed1a6",
+    "validation.json": "b968e6a8147675a284522362093c356eb62a6a24dba424962e29d82aa59680f5"
+  },
+  "timingRuleNoteClarification": "The checkedAtUTC field in timing-rule-note.json is an approximate manually entered session marker, not a measured web acquisition receipt. Use only the UTC date and primary page references; it contributes no timed model evidence."
+}

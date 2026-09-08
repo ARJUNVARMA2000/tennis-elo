@@ -385,3 +385,6 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - An official catalogue can mix match days with unrelated navigation entries. See
   [`lessons/model-research.md`](lessons/model-research.md). (2026-09-07)
+
+- A provider-looking player number is not proof of a shared ID namespace. See
+  [`lessons/model-research.md`](lessons/model-research.md). (2026-09-08)

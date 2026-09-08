@@ -7186,3 +7186,56 @@ Research commit receipt: implementation `cda539332c98f5983bf6950da999e74d03d02d5
 acceptance `70f5976cd9eb07ec5757674f5966c81b30c31477` on `codex/model-official-schedule`.
 Research checkout clean. This checkout mirrors documents and append-only logs only;
 collector code, test fixtures and archives remain in the isolated research paths.
+
+
+## 2026-09-08 — Official feed lifecycle and identity continuation
+
+User check-in: “Keep going” authorizes the next bounded phase from accepted `70f5976`
+in isolated `codex/model-official-link`; no extra implementation check-in is needed.
+
+- [ ] L0: inspect the actual current official catalogue/order once (at most two reads),
+  compare all prior versions, and record whether a future explicit not-before row exists.
+- [ ] L1: verify the official timing rule and its limits using primary material; while
+  event progression is pending, inspect the official draw index and selected WTA draw
+  (at most two more reads) to establish a broad identity bridge to existing WTA/ESPN data.
+- [ ] L2 conditional: if the draw evidence supports a unique mapping, implement and test
+  a source-specific identity audit outside frozen packages; preserve exclusions and
+  contradictions. Never upgrade schedule observations or old source timestamps.
+- [ ] L3: verify frozen models/code and all 553 prior run files, record exact findings
+  and next real-time dependency, reconcile Git, commit research and mirror docs/logs only.
+
+Use existing collector; do not rebuild it. No new fitting, training-data copy, dependency,
+account, subscription/trial, provider contact, scheduled automation, live evaluation or
+production merge/push/deploy. Match identity work can advance while waiting for play;
+that dependency statement does not authorize subagents.
+
+### Review
+
+Pending source observations, supported integration, tests and preservation checks.
+
+
+### L0–L3 review — official identities corroborated; real event progression pending
+
+- [x] L0: current catalogue/order acquired once; all ten saved versions compared.
+  No revisions; later days 18–22 remain unpublished; current rows use session starts.
+- [x] L1: primary timing rule checked; it does not verify an API actual-start clock.
+  Official draw index and WS draw acquired; four total HTTP reads, all successful.
+- [x] L2: external identity audit implemented at `aab6ed0`; 119 common completed results,
+  100 strict match links, 23 player-number-disagreement exclusions, ten associated versions.
+  29 new tests; 175 focused tests passed in 5.32s, lint and actual archive CLI passed.
+- [x] L3: 553 prior run files, 91 frozen package files, both models and 360 existing
+  program/web/workflow files exact; eleven prior checkouts clean. Added 19 run files
+  for 572 next round. Detailed review/result/continuation handoff recorded.
+- [ ] Remaining: later real lifecycle evidence, qualified timing premise and broader
+  official tournament coverage. Only seven pending US Open WTA slots remain.
+
+**Decision:** the source identity dependency advanced without changing frozen models,
+evaluators, schedule collector or identity tables. Annotations are retrospective; no
+forecast, fresh model-performance claim, fit, training copy, account, provider contact,
+automation, live pilot or production merge/push/deploy. Read the official-link review
+and next-session handoff; avoid another immediate duplicate overnight capture.
+
+Research commit receipt: source/tests `aab6ed05d66bac514e5b6d3903cb7924b06b6aff`,
+acceptance `e10757fa432f08203642ef9e8fa784f77f906795` on `codex/model-official-link`.
+Research checkout clean. This checkout mirrors documents and append-only logs only;
+implementation, fixtures and raw archives remain in the isolated research paths.
