@@ -1021,7 +1021,10 @@ def read_outputs(tour: str) -> dict:
                 ledger = [dict(r) for r in csv.DictReader(f)]
         except OSError:
             ledger = None
+    from .raw_archive import missing_lower_history
+    lower_history_missing = (missing_lower_history(lower_dir(tour)) if tour == "wta" else [])
     return {"data": data, "missing": missing, "corrupt": corrupt,
+            "lower_history_missing": lower_history_missing,
             "shards": shards, "missing_files": missing_files,
             "corrupt_files": corrupt_files,
             "draw_cache": draw_cache, "draw_cache_status": draw_cache_status,
@@ -1353,6 +1356,13 @@ def output_findings(tour: str, oc: dict, now: pd.Timestamp,
             _add_finding(out, "output.draw_source.duplicate_attachment",
                          f"{tour}: tournament_draws.json {detail}",
                          entity=f"draw-source:{identity}", evidence={"detail": detail})
+    lower_history_missing = oc.get("lower_history_missing")
+    if tour == "wta" and lower_history_missing:
+        _add_finding(out, "output.population.lower_history_missing",
+                     f"wta: adopted lower-state history is missing or invalid for "
+                     f"season(s) {', '.join(map(str, lower_history_missing))}",
+                     severity="error", entity="model-population:wta",
+                     evidence={"seasons": lower_history_missing})
     offseason = _offseason(now)
 
     if isinstance(meta, dict):

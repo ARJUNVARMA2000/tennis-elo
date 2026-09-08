@@ -1160,9 +1160,11 @@ def test_release_snapshot_preserves_live_identity_and_draw_caches():
     """The live cache is the only durable carrier for old draw and ESPN identity evidence;
     one Actions-cache eviction must restore it alongside the historical archive."""
     wf = WORKFLOW.read_text(encoding="utf-8")
-    assert "raw/atp/live raw/wta/live" in wf
-    assert "tennis_model/data/raw/atp/live" in wf
-    assert "tennis_model/data/raw/wta/live" in wf
+    from tennis_model.data.raw_archive import SNAPSHOT_DIRS
+    assert {"raw/atp/live", "raw/wta/live", "raw/wta/lower"} <= set(SNAPSHOT_DIRS)
+    assert "python -m tennis_model.data.raw_archive check" in wf
+    assert "python -m tennis_model.data.raw_archive restore /tmp/raw-archive.tar.gz" in wf
+    assert "python -m tennis_model.data.raw_archive create /tmp/raw-archive.tar.gz" in wf
 
 
 def test_workflow_invokes_this_script():

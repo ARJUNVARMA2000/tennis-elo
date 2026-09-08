@@ -41,6 +41,16 @@ FIXTURE = """
 """
 
 
+def test_kia_open_metadata_uses_the_verified_barranquilla_article(monkeypatch):
+    calls = []
+    def article(title):
+        calls.append(title)
+        return "{{Infobox tennis tournament event\n|surface=Hard\n|category=[[WTA 125]]\n}}"
+    monkeypatch.setattr(dw, "_wikitext", article)
+    assert dw.event_meta("Kia Open", 2026, "wta") == ("Hard", "WTA 125")
+    assert calls == ["2026 Barranquilla Open"]
+
+
 def test_parse_bracket_orders_sections_handles_bye_and_bestof():
     d = _parse_bracket(FIXTURE)
     assert d is not None

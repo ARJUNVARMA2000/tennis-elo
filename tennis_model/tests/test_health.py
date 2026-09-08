@@ -1586,6 +1586,20 @@ def test_output_pending_real_bracket_match_requires_a_model_probability():
     assert hits[0].evidence["players"] == ["A", "C"]
 
 
+def test_output_blocks_missing_adopted_lower_history_before_draw_coverage_is_lost():
+    oc = _oc()
+    oc["lower_history_missing"] = [2021, 2025]
+    code = "output.population.lower_history_missing"
+    hits = [item for item in health.output_findings("wta", oc, NOW) if item.code == code]
+    assert len(hits) == 1
+    assert hits[0].severity == "error"
+    assert hits[0].evidence == {"seasons": [2021, 2025]}
+    oc["lower_history_missing"] = []
+    assert not any(item.code == code for item in health.output_findings("wta", oc, NOW))
+    oc["lower_history_missing"] = [2021, 2025]
+    assert not any(item.code == code for item in health.output_findings("atp", oc, NOW))
+
+
 def test_output_bracket_hasBracket_needs_entry():
     d = _healthy_data()
     d["brackets"] = []                                        # tournaments still claims hasBracket

@@ -282,3 +282,13 @@ Indexed in [`../lessons.md`](../lessons.md).
   every optional evaluation file omitted from the manifest with redirects disabled, and require
   exact 404 responses. Fail before artifact fetch when the local lineage summary is missing or
   unaccepted, and update the probe vocabulary whenever producer-private or optional filenames change.
+
+- **Recovery snapshots must include every historical input of an adopted secondary state.**
+  (2026-09-07, blocked WTA 125 draws) Daily acquisition restored only the current WTA season,
+  while the release tar omitted `raw/wta/lower`. The older qualifying/125 histories for Price,
+  Granwehr and Koike existed locally but could disappear on CI recovery; a valid dual-state
+  flag did not prove those histories were present. **How to apply:** validate all completed
+  seasons from the adopted boundary, include them in each recovery snapshot, gate their
+  absence, and revoke the saved WTA predictor before restoring missing history. Preserve
+  newer warm-cache files. Replay both the old incomplete tar and a corrected tar, and retain
+  exact preservation evidence when manually repairing the rolling release asset.

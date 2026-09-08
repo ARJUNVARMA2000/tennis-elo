@@ -114,17 +114,12 @@ jobs:
         id: bootstrap
         env:
           GH_TOKEN: ${{ github.token }}
+          PYTHONPATH: tennis_model/src
         run: |
-          # the WTA stats backfill (2024+) only exists in the snapshot — a cache that
-          # predates it must also trigger the restore
-          if [ ! -f tennis_model/data/raw/atp/historical/2020.csv ] \
-             || [ ! -f tennis_model/data/raw/wta/stats/2024.csv ] \
-             || [ ! -d tennis_model/data/raw/atp/live ] \
-             || [ ! -d tennis_model/data/raw/wta/live ]; then
+          if ! python -m tennis_model.data.raw_archive check; then
             echo "cache empty/incomplete -> restoring from release asset"
-            gh release download data-archive --pattern 'raw-archive.tar.gz' -O /tmp/raw-archive.tar.gz \
-              && tar -xzf /tmp/raw-archive.tar.gz -C tennis_model/data \
-              || echo "::warning::no release snapshot available yet"
+            gh release download data-archive --pattern 'raw-archive.tar.gz' -O /tmp/raw-archive.tar.gz
+            python -m tennis_model.data.raw_archive restore /tmp/raw-archive.tar.gz
           fi
 
       - name: Decide mode
@@ -338,6 +333,7 @@ jobs:
         if: steps.mode.outputs.mode == 'full'
         env:
           GH_TOKEN: ${{ github.token }}
+          PYTHONPATH: tennis_model/src
         run: |
           if ! gh release view data-archive >/dev/null 2>&1; then
             gh release create data-archive --title "Rolling raw-data archive" \
@@ -346,12 +342,7 @@ jobs:
             FORCE=1
           fi
           if [ "$(date -u +%u)" = "1" ] || [ -n "$FORCE" ]; then
-            cd tennis_model/data
-            DIRS=()
-            for d in raw/atp/historical raw/atp/stats raw/wta/historical raw/wta/stats raw/atp/live raw/wta/live raw/charting raw/odds raw/kalshi; do
-              [ -d "$d" ] && DIRS+=("$d")
-            done
-            tar -czf /tmp/raw-archive.tar.gz "${DIRS[@]}"
+            python -m tennis_model.data.raw_archive create /tmp/raw-archive.tar.gz
             gh release upload data-archive /tmp/raw-archive.tar.gz --clobber
             echo "snapshot uploaded ($(du -h /tmp/raw-archive.tar.gz | cut -f1))"
           else

@@ -1,0 +1,19 @@
+{
+  "originalArchiveSha256": "0238caa2b71f3945d2b50b1a8f8089769c7bad5bea788d6f03502a5830711153",
+  "preservedOriginalFiles": 235,
+  "addedLowerFiles": {
+    "2026_wta_lower.csv": "c45eaf5041fe19136fa3b9de4fdac25ee29a38364067aa0f429e8d3b3cb8e2ec",
+    "2022_wta_lower.csv": "efbfbe55e3b3e3e136b6659ddff43fcbafed815d15281ea627886aeef5975d0e",
+    "2025_wta_lower.csv": "c4e658d4b6042168cec73120794b6f64e4e4de8928ec8bdc61e1f4cdac9d85a2",
+    "2018_wta_lower.csv": "e063f96f10f822115188f5adf223f29c6958ce4e7b78cf09a5c24bf07eba7303",
+    "2021_wta_lower.csv": "c75077b9e753b770d39bb355d174ef40301cd75db59388b93e33dd6e490b4a02",
+    "2016_wta_lower.csv": "b96a1df013fb8c5d48b5b06f7dac2c81a29ddaa1d41c7dccaa9c530e529ee702",
+    "2017_wta_lower.csv": "97f9d1e50267ec25e644b01bf44c76629a2b577aab2be81ec0b91f488b128078",
+    "2020_wta_lower.csv": "37bbf4577d6f6a04ec053f7b4c6497ef70034b690432024b7814d276d06ed93d",
+    "2019_wta_lower.csv": "b2ed7fad193103bd33ef4af6557463d457b832a9edb10b511630039436dd474c",
+    "2024_wta_lower.csv": "25d5e4a0d21b46cec3b55c5d07dee6b84c15b7a64cf0d6a68ddd4a1642553dbc",
+    "2023_wta_lower.csv": "655bf134a5bb62a92877d1d97fabca684fbbf76e82450f4b742b25a81eb1d62f"
+  },
+  "repairedArchiveSha256": "355ecaa24e811dc525463d0d1d872dd4a28b7929f88f46a12527309bc7a11bab",
+  "repairedBytes": 48831635
+}

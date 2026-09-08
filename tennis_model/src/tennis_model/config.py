@@ -150,7 +150,8 @@ WTA_DUAL_STATE_GATE_THRESHOLD = 32
 # version 5 reclassifies mutable WTA ``RS...`` provider rows as qualifying, removing nine
 # 2026 US Open qualifying results that had briefly been cached as main-draw observations.
 # Version 6 merges the Sherif full-name variants, collapsing duplicate source results.
-MATCH_POPULATION_VERSION = 6
+# Version 7 joins the reversed You Xiaodi spelling to Xiaodi You's existing history.
+MATCH_POPULATION_VERSION = 7
 # Lower-tier (challenger + qualifying) ingestion starts here: 5 warm-up years of
 # rating history before the 2010 tune window; the full 1978+ archive would double
 # the walk for matches that can no longer influence any scored year.
@@ -575,6 +576,9 @@ WIKI_TITLE_OVERRIDES: dict[str, str] = {
     # page is not necessarily a singles-bracket page, which is why draw location now belongs
     # to the first-party/source-neutral architecture instead of reusing this alias.
     "Mifel Tennis Open by Telcel Oppo": "Los Cabos Open",
+    # WTA 2093 confirms Kia Open is Barranquilla (hard, WTA 125).
+    # https://www.wtatennis.com/tournaments/2093/Barranquilla/2026/draws
+    "Kia Open": "Barranquilla Open",
 }
 
 # Exact Wikipedia SINGLES-DRAW locators. This is deliberately separate from the main-article
@@ -693,6 +697,9 @@ EVENT_WITHDRAWN_PLAYERS: dict[str, dict[str, dict[str, str | None]]] = {
 # relatives (the Zverevs, the Bryans). Add an entry when the health gate flags one, or when
 # `data/alias_proposer.py` opens a PR proposing one (that path is reviewed, never automatic).
 PLAYER_ALIASES: dict[str, str] = {
+    # WTA profile 322451 and its 2026 US Open qualifying report use both orders.
+    # https://www.wtatennis.com/players/322451/xiaodi-you
+    "you xiaodi": "Xiaodi You",
     # WTA ID 318711 appears under all three spellings in the first-party 2026 stats.
     # The extended US Open spelling otherwise hides Bartunkova's R128 win and every
     # downstream result. Both variants pass the archive match-evidence falsifier.

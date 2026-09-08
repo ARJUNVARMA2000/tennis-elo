@@ -341,3 +341,7 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - An identity mismatch can erase a result chain while derived counters agree; use scheduled
   pairings as an independent witness. See [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md).
+
+- Recovery snapshots must preserve every historical input of an adopted secondary rating
+  state, and restoring missing history must invalidate the saved predictor. See
+  [`lessons/ci-and-deploy.md`](lessons/ci-and-deploy.md). (2026-09-07)

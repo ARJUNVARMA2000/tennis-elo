@@ -6179,3 +6179,50 @@ remote updates before pushing, and carry the request through verification of the
   production WTA bracket tab available. The latest pre-deployment data had independently
   recovered the missing WTA results already, so deployment proof used the new release identity
   and live UI contract in addition to the restored results.
+
+## 2026-09-07 — repair blocked WTA refreshes
+
+User requested fixing the remote findings and authorized online verification and manual
+corrections. Isolated branch `codex/wta-deploy-repair` starts at production `0143761`;
+the completed research checkouts and original data remain preserved. Plan checked in
+with the user before implementation.
+
+- [ ] Reproduce the four missing pending probabilities using isolated production inputs;
+  distinguish identity splits, absent eligible history, and provider metadata failures.
+- [ ] Verify Kia/Barranquilla, player identities, and pending alias proposals against
+  official sources and the match-record falsifier. Apply only corroborated corrections.
+- [ ] Repair the producer and add incident replay coverage to the existing integrity
+  contract. Preserve adopted population/model policy and unrelated research changes.
+- [ ] Regenerate both tours and the web data mirror; run focused regressions, full
+  relevant suites, lint, and pre-deploy integrity checks.
+- [ ] Review the diff, publish the verified fix, observe deployment and live serving
+  verification, and confirm the remote health findings recover.
+
+### Review
+
+Pending. Keep the existing publication gate blocking until the corrected producer passes.
+
+### Implementation and local acceptance
+
+- [x] Verified official WTA 2093 is Kia/Barranquilla, Hard, WTA 125, and profile 322451
+  is Xiaodi You. The alias passes the match-record falsifier; the article override passes
+  the real online metadata parser and article falsifier. Sherif's proposed alias already
+  exists in production, so no additional Sherif population change is needed.
+- [x] Corrected the reversed You spelling and advanced the population contract to 7.
+  Added archive validation, additive recovery, WTA model invalidation, complete snapshot
+  creation, and blocking `output.population.lower_history_missing` evidence.
+- [x] The real production snapshot contains no WTA lower directory. A repaired candidate
+  preserves all 235 existing files byte-for-byte and adds 11 yearly WTA lower files.
+  Recovery replay detects all 10 missing completed seasons, restores them, preserves warm
+  files, and forces model rebuilding. Hashes: `tasks/deploy/2026-09-07-wta-recovery.json`.
+- [x] Full Python suite: 1,209 passed; full lint and diff whitespace checks pass.
+- [x] Refreshed official current-season WTA main/qualifying/125 results and rebuilt both
+  tours under the existing adopted model policy. All four incident pairs are now priceable;
+  the newly qualified Katerina Tsygourova also receives a real model probability.
+- [ ] Publish the repaired recovery asset and tested code, then verify live deployment
+  and automatic issue recovery. Local old evaluation-stage warnings predate this repair.
+
+Official evidence: https://www.wtatennis.com/tournaments/2093/Barranquilla/2026/draws,
+https://www.wtatennis.com/tournaments/1112/Montreux/2026/draws,
+https://www.wtatennis.com/players/322451/xiaodi-you,
+https://www.wtatennis.com/news/4565851/zheng-defeats-you-pareja-advances-in-us-open-qualifying.

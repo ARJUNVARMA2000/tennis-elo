@@ -100,6 +100,22 @@ def test_canonicalize_merges_a_dropped_surname_via_alias():
     assert "Daniel Merida" in names
 
 
+def test_xiaodi_you_name_order_joins_the_existing_rating_identity():
+    from tennis_model.data.alias_proposer import build_evidence, falsify
+
+    frame = pd.DataFrame({
+        "winner_name": ["Xiaodi You", "You Xiaodi"],
+        "loser_name": ["Claire Liu", "Claire Liu"],
+        "winner_id": ["322451", "322451"], "__src": [0, 2],
+    })
+    proposal = dict(kind="player_alias", tour="wta", variant="You Xiaodi",
+                    canonical="Xiaodi You", same_person=True)
+    asked = {("player_alias", "wta", ("Xiaodi You", "You Xiaodi")): True}
+    assert falsify(proposal, asked, build_evidence(frame)) is None
+    canonical = results._canonicalize_names(frame)
+    assert canonical.winner_name.tolist() == ["Xiaodi You", "Xiaodi You"]
+
+
 def test_sherif_aliases_preserve_the_completed_us_open_result_chain():
     """The stat-bearing extended name used to win source preference, then fail the draw join."""
     from tennis_model.sim.bracket import bracket_rounds
