@@ -1,16 +1,20 @@
 # DEUCE model improvement — implementation and research handoff
 
-Status: **The bounded public start-source audit is complete; live start evidence remains
-unqualified.** Eighteen preserved HTTP reads found US Open point timestamps, but one of
-two histories has 114 of 118 points starting after their recorded end. Both sampled WTA
-point feeds return 404 and their event lists are empty. No producer or model/evaluator
-change was justified. The user has no provider access; no paid account or trial was created.
+Status: **Free official schedule scraping is demonstrated; actual-start qualification
+remains outstanding.** Six public HTTP reads yielded two US Open orders and six WTA
+singles schedule observations: one explicit not-before, five first-session starts.
+Two observations preceded their published times; none is a paired forecast or verified
+actual-start claim. Four PDF pages were visually checked. No subscription is needed for
+the sampled endpoints, and no account, model/evaluator change or collector was created.
 
-Read the [start-source review](2026-09-07-start-source-review.md),
-[receipts and preservation](2026-09-07-start-source-result.json), and
-[specific next-step plan](2026-09-07-start-source-next.md).
-Next inspect one concrete published not-before order as a possible lower-bound source.
-This free route remains untested; do not repeat the completed timeline investigation.
+Read the [free-source review](2026-09-07-free-source-review.md),
+[receipts and preservation](2026-09-07-free-source-result.json), and
+[source-specific collection plan](2026-09-07-free-source-next.md).
+The public-order investigation is complete. Next implement immutable schedule/revision
+collection if continuing; qualify timing separately before evaluator intake. Do not
+repeat the completed six schedule reads or the earlier 18 point-feed reads. The
+[point-source review](2026-09-07-start-source-review.md) retains the contradictory
+US Open point records and absent WTA sample coverage.
 The [accepted bounds evaluator](2026-09-07-time-evidence-review.md) still supplies
 119 retained completion upper bounds. Its 58 new tests / 231 combined checks passed
 in the prior phase, not this documentation-only source audit. Candidate adoption remains
@@ -22,8 +26,8 @@ That full suite was not rerun for this external-only phase. The
 [candidate verdict](2026-09-06-dynamic-screen-review.md) and
 [maintenance review](2026-09-06-maintenance-review.md) retain statistical/population evidence.
 
-Latest source-review checkout: `.research/2026-09-06-model-foundation/worktrees/start-source`,
-branch `codex/model-start-source`, based on accepted tip `129f811`.
+Latest source-review checkout: `.research/2026-09-06-model-foundation/worktrees/free-source`,
+branch `codex/model-free-source`, based on accepted source tip `2e50cb5`.
 Latest implementation: `.research/2026-09-06-model-foundation/worktrees/time-evidence`,
 branch `codex/model-time-evidence`, source/tests `10c07ee`. The evaluator owns a new
 receipt schema and pins its external source hashes; all frozen model package/artifact
@@ -34,10 +38,11 @@ activation while the start-producer set is unqualified. All earlier checkouts re
 Corrected incumbent: `worktrees/maintenance`, `codex/model-population-repair`, code
 `1fbe42a`, review `975379b`. The original checkout receives documentation only. No live
 model registration, collector, automation, production merge/push or deployment is active.
-All 443 earlier run files, 91 frozen package files and both model payloads were rechecked.
-Next follow the bounded published-order plan; a commercial timeline remains an optional
-access route. Do not build another generic evaluator or refit the unchanged model to
-substitute for unavailable observations. No new performance evidence was produced.
+All 500 earlier run files, 91 frozen package files and both model payloads were rechecked.
+The free-source comparison and private sample extractor are complete; the next external
+collector must retain schedule semantics and revisions. Do not build another generic
+evaluator or refit the unchanged model to substitute for unavailable observations.
+No new performance evidence was produced.
 
 The detailed campaign below is historical design. Newer reviews supersede its original
 measurements and next-session instructions. The initial Phase 4 absence counts were
@@ -738,12 +743,13 @@ At the end of EVERY implementation session, append to `tasks/todo.md`:
 
 Recommended next-session instruction:
 
-> Read `2026-09-07-start-source-review.md`, its result JSON,
-> `2026-09-07-start-source-next.md`, the accepted time-evidence interface and live todo
-> tail. Eighteen public HTTP reads qualify no live start producer: US Open has contradictory
-> point times and the two WTA samples lack point/event coverage. Next execute the bounded
-> published-order lower-bound investigation, not the completed point-feed audit. The user
-> has no provider access; a paid/trial account or provider contact is not authorized.
+> Read `2026-09-07-free-source-review.md`, its result JSON,
+> `2026-09-07-free-source-next.md`, the accepted time-evidence interface and live todo
+> tail. Free schedule scraping is demonstrated on two official orders and six WTA rows.
+> Next develop a source-specific immutable schedule/revision collector; actual-start
+> qualification remains separate and unmet. Do not repeat the six schedule reads or
+> 18 point-feed reads. The user has no provider access; account creation, paid/trial
+> access or provider contact is not authorized.
 > Bounds evaluation remains accepted at `10c07ee`; completion upper bounds work. Do not
 > invent times, repeat fitting or add another framework.
 > Preserve every completed checkout, artifact, raw response and synthetic QA run. A

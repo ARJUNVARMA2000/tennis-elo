@@ -274,3 +274,11 @@ Indexed in [`../lessons.md`](../lessons.md).
   agreement is not independent timing validation. Require field semantics, defensible
   precision and real chronological checks before a source can establish pre-play proof;
   retain contradictions and never repair day offsets just to make a history plausible.
+
+
+- **A schedule catalogue's epoch can identify a different date from its published order.** (2026-09-07)
+  US Open's day-17 catalogue epoch resolved to September 7, while the September 8 PDF
+  heading, JSON label and every court start agreed on September 8. Preserve each field's
+  role; use explicit edition, printed calendar and corroborating venue clocks for schedule
+  extraction. Do not promote generic epochs to played times. Keep explicit not-before,
+  first-session start and sequence-only evidence separate, even when their UI looks similar.

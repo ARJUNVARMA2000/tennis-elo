@@ -7084,3 +7084,59 @@ copy, collector, merge, push or deployment.
 Research commit receipt: source review and continuation plan `2e50cb560bb7ba394eae83883b76db9ad06ecff6` on
 `codex/model-start-source`. Research checkout clean; this checkout mirrors only documents
 and append-only logs. No implementation, training data or deployment was copied.
+
+
+## 2026-09-07 — Free alternatives and public scraping
+
+User check-in: “Can we check for a free alternative or scraping?” authorizes this
+bounded investigation and a source-specific scraper if the actual evidence supports it.
+
+- [ ] F0: inspect one official published not-before order and its public structured feed,
+  preserving at most six initial HTTP responses and checking identity, timezone and revision
+  semantics. Reuse the prior point audit; do not repeat its 18 calls.
+- [ ] F1: compare a small set of free alternatives using primary documentation and actual
+  samples where accessible. Distinguish free historical data, free current feeds, paid
+  add-ons and missing actual-start semantics; no account, subscription or bypass.
+- [ ] F2 conditional: if justified, implement and test only a concrete useful source scraper
+  outside the frozen model package. Preserve the distinction between schedule observations
+  and supported actual-start evidence. Otherwise record the exact qualification gap.
+- [ ] F3: verify preserved runs/models/code, record the source comparison and detailed
+  continuation plan, reconcile Git and commit. Mirror documents and append-only logs here.
+
+Use `codex/model-free-source` from `2e50cb5`; no training copy, refit, generic timing
+framework, paid/trial signup, provider communication, unattended collector, subagents,
+production merge/push or deployment is included.
+
+### Review
+
+Pending. Source observations and scraping feasibility are the deliverables; no synthetic
+or assumed start time may become observed evidence.
+
+
+### F0–F3 review — free scraping demonstrated; collection integration remains
+
+- [x] F0: six public HTTP responses retained; two official daily schedules and PDFs.
+  Four PDF pages visually checked. Six WTA singles rows extracted from 132 total rows;
+  one explicit not-before and five session starts. Catalogue day-17 epoch/date mismatch recorded.
+- [x] F1: current primary free-tier documentation compared. Live Tennis API offers a free
+  scoreboard tier, not free event/history access; BSD tennis is a $5/month add-on.
+  Existing WTA/ESPN adapters should be reused. No account or paid subscription created.
+- [x] F2 sample: private receipt-backed extractor produced six schedule observations,
+  including two acquired before their published times; zero forecasts or actual-start claims.
+  Production/evaluator integration was not justified by this bounded observation alone.
+- [x] F3: all 500 prior run files, 91 frozen package files, both models and 354 tracked
+  files under program/web/workflow trees verified; nine completed research checkouts clean.
+  Comparison, raw manifest and detailed source-specific implementation handoff recorded.
+- [ ] Follow-up: implement immutable schedule/revision collection, then qualify its
+  timing contract before live evaluation. No collector or live pilot is active.
+
+**Decision:** a concrete no-cost collection route exists; the public order inspection is
+complete. Read `2026-09-07-free-source-review.md` and `2026-09-07-free-source-next.md`.
+Do not repeat these six reads, add a generic timing framework or refit the unchanged model.
+Private extraction assertions passed; no implementation tests needed rerunning because
+program/evaluator/test files are unchanged. No training copy, account, purchase, provider
+contact, model adoption, merge/push or deployment.
+
+Research commit receipt: free-source review and scraper handoff `64e70227281c1433a825fa7032a131c9a95ceb12`
+on `codex/model-free-source`. Research checkout clean. This checkout mirrors documents
+and append-only logs only; no model, evaluator or production integration was copied.
