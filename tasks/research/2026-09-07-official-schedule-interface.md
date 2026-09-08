@@ -28,7 +28,8 @@ No ESPN/model joins occur. Validate the catalogue and daily long date labels, ex
 edition and weekday, and every court epoch against its printed New York clock/date.
 Catalogue epoch disagreement is retained as an anomaly and never changes the date.
 Reject duplicate IDs, sessions or orders; record malformed rows and population exclusions.
-The intentional blank is excluded separately. A partial/invalid payload is never an
+The intentional blank and catalogue's explicit null-day practice link are excluded separately.
+A partial/invalid payload is never an
 authoritative absence snapshot. Catalogue row count disagreement and stale/missing HTTP
 clock evidence disable absence comparison; preserved valid observations remain auditable.
 

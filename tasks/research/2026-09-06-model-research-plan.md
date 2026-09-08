@@ -1,48 +1,45 @@
 # DEUCE model improvement — implementation and research handoff
 
-Status: **Free official schedule scraping is demonstrated; actual-start qualification
-remains outstanding.** Six public HTTP reads yielded two US Open orders and six WTA
-singles schedule observations: one explicit not-before, five first-session starts.
-Two observations preceded their published times; none is a paired forecast or verified
-actual-start claim. Four PDF pages were visually checked. No subscription is needed for
-the sampled endpoints, and no account, model/evaluator change or collector was created.
+Status: **The official schedule collector is implemented and tested; actual-start
+qualification remains outstanding.** Implementation `cda5393` archives public US Open
+catalogues/orders, preserves immutable versions, reports revisions and retains failures.
+Two new public reads succeeded. The latest day-17 bytes match the earlier schedule;
+six WTA matches now have eight retained versions, with zero real revisions or start claims.
 
-Read the [free-source review](2026-09-07-free-source-review.md),
-[receipts and preservation](2026-09-07-free-source-result.json), and
-[source-specific collection plan](2026-09-07-free-source-next.md).
-The public-order investigation is complete. Next implement immutable schedule/revision
-collection if continuing; qualify timing separately before evaluator intake. Do not
-repeat the completed six schedule reads or the earlier 18 point-feed reads. The
-[point-source review](2026-09-07-start-source-review.md) retains the contradictory
-US Open point records and absent WTA sample coverage.
-The [accepted bounds evaluator](2026-09-07-time-evidence-review.md) still supplies
-119 retained completion upper bounds. Its 58 new tests / 231 combined checks passed
-in the prior phase, not this documentation-only source audit. Candidate adoption remains
-deferred; the corrected 42-column research incumbent remains current.
-The [source audit](2026-09-07-source-audit-review.md) retains the original acquisitions;
-the [runner/migration review](2026-09-07-prospective-shadow-review.md) retains the
-1,411-test full-suite result and exact fitted-output migration on 129,209 selected rows.
-That full suite was not rerun for this external-only phase. The
-[candidate verdict](2026-09-06-dynamic-screen-review.md) and
-[maintenance review](2026-09-06-maintenance-review.md) retain statistical/population evidence.
+Read the [collector review](2026-09-07-official-schedule-review.md),
+[acceptance and preservation](2026-09-07-official-schedule-result.json),
+[collection contract](2026-09-07-official-schedule-interface.md) and
+[next-session handoff](2026-09-07-official-schedule-next.md).
+Next collect a genuinely future explicit not-before order and meaningful later versions,
+and establish the precise timing premise before evaluation intake. Do not rebuild this
+collector, repeat completed source shopping or immediately re-fetch unchanged bytes.
+The [free-source comparison](2026-09-07-free-source-review.md) and
+[point-source audit](2026-09-07-start-source-review.md) retain earlier findings.
 
-Latest source-review checkout: `.research/2026-09-06-model-foundation/worktrees/free-source`,
-branch `codex/model-free-source`, based on accepted source tip `2e50cb5`.
-Latest implementation: `.research/2026-09-06-model-foundation/worktrees/time-evidence`,
-branch `codex/model-time-evidence`, source/tests `10c07ee`. The evaluator owns a new
-receipt schema and pins its external source hashes; all frozen model package/artifact
-bytes remain unchanged. Full-size synthetic QA exercised main/lower branches and scored
-two invented outcomes. No QA result can become a real pilot. Live registration refuses
-activation while the start-producer set is unqualified. All earlier checkouts remain.
+Latest implementation checkout: `.research/2026-09-06-model-foundation/worktrees/official-schedule`,
+branch `codex/model-official-schedule`, source/tests `cda5393`, based on `64e7022`.
+This is an external research collector. The accepted bounds evaluator remains at
+`10c07ee`, with its [review](2026-09-07-time-evidence-review.md) and 119 retained
+completion upper bounds. Live registration still refuses activation without a qualified
+start producer. All frozen model/evaluator/package bytes remain unchanged.
+
+This round passed 146 focused tests, including 46 new collector tests, plus lint,
+retained-fixture replay and real public collection. The earlier 1,411-test full-suite
+result and migration on 129,209 selected rows remain in the
+[runner/migration review](2026-09-07-prospective-shadow-review.md); that full suite was
+not repeated for this external addition. Synthetic timing QA is not live evidence.
 
 Corrected incumbent: `worktrees/maintenance`, `codex/model-population-repair`, code
-`1fbe42a`, review `975379b`. The original checkout receives documentation only. No live
-model registration, collector, automation, production merge/push or deployment is active.
-All 500 earlier run files, 91 frozen package files and both model payloads were rechecked.
-The free-source comparison and private sample extractor are complete; the next external
-collector must retain schedule semantics and revisions. Do not build another generic
-evaluator or refit the unchanged model to substitute for unavailable observations.
-No new performance evidence was produced.
+`1fbe42a`, review `975379b`. Candidate adoption remains deferred; the corrected 42-column
+research incumbent remains current. The [candidate verdict](2026-09-06-dynamic-screen-review.md)
+and [maintenance review](2026-09-06-maintenance-review.md) retain model findings.
+
+All 526 previous run files, 91 frozen package files, both model payloads and 354 prior
+tracked program/web/workflow files were rechecked. Ten completed prior research
+checkouts remain clean. This phase adds 27 preserved files, making 553 for next round.
+The original checkout receives documents/logs only. Manual schedule collection is
+available; no unattended collector, live evaluation, new forecast or production deploy
+is active. No fitting, training copies, accounts or new performance evidence were added.
 
 The detailed campaign below is historical design. Newer reviews supersede its original
 measurements and next-session instructions. The initial Phase 4 absence counts were
@@ -743,20 +740,20 @@ At the end of EVERY implementation session, append to `tasks/todo.md`:
 
 Recommended next-session instruction:
 
-> Read `2026-09-07-free-source-review.md`, its result JSON,
-> `2026-09-07-free-source-next.md`, the accepted time-evidence interface and live todo
-> tail. Free schedule scraping is demonstrated on two official orders and six WTA rows.
-> Next develop a source-specific immutable schedule/revision collector; actual-start
-> qualification remains separate and unmet. Do not repeat the six schedule reads or
-> 18 point-feed reads. The user has no provider access; account creation, paid/trial
-> access or provider contact is not authorized.
-> Bounds evaluation remains accepted at `10c07ee`; completion upper bounds work. Do not
-> invent times, repeat fitting or add another framework.
-> Preserve every completed checkout, artifact, raw response and synthetic QA run. A
-> future source addition changes the external evaluator contract and needs a new real
-> registration, but no model migration while package code stays unchanged. Record the
-> plan before edits, use no agents unless authorized, reconcile Git and keep production
-> integration separate. No collector or live pilot is currently active.
+> Read `2026-09-07-official-schedule-review.md`, its result JSON, the collector interface,
+> `2026-09-07-official-schedule-next.md`, the accepted time-evidence interface and live
+> todo tail. The source-specific immutable collector is implemented at `cda5393` and
+> passed 146 focused tests plus two real public reads. Six matches have eight preserved
+> schedule versions; no real revisions or actual starts were witnessed. Use this branch's
+> accepted tip for the next isolated implementation checkout. Do not rebuild the collector.
+> Next obtain future explicit not-before evidence and later real versions, while researching
+> the precise source/rule contract. Real elapsed publication time cannot be replaced with
+> more fitting or immediate duplicate reads. No unattended cadence or live pilot exists.
+> Preserve 553 prior run files, all frozen models/code and completed checkouts. No
+> account, subscription, trial or provider contact is authorized. Keep schedule evidence
+> outside the primary bounds gate until its missing timing premise is justified.
+> Record the plan before edits, reconcile Git, append logs, commit research and mirror
+> documents only. No production merge/push/deploy or agents are implicit.
 
 ## Planning review
 

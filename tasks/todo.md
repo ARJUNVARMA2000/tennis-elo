@@ -7225,3 +7225,22 @@ outside qualified actual-start intake. No additional check-in is needed for this
 ### Review
 
 Pending implementation, real replay, bounded acquisition and preservation checks.
+
+
+### U0–U3 review — official collector implemented and real acquisition passed
+
+- [x] U0: source-specific acquisition, normalization and immutable revision contract frozen.
+- [x] U1: external US Open collector plus 46 new tests; 146 focused tests passed in 5.19s.
+  Lint, retained imports, history CLI, failure and revision checks passed.
+- [x] U2: exactly two new public reads succeeded at 2026-09-08 03:25 UTC; current daily
+  bytes match the retained order. Six WTA matches have eight versions, zero actual revisions.
+- [x] U3: all 526 prior run files, 91 frozen package files, both models and 354 existing
+  program/web/workflow files preserved; ten completed prior checkouts clean. This phase
+  adds 27 files for a next protected inventory of 553. Review/result/handoff recorded.
+- [ ] Remaining: future explicit not-before evidence, actual subsequent lifecycle versions
+  and a justified timing premise before a qualified producer or primary live evaluation.
+
+**Decision:** manual schedule collection is implemented at `cda5393`; evidence is schedule-only.
+No unattended cadence, forecast, model fit, new training copy, account, purchase, provider
+contact, model/evaluator change, production merge/push or deployment. Read
+`2026-09-07-official-schedule-review.md` and `2026-09-07-official-schedule-next.md`.

@@ -281,3 +281,11 @@ Indexed in [`../lessons.md`](../lessons.md).
   role; use explicit edition, printed calendar and corroborating venue clocks for schedule
   extraction. Do not promote generic epochs to played times. Keep explicit not-before,
   first-session start and sequence-only evidence separate, even when their UI looks similar.
+
+
+- **An official catalogue can mix match days with unrelated navigation entries.** (2026-09-07)
+  The US Open catalogue includes a practice link with `tournDay: null`; an initial
+  all-row numeric-day invariant rejected both valid retained schedules. Classify that
+  explicit practice entry before validating match-day identities, while rejecting
+  unknown null-day records. Exact whole-response fixtures catch assumptions that
+  a handpicked match-only sample misses. The regression belongs in source intake.
