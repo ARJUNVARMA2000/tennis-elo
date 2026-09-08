@@ -6226,3 +6226,19 @@ Official evidence: https://www.wtatennis.com/tournaments/2093/Barranquilla/2026/
 https://www.wtatennis.com/tournaments/1112/Montreux/2026/draws,
 https://www.wtatennis.com/players/322451/xiaodi-you,
 https://www.wtatennis.com/news/4565851/zheng-defeats-you-pareja-advances-in-us-open-qualifying.
+
+### CI-only fixture isolation follow-up
+
+The first production attempt passed web tests/build/browser smoke, but five old health
+replays read the real lower directory because their filesystem binder did not include
+that newly consumed input. Local archived history masked this fixture omission.
+
+- [ ] Bind lower-history paths to each replay's temporary filesystem, populate clean
+  baseline history, and add the missing-history incident to the full CLI replay matrix.
+- [ ] Run the complete suite from a clean source copy with no real raw/output data.
+- [ ] Publish the fixture correction and continue production/live verification.
+
+- [x] Bound lower paths, supplied fixture-owned clean seasons, and added a ninth full
+  incident replay for missing 2021 history. All 1,210 tests pass in 38.42 seconds from
+  an isolated clean Git index with no developer raw/output archive; lint passes.
+  Production behavior and the already-verified recovery asset are unchanged.

@@ -345,3 +345,7 @@ New lesson → append the entry to the matching topic file and add its lead line
 - Recovery snapshots must preserve every historical input of an adopted secondary rating
   state, and restoring missing history must invalidate the saved predictor. See
   [`lessons/ci-and-deploy.md`](lessons/ci-and-deploy.md). (2026-09-07)
+
+- A new filesystem gate must extend the replay's filesystem binder and clean baseline;
+  test without the developer's raw archive. See
+  [`lessons/ci-and-deploy.md`](lessons/ci-and-deploy.md). (2026-09-07)

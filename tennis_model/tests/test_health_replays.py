@@ -13,6 +13,7 @@ import copy
 import json
 import re
 import sys
+from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 
 import pandas as pd
@@ -22,6 +23,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import tennis_model.data.health as health
+from tennis_model.config import WTA_LOWER_STATE_FIRST_YEAR
 from test_health import _healthy_data, _healthy_shards
 
 MANIFEST_PATH = Path(__file__).parent / "fixtures" / "health_incident_replays.json"
@@ -30,7 +32,7 @@ CASES = MANIFEST["cases"]
 
 _CASE_ID_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 _COMMIT_RE = re.compile(r"^[0-9a-f]{7,40}$")
-_ALLOWED_ROOTS = frozenset({"output", "live", "fresh"})
+_ALLOWED_ROOTS = frozenset({"output", "live", "fresh", "lower"})
 _ALLOWED_OPS = frozenset({"set_json", "write_json", "write_text"})
 
 
@@ -49,7 +51,7 @@ def _safe_target(target: object) -> bool:
 
 def test_incident_replay_manifest_contract() -> None:
     assert MANIFEST["schema"] == "health-incident-replay-v1"
-    assert len(CASES) == 8
+    assert len(CASES) == 9
     ids = [case["id"] for case in CASES]
     codes = [case["expected"]["code"] for case in CASES]
     assert len(ids) == len(set(ids)) and all(_CASE_ID_RE.fullmatch(case_id) for case_id in ids)
@@ -205,6 +207,16 @@ def _materialize_base(root: Path, tour: str, as_of: str) -> None:
     _write_json(live / "tournament_draws.json", {})
     _write_json(live / "espn_acquisition.json", _clean_receipt(tour, as_of))
 
+    # The gate now verifies archived lower-state inputs as well as produced JSON.
+    # Each replay owns those inputs; developer caches must never make a fixture green.
+    if tour == "wta":
+        lower = root / "lower" / tour
+        lower.mkdir(parents=True, exist_ok=True)
+        for season in range(WTA_LOWER_STATE_FIRST_YEAR, datetime.now(UTC).year):
+            (lower / f"{season}_wta_lower.csv").write_text(
+                "tourney_date,winner_name,loser_name,draw_level\n"
+                f"{season}0101,Replay One,Replay Two,qual\n", encoding="utf-8")
+
     fresh = root / "fresh" / tour
     fresh.mkdir(parents=True, exist_ok=True)
     stamp = pd.Timestamp(as_of)
@@ -263,6 +275,7 @@ def _bind_filesystem(monkeypatch: pytest.MonkeyPatch, root: Path) -> None:
     monkeypatch.setattr(health, "output_dir", lambda tour: root / "output" / tour)
     monkeypatch.setattr(health, "live_dir", lambda tour: root / "live" / tour)
     monkeypatch.setattr(health, "fresh_dir", lambda tour: root / "fresh" / tour)
+    monkeypatch.setattr(health, "lower_dir", lambda tour: root / "lower" / tour)
 
 
 def _source_frame(as_of: str) -> pd.DataFrame:

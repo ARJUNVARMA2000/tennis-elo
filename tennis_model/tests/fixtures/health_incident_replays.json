@@ -432,6 +432,29 @@
           ]
         }
       }
+    },
+    {
+      "id": "wta-recovery-lower-history-missing",
+      "description": "Recovery must retain past qualifying/125 seasons even before a live draw exposes a missing player.",
+      "history": {"issues": [55, 56, 58], "commits": ["df4cf56"]},
+      "tour": "wta",
+      "seam": "output",
+      "asOf": "2026-07-09",
+      "expected": {
+        "code": "output.population.lower_history_missing",
+        "severity": "error",
+        "scope": "output",
+        "entity": "model-population:wta",
+        "channel": "predeploy"
+      },
+      "variants": {
+        "broken": {"patches": [
+          {"op": "write_text", "target": "lower/2021_wta_lower.csv", "value": ""}
+        ]},
+        "clean": {"patches": [
+          {"op": "write_text", "target": "lower/2021_wta_lower.csv", "value": "tourney_date,winner_name,loser_name,draw_level\n20210101,Replay One,Replay Two,qual\n"}
+        ]}
+      }
     }
   ]
 }

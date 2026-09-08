@@ -292,3 +292,9 @@ Indexed in [`../lessons.md`](../lessons.md).
   absence, and revoke the saved WTA predictor before restoring missing history. Preserve
   newer warm-cache files. Replay both the old incomplete tar and a corrected tar, and retain
   exact preservation evidence when manually repairing the rolling release asset.
+
+- **A new filesystem check must extend the replay's filesystem binder and clean baseline.**
+  (2026-09-07) The lower-history gate passed local replays only because they accidentally
+  inspected a real developer archive; five cases failed in the empty CI checkout. Bind
+  every newly read directory to each temporary fixture, supply a clean baseline, exercise
+  its broken variant through the real CLI gate, and run the suite without local raw data.
