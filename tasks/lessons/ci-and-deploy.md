@@ -298,3 +298,9 @@ Indexed in [`../lessons.md`](../lessons.md).
   inspected a real developer archive; five cases failed in the empty CI checkout. Bind
   every newly read directory to each temporary fixture, supply a clean baseline, exercise
   its broken variant through the real CLI gate, and run the suite without local raw data.
+
+- **An incorporated fix and a merged PR are distinct completion states.** (2026-09-08)
+  The deploy repair incorporated two alias proposals and closed their redundant PRs,
+  but the user explicitly wanted all PRs merged. Reconcile the proposal commits into
+  the default branch while retaining any stronger verified resolution, then verify
+  GitHub records the PRs as merged. Do not describe a closed duplicate as merged.

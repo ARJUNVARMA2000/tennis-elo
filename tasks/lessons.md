@@ -349,3 +349,7 @@ New lesson → append the entry to the matching topic file and add its lead line
 - A new filesystem gate must extend the replay's filesystem binder and clean baseline;
   test without the developer's raw archive. See
   [`lessons/ci-and-deploy.md`](lessons/ci-and-deploy.md). (2026-09-07)
+
+- When the requested end state is merged PRs, incorporated code plus a closed duplicate
+  is insufficient; reconcile the proposal history and verify GitHub's merge receipt. See
+  [`lessons/ci-and-deploy.md`](lessons/ci-and-deploy.md). (2026-09-08)

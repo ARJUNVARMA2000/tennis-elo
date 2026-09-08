@@ -6272,3 +6272,25 @@ that newly consumed input. Local archived history masked this fixture omission.
   issue/PR listing is empty. No model policy or integrity gate was weakened.
 
 Review complete: all repair and follow-up work above is accepted in production.
+
+## 2026-09-08 — finish default-branch and PR consolidation
+
+User requested everything committed to the main/default branch, nothing open, and all
+PRs merged. The actual default branch is `master`. Production repair commits are already
+there, but PRs #47 and #54 were closed as duplicates rather than merged. Their Sherif
+and Kia corrections are already present, with the verified timeless Barranquilla title.
+
+Check-in: reconcile those two proposal histories while retaining the verified production
+tree, record the merge receipts, and verify no open remote PRs/issues remain. A separate
+active model-research task has substantial unpublished experiments; the user has been
+asked whether consolidation includes that work before crossing its production boundary.
+
+- [ ] Merge both alias proposal histories, resolving duplicate aliases to the existing
+  verified production definitions, and prove no executable/data change is introduced.
+- [ ] Publish the merge history to `master`, verify GitHub records both PRs as merged,
+  and reconcile the local default branch without disturbing the active research checkout.
+- [ ] Record the final remote state and the user's scope decision for active research.
+
+### Review
+
+Pending remote merge receipts and scope clarification.
