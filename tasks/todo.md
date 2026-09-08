@@ -7341,3 +7341,31 @@ Pending real source research, justified implementation and preservation checks.
 no start qualification, new forecast, model-performance claim, fit, training copy, account,
 provider contact, automation, live evaluation or production merge/push/deploy. Continue
 from the WTA coverage handoff when source change or independent timing work is justified.
+
+
+## 2026-09-08 — WTA lifecycle and timing witnesses
+
+User check-in: “Keep going” authorizes this continuation from accepted `781d37b` in
+isolated `codex/model-wta-lifecycle`; no repeated implementation approval is needed.
+
+- [ ] T0: reconcile the handoff and verify the 606 preserved run files, frozen models/
+  package and accepted code before deriving further evidence.
+- [ ] T1: after the seven-hour gap, acquire one current WTA US Open page/API pair with
+  the accepted collector; compare every prior same-source observation for revisions.
+- [ ] T2: test official WTA match-event/point coverage on two already-observed completed
+  Guadalajara 2025 singles. Initial retained HTTP budget is six reads total (two for
+  current orders, four across those two matches), no retries or endpoint guessing.
+  Inspect retained primary scripts and authoritative field semantics where available.
+- [ ] T3 conditional: implement only the source interpretation supported by real new
+  evidence, with contradiction/identity/timing tests. No field becomes actual-start
+  evidence without satisfying the established independent timing contract.
+- [ ] T4: run appropriate tests/replays, verify preservation, record exact findings and
+  next dependencies, commit isolated research and mirror documents/logs only.
+
+No new model fitting, training copies, dependency installation, account/purchase/trial,
+provider contact, subagents, unattended automation, live evaluation or production deploy.
+The current date/time is 2026-09-08 around 13:30 UTC; next scheduled US Open play is later.
+
+### Review
+
+Pending bounded acquisitions, evidence-supported interpretation and acceptance checks.
