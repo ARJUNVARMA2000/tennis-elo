@@ -388,3 +388,7 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - A provider-looking player number is not proof of a shared ID namespace. See
   [`lessons/model-research.md`](lessons/model-research.md). (2026-09-08)
+
+- Multiple day listings in one order page are not observed temporal revisions; completed
+  archives may have lost original start labels. See
+  [`lessons/model-research.md`](lessons/model-research.md). (2026-09-08)

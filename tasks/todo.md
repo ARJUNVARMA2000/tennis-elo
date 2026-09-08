@@ -7239,3 +7239,56 @@ Research commit receipt: source/tests `aab6ed05d66bac514e5b6d3903cb7924b06b6aff`
 acceptance `e10757fa432f08203642ef9e8fa784f77f906795` on `codex/model-official-link`.
 Research checkout clean. This checkout mirrors documents and append-only logs only;
 implementation, fixtures and raw archives remain in the isolated research paths.
+
+
+## 2026-09-08 — WTA coverage and next official schedule source
+
+User check-in: “Keep going” authorizes this bounded continuation from accepted `e10757f`
+in isolated `codex/model-wta-coverage`, with no additional implementation check-in.
+
+- [ ] C0: inspect the official WTA calendar for the next events and compute transparent
+  possible match coverage in the fixed 30-day window, separating full/partial events.
+- [ ] C1: inspect the next official order source and its public transport/edition metadata;
+  preserve a bounded sample (initial budget eight HTTP reads, no retries), including
+  unpublished/empty responses. Reuse the retained WTA scripts and source helpers.
+- [ ] C2 conditional: implement a source-specific coverage/schedule adapter only where
+  actual samples justify its fields; test identity, timezone/edition, revision and
+  failed/unpublished states. Leave unsupported timing semantics explicit.
+- [ ] C3: verify all 572 prior run files and frozen models/code, record acceptance and
+  exact next-source/publication dependencies, commit research and mirror docs/logs only.
+
+No repeated US Open overnight acquisition, model fit, training copy, dependency install,
+account/trial/purchase, provider contact, subagents, scheduled automation, live evaluation,
+production merge/push or deployment. Calendar capacity is not a forecast of eligible pairs.
+
+### Review
+
+Pending real source research, justified implementation and preservation checks.
+
+
+### C0–C3 review — WTA orders implemented; live evidence still pending
+
+- [x] C0: official 31-edition calendar inspected; September 8–October 8 exclusive window
+  has 116 fully contained future match slots plus a 95-match whole Beijing draw ceiling.
+  Ongoing US Open remaining capacity is unknown from calendar; no eligible-pair forecast.
+- [x] C1: eight retained HTTP responses succeeded; exact calendar/script and three
+  page/API witnesses preserved. Future Guadalajara is unpublished; historical start
+  labels are missing. Current WTA order supplies one corroborated first-court clock.
+- [x] C2: external order observer and calendar planner at `b6df856`; 62 new tests,
+  237 focused passed in 8.63s, lint and five real offline CLI operations passed.
+  Three intakes: 155 occurrences / 151 unique main-singles IDs, zero temporal revisions,
+  one unpublished gap. Contradictory identity/round evidence persists across versions.
+- [x] C3: 572 prior run files, 91 frozen package files, both models and 365 prior
+  program/web/workflow files exact; twelve prior checkouts clean. Added 34 run files
+  for a next protection inventory of 606. Detailed review/result/handoff recorded.
+- [ ] Remaining: actual publication/progression, qualified timing premise and sufficient
+  prospective paired coverage before any live pilot. Calendar ceilings are not usable pairs.
+
+**Decision:** accept bounded source/coverage engineering. Candidate unchanged/deferred;
+no start qualification, new forecast, model-performance claim, fit, training copy, account,
+provider contact, automation, live evaluation or production merge/push/deploy. Continue
+from the WTA coverage handoff when source change or independent timing work is justified.
+
+Research acceptance receipt: `781d37b5d23b737f20ef185a25f094d32e3675d8` (`codex/model-wta-coverage`),
+source/tests `b6df856dffa0f397b17f79b7511fe3bc5ff730f1`. Original checkout mirrors only this round's documents and
+append-only logs; all implementation and retained evidence remain isolated.
