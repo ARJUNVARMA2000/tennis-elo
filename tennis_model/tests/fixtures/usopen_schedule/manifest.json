@@ -1,0 +1,75 @@
+{
+  "uso-schedule-days": {
+    "rawSHA256": "e29b25130360e6f4c113d9e975f5f8dfc56781757526390f4f8df295d6ce2e72",
+    "compressedSHA256": "ce71f738dc41244b68e973a21c6689bc4ec40b73e67d78df6e7534546e360fc5",
+    "receipt": {
+      "schema": "free-source-inspection-v1",
+      "url": "https://www.usopen.org/en_US/scores/feeds/2026/schedule/scheduleDays.json",
+      "requestedAt": "2026-09-08T02:54:19.397254+00:00",
+      "purpose": "timing source qualification; no forecasts",
+      "status": 200,
+      "responseUrl": "https://www.usopen.org/en_US/scores/feeds/2026/schedule/scheduleDays.json",
+      "headers": {
+        "content-type": "application/json",
+        "last-modified": "Tue, 08 Sep 2026 02:07:44 GMT",
+        "etag": "W/\"42b98e64d4d137971c4873dc7c3e74d2\"",
+        "cache-control": "max-age=6",
+        "date": "Tue, 08 Sep 2026 02:54:19 GMT",
+        "content-length": "11152"
+      },
+      "rawBytes": 11152,
+      "rawSHA256": "e29b25130360e6f4c113d9e975f5f8dfc56781757526390f4f8df295d6ce2e72",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T02:54:19.548332+00:00",
+      "elapsedSeconds": 0.15072637505363673
+    }
+  },
+  "uso-schedule-16": {
+    "rawSHA256": "6587d00e1cea697be721f8e45960e103f903695b15c03169085c4b629a146a7c",
+    "compressedSHA256": "d37a7815713d194a2812a1414226e2fbad0f72b9f336b1d7dd81e36bda1a0205",
+    "receipt": {
+      "schema": "free-source-inspection-v1",
+      "url": "https://www.usopen.org/en_US/scores/feeds/2026/schedule/schedule16.json",
+      "requestedAt": "2026-09-08T02:56:16.407255+00:00",
+      "purpose": "timing source qualification; no forecasts",
+      "status": 200,
+      "responseUrl": "https://www.usopen.org/en_US/scores/feeds/2026/schedule/schedule16.json",
+      "headers": {
+        "content-type": "application/json",
+        "last-modified": "Tue, 08 Sep 2026 02:07:44 GMT",
+        "etag": "W/\"7c55d6b18cc6d5f7915527c46a3c852d\"",
+        "cache-control": "max-age=26",
+        "date": "Tue, 08 Sep 2026 02:56:16 GMT"
+      },
+      "rawBytes": 129864,
+      "rawSHA256": "6587d00e1cea697be721f8e45960e103f903695b15c03169085c4b629a146a7c",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T02:56:16.575793+00:00",
+      "elapsedSeconds": 0.1682277499930933
+    }
+  },
+  "uso-schedule-17": {
+    "rawSHA256": "54510aa963a5f6c804ad2c835b4f465bee1391152653afbb97bb3aa264457876",
+    "compressedSHA256": "83e0905c1f84f2bc23e8e64b4be9d684b66c152317e17df98492ce318501a9bd",
+    "receipt": {
+      "schema": "free-source-inspection-v1",
+      "url": "https://www.usopen.org/en_US/scores/feeds/2026/schedule/schedule17.json",
+      "requestedAt": "2026-09-08T02:55:06.147736+00:00",
+      "purpose": "timing source qualification; no forecasts",
+      "status": 200,
+      "responseUrl": "https://www.usopen.org/en_US/scores/feeds/2026/schedule/schedule17.json",
+      "headers": {
+        "content-type": "application/json",
+        "last-modified": "Tue, 08 Sep 2026 00:26:50 GMT",
+        "etag": "W/\"14856ea925dccd068c2a39bd8440f43e\"",
+        "cache-control": "max-age=29",
+        "date": "Tue, 08 Sep 2026 02:55:06 GMT"
+      },
+      "rawBytes": 82903,
+      "rawSHA256": "54510aa963a5f6c804ad2c835b4f465bee1391152653afbb97bb3aa264457876",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T02:55:06.396380+00:00",
+      "elapsedSeconds": 0.24796833307482302
+    }
+  }
+}

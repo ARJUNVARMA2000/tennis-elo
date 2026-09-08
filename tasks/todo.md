@@ -7203,3 +7203,25 @@ Do not repeat these six reads, add a generic timing framework or refit the uncha
 Private extraction assertions passed; no implementation tests needed rerunning because
 program/evaluator/test files are unchanged. No training copy, account, purchase, provider
 contact, model adoption, merge/push or deployment.
+
+
+## 2026-09-07 — Official schedule collector (authorized continuation)
+
+User check-in: “Build on official feeds and keep going” authorizes implementation of
+the accepted free-source handoff in isolated `codex/model-official-schedule` from `64e7022`.
+
+- [ ] U0: freeze the US Open observation, receipt and revision contract.
+- [ ] U1: implement external immutable catalogue/day collection, exact retained fixtures,
+  coverage exclusions and cumulative revision reporting; test malformed and failed updates.
+- [ ] U2: replay both retained orders; if tests pass, make at most two new public reads
+  (catalogue plus released day 17) to check a genuine revision with the collector.
+- [ ] U3: verify prior runs and frozen code/models, record acceptance and remaining timing
+  qualification work, commit research and mirror documents/logs to the original checkout.
+
+No model fit, training copy, dependencies, account, unattended collection, live pilot,
+production merge/push/deploy or general evaluator change. Schedule observations stay
+outside qualified actual-start intake. No additional check-in is needed for this scope.
+
+### Review
+
+Pending implementation, real replay, bounded acquisition and preservation checks.
