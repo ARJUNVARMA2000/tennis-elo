@@ -1,0 +1,950 @@
+{
+  "schema": "deuce-wta-lifecycle-result-v1",
+  "recordedAt": "2026-09-08T13:44:02.934236+00:00",
+  "baseCommit": "781d37b5d23b737f20ef185a25f094d32e3675d8",
+  "implementationCommit": "f355253f75071cfedeafe15adf67898d52aa36e2",
+  "status": "reported-WTA-event-timeline-audit-accepted; physical-timing-qualification-unmet",
+  "retainedHTTPReads": 6,
+  "http200": 4,
+  "http404": 2,
+  "receipts": {
+    "current-page": {
+      "adapterSHA256": "ffcc28d44535d8e32eb7b148ccaf9616a35bcea60b103c8d88597c6b39e55f8f",
+      "elapsedSeconds": 0.4719385839998722,
+      "headers": {
+        "cache-control": "max-age=30, stale-while-revalidate=600, stale-if-error=86400",
+        "content-type": "text/html;charset=utf-8",
+        "date": "Tue, 08 Sep 2026 13:32:43 GMT"
+      },
+      "outcome": "ok",
+      "rawBytes": 2997624,
+      "rawComplete": true,
+      "rawSHA256": "d5f5b3b06a54d07419d12a3cd6fc25afde08ff9a4bc7906bc95b30a8d895c89e",
+      "receivedAt": "2026-09-08T13:32:43.943612+00:00",
+      "requestedAt": "2026-09-08T13:32:43.471133+00:00",
+      "responseUrl": "https://www.wtatennis.com/tournaments/905/us-open/2026/order-of-play",
+      "schema": "wta-order-observation-v1",
+      "sha256": "7742cff0fa1b99f7243e457f9bcaf5d5a8416baeb6c013cc210cb8201a84406c",
+      "status": 200,
+      "url": "https://www.wtatennis.com/tournaments/905/us-open/2026/order-of-play"
+    },
+    "current-api": {
+      "adapterSHA256": "a0c73268af8c615f56cd2c14fd0e850c1a41d05a7bbce1a62cd18d9e790b33fb",
+      "elapsedSeconds": 2.5433080410584807,
+      "event": "905",
+      "headers": {
+        "cache-control": "max-age=30",
+        "content-length": "345894",
+        "content-type": "application/json",
+        "date": "Tue, 08 Sep 2026 13:32:46 GMT",
+        "etag": "\"0b85313a93e666372ebe3f095abe597ad\""
+      },
+      "outcome": "ok",
+      "purpose": "source audit only; no forecasts",
+      "rawBytes": 345894,
+      "rawComplete": true,
+      "rawSHA256": "3720b3dc6d70eaea6fe8cad2687a29b755a2becd115cc1f9e963ce12e4754c2d",
+      "receivedAt": "2026-09-08T13:32:46.632425+00:00",
+      "requestedAt": "2026-09-08T13:32:44.089135+00:00",
+      "responseUrl": "https://api.wtatennis.com/tennis/tournaments/905/2026/matches?page=0&pageSize=100",
+      "schema": "prospective-source-audit-v1",
+      "sha256": "50b338a767fbb89540bd3091199694785b475bbd80a82f59f01f119b7282d29f",
+      "source": "wta",
+      "status": 200,
+      "url": "https://api.wtatennis.com/tennis/tournaments/905/2026/matches?page=0&pageSize=100",
+      "year": 2026
+    },
+    "final-events": {
+      "schema": "wta-lifecycle-inspection-v1",
+      "url": "https://api.wtatennis.com/tennis/tournaments/2075/2025/matches/LS001/events",
+      "requestedAt": "2026-09-08T13:33:02.842338+00:00",
+      "purpose": "official WTA lifecycle/timing audit; no forecasts",
+      "status": 200,
+      "responseUrl": "https://api.wtatennis.com/tennis/tournaments/2075/2025/matches/LS001/events",
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "98454",
+        "cache-control": "max-age=30",
+        "etag": "\"03ccc68845befe5cd08d3c2be78bd9ab2\"",
+        "date": "Tue, 08 Sep 2026 13:33:02 GMT"
+      },
+      "rawBytes": 98454,
+      "rawSHA256": "018e99c6dc172cf753b78a5065cfea8ef6a7872c9958738b8d1222952baf9604",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T13:33:03.023510+00:00",
+      "elapsedSeconds": 0.18094612495042384
+    },
+    "final-points": {
+      "schema": "wta-lifecycle-inspection-v1",
+      "url": "https://api.wtatennis.com/tennis/tournaments/2075/2025/matches/LS001/point-by-point",
+      "requestedAt": "2026-09-08T13:33:25.497666+00:00",
+      "purpose": "official WTA lifecycle/timing audit; no forecasts",
+      "status": 404,
+      "responseUrl": "https://api.wtatennis.com/tennis/tournaments/2075/2025/matches/LS001/point-by-point",
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "0",
+        "cache-control": "max-age=30",
+        "date": "Tue, 08 Sep 2026 13:33:26 GMT"
+      },
+      "rawBytes": 0,
+      "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T13:33:26.602573+00:00",
+      "elapsedSeconds": 1.1046970839379355
+    },
+    "semifinal-events": {
+      "schema": "wta-lifecycle-inspection-v1",
+      "url": "https://api.wtatennis.com/tennis/tournaments/2075/2025/matches/LS002/events",
+      "requestedAt": "2026-09-08T13:33:33.852136+00:00",
+      "purpose": "official WTA lifecycle/timing audit; no forecasts",
+      "status": 200,
+      "responseUrl": "https://api.wtatennis.com/tennis/tournaments/2075/2025/matches/LS002/events",
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "115534",
+        "cache-control": "max-age=30",
+        "etag": "\"0fad53de064b760270567cb7dec201f09\"",
+        "date": "Tue, 08 Sep 2026 13:33:33 GMT"
+      },
+      "rawBytes": 115534,
+      "rawSHA256": "86d9309651edc0a8d455716ac69ca18a1a2721dc16e60c6417530915229e6a5b",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T13:33:34.005191+00:00",
+      "elapsedSeconds": 0.1528114170068875
+    },
+    "semifinal-points": {
+      "schema": "wta-lifecycle-inspection-v1",
+      "url": "https://api.wtatennis.com/tennis/tournaments/2075/2025/matches/LS002/point-by-point",
+      "requestedAt": "2026-09-08T13:33:39.399302+00:00",
+      "purpose": "official WTA lifecycle/timing audit; no forecasts",
+      "status": 404,
+      "responseUrl": "https://api.wtatennis.com/tennis/tournaments/2075/2025/matches/LS002/point-by-point",
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "0",
+        "cache-control": "max-age=30",
+        "date": "Tue, 08 Sep 2026 13:33:39 GMT"
+      },
+      "rawBytes": 0,
+      "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T13:33:39.565131+00:00",
+      "elapsedSeconds": 0.16559591598343104
+    }
+  },
+  "timelineReports": {
+    "final-events": {
+      "actualStartVerified": false,
+      "apiStatus": "completed",
+      "apiTimestampToReportedProgressSeconds": 1283.073,
+      "completePhysicalTimelineEstablished": false,
+      "elapsedResidualSeconds": {
+        "max": 0.59,
+        "min": -0.396
+      },
+      "event": "2075",
+      "eventTypeCounts": {
+        "Ace": 2,
+        "Fault": 45,
+        "Let": 5,
+        "MedicalTreatment": 1,
+        "PhysioCallCancelled": 2,
+        "PhysioCalled": 2,
+        "Point": 117,
+        "StateIndicator": 11
+      },
+      "evidenceAvailableAt": "2026-09-08T13:33:03.023510+00:00",
+      "findings": [],
+      "firstScoringEvent": {
+        "Attributes": {
+          "firstServe": true,
+          "game": 1,
+          "index": 10,
+          "player": "332285",
+          "receiver": "324789",
+          "score": "15-0",
+          "server": "332285",
+          "set": 1,
+          "type": "Point"
+        },
+        "GameScore": "15-0",
+        "Index": 10,
+        "LastUpdated": "2025-09-14T21:09:33.693+00:00",
+        "MatchScore": "0-0",
+        "MatchState": "P",
+        "MatchTime": "00:00:32",
+        "Name": "Point",
+        "Timestamp": "2025-09-14T21:09:32.93+00:00",
+        "TimestampLocal": "2025-09-14T15:09:32.93"
+      },
+      "internallyConsistent": true,
+      "lastObservedEvent": {
+        "Attributes": {
+          "firstServe": true,
+          "game": 7,
+          "index": 361,
+          "player": "332285",
+          "receiver": "324789",
+          "score": "game",
+          "server": "332285",
+          "set": 2,
+          "type": "Ace"
+        },
+        "GameScore": "game",
+        "Index": 361,
+        "LastUpdated": "2025-09-14T22:44:18.037+00:00",
+        "MatchScore": "4-6,1-6",
+        "MatchState": "P",
+        "MatchTime": "01:35:17",
+        "Name": "Ace",
+        "Timestamp": "2025-09-14T22:44:17.58+00:00",
+        "TimestampLocal": "2025-09-14T16:44:17.58"
+      },
+      "lastScoringResultAgreesWithAPI": true,
+      "liveLifecycleObserved": false,
+      "observedAt": "2026-09-08T13:33:03.023510+00:00",
+      "outcome": "observed",
+      "physicalClockErrorSeconds": null,
+      "playersByID": {
+        "324789": "Emiliana Arango",
+        "332285": "Iva Jovic"
+      },
+      "qualification": "reported-event-timeline-only",
+      "rawEvents": 185,
+      "readyForLiveEvaluation": false,
+      "reportedStartMarker": {
+        "Attributes": {
+          "game": 1,
+          "index": 8,
+          "reason": "InProgress",
+          "referenceTimeAsLocalTime": "2025-09-14T15:09:00",
+          "set": 1,
+          "type": "StateIndicator"
+        },
+        "GameScore": "0-0",
+        "Index": 8,
+        "LastUpdated": "2025-09-14T21:09:00.74+00:00",
+        "MatchScore": "0-0",
+        "MatchState": "P",
+        "MatchTime": "00:00:00",
+        "Name": "StateIndicator",
+        "Timestamp": "2025-09-14T21:09:00.403+00:00",
+        "TimestampLocal": "2025-09-14T15:09:00.403"
+      },
+      "reportedStartMarkerInternallySupported": true,
+      "round": "F",
+      "scoringEvents": 119,
+      "sourceMatchId": "LS001",
+      "sourceMatchKey": "wta:2075:2025:LS001",
+      "sourceOffsetText": "-0600",
+      "terminalStateObserved": false,
+      "transitions": [
+        {
+          "Attributes": {
+            "game": 1,
+            "index": 2,
+            "reason": "OnCourt",
+            "referenceTimeAsLocalTime": "2025-09-14T14:47:45",
+            "set": 1,
+            "type": "StateIndicator"
+          },
+          "GameScore": "0-0",
+          "Index": 2,
+          "LastUpdated": "2025-09-14T20:47:45.763+00:00",
+          "MatchScore": "0-0",
+          "MatchState": "C",
+          "MatchTime": "00:00:00",
+          "Name": "StateIndicator",
+          "Timestamp": "2025-09-14T20:47:45.15+00:00",
+          "TimestampLocal": "2025-09-14T14:47:45.15"
+        },
+        {
+          "Attributes": {
+            "game": 1,
+            "index": 3,
+            "reason": "PlayersArrived",
+            "referenceTimeAsLocalTime": "2025-09-14T15:02:06",
+            "set": 1,
+            "type": "StateIndicator"
+          },
+          "GameScore": "0-0",
+          "Index": 3,
+          "LastUpdated": "2025-09-14T21:02:09.35+00:00",
+          "MatchScore": "0-0",
+          "MatchState": "g",
+          "MatchTime": "00:00:00",
+          "Name": "StateIndicator",
+          "Timestamp": "2025-09-14T21:02:06.957+00:00",
+          "TimestampLocal": "2025-09-14T15:02:06.957"
+        },
+        {
+          "Attributes": {
+            "game": 1,
+            "index": 4,
+            "reason": "Warmup",
+            "referenceTimeAsLocalTime": "2025-09-14T15:04:18",
+            "set": 1,
+            "type": "StateIndicator"
+          },
+          "GameScore": "0-0",
+          "Index": 4,
+          "LastUpdated": "2025-09-14T21:04:19.113+00:00",
+          "MatchScore": "0-0",
+          "MatchState": "W",
+          "MatchTime": "00:00:00",
+          "Name": "StateIndicator",
+          "Timestamp": "2025-09-14T21:04:18.557+00:00",
+          "TimestampLocal": "2025-09-14T15:04:18.557"
+        },
+        {
+          "Attributes": {
+            "game": 1,
+            "index": 8,
+            "reason": "InProgress",
+            "referenceTimeAsLocalTime": "2025-09-14T15:09:00",
+            "set": 1,
+            "type": "StateIndicator"
+          },
+          "GameScore": "0-0",
+          "Index": 8,
+          "LastUpdated": "2025-09-14T21:09:00.74+00:00",
+          "MatchScore": "0-0",
+          "MatchState": "P",
+          "MatchTime": "00:00:00",
+          "Name": "StateIndicator",
+          "Timestamp": "2025-09-14T21:09:00.403+00:00",
+          "TimestampLocal": "2025-09-14T15:09:00.403"
+        },
+        {
+          "Attributes": {
+            "game": 4,
+            "index": 55,
+            "reason": "TimeAnnouncementAfterChangeoverOrSetBreak",
+            "referenceTimeAsLocalTime": "2025-09-14T15:23:19",
+            "set": 1,
+            "type": "StateIndicator"
+          },
+          "GameScore": "0-0",
+          "Index": 55,
+          "LastUpdated": "2025-09-14T21:23:20.22+00:00",
+          "MatchScore": "1-2",
+          "MatchState": "T",
+          "MatchTime": "00:14:19",
+          "Name": "StateIndicator",
+          "Timestamp": "2025-09-14T21:23:19.607+00:00",
+          "TimestampLocal": "2025-09-14T15:23:19.607"
+        },
+        {
+          "Attributes": {
+            "game": 6,
+            "index": 96,
+            "reason": "TimeAnnouncementAfterChangeoverOrSetBreak",
+            "referenceTimeAsLocalTime": "2025-09-14T15:34:53",
+            "set": 1,
+            "type": "StateIndicator"
+          },
+          "GameScore": "0-0",
+          "Index": 96,
+          "LastUpdated": "2025-09-14T21:34:54.25+00:00",
+          "MatchScore": "2-3",
+          "MatchState": "T",
+          "MatchTime": "00:25:53",
+          "Name": "StateIndicator",
+          "Timestamp": "2025-09-14T21:34:53.823+00:00",
+          "TimestampLocal": "2025-09-14T15:34:53.823"
+        },
+        {
+          "Attributes": {
+            "game": 8,
+            "index": 130,
+            "reason": "TimeAnnouncementAfterChangeoverOrSetBreak",
+            "referenceTimeAsLocalTime": "2025-09-14T15:44:08",
+            "set": 1,
+            "type": "StateIndicator"
+          },
+          "GameScore": "0-0",
+          "Index": 130,
+          "LastUpdated": "2025-09-14T21:44:09.33+00:00",
+          "MatchScore": "3-4",
+          "MatchState": "T",
+          "MatchTime": "00:35:08",
+          "Name": "StateIndicator",
+          "Timestamp": "2025-09-14T21:44:08.47+00:00",
+          "TimestampLocal": "2025-09-14T15:44:08.47"
+        },
+        {
+          "Attributes": {
+            "game": 10,
+            "index": 187,
+            "reason": "TimeAnnouncementAfterChangeoverOrSetBreak",
+            "referenceTimeAsLocalTime": "2025-09-14T15:59:41",
+            "set": 1,
+            "type": "StateIndicator"
+          },
+          "GameScore": "0-0",
+          "Index": 187,
+          "LastUpdated": "2025-09-14T21:59:41.93+00:00",
+          "MatchScore": "4-5",
+          "MatchState": "T",
+          "MatchTime": "00:50:41",
+          "Name": "StateIndicator",
+          "Timestamp": "2025-09-14T21:59:41.54+00:00",
+          "TimestampLocal": "2025-09-14T15:59:41.54"
+        },
+        {
+          "Attributes": {
+            "game": 1,
+            "index": 205,
+            "reason": "TimeAnnouncementAfterChangeoverOrSetBreak",
+            "referenceTimeAsLocalTime": "2025-09-14T16:04:46",
+            "set": 2,
+            "type": "StateIndicator"
+          },
+          "GameScore": "0-0",
+          "Index": 205,
+          "LastUpdated": "2025-09-14T22:04:46.997+00:00",
+          "MatchScore": "4-6,0-0",
+          "MatchState": "T",
+          "MatchTime": "00:55:46",
+          "Name": "StateIndicator",
+          "Timestamp": "2025-09-14T22:04:46.15+00:00",
+          "TimestampLocal": "2025-09-14T16:04:46.15"
+        },
+        {
+          "Attributes": {
+            "game": 4,
+            "index": 284,
+            "reason": "TimeAnnouncementAfterChangeoverOrSetBreak",
+            "referenceTimeAsLocalTime": "2025-09-14T16:26:57",
+            "set": 2,
+            "type": "StateIndicator"
+          },
+          "GameScore": "0-0",
+          "Index": 284,
+          "LastUpdated": "2025-09-14T22:26:58.537+00:00",
+          "MatchScore": "4-6,1-2",
+          "MatchState": "T",
+          "MatchTime": "01:17:57",
+          "Name": "StateIndicator",
+          "Timestamp": "2025-09-14T22:26:57.49+00:00",
+          "TimestampLocal": "2025-09-14T16:26:57.49"
+        },
+        {
+          "Attributes": {
+            "game": 6,
+            "index": 317,
+            "reason": "TimeAnnouncementAfterChangeoverOrSetBreak",
+            "referenceTimeAsLocalTime": "2025-09-14T16:35:13",
+            "set": 2,
+            "type": "StateIndicator"
+          },
+          "GameScore": "0-0",
+          "Index": 317,
+          "LastUpdated": "2025-09-14T22:35:13.39+00:00",
+          "MatchScore": "4-6,1-4",
+          "MatchState": "T",
+          "MatchTime": "01:26:13",
+          "Name": "StateIndicator",
+          "Timestamp": "2025-09-14T22:35:13.05+00:00",
+          "TimestampLocal": "2025-09-14T16:35:13.05"
+        }
+      ],
+      "year": 2025
+    },
+    "semifinal-events": {
+      "actualStartVerified": false,
+      "apiStatus": "completed",
+      "apiTimestampToReportedProgressSeconds": 1421.56,
+      "completePhysicalTimelineEstablished": false,
+      "elapsedResidualSeconds": {
+        "max": 0.103,
+        "min": -0.887
+      },
+      "event": "2075",
+      "eventTypeCounts": {
+        "Ace": 4,
+        "Fault": 67,
+        "Let": 1,
+        "PhysioCalled": 1,
+        "Point": 132,
+        "StateIndicator": 14,
+        "ToiletBreak": 1
+      },
+      "evidenceAvailableAt": "2026-09-08T13:33:34.005191+00:00",
+      "findings": [],
+      "firstScoringEvent": {
+        "Attributes": {
+          "firstServe": true,
+          "game": 1,
+          "index": 10,
+          "player": "328142",
+          "receiver": "324789",
+          "score": "15-0",
+          "server": "328142",
+          "set": 1,
+          "type": "Point"
+        },
+        "GameScore": "15-0",
+        "Index": 10,
+        "LastUpdated": "2025-09-13T22:08:57.917+00:00",
+        "MatchScore": "0-0",
+        "MatchState": "P",
+        "MatchTime": "00:00:45",
+        "Name": "Point",
+        "Timestamp": "2025-09-13T22:08:57.393+00:00",
+        "TimestampLocal": "2025-09-13T16:08:57.393"
+      },
+      "internallyConsistent": true,
+      "lastObservedEvent": {
+        "Attributes": {
+          "firstServe": true,
+          "game": 12,
+          "index": 430,
+          "player": "324789",
+          "receiver": "328142",
+          "score": "game",
+          "server": "324789",
+          "set": 2,
+          "type": "Point"
+        },
+        "GameScore": "game",
+        "Index": 430,
+        "LastUpdated": "2025-09-14T00:00:58.807+00:00",
+        "MatchScore": "4-6,5-7",
+        "MatchState": "P",
+        "MatchTime": "01:52:46",
+        "Name": "Point",
+        "Timestamp": "2025-09-14T00:00:58.367+00:00",
+        "TimestampLocal": "2025-09-13T18:00:58.367"
+      },
+      "lastScoringResultAgreesWithAPI": true,
+      "liveLifecycleObserved": false,
+      "observedAt": "2026-09-08T13:33:34.005191+00:00",
+      "outcome": "observed",
+      "physicalClockErrorSeconds": null,
+      "playersByID": {
+        "324789": "Emiliana Arango",
+        "328142": "Elsa Jacquemot"
+      },
+      "qualification": "reported-event-timeline-only",
+      "rawEvents": 220,
+      "readyForLiveEvaluation": false,
+      "reportedStartMarker": {
+        "Attributes": {
+          "game": 1,
+          "index": 8,
+          "reason": "InProgress",
+          "referenceTimeAsLocalTime": "2025-09-13T16:08:12",
+          "set": 1,
+          "type": "StateIndicator"
+        },
+        "GameScore": "0-0",
+        "Index": 8,
+        "LastUpdated": "2025-09-13T22:08:13.42+00:00",
+        "MatchScore": "0-0",
+        "MatchState": "P",
+        "MatchTime": "00:00:00",
+        "Name": "StateIndicator",
+        "Timestamp": "2025-09-13T22:08:12.887+00:00",
+        "TimestampLocal": "2025-09-13T16:08:12.887"
+      },
+      "reportedStartMarkerInternallySupported": true,
+      "round": "SF",
+      "scoringEvents": 136,
+      "sourceMatchId": "LS002",
+      "sourceMatchKey": "wta:2075:2025:LS002",
+      "sourceOffsetText": "-0600",
+      "terminalStateObserved": false,
+      "transitions": [
+        {
+          "Attributes": {
+            "game": 1,
+            "index": 2,
+            "reason": "OnCourt",
+            "referenceTimeAsLocalTime": "2025-09-13T15:44:47",
+            "set": 1,
+            "type": "StateIndicator"
+          },
+          "GameScore": "0-0",
+          "Index": 2,
+          "LastUpdated": "2025-09-13T21:44:48.737+00:00",
+          "MatchScore": "0-0",
+          "MatchState": "C",
+          "MatchTime": "00:00:00",
+          "Name": "StateIndicator",
+          "Timestamp": "2025-09-13T21:44:47.967+00:00",
+          "TimestampLocal": "2025-09-13T15:44:47.967"
+        },
+        {
+          "Attributes": {
+            "game": 1,
+            "index": 3,
+            "reason": "PlayersArrived",
+            "referenceTimeAsLocalTime": "2025-09-13T16:01:00",
+            "set": 1,
+            "type": "StateIndicator"
+          },
+          "GameScore": "0-0",
+          "Index": 3,
+          "LastUpdated": "2025-09-13T22:01:01.72+00:00",
+          "MatchScore": "0-0",
+          "MatchState": "g",
+          "MatchTime": "00:00:00",
+          "Name": "StateIndicator",
+          "Timestamp": "2025-09-13T22:01:00.707+00:00",
+          "TimestampLocal": "2025-09-13T16:01:00.707"
+        },
+        {
+          "Attributes": {
+            "game": 1,
+            "index": 4,
+            "reason": "Warmup",
+            "referenceTimeAsLocalTime": "2025-09-13T16:03:27",
+            "set": 1,
+            "type": "StateIndicator"
+          },
+          "GameScore": "0-0",
+          "Index": 4,
+          "LastUpdated": "2025-09-13T22:03:28.553+00:00",
+          "MatchScore": "0-0",
+          "MatchState": "W",
+          "MatchTime": "00:00:00",
+          "Name": "StateIndicator",
+          "Timestamp": "2025-09-13T22:03:27.893+00:00",
+          "TimestampLocal": "2025-09-13T16:03:27.893"
+        },
+        {
+          "Attributes": {
+            "game": 1,
+            "index": 8,
+            "reason": "InProgress",
+            "referenceTimeAsLocalTime": "2025-09-13T16:08:12",
+            "set": 1,
+            "type": "StateIndicator"
+          },
+          "GameScore": "0-0",
+          "Index": 8,
+          "LastUpdated": "2025-09-13T22:08:13.42+00:00",
+          "MatchScore": "0-0",
+          "MatchState": "P",
+          "MatchTime": "00:00:00",
+          "Name": "StateIndicator",
+          "Timestamp": "2025-09-13T22:08:12.887+00:00",
+          "TimestampLocal": "2025-09-13T16:08:12.887"
+        },
+        {
+          "Attributes": {
+            "game": 4,
+            "index": 101,
+            "reason": "TimeAnnouncementAfterChangeoverOrSetBreak",
+            "referenceTimeAsLocalTime": "2025-09-13T16:28:05",
+            "set": 1,
+            "type": "StateIndicator"
+          },
+          "GameScore": "0-0",
+          "Index": 101,
+          "LastUpdated": "2025-09-13T22:28:06.567+00:00",
+          "MatchScore": "2-1",
+          "MatchState": "T",
+          "MatchTime": "00:19:53",
+          "Name": "StateIndicator",
+          "Timestamp": "2025-09-13T22:28:05.727+00:00",
+          "TimestampLocal": "2025-09-13T16:28:05.727"
+        },
+        {
+          "Attributes": {
+            "game": 6,
+            "index": 140,
+            "reason": "TimeAnnouncementAfterChangeoverOrSetBreak",
+            "referenceTimeAsLocalTime": "2025-09-13T16:38:13",
+            "set": 1,
+            "type": "StateIndicator"
+          },
+          "GameScore": "0-0",
+          "Index": 140,
+          "LastUpdated": "2025-09-13T22:38:13.923+00:00",
+          "MatchScore": "3-2",
+          "MatchState": "T",
+          "MatchTime": "00:30:01",
+          "Name": "StateIndicator",
+          "Timestamp": "2025-09-13T22:38:13.45+00:00",
+          "TimestampLocal": "2025-09-13T16:38:13.45"
+        },
+        {
+          "Attributes": {
+            "game": 8,
+            "index": 177,
+            "reason": "TimeAnnouncementAfterChangeoverOrSetBreak",
+            "referenceTimeAsLocalTime": "2025-09-13T16:47:42",
+            "set": 1,
+            "type": "StateIndicator"
+          },
+          "GameScore": "0-0",
+          "Index": 177,
+          "LastUpdated": "2025-09-13T22:47:43.68+00:00",
+          "MatchScore": "4-3",
+          "MatchState": "T",
+          "MatchTime": "00:39:30",
+          "Name": "StateIndicator",
+          "Timestamp": "2025-09-13T22:47:42.643+00:00",
+          "TimestampLocal": "2025-09-13T16:47:42.643"
+        },
+        {
+          "Attributes": {
+            "game": 10,
+            "index": 218,
+            "reason": "TimeAnnouncementAfterChangeoverOrSetBreak",
+            "referenceTimeAsLocalTime": "2025-09-13T16:57:53",
+            "set": 1,
+            "type": "StateIndicator"
+          },
+          "GameScore": "0-0",
+          "Index": 218,
+          "LastUpdated": "2025-09-13T22:57:53.943+00:00",
+          "MatchScore": "4-5",
+          "MatchState": "T",
+          "MatchTime": "00:49:41",
+          "Name": "StateIndicator",
+          "Timestamp": "2025-09-13T22:57:53.437+00:00",
+          "TimestampLocal": "2025-09-13T16:57:53.437"
+        },
+        {
+          "Attributes": {
+            "game": 1,
+            "index": 236,
+            "reason": "TimeAnnouncementAfterChangeoverOrSetBreak",
+            "referenceTimeAsLocalTime": "2025-09-13T17:08:56",
+            "set": 2,
+            "type": "StateIndicator"
+          },
+          "GameScore": "0-0",
+          "Index": 236,
+          "LastUpdated": "2025-09-13T23:08:57.033+00:00",
+          "MatchScore": "4-6,0-0",
+          "MatchState": "T",
+          "MatchTime": "01:00:44",
+          "Name": "StateIndicator",
+          "Timestamp": "2025-09-13T23:08:56.067+00:00",
+          "TimestampLocal": "2025-09-13T17:08:56.067"
+        },
+        {
+          "Attributes": {
+            "game": 4,
+            "index": 285,
+            "reason": "TimeAnnouncementAfterChangeoverOrSetBreak",
+            "referenceTimeAsLocalTime": "2025-09-13T17:20:03",
+            "set": 2,
+            "type": "StateIndicator"
+          },
+          "GameScore": "0-0",
+          "Index": 285,
+          "LastUpdated": "2025-09-13T23:20:03.86+00:00",
+          "MatchScore": "4-6,1-2",
+          "MatchState": "T",
+          "MatchTime": "01:11:51",
+          "Name": "StateIndicator",
+          "Timestamp": "2025-09-13T23:20:03.043+00:00",
+          "TimestampLocal": "2025-09-13T17:20:03.043"
+        },
+        {
+          "Attributes": {
+            "game": 6,
+            "index": 318,
+            "reason": "TimeAnnouncementAfterChangeoverOrSetBreak",
+            "referenceTimeAsLocalTime": "2025-09-13T17:28:04",
+            "set": 2,
+            "type": "StateIndicator"
+          },
+          "GameScore": "0-0",
+          "Index": 318,
+          "LastUpdated": "2025-09-13T23:28:04.447+00:00",
+          "MatchScore": "4-6,2-3",
+          "MatchState": "T",
+          "MatchTime": "01:19:52",
+          "Name": "StateIndicator",
+          "Timestamp": "2025-09-13T23:28:04.1+00:00",
+          "TimestampLocal": "2025-09-13T17:28:04.1"
+        },
+        {
+          "Attributes": {
+            "game": 8,
+            "index": 357,
+            "reason": "TimeAnnouncementAfterChangeoverOrSetBreak",
+            "referenceTimeAsLocalTime": "2025-09-13T17:39:54",
+            "set": 2,
+            "type": "StateIndicator"
+          },
+          "GameScore": "0-0",
+          "Index": 357,
+          "LastUpdated": "2025-09-13T23:39:54.63+00:00",
+          "MatchScore": "4-6,4-3",
+          "MatchState": "T",
+          "MatchTime": "01:31:42",
+          "Name": "StateIndicator",
+          "Timestamp": "2025-09-13T23:39:54.273+00:00",
+          "TimestampLocal": "2025-09-13T17:39:54.273"
+        },
+        {
+          "Attributes": {
+            "game": 10,
+            "index": 385,
+            "reason": "TimeAnnouncementAfterChangeoverOrSetBreak",
+            "referenceTimeAsLocalTime": "2025-09-13T17:47:58",
+            "set": 2,
+            "type": "StateIndicator"
+          },
+          "GameScore": "0-0",
+          "Index": 385,
+          "LastUpdated": "2025-09-13T23:47:59.767+00:00",
+          "MatchScore": "4-6,5-4",
+          "MatchState": "T",
+          "MatchTime": "01:39:46",
+          "Name": "StateIndicator",
+          "Timestamp": "2025-09-13T23:47:58.887+00:00",
+          "TimestampLocal": "2025-09-13T17:47:58.887"
+        },
+        {
+          "Attributes": {
+            "game": 12,
+            "index": 422,
+            "reason": "TimeAnnouncementAfterChangeoverOrSetBreak",
+            "referenceTimeAsLocalTime": "2025-09-13T17:58:05",
+            "set": 2,
+            "type": "StateIndicator"
+          },
+          "GameScore": "0-0",
+          "Index": 422,
+          "LastUpdated": "2025-09-13T23:58:06.03+00:00",
+          "MatchScore": "4-6,5-6",
+          "MatchState": "T",
+          "MatchTime": "01:49:53",
+          "Name": "StateIndicator",
+          "Timestamp": "2025-09-13T23:58:05.44+00:00",
+          "TimestampLocal": "2025-09-13T17:58:05.44"
+        }
+      ],
+      "year": 2025
+    }
+  },
+  "reportedEvents": 405,
+  "reportedScoringEvents": 255,
+  "independentlyQualifiedStarts": 0,
+  "currentOrderObservedAt": "2026-09-08T13:32:46.632425+00:00",
+  "currentOrderMatches": 124,
+  "sameSourceOrderVersions": 248,
+  "observedOrderRevisions": 0,
+  "orderGaps": 0,
+  "validation": {
+    "recordedAt": "2026-09-08T13:44:02.932690+00:00",
+    "newTests": 59,
+    "focusedTests": {
+      "passed": 296,
+      "elapsedSeconds": 11.34
+    },
+    "newTestsRun": {
+      "passed": 59,
+      "elapsedSeconds": 2.88
+    },
+    "ruff": "All checks passed!\n",
+    "actualOfflineCLIsPassed": 3,
+    "developmentNotes": [
+      "Initial raw inspection showed no clock/index regressions; first full audit incorrectly required a duplicate type field on MedicalTreatment. Actual index 281 omits it. Corrected optional-duplicate semantics before tests; exact fixture regression passes.",
+      "No physical accuracy bound is inferred from residual arithmetic: a synthetic common ten-minute shift remains internally consistent and remains unqualified."
+    ]
+  },
+  "preservation": {
+    "protectedRunFilesVerified": {
+      "phase3": 56,
+      "phase4": 77,
+      "maintenance": 104,
+      "dynamic-continuation": 61,
+      "dynamic-shadow": 37,
+      "prospective-shadow": 42,
+      "source-audit": 38,
+      "time-evidence": 28,
+      "start-source": 57,
+      "free-source": 26,
+      "official-schedule": 27,
+      "official-link": 19,
+      "wta-coverage": 34
+    },
+    "totalProtectedRunFilesVerified": 606,
+    "frozenPackageFilesVerified": 91,
+    "priorTrackedProgramWebWorkflowFilesExact": 377,
+    "completedCheckoutsClean": {
+      "coordinator": "c5cd3669d94fb93b7b0914e96bb28253d9e990a4",
+      "phase4": "51c9eb1535dc296e1464fb7c1290a779f7f34c15",
+      "maintenance": "975379b9411b1bd79937e31e5f80d412df3b5f09",
+      "dynamic-screen": "777a38e235755754e6175b294b47f48a70e90b31",
+      "dynamic-shadow": "64d62decfdc9d96e5777bb8017a29bb8d4c0993f",
+      "prospective-shadow": "3cd780af13e364c04714f7ae1d7e0b9bb7c9ba1c",
+      "source-audit": "3f4e99d64af66461e11e6e96fb164813e4144bfd",
+      "time-evidence": "129f811514cfd6b2a44edc087c42b26b45a475d4",
+      "start-source": "2e50cb560bb7ba394eae83883b76db9ad06ecff6",
+      "free-source": "64e70227281c1433a825fa7032a131c9a95ceb12",
+      "official-schedule": "70f5976cd9eb07ec5757674f5966c81b30c31477",
+      "official-link": "e10757fa432f08203642ef9e8fa784f77f906795",
+      "wta-coverage": "781d37b5d23b737f20ef185a25f094d32e3675d8"
+    },
+    "inheritedTrackedDataFiles": 33,
+    "newTrainingCopies": 0,
+    "modelsVerified": {
+      "maintenance/wta-final-001/predictor.pkl": "8cf280c43f813a6944244d585248af8d5fcbc1ff628e535f98d4e10866730e34",
+      "prospective-shadow/migration-001/candidate.shadow": "43dd88b1461913f11b90b6d2aa6aa82f7bbfe3ba7ad597d978c6a46b73d45fcc"
+    },
+    "fullTrainingAndSnapshotInventoriesRehashedThisPhase": false,
+    "lastFullTrainingAndSnapshotVerificationUTC": "2026-09-08T01:58:44.035725+00:00"
+  },
+  "implementationFiles": {
+    "tennis_model/research/wta_event_audit.py": "df276748ea2a07c38c68626d4e7ed287f8efedd8e2b88824acc6a445e7f34ead",
+    "tennis_model/tests/test_wta_event_audit.py": "7bf1671aeed5fcdee3a23e9fe2e378598d3c34068a6a0c78a748e15600de947e",
+    "tennis_model/tests/fixtures/wta_events/final-events.gz": "c62317042a53c5e8f1e4556901d28188ddf5bcd3008c31c449e2fc82512583c9",
+    "tennis_model/tests/fixtures/wta_events/final-points.gz": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+    "tennis_model/tests/fixtures/wta_events/manifest.json": "691fd1b76899da39365e78a755916ae33e93dd88747cbb4523284cb702418302",
+    "tennis_model/tests/fixtures/wta_events/semifinal-events.gz": "365c0bac689d0e998ddb1aedc4f9d441108f895b7c2885b1aceaae9965a5ac4d",
+    "tennis_model/tests/fixtures/wta_events/semifinal-points.gz": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  "driverHashes": {
+    "wta-lifecycle-probe.py": "15bb0c0bceea750b8b501b6689ea803e20dff1afa762a4f0202a99cca9a44d24",
+    "wta-lifecycle-replay.py": "686e9d24c2e581314748c2b3c88a8aad11433e3dc0147ecfc5aa439cdd8df053",
+    "wta-lifecycle-verify.py": "267d286efda7665c6023d95e14300138dd13b6979fa3be7bc5a2dea004c95d8b"
+  },
+  "newForecasts": 0,
+  "modelFits": 0,
+  "livePilotActive": false,
+  "unattendedCollectorActive": false,
+  "accountOrPurchaseCreated": false,
+  "productionChanged": false,
+  "runFiles": {
+    "acceptance.json": "21eff8b4d80c52fea7f42238759013af7a34f31e081f9a20731b02f3540b4ec2",
+    "cli-replay.json": "88d77246702e0774e2320b6d9119140671839194da42ecb5d2db14af1bf183fe",
+    "current-order-001/api/attempt.json": "734416cd2b687124ed80d490dd1df5111fb46a69a4476ab4952b0df2f9bf9784",
+    "current-order-001/api/receipt.json": "5c198c84c725496fa89d17bfbbdd2319a3ea5e05031bc5b91f25531b68294eea",
+    "current-order-001/api/response.bin": "3720b3dc6d70eaea6fe8cad2687a29b755a2becd115cc1f9e963ce12e4754c2d",
+    "current-order-001/collection.json": "65839e9bc54099f21afae57c98e05c0e66d9aecaf9599d3493fc7eb59e5e650b",
+    "current-order-001/page/attempt.json": "f73a98d8cecad4204cfa02afb9f8c0267690c9cf3f73f0ea19a515d524d3e643",
+    "current-order-001/page/receipt.json": "138dc2a0223a3db49eaf15c5572ea53247ccba85fa2bc2902f2b4e1ef20d5366",
+    "current-order-001/page/response.bin": "d5f5b3b06a54d07419d12a3cd6fc25afde08ff9a4bc7906bc95b30a8d895c89e",
+    "final-events/attempt.json": "788f061077f1c69502fae8ad17ec55809e715bebcaf024a8a4eb77dae7f24032",
+    "final-events/receipt.json": "21557d7d34232a82dc44112a39e129008216ebf0179bfca5cbd345958fb4cde0",
+    "final-events/response.bin": "018e99c6dc172cf753b78a5065cfea8ef6a7872c9958738b8d1222952baf9604",
+    "final-events-audit.json": "a2d042f6561b4c22f3d0962fb6b245cf05fb7908f46c26d2471b8f7c8d82aa6d",
+    "final-points/attempt.json": "ae8d9e80447dc335cc06f27ed2c902bab89cd548ee8b7dc85ad94f8d65802c06",
+    "final-points/receipt.json": "1d9cd050c4f691042dfbb131143587092fdee7e1a265ceca5605fd2ac85f8eb1",
+    "final-points/response.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "order-history-001.json": "9ac1230cc343ae3d5ba9528aacb565f80327ddc22d071b0a0da3f9acd941309d",
+    "protected-run-files.json": "c18e90d85849805f4d555d9ddd1e0b8c1b0e5fcc0c5e8cdbb02b45a135b3a564",
+    "pytest-focused.txt": "b354500630d5141bc054c9fcbc52574ae131b1adf78a8eb151a1173bcfe7afd6",
+    "pytest-new-001.txt": "06f482260e751f6d6038c7934341ed796e66dcb822da30559acbd3b02d1b7bfb",
+    "semifinal-events/attempt.json": "9dfb9f52276aeb4b0385c6a4de6e63f0c88c054541e4949093dd2a9d6becf6c0",
+    "semifinal-events/receipt.json": "d3b308550a6f246b5d1c07158f565a3d8741fcc09bce75187ea85e2779c8a973",
+    "semifinal-events/response.bin": "86d9309651edc0a8d455716ac69ca18a1a2721dc16e60c6417530915229e6a5b",
+    "semifinal-events-audit.json": "77a7d2f7a9eb56e9e633ce77608207e5a19f6d06bde72495d11dc10fc0ddcf0d",
+    "semifinal-points/attempt.json": "8f176e856bad1e864f8c95c62a9a7e381295822b4b1ff9b764bd36c43b909fbe",
+    "semifinal-points/receipt.json": "fd5aaacacadac69fcbdfb58568d44fdc4bbc437dec720294bc12e48cbc72226c",
+    "semifinal-points/response.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "source-semantics-note.json": "a1ef6bd0b060f03cf412722f3b723e75eac6885adf594d5c5249201f981d5775",
+    "validation.json": "e739b4484224a32604bc783d97f4d104352bd6d192b34cae20bed2cd5760dfe4"
+  }
+}

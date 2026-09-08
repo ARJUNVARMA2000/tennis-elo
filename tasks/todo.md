@@ -7369,3 +7369,27 @@ The current date/time is 2026-09-08 around 13:30 UTC; next scheduled US Open pla
 ### Review
 
 Pending bounded acquisitions, evidence-supported interpretation and acceptance checks.
+
+
+### T0–T4 review — reported WTA event timelines audited; physical qualification pending
+
+- [x] T0: verified all 606 protected prior run files, 91 frozen package files, both
+  model payloads and 377 prior program/web/workflow files; accepted checkouts preserved.
+- [x] T1: current WTA US Open order/API captured at 13:32:46 UTC after the seven-hour
+  gap; 124 main singles / 248 versions over two collections, zero revisions or gaps.
+- [x] T2: six retained reads total, four 200s and two empty point-by-point 404s. WTA's
+  Guadalajara final/semifinal event feeds contain 185/220 records and reported initial
+  OnCourt/PlayersArrived/Warmup/InProgress transitions. No physical error bound established.
+- [x] T3: external read-only event auditor at `f355253`; 59 new tests passed, 296 focused
+  tests passed in 11.34s, lint and three real offline CLI replays passed. Full timelines
+  have 255 scoring records and matching final games; no terminal F event was fabricated.
+- [x] T4: thirteen prior checkouts clean; preservation rechecked; detailed review,
+  acceptance manifest and exact next-session handoff recorded. 29 new run files produce
+  a next protection count of 635. Large external inventories were not rehashed here.
+- [ ] Remaining: independently justified physical timing/uncertainty, real live event
+  versions, and sufficient new prospective pairs before live evaluation.
+
+**Decision:** accept the reported-event source audit. Main API timestamp is 21–24 minutes
+before reported InProgress in these samples; coarse LIVE includes warm-up. Internal clock
+arithmetic alone does not qualify actual starts. Candidate unchanged/deferred, no new
+forecast/fit/score, account, provider contact, automation, live pilot or production change.

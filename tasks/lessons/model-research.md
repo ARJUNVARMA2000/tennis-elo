@@ -307,3 +307,14 @@ Indexed in [`../lessons.md`](../lessons.md).
   a revision sequence or reconstruct lost published times from completed API timestamps.
   Whole raw HTML fixtures also preserve whitespace in printed rounds: normalize visible
   text before checking round identity. Test retained page structure, not an invented fragment.
+
+
+- **A publisher's coarse LIVE status can include OnCourt and warm-up.** (2026-09-08)
+  WTA's own bundle maps these pre-play stages into LIVE. Two real Guadalajara event
+  arrays have distinct InProgress markers 21–24 minutes after the main match timestamp,
+  yet the last scoring records remain P even after the API reports a completed result.
+  Keep coarse display state, reported start, final-score corroboration and physical
+  clock qualification separate. A synthetic uniform ten-minute shift preserves local/
+  UTC/elapsed agreement and still must not become actual-start proof. Whole-record
+  fixtures also show MedicalTreatment omits Attributes.type: check conflicting duplicate
+  fields only when supplied, rather than treating that real optional field as corruption.
