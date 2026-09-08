@@ -7077,3 +7077,31 @@ production merge/push or unattended collector are part of this scope.
 ### Review
 
 Pending. Exact finish times may be unnecessary; proof of pre-play capture is essential.
+
+
+### R0–R3 review — bounds evaluator and completion producer accepted
+
+- [x] R0: primary scheduling/commencement rules inspected; typed interval contract fixed
+  before implementation. No schedule/API field was promoted to actual-start proof.
+- [x] R1 completion evidence: preserved ESPN/WTA receipts supply 119 corroborated finish
+  upper bounds and 246 provider identity rows, with the original 00:48:17.709639 UTC
+  observation time. No new live scoreboard reads and zero verified start bounds.
+- [x] R2: `prospective-bounds-v2` and external evidence module committed at `10c07ee`.
+  Typed starts/completions, timing conflicts, earlier schedules, source replacements,
+  terminal disagreement, partial updates and uncertain week grouping are implemented.
+  V1/model package stays unchanged; external code hashes are pinned in registration.
+- [x] R2 QA: 58 new tests; combined 231 passed in 9.92s; full source/research/test lint
+  passed. All 82 existing tracked test/fixture files exact. Full-size acceptance took
+  10.86s: main/lower branches, exact direct probabilities, first receipt preservation,
+  missing-start exclusion, accumulated 1→2 graded QA pairs, stable endpoint/late refusal.
+- [x] R3 closeout: all 415 prior run files, 25,826 read-only snapshot files, seven protected
+  data inventories and eight copies of 18,791 original input files verified. Detailed
+  review/result/next-source plan recorded. No model fit, migration or new training copy.
+- [ ] Live qualification and activation remain outstanding: no start-evidence producer
+  or acquisition cadence is qualified. Live registration deliberately fails before files.
+
+**Decision:** the completion-time obstacle is resolved in a separately versioned evaluator;
+start evidence still requires a concrete validated source. Do not build another generic
+framework or refit the unchanged model. Next follow `2026-09-07-time-evidence-next.md`
+for bounded source/access qualification. Synthetic QA is not performance evidence and
+cannot become a live pilot. Corrected incumbent retained; no merge/push/deployment.

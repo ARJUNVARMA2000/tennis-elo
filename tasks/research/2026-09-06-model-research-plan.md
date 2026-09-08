@@ -1,32 +1,34 @@
 # DEUCE model improvement — implementation and research handoff
 
-Status: **Phases 0–4, the selected Phase 5 arbiter, offline shadow engineering,
-mixed-format prospective runner/migration and external source adapter are complete.**
-The adapter adds 42 tests; 187 focused checks pass. Live acquisition succeeds, but the
-inspected feeds have no validated actual-start/finish mapping for 119 common results.
-**Live readiness and production adoption remain unmet.** The corrected 42-column
-research incumbent remains current. Next: define sufficient, typed time bounds and
-validate their evidence producer before implementing a new prospective protocol.
+Status: **The model research, artifact migration, source adapter and separately
+versioned bounds evaluator are implemented and accepted.** The latest addition passes
+58 new tests and 231 combined checks. Retained source observations now provide 119
+corroborated completion upper bounds; **verified start evidence and live collection
+remain outstanding**. Candidate adoption remains deferred and the corrected 42-column
+research incumbent remains current. No fresh model-performance evidence was produced.
 
-Read the [source audit review](2026-09-07-source-audit-review.md),
-[measurements and hashes](2026-09-07-source-audit-result.json), and
-[exact next-session evidence plan](2026-09-07-source-audit-next.md).
-The [runner/migration review](2026-09-07-prospective-shadow-review.md) retains the
-1,411-test full-suite result and exact fitted-output migration on 129,209 selected rows;
-that full suite was not rerun for this external-only phase. The
-[shadow review](2026-09-07-shadow-review.md),
-[September 6 candidate verdict](2026-09-06-dynamic-screen-review.md), and
-[maintenance review](2026-09-06-maintenance-review.md) retain prior evidence.
-Exact reproduction and diagnostic QA are not independent model confirmation.
+Read the [time-evidence review](2026-09-07-time-evidence-review.md),
+[measurements and hashes](2026-09-07-time-evidence-result.json), and
+[exact next-session source plan](2026-09-07-time-evidence-next.md).
+The [source audit](2026-09-07-source-audit-review.md) retains the original acquisitions;
+the [runner/migration review](2026-09-07-prospective-shadow-review.md) retains the
+1,411-test full-suite result and exact fitted-output migration on 129,209 selected rows.
+That full suite was not rerun for this external-only phase. The
+[candidate verdict](2026-09-06-dynamic-screen-review.md) and
+[maintenance review](2026-09-06-maintenance-review.md) retain statistical/population evidence.
 
-Latest implementation: `.research/2026-09-06-model-foundation/worktrees/source-audit`,
-branch `codex/model-source-audit`, source/tests `c9b5b17`. It lives outside the unchanged
-model package; the candidate artifact remains exactly the accepted runner migration.
+Latest implementation: `.research/2026-09-06-model-foundation/worktrees/time-evidence`,
+branch `codex/model-time-evidence`, source/tests `10c07ee`. The evaluator owns a new
+receipt schema and pins its external source hashes; all frozen model package/artifact
+bytes remain unchanged. Full-size synthetic QA exercised main/lower branches and scored
+two invented outcomes. No QA result can become a real pilot. Live registration refuses
+activation while the start-producer set is unqualified. All earlier checkouts remain.
+
 Corrected incumbent: `worktrees/maintenance`, `codex/model-population-repair`, code
-`1fbe42a`, review `975379b`. All earlier research checkouts remain preserved. The original
-checkout receives documentation only. No live model registration, collector, automation
-or production merge/push/deployment is active. The two full-size source QA captures use
-an explicitly simulated QA registration clock and must never be scored as live.
+`1fbe42a`, review `975379b`. The original checkout receives documentation only. No live
+model registration, collector, automation, production merge/push or deployment is active.
+Next obtain and validate one concrete start-evidence source; do not build another generic
+evaluator or refit the unchanged model to substitute for unavailable observations.
 
 The detailed campaign below is historical design. Newer reviews supersede its original
 measurements and next-session instructions. The initial Phase 4 absence counts were
@@ -727,18 +729,17 @@ At the end of EVERY implementation session, append to `tasks/todo.md`:
 
 Recommended next-session instruction:
 
-> Read `2026-09-07-source-audit-review.md`, its result JSON, the interface,
-> `2026-09-07-source-audit-next.md` and the live todo tail. External source acquisition
-> is complete at `c9b5b17`; 42 new tests and 187 focused checks pass. No validated
-> actual-start/finish mapping or complete source lifecycle was established. Next define
-> a versioned time-evidence policy: a defensible start lower bound must prove the paired
-> forecast finished more than five minutes before play; a completed-result observation
-> may supply a finish upper bound. Never rename a schedule or fetch time as actual play.
-> Implement the supported evidence version separately and validate its producer before
-> real registration. Preserve every checkout, snapshot, artifact, raw source attempt and
-> QA run. Do not retune or fit again unless an explicit package migration is necessary.
-> Record the plan before editing, use no agents unless authorized, preserve both strict
-> loaders, and reconcile Git. No live collector or production release is currently active.
+> Read `2026-09-07-time-evidence-review.md`, its result JSON, the interface,
+> `2026-09-07-time-evidence-next.md` and the live todo tail. Bounds evaluation is accepted
+> at `10c07ee`; 58 new tests and 231 combined checks pass. Completion upper bounds work;
+> no actual-start producer or live cadence is qualified. Next investigate one concrete
+> public timing source or justified official-order lower-bound path; if access is needed,
+> identify it precisely. Do not invent times, repeat fitting or add another framework.
+> Preserve every completed checkout, artifact, raw response and synthetic QA run. A
+> future source addition changes the external evaluator contract and needs a new real
+> registration, but no model migration while package code stays unchanged. Record the
+> plan before edits, use no agents unless authorized, reconcile Git and keep production
+> integration separate. No collector or live pilot is currently active.
 
 ## Planning review
 
