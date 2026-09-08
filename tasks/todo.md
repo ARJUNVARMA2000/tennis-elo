@@ -7045,3 +7045,35 @@ stamps. Next specify and test typed time bounds that retain defensible pre-play 
 then validate the producer before activating collection. Corrected incumbent retained;
 no new model-performance evidence, retuning, production merge/push or scheduler.
 Read `2026-09-07-source-audit-review.md`, `...-result.json` and `...-next.md` on resume.
+
+
+## 2026-09-07 — Typed prospective time evidence
+
+User check-in: “Can you keep going?” authorizes the source-audit handoff's next phase.
+Keep all completed experiments immutable. This is evidence-engineering work, not a
+new model fit or a parameter-search round.
+
+- [ ] R0: inspect primary scheduling/timing rules, define sufficient lower/upper-bound
+  evidence and counterexamples before source edits; record an explicit version contract.
+- [ ] R1: create `codex/model-time-evidence` from the accepted source-audit checkout,
+  preserve prior hashes, and validate the supported completion producer on retained raw
+  observations. Only collect a new bounded observation if it resolves a concrete gap.
+- [ ] R2: implement the feasible typed evidence path outside the frozen model package,
+  with immutable source links, conservative interval arithmetic, conflict handling,
+  fixed intake deadlines and explicit rejection of unsupported schedule/latency claims.
+  Keep v1 receipts, model artifacts and historical scores unchanged.
+- [ ] R2 QA: add meaningful negative and real-artifact integration tests; exercise the
+  new version with explicitly synthetic timing evidence, and audit actual source
+  coverage separately. No QA evidence can become a live experiment.
+- [ ] R3 review: establish what is now usable and what live qualification still needs;
+  verify protected evidence, reconcile Git, commit a detailed review and resumable
+  implementation plan, and mirror only documents and append-only logs here.
+
+Dependencies: R0 defines the contract before R2. Completion-bound implementation and
+source qualification are independent, but live activation needs verified start evidence
+and a registered execution cadence. No agents, dependencies, model fitting, migration,
+production merge/push or unattended collector are part of this scope.
+
+### Review
+
+Pending. Exact finish times may be unnecessary; proof of pre-play capture is essential.
