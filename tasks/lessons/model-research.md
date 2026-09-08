@@ -229,3 +229,12 @@ Indexed in [`../lessons.md`](../lessons.md).
   equality. Normalize missing context too: `bool(NaN)` made two QA matches falsely
   indoor, despite the training frame's neutral zero. Preserve the original diagnostic
   and correct its input context explicitly, without changing fitted outcomes or sources.
+
+- **A result update is not a complete settlement snapshot.** (2026-09-07)
+  The old prospective grader retained source files but indexed only the current batch,
+  so reporting a later event would make previously scored forecasts pending again.
+  The separately versioned mixed-format runner accumulates all admitted batches,
+  keeps pending updates from erasing terminal facts, and excludes conflicting terminal
+  claims while preserving them. Test two disjoint batches, retries, partial-to-complete
+  evidence and conflicts. Fix the intake endpoint before observing scores; late batches
+  must not extend it. Retained files alone do not prove accumulated reporting.

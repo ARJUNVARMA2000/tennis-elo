@@ -1,24 +1,28 @@
 # DEUCE model improvement — implementation and research handoff
 
-Status: **Phases 0–4, the selected Phase 5 arbiter and offline shadow engineering
-acceptance are complete.** The WTA uncertainty candidate is saved and reproduces all
-42,422 historical predictions exactly, with modest measured query/storage overhead.
+Status: **Phases 0–4, the selected Phase 5 arbiter, offline shadow engineering and the
+mixed-format prospective runner/migration are complete.** The runner passes 1,411 tests;
+the migrated candidate retains exact fitted outputs on all 129,209 selected rows.
 Its small historical gain remains uncertain; **production adoption is deferred** and
-the corrected 42-column research incumbent remains current.
+the corrected 42-column research incumbent remains current. Next: verify a live source
+adapter and its timestamp evidence before activating future collection.
 
-Read the [latest shadow review](2026-09-07-shadow-review.md),
-[measurements and hashes](2026-09-07-shadow-result.json), and
-[next fresh-data runner/confirmation plan](2026-09-07-shadow-confirmation-plan.md).
+Read the [latest runner/migration review](2026-09-07-prospective-shadow-review.md),
+[measurements and hashes](2026-09-07-prospective-shadow-result.json), and
+[exact next-session source/activation plan](2026-09-07-prospective-shadow-next.md).
+The [shadow review](2026-09-07-shadow-review.md) and
+[confirmation design](2026-09-07-shadow-confirmation-plan.md) retain prior acceptance.
 The [September 6 candidate verdict](2026-09-06-dynamic-screen-review.md) and
 [maintenance review](2026-09-06-maintenance-review.md) retain the statistical and
 population evidence. Exact reproduction is not independent confirmation.
 
-Latest implementation: `.research/2026-09-06-model-foundation/worktrees/dynamic-shadow`,
-branch `codex/model-dynamic-shadow`, source/tests `250693c`.
+Latest implementation: `.research/2026-09-06-model-foundation/worktrees/prospective-shadow`,
+branch `codex/model-prospective-shadow`, source/tests `89002bc`.
 Corrected incumbent: `worktrees/maintenance`, `codex/model-population-repair`, code
 `1fbe42a`, review `975379b`. Earlier coordinator, Phase 4 and selected-candidate checkouts
-remain preserved. The original checkout receives documentation only. No collector,
-prospective registration, automation or production merge/push/deployment is active.
+remain preserved, including the completed `dynamic-shadow` checkout. The original
+checkout receives documentation only. No live collector, prospective registration,
+automation or production merge/push/deployment is active; only synthetic QA was run.
 
 The detailed campaign below is historical design. Newer reviews supersede its original
 measurements and next-session instructions. The initial Phase 4 absence counts were
@@ -719,18 +723,17 @@ At the end of EVERY implementation session, append to `tasks/todo.md`:
 
 Recommended next-session instruction:
 
-> Read the latest `2026-09-07-shadow-review.md`, `2026-09-07-shadow-result.json`,
-> `2026-09-07-shadow-confirmation-plan.md`, the interface and live todo tail. Offline
-> engineering acceptance is complete at `250693c`; keep all completed checkouts,
-> snapshots, artifacts and exclusive run directories unchanged. Do not repeat or expand
-> the selected grid, and do not count reproduction as new performance evidence.
-> The next scope is a typed mixed-format prospective runner and its exact migration/
-> capture/grade tests. Source-version binding requires a planned fixed-candidate rebuild
-> after runner code is frozen, with exact reproduction. Activation then requires actual
-> future timestamps and trustworthy schedule/result observations. The original runner
-> intentionally rejects the shadow format; never bypass validation. Record the new plan
-> before editing, use no agents unless authorized, and do not infer production push or
-> collector activation from this completed offline phase. Reconcile Git on resume.
+> Read `2026-09-07-prospective-shadow-review.md`, its result JSON, the interface,
+> `2026-09-07-prospective-shadow-next.md` and the live todo tail. The mixed-format
+> runner and exact migration are complete at `89002bc`, with 1,411 passing tests.
+> Preserve every completed checkout, snapshot, artifact and exclusive run. Do not
+> retune, rebuild or reinterpret synthetic QA as fresh outcomes. Next implement and
+> validate an external source adapter, audit actual pre/live/settled timestamp semantics
+> and coverage, then arrange a real fixed 30-day pilot with seven-day settlement grace.
+> Existing date-only importers do not meet this timing contract. Keep transport outside
+> the frozen package or explicitly version/migrate again if package code must change.
+> Record the plan before editing, use no agents unless authorized, preserve both strict
+> loaders, and reconcile Git. No live collector or production release is currently active.
 
 ## Planning review
 

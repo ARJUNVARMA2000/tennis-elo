@@ -6943,3 +6943,40 @@ The old artifact control has been captured in its protected runtime: final fitte
 outputs on all 129,209 selected rows, six dated 30-player matrices, all five booster
 identities, calibrator and dynamic-state receipts. Next: commit/freeze this new source
 before the fixed migration fit and explicitly synthetic end-to-end acceptance.
+
+### P0–P5 final review — runner and migration accepted
+
+This append closes the live implementation plan while preserving prior log entries.
+
+- [x] P0/P1/P2: completed the separate WTA runner and fixed 30-day/200-pair/seven-day
+  protocol, strict mixed-format registration, immutable capture, accumulated evidence,
+  conflict exclusions and endpoint reporting. No existing package source was edited.
+- [x] P3: implementation/tests committed at `89002bc`; 59 new tests, focused 145 passed,
+  full 1,411 passed in 146.83s, full lint passed; all 77 preexisting test files exact.
+- [x] P4: source/input freeze `969eb8eeb77d09f051ee52c415eb2d15e5ffa7d138e9b4149166e51eda3a355c`;
+  one registered fixed migration fit. Complete main/selected 129,209-row feature frames,
+  all five booster hashes, calibrator, both dynamic states, all 129,209 fitted outputs
+  and six dated 30-player matrices match the protected old model exactly. Both artifact
+  versions enforce their source boundaries. Build 35.96s; fit 3.92s; no reselection.
+- [x] P4 QA: actual full-size models captured two invented matchups covering main/lower
+  branches. Retry preserves the first receipt, separate result batches accumulate 1→2
+  graded pairs, the simulated endpoint is stable and rejects late intake. All evidence
+  is `synthetic-qa`; zero real forecasts, live registrations or fresh outcomes.
+- [x] P5: read-only source review confirms current adapters do not certify the required
+  actual start/finish evidence. Detailed D0–D5 source/activation handoff, review and JSON
+  record are complete. All five reference checkouts, eight copies of each original
+  input, 25,826 read-only snapshot files and 335 protected prior run files verified.
+  Four disposable test cache outputs were retained before restoring sealed inputs.
+
+**Decision:** engineering acceptance passes; corrected 42-column incumbent retained;
+uncertainty adoption still deferred. More fitting is not fresh evidence. Next implement
+and audit the live source adapter outside the frozen package, then activate a real
+future interval only after timing/context/cadence are verified. No production merge,
+push, deployment, scheduler or live collector was performed.
+
+Latest checkout: `worktrees/prospective-shadow`, `codex/model-prospective-shadow`.
+Artifact: `runs/prospective-shadow/migration-001/candidate.shadow`, SHA-256
+`43dd88b1461913f11b90b6d2aa6aa82f7bbfe3ba7ad597d978c6a46b73d45fcc`.
+The result JSON hashes all 42 phase run files and three private drivers. Read
+`2026-09-07-prospective-shadow-review.md`, `...-result.json` and `...-next.md` on resume.
+The original checkout receives only docs and append-only log additions.
