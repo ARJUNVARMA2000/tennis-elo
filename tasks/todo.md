@@ -7479,3 +7479,52 @@ read, download, installation or automation. Do not expand this grid or default b
 source infrastructure. Full large external inventories were not rehashed this round.
 
 Research acceptance receipt: `c658c7149676a2e1f6032a1440e68f904bd692e6` (`codex/model-historical-errors`), source freeze `814def6`. Completed three registered trials; no finalist. Original checkout receives documents/tables/logs only; no experimental source or model was merged.
+
+## 2026-09-08 — historical signal round
+
+User check-in: “We can't try more things?” authorizes another bounded predictive round.
+The previous three failures close their registered shortlist, not the research program.
+Start 15:52:33 UTC; three-hour cap. New isolated branch from accepted `c658c71`.
+No agents or external acquisition; original checkout receives documents only.
+
+- [ ] S0: verify 696 retained files, sixteen accepted checkouts and the reference models.
+- [ ] S1: predeclare and inspect tune-only residual associations for opponent-adjusted
+  recent results, recent current-surface exposure, and ranking-points trajectory; audit
+  novelty against rejected families before choosing at most three fixed candidates.
+- [ ] S2: implement selected temporal states and saved-query mirrors with causal,
+  serialization, orientation and real-prefix parity checks in the same source commit.
+- [ ] S3: freeze code and trial registration; reproduce the incumbent; run up to three
+  separate five-bag 2010–2019 trials. No combination sweep or adaptive variants.
+- [ ] S4: select at most one finalist: positive pooled gain, at least six positive years,
+  and positive gains in both tuning halves. Evaluate only that locked finalist on 2020+
+  with the unchanged full arbiter; assess ATP separately if a WTA candidate survives.
+- [ ] S5: report all trials, accuracy, yearly consistency and uncertainty; preserve
+  incumbent unless justified, commit research and mirror the results and handoff.
+
+### Review
+
+Pending new diagnostics and experiments. Earlier 2020+ exposure remains validation,
+not an untouched holdout. The earlier absence transform and 40/80-point caps stay closed.
+
+
+### S0–S5 review — three further hypotheses, WTA surface candidate passes
+
+- [x] S0: 696 earlier files, reference models and sixteen accepted checkouts verified.
+- [x] S1: three preregistered temporal histories; tune residual evidence and fixed shortlist.
+- [x] S2: external signal states, saved-query mirrors and orientation adapter committed
+  with 17 new tests; no production package change.
+- [x] S3: exact 26,794-row incumbent replay and three five-bag trials complete. Form
+  +0.000230527 (5/10 positive years); surface +0.000697431 (8/10); rank +0.000392500 (8/10).
+- [x] S4: surface locked before validation. WTA 2020+ +0.000532760 ± 0.000311990,
+  5/7 positive years, formal gate passes. ATP tune −0.000047701, formal gate fails.
+- [x] S5: complete metric/year/uncertainty tables, review, manifest and implementation
+  handoff. 74 focused tests /1.14s, lint and six real-prefix saved queries pass.
+  Thirty-seven new run files bring protection to 733; next accepted checkout count seventeen.
+
+**Decision:** advance the fixed WTA surface candidate to saved-predictor serving assessment.
+Incumbent artifact/defaults remain unchanged. Validation week95 spans zero, so report a
+modest positive historical result. Ranking trend is an unvalidated eligible runner-up;
+form fails year consistency. No new final predictor fit, source work, acquisition or deploy.
+A completed shortlist is not an exhausted research program.
+
+Research acceptance receipt: `1f3920aa6f1edb538a1d33e1d149b3d507086206` (`codex/model-historical-signals`), source freeze `755342d`. Three tune trials and the fixed two-tour arbiter are complete; WTA passes and ATP fails. Original checkout receives documents/logs only. Next is saved WTA candidate implementation and serving assessment, as documented in the signal handoff.

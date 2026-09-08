@@ -200,3 +200,26 @@ Three variants complete on the same 26,794 tuning matches; no finalist and no AT
 Do not retry these mechanisms in this regime without a materially new premise. Read
 the [results](2026-09-08-historical-error-review.md), [comparison](2026-09-08-historical-comparison.csv)
 and [resume notes](2026-09-08-historical-error-next.md). Live confirmation remains separate.
+
+
+## 2026-09-08 historical signal round — new temporal information
+
+- **SIGNAL-01 recent opponent-adjusted form — DONE-DECLINED-CONSISTENCY.** Last10 completed
+  outcomes within90d minus pre-match Elo expectations, sum/(5+n); one extra column.
+  WTA tune +0.000230527 ± 0.000114560, but 5/10 positive years. No validation.
+- **SIGNAL-02 recent surface experience — HISTORICAL-PASS-WTA; SERVING-NEXT.** log1p
+  current-surface completed-match counts within60d, player difference. WTA tune
+  +0.000697431 ± 0.000208347 (8/10 years); locked 2020+ +0.000532760 ± 0.000311990
+  (5/7 years). Validation week95 [−0.000132157,+0.001177076]. Query mirror tested;
+  saved final predictor/serving-route assessment remains. No production adoption yet.
+  ATP tune −0.000047701 ± 0.000267304, so ATP gate fails despite positive validation.
+- **SIGNAL-03 ranking-points trajectory — TUNE-ELIGIBLE, UNSELECTED.** Current log points
+  change vs latest valid90–365d snapshot, pair-neutral when unavailable. WTA tune
+  +0.000392500 ± 0.000121949, 8/10 years and both halves positive. Lower tune gain than
+  surface, so no validation. Keep as a fixed runner-up for a separately registered round.
+
+See [review](2026-09-08-historical-signal-review.md),
+[comparison](2026-09-08-historical-signal-comparison.csv) and
+[serving implementation handoff](2026-09-08-historical-signal-next.md).
+These new histories do not reopen the rejected career-count gate, raw ordinal rank,
+serve-skill trend, absence or point-cap grids. No surface/rank combination was tried.

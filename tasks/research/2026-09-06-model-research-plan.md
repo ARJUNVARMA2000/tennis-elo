@@ -1,38 +1,37 @@
 # DEUCE model improvement — implementation and research handoff
 
-Status: **The historical predictive round is complete: three registered trials,
-no finalist, incumbent retained.** The user-directed return to predictive experiments
-has been carried out. Read the [results](2026-09-08-historical-error-review.md),
-[comparison CSV](2026-09-08-historical-comparison.csv), [year table](2026-09-08-historical-years.csv),
-[result manifest](2026-09-08-historical-error-result.json) and [resume notes](2026-09-08-historical-error-next.md).
+Status: **A new WTA recent-surface-history candidate passes the historical gate.**
+Three additional, separately registered temporal-signal experiments are complete.
+Read the [review](2026-09-08-historical-signal-review.md),
+[comparison](2026-09-08-historical-signal-comparison.csv),
+[year table](2026-09-08-historical-signal-years.csv),
+[manifest](2026-09-08-historical-signal-result.json) and
+[exact serving implementation steps](2026-09-08-historical-signal-next.md).
 
-The corrected 42-column WTA incumbent reproduced exactly on 26,794 tuning matches.
-Neutralizing artificial absence for first recorded appearances lost 0.000061430 log
-loss; capping per-match serve/return evidence at 40 points gained 0.000084255 overall
-but lost in 2015–2019; the 80-point cap lost 0.000025093. Positive improvement is
-incumbent loss minus candidate loss. None met the rule fixed before fitting, so no
-2020+ candidate evaluation or ATP fit ran. Every trial and uncertainty estimate is saved.
+Recent surface experience gained WTA tune ΔLL +0.000697431 ± 0.000208347 (8/10 years)
+and locked validation +0.000532760 ± 0.000311990 (5/7 years), with validation accuracy
++0.0256pp. Its 95% week-block validation interval includes zero. It is a modest positive
+research result, not a deployed model. ATP fails its own tune gate. Ranking trend is a
+tune-qualified unvalidated runner-up (+0.000392500); recent form failed year consistency.
 
-Latest research checkout: `.research/2026-09-06-model-foundation/worktrees/historical-errors`,
-branch `codex/model-historical-errors`, base `0214834`. Source/tests `3d8ce38`, formatting
-and experiment freeze `814def6`; later commits record outcomes. Resolve the final
-acceptance tip before a new isolated round. Experimental states and the default-preserving
-point-state construction hook are not production adoptions. Original DEUCE receives
-documents/logs only; the older uncertainty shadow remains a separate deferred candidate.
+Latest checkout `.research/2026-09-06-model-foundation/worktrees/historical-signals`,
+branch `codex/model-historical-signals`, based on `c658c71`, source freeze `755342d`.
+Later commits are result/document records; resolve the final acceptance tip on resume.
+The corrected 42-column incumbent remains the reference. Next work is a separate saved
+WTA surface candidate and complete serving-route parity/cost assessment. The older
+uncertainty shadow remains a separate deferred candidate; do not combine their schemas.
 
-Checks: 60 focused tests passed in 1.06s, including 24 new; lint and 20 real parity/control
-checks passed. The full suite was not rerun. All 664 prior run files and both frozen models
-were verified, fifteen prior checkouts were clean, and only the declared core hook differs
-from the earlier package. There are 32 new run files: **696** next-phase protected files.
-Large external inventories were last fully checked September 8 at 01:58:44 UTC and were
-not rehashed here. No data downloads, production fit/deploy or live collection occurred.
+Checks: 74 focused tests /1.14s, 17 new; lint and six real-prefix saved queries pass.
+The zero-extra-column adapter reproduced every one of 26,794 incumbent tune predictions;
+the later-year finalist run reproduced its selected tune predictions exactly. No inherited
+production code changed. All 696 prior run files and sixteen accepted checkouts were
+preserved; 37 new files bring protection to **733**. Full large external inventories were
+last checked 2026-09-08 01:58:44 UTC. No new final predictor, deploy or live collection.
 
-Keep the completed mechanisms closed under this regime. A new round needs a materially
-different tuning-supported premise and its own fixed shortlist. The first-appearance
-error remains useful evidence but its proposed simple fix failed. Do not expand these
-caps or revert to timing-source surveys to manufacture progress. Live confirmation and
-its [physical timing gap](2026-09-08-timing-contract-review.md) remain separate; they did
-not block this historical round. Reused 2020+ data must never be called a fresh holdout.
+This round continues the earlier [three-trial absence/cap round](2026-09-08-historical-error-review.md).
+Its failures closed that shortlist, not the research program. Live timing confirmation
+remains a separate dependency and does not block the next saved-predictor implementation.
+Do not call reused 2020+ validation an untouched holdout.
 
 The detailed campaign below is historical design. Newer reviews supersede its original
 measurements and next-session instructions. The initial Phase 4 absence counts were
@@ -733,14 +732,14 @@ At the end of EVERY implementation session, append to `tasks/todo.md`:
 
 Recommended next-session instruction:
 
-> Read the completed historical-error review, comparison, manifest and resume notes.
-> Three tune trials from two new mechanisms are finished; none earned a validation look.
-> Keep the corrected incumbent and preserve every outcome. Do not repeat the absence
-> transform or expand the point-cap grid. Another round requires a distinct evidence-backed
-> premise, tune-only selection and a new fixed shortlist. No existing trial is awaiting
-> an ATP fit or 2020+ score. Preserve 696 run files and sixteen accepted checkouts after
-> this phase is committed; original DEUCE remains documents/logs only. Live confirmation
-> is separate, and new timing-source infrastructure is not the default next task.
+> Read the completed historical-signal review, comparison, manifest and implementation
+> handoff. The fixed 60-day surface-history candidate passed the WTA historical gate;
+> build and assess its separate saved predictor, preserving the 42-column reference and
+> exact selected candidate. No new parameter search or timing-source survey is needed.
+> Ranking trend is a tune-qualified unvalidated runner-up; recent form failed consistency,
+> and ATP surface failed its own tune gate. Preserve 733 run files and seventeen accepted
+> checkouts after this round is committed. Original DEUCE receives documents/logs only.
+> Live physical-timing confirmation remains separate; reused 2020+ is not a fresh holdout.
 
 ## Planning review
 
