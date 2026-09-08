@@ -376,3 +376,6 @@ New lesson → append the entry to the matching topic file and add its lead line
   [`lessons/model-research.md`](lessons/model-research.md). (2026-09-07)
 - Resolve the owning checkout and working directory before constructing a research command. See
   [`lessons/model-research.md`](lessons/model-research.md). (2026-09-07)
+
+- A timestamp and its derived elapsed clock can agree throughout corrupted data. See
+  [`lessons/model-research.md`](lessons/model-research.md). (2026-09-07)

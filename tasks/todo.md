@@ -7035,3 +7035,52 @@ Research commit receipt: evaluator/tests `10c07ee726632f7186522e423205d661169123
 final acceptance/handoff `129f811514cfd6b2a44edc087c42b26b45a475d4` on
 `codex/model-time-evidence`. Research checkout clean. This checkout mirrors only
 research documents and append-only logs; no implementation was merged or deployed.
+
+## 2026-09-07 — Match-start source qualification
+
+User check-in: “Keep going” authorizes the time-evidence handoff's bounded source phase.
+
+- [ ] S0: inspect concrete first-party WTA/US Open timing endpoints or official order
+  evidence, preserving a small sample and distinguishing scheduled from actual times.
+  Consult a licensed timeline's primary contract only if public evidence is insufficient.
+- [ ] S1 conditional: implement a source producer only if its field semantics and timing
+  bounds are supported; pin its source/qualification evidence and extend relevant tests.
+  Otherwise document the exact source/access gap, without adding another framework.
+- [ ] S2: verify model/evaluator/prior-run preservation, reconcile Git, and commit a
+  source verdict plus the smallest remaining activation plan. Mirror documents only.
+
+Use an isolated `codex/model-start-source` checkout from `129f811` if research files
+are needed. No model fit, new training-data copy, generic evaluator, paid account/trial,
+new dependency, unattended collector, production merge/push or subagents. Live activation
+still requires qualified start evidence and an actual registered acquisition cadence.
+
+### Review
+
+Pending. Real source qualification is the task; synthetic timestamps cannot satisfy it.
+
+
+### S0–S2 review — public source sample complete; live qualification unmet
+
+- [x] S0: 18 preserved HTTP reads; US Open point history found, but one of two records
+  has 114/118 starts after their ends. Both WTA point samples return 404 and event
+  samples are empty. Primary licensed-timeline documentation inspected; no live starts qualified.
+- [x] S1 conditional resolved: source semantics/clock accuracy and lifecycle qualification
+  are insufficient. No producer or generic framework added; exact source gap recorded.
+- [x] S2: all 443 prior run files, 91 frozen package files, both models and 354 tracked
+  files under program/web/workflow trees verified; eight completed checkouts remain clean.
+  Source review, raw-response manifest and specific next-step handoff recorded.
+- [x] User access answer recorded: no provider subscription; ongoing Sportradar access
+  is commercial, with a documented limited free trial. No signup, trial, purchase or contact.
+- [ ] Follow-up: qualify one concrete published not-before order, then conditionally
+  implement its justified evidence producer. Live source qualification/cadence remain unmet.
+
+**Decision:** completed bounded source research, no model/evaluator change or fresh
+performance evidence. The free-source search is not exhaustive; official-order evidence
+is the next untested route. Read `2026-09-07-start-source-review.md` and
+`2026-09-07-start-source-next.md`; do not repeat these point-feed reads or fit the same
+model again. Prior tests were not rerun for a documentation-only phase. No new training
+copy, collector, merge, push or deployment.
+
+Research commit receipt: source review and continuation plan `2e50cb560bb7ba394eae83883b76db9ad06ecff6` on
+`codex/model-start-source`. Research checkout clean; this checkout mirrors only documents
+and append-only logs. No implementation, training data or deployment was copied.
