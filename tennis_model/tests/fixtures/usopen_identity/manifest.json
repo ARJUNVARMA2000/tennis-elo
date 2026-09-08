@@ -1,0 +1,51 @@
+{
+  "draw-index": {
+    "rawSHA256": "1e79eae0059f060386a7707f1a4accf57932241d209809ee3f5365e7970d11f4",
+    "compressedSHA256": "9d46fb640a3951696c26ea05549dd70ba2db20af70ea5e86083285d0907130dc",
+    "receipt": {
+      "schema": "official-draw-inspection-v1",
+      "url": "https://www.usopen.org/en_US/scores/feeds/2026/draws/draws.json",
+      "requestedAt": "2026-09-08T04:31:38.956727+00:00",
+      "purpose": "official draw identity audit; no forecasts or timing evidence",
+      "status": 200,
+      "responseUrl": "https://www.usopen.org/en_US/scores/feeds/2026/draws/draws.json",
+      "headers": {
+        "content-type": "application/json",
+        "last-modified": "Mon, 07 Sep 2026 02:15:34 GMT",
+        "etag": "W/\"1ebf2233338b4328cd0942fbf1788af5\"",
+        "cache-control": "max-age=43",
+        "date": "Tue, 08 Sep 2026 04:31:38 GMT",
+        "content-length": "6014"
+      },
+      "rawBytes": 6014,
+      "rawSHA256": "1e79eae0059f060386a7707f1a4accf57932241d209809ee3f5365e7970d11f4",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T04:31:39.051647+00:00",
+      "elapsedSeconds": 0.09459116705693305
+    }
+  },
+  "draw-ws": {
+    "rawSHA256": "366145b989d986a8a4e99d56c0d7477600e2ca8eace8c91e83cc89c4082f8095",
+    "compressedSHA256": "459d15fc1c32792f4c360b2c2eedee3b5bd4537ace94f143835512356c8d7463",
+    "receipt": {
+      "schema": "official-draw-inspection-v1",
+      "url": "https://www.usopen.org/en_US/scores/feeds/2026/draws/WS.json",
+      "requestedAt": "2026-09-08T04:32:09.411705+00:00",
+      "purpose": "official draw identity audit; no forecasts or timing evidence",
+      "status": 200,
+      "responseUrl": "https://www.usopen.org/en_US/scores/feeds/2026/draws/WS.json",
+      "headers": {
+        "content-type": "application/json",
+        "last-modified": "Tue, 08 Sep 2026 00:48:37 GMT",
+        "etag": "W/\"b51473e8adc9593d6bec5ed880a75a15\"",
+        "cache-control": "max-age=21",
+        "date": "Tue, 08 Sep 2026 04:32:09 GMT"
+      },
+      "rawBytes": 220732,
+      "rawSHA256": "366145b989d986a8a4e99d56c0d7477600e2ca8eace8c91e83cc89c4082f8095",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T04:32:09.560676+00:00",
+      "elapsedSeconds": 0.1486990419216454
+    }
+  }
+}

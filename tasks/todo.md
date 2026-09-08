@@ -7244,3 +7244,29 @@ Pending implementation, real replay, bounded acquisition and preservation checks
 No unattended cadence, forecast, model fit, new training copy, account, purchase, provider
 contact, model/evaluator change, production merge/push or deployment. Read
 `2026-09-07-official-schedule-review.md` and `2026-09-07-official-schedule-next.md`.
+
+
+## 2026-09-08 — Official feed lifecycle and identity continuation
+
+User check-in: “Keep going” authorizes the next bounded phase from accepted `70f5976`
+in isolated `codex/model-official-link`; no extra implementation check-in is needed.
+
+- [ ] L0: inspect the actual current official catalogue/order once (at most two reads),
+  compare all prior versions, and record whether a future explicit not-before row exists.
+- [ ] L1: verify the official timing rule and its limits using primary material; while
+  event progression is pending, inspect the official draw index and selected WTA draw
+  (at most two more reads) to establish a broad identity bridge to existing WTA/ESPN data.
+- [ ] L2 conditional: if the draw evidence supports a unique mapping, implement and test
+  a source-specific identity audit outside frozen packages; preserve exclusions and
+  contradictions. Never upgrade schedule observations or old source timestamps.
+- [ ] L3: verify frozen models/code and all 553 prior run files, record exact findings
+  and next real-time dependency, reconcile Git, commit research and mirror docs/logs only.
+
+Use existing collector; do not rebuild it. No new fitting, training-data copy, dependency,
+account, subscription/trial, provider contact, scheduled automation, live evaluation or
+production merge/push/deploy. Match identity work can advance while waiting for play;
+that dependency statement does not authorize subagents.
+
+### Review
+
+Pending source observations, supported integration, tests and preservation checks.
