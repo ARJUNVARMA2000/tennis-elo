@@ -329,3 +329,13 @@ Indexed in [`../lessons.md`](../lessons.md).
   agreement among fields sharing one clock, or a finite sample maximum, cannot certify
   an unseen future error bound. When this premise is missing, preserve a concrete
   measurement protocol rather than implementing another generic audit layer.
+
+
+- **A blocked live-confirmation dependency must not consume the model-improvement program.** (2026-09-08)
+  User correction: return the next round to systematic incumbent errors, new hypotheses
+  and bounded historical experiments. Several successive source/clock rounds improved
+  evaluation infrastructure without testing another predictive mechanism. Keep that work
+  available, but do not make the entire research agenda wait for live timing evidence.
+  Diagnose saved walk-forward predictions on tuning years, select and freeze candidates
+  there, and report a concrete tried/improved/failed table. Treat reused 2020+ results as
+  validation, not an untouched holdout; keep fresh prospective confirmation separate.

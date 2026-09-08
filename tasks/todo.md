@@ -7445,3 +7445,55 @@ zero qualified starts or new model-performance claims. More waiting helps only t
 new observations and prospective pairs. No fit, training copy, account, provider contact,
 automation, live pilot or production change. Follow the timing-contract handoff; avoid
 repeating document surveys or generating another generic auditor without new evidence.
+
+
+## 2026-09-08 — return to historical predictive improvement
+
+User direction: diagnose tuning-year incumbent errors, choose two or three new mechanisms,
+run bounded historical experiments, and deliver a tried/improved/failed comparison table.
+This planning response records that direction; no fit or experiment has started.
+Read `tasks/research/2026-09-08-historical-error-round-plan.md` before implementation.
+
+- [x] P0: reconcile the accepted reference, predictive experiment history, backlog and
+  evaluation rules; record the user's priority correction in committed lessons.
+- [x] P1: write an executable plan with reference paths, tune-only diagnostics, novelty
+  checks, bounded variants, a locked finalist, unchanged arbiter and exact result table.
+- [ ] H0: create the next isolated research checkout, verify preserved artifacts and
+  reproduce the corrected incumbent from saved walk-forward predictions.
+- [ ] H1: diagnose systematic tuning-year probability errors with predefined slices,
+  outcome-independent orientation, sample counts and year stability.
+- [ ] H2: select up to three defensible mechanisms; freeze at most two variants each,
+  budget/order/selection rules and serving-parity requirements before candidate validation.
+- [ ] H3: run bounded tune-only experiments sequentially against the same incumbent;
+  preserve all outcomes and select at most one overall finalist.
+- [ ] H4: lock the finalist, run the full historical arbiter, report paired metrics,
+  year consistency and uncertainty; retain incumbent unless replacement is justified.
+- [ ] H5: produce the comparison table/CSV, update logs and verify preservation; commit
+  isolated research and mirror documents only. Live confirmation remains separate.
+
+### Planning review
+
+The direction is adopted as the next research priority. Use historical walk-forward
+predictions, not all-history fitted-model predictions. 2020+ has prior research exposure
+and remains validation, not an untouched holdout. The plan caps model search, preserves
+the formal gate and requires honest no-improvement outcomes. No new candidate result,
+performance claim, network acquisition, dependency change or production change occurred.
+
+
+## 2026-09-08 — historical error round execution
+
+User check-in: “Okay get started” authorizes H0–H5 of the recorded plan. Started at
+2026-09-08 14:50:33 UTC; three-hour cap, 45-minute diagnosis/selection checkpoint.
+Checkout `codex/model-historical-errors` from `0214834`. No agents, downloads,
+installs, production changes or new live-data work in this round.
+
+- [ ] H0 verify reference and preservation.
+- [ ] H1 tune-only systematic error diagnosis.
+- [ ] H2 register a distinct fixed shortlist, maximum three mechanisms/two variants.
+- [ ] H3 execute tune experiments and lock at most one finalist.
+- [ ] H4 conditional complete arbiter; no new validation view before selection.
+- [ ] H5 comparison table/CSV, tests/preservation, commits and document mirror.
+
+### Review
+
+Pending actual diagnostics and experiments.
