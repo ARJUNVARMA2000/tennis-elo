@@ -1,0 +1,799 @@
+{
+  "schema": "deuce-wta-coverage-result-v1",
+  "recordedAt": "2026-09-08T05:55:11.812780+00:00",
+  "baseCommit": "e10757fa432f08203642ef9e8fa784f77f906795",
+  "implementationCommit": "b6df856dffa0f397b17f79b7511fe3bc5ff730f1",
+  "status": "WTA-order-observer-and-calendar-planning-accepted; actual-start-and-prospective-coverage-unmet",
+  "retainedHTTPReads": 8,
+  "receipts": {
+    "calendar-001": {
+      "schema": "wta-coverage-inspection-v1",
+      "url": "https://api.wtatennis.com/tennis/tournaments/?from=2026-09-01&to=2026-10-31&page=0&pageSize=100",
+      "requestedAt": "2026-09-08T05:33:24.903434+00:00",
+      "purpose": "official WTA coverage/source audit; no forecasts",
+      "status": 200,
+      "responseUrl": "https://api.wtatennis.com/tennis/tournaments/?from=2026-09-01&to=2026-10-31&page=0&pageSize=100",
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "27314",
+        "cache-control": "max-age=30",
+        "etag": "\"0e08ac47e68a31571026604557204141a\"",
+        "date": "Tue, 08 Sep 2026 05:33:25 GMT"
+      },
+      "rawBytes": 27314,
+      "rawSHA256": "6c8cd872feb9fee15478e3a9c5490d117115bbc748aa90cdc6d296b0a664f340",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T05:33:25.497502+00:00",
+      "elapsedSeconds": 0.5936309579992667
+    },
+    "oop-script": {
+      "schema": "wta-coverage-inspection-v1",
+      "url": "https://www.wtatennis.com/resources/v7.50.44/scripts/order-of-play.js",
+      "requestedAt": "2026-09-08T05:34:07.303291+00:00",
+      "purpose": "official WTA coverage/source audit; no forecasts",
+      "status": 200,
+      "responseUrl": "https://www.wtatennis.com/resources/v7.50.44/scripts/order-of-play.js",
+      "headers": {
+        "content-type": "text/javascript",
+        "content-length": "3012",
+        "date": "Tue, 08 Sep 2026 05:34:08 GMT",
+        "last-modified": "Thu, 03 Sep 2026 12:58:12 GMT",
+        "etag": "\"a37ecdb818474d233a25043259f0e724\"",
+        "cache-control": "max-age=31536000"
+      },
+      "rawBytes": 3012,
+      "rawSHA256": "9c61fa6bc781012c22e641b1cd1a88855f7159af13af670b1531c98daf63375b",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T05:34:07.619942+00:00",
+      "elapsedSeconds": 0.3163854160811752
+    },
+    "guadalajara-page": {
+      "schema": "wta-coverage-inspection-v1",
+      "url": "https://www.wtatennis.com/tournaments/2075/guadalajara/2026/order-of-play",
+      "requestedAt": "2026-09-08T05:34:08.688799+00:00",
+      "purpose": "official WTA coverage/source audit; no forecasts",
+      "status": 200,
+      "responseUrl": "https://www.wtatennis.com/tournaments/2075/guadalajara/2026/order-of-play",
+      "headers": {
+        "content-type": "text/html;charset=utf-8",
+        "date": "Tue, 08 Sep 2026 05:34:09 GMT",
+        "cache-control": "max-age=30, stale-while-revalidate=600, stale-if-error=86400"
+      },
+      "rawBytes": 216753,
+      "rawSHA256": "060110b667affb0dce82d0730cea95988c7dd73747b230cb3c00cb7256588e8c",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T05:34:09.494757+00:00",
+      "elapsedSeconds": 0.8056435829494148
+    },
+    "guadalajara-2025-page": {
+      "schema": "wta-coverage-inspection-v1",
+      "url": "https://www.wtatennis.com/tournaments/2075/guadalajara/2025/order-of-play",
+      "requestedAt": "2026-09-08T05:35:32.795700+00:00",
+      "purpose": "official WTA coverage/source audit; no forecasts",
+      "status": 200,
+      "responseUrl": "https://www.wtatennis.com/tournaments/2075/guadalajara/2025/order-of-play",
+      "headers": {
+        "content-type": "text/html;charset=utf-8",
+        "date": "Tue, 08 Sep 2026 05:35:33 GMT",
+        "cache-control": "max-age=30, stale-while-revalidate=600, stale-if-error=86400"
+      },
+      "rawBytes": 824091,
+      "rawSHA256": "7efef07d8f34a5176fe5e1f543b8a59ea3245af30fd5c7f1f2003f64eb24aa86",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T05:35:33.483420+00:00",
+      "elapsedSeconds": 0.6873980829259381
+    },
+    "guadalajara-2026-matches": {
+      "adapterSHA256": "a0c73268af8c615f56cd2c14fd0e850c1a41d05a7bbce1a62cd18d9e790b33fb",
+      "elapsedSeconds": 0.11971354193519801,
+      "event": "2075",
+      "headers": {
+        "cache-control": "max-age=30",
+        "content-length": "1560",
+        "content-type": "application/json",
+        "date": "Tue, 08 Sep 2026 05:35:38 GMT",
+        "etag": "\"03e40cba735bcbcd1f46c7dc02a738b42\""
+      },
+      "outcome": "ok",
+      "purpose": "source audit only; no forecasts",
+      "rawBytes": 1560,
+      "rawComplete": true,
+      "rawSHA256": "5ecb59eb6ec157523c9ec72e393df85c3738880d4dc8d8ef02278e6ee98768d9",
+      "receivedAt": "2026-09-08T05:35:38.327092+00:00",
+      "requestedAt": "2026-09-08T05:35:38.207288+00:00",
+      "responseUrl": "https://api.wtatennis.com/tennis/tournaments/2075/2026/matches?page=0&pageSize=100",
+      "schema": "prospective-source-audit-v1",
+      "sha256": "e5e2f7e0a9f92974c4cd99df86d36b93d0da553eb8b81c4c0e5008929350db01",
+      "source": "wta",
+      "status": 200,
+      "url": "https://api.wtatennis.com/tennis/tournaments/2075/2026/matches?page=0&pageSize=100",
+      "year": 2026
+    },
+    "guadalajara-2025-matches": {
+      "adapterSHA256": "a0c73268af8c615f56cd2c14fd0e850c1a41d05a7bbce1a62cd18d9e790b33fb",
+      "elapsedSeconds": 0.12794483406469226,
+      "event": "2075",
+      "headers": {
+        "cache-control": "max-age=30",
+        "content-length": "70815",
+        "content-type": "application/json",
+        "date": "Tue, 08 Sep 2026 05:35:38 GMT",
+        "etag": "\"0eeb2e5095091e6664d2e6e346df4410f\""
+      },
+      "outcome": "ok",
+      "purpose": "source audit only; no forecasts",
+      "rawBytes": 70815,
+      "rawComplete": true,
+      "rawSHA256": "126993470ddf3fbe40d684df7f8a8174689a3df16f1d6211ca2cd1f1664a0426",
+      "receivedAt": "2026-09-08T05:35:38.458191+00:00",
+      "requestedAt": "2026-09-08T05:35:38.330253+00:00",
+      "responseUrl": "https://api.wtatennis.com/tennis/tournaments/2075/2025/matches?page=0&pageSize=100",
+      "schema": "prospective-source-audit-v1",
+      "sha256": "f98d8e4f088442de3705a2b2ad357195eb5735d83a245aa9477ed01a5a27888d",
+      "source": "wta",
+      "status": 200,
+      "url": "https://api.wtatennis.com/tennis/tournaments/2075/2025/matches?page=0&pageSize=100",
+      "year": 2025
+    },
+    "wta-live-order-page": {
+      "schema": "wta-coverage-inspection-v1",
+      "url": "https://www.wtatennis.com/tournaments/905/us-open/2026/order-of-play",
+      "requestedAt": "2026-09-08T05:36:57.591546+00:00",
+      "purpose": "official WTA coverage/source audit; no forecasts",
+      "status": 200,
+      "responseUrl": "https://www.wtatennis.com/tournaments/905/us-open/2026/order-of-play",
+      "headers": {
+        "content-type": "text/html;charset=utf-8",
+        "date": "Tue, 08 Sep 2026 05:37:00 GMT",
+        "cache-control": "max-age=30, stale-while-revalidate=600, stale-if-error=86400"
+      },
+      "rawBytes": 2997621,
+      "rawSHA256": "a1889a8a5968b4b5d6c983fffa3661b5e0590e948354bfb67de73f63d6db828a",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T05:37:00.778430+00:00",
+      "elapsedSeconds": 3.186601374996826
+    },
+    "wta-live-matches": {
+      "adapterSHA256": "a0c73268af8c615f56cd2c14fd0e850c1a41d05a7bbce1a62cd18d9e790b33fb",
+      "elapsedSeconds": 2.363544541061856,
+      "event": "905",
+      "headers": {
+        "cache-control": "max-age=30",
+        "content-length": "345894",
+        "content-type": "application/json",
+        "date": "Tue, 08 Sep 2026 05:41:22 GMT",
+        "etag": "\"0733c564e2075e82fab3021af77a89b31\""
+      },
+      "outcome": "ok",
+      "purpose": "source audit only; no forecasts",
+      "rawBytes": 345894,
+      "rawComplete": true,
+      "rawSHA256": "66996a3fba345ebe5a4b4773e1f16d35d2be2aa6d32fe1e7fa5ad277f2e94ad5",
+      "receivedAt": "2026-09-08T05:41:23.049109+00:00",
+      "requestedAt": "2026-09-08T05:41:20.685473+00:00",
+      "responseUrl": "https://api.wtatennis.com/tennis/tournaments/905/2026/matches?page=0&pageSize=100",
+      "schema": "prospective-source-audit-v1",
+      "sha256": "d35ea5999db2e082b11a7ffc94ede21c8410ce165f26d51e45fa971269bad878",
+      "source": "wta",
+      "status": 200,
+      "url": "https://api.wtatennis.com/tennis/tournaments/905/2026/matches?page=0&pageSize=100",
+      "year": 2026
+    }
+  },
+  "calendar": {
+    "windowStartDate": "2026-09-08",
+    "windowEndExclusiveDate": "2026-10-08",
+    "days": 30,
+    "scope": "date-based planning in the supplied calendar; not timed evaluator registration",
+    "events": [
+      {
+        "event": "905",
+        "year": 2026,
+        "name": "US OPEN",
+        "level": "Grand Slam",
+        "start": "2026-08-30",
+        "end": "2026-09-13",
+        "entrants": 128,
+        "calendarStatus": "inProgress",
+        "scope": "already-started-or-completed",
+        "wholeDrawCeiling": 127,
+        "remainingCeilingFromCalendar": null
+      },
+      {
+        "event": "2075",
+        "year": 2026,
+        "name": "GUADALAJARA 500",
+        "level": "WTA500",
+        "start": "2026-09-13",
+        "end": "2026-09-19",
+        "entrants": 28,
+        "calendarStatus": "future",
+        "scope": "fully-contained-future",
+        "wholeDrawCeiling": 27,
+        "remainingCeilingFromCalendar": 27
+      },
+      {
+        "event": "1139",
+        "year": 2026,
+        "name": "SAO PAULO",
+        "level": "WTA250",
+        "start": "2026-09-14",
+        "end": "2026-09-20",
+        "entrants": 32,
+        "calendarStatus": "future",
+        "scope": "fully-contained-future",
+        "wholeDrawCeiling": 31,
+        "remainingCeilingFromCalendar": 31
+      },
+      {
+        "event": "1024",
+        "year": 2026,
+        "name": "SEOUL",
+        "level": "WTA250",
+        "start": "2026-09-21",
+        "end": "2026-09-27",
+        "entrants": 32,
+        "calendarStatus": "future",
+        "scope": "fully-contained-future",
+        "wholeDrawCeiling": 31,
+        "remainingCeilingFromCalendar": 31
+      },
+      {
+        "event": "1152",
+        "year": 2026,
+        "name": "SINGAPORE",
+        "level": "WTA500",
+        "start": "2026-09-21",
+        "end": "2026-09-27",
+        "entrants": 28,
+        "calendarStatus": "future",
+        "scope": "fully-contained-future",
+        "wholeDrawCeiling": 27,
+        "remainingCeilingFromCalendar": 27
+      },
+      {
+        "event": "1020",
+        "year": 2026,
+        "name": "BEIJING",
+        "level": "WTA1000",
+        "start": "2026-09-30",
+        "end": "2026-10-11",
+        "entrants": 96,
+        "calendarStatus": "future",
+        "scope": "partial-future",
+        "wholeDrawCeiling": 95,
+        "remainingCeilingFromCalendar": 95
+      }
+    ],
+    "exclusions": [
+      {
+        "event": "2093",
+        "year": 2026,
+        "reason": "outside-individual-main-tour"
+      },
+      {
+        "event": "1173",
+        "year": 2026,
+        "reason": "outside-individual-main-tour"
+      },
+      {
+        "event": "1112",
+        "year": 2026,
+        "reason": "outside-individual-main-tour"
+      },
+      {
+        "event": "2044",
+        "year": 2026,
+        "reason": "outside-individual-main-tour"
+      },
+      {
+        "event": "1136",
+        "year": 2026,
+        "reason": "outside-individual-main-tour"
+      },
+      {
+        "event": "2061",
+        "year": 2026,
+        "reason": "outside-individual-main-tour"
+      },
+      {
+        "event": "1178",
+        "year": 2026,
+        "reason": "outside-individual-main-tour"
+      },
+      {
+        "event": "1133",
+        "year": 2026,
+        "reason": "outside-individual-main-tour"
+      },
+      {
+        "event": "1135",
+        "year": 2026,
+        "reason": "outside-individual-main-tour"
+      },
+      {
+        "event": "1179",
+        "year": 2026,
+        "reason": "outside-individual-main-tour"
+      },
+      {
+        "event": "1143",
+        "year": 2026,
+        "reason": "outside-individual-main-tour"
+      },
+      {
+        "event": "1147",
+        "year": 2026,
+        "reason": "outside-individual-main-tour"
+      },
+      {
+        "event": "1149",
+        "year": 2026,
+        "reason": "outside-individual-main-tour"
+      },
+      {
+        "event": "1140",
+        "year": 2026,
+        "reason": "outside-individual-main-tour"
+      },
+      {
+        "event": "1128",
+        "year": 2026,
+        "reason": "outside-individual-main-tour"
+      },
+      {
+        "event": "1168",
+        "year": 2026,
+        "reason": "outside-individual-main-tour"
+      },
+      {
+        "event": "1075",
+        "year": 2026,
+        "reason": "outside-window"
+      },
+      {
+        "event": "2092",
+        "year": 2026,
+        "reason": "outside-window"
+      },
+      {
+        "event": "405",
+        "year": 2026,
+        "reason": "outside-window"
+      },
+      {
+        "event": "1150",
+        "year": 2026,
+        "reason": "cancelled-edition"
+      },
+      {
+        "event": "1180",
+        "year": 2026,
+        "reason": "outside-individual-main-tour"
+      },
+      {
+        "event": "1174",
+        "year": 2026,
+        "reason": "outside-individual-main-tour"
+      },
+      {
+        "event": "1145",
+        "year": 2026,
+        "reason": "outside-individual-main-tour"
+      },
+      {
+        "event": "1023",
+        "year": 2026,
+        "reason": "outside-window"
+      },
+      {
+        "event": "1056",
+        "year": 2026,
+        "reason": "outside-window"
+      }
+    ],
+    "futureWholeDrawCeilings": {
+      "fully-contained-future": 116,
+      "partial-future": 95
+    },
+    "optimisticFutureCeiling": 211,
+    "ongoingRemainingUnknown": [
+      "905"
+    ],
+    "guaranteedEligiblePairs": 0,
+    "partialEventsProrated": false,
+    "readyForLiveEvaluation": false,
+    "sourceReceipt": {
+      "schema": "wta-coverage-inspection-v1",
+      "url": "https://api.wtatennis.com/tennis/tournaments/?from=2026-09-01&to=2026-10-31&page=0&pageSize=100",
+      "requestedAt": "2026-09-08T05:33:24.903434+00:00",
+      "purpose": "official WTA coverage/source audit; no forecasts",
+      "status": 200,
+      "responseUrl": "https://api.wtatennis.com/tennis/tournaments/?from=2026-09-01&to=2026-10-31&page=0&pageSize=100",
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "27314",
+        "cache-control": "max-age=30",
+        "etag": "\"0e08ac47e68a31571026604557204141a\"",
+        "date": "Tue, 08 Sep 2026 05:33:25 GMT"
+      },
+      "rawBytes": 27314,
+      "rawSHA256": "6c8cd872feb9fee15478e3a9c5490d117115bbc748aa90cdc6d296b0a664f340",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T05:33:25.497502+00:00",
+      "elapsedSeconds": 0.5936309579992667,
+      "outcome": "ok",
+      "sha256": "740b4d3bf87f33f7734287ba0dcb227a48467535e5bcb449d354d021e5f0ba72"
+    }
+  },
+  "orderCollections": [
+    {
+      "root": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/runs/wta-coverage/intake-future",
+      "sha256": "28439fc8557bad5cf01ad3f20cf554be2fa4c862c014972ee99f77691d88d717",
+      "observedAt": "2026-09-08T05:35:38.327092+00:00",
+      "outcome": "unpublished",
+      "pageRows": 0,
+      "admittedOccurrences": 0,
+      "uniqueMainSingles": 0,
+      "completeForAbsenceComparison": false
+    },
+    {
+      "root": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/runs/wta-coverage/intake-historical",
+      "sha256": "5693febcb6bf64d753f1c2645c0bb6632ae5bc14991a89df5641812ce4c55f40",
+      "observedAt": "2026-09-08T05:35:38.458191+00:00",
+      "outcome": "observed",
+      "pageRows": 65,
+      "admittedOccurrences": 31,
+      "uniqueMainSingles": 27,
+      "completeForAbsenceComparison": true
+    },
+    {
+      "root": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/runs/wta-coverage/intake-current",
+      "sha256": "539f263031cc62201f2b408b02adf397e900d75ce653edb7c5440997ca7e9200",
+      "observedAt": "2026-09-08T05:41:23.049109+00:00",
+      "outcome": "observed",
+      "pageRows": 299,
+      "admittedOccurrences": 124,
+      "uniqueMainSingles": 124,
+      "completeForAbsenceComparison": true
+    }
+  ],
+  "currentTimeKinds": {
+    "unresolved-time": 1,
+    "sequence-only": 2,
+    "first-match-court-start": 1,
+    "historical-or-nonscheduled": 120
+  },
+  "currentPending": [
+    {
+      "actualStartVerified": false,
+      "apiNotBeforeField": "15:30Z",
+      "apiObservedAt": "2026-09-08T05:41:23.049109+00:00",
+      "apiScheduleField": "2026-09-09T23:59+00:00",
+      "court": "Court TBC",
+      "courtClock": null,
+      "courtGroup": 0,
+      "dedicatedClockUnqualified": false,
+      "event": "905",
+      "observedAt": "2026-09-08T05:41:23.049109+00:00",
+      "order": 1,
+      "pageDate": "2026-09-09",
+      "pageObservedAt": "2026-09-08T05:37:00.778430+00:00",
+      "pageRound": "Quarterfinals",
+      "pageStatus": "U",
+      "playerIDs": [
+        "331809",
+        "328560"
+      ],
+      "playerLinks": [
+        [
+          "/players/331809/mirra-andreeva"
+        ],
+        [
+          "/players/328560/coco-gauff"
+        ]
+      ],
+      "players": [
+        "Mirra Andreeva",
+        "Coco Gauff"
+      ],
+      "publishedTimeKind": "unresolved-time",
+      "publishedTimeUTC": null,
+      "qualification": "schedule-observation-only",
+      "round": "QF",
+      "sourceDigests": {
+        "api": "66996a3fba345ebe5a4b4773e1f16d35d2be2aa6d32fe1e7fa5ad277f2e94ad5",
+        "page": "a1889a8a5968b4b5d6c983fffa3661b5e0590e948354bfb67de73f63d6db828a"
+      },
+      "sourceMatchId": "LS73992540",
+      "sourceMatchKey": "wta:905:2026:LS73992540",
+      "sourceURL": "https://www.wtatennis.com/tournaments/905/us-open/2026/order-of-play",
+      "status": "scheduled",
+      "timingIssues": [
+        "missing or inconsistent court clock"
+      ],
+      "year": 2026
+    },
+    {
+      "actualStartVerified": false,
+      "apiNotBeforeField": "15:30Z",
+      "apiObservedAt": "2026-09-08T05:41:23.049109+00:00",
+      "apiScheduleField": "2026-09-09T23:59+00:00",
+      "court": "Court TBC",
+      "courtClock": null,
+      "courtGroup": 0,
+      "dedicatedClockUnqualified": false,
+      "event": "905",
+      "observedAt": "2026-09-08T05:41:23.049109+00:00",
+      "order": 2,
+      "pageDate": "2026-09-09",
+      "pageObservedAt": "2026-09-08T05:37:00.778430+00:00",
+      "pageRound": "Quarterfinals",
+      "pageStatus": "U",
+      "playerIDs": [
+        "328120",
+        "324166"
+      ],
+      "playerLinks": [
+        [
+          "/players/328120/qinwen-zheng"
+        ],
+        [
+          "/players/324166/elena-rybakina"
+        ]
+      ],
+      "players": [
+        "Qinwen Zheng",
+        "Elena Rybakina"
+      ],
+      "publishedTimeKind": "sequence-only",
+      "publishedTimeUTC": null,
+      "qualification": "schedule-observation-only",
+      "round": "QF",
+      "sourceDigests": {
+        "api": "66996a3fba345ebe5a4b4773e1f16d35d2be2aa6d32fe1e7fa5ad277f2e94ad5",
+        "page": "a1889a8a5968b4b5d6c983fffa3661b5e0590e948354bfb67de73f63d6db828a"
+      },
+      "sourceMatchId": "LS73992542",
+      "sourceMatchKey": "wta:905:2026:LS73992542",
+      "sourceURL": "https://www.wtatennis.com/tournaments/905/us-open/2026/order-of-play",
+      "status": "scheduled",
+      "timingIssues": [],
+      "year": 2026
+    },
+    {
+      "actualStartVerified": false,
+      "apiNotBeforeField": "11:30-0400",
+      "apiObservedAt": "2026-09-08T05:41:23.049109+00:00",
+      "apiScheduleField": "2026-09-08T11:30-04:00",
+      "court": "Arthur Ashe Stadium",
+      "courtClock": {
+        "class": "court-header__start l-m-m js-start-time",
+        "data-date": "2026-09-08",
+        "data-start-time": "11:30 AM",
+        "data-utc-offset": "-0400"
+      },
+      "courtGroup": 0,
+      "dedicatedClockUnqualified": false,
+      "event": "905",
+      "observedAt": "2026-09-08T05:41:23.049109+00:00",
+      "order": 1,
+      "pageDate": "2026-09-08",
+      "pageObservedAt": "2026-09-08T05:37:00.778430+00:00",
+      "pageRound": "Quarterfinals",
+      "pageStatus": "U",
+      "playerIDs": [
+        "320760",
+        "329668"
+      ],
+      "playerLinks": [
+        [
+          "/players/320760/aryna-sabalenka"
+        ],
+        [
+          "/players/329668/linda-noskova"
+        ]
+      ],
+      "players": [
+        "Aryna Sabalenka",
+        "Linda Noskova"
+      ],
+      "publishedTimeKind": "first-match-court-start",
+      "publishedTimeUTC": "2026-09-08T15:30:00+00:00",
+      "qualification": "schedule-observation-only",
+      "round": "QF",
+      "sourceDigests": {
+        "api": "66996a3fba345ebe5a4b4773e1f16d35d2be2aa6d32fe1e7fa5ad277f2e94ad5",
+        "page": "a1889a8a5968b4b5d6c983fffa3661b5e0590e948354bfb67de73f63d6db828a"
+      },
+      "sourceMatchId": "LS73992552",
+      "sourceMatchKey": "wta:905:2026:LS73992552",
+      "sourceURL": "https://www.wtatennis.com/tournaments/905/us-open/2026/order-of-play",
+      "status": "scheduled",
+      "timingIssues": [],
+      "year": 2026
+    },
+    {
+      "actualStartVerified": false,
+      "apiNotBeforeField": "19:00-0400",
+      "apiObservedAt": "2026-09-08T05:41:23.049109+00:00",
+      "apiScheduleField": "2026-09-08T19:00-04:00",
+      "court": "Arthur Ashe Stadium",
+      "courtClock": {
+        "class": "court-header__start l-m-m js-start-time",
+        "data-date": "2026-09-08",
+        "data-start-time": "11:30 AM",
+        "data-utc-offset": "-0400"
+      },
+      "courtGroup": 0,
+      "dedicatedClockUnqualified": false,
+      "event": "905",
+      "observedAt": "2026-09-08T05:41:23.049109+00:00",
+      "order": 2,
+      "pageDate": "2026-09-08",
+      "pageObservedAt": "2026-09-08T05:37:00.778430+00:00",
+      "pageRound": "Quarterfinals",
+      "pageStatus": "U",
+      "playerIDs": [
+        "316956",
+        "325410"
+      ],
+      "playerLinks": [
+        [
+          "/players/316956/jessica-pegula"
+        ],
+        [
+          "/players/325410/emma-navarro"
+        ]
+      ],
+      "players": [
+        "Jessica Pegula",
+        "Emma Navarro"
+      ],
+      "publishedTimeKind": "sequence-only",
+      "publishedTimeUTC": null,
+      "qualification": "schedule-observation-only",
+      "round": "QF",
+      "sourceDigests": {
+        "api": "66996a3fba345ebe5a4b4773e1f16d35d2be2aa6d32fe1e7fa5ad277f2e94ad5",
+        "page": "a1889a8a5968b4b5d6c983fffa3661b5e0590e948354bfb67de73f63d6db828a"
+      },
+      "sourceMatchId": "LS73992554",
+      "sourceMatchKey": "wta:905:2026:LS73992554",
+      "sourceURL": "https://www.wtatennis.com/tournaments/905/us-open/2026/order-of-play",
+      "status": "scheduled",
+      "timingIssues": [],
+      "year": 2026
+    }
+  ],
+  "historyMatches": 151,
+  "historyOccurrences": 155,
+  "actualTemporalRevisions": 0,
+  "gaps": [
+    {
+      "collection": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/runs/wta-coverage/intake-future",
+      "outcome": "unpublished",
+      "issues": [
+        "absence-comparison-unavailable"
+      ]
+    }
+  ],
+  "actualStartBoundsQualified": 0,
+  "newForecasts": 0,
+  "modelFits": 0,
+  "validation": {
+    "recordedAt": "2026-09-08T05:55:11.812537+00:00",
+    "focusedTests": {
+      "passed": 237,
+      "elapsedSeconds": 8.63
+    },
+    "newTests": 62,
+    "ruff": "All checks passed!\n",
+    "realArchiveReplayAndCLI": "passed",
+    "developmentNotes": [
+      "Initial 57-case test run: 9 failed and 48 passed. Printed round whitespace was normalized incorrectly; fixed using actual parsed labels. Synthetic expectation used a UTC string for a retained local-offset field; changed to equivalent-instant comparison. Symlink refusal raised the existing typed artifact exception; corrected test expectation.",
+      "Then 57 passed in 2.90s; five additional meaningful source/replay negatives plus the 175 existing focused tests yielded 237 passed in 8.63s.",
+      "Exploration launch/read slips (owning path, reading before acquisition finished, fixture receipt before normalization) are development errors, not source failures or model experiments. No additional retained HTTP reads resulted."
+    ]
+  },
+  "preservation": {
+    "protectedRunFilesVerified": {
+      "phase3": 56,
+      "phase4": 77,
+      "maintenance": 104,
+      "dynamic-continuation": 61,
+      "dynamic-shadow": 37,
+      "prospective-shadow": 42,
+      "source-audit": 38,
+      "time-evidence": 28,
+      "start-source": 57,
+      "free-source": 26,
+      "official-schedule": 27,
+      "official-link": 19
+    },
+    "totalProtectedRunFilesVerified": 572,
+    "frozenPackageFilesVerified": 91,
+    "priorTrackedProgramWebWorkflowFilesExact": 365,
+    "completedCheckoutsClean": {
+      "coordinator": "c5cd3669d94fb93b7b0914e96bb28253d9e990a4",
+      "phase4": "51c9eb1535dc296e1464fb7c1290a779f7f34c15",
+      "maintenance": "975379b9411b1bd79937e31e5f80d412df3b5f09",
+      "dynamic-screen": "777a38e235755754e6175b294b47f48a70e90b31",
+      "dynamic-shadow": "64d62decfdc9d96e5777bb8017a29bb8d4c0993f",
+      "prospective-shadow": "3cd780af13e364c04714f7ae1d7e0b9bb7c9ba1c",
+      "source-audit": "3f4e99d64af66461e11e6e96fb164813e4144bfd",
+      "time-evidence": "129f811514cfd6b2a44edc087c42b26b45a475d4",
+      "start-source": "2e50cb560bb7ba394eae83883b76db9ad06ecff6",
+      "free-source": "64e70227281c1433a825fa7032a131c9a95ceb12",
+      "official-schedule": "70f5976cd9eb07ec5757674f5966c81b30c31477",
+      "official-link": "e10757fa432f08203642ef9e8fa784f77f906795"
+    },
+    "inheritedTrackedDataFiles": 33,
+    "newTrainingCopies": 0,
+    "modelsVerified": {
+      "maintenance/wta-final-001/predictor.pkl": "8cf280c43f813a6944244d585248af8d5fcbc1ff628e535f98d4e10866730e34",
+      "prospective-shadow/migration-001/candidate.shadow": "43dd88b1461913f11b90b6d2aa6aa82f7bbfe3ba7ad597d978c6a46b73d45fcc"
+    },
+    "fullTrainingAndSnapshotInventoriesRehashedThisPhase": false,
+    "lastFullTrainingAndSnapshotVerificationUTC": "2026-09-08T01:58:44.035725+00:00"
+  },
+  "implementationFiles": {
+    "tennis_model/research/wta_orders.py": "ffcc28d44535d8e32eb7b148ccaf9616a35bcea60b103c8d88597c6b39e55f8f",
+    "tennis_model/research/wta_calendar.py": "d223cec0cd0b1afa93c8debb5c0565a87c3937bcca4cefc1b5e052b93a9b7331",
+    "tennis_model/tests/test_wta_orders.py": "de8023da379d70f94d3ed827fec235731a45a900e36fbe77a92211ae18e850ed",
+    "tennis_model/tests/test_wta_calendar.py": "55783b9156dad36fd4444973d0b60f188a67d649434413dd6cb6d556a6e647e8",
+    "tennis_model/tests/fixtures/wta_orders/calendar-001.gz": "78c2fe16281c2fa72bfb4e6a8301108d8c5c0f6b2aeef82857a5a932df2c93fc",
+    "tennis_model/tests/fixtures/wta_orders/guadalajara-2025-matches.gz": "03289477e51607333b1b02a3179b16194cb7e8c486f2594471f26a7f74a89f7f",
+    "tennis_model/tests/fixtures/wta_orders/guadalajara-2025-page.gz": "5bca6395d8b711b3f6928df2b792e3db641911424505ce5ae85ddd00b0185418",
+    "tennis_model/tests/fixtures/wta_orders/guadalajara-2026-matches.gz": "1f30f3230730cc3f802590a5bc9d81d084e4e137bd56b0b053a3486a3453b7d7",
+    "tennis_model/tests/fixtures/wta_orders/guadalajara-page.gz": "3368a173d2e1fc77ee8f39e63cac1b3349888aad2d80e52965165ec4d720f25a",
+    "tennis_model/tests/fixtures/wta_orders/manifest.json": "50cc99187f1d9cb67ac83abdaf7710eb7eb0a8547c60bc0a8e6d466c5f17e343",
+    "tennis_model/tests/fixtures/wta_orders/wta-live-matches.gz": "4fe58664f50bff0f7104b047eb4d3f2ef41ba10e4826f1f33c52acefb2d58477",
+    "tennis_model/tests/fixtures/wta_orders/wta-live-order-page.gz": "e0851626e0dc0192fcdbc97a93dc86ab6cb543534b8f70d033d402c4647d67b9"
+  },
+  "driverHashes": {
+    "wta-coverage-probe.py": "de17415b11f6dd2cf309c074176ba903b320f2cee1fd590f6ea0629f6492e557",
+    "wta-coverage-replay.py": "c9fffcba8c891eca3e7cc5e9137c5dafa04fb1c0e3cc13a0f9599b099baa9905",
+    "wta-coverage-verify.py": "9e9efb164ddf82fe110ff8c2803335b76971aebfcbd3e0f259f6ee292f801c2f"
+  },
+  "livePilotActive": false,
+  "unattendedCollectorActive": false,
+  "accountOrPurchaseCreated": false,
+  "productionChanged": false,
+  "runFiles": {
+    "acceptance.json": "fcc146f330e0fe92d1ef5ad135a95a7c0966e8edc5bcb317cd5051ddd671b2d8",
+    "calendar-001/attempt.json": "ab09640fd85bd942803049016b4c6b8e56c0ad042787f3d88b956652b0766572",
+    "calendar-001/receipt.json": "596ed1539348169e1a2cfeddf8e7482a6e3cc22807929b3d6da9072d00944e07",
+    "calendar-001/response.bin": "6c8cd872feb9fee15478e3a9c5490d117115bbc748aa90cdc6d296b0a664f340",
+    "capacity-001.json": "f7e64d7cf344bb57c1619f5ad4ce61da56a528060f581fd1f75c7ea976d091a5",
+    "cli-replay.json": "8ea089159a13c32b617a4e1e9419cbfad60d0e0b85c6d6bba3377ae30e4ad5af",
+    "guadalajara-2025-matches/attempt.json": "07598ca9f62384cc64237d2d290fffb85cb73e402c04ae5742f181c36d96b4da",
+    "guadalajara-2025-matches/receipt.json": "e7698712248812c5ddce000875135c95881bfec302e1d07d271041e69b46cbf3",
+    "guadalajara-2025-matches/response.bin": "126993470ddf3fbe40d684df7f8a8174689a3df16f1d6211ca2cd1f1664a0426",
+    "guadalajara-2025-page/attempt.json": "593e9a39a45bb512fbc11f8dc8a711a273ece479fb7e85c6d75f8ef3f4fe8226",
+    "guadalajara-2025-page/receipt.json": "86b76c806db60cda4ca18538b856479c11d8ec8af92ffa589806f04c292c05eb",
+    "guadalajara-2025-page/response.bin": "7efef07d8f34a5176fe5e1f543b8a59ea3245af30fd5c7f1f2003f64eb24aa86",
+    "guadalajara-2026-matches/attempt.json": "ce18bd60241ce7f7508ec7549e418986141449c844d40547d0070e63e75cd521",
+    "guadalajara-2026-matches/receipt.json": "1aab13710d7aae8d97176a2bd826078373ebdc08caf7b37ca6ed11e64c106a50",
+    "guadalajara-2026-matches/response.bin": "5ecb59eb6ec157523c9ec72e393df85c3738880d4dc8d8ef02278e6ee98768d9",
+    "guadalajara-page/attempt.json": "050788ec01ab21b86b0dc09217b0f6b8f9150c4bf30c6d9f3f3238deaa15d9fa",
+    "guadalajara-page/receipt.json": "f2d4abecd42d9f265cc0e6875331d57ebc4899a30853412013a2dfc0ae031aea",
+    "guadalajara-page/response.bin": "060110b667affb0dce82d0730cea95988c7dd73747b230cb3c00cb7256588e8c",
+    "intake-current/collection.json": "4ddea2958201e12d7fed7cb1766cd9fa3542286a05148fc3abb0567cefe17fe2",
+    "intake-future/collection.json": "d8c0ce61463e8eb072f87927d1ee4ff74e39e7986fd5e4f8ac3b0d8e29bfb588",
+    "intake-historical/collection.json": "987301146554ce2c6b0a2e05381eaf0c52e800a2b5bfa753ddf5810b79a9cd99",
+    "oop-script/attempt.json": "241e0d6fe0754cc304b68104b38834de00e00feee8c7fe55bb88e250dabe4cbe",
+    "oop-script/receipt.json": "5471da48e1c2236994d15732f7fcba427f6b047c6638b4a738c2320d97ea27a8",
+    "oop-script/response.bin": "9c61fa6bc781012c22e641b1cd1a88855f7159af13af670b1531c98daf63375b",
+    "order-history-001.json": "a42c72478cd6988174b87533b3634db950992350a637c176c47e6f023efaffd3",
+    "protected-run-files.json": "dcd2a422fbee4ec3dc86717ef57a404c9ba54ebf7d15c73b58d20c314c848052",
+    "pytest-focused.txt": "3063e01f96fd12fae03c00dbedd5a449d4bee0420772c7e90d1c0baa3ba6914f",
+    "validation.json": "846feaeb60e710dbf5fae59efd3b231c768a231fc625366fd4cf273e34a97131",
+    "wta-live-matches/attempt.json": "1c6da0baa954e75fc27efe2c26a5e0a9903fe22bb435fc8b1fa0377fcb78286b",
+    "wta-live-matches/receipt.json": "7e720f40b5e59072183fdaf3bcfed2be02c550b2b2a2a38994864205aef6a137",
+    "wta-live-matches/response.bin": "66996a3fba345ebe5a4b4773e1f16d35d2be2aa6d32fe1e7fa5ad277f2e94ad5",
+    "wta-live-order-page/attempt.json": "8b907915db83aea187bae92914e06d670cb53d131ea41ec8b80318381ef9afde",
+    "wta-live-order-page/receipt.json": "93c17423ccb7155f941eb24b4e15886be9c0131659e5dae4622adf9f75be14eb",
+    "wta-live-order-page/response.bin": "a1889a8a5968b4b5d6c983fffa3661b5e0590e948354bfb67de73f63d6db828a"
+  }
+}

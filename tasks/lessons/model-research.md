@@ -297,3 +297,13 @@ Indexed in [`../lessons.md`](../lessons.md).
   IDs per canonical player, preserve both numeric claims and exclude disagreements;
   neither stripping a prefix nor matching the unordered ID pair handles side swaps.
   Do not turn this audit into an alias-table edit outside the established proposer.
+
+
+- **Multiple day listings in one order page are not observed temporal revisions.** (2026-09-08)
+  WTA's completed Guadalajara page retained 65 occurrences for 59 MatchIDs, including
+  31 main-singles occurrences for 27 matches, but no original start labels. Preserve
+  occurrence keys by edition/day/MatchID and compare complete occurrence sets between
+  independently timed collections. Do not interpret adjacent rows from one snapshot as
+  a revision sequence or reconstruct lost published times from completed API timestamps.
+  Whole raw HTML fixtures also preserve whitespace in printed rounds: normalize visible
+  text before checking round identity. Test retained page structure, not an invented fragment.

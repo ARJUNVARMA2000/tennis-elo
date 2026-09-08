@@ -7317,3 +7317,27 @@ production merge/push or deployment. Calendar capacity is not a forecast of elig
 ### Review
 
 Pending real source research, justified implementation and preservation checks.
+
+
+### C0–C3 review — WTA orders implemented; live evidence still pending
+
+- [x] C0: official 31-edition calendar inspected; September 8–October 8 exclusive window
+  has 116 fully contained future match slots plus a 95-match whole Beijing draw ceiling.
+  Ongoing US Open remaining capacity is unknown from calendar; no eligible-pair forecast.
+- [x] C1: eight retained HTTP responses succeeded; exact calendar/script and three
+  page/API witnesses preserved. Future Guadalajara is unpublished; historical start
+  labels are missing. Current WTA order supplies one corroborated first-court clock.
+- [x] C2: external order observer and calendar planner at `b6df856`; 62 new tests,
+  237 focused passed in 8.63s, lint and five real offline CLI operations passed.
+  Three intakes: 155 occurrences / 151 unique main-singles IDs, zero temporal revisions,
+  one unpublished gap. Contradictory identity/round evidence persists across versions.
+- [x] C3: 572 prior run files, 91 frozen package files, both models and 365 prior
+  program/web/workflow files exact; twelve prior checkouts clean. Added 34 run files
+  for a next protection inventory of 606. Detailed review/result/handoff recorded.
+- [ ] Remaining: actual publication/progression, qualified timing premise and sufficient
+  prospective paired coverage before any live pilot. Calendar ceilings are not usable pairs.
+
+**Decision:** accept bounded source/coverage engineering. Candidate unchanged/deferred;
+no start qualification, new forecast, model-performance claim, fit, training copy, account,
+provider contact, automation, live evaluation or production merge/push/deploy. Continue
+from the WTA coverage handoff when source change or independent timing work is justified.
