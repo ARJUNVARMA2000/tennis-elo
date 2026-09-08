@@ -1,28 +1,32 @@
 # DEUCE model improvement — implementation and research handoff
 
-Status: **Phases 0–4, the selected Phase 5 arbiter, offline shadow engineering and the
-mixed-format prospective runner/migration are complete.** The runner passes 1,411 tests;
-the migrated candidate retains exact fitted outputs on all 129,209 selected rows.
-Its small historical gain remains uncertain; **production adoption is deferred** and
-the corrected 42-column research incumbent remains current. Next: verify a live source
-adapter and its timestamp evidence before activating future collection.
+Status: **Phases 0–4, the selected Phase 5 arbiter, offline shadow engineering,
+mixed-format prospective runner/migration and external source adapter are complete.**
+The adapter adds 42 tests; 187 focused checks pass. Live acquisition succeeds, but the
+inspected feeds have no validated actual-start/finish mapping for 119 common results.
+**Live readiness and production adoption remain unmet.** The corrected 42-column
+research incumbent remains current. Next: define sufficient, typed time bounds and
+validate their evidence producer before implementing a new prospective protocol.
 
-Read the [latest runner/migration review](2026-09-07-prospective-shadow-review.md),
-[measurements and hashes](2026-09-07-prospective-shadow-result.json), and
-[exact next-session source/activation plan](2026-09-07-prospective-shadow-next.md).
-The [shadow review](2026-09-07-shadow-review.md) and
-[confirmation design](2026-09-07-shadow-confirmation-plan.md) retain prior acceptance.
-The [September 6 candidate verdict](2026-09-06-dynamic-screen-review.md) and
-[maintenance review](2026-09-06-maintenance-review.md) retain the statistical and
-population evidence. Exact reproduction is not independent confirmation.
+Read the [source audit review](2026-09-07-source-audit-review.md),
+[measurements and hashes](2026-09-07-source-audit-result.json), and
+[exact next-session evidence plan](2026-09-07-source-audit-next.md).
+The [runner/migration review](2026-09-07-prospective-shadow-review.md) retains the
+1,411-test full-suite result and exact fitted-output migration on 129,209 selected rows;
+that full suite was not rerun for this external-only phase. The
+[shadow review](2026-09-07-shadow-review.md),
+[September 6 candidate verdict](2026-09-06-dynamic-screen-review.md), and
+[maintenance review](2026-09-06-maintenance-review.md) retain prior evidence.
+Exact reproduction and diagnostic QA are not independent model confirmation.
 
-Latest implementation: `.research/2026-09-06-model-foundation/worktrees/prospective-shadow`,
-branch `codex/model-prospective-shadow`, source/tests `89002bc`.
+Latest implementation: `.research/2026-09-06-model-foundation/worktrees/source-audit`,
+branch `codex/model-source-audit`, source/tests `c9b5b17`. It lives outside the unchanged
+model package; the candidate artifact remains exactly the accepted runner migration.
 Corrected incumbent: `worktrees/maintenance`, `codex/model-population-repair`, code
-`1fbe42a`, review `975379b`. Earlier coordinator, Phase 4 and selected-candidate checkouts
-remain preserved, including the completed `dynamic-shadow` checkout. The original
-checkout receives documentation only. No live collector, prospective registration,
-automation or production merge/push/deployment is active; only synthetic QA was run.
+`1fbe42a`, review `975379b`. All earlier research checkouts remain preserved. The original
+checkout receives documentation only. No live model registration, collector, automation
+or production merge/push/deployment is active. The two full-size source QA captures use
+an explicitly simulated QA registration clock and must never be scored as live.
 
 The detailed campaign below is historical design. Newer reviews supersede its original
 measurements and next-session instructions. The initial Phase 4 absence counts were
@@ -723,15 +727,16 @@ At the end of EVERY implementation session, append to `tasks/todo.md`:
 
 Recommended next-session instruction:
 
-> Read `2026-09-07-prospective-shadow-review.md`, its result JSON, the interface,
-> `2026-09-07-prospective-shadow-next.md` and the live todo tail. The mixed-format
-> runner and exact migration are complete at `89002bc`, with 1,411 passing tests.
-> Preserve every completed checkout, snapshot, artifact and exclusive run. Do not
-> retune, rebuild or reinterpret synthetic QA as fresh outcomes. Next implement and
-> validate an external source adapter, audit actual pre/live/settled timestamp semantics
-> and coverage, then arrange a real fixed 30-day pilot with seven-day settlement grace.
-> Existing date-only importers do not meet this timing contract. Keep transport outside
-> the frozen package or explicitly version/migrate again if package code must change.
+> Read `2026-09-07-source-audit-review.md`, its result JSON, the interface,
+> `2026-09-07-source-audit-next.md` and the live todo tail. External source acquisition
+> is complete at `c9b5b17`; 42 new tests and 187 focused checks pass. No validated
+> actual-start/finish mapping or complete source lifecycle was established. Next define
+> a versioned time-evidence policy: a defensible start lower bound must prove the paired
+> forecast finished more than five minutes before play; a completed-result observation
+> may supply a finish upper bound. Never rename a schedule or fetch time as actual play.
+> Implement the supported evidence version separately and validate its producer before
+> real registration. Preserve every checkout, snapshot, artifact, raw source attempt and
+> QA run. Do not retune or fit again unless an explicit package migration is necessary.
 > Record the plan before editing, use no agents unless authorized, preserve both strict
 > loaders, and reconcile Git. No live collector or production release is currently active.
 

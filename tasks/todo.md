@@ -7014,3 +7014,34 @@ or unattended scheduler. Existing model/runner tests are supplemented, not rewri
 
 Pending. Live source audit receipts are factual acquisition evidence, not backfilled
 forecasts or fresh model-performance results.
+
+
+### D0–D4 final review — source adapter accepted, live readiness unmet
+
+This append records completion without rewriting the earlier plan.
+
+- [x] D0: new `codex/model-source-audit` checkout from `3cd780a`; bounded exclusive
+  source-audit runs. No new training-data copy or model fit.
+- [x] D1: six successful public HTTP reads with real timestamps/raw receipts, plus a
+  retained local sandbox DNS failure. Primary timing documentation investigated.
+- [x] D2: external adapter and failure/output-boundary fixes committed at `c9b5b17`;
+  42 new tests, 187 focused tests passed in 7.45s, full source/research/test lint passed.
+  All 78 preexisting tests and the entire model package remain unchanged.
+- [x] D3 readiness assessment: tested real ESPN/WTA fetches succeeded. 119 completed
+  main-draw matches corroborate the event mapping; zero have verified actual timing.
+  Two provisional schedule drafts; four changed provider records across three matches;
+  no full scheduled/live/terminal lifecycle. Live export correctly refuses activation.
+- [x] D3 integration QA: unchanged full-size artifacts captured two diagnostic forecasts
+  under an explicitly simulated QA registration clock; zero graded, two pending.
+  These are `synthetic-qa`, not real forecasts, and must never be upgraded or scored live.
+- [x] D4: preservation, detailed review/result hashes and next-session R0–R3 plan recorded.
+  Seven existing/original data inventories, eight distinct copies of 18,791 inputs,
+  25,826 snapshot files and all 377 prior run files verified. Research work is committed
+  locally; only documents and append-only log entries are mirrored to the original tree.
+
+**Decision:** adapter engineering is accepted; live source qualification and pilot
+activation remain outstanding. The prior protocol may unnecessarily demand exact finish
+stamps. Next specify and test typed time bounds that retain defensible pre-play proof,
+then validate the producer before activating collection. Corrected incumbent retained;
+no new model-performance evidence, retuning, production merge/push or scheduler.
+Read `2026-09-07-source-audit-review.md`, `...-result.json` and `...-next.md` on resume.

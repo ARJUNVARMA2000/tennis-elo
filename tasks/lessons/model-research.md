@@ -238,3 +238,14 @@ Indexed in [`../lessons.md`](../lessons.md).
   claims while preserving them. Test two disjoint batches, retries, partial-to-complete
   evidence and conflicts. Fix the intake endpoint before observing scores; late batches
   must not extend it. Retained files alone do not prove accumulated reporting.
+
+
+- **HTTP freshness does not establish match-time semantics; represent the bound the experiment needs.** (2026-09-07)
+  The real ESPN/WTA source audit corroborated 119 completed results but did not establish
+  actual start/finish fields. A false estimate flag, `startDate`, fetch time or score
+  transition cannot silently stand in for actual play. Preserve exact acquisition
+  receipts and distinguish transport age from upstream update latency. The earlier
+  prospective contract also demanded an exact finish unnecessarily: a verified
+  completed observation may establish an upper bound, while pre-play proof requires
+  a defensible start lower bound. Version that change explicitly and validate the
+  evidence producer before live use. Never upgrade clock-simulated QA to live evidence.
