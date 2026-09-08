@@ -318,3 +318,14 @@ Indexed in [`../lessons.md`](../lessons.md).
   UTC/elapsed agreement and still must not become actual-start proof. Whole-record
   fixtures also show MedicalTreatment omits Attributes.type: check conflicting duplicate
   fields only when supplied, rather than treating that real optional field as corruption.
+
+
+- **An official match-start definition is not a public feed's clock contract.** (2026-09-08)
+  Primary rules define first serve and prompt handset scoring, but do not map public WTA
+  InProgress.Timestamp to a physical trigger with a measured UTC error. A separate
+  authenticated API's actualStartDate cannot supply that missing namespace bridge.
+  Verify main-tour rather than WTA 125 sections and keep PDF/printed page numbers distinct.
+  For calibration, independently bound observation-clock error and broadcast delay;
+  agreement among fields sharing one clock, or a finite sample maximum, cannot certify
+  an unseen future error bound. When this premise is missing, preserve a concrete
+  measurement protocol rather than implementing another generic audit layer.

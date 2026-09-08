@@ -7393,3 +7393,55 @@ Pending bounded acquisitions, evidence-supported interpretation and acceptance c
 before reported InProgress in these samples; coarse LIVE includes warm-up. Internal clock
 arithmetic alone does not qualify actual starts. Candidate unchanged/deferred, no new
 forecast/fit/score, account, provider contact, automation, live pilot or production change.
+
+
+## 2026-09-08 — official timing contract and qualification feasibility
+
+User check-in: “Keep going” authorizes this bounded continuation from accepted `27cc95a`
+in isolated `codex/model-timing-contract`, without another implementation check-in.
+
+- [ ] Q0: verify the 635 retained run files, frozen models/package and accepted code.
+- [ ] Q1: inspect current primary officiating/scoring-device documentation and WTA rules
+  for the physical start trigger, timestamp provenance, clock synchronization/corrections
+  and any defensible error bound. Initial budget four retained primary-document reads;
+  no repeated match feeds or broad source shopping. Preserve exact relevant pages.
+- [ ] Q2: map the documented claims to the actual Guadalajara fields; explicitly separate
+  independent source evidence, inference and missing guarantees. Specify a concrete
+  calibration/collection protocol and identify what can proceed now versus after play.
+- [ ] Q3 conditional: implement a qualified producer only if the full existing contract
+  is evidenced. Otherwise finish an explicit go/no-go decision and actionable handoff;
+  do not add another generic auditor or weaken the primary gate to create progress.
+- [ ] Q4: verify preservation, check any justified implementation, commit the research
+  findings and mirror documents/append-only logs only into the original checkout.
+
+No new fit, training copies, dependency install, account/trial/purchase, provider contact,
+subagents, recurring automation, live pilot or production merge/push/deployment. Existing
+schedule/event audits remain reusable. Clock consistency alone cannot establish accuracy.
+
+### Review
+
+Pending bounded primary-source investigation and qualification decision.
+
+
+### Q0–Q4 review — primary documentation checked; independent witness still required
+
+- [x] Q0: all 635 protected run files, 91 frozen package files, both models and 384
+  inherited program/web/workflow files exact; fourteen prior accepted checkouts clean.
+- [x] Q1: four retained primary-document reads succeeded; nine complete PDF pages were
+  rendered/visually inspected. Physical first-serve semantics are defined, but no public
+  WTA field-to-clock mapping or defensible physical timing error bound was established.
+- [x] Q2: documented evidence/inference/missing guarantees, actual Guadalajara field
+  mapping and a precise independent-witness protocol with sequential/parallel dependencies.
+- [x] Q3: conditional implementation evaluated: no-go until qualifying evidence exists.
+  No new producer, generic audit layer, program/test change or weakened eligibility rule.
+- [x] Q4: two existing event reports reverified; exact result/review/handoff recorded.
+  Prior 296-test pass is historical, not rerun. 29 new files bring protection to 664.
+  Full large external inventories were last checked at 01:58:44 UTC, not rehashed here.
+- [ ] Remaining: independently timed physical witness, real live event versions, then
+  evidence-supported adapter/revision implementation and a sufficiently covered future run.
+
+**Decision:** accept the bounded document/evidence review. Candidate unchanged/deferred;
+zero qualified starts or new model-performance claims. More waiting helps only through
+new observations and prospective pairs. No fit, training copy, account, provider contact,
+automation, live pilot or production change. Follow the timing-contract handoff; avoid
+repeating document surveys or generating another generic auditor without new evidence.

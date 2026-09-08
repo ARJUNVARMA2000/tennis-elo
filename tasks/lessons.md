@@ -395,3 +395,5 @@ New lesson → append the entry to the matching topic file and add its lead line
 - A publisher's coarse LIVE status can include OnCourt and warm-up; validate the detailed
   event and physical clock separately. See
   [`lessons/model-research.md`](lessons/model-research.md). (2026-09-08)
+
+- An official match-start definition is not a public feed's clock contract. (2026-09-08; `lessons/model-research.md`)
