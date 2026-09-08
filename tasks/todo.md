@@ -6294,3 +6294,21 @@ asked whether consolidation includes that work before crossing its production bo
 ### Review
 
 Pending remote merge receipts and scope clarification.
+
+### PR consolidation acceptance
+
+- [x] PR #47 is merged at `79f560f`; PR #54 is merged at `aebad03`. GitHub reports
+  both merge times as `2026-09-08T01:02:06Z`. The duplicate Sherif key was omitted
+  and the already-verified timeless Barranquilla article resolution retained.
+- [x] Both proposal tips are ancestors of `master`. Compared with deployed repair
+  `78bef03`, the consolidated tree changes only the task log and lessons; executable
+  code, tests, workflows and data are byte-identical. Existing production test and
+  live-serving acceptance therefore remain applicable.
+- [x] Remote open PR and issue listings are both empty. The local default branch was
+  fast-forwarded to `origin/master` in the repair worktree; original research checkout
+  and its active worktrees were preserved. Git history was rechecked at `aebad03`.
+- [ ] Scope clarification remains pending for the separate active model-research task.
+  Its unpublished experiments are not represented as production-merged or complete.
+
+Deployment repair and remote PR consolidation are complete. This record supersedes
+the earlier "closed as duplicates" status; both PRs now have verified merge receipts.
