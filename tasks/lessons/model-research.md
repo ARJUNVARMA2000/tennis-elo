@@ -289,3 +289,11 @@ Indexed in [`../lessons.md`](../lessons.md).
   explicit practice entry before validating match-day identities, while rejecting
   unknown null-day records. Exact whole-response fixtures catch assumptions that
   a handpicked match-only sample misses. The regression belongs in source intake.
+
+
+- **A provider-looking player number is not proof of a shared ID namespace.** (2026-09-08)
+  The official US Open draw prefixes IDs with `wta`, yet 23 matchups have different
+  numbers from WTA match rows while 119 full results corroborate the event. Validate
+  IDs per canonical player, preserve both numeric claims and exclude disagreements;
+  neither stripping a prefix nor matching the unordered ID pair handles side swaps.
+  Do not turn this audit into an alias-table edit outside the established proposer.

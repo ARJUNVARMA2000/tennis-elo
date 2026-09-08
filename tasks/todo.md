@@ -7270,3 +7270,25 @@ that dependency statement does not authorize subagents.
 ### Review
 
 Pending source observations, supported integration, tests and preservation checks.
+
+
+### L0–L3 review — official identities corroborated; real event progression pending
+
+- [x] L0: current catalogue/order acquired once; all ten saved versions compared.
+  No revisions; later days 18–22 remain unpublished; current rows use session starts.
+- [x] L1: primary timing rule checked; it does not verify an API actual-start clock.
+  Official draw index and WS draw acquired; four total HTTP reads, all successful.
+- [x] L2: external identity audit implemented at `aab6ed0`; 119 common completed results,
+  100 strict match links, 23 player-number-disagreement exclusions, ten associated versions.
+  29 new tests; 175 focused tests passed in 5.32s, lint and actual archive CLI passed.
+- [x] L3: 553 prior run files, 91 frozen package files, both models and 360 existing
+  program/web/workflow files exact; eleven prior checkouts clean. Added 19 run files
+  for 572 next round. Detailed review/result/continuation handoff recorded.
+- [ ] Remaining: later real lifecycle evidence, qualified timing premise and broader
+  official tournament coverage. Only seven pending US Open WTA slots remain.
+
+**Decision:** the source identity dependency advanced without changing frozen models,
+evaluators, schedule collector or identity tables. Annotations are retrospective; no
+forecast, fresh model-performance claim, fit, training copy, account, provider contact,
+automation, live pilot or production merge/push/deploy. Read the official-link review
+and next-session handoff; avoid another immediate duplicate overnight capture.

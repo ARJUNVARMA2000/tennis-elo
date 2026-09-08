@@ -1,45 +1,49 @@
 # DEUCE model improvement — implementation and research handoff
 
-Status: **The official schedule collector is implemented and tested; actual-start
-qualification remains outstanding.** Implementation `cda5393` archives public US Open
-catalogues/orders, preserves immutable versions, reports revisions and retains failures.
-Two new public reads succeeded. The latest day-17 bytes match the earlier schedule;
-six WTA matches now have eight retained versions, with zero real revisions or start claims.
+Status: **Official schedule collection and event/match identity auditing are implemented;
+actual-start qualification and wider event coverage remain outstanding.** New audit
+`aab6ed0` corroborates 119 completed official/WTA/ESPN results, admits 100 strict match
+links and preserves 23 matchups with differing player numbers. All ten saved schedule
+versions for six matchups associate successfully without backdating their evidence.
 
-Read the [collector review](2026-09-07-official-schedule-review.md),
-[acceptance and preservation](2026-09-07-official-schedule-result.json),
-[collection contract](2026-09-07-official-schedule-interface.md) and
-[next-session handoff](2026-09-07-official-schedule-next.md).
-Next collect a genuinely future explicit not-before order and meaningful later versions,
-and establish the precise timing premise before evaluation intake. Do not rebuild this
-collector, repeat completed source shopping or immediately re-fetch unchanged bytes.
-The [free-source comparison](2026-09-07-free-source-review.md) and
-[point-source audit](2026-09-07-start-source-review.md) retain earlier findings.
+Read the [identity review](2026-09-08-official-link-review.md),
+[acceptance manifest](2026-09-08-official-link-result.json),
+[identity contract](2026-09-08-official-link-interface.md) and
+[next-session handoff](2026-09-08-official-link-next.md).
+Four public reads succeeded this phase: catalogue/day-17 order and official index/WS
+draw. The current order is unchanged; days 18–22 are unreleased. No actual revision,
+start or forecast was produced. The full draw has only seven pending women's singles
+slots, insufficient for the 200-pair coverage threshold even if all are collected.
 
-Latest implementation checkout: `.research/2026-09-06-model-foundation/worktrees/official-schedule`,
-branch `codex/model-official-schedule`, source/tests `cda5393`, based on `64e7022`.
-This is an external research collector. The accepted bounds evaluator remains at
-`10c07ee`, with its [review](2026-09-07-time-evidence-review.md) and 119 retained
-completion upper bounds. Live registration still refuses activation without a qualified
-start producer. All frozen model/evaluator/package bytes remain unchanged.
+Latest implementation checkout: `.research/2026-09-06-model-foundation/worktrees/official-link`,
+branch `codex/model-official-link`, source/tests `aab6ed0`, based on `70f5976`.
+The [schedule collector](2026-09-07-official-schedule-review.md) remains at `cda5393`;
+its immutable archive format and code are unchanged. The new audit uses pinned historical
+ESPN/WTA captures, not fresh result intake. It produces retrospective identity annotations,
+not forecast/context donation. No identity table or model package was changed.
 
-This round passed 146 focused tests, including 46 new collector tests, plus lint,
-retained-fixture replay and real public collection. The earlier 1,411-test full-suite
-result and migration on 129,209 selected rows remain in the
-[runner/migration review](2026-09-07-prospective-shadow-review.md); that full suite was
-not repeated for this external addition. Synthetic timing QA is not live evidence.
+This round passed 175 focused tests, including 29 new identity tests, plus lint and a
+real archive CLI replay. The accepted [bounds evaluator](2026-09-07-time-evidence-review.md)
+remains at `10c07ee`, with 119 old completion upper bounds and no qualified live start
+producer. The earlier 1,411-test full-suite result and migration on 129,209 selected rows
+remain in the [runner/migration review](2026-09-07-prospective-shadow-review.md). That
+full suite was not repeated. Synthetic QA is not live evidence.
 
-Corrected incumbent: `worktrees/maintenance`, `codex/model-population-repair`, code
-`1fbe42a`, review `975379b`. Candidate adoption remains deferred; the corrected 42-column
-research incumbent remains current. The [candidate verdict](2026-09-06-dynamic-screen-review.md)
-and [maintenance review](2026-09-06-maintenance-review.md) retain model findings.
+Corrected incumbent remains `worktrees/maintenance`, `codex/model-population-repair`,
+code `1fbe42a`, review `975379b`. Candidate adoption remains deferred. The
+[candidate verdict](2026-09-06-dynamic-screen-review.md) and
+[maintenance review](2026-09-06-maintenance-review.md) retain model findings.
 
-All 526 previous run files, 91 frozen package files, both model payloads and 354 prior
-tracked program/web/workflow files were rechecked. Ten completed prior research
-checkouts remain clean. This phase adds 27 preserved files, making 553 for next round.
-The original checkout receives documents/logs only. Manual schedule collection is
-available; no unattended collector, live evaluation, new forecast or production deploy
-is active. No fitting, training copies, accounts or new performance evidence were added.
+All 553 previous run files, 91 frozen package files, both models and 360 prior tracked
+program/web/workflow files were exact; eleven completed prior checkouts remain clean.
+This round adds 19 preserved files for a next protection inventory of 572. Original
+DEUCE receives documents/logs only. No unattended cadence, live evaluation, new forecast,
+fit, training copy, account or production deploy is active. No new performance estimate.
+
+Next work requires actual later event stages plus qualification of the timing premise
+and a concrete next official tournament source. Do not rebuild existing adapters, refit
+the frozen models or repeatedly collect unchanged overnight bytes. The new handoff
+separates those dependencies and explains the existing replay paths and limitations.
 
 The detailed campaign below is historical design. Newer reviews supersede its original
 measurements and next-session instructions. The initial Phase 4 absence counts were
@@ -740,20 +744,19 @@ At the end of EVERY implementation session, append to `tasks/todo.md`:
 
 Recommended next-session instruction:
 
-> Read `2026-09-07-official-schedule-review.md`, its result JSON, the collector interface,
-> `2026-09-07-official-schedule-next.md`, the accepted time-evidence interface and live
-> todo tail. The source-specific immutable collector is implemented at `cda5393` and
-> passed 146 focused tests plus two real public reads. Six matches have eight preserved
-> schedule versions; no real revisions or actual starts were witnessed. Use this branch's
-> accepted tip for the next isolated implementation checkout. Do not rebuild the collector.
-> Next obtain future explicit not-before evidence and later real versions, while researching
-> the precise source/rule contract. Real elapsed publication time cannot be replaced with
-> more fitting or immediate duplicate reads. No unattended cadence or live pilot exists.
-> Preserve 553 prior run files, all frozen models/code and completed checkouts. No
-> account, subscription, trial or provider contact is authorized. Keep schedule evidence
-> outside the primary bounds gate until its missing timing premise is justified.
-> Record the plan before edits, reconcile Git, append logs, commit research and mirror
-> documents only. No production merge/push/deploy or agents are implicit.
+> Read `2026-09-08-official-link-review.md`, its result JSON, the identity contract,
+> `2026-09-08-official-link-next.md`, the accepted schedule/time-evidence interfaces and
+> live todo tail. Identity auditing at `aab6ed0` corroborates 119 completed results and
+> yields 100 strict links; 23 number-disagreement matchups remain excluded. Ten versions
+> for six schedule matchups associate retrospectively. Do not infer player aliases.
+> Four new public reads found an unchanged day-17 order, unreleased later days and only
+> seven pending US Open WTA slots. Next observe meaningful event progression, qualify
+> the actual-start premise, and scope another official tournament source for realistic
+> pilot coverage. Do not re-fetch unchanged overnight bytes or rebuild the collector.
+> Preserve 572 prior run files, frozen models/code and all completed checkouts. No live
+> pilot or unattended cadence exists. No account, trial, provider contact, model fitting
+> or production merge/push/deploy is implicit. Reconcile Git, append the next plan/logs,
+> commit research and mirror documents only. Use no agents unless authorized.
 
 ## Planning review
 
