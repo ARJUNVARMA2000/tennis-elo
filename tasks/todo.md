@@ -6812,3 +6812,93 @@ Local implementation is committed as `250693c` and final evidence/handoff as
 `64d62decfdc9d96e5777bb8017a29bb8d4c0993f` on `codex/model-dynamic-shadow`. This original checkout mirrors only the
 research documents and append-only logs. No source/data files were copied here;
 all completed reference checkouts remain clean and preserved. No deployment occurred.
+
+## 2026-09-07 — Mixed-format prospective runner and frozen model migration
+
+User check-in: “kEEP GOING” continues the completed shadow handoff. Work in a new
+`codex/model-prospective-shadow` checkout from `64d62de`; no live collection starts.
+
+- [ ] P0: preserve reference inputs/results, copy inputs independently, and record the
+  versioned runner contract before implementation.
+- [ ] P1: add a separate WTA-only mixed-format runner, pinned provenance and strict
+  artifact copying, immutable bounded receipts, first-capture retries and timing checks.
+- [ ] P2: accumulate result evidence, fail closed on conflicting outcomes, implement
+  a 30-day capture horizon and seven-day settlement grace, and report paired metrics,
+  exclusions, accuracy, staleness and week/event uncertainty without automatic adoption.
+- [ ] P3: add real fitted-artifact integration and negative tests; preserve all existing
+  tests and evaluator sources; run focused/full tests and lint, then commit/freeze code.
+- [ ] P4: rebuild the same selected shadow on identical sealed inputs under the new
+  source contract; prove exact forecasts against the protected old artifact. Exercise
+  the complete mixed-format runner using explicitly synthetic QA observations.
+- [ ] P5: inspect source readiness without collecting live observations; verify all
+  protected files; record detailed evidence and remaining activation requirements,
+  reconcile Git, commit research handoff and mirror only documents to this checkout.
+
+Dependencies: P0 precedes implementation; P1/P2 precede P3; frozen P3 precedes P4.
+Source inventory is independent of fitting. No agents, new dependencies, parameter
+search, production merge/push or scheduled collector. The fixed incumbent is retained.
+
+### Review
+
+Pending. Engineering QA and exact migration do not create fresh performance evidence.
+
+
+### P0–P3 implementation review
+
+- [x] P0: isolated checkout and independent 18,791-file input copy registered. The
+  new interface was written before source edits; all completed checkouts are preserved.
+- [x] P1/P2: new `eval/prospective_shadow.py` supports strict ordinary/shadow roles,
+  exact byte copies, explicit provenance/source configuration, serialized create-only
+  evidence, post-inference freshness checks, accumulated/conflicted results, and a
+  fixed 30+7-day endpoint with paired loss/Brier/accuracy and week/event uncertainty.
+- [x] P3: 59 new tests; focused selection 145 passed in 6.82s. Full suite 1,411 passed
+  in 146.83s; full lint passed. All 77 old test files and all old package sources remain
+  byte-identical. Four disposable test caches were preserved privately then restored.
+
+The old artifact control has been captured in its protected runtime: final fitted
+outputs on all 129,209 selected rows, six dated 30-player matrices, all five booster
+identities, calibrator and dynamic-state receipts. Next: commit/freeze this new source
+before the fixed migration fit and explicitly synthetic end-to-end acceptance.
+
+### P0–P5 final review — runner and migration accepted
+
+This append closes the live implementation plan while preserving prior log entries.
+
+- [x] P0/P1/P2: completed the separate WTA runner and fixed 30-day/200-pair/seven-day
+  protocol, strict mixed-format registration, immutable capture, accumulated evidence,
+  conflict exclusions and endpoint reporting. No existing package source was edited.
+- [x] P3: implementation/tests committed at `89002bc`; 59 new tests, focused 145 passed,
+  full 1,411 passed in 146.83s, full lint passed; all 77 preexisting test files exact.
+- [x] P4: source/input freeze `969eb8eeb77d09f051ee52c415eb2d15e5ffa7d138e9b4149166e51eda3a355c`;
+  one registered fixed migration fit. Complete main/selected 129,209-row feature frames,
+  all five booster hashes, calibrator, both dynamic states, all 129,209 fitted outputs
+  and six dated 30-player matrices match the protected old model exactly. Both artifact
+  versions enforce their source boundaries. Build 35.96s; fit 3.92s; no reselection.
+- [x] P4 QA: actual full-size models captured two invented matchups covering main/lower
+  branches. Retry preserves the first receipt, separate result batches accumulate 1→2
+  graded pairs, the simulated endpoint is stable and rejects late intake. All evidence
+  is `synthetic-qa`; zero real forecasts, live registrations or fresh outcomes.
+- [x] P5: read-only source review confirms current adapters do not certify the required
+  actual start/finish evidence. Detailed D0–D5 source/activation handoff, review and JSON
+  record are complete. All five reference checkouts, eight copies of each original
+  input, 25,826 read-only snapshot files and 335 protected prior run files verified.
+  Four disposable test cache outputs were retained before restoring sealed inputs.
+
+**Decision:** engineering acceptance passes; corrected 42-column incumbent retained;
+uncertainty adoption still deferred. More fitting is not fresh evidence. Next implement
+and audit the live source adapter outside the frozen package, then activate a real
+future interval only after timing/context/cadence are verified. No production merge,
+push, deployment, scheduler or live collector was performed.
+
+Latest checkout: `worktrees/prospective-shadow`, `codex/model-prospective-shadow`.
+Artifact: `runs/prospective-shadow/migration-001/candidate.shadow`, SHA-256
+`43dd88b1461913f11b90b6d2aa6aa82f7bbfe3ba7ad597d978c6a46b73d45fcc`.
+The result JSON hashes all 42 phase run files and three private drivers. Read
+`2026-09-07-prospective-shadow-review.md`, `...-result.json` and `...-next.md` on resume.
+The original checkout receives only docs and append-only log additions.
+
+Research implementation is committed as `89002bc909c16a06c734c921f8889e0c865c8ac3`;
+final acceptance and handoff as `3cd780af13e364c04714f7ae1d7e0b9bb7c9ba1c` on
+`codex/model-prospective-shadow`. This original checkout mirrors only the four new
+handoff documents, central plan status and append-only log additions. Source/data
+remain in the isolated research checkout; no live activation or production release.

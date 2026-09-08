@@ -1,0 +1,587 @@
+{
+  "schema": "prospective-shadow-assessment-v1",
+  "completedAt": "2026-09-08T00:20:08.297578+00:00",
+  "implementationCommit": "89002bc909c16a06c734c921f8889e0c865c8ac3",
+  "implementationFreeze": "969eb8eeb77d09f051ee52c415eb2d15e5ffa7d138e9b4149166e51eda3a355c",
+  "status": "mixed-format runner, exact migration and synthetic acceptance complete",
+  "researchDecision": "Retain corrected 42-column incumbent; defer uncertainty adoption; validate source adapter before live collection.",
+  "productionAdoption": false,
+  "deployed": false,
+  "collectorActive": false,
+  "liveRegistrations": 0,
+  "realForecasts": 0,
+  "candidateReselected": false,
+  "tests": {
+    "newPassed": 59,
+    "focusedPassed": 145,
+    "focusedSeconds": 6.82,
+    "fullPassed": 1411,
+    "fullSeconds": 146.83,
+    "fullLintPassed": true,
+    "existingTestFilesUnchanged": 77
+  },
+  "migration": {
+    "endedAt": "2026-09-08T00:13:52.319068+00:00",
+    "freezeSHA256": "969eb8eeb77d09f051ee52c415eb2d15e5ffa7d138e9b4149166e51eda3a355c",
+    "results": {
+      "artifactId": "4c0c716b-7af3-48a9-a24c-f06a3d59431a",
+      "artifactSHA256": "43dd88b1461913f11b90b6d2aa6aa82f7bbfe3ba7ad597d978c6a46b73d45fcc",
+      "calibratorExact": true,
+      "candidateReselected": false,
+      "collectorActive": false,
+      "costs": {
+        "featureBuildSeconds": 35.96144354104763,
+        "finalFitSeconds": 3.91611033299705
+      },
+      "datedMatricesExact": 6,
+      "dynamicStatesExact": true,
+      "featuresExact": {
+        "columns": 43,
+        "mainRows": 129209,
+        "selectedRows": 129209
+      },
+      "fittedBoostersExact": [
+        "29f2e5ed17d354f6798ca5daff97c702fd9559cba6188ca0dc525c1f0482b079",
+        "b3b60b9e5c5e25d473670b8a128aeca05267b2db3dfa3b617dfe2d0d4168ac23",
+        "78aa4d5b1ec5458c5cfa2b7f2cc5eab7b044e2ba25168fa1293a3639b98a42b2",
+        "be8a43d9d61ce32d0059c6892f4b5de6ef64253bd0723aa8a7c5b4b8c8cb2853",
+        "ff59992a533be15f0e4b0a30fc423c3e9518b6bd4c7cb84580af0c34ee8ead15"
+      ],
+      "fittedProbabilityRowsExact": 129209,
+      "matrixPairsPerContext": 435,
+      "newSourceContract": {
+        "base": {
+          "bag": {
+            "memberRandomStates": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ],
+            "size": 5
+          },
+          "calibrator": {
+            "classes": [
+              0,
+              1
+            ],
+            "estimatorParams": {
+              "C": 10000.0,
+              "class_weight": null,
+              "dual": false,
+              "fit_intercept": true,
+              "intercept_scaling": 1,
+              "l1_ratio": 0.0,
+              "max_iter": 100,
+              "n_jobs": null,
+              "penalty": "deprecated",
+              "random_state": null,
+              "solver": "lbfgs",
+              "tol": 0.0001,
+              "verbose": 0,
+              "warm_start": false
+            },
+            "features": 1
+          },
+          "classes": {
+            "booster": "xgboost.core.Booster",
+            "boosterEstimator": "xgboost.sklearn.XGBClassifier",
+            "calibrator": "tennis_model.model.train.PlattCalibrator",
+            "calibratorEstimator": "sklearn.linear_model._logistic.LogisticRegression",
+            "combiner": "tennis_model.model.train.BaggedClassifier",
+            "contextState": "tennis_model.model.features.H2HState",
+            "eloState": "tennis_model.ratings.build.RatingState",
+            "predictor": "tennis_model.model.predict.TennisPredictor",
+            "servePriorState": "tennis_model.points.serve_prior.ServePriorState",
+            "serveReturnState": "tennis_model.points.serve_return.ServeReturnState",
+            "styleSnapshot": "tennis_model.data.style_history.StyleSnapshot"
+          },
+          "eloParams": {
+            "blend_n50": 0.0,
+            "bo5_scale": 1.0,
+            "form_days": 65.0,
+            "home_adv": 0.0,
+            "inact_boost": 0.16,
+            "inact_days": 86.0,
+            "k_offset": 1.5,
+            "k_scale": 320.0,
+            "k_shape": 0.37,
+            "mov_cap": 1.65,
+            "mov_factor": 0.22,
+            "rating_scale": 400.0,
+            "ret_k_mult": 0.72,
+            "skip_walkovers": false,
+            "surface_blend": 0.62,
+            "surface_k_offset": 5.0,
+            "surface_k_scale": 45.0,
+            "surface_k_shape": 0.4,
+            "xsurf": 0.17
+          },
+          "featureParams": {
+            "fatigue_window_days": 33.0,
+            "layoff_days": 360.0,
+            "peak_age": 24.0,
+            "winrate_window": 23
+          },
+          "features": [
+            "elo_diff",
+            "elo_overall_diff",
+            "elo_surface_diff",
+            "logit_p_blend",
+            "logit_p_point",
+            "serve_skill_diff",
+            "return_skill_diff",
+            "rankpts_diff",
+            "exp_diff",
+            "age_diff",
+            "ht_diff",
+            "hand_matchup",
+            "rest_diff",
+            "fatigue_diff",
+            "h2h_diff",
+            "log_days_since_diff",
+            "layoff_flag_diff",
+            "form90_diff",
+            "winrate10_diff",
+            "h2h_surface_diff",
+            "entry_q_diff",
+            "peak_age_dev_diff",
+            "home_flag_diff",
+            "style_serve_dom_diff",
+            "style_placement_diff",
+            "style_net_diff",
+            "style_snv_diff",
+            "style_aggression_diff",
+            "style_fhbh_diff",
+            "style_return_depth_diff",
+            "style_bp_clutch_diff",
+            "best_of",
+            "is_indoor",
+            "tier_k",
+            "round_order",
+            "surf_hard",
+            "surf_clay",
+            "surf_grass",
+            "log_min_srv_pts",
+            "log_min_matches",
+            "has_style",
+            "log1p_h2h_total"
+          ],
+          "inference": {
+            "chronologyPolicy": "retrospective-verified-date-or-recorded-event-round-v2",
+            "dualStateGateThreshold": 32,
+            "probabilityPolicy": "calibrated-pair-average-v1",
+            "schemaVersion": 5,
+            "servePriorPolicy": "available-date-strict-before-v1",
+            "stylePolicy": "mcp-retrospective-played-date-strict-before-v1"
+          },
+          "population": {
+            "matchPopulationVersion": 7,
+            "playerAliases": [
+              [
+                "aleksandr shevchenko",
+                "Alexander Shevchenko"
+              ],
+              [
+                "caijsa wilda hennemann",
+                "Caijsa Hennemann"
+              ],
+              [
+                "catherine mcnally",
+                "Caty Mcnally"
+              ],
+              [
+                "chak lam coleman wong",
+                "Coleman Wong"
+              ],
+              [
+                "christopher oconnell",
+                "Christopher O'Connell"
+              ],
+              [
+                "daniel merida aguilar",
+                "Daniel Merida"
+              ],
+              [
+                "diego dedura palomero",
+                "Diego Dedura"
+              ],
+              [
+                "digvijaypratap singh",
+                "Digvijay Pratap Singh"
+              ],
+              [
+                "gabi adrian boitan",
+                "Adrian Boitan"
+              ],
+              [
+                "gabriela andrea knutson",
+                "Gabriela Knutson"
+              ],
+              [
+                "igor ribeiro marcondes",
+                "Igor Marcondes"
+              ],
+              [
+                "ilinca dalina amariei",
+                "Ilinca Amariei"
+              ],
+              [
+                "irene burillo escorihuela",
+                "Irene Burillo"
+              ],
+              [
+                "joel josef schwaerzler",
+                "Joel Schwaerzler"
+              ],
+              [
+                "luis guto miguel",
+                "Guto Miguel"
+              ],
+              [
+                "luis miguel",
+                "Guto Miguel"
+              ],
+              [
+                "ma yexin",
+                "Ye Xin Ma"
+              ],
+              [
+                "maiar sherif ahmed abdelaziz",
+                "Mayar Sherif"
+              ],
+              [
+                "maria camila torres murcia",
+                "Maria Torres Murcia"
+              ],
+              [
+                "mayar sherif ahmed abdelaziz",
+                "Mayar Sherif"
+              ],
+              [
+                "miriam bianca bulgaru",
+                "Miriam Bulgaru"
+              ],
+              [
+                "soon woo kwon",
+                "Soonwoo Kwon"
+              ],
+              [
+                "tiantsoa sarah rakotomanga rajaonah",
+                "Tiantsoa Rakotomanga Rajaonah"
+              ],
+              [
+                "wang xinyu",
+                "Xinyu Wang"
+              ],
+              [
+                "wang xiyu",
+                "Xiyu Wang"
+              ],
+              [
+                "xin yu wang",
+                "Xinyu Wang"
+              ],
+              [
+                "zhang shuai",
+                "Shuai Zhang"
+              ],
+              [
+                "zheng qinwen",
+                "Qinwen Zheng"
+              ]
+            ],
+            "reviewedResultsSHA256": "6273d7786a65892c41aa3674322ff08cc7edf69cbed3dd9f2d21faed3ad2c117"
+          },
+          "serveReturnParams": {
+            "event_shrinkage": 0.0,
+            "form_halflife_days": 200.0,
+            "serve_shrinkage_points": 550.0,
+            "surface_serve_shrinkage": 3000.0
+          },
+          "xgboost": {
+            "params": {
+              "colsample_bytree": 0.75,
+              "early_stopping_rounds": 40,
+              "eval_metric": "logloss",
+              "gamma": 0.0005,
+              "learning_rate": 0.03,
+              "max_depth": 7,
+              "min_child_weight": 70.0,
+              "n_estimators": 2000,
+              "n_jobs": 0,
+              "objective": "binary:logistic",
+              "random_state": 0,
+              "reg_alpha": 5.0,
+              "reg_lambda": 0.1,
+              "subsample": 0.77,
+              "tree_method": "hist"
+            }
+          }
+        },
+        "combinerSchema": "dynamic-combiner-research-v1",
+        "dynamicParams": {
+          "q": 0.0001,
+          "sigma0": 1.0
+        },
+        "dynamicStateSchema": "dynamic-strength-research-v1",
+        "features": [
+          "elo_diff",
+          "elo_overall_diff",
+          "elo_surface_diff",
+          "logit_p_blend",
+          "logit_p_point",
+          "serve_skill_diff",
+          "return_skill_diff",
+          "rankpts_diff",
+          "exp_diff",
+          "age_diff",
+          "ht_diff",
+          "hand_matchup",
+          "rest_diff",
+          "fatigue_diff",
+          "h2h_diff",
+          "log_days_since_diff",
+          "layoff_flag_diff",
+          "form90_diff",
+          "winrate10_diff",
+          "h2h_surface_diff",
+          "entry_q_diff",
+          "peak_age_dev_diff",
+          "home_flag_diff",
+          "style_serve_dom_diff",
+          "style_placement_diff",
+          "style_net_diff",
+          "style_snv_diff",
+          "style_aggression_diff",
+          "style_fhbh_diff",
+          "style_return_depth_diff",
+          "style_bp_clutch_diff",
+          "best_of",
+          "is_indoor",
+          "tier_k",
+          "round_order",
+          "surf_hard",
+          "surf_clay",
+          "surf_grass",
+          "log_min_srv_pts",
+          "log_min_matches",
+          "has_style",
+          "log1p_h2h_total",
+          "logit_p_dynamic"
+        ],
+        "researchSchema": "wta-dynamic-shadow-v1",
+        "signedFeatures": [
+          "elo_diff",
+          "elo_overall_diff",
+          "elo_surface_diff",
+          "logit_p_blend",
+          "logit_p_point",
+          "serve_skill_diff",
+          "return_skill_diff",
+          "rankpts_diff",
+          "exp_diff",
+          "age_diff",
+          "ht_diff",
+          "hand_matchup",
+          "rest_diff",
+          "fatigue_diff",
+          "h2h_diff",
+          "log_days_since_diff",
+          "layoff_flag_diff",
+          "form90_diff",
+          "winrate10_diff",
+          "h2h_surface_diff",
+          "entry_q_diff",
+          "peak_age_dev_diff",
+          "home_flag_diff",
+          "style_serve_dom_diff",
+          "style_placement_diff",
+          "style_net_diff",
+          "style_snv_diff",
+          "style_aggression_diff",
+          "style_fhbh_diff",
+          "style_return_depth_diff",
+          "style_bp_clutch_diff",
+          "logit_p_dynamic"
+        ],
+        "sourceSHA256": "44cbd0deffdf9cd04fd882d36753b29d0289e442ac521dfde59c929cd3beb937"
+      },
+      "oldSourceRejected": true,
+      "provenance": {
+        "candidateFreeze": "20bdae999b8d235028af72a8160276b850211ecd38d4a9ec15a6948f84d93185",
+        "enrichedInput": "57e6572842c6e68d9dd7165b542d7187d7f000d0afbca0040bb4c1b3e13b03fa",
+        "mainInput": "1f236ef84ed9449ec464cf4d485e7d05f618210d795e6c7fc0b6b920827ada0d",
+        "referenceFreeze": "1f531e2bf3ebb5e771a798e3eee3376a09794e94f721cd04f6230076a612c7ac",
+        "selection": "85ba263dbdf914cba8a824f4df9346cc4e1ec22925db9f4115fc7d3cf25158f4"
+      },
+      "qa": {
+        "branches": [
+          "main",
+          "lower"
+        ],
+        "captureCounts": [
+          {
+            "captured": 1
+          },
+          {
+            "captured": 1
+          }
+        ],
+        "coverage": "insufficient-pilot-coverage",
+        "endpointSHA256": "724e2af6587b1584f565409e31077cee36cc69dc640edb1f4e6e4fa6698834f7",
+        "endpointStable": true,
+        "evidenceKind": "synthetic-qa",
+        "finalPairs": 2,
+        "firstReceiptExact": true,
+        "gradedByBatch": [
+          1,
+          2
+        ],
+        "pairs": [
+          [
+            "Elena Rybakina",
+            "Aryna Sabalenka"
+          ],
+          [
+            "Elena Rybakina",
+            "Tena Lukas"
+          ]
+        ],
+        "registration": "c3052a8fc5a21bf8ecbe8d657bc10579da2e54f80a2f4f43b560eabbb0aa4440"
+      },
+      "realForecasts": 0,
+      "trainedAt": "2026-09-08T00:13:38Z",
+      "verificationOnly": true
+    },
+    "status": "complete",
+    "wallSeconds": 54.43188804201782
+  },
+  "reverseVersionCheck": {
+    "newArtifactRejectedByOldSource": true,
+    "beforeDeserialization": true,
+    "reason": "contract_mismatch"
+  },
+  "preservation": {
+    "checkedAt": "2026-09-08T00:15:00.636163+00:00",
+    "protectedDataExact": [
+      "original",
+      "coordinator",
+      "phase4",
+      "maintenance",
+      "dynamic-screen",
+      "dynamic-shadow"
+    ],
+    "newDataExact": true,
+    "originalInputFiles": 18791,
+    "eightDistinctCopiesPerInput": true,
+    "snapshotFilesVerified": 25826,
+    "protectedRunFilesVerified": {
+      "phase3": 56,
+      "phase4": 77,
+      "maintenance": 104,
+      "dynamic-continuation": 61,
+      "dynamic-shadow": 37
+    },
+    "protectedSourceInventoriesExact": true,
+    "existingTestFilesExact": 77,
+    "existingPackageSourcesExact": true,
+    "newPackageFiles": [
+      "eval/prospective_shadow.py"
+    ],
+    "programWorkflowWebExact": true,
+    "newFreezeVerified": true
+  },
+  "cacheRestoration": {
+    "checkedAt": "2026-09-08T00:11:22.031560+00:00",
+    "reason": "Preserve full-suite disposable cache outputs and restore sealed input copy before freeze/fitting.",
+    "changes": [
+      {
+        "path": "cache/normalized-history/atp.pkl",
+        "testSHA256": "23f09b59cc73023b0f89566d89df5c09330129402cdfbcca5ad2a650207c5b9f",
+        "restoredSHA256": "8830bb7b2f6241293595d8734cfb5d045c8ed0475496f95a8f45ae664422475b"
+      },
+      {
+        "path": "cache/normalized-history/wta.pkl",
+        "testSHA256": "23f09b59cc73023b0f89566d89df5c09330129402cdfbcca5ad2a650207c5b9f",
+        "restoredSHA256": "b1453f261c2965aa14df8f80b751f02f26145bcef776b21f24b975cf2699bb56"
+      },
+      {
+        "path": "cache/normalized-matches/atp-main.pkl.gz",
+        "testSHA256": "940233052f3951f66938b2ecafe231976a11f456b3ff681e673b0e33d24dc303",
+        "restoredSHA256": "9b7f6252a70674bbefdac553380b9a286f594d41473871f86a16efdb5e124388"
+      },
+      {
+        "path": "cache/normalized-matches/wta-main.pkl.gz",
+        "testSHA256": "17c0df08ee11d7dad3c6059b0b8b41a859b595f3f327cc98f2b3b06bb8a76758",
+        "restoredSHA256": "15b258eb10be311997df27eb3a7f2f8f62d10bd198c182158654f897ffb327b1"
+      }
+    ]
+  },
+  "paths": {
+    "worktree": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/prospective-shadow",
+    "incumbent": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/runs/maintenance/wta-final-001/predictor.pkl",
+    "candidate": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/runs/prospective-shadow/migration-001/candidate.shadow",
+    "provenance": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/runs/prospective-shadow/provenance.json",
+    "syntheticQaOnly": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/runs/prospective-shadow/migration-001/synthetic-qa"
+  },
+  "sourceReadiness": {
+    "scope": "read-only local code inspection; no provider requests",
+    "readyForLiveActivation": false,
+    "reason": "Existing adapters do not certify the prospective schedule lower bound and actual start/finish evidence.",
+    "inspectedFiles": {
+      "tennis_model/src/tennis_model/data/live.py": "d6516f294b4cda51947b49d21e415659a9fc3f7b8914ae7997182c01b6d4f1fb",
+      "tennis_model/src/tennis_model/data/wta_results.py": "58890f078517c173ba533323e56bc81267b3493ac5e04722b483eadbc4f38a8b"
+    }
+  },
+  "driverSHA256": {
+    "prospective-shadow-control.py": "8b7d0b59e5f19d6c3bcd5687c46d60717e40e157e287549bed5ece97801cfe2d",
+    "prospective-shadow-migrate.py": "d4945a5f4b2e505c136f2884e7d0a8ac0221799f80573fd1f25cb95d2601859f",
+    "prospective-shadow-preserve.py": "d4f79e16f160c9d1d8b1f6e3416c10a3cc16823a22e9a1896eda606831a6c8ea"
+  },
+  "runFiles": {
+    "cache-restoration.json": "3799e0694532592f7a23c9b1ad69b4f85af76c9a4cc977d464eb6f91809c9dbc",
+    "focused-tests.txt": "e50bf8990282a9d7bca3989009d9f9266d266bfd58b93c887afa5ce6fa7a4a16",
+    "full-tests.txt": "4c9a0e762e884fc1307d338ecc4500805950f641319abd2c8855a9792bad5836",
+    "implementation-freeze.json": "46e6b47f76c49e0ee0bb3931bd373590df2295959628791906e5ae84c184a4d0",
+    "initial-data-inventory.json": "46907aaf38029260d09353878da3cd272f0e161e15941d7f5adb2b8ceabad6fa",
+    "lint.txt": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+    "migration-001/candidate.shadow": "43dd88b1461913f11b90b6d2aa6aa82f7bbfe3ba7ad597d978c6a46b73d45fcc",
+    "migration-001/completion.json": "52c5644f0c6b441330d0da24d7cfcb2c2ece2a6d4ea108b5a101525c24b05eb9",
+    "migration-001/fitted-probabilities.npy": "747054f57349f66da17217bb89f0fb6a2f0300b83f8889c51b10c67ac633061f",
+    "migration-001/registration.json": "1927ef977f4214ac8532e50dfff61d327b3d979eab8079b9a6e8ad32488e435d",
+    "migration-001/result.json": "d9bd3d57af3a8ed85fedfa0d9b527789eb8a649d2c9b25f4b4374f8ed2665ad6",
+    "migration-001/synthetic-qa/.lock": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "migration-001/synthetic-qa/attempts/0eefe213554a8b2301dc4d9e0eef6f6baaef9dcc573e4d69cb940c6ea7d35f36.json": "4393bb00009c8fdf4fea65edf24ff08f4a5829b8d9abeb6062d1c1a842775e71",
+    "migration-001/synthetic-qa/attempts/8ba5144810c33bb672b9af729129adda35027f9751466d1902b7fee12399cb2e.json": "0e6921f1df1b21ee6febcee874f297a93c643a14502e5d42b83e64186e039fb1",
+    "migration-001/synthetic-qa/attempts/ac629b1864c55a48242f5789f5ae2528b43d6ff03af5d03c06258141502aca55.json": "bdf85154f4256697c8218ab7e09d57d7a528dd750bb157128a691533429289b7",
+    "migration-001/synthetic-qa/candidate.shadow": "43dd88b1461913f11b90b6d2aa6aa82f7bbfe3ba7ad597d978c6a46b73d45fcc",
+    "migration-001/synthetic-qa/endpoint.json": "9340450e31432c3743c5b8f1c5d97527fde7cb3f5698120492973a898a33cb2f",
+    "migration-001/synthetic-qa/incumbent.pkl": "8cf280c43f813a6944244d585248af8d5fcbc1ff628e535f98d4e10866730e34",
+    "migration-001/synthetic-qa/incumbent.pkl.envelope": "8f73df4346db01ce2dac871807828817133855cc449e1a73444b7286665bd401",
+    "migration-001/synthetic-qa/observations/59bb2f18e35bd702a4fbe57966f53013d3ff2fb6afb109af0ed6dc6f70f9767f.json": "3d9a54a2feffe8cfb92337548fff02652531baafe12f9f15a8d1c6e1f527fb95",
+    "migration-001/synthetic-qa/observations/6e900b919ec9ab2867862745ac06c8a5342a54b6f5959b767e5a2921426dda02.json": "b6243c1d29a1a63efaa4aa163ecb00ed105949c48ef60b242a9c0a2cb6d8fc1f",
+    "migration-001/synthetic-qa/observations/d394fc10f49c7c30bdb9d12ee2e3be2ab024809ea37f9f9718df9a956f6c583a.json": "e14a701f5a078fac82931dd8f4e3ed5a46b989eda3b8e2b9af97a1e326655681",
+    "migration-001/synthetic-qa/receipts/1c5cfed7734339070ee04efa16dfc64f8f8abcc9937e1981f711d33377c1e079.json": "b24d66db6b7e2f08abe35622a9f61612b13b711e2b640668c34e658cb49cccbc",
+    "migration-001/synthetic-qa/receipts/2248a1bf7db4d2f74c0396520c240800e7296ce8c0c633aa176db00c6e0e8d38.json": "698c3796b64530a692171694300b9cc724047bee8865946f41f0bea9b818bae7",
+    "migration-001/synthetic-qa/registration.json": "835b97561ae5886ecd3a81f0767164a60a301cc4a5bee136c53fe9304daf0a09",
+    "migration-001/synthetic-qa/results/a5c826ceb46a612e3a70ff7e39657419028e7c367bb1e466b479c73415120b85.json": "2becafa50a12afd2a7965c566a930e66d15cc311751f5439b57d303ab1eefa07",
+    "migration-001/synthetic-qa/results/d621dc74e744df6821ef8ada4a0d7f8f4a8e6ade65a9da564c205e692fed4ac0.json": "27b11e5d44fae894ec9e31871de928ac293d3674720cad5057c1590c4c8eed21",
+    "migration.log": "149bd9dd7f4ee9503fc5da60442faa71d34dd1b0ab20bed72a0c07883383b3a2",
+    "old-control-001/completion.json": "320d7cafc6d73b5be19d8cc08d6b3cbabef2dfdaf2f396ad42c5eea091a099b3",
+    "old-control-001/fitted-probabilities.npy": "747054f57349f66da17217bb89f0fb6a2f0300b83f8889c51b10c67ac633061f",
+    "old-control-001/registration.json": "f68aa05a4b472c171ecbc59d959cd2fcfd912614c283ac56fbbc47358e817017",
+    "old-control-001/result.json": "2c2e063195a2b7caa03a9604327ae27834e558d993c6c4ecb4c42663e671c438",
+    "old-control.log": "88a98e929970d1b10f9d8149174254896bef129dc8a384d89a3e297afa38f285",
+    "preservation.json": "e19ab34adc424f417ad5c05bdcfc05f3aa29900187f925537ab04d213d70eb3c",
+    "preservation.log": "5ef9de2bf2e547ccdba0eeae5ab82be3a2e232c59c0283f4bd5e608e01d98be1",
+    "protected-data-inventories.json": "6e4d4c9b4ba66e78e56d889f2838e7d5de297e0652f2b2b9c5d4e94d004500d3",
+    "provenance.json": "5006eda5d65b099aaee62383594d31d6b8cf473cb6eb03166136c88e9c2e7b55",
+    "reverse-version-check.json": "f5ec9ecd72539fea0ff65c54f7c84aa57e661f77c5bf9e170bfb5153421f7e5d",
+    "test-generated-caches/cache/normalized-history/atp.pkl": "23f09b59cc73023b0f89566d89df5c09330129402cdfbcca5ad2a650207c5b9f",
+    "test-generated-caches/cache/normalized-history/wta.pkl": "23f09b59cc73023b0f89566d89df5c09330129402cdfbcca5ad2a650207c5b9f",
+    "test-generated-caches/cache/normalized-matches/atp-main.pkl.gz": "940233052f3951f66938b2ecafe231976a11f456b3ff681e673b0e33d24dc303",
+    "test-generated-caches/cache/normalized-matches/wta-main.pkl.gz": "17c0df08ee11d7dad3c6059b0b8b41a859b595f3f327cc98f2b3b06bb8a76758"
+  }
+}
