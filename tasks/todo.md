@@ -6896,3 +6896,50 @@ selection and input hashes plus explicit loading provenance are in the result JS
 Private drivers and exclusive completed runs must be preserved; no reruns or retuning
 are needed. Next is a separately scoped mixed-format prospective runner, then real
 future collection. The original checkout receives documentation only.
+
+
+## 2026-09-07 — Mixed-format prospective runner and frozen model migration
+
+User check-in: “kEEP GOING” continues the completed shadow handoff. Work in a new
+`codex/model-prospective-shadow` checkout from `64d62de`; no live collection starts.
+
+- [ ] P0: preserve reference inputs/results, copy inputs independently, and record the
+  versioned runner contract before implementation.
+- [ ] P1: add a separate WTA-only mixed-format runner, pinned provenance and strict
+  artifact copying, immutable bounded receipts, first-capture retries and timing checks.
+- [ ] P2: accumulate result evidence, fail closed on conflicting outcomes, implement
+  a 30-day capture horizon and seven-day settlement grace, and report paired metrics,
+  exclusions, accuracy, staleness and week/event uncertainty without automatic adoption.
+- [ ] P3: add real fitted-artifact integration and negative tests; preserve all existing
+  tests and evaluator sources; run focused/full tests and lint, then commit/freeze code.
+- [ ] P4: rebuild the same selected shadow on identical sealed inputs under the new
+  source contract; prove exact forecasts against the protected old artifact. Exercise
+  the complete mixed-format runner using explicitly synthetic QA observations.
+- [ ] P5: inspect source readiness without collecting live observations; verify all
+  protected files; record detailed evidence and remaining activation requirements,
+  reconcile Git, commit research handoff and mirror only documents to this checkout.
+
+Dependencies: P0 precedes implementation; P1/P2 precede P3; frozen P3 precedes P4.
+Source inventory is independent of fitting. No agents, new dependencies, parameter
+search, production merge/push or scheduled collector. The fixed incumbent is retained.
+
+### Review
+
+Pending. Engineering QA and exact migration do not create fresh performance evidence.
+
+### P0–P3 implementation review
+
+- [x] P0: isolated checkout and independent 18,791-file input copy registered. The
+  new interface was written before source edits; all completed checkouts are preserved.
+- [x] P1/P2: new `eval/prospective_shadow.py` supports strict ordinary/shadow roles,
+  exact byte copies, explicit provenance/source configuration, serialized create-only
+  evidence, post-inference freshness checks, accumulated/conflicted results, and a
+  fixed 30+7-day endpoint with paired loss/Brier/accuracy and week/event uncertainty.
+- [x] P3: 59 new tests; focused selection 145 passed in 6.82s. Full suite 1,411 passed
+  in 146.83s; full lint passed. All 77 old test files and all old package sources remain
+  byte-identical. Four disposable test caches were preserved privately then restored.
+
+The old artifact control has been captured in its protected runtime: final fitted
+outputs on all 129,209 selected rows, six dated 30-player matrices, all five booster
+identities, calibrator and dynamic-state receipts. Next: commit/freeze this new source
+before the fixed migration fit and explicitly synthetic end-to-end acceptance.
