@@ -1,7 +1,9 @@
 # General correctness release — September 10, 2026
 
-Status: authorized integration and validation in progress. The user approved the
-focused release with “Okay push then”; this is not a predictive-candidate adoption.
+Status: **deployed and independently verified** on September 11, 2026 UTC
+(September 10 in New York). The user approved the focused release with “Okay push
+then”; this is not a predictive-candidate adoption. The production receipt and
+remaining separate research work are recorded at the end of this report.
 
 ## Scope and provenance
 
@@ -50,8 +52,8 @@ The known previous production source is `749f599`. A rollback must rebuild compa
 schema-3/population-7 artifacts from the retained recovery inputs; it must not reuse
 the new schema-5 model files with old code.
 
-Final validation, evaluation, deployment and live-generation receipts will be appended
-after completion. No predictive improvement is claimed from this integration alone.
+Final validation, evaluation, deployment and live-generation receipts follow.
+No predictive improvement is claimed from this integration alone.
 
 
 ## Pre-rebuild validation
@@ -66,8 +68,8 @@ A missing/stale/incompatible tour promotes a requested quick run to full, so a
 schema/population migration regenerates accuracy alongside the model. Existing
 workflow branches and both-tour migration cases pass; alert logic is unchanged.
 Recovery restored 246 source files, including all 11 WTA lower-history seasons
-2016–2026, with no archive-integrity findings. Current feeds are being refreshed
-in isolated staging before both tours are rebuilt.
+2016–2026, with no archive-integrity findings. Current feeds were refreshed
+in isolated staging before both tours were rebuilt.
 
 
 ### Cross-runtime contract review
@@ -133,7 +135,7 @@ round and exact canonical pair before returning an identity-normalized copy. Ori
 records and probabilities remain unchanged; unproven timing remains excluded. Tests cover
 the committed WTA record, settled-result preservation, idempotent append, digest tampering
 and rejection of unrelated players/events/rounds/seasons. **1,319 Python tests pass** after
-this fix. The full pipeline is rerun to recover the benchmark before publication.
+this fix. The full pipeline was rerun to recover the benchmark before publication.
 
 
 ## Local publication acceptance
@@ -163,4 +165,68 @@ published observations. Existing production ledgers and frozen forecast evidence
 unchanged in the pushed source. No raw cache, model pickle or experimental candidate is
 included. Fresh `origin/master` remains `749f599` before the push.
 
-Production deployment and independent live verification are the remaining release steps.
+## Production acceptance
+
+Source `c5dc31e2d17a312114efd0f246f81213ef9e4c30` was pushed to `master`.
+[Production run 34549366788](https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/34549366788)
+completed successfully: both test jobs, refresh and terminal workflow-health reporting.
+CI passed **1,318 Python tests** (one macOS `/tmp` alias test skipped on Linux),
+**360 web tests** and **10 browser route/viewport checks**, plus lint, types and build.
+The same nine pre-existing web lint warnings remain; no lint errors were introduced.
+
+The new saved-artifact guard selected **full** because the old cached contract was
+incompatible. Both models were rebuilt on Python 3.12.14, the pre-deploy integrity
+gate passed, and publication reported no issues. The prior artifact graph was also
+incompatible with the new contract, so the full run created a parentless accepted
+graph. Production-generated forecast/benchmark evidence was persisted by bot commit
+`00c123b`; that commit changes only generated data, not the deployed source code.
+
+The [live site](https://deuce-forecast.web.app) was independently verified against
+the deployed health generation **2026-09-11T01:45:36Z**. Both CI's exact-build check
+and a separate post-deploy check passed **22/22**: **462 exact artifact hashes**, **18
+required absent paths**, 424 shard references, nine begun events, route/cache/MIME
+behavior and the public prediction/UI contracts. Both model metadata producers point
+to the exact pushed source SHA, rather than the later bot data commit.
+
+- Accepted full release: `482db1ef-70bb-4d1c-8672-b004a63b458e`.
+- Manifest SHA256: `f3b4aa396c4acf1c0123d36f28f6ee8e140c373472d6f776043b2f390ff8851a`.
+- ATP model: `50b99b70-f87e-4b13-ab89-93c2ab8f6bb0`, trained at
+  `2026-09-11T01:21:28Z`; 285,406 input matches, results through September 9.
+- WTA model: `7879edcb-b3e3-4861-b0f3-4b8da81922bd`, trained at
+  `2026-09-11T01:42:48Z`; 129,228 input matches, results through September 10.
+
+Both tours serve population **8**, inference schema **5**, chronology policy **v2**
+and the unchanged **42 features**. WTA keeps threshold **32**, both states ready,
+all **528** reviewed results verified and the existing single quarantine. No self-pairs,
+missing/conflicting reviewed keys or chronology inversions were reported. Independent
+probability-audit metadata is present; the private receipt files are not publicly served.
+
+Live health is `ok: true`, with **zero warnings/errors**. Three informational source
+notices were already present before this release: volunteer charting ages of 113/110
+days and the frozen ATP results overlay that is covered by the current serve-stats
+feed. These are retained source limitations, not deployment failures. The independent
+receipt explicitly records them; it does not claim that all informational findings
+are absent. The production integrity and serving gates were not weakened.
+
+[Machine-readable deployment receipt](2026-09-10-general-release-deployment.json)
+records these IDs and checks. Private evidence includes `production-deploy.log`,
+`production-run.json`, `independent-live-verification.log`, fetched live health/meta/
+manifest bytes and `production-source-receipt.json`. This completes the scoped release.
+
+## Remaining work for the next research session
+
+The fixed WTA `surface_recent_diff` candidate remains separate and undeployed.
+Its original accepted research tip is `1f3920aa6f1edb538a1d33e1d149b3d507086206`
+on `codex/model-historical-signals`, with source freeze `755342d`. The root research
+checkout retains `tasks/research/2026-09-08-historical-signal-next.md` and its original
+results. Preserve that evidence, including the modest historical gain and uncertainty.
+
+Start a new isolated implementation checkout from the latest accepted `origin/master`,
+not from the old research tip. Port the fixed 60-day surface feature and required
+helpers while retaining this release's production repairs. Do not merge all research
+branches or reuse population-7 artifacts as production predictors. Register and rerun
+the fixed incumbent/candidate comparison on identical population-8 inputs: tune
+2010–2019 first, then apply the established advancement rule before evaluating 2020+.
+No re-selection using later-year results. Saved-predictor route parity, serialization,
+both WTA state routes, serving cost and an explicit adoption decision remain required.
+No new candidate, tuned parameter or prospective collector was adopted by this push.

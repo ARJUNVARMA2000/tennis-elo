@@ -6360,3 +6360,25 @@ use population 8. No reviewed match or quarantine was changed by that migration.
 - [x] Preserve local verification data separately; release source retains production ledgers.
 - [ ] R4: Push the scoped release, wait for production CI and verify live serving.
 - [ ] R5: Record deployment receipt; leave the surface candidate as separate follow-up work.
+
+
+### R4/R5 review — production accepted
+
+- [x] R4: Source `c5dc31e` pushed to `master`; production run `34549366788` succeeded.
+  CI: 1,318 Python tests plus one macOS-only skip, 360 web tests, ten browser checks,
+  lint/types/build, both full model rebuilds and the pre-publication integrity gate.
+- [x] Independent live verification: 22/22 checks, 462 exact artifacts, 18 required
+  absent paths; health generation `2026-09-11T01:45:36Z`, zero warnings/errors.
+  Three pre-existing informational source notices remain documented.
+- [x] Full release `482db1ef-70bb-4d1c-8672-b004a63b458e`; ATP model
+  `50b99b70-f87e-4b13-ab89-93c2ab8f6bb0`, WTA model
+  `7879edcb-b3e3-4861-b0f3-4b8da81922bd`. Both serve population8/schema5/42 features;
+  WTA threshold32 and 528 reviewed results are verified. Producer SHA matches the push.
+- [x] Production bot data commit `00c123b` retained by fast-forward; local verification
+  forecast data was not substituted for production evidence.
+- [x] R5: Final release report and machine-readable deployment receipt recorded; next
+  WTA surface-candidate work must start from accepted production and revalidate the fixed
+  candidate against population8. Existing research evidence remains separate.
+
+Review complete: the authorized general correctness release is deployed and verified.
+No experimental candidate was adopted. See `research/2026-09-10-general-release.md`.

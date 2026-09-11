@@ -1,0 +1,118 @@
+{
+  "base": "https://deuce-forecast.web.app",
+  "source": "c5dc31e2d17a312114efd0f246f81213ef9e4c30",
+  "workflowRun": "34549366788",
+  "observedAt": "2026-09-11T01:48:07.826Z",
+  "generatedAt": "2026-09-11T01:45:36Z",
+  "releaseId": "482db1ef-70bb-4d1c-8672-b004a63b458e",
+  "manifestSHA256": "f3b4aa396c4acf1c0123d36f28f6ee8e140c373472d6f776043b2f390ff8851a",
+  "mode": "full",
+  "healthOk": true,
+  "actionableFindingCount": 0,
+  "informationalFindings": [
+    {
+      "schema": "health-finding-v1",
+      "fingerprint": "hf1:26bab57c67924ea7b792d37eca3e84762b51d6f5be9ed9a7611efb8b75c6bac3",
+      "revision": "hr1:a0a1743fe9cd5e6e07cc24d6f728fc644787215c60752168fa3b60177b439d39",
+      "code": "source.charting.coverage_age",
+      "severity": "info",
+      "scope": "source",
+      "tour": "atp",
+      "entity": "match-charting:atp",
+      "evidence": {
+        "value": 113,
+        "limit": 90,
+        "unit": "d",
+        "date": "2026-05-21"
+      },
+      "message": "atp: Match charting (MCP): volunteer batch source; newest charted match is 113d old (coverage note after 90d)"
+    },
+    {
+      "schema": "health-finding-v1",
+      "fingerprint": "hf1:4bbc64e70c452839a78558d0d2c1378eeab9f479cca4db3f35a1f25c1875885f",
+      "revision": "hr1:cca87339d3d7d9756215e5bd6867e4e135cca5a07527eeda61a0992c67f318c2",
+      "code": "source.charting.coverage_age",
+      "severity": "info",
+      "scope": "source",
+      "tour": "wta",
+      "entity": "match-charting:wta",
+      "evidence": {
+        "value": 110,
+        "limit": 90,
+        "unit": "d",
+        "date": "2026-05-24"
+      },
+      "message": "wta: Match charting (MCP): volunteer batch source; newest charted match is 110d old (coverage note after 90d)"
+    },
+    {
+      "schema": "health-finding-v1",
+      "fingerprint": "hf1:a9e944c6439d1bfcfcdb4bce2461a99fb3e193d96309bd017810e73ce83614fa",
+      "revision": "hr1:71464195d306a111d5d9eaab224aa43a28eb37118488dbaecd73d8b63445e8b5",
+      "code": "source.fresh_overlay.shadowed",
+      "severity": "info",
+      "scope": "source",
+      "tour": "atp",
+      "entity": "fresh-overlay:atp",
+      "evidence": {
+        "value": 19,
+        "limit": 14,
+        "unit": "d",
+        "date": "2026-08-23"
+      },
+      "message": "atp: Results overlay (fresh): frozen upstream, but shadowed — the serve-stats overlay is current, so results/ranks/stats all still flow"
+    }
+  ],
+  "tours": {
+    "atp": {
+      "predictorArtifactId": "50b99b70-f87e-4b13-ab89-93c2ab8f6bb0",
+      "modelTrainedAt": "2026-09-11T01:21:28Z",
+      "populationVersion": 8,
+      "inferenceSchema": 5,
+      "featureCount": 42,
+      "matches": 285406,
+      "dataThrough": "2026-09-09",
+      "producer": "tennis_model.pipeline@git:c5dc31e2d17a312114efd0f246f81213ef9e4c30",
+      "predictionAuditSHA256": "0a3751f2c911fc9dccc936dfc5e6763036dbe7c7639574daa079452eb78e62d2",
+      "reviewedResultsVerified": 0
+    },
+    "wta": {
+      "predictorArtifactId": "7879edcb-b3e3-4861-b0f3-4b8da81922bd",
+      "modelTrainedAt": "2026-09-11T01:42:48Z",
+      "populationVersion": 8,
+      "inferenceSchema": 5,
+      "featureCount": 42,
+      "matches": 129228,
+      "dataThrough": "2026-09-10",
+      "producer": "tennis_model.pipeline@git:c5dc31e2d17a312114efd0f246f81213ef9e4c30",
+      "predictionAuditSHA256": "2c16c81a4003ee094b19c19a301a5641b5108c2568b401a0a4ee932ba17b8b1e",
+      "reviewedResultsVerified": 528
+    }
+  },
+  "ci": {
+    "url": "https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/34549366788",
+    "conclusion": "success",
+    "startedAt": "2026-09-11T01:07:22Z",
+    "updatedAt": "2026-09-11T01:47:20Z",
+    "pythonTestsPassed": 1318,
+    "pythonTestsSkipped": 1,
+    "skipReason": "macOS /tmp filesystem alias is unavailable on Linux",
+    "webTestsPassed": 360,
+    "browserChecksPassed": 10,
+    "existingWebLintWarnings": 9
+  },
+  "verification": {
+    "ciLiveChecksPassed": 22,
+    "independentLiveChecksPassed": 22,
+    "exactArtifacts": 462,
+    "requiredAbsentPaths": 18,
+    "referencedShards": 424,
+    "begunEvents": 9
+  },
+  "productionDataCommit": "00c123b",
+  "wtaPolicy": {
+    "dualStateThreshold": 32,
+    "dualStateReady": true,
+    "reviewedResultsVerified": 528,
+    "reviewedQuarantines": 1
+  }
+}
