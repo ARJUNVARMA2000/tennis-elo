@@ -7718,3 +7718,46 @@ Accepted research checkout: `codex/wta-surface-serving` at
 The original checkout receives only these reports and logs; production is unchanged.
 Future preservation adds this accepted head and the result manifest's 37 run files
 to the prior 17 heads / 733 files (18 heads / 770 files total).
+
+## 2026-09-11 — authorized fixed WTA surface production integration
+
+Check-in: the user's “Keep going” continues the completed assessment's explicit
+production-integration recommendation. Implement and validate P0–P3 and prepare the
+concrete P4 release decision; do not publish an unverified candidate. Detailed plan:
+`research/2026-09-11-wta-surface-next.md`. No new model selection or parameter sweep.
+
+- [ ] P0: isolate from fresh accepted origin/master, verify 770 evidence files and
+  18 accepted research heads, copy/freeze population8 raw inputs and runtime.
+- [ ] P1: support the exact 60-day surface signal in WTA training, both temporal
+  states, final construction and all query routes; preserve ATP's 42-feature behavior.
+- [ ] P2: integrate explicit tour schemas into strict artifacts, receipts, exports,
+  feature caches, full/quick recovery and both release gates, with regression tests.
+- [ ] P3a: exact frozen-population feature and 17-year candidate OOS replay; saved
+  routes, selected states, boundaries, corruption and ordinary ATP parity.
+- [ ] P3b: full applicable Python/web checks, both-tour full/quick actual builds,
+  artifact reload, cache recovery, public mirror and local serving verification;
+  measure active-player scalar/matrix/evidence costs without competing workloads.
+- [ ] P4: reconcile source history, commit the concrete validated release and record
+  results, model IDs, remaining limitations and rollback/deployment decision.
+
+Dependencies: P0 → P1 → P2 → P3 → P4; gate fixtures can be prepared once the model
+contract is fixed. No parallel agents are requested. Prior research remains immutable;
+this original checkout receives only plans/reports. Review pending implementation.
+
+### WTA integration completion review — September 11, 2026
+
+- [x] P0–P3 local implementation and verification completed in the isolated integration
+  branch; original checkout remains documentation-only. Final integration head: `3c8d41806c49df63d89393e137cf3649a65a32ac`.
+- [x] WTA43/schema6 supported in both production factories, both tagged state histories,
+  strict saved artifacts, exports and both release gates; ATP42/schema5 preserved.
+- [x] Exact 42,426-row/17-fold replay, both-tour full/quick builds, saved witness and
+  byte parity, legacy timeline migration, recovery, public mirror and HTTP/browser checks.
+- [x] Final 1,344 clean Python tests and 374 web tests passed. Active-player cost checks
+  passed: +3.9% scalar time, +10.6% matrices, +14–16% explanations, +6.2% memory.
+- [x] All 770 prior files/18 heads preserved; nine candidate-generated records kept
+  privately and excluded from source commits. Result manifest covers 1,675 evidence files.
+- [x] Detailed report and exact handoff copied to `research/2026-09-11-wta-production-*`.
+- [ ] P4 production deployment held: the ATP statistics endpoint still times out.
+  Restore strict source readiness, reconcile master, establish authorization for this
+  WTA model release, then deploy through normal gates and verify the live generation.
+  No production push or new hypothesis selection occurred in this round.
