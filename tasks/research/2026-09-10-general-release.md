@@ -120,7 +120,8 @@ are retained. All 28,357 ATP tuning probabilities match the maintenance referenc
 
 ### Saved-model and benchmark integration
 
-The first full run rebuilt 285,406 ATP and 129,227 WTA main/export rows, with valid
+The first full run rebuilt 285,406 ATP input rows (including lower-tier history) and
+129,227 WTA main/export rows, with valid
 reviewed-result and chronology receipts. Strict reload reproduced all **36 independent
 probability witnesses per tour exactly** across scalar, reversed, component, matrix and
 permuted-matrix routes.
@@ -133,3 +134,33 @@ records and probabilities remain unchanged; unproven timing remains excluded. Te
 the committed WTA record, settled-result preservation, idempotent append, digest tampering
 and rejection of unrelated players/events/rounds/seasons. **1,319 Python tests pass** after
 this fix. The full pipeline is rerun to recover the benchmark before publication.
+
+
+## Local publication acceptance
+
+The repeat full pipeline completed successfully, including the repaired WTA Tennis Abstract
+benchmark (45 eligible/graded matches, 19 excluded). The normal full-run predictions for
+both tours were exactly equal to the first run, including match identities and probabilities.
+Canonical winner comparison also preserves settled results when a reviewed alias changes
+only their display name; the focused 36-test benchmark suite passes.
+
+The full and quick integrity gates both report **zero findings**. Full release
+`0c471065-fee3-4ff7-9294-78b7a6e53a5f` was accepted and mirrored. Its successor quick release
+`3b403003-0add-4762-9797-2d3c7e5cf446` was accepted and mirrored, retaining the same model IDs:
+ATP `cc8f9de4-080a-4c3e-a138-1adf336958f0`, WTA `196116c0-5e5f-453f-b2fb-6a68dae79626`.
+Strict reload replayed all 36 probability witnesses per tour after both runs.
+
+An actual accepted-cache copy into a new directory passed validation and strict predictor
+loads for both tours. The JavaScript deployment verifier checked the actual public mirror:
+**462 artifact hashes and 18 required absent paths**, including both private probability
+receipts. The final site build succeeded against real release data; **8/8 desktop/mobile
+route checks** passed, in addition to the earlier **10/10 fixture route/interaction checks**.
+The health writer reports no output problems for either tour.
+
+Local verification-generated forecast and benchmark updates were preserved as private
+evidence and removed from the release's source diff. Production CI must generate its own
+published observations. Existing production ledgers and frozen forecast evidence remain
+unchanged in the pushed source. No raw cache, model pickle or experimental candidate is
+included. Fresh `origin/master` remains `749f599` before the push.
+
+Production deployment and independent live verification are the remaining release steps.

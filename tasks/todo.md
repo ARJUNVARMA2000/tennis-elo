@@ -6345,3 +6345,18 @@ Review: Integration is in progress. No additional deployment permission is requi
 The first integration checks correctly rejected unmigrated reviewed-ledger versions;
 ledger metadata/hashes, alias contract and historical gate fixtures now consistently
 use population 8. No reviewed match or quarantine was changed by that migration.
+
+
+### R3 review — local release accepted
+
+- [x] Both full model rebuilds and all 17 annual evaluation folds per tour completed.
+- [x] Benchmark alias migration passes its committed-history regression and 36 focused tests;
+  historical predictions remain exact across the full rerun.
+- [x] Full and quick gates passed with zero findings; both releases accepted and mirrored.
+- [x] Quick mode kept both fitted model IDs; strict saved reload and 36 probability witnesses
+  per tour match exactly. Actual accepted-cache restoration passed.
+- [x] Actual public mirror: 462 artifacts / 18 absent paths checked. Real-data production
+  build and 8 browser route/viewport checks passed; earlier fixture checks were 10/10.
+- [x] Preserve local verification data separately; release source retains production ledgers.
+- [ ] R4: Push the scoped release, wait for production CI and verify live serving.
+- [ ] R5: Record deployment receipt; leave the surface candidate as separate follow-up work.
