@@ -304,3 +304,12 @@ Indexed in [`../lessons.md`](../lessons.md).
   but the user explicitly wanted all PRs merged. Reconcile the proposal commits into
   the default branch while retaining any stronger verified resolution, then verify
   GitHub records the PRs as merged. Do not describe a closed duplicate as merged.
+
+
+## Producer/verifier contract drift (2026-09-10)
+
+A release integration had chronology policy v2 in Python but v1 in the JavaScript
+live verifier and its healthy test fixture. Both separate suites passed because the
+consumer and fixture shared the same stale literal. Derive cross-runtime healthy
+fixtures from the producer's declared contract and explicitly reject the previous
+version. Also verify the real generated release, not only synthetic fixtures.

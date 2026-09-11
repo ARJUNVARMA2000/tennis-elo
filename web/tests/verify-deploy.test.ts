@@ -1050,9 +1050,16 @@ describe("scrollShellProblems", () => {
   });
 });
 
-it.each(["valid", "missing digest", "wrong artifact", "stale", "missing marker", "chronology"])(
+it.each(["valid", "missing digest", "wrong artifact", "stale", "missing marker", "chronology", "old chronology"])(
   "checks schema-5 prediction receipt metadata: %s", async (caseName) => {
     let fixture = buildLineageFixture();
+    // Derive the healthy fixture from the Python producer, so two copied stale
+    // literals cannot make the producer and live verifier drift unnoticed.
+    const chronologySource = readFileSync(
+      new URL("../../tennis_model/src/tennis_model/data/chronology.py", import.meta.url), "utf8",
+    );
+    const chronologyPolicy = /^CHRONOLOGY_POLICY = ['"]([^'"]+)['"]/m.exec(chronologySource)?.[1];
+    expect(chronologyPolicy).toBeTypeOf("string");
     const meta: Record<string, unknown> = {
       inferenceSchemaVersion: 5,
       predictionAuditSchema: "prediction-audit-v1",
@@ -1062,7 +1069,7 @@ it.each(["valid", "missing digest", "wrong artifact", "stale", "missing marker",
       predictionAuditObservedAt: "2026-08-24T12:00:00Z",
       lastUpdated: "2026-08-24T12:01:00Z",
       matches: 1,
-      chronology: { policy: "retrospective-verified-date-or-recorded-event-round-v1",
+      chronology: { policy: chronologyPolicy,
         checkedMatches: 1, roundDateInversions: 0, dateBasisCounts: { unknown: 1 } },
     };
     if (caseName === "missing digest") delete meta.predictionAuditSHA256;
@@ -1070,6 +1077,9 @@ it.each(["valid", "missing digest", "wrong artifact", "stale", "missing marker",
     if (caseName === "stale") meta.predictionAuditObservedAt = "2026-08-23T12:00:00Z";
     if (caseName === "missing marker") delete meta.predictionAuditSchema;
     if (caseName === "chronology") delete meta.chronology;
+    if (caseName === "old chronology") {
+      (meta.chronology as Record<string, unknown>).policy = "retrospective-verified-date-or-recorded-event-round-v1";
+    }
     const raw = lineageBytes(meta);
     fixture.files.set("atp/meta.json", raw);
     fixture = withLineageManifest(fixture, (manifest) => {

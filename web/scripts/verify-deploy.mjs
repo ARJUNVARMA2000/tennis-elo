@@ -677,7 +677,7 @@ export async function verifyArtifactLineageRelease({
           const chronology = meta.chronology;
           const counts = chronology?.dateBasisCounts;
           lineageMust(
-            chronology?.policy === "retrospective-verified-date-or-recorded-event-round-v1"
+            chronology?.policy === "retrospective-verified-date-or-recorded-event-round-v2"
               && chronology.roundDateInversions === 0
               && Number.isInteger(chronology.checkedMatches) && chronology.checkedMatches === meta.matches
               && counts && typeof counts === "object" && !Array.isArray(counts)

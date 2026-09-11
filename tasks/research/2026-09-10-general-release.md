@@ -68,3 +68,12 @@ workflow branches and both-tour migration cases pass; alert logic is unchanged.
 Recovery restored 246 source files, including all 11 WTA lower-history seasons
 2016–2026, with no archive-integrity findings. Current feeds are being refreshed
 in isolated staging before both tours are rebuilt.
+
+
+### Cross-runtime contract review
+
+Review found the copied JavaScript verifier and its fixture still expected chronology
+v1 while the Python producer uses v2. The verifier now requires v2; its healthy fixture
+reads the Python declaration, and an explicit v1 case must fail. **360 web tests**, lint
+and type checks pass after the repair. This change does not alter fitted model inputs.
+The live-site check remains required on actual generated artifacts.

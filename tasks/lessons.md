@@ -353,3 +353,6 @@ New lesson → append the entry to the matching topic file and add its lead line
 - When the requested end state is merged PRs, incorporated code plus a closed duplicate
   is insufficient; reconcile the proposal history and verify GitHub's merge receipt. See
   [`lessons/ci-and-deploy.md`](lessons/ci-and-deploy.md). (2026-09-08)
+
+- A consumer and its fixture can share the same stale version; derive cross-runtime
+  healthy fixtures from the producer contract. See [`lessons/ci-and-deploy.md`](lessons/ci-and-deploy.md). (2026-09-10)
