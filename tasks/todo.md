@@ -6425,3 +6425,32 @@ numerical advancement gate fails, record the failure and stop dependent final fi
 
 In progress. Full experiment and serving registrations will live in the new isolated
 checkout and `.research/2026-09-11-wta-surface-evidence`; prior accepted runs are immutable.
+
+### C0/C1 review — frozen comparison advances
+
+- [x] C0: isolated from `dda948c`; numerical source freeze `61d822c`. Verified all
+  733 protected run files and 17 historical heads; copied/hashes matched 294 raw files.
+- [x] Prepared main/enriched populations: 129,228/146,424 rows. Six saved signal-state
+  queries matched real historical prefixes exactly; raw inputs remained unchanged.
+- [x] C1: 31 initial signal/probability/protocol tests passed. All 26,794 incumbent
+  tuning probabilities exactly reproduce the accepted release control.
+- [x] The sole candidate improves tuning log loss by 0.000809949 ± 0.000208925 SE;
+  8/10 years and both halves positive. Accuracy −0.0261pp. It advances under the fixed rule.
+- [ ] C2: fixed full validation running; require exact tuning replay and the standing arbiter.
+
+The report is `research/2026-09-11-wta-surface-serving.md`. Future serving behavior/cost
+criteria were registered before measurement; production defaults remain unchanged.
+
+### C2/C3 review — historical gate and serving implementation accepted
+
+- [x] C2: full arbiter passes. Validation improves log loss by 0.000561397 ±
+  0.000321075 SE on 15,632 matches; five of seven years improve. Both tuning
+  predictions replay exactly. Week-block 95% interval includes zero; event-block
+  interval unavailable because event identity is missing. Accuracy falls 0.0128pp.
+- [x] C3 implementation: separate 43-feature WTA class/artifact; ordinary predictor
+  defaults and strict production rejection retained. Both real signal-state receipts
+  match their ordinary state cutoff (2026-09-10).
+- [x] 80 focused serving/artifact/probability tests and all 1,359 Python tests pass;
+  repository Ruff and whitespace checks pass.
+- [ ] Freeze serving code, then fit the single saved reference/candidate pair, complete
+  real-data route parity and registered cost assessment. No production change.

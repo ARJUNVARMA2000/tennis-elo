@@ -1015,10 +1015,11 @@ def _same_param(actual: Any, expected: Any) -> bool:
     return actual == expected
 
 
-def _validate_model(predictor: Any, tour: str) -> None:
+def _validate_model(predictor: Any, tour: str, *, features=None) -> None:
     from sklearn.linear_model import LogisticRegression
     from xgboost import Booster, XGBClassifier
 
+    features = FEATURES if features is None else features
     clf = predictor.clf
     if type(clf) is not BaggedClassifier or type(getattr(clf, "clfs", None)) is not list:
         raise PredictorArtifactError(
@@ -1066,8 +1067,8 @@ def _validate_model(predictor: Any, tour: str) -> None:
             ) from exc
         if (
             type(booster) is not Booster
-            or names != list(FEATURES)
-            or count != len(FEATURES)
+            or names != list(features)
+            or count != len(features)
             or rounds < 1
         ):
             raise PredictorArtifactError(
@@ -1125,16 +1126,20 @@ def _validate_predictor(
     *,
     artifact_id: str,
     trained_at: str,
+    predictor_type=None,
+    additional_fields=frozenset(),
+    model_features=None,
 ) -> None:
     # Imported lazily to keep ``predict.TennisPredictor`` free to delegate here.
     from .predict import INFERENCE_SCHEMA_VERSION, TennisPredictor
 
-    if type(predictor) is not TennisPredictor:
+    expected_type = TennisPredictor if predictor_type is None else predictor_type
+    if type(predictor) is not expected_type:
         raise PredictorArtifactError(
             PredictorArtifactReason.PREDICTOR_TYPE, "payload class mismatch"
         )
     raw = vars(predictor)
-    if set(raw) != set(_PREDICTOR_FIELDS):
+    if set(raw) != set(_PREDICTOR_FIELDS) | set(additional_fields):
         raise PredictorArtifactError(
             PredictorArtifactReason.PREDICTOR_FIELDS, "raw predictor fields differ"
         )
@@ -1171,7 +1176,7 @@ def _validate_predictor(
             PredictorArtifactReason.PREDICTOR_FIELDS, "raw gate threshold mismatch"
         )
     _validate_state_bundle(predictor, tour)
-    _validate_model(predictor, tour)
+    _validate_model(predictor, tour, features=model_features)
 
 
 def validate_predictor_structure(predictor: Any, tour: str) -> None:
