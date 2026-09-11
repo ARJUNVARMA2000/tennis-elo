@@ -6382,3 +6382,46 @@ use population 8. No reviewed match or quarantine was changed by that migration.
 
 Review complete: the authorized general correctness release is deployed and verified.
 No experimental candidate was adopted. See `research/2026-09-10-general-release.md`.
+
+## 2026-09-11 — fixed WTA surface candidate on accepted production
+
+Check-in: the user's “Keep going” continues the recorded surface-candidate handoff.
+Proceed with the fixed candidate and its serving assessment. Production adoption is
+a separate decision; this round will produce the concrete evidence for it.
+
+- [ ] C0: isolate from accepted `origin/master` (`dda948c`), verify the 733 protected
+  historical run files and 17 accepted research heads, and freeze copied population8
+  source inputs, code, runtime, evaluator and acceptance rules before fitting.
+- [ ] C1: rebuild identical WTA main/enriched inputs and test the unchanged 60-day
+  `surface_recent_diff` alone. Five bags, threshold32, current tuned constants and
+  calibration remain fixed. One candidate; no replacement hypothesis or parameter sweep.
+  Tune 2010–2019 must improve pooled log loss, improve both five-year halves and win
+  at least six years before any 2020+ scoring. Check the ordinary control against
+  the accepted release's matching tuning rows. Retain match keys, fold outputs and hashes.
+- [ ] C2: if C1 passes, run the fixed full arbiter and verify exact tuning replay.
+  Report log loss, accuracy, Brier, annual consistency, paired SE and week/event
+  uncertainty. The standing arbiter requires positive tuning delta and validation
+  delta greater than minus its paired SE. Reused validation is not an untouched holdout.
+- [ ] C3: if C2 passes, implement and fit one explicit offline saved WTA candidate
+  with both temporal states, 43 ordered features and the normal final split/seed.
+  Keep strict production artifact rejection; use a separate surface schema with
+  pinned source/input provenance and bounded pre-deserialization validation.
+- [ ] C4: prove historical query/state, selected-state, swap, scalar/components/evidence,
+  matrix/permutation and save/load parity, including unseen players and inactivity.
+  Preserve ordinary predictor behavior. Test artifact corruption, provenance and paths.
+- [ ] C5: compare candidate/reference singles, 30-player matrices, artifact bytes and
+  process memory using fixed representative populations and repeated measurements.
+  Serving acceptance requires median latency, artifact size and peak process memory
+  each at most 2x the paired reference; report p95 and absolute values as well.
+- [ ] C6: run applicable full checks, reverify preserved evidence and source history,
+  commit the isolated implementation, and record an adoption recommendation plus
+  exact artifacts, results table and next-session handoff. Keep production unchanged.
+
+Dependencies: C0 → C1 → C2 → C3 → C4/C5 → C6. Serving tests/cost fixtures may be
+prepared during a registered fit; no parallel agents are requested or used. If a
+numerical advancement gate fails, record the failure and stop dependent final fitting.
+
+### Review
+
+In progress. Full experiment and serving registrations will live in the new isolated
+checkout and `.research/2026-09-11-wta-surface-evidence`; prior accepted runs are immutable.
