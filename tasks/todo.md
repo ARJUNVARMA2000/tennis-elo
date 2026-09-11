@@ -6474,3 +6474,21 @@ This is a compatibility correction within the approved P2/P3 scope, not a new ex
   findings and first test-driver collector mistake remain in private evidence.
 - [ ] Commit this boundary fix, verify full local acceptance, then exercise the corrected
   quick export, saved-generation identity, recovery, mirror/browser and active costs.
+
+### P3 final review and P4 release decision
+
+- [x] Actual full and quick two-tour builds, strict saved witness replay, output gates,
+  accepted mirrors, byte-identical model reuse and explicit post-fit source bridge.
+- [x] Final clean source: 1,344 Python tests; 374 web tests plus lint/types/build; 36 current
+  desktop/mobile checks and focused WTA/ATP evidence checks; local HTTP graph 462/18.
+- [x] Restored both strict model artifacts and 290 raw archive files including all 11
+  lower-history seasons; validated actual timeline orientation and current-schema rejection.
+- [x] Active-cohort costs: +3.9% scalar, +10.6% probability-matrix, +13.8–15.7%
+  explanation medians; +4.3% model bytes and +6.2% memory. All registered limits pass.
+- [x] Verified 770 prior evidence files and 18 accepted heads. Preserved nine generated
+  candidate records privately and restored accepted production ledgers in the branch.
+- [x] P4 concrete decision/report: locally validated candidate; hold production deployment.
+  The configured ATP statistics source still times out. Do not bypass strict download.
+- [ ] Once the source recovers, follow `research/2026-09-11-wta-production-next.md` to
+  reconcile production, establish this model release's push authorization, deploy through
+  normal gates and verify the actual live generation. No master push occurred here.
