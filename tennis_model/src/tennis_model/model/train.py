@@ -16,12 +16,16 @@ tried (--cal isotonic to re-check). We compare against the two component models
 from __future__ import annotations
 
 import argparse
+import os
+import pickle
+import tempfile
 
 import numpy as np
 import pandas as pd
 
 from ..config import BACKTEST_START_YEAR, OUTPUT_DIR
 from .features import FEATURES, build_feature_frame, make_oriented_xy
+from .probability import paired_probability
 
 
 def _cache_path(tour: str):
@@ -34,17 +38,34 @@ def _cache_path(tour: str):
 
 
 def load_or_build_features(rebuild: bool = False, tour: str = "atp") -> pd.DataFrame:
+    from .feature_cache import FEATURE_CACHE_SCHEMA, feature_cache_identity
+
     cache = _cache_path(tour)
+    identity = feature_cache_identity(tour)
     if not rebuild and cache.exists():
-        feat = pd.read_pickle(cache)
-        if set(FEATURES) <= set(feat.columns):
-            return feat
-        # cache predates a feature addition — rebuild instead of KeyError-ing
-        # inside make_oriented_xy (mirrors pipeline._predictor_current)
-        print(f"  feature cache {cache.name}: stale schema -> rebuilding")
+        try:
+            payload = pd.read_pickle(cache)
+            if (type(payload) is dict and payload.get("schema") == FEATURE_CACHE_SCHEMA
+                    and payload.get("identity") == identity
+                    and isinstance(payload.get("frame"), pd.DataFrame)
+                    and set(FEATURES) <= set(payload["frame"].columns)):
+                return payload["frame"]
+        except (OSError, ValueError, TypeError, EOFError, pickle.UnpicklingError):
+            pass
+        print(f"  feature cache {cache.name}: identity mismatch -> rebuilding")
     feat = build_feature_frame(tour=tour)
+    if feature_cache_identity(tour) != identity:
+        raise ValueError("feature inputs changed during construction")
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    feat.to_pickle(cache)
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(dir=OUTPUT_DIR, prefix=".features-", delete=False) as f:
+            temporary = f.name
+            pickle.dump({"schema": FEATURE_CACHE_SCHEMA, "identity": identity, "frame": feat}, f)
+        os.replace(temporary, cache)
+    finally:
+        if temporary is not None and os.path.exists(temporary):
+            os.unlink(temporary)
     return feat
 
 
@@ -253,7 +274,14 @@ def _stacked_predict(clf, cal_rows: pd.DataFrame, raw: np.ndarray,
                 np.where(fl, 1 - rows["p_point"].to_numpy(), rows["p_point"].to_numpy())]
 
     stk = StackedCalibrator().fit(_cols(raw_cal, cal_rows, flip), np.where(flip, 0, 1))
-    return stk.predict(_cols(raw, test, np.zeros(len(raw), dtype=bool)))
+    class StackedForecast:
+        def predict_proba(self, features):
+            raw_p = clf.predict_proba(features)[:, 1]
+            blend = 1 / (1 + np.exp(-features["logit_p_blend"].to_numpy()))
+            point = 1 / (1 + np.exp(-features["logit_p_point"].to_numpy()))
+            p = stk.predict([raw_p, blend, point])
+            return np.column_stack([1 - p, p])
+    return paired_probability(StackedForecast(), IdentityCalibrator(), test[FEATURES])
 
 
 def _combiner_rows(feat: pd.DataFrame, *, allow_lower: bool = False) -> pd.DataFrame:
@@ -313,8 +341,11 @@ def walk_forward(feat: pd.DataFrame, start_test: int = BACKTEST_START_YEAR,
         raw = clf.predict_proba(test[FEATURES])[:, 1]
         # P(winner wins) — test is winner-oriented
         p = (_stacked_predict(clf, cal_rows, raw, test) if cal == "stacked"
-             else cal_model.predict(raw))
-        chunks.append(test.assign(p_combiner=p, p_raw=raw))
+             else paired_probability(clf, cal_model, test[FEATURES]))
+        from ..eval.protocol import legacy_orientation_diagnostics
+        diagnostics = (legacy_orientation_diagnostics(clf, cal_model, test) if cal != "stacked" else {})
+        chunks.append(test.assign(p_combiner=p, p_raw=raw, probability_policy="calibrated-pair-average-v1",
+                                  **diagnostics))
         importances.append(pd.Series(clf.feature_importances_, index=FEATURES))
         if verbose:
             print(f"  {ty}: train={len(train):,} test={len(test):,}  combiner brier="
@@ -396,8 +427,11 @@ def walk_forward_state_gate(base_feat: pd.DataFrame, enriched_feat: pd.DataFrame
                     f"state-gate arm {threshold} changed {ty} test rows: "
                     f"{len(test_arm)} vs {len(test)}")
             raw = clf.predict_proba(test_arm[FEATURES])[:, 1]
-            p = cal_model.predict(raw)
-            chunks[threshold].append(test_arm.assign(p_combiner=p, p_raw=raw))
+            p = paired_probability(clf, cal_model, test_arm[FEATURES])
+            from ..eval.protocol import legacy_orientation_diagnostics
+            diagnostics = legacy_orientation_diagnostics(clf, cal_model, test_arm)
+            chunks[threshold].append(test_arm.assign(p_combiner=p, p_raw=raw,
+                probability_policy="calibrated-pair-average-v1", **diagnostics))
         if verbose:
             baseline = chunks[None][-1] if None in chunks else chunks[thresholds[0]][-1]
             p = baseline["p_combiner"].to_numpy()

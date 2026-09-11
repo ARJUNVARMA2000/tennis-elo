@@ -32,10 +32,14 @@ from ..config import (
     PLAYER_ALIASES,
     WTA_DUAL_STATE_GATE_THRESHOLD,
 )
+from ..data.chronology import CHRONOLOGY_POLICY
+from ..data.style_history import STYLE_POLICY, STYLE_VERSION, StyleSnapshot, identity_version
+from ..points.serve_prior import PRIOR_POLICY, ServePriorState
 from ..points.serve_return import ServeReturnState, sr_params_for
 from ..ratings.build import RatingState
 from ..ratings.elo import params_for
 from .features import FEATURES, H2HState, feat_params_for
+from .probability import PROBABILITY_POLICY
 from .train import (
     BaggedClassifier,
     PlattCalibrator,
@@ -96,6 +100,7 @@ _PREDICTOR_FIELDS = frozenset({
     "inference_schema_version",
     "trained_at",
     "artifact_id",
+    "style_snapshot",
 })
 
 
@@ -193,6 +198,7 @@ def predictor_contract(tour: str) -> dict[str, Any]:
     from sklearn.linear_model import LogisticRegression
     from xgboost import Booster, XGBClassifier
 
+    from ..config import REVIEWED_RESULTS
     from .predict import INFERENCE_SCHEMA_VERSION, TennisPredictor
 
     gate = WTA_DUAL_STATE_GATE_THRESHOLD if tour == "wta" else None
@@ -204,10 +210,15 @@ def predictor_contract(tour: str) -> dict[str, Any]:
         "xgboost": {"params": production_xgb_params(tour)},
         "population": {
             "matchPopulationVersion": MATCH_POPULATION_VERSION,
+            "reviewedResultsSHA256": REVIEWED_RESULTS[tour]['sha256'],
             "playerAliases": [list(pair) for pair in sorted(PLAYER_ALIASES.items())],
         },
         "inference": {
             "schemaVersion": INFERENCE_SCHEMA_VERSION,
+            "probabilityPolicy": PROBABILITY_POLICY,
+            "stylePolicy": STYLE_POLICY,
+            "servePriorPolicy": PRIOR_POLICY,
+            "chronologyPolicy": CHRONOLOGY_POLICY,
             "dualStateGateThreshold": gate,
         },
         "classes": {
@@ -220,6 +231,8 @@ def predictor_contract(tour: str) -> dict[str, Any]:
             "eloState": _class_name(RatingState),
             "serveReturnState": _class_name(ServeReturnState),
             "contextState": _class_name(H2HState),
+            "styleSnapshot": _class_name(StyleSnapshot),
+            "servePriorState": _class_name(ServePriorState),
         },
         "bag": {
             "size": N_BAG,
@@ -299,11 +312,14 @@ def _validate_contract_shape(contract: Any, expected: dict[str, Any]) -> None:
 
     population = _require_dict(
         contract["population"],
-        {"matchPopulationVersion", "playerAliases"},
+        {"matchPopulationVersion", "playerAliases", "reviewedResultsSHA256"},
         "contract.population",
     )
     if type(population["matchPopulationVersion"]) is not int:
         _fail_schema("contract.population.matchPopulationVersion must be an integer")
+    if (type(population['reviewedResultsSHA256']) is not str
+            or not _SHA256_RE.fullmatch(population['reviewedResultsSHA256'])):
+        _fail_schema('contract.population.reviewedResultsSHA256 is invalid')
     aliases = population["playerAliases"]
     if type(aliases) is not list or len(aliases) > 20_000:
         _fail_schema("contract.population.playerAliases must be a bounded list")
@@ -317,11 +333,14 @@ def _validate_contract_shape(contract: Any, expected: dict[str, Any]) -> None:
 
     inference = _require_dict(
         contract["inference"],
-        {"schemaVersion", "dualStateGateThreshold"},
+        set(expected["inference"]),
         "contract.inference",
     )
     if type(inference["schemaVersion"]) is not int:
         _fail_schema("contract.inference.schemaVersion must be an integer")
+    for field in ("probabilityPolicy", "stylePolicy", "servePriorPolicy", "chronologyPolicy"):
+        if type(inference[field]) is not str:
+            _fail_schema(f"contract.inference.{field} must be a string")
     gate = inference["dualStateGateThreshold"]
     if gate is not None and type(gate) is not int:
         _fail_schema("contract.inference.dualStateGateThreshold is invalid")
@@ -826,7 +845,7 @@ def validate_predictor_artifact_identity(
     return {
         key: envelope[key]
         for key in ("artifactId", "tour", "trainedAt", "payloadBytes", "payloadSha256")
-    }
+    } | {'inferenceSchema':envelope['contract']['inference']['schemaVersion']}
 
 
 def _deserialize(payload: bytes) -> Any:
@@ -882,6 +901,7 @@ def _validate_state_bundle(predictor: Any, tour: str) -> None:
         raise PredictorArtifactError(
             PredictorArtifactReason.STATE_INVALID, "predictor FeatureParams mismatch"
         )
+    _validate_temporal_state(predictor)
     validate(predictor.elo, predictor.srv, predictor.ctx, "main")
     gate = WTA_DUAL_STATE_GATE_THRESHOLD if tour == "wta" else None
     lower = (predictor.lower_elo, predictor.lower_srv, predictor.lower_ctx)
@@ -892,6 +912,99 @@ def _validate_state_bundle(predictor: Any, tour: str) -> None:
             )
     else:
         validate(*lower, "lower")
+
+
+def _validate_temporal_state(predictor):
+    def invalid(message):
+        raise PredictorArtifactError(PredictorArtifactReason.STATE_INVALID, message)
+
+    snapshot = predictor.style_snapshot
+    if type(snapshot) is not StyleSnapshot or set(vars(snapshot)) != {
+            "tour", "cutoff", "source_fingerprint", "identity_version", "profiles", "policy", "version"}:
+        invalid("style snapshot has invalid concrete structure")
+    if (snapshot.tour != predictor.tour or snapshot.policy != STYLE_POLICY
+            or type(snapshot.version) is not int or snapshot.version != STYLE_VERSION
+            or snapshot.identity_version != identity_version()
+            or type(snapshot.cutoff) is not str or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", snapshot.cutoff)
+            or type(snapshot.profiles) is not tuple):
+        invalid("style snapshot policy or identity mismatch")
+    try:
+        datetime.strptime(snapshot.cutoff, "%Y-%m-%d")
+    except ValueError:
+        invalid("style snapshot cutoff is invalid")
+    if snapshot.source_fingerprint == "unavailable":
+        if snapshot.profiles:
+            invalid("unavailable style source carries profiles")
+    elif type(snapshot.source_fingerprint) is not str or not _SHA256_RE.fullmatch(snapshot.source_fingerprint):
+        invalid("style source fingerprint is invalid")
+    previous = ""
+    for row in snapshot.profiles:
+        if type(row) is not tuple or len(row) != 4:
+            invalid("style profile structure mismatch")
+        key, values, points, count = row
+        if (type(key) is not str or key <= previous or (values is not None and (type(values) is not tuple or len(values) != 8
+                    or any(v is not None and (type(v) is not float or not np.isfinite(v)) for v in values)))
+                or type(points) is not float or not np.isfinite(points) or points < 0
+                or ((values is not None) != (points >= 200))
+                or type(count) is not int or count < 1):
+            invalid("style values/counts are invalid")
+        previous = key
+    for srv in (predictor.srv, predictor.lower_srv):
+        if srv is None:
+            continue
+        prior = getattr(srv, "prior_state", None)
+        if type(prior) is not ServePriorState or set(vars(prior)) != {
+                "points", "won", "surface_points", "surface_won", "last_admitted_cutoff", "policy",
+                "population_policy", "excluded_unknown_time", "excluded_invalid_stats"}:
+            invalid("serve prior concrete structure mismatch")
+        if (prior.policy != PRIOR_POLICY or prior.population_policy not in ("walk-population", "explicit-baseline")
+                or type(prior.surface_points) is not dict or type(prior.surface_won) is not dict
+                or set(prior.surface_points) != set(prior.surface_won)
+                or not set(prior.surface_points) <= {"Hard", "Clay", "Grass"}):
+            invalid("serve prior policy/count schema mismatch")
+        if (type(prior.points) is not float or type(prior.won) is not float
+                or not np.isfinite([prior.points, prior.won]).all() or not 0 <= prior.won <= prior.points):
+            invalid("serve prior totals are invalid")
+        for surface, points in prior.surface_points.items():
+            won = prior.surface_won[surface]
+            if (type(points) is not float or type(won) is not float
+                    or not np.isfinite([points, won]).all() or not 0 <= won <= points or points <= 0):
+                invalid("serve prior surface totals are invalid")
+        if (not np.isclose(sum(prior.surface_points.values()), prior.points)
+                or not np.isclose(sum(prior.surface_won.values()), prior.won)):
+            invalid("serve prior totals disagree")
+        for count in (prior.excluded_unknown_time, prior.excluded_invalid_stats):
+            if type(count) is not int or count < 0:
+                invalid("serve prior exclusion count is invalid")
+        if prior.points:
+            try:
+                datetime.strptime(prior.last_admitted_cutoff, "%Y-%m-%d")
+            except (ValueError, TypeError):
+                invalid("serve prior cutoff is invalid")
+        elif prior.last_admitted_cutoff is not None:
+            invalid("empty prior has an admitted cutoff")
+        pending = vars(srv).get('pending_prior_observations')
+        if type(pending) is not tuple:
+            invalid("serve prior pending observations are missing or malformed")
+        previous = prior.last_admitted_cutoff
+        for observation in pending:
+            if type(observation) is not tuple or len(observation) != 4:
+                invalid("serve prior pending observation is malformed")
+            day, surface, points, won = observation
+            try:
+                parsed = datetime.strptime(day, '%Y-%m-%d')
+            except (ValueError, TypeError):
+                invalid("serve prior pending date is invalid")
+            if (parsed.strftime('%Y-%m-%d') != day or (previous is not None and day < previous)
+                    or surface not in ('Hard', 'Clay', 'Grass')
+                    or type(points) is not float or type(won) is not float
+                    or not np.isfinite([points, won]).all() or not 0 <= won <= points or points <= 0):
+                invalid("serve prior pending observations are invalid or unordered")
+            previous = day
+        avg, base = prior.before()
+        if (srv.avg != avg or (prior.points and set(srv.base) != set(base))
+                or any(s not in base or v != base[s] for s, v in srv.base.items())):
+            invalid("serve prior state and prediction baselines disagree")
 
 
 def _same_param(actual: Any, expected: Any) -> bool:
@@ -1320,3 +1433,24 @@ def load_predictor_artifact(
                 f"validated pending-marker cleanup failed ({type(exc).__name__})",
             ) from exc
     return predictor
+
+
+def check_current_artifacts() -> None:
+    """Validate both cached tour contracts before CI chooses a quick refresh."""
+    from ..config import TOURS, output_dir
+
+    for tour in TOURS:
+        validate_predictor_artifact_identity(output_dir(tour) / 'predictor.pkl', tour)
+
+
+if __name__ == '__main__':
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Check cached predictor compatibility.')
+    parser.add_argument('--check-current', action='store_true', required=True)
+    parser.parse_args()
+    try:
+        check_current_artifacts()
+    except PredictorArtifactError as exc:
+        print(f'predictor cache requires full refresh: {exc.reason.value}')
+        raise SystemExit(1) from exc

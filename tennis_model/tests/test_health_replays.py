@@ -120,6 +120,9 @@ def _clean_receipt(tour: str, as_of: str) -> dict:
 
 def _materialize_base(root: Path, tour: str, as_of: str) -> None:
     data = copy.deepcopy(_healthy_data())
+    from tennis_model.data.result_ledger import coverage_receipt
+    data['meta']['resultIntegrity'] = coverage_receipt(pd.DataFrame(), tour)
+    data['meta']['resultIntegrity']['checkedMatches'] = data['meta']['matches']
     shards = copy.deepcopy(_healthy_shards())
     threshold = health.WTA_DUAL_STATE_GATE_THRESHOLD if tour == "wta" else None
     generation_date = (pd.Timestamp(as_of) - pd.Timedelta(days=1)).strftime("%Y-%m-%d")
@@ -264,6 +267,10 @@ def _apply_patch(root: Path, tour: str, patch: dict) -> None:
     else:
         document = json.loads(target.read_text(encoding="utf-8"))
         _set_json_pointer(document, patch["pointer"], patch["value"])
+        if target.name == 'meta.json' and patch['pointer'] == '/matches':
+            # The historic incident changes membership, with an otherwise coherent
+            # build receipt. Missing reviewed-result coverage has its own replay tests.
+            document['resultIntegrity']['checkedMatches'] = patch['value']
         _write_json(target, document)
 
 
@@ -404,6 +411,8 @@ def test_incident_replay_bites_only_broken_variant(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    from reviewed_fixtures import empty_reviewed_scope
+    empty_reviewed_scope(monkeypatch, tmp_path / 'reviewed')
     broken, _broken_legacy, broken_state = _run_variant(
         case, "broken", tmp_path / "broken", monkeypatch
     )

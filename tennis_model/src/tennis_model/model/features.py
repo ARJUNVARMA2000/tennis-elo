@@ -1,4 +1,4 @@
-"""Assemble the leakage-free feature frame that the XGBoost combiner consumes.
+"""Assemble pre-row features under the declared retrospective chronology policy.
 
 Three chronological passes produce PRE-match signals:
   - run_elo            -> surface-blended Elo (+ overall/surface, counts)
@@ -20,9 +20,10 @@ import numpy as np
 import pandas as pd
 
 from .. import config as _config
-from ..data.charting import STYLE_FEATURES, build_profiles, name_key
+from ..data.charting import STYLE_FEATURES, build_profiles, name_key  # noqa: F401
 from ..data.geo import IOC_ALIAS, host_ioc
 from ..data.results import load_matches
+from ..data.style_history import load_style_history
 from ..points.serve_return import run_serve_return
 from ..ratings.build import run_elo
 
@@ -231,8 +232,10 @@ def run_context(df: pd.DataFrame,
 
 def _run_all(df: pd.DataFrame, state_only_lower: bool = False):
     """Run the three chronological passes and assemble features; keep the states."""
+    from ..data.chronology import require_chronology
     from ..points.serve_return import sr_params_for
     from ..ratings.elo import params_for
+    require_chronology(df)
     tour = str(df["tour"].iloc[0]) if "tour" in df and len(df) else "atp"
     fp = feat_params_for(tour)
     elo_state, elo = run_elo(df, params=params_for(tour))
@@ -241,7 +244,10 @@ def _run_all(df: pd.DataFrame, state_only_lower: bool = False):
     srv_state, srv = run_serve_return(
         df, params=sr_params_for(tour), baseline_df=serve_baseline)
     ctx_state, ctx = run_context(df, params=fp)
-    d = df.join(elo).join(srv).join(ctx)
+    history = load_style_history(tour)
+    cutoff = df.date.max() + pd.Timedelta(days=1) if len(df) else pd.Timestamp("1970-01-01")
+    ctx_state.style_snapshot = history.snapshot(cutoff)
+    d = df.join(elo).join(srv).join(ctx).join(history.pair_features(df))
     return _assemble(d, params=fp), elo_state, srv_state, ctx_state
 
 
@@ -499,18 +505,15 @@ def _assemble(d: pd.DataFrame,
 
     # MCP tactical-style diffs (0 unless both players have a charted profile)
     tour = str(d["tour"].iloc[0]) if "tour" in d and len(d) else "atp"
-    profiles = build_profiles(tour)
-    wk = d["winner_name"].map(name_key)
-    lk = d["loser_name"].map(name_key)
-    f["has_style"] = (wk.isin(profiles) & lk.isin(profiles)).astype(int)
-    for s in STYLE_FEATURES:
-        wv = wk.map(lambda k, s=s: profiles.get(k, {}).get(s, np.nan)).astype(float)
-        lv = lk.map(lambda k, s=s: profiles.get(k, {}).get(s, np.nan)).astype(float)
-        f[s + "_diff"] = (wv - lv).where(f["has_style"] == 1, 0.0).fillna(0.0)
+    style_columns = ["has_style"] + STYLE_DIFFS
+    styles = d[style_columns] if set(style_columns) <= set(d) else load_style_history(tour).pair_features(d)
+    f[style_columns] = styles
 
     # carry-through id/baseline columns
     f["date"] = d["date"]
     f["year"] = d["date"].dt.year
+    f["tour"] = tour
+    f["max_days_since"] = np.maximum(d["w_days_since"], d["l_days_since"])
     f["completed"] = d["completed"]
     f["p_blend"] = d["p_blend"]
     f["p_point"] = d["p_point"]
@@ -518,7 +521,8 @@ def _assemble(d: pd.DataFrame,
     f["loser_name"] = d["loser_name"]
     # Stable audit identity for row-exact A/B pairing.  Player/date/round_order is
     # insufficient for historical round-robin/bronze rematches (Landshut 1981).
-    for column in ("tourney_id", "round", "match_num", "source_match_id"):
+    for column in ("tourney_id", "round", "match_num", "source_match_id", "source_kind",
+                   "source_file", "date_basis", "recorded_date", "event_edition", "chronology_policy"):
         if column in d:
             f[column] = d[column]
     # Audit-only population metadata.  These are deliberately not in FEATURES:

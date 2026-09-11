@@ -146,8 +146,14 @@ def test_roundtrip_keeps_plain_pickle_and_stable_generation_id(valid_artifact, t
     assert contract["xgboost"]["params"] == production_xgb_params("atp")
     assert contract["population"]["matchPopulationVersion"] >= 1
     assert type(contract["population"]["playerAliases"]) is list
+    from tennis_model.config import REVIEWED_RESULTS
+    assert contract['population']['reviewedResultsSHA256'] == REVIEWED_RESULTS['atp']['sha256']
     assert contract["inference"] == {
-        "schemaVersion": 3,
+        "schemaVersion": 5,
+        "probabilityPolicy": "calibrated-pair-average-v1",
+        "stylePolicy": "mcp-retrospective-played-date-strict-before-v1",
+        "servePriorPolicy": "available-date-strict-before-v1",
+        "chronologyPolicy": "retrospective-verified-date-or-recorded-event-round-v2",
         "dualStateGateThreshold": None,
     }
     assert contract["classes"]["combiner"].endswith(".BaggedClassifier")
@@ -190,6 +196,41 @@ def test_wta_dual_state_fitted_artifact_roundtrip(tmp_path):
     assert loaded.dual_state_threshold == WTA_DUAL_STATE_GATE_THRESHOLD
     assert loaded._has_lower_state
     validate_predictor_structure(loaded, "wta")
+
+
+def test_populated_temporal_state_roundtrip_and_tampering(valid_artifact, tmp_path):
+    from dataclasses import replace
+
+    from tennis_model.data.style_history import StyleHistory
+    from tennis_model.points.serve_return import run_serve_return
+    from test_temporal_features import charts, matches
+
+    source, _ = valid_artifact
+    predictor = TennisPredictor.load('atp', source)
+    predictor.style_snapshot = StyleHistory('atp', *charts(), 'a' * 64).snapshot('2025-01-03')
+    predictor.srv, _ = run_serve_return(matches().iloc[:3], params=sr_params_for('atp'))
+    path = tmp_path / 'predictor.pkl'
+    predictor.save(path)
+    loaded = TennisPredictor.load('atp', path)
+    assert loaded.style_snapshot == predictor.style_snapshot
+    pd.testing.assert_frame_equal(
+        loaded.features('Alfa One', 'Bravo Two', as_of='2025-04-01'),
+        predictor.features('Alfa One', 'Bravo Two', as_of='2025-04-01'))
+
+    mutations = [
+        lambda p: setattr(p.srv.prior_state, 'points', 999.),
+        lambda p: setattr(p.srv.prior_state, 'policy', 'unknown'),
+        lambda p: p.srv.base.clear(),
+        lambda p: setattr(p, 'style_snapshot', replace(p.style_snapshot, identity_version='stale')),
+        lambda p: setattr(p, 'style_snapshot', replace(p.style_snapshot,
+            profiles=(('alfa one', (0.,)*8, 100., 1),))),
+    ]
+    for mutate in mutations:
+        invalid = TennisPredictor.load('atp', path)
+        mutate(invalid)
+        with pytest.raises(PredictorArtifactError) as caught:
+            validate_predictor_structure(invalid, 'atp')
+        assert caught.value.reason is PredictorArtifactReason.STATE_INVALID
 
 
 @pytest.mark.parametrize("legacy", [True, False])
@@ -286,6 +327,14 @@ def test_every_invalid_present_envelope_stops_before_unpickle(
     path = _copy_artifact(source, contract)
     envelope = json.loads(predictor_envelope_path(path).read_text(encoding="utf-8"))
     envelope["contract"]["features"][0] = "wrong"
+    _write_envelope(path, envelope)
+    cases.append((path, PredictorArtifactReason.CONTRACT_MISMATCH))
+
+    reviewed = tmp_path / 'reviewed-ledger'
+    reviewed.mkdir()
+    path = _copy_artifact(source, reviewed)
+    envelope = json.loads(predictor_envelope_path(path).read_text(encoding='utf-8'))
+    envelope['contract']['population']['reviewedResultsSHA256'] = '0' * 64
     _write_envelope(path, envelope)
     cases.append((path, PredictorArtifactReason.CONTRACT_MISMATCH))
 
@@ -587,8 +636,9 @@ def test_preunpickle_identity_helper_binds_completed_pair(
     identity = validate_predictor_artifact_identity(path, "atp")
     envelope = json.loads(predictor_envelope_path(path).read_text(encoding="utf-8"))
     assert identity == {
-        key: envelope[key]
-        for key in ("artifactId", "tour", "trainedAt", "payloadBytes", "payloadSha256")
+        **{key: envelope[key]
+           for key in ("artifactId", "tour", "trainedAt", "payloadBytes", "payloadSha256")},
+        "inferenceSchema": 5,
     }
     assert identity["artifactId"] == artifact_id
     assert calls == []
@@ -935,3 +985,50 @@ def test_error_reason_is_typed_and_stable():
     assert error.reason is PredictorArtifactReason.CONTRACT_MISMATCH
     assert error.code == "contract_mismatch"
     assert str(error) == "contract_mismatch: detail"
+
+
+@pytest.mark.parametrize('tour', ['atp', 'wta'])
+def test_combined_release_rejects_both_prior_version_seven_populations(tour):
+    """Production and research used version 7 for different reviewed populations."""
+    predictor = _valid_predictor(tour)
+    validate_predictor_structure(predictor, tour)
+    predictor.match_population_version = 7
+    with pytest.raises(PredictorArtifactError) as rejected:
+        validate_predictor_structure(predictor, tour)
+    assert rejected.value.reason is PredictorArtifactReason.PREDICTOR_FIELDS
+
+
+@pytest.mark.parametrize('stale_tour', ['atp', 'wta'])
+def test_workflow_cache_check_detects_either_tour_migration(monkeypatch, tmp_path, stale_tour):
+    from tennis_model import config
+
+    monkeypatch.setattr(config, 'output_dir', lambda tour: tmp_path / tour)
+    for tour in config.TOURS:
+        _valid_predictor(tour).save(tmp_path / tour / 'predictor.pkl')
+    artifact.check_current_artifacts()
+    envelope_path = predictor_envelope_path(tmp_path / stale_tour / 'predictor.pkl')
+    envelope = json.loads(envelope_path.read_text())
+    envelope['contract']['population']['matchPopulationVersion'] = 7
+    envelope_path.write_text(json.dumps(envelope))
+    with pytest.raises(PredictorArtifactError) as rejected:
+        artifact.check_current_artifacts()
+    assert rejected.value.reason is PredictorArtifactReason.CONTRACT_MISMATCH
+
+
+def test_pending_event_end_evidence_roundtrip_and_validation(valid_artifact, tmp_path):
+    from tennis_model.points.serve_return import run_serve_return
+    from test_temporal_features import matches
+
+    source, _ = valid_artifact
+    pred = TennisPredictor.load('atp', source)
+    frame = matches().iloc[:2].copy()
+    frame['stats_available_at'] = pd.Timestamp('2025-01-07')
+    frame['stats_availability_basis'] = 'event_end'
+    pred.srv, _ = run_serve_return(frame, params=sr_params_for('atp'))
+    path = tmp_path / 'predictor.pkl'
+    pred.save(path)
+    loaded = TennisPredictor.load('atp', path)
+    assert loaded.srv.at('2025-01-08').prior_state.points == 400
+    loaded.srv.pending_prior_observations = (('bad', 'Hard', 100., 50.),)
+    with pytest.raises(PredictorArtifactError, match='pending date'):
+        validate_predictor_structure(loaded, 'atp')

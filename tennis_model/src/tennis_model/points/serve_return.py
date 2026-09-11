@@ -10,17 +10,20 @@ serve, their return-points-won %. We track time-decayed skill at two levels:
 
 Both are **opponent-adjusted** (strength-of-schedule): when we ingest a match we shift
 the credited serve%/return% by the opponent's current return/serve skill, so dominating
-an elite returner counts more than the same numbers against a weak one. All estimates
-use only past matches, so the walk is leakage-free.
+an elite returner counts more than the same numbers against a weak one. Player updates
+follow the normalized row order, whose mixed source dates still require repair.
 
 A match on surface *s* gives
     p(A serving) = base[s] + serve_skill_A(s) - return_skill_B(s)
 which feeds the hierarchical Markov model for the match probability. League and surface
-baselines are computed from the data, so the model is tour-agnostic (ATP ~0.64, WTA ~0.56).
+baselines use previously available valid point counts with a data-independent fallback.
+Unknown information dates are excluded from prior updates; legacy player-walk dates
+remain subject to the separate chronology audit.
 """
 
 from __future__ import annotations
 
+from copy import copy, deepcopy
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -35,6 +38,7 @@ from ..config import (
 )
 from ..data.geo import _norm
 from .markov import P_CLIP, match_win_prob
+from .serve_prior import ServePriorState, prior_observations, valid_stat_mask
 
 _DAY = np.timedelta64(1, "D")
 
@@ -75,6 +79,8 @@ def serve_averages(df: pd.DataFrame) -> tuple[float, dict]:
 class ServeReturnState:
     """Time-decayed, opponent-adjusted serve/return accumulators per player."""
 
+    prior_state: ServePriorState = field(default_factory=ServePriorState)
+    pending_prior_observations: tuple = field(default_factory=tuple)
     avg: float = 0.62                                    # league serve-points-won
     base: dict = field(default_factory=dict)             # surface -> serve%
     params: ServeReturnParams = DEFAULT_SR_PARAMS
@@ -103,6 +109,8 @@ class ServeReturnState:
         return getattr(self, "params", None) or DEFAULT_SR_PARAMS
 
     def _decay_to(self, name: str, t) -> None:
+        if hasattr(self, '_query_date'):
+            raise ValueError('prediction-time serve views cannot mutate stored state')
         prev = self.t_last.get(name)
         if prev is not None:
             dt = (t - prev) / _DAY
@@ -117,16 +125,45 @@ class ServeReturnState:
                             dd[s][name] *= f
         self.t_last[name] = t
 
+    def at(self, as_of):
+        """Read-only date view: decay queried evidence without modifying the saved state."""
+        view = copy(self)
+        view._query_date = np.datetime64(pd.Timestamp(as_of).to_datetime64())
+        if self.pending_prior_observations:
+            view.prior_state = deepcopy(self.prior_state)
+            cutoff = pd.Timestamp(as_of).normalize()
+            admitted = 0
+            for day, surface, points, won in self.pending_prior_observations:
+                if pd.Timestamp(day) >= cutoff:
+                    break
+                view.prior_state.observe(surface, points, won, day)
+                admitted += 1
+            view.pending_prior_observations = self.pending_prior_observations[admitted:]
+            view.avg, view.base = view.prior_state.before()
+        return view
+
+    def _read(self, values, name):
+        value = values.get(name, 0.0)
+        date = getattr(self, "_query_date", None)
+        last = self.t_last.get(name)
+        if date is not None and last is not None:
+            days = max(0., float((date - last) / _DAY))
+            value *= .5 ** (days / self._p.form_halflife_days)
+        return value
+
+    def serve_points(self, name):
+        return self._read(self.gsp, name)
+
     # -- skills -------------------------------------------------------------
     def global_serve_skill(self, name: str) -> float:
         k = self._p.serve_shrinkage_points
-        sp = self.gsp.get(name, 0.0)
-        return (self.gsw.get(name, 0.0) + self.avg * k) / (sp + k) - self.avg
+        sp = self._read(self.gsp, name)
+        return (self._read(self.gsw, name) + self.avg * k) / (sp + k) - self.avg
 
     def global_return_skill(self, name: str) -> float:
         k = self._p.serve_shrinkage_points
-        rp = self.grp.get(name, 0.0)
-        return (self.grw.get(name, 0.0) + self.avg_ret * k) / (rp + k) - self.avg_ret
+        rp = self._read(self.grp, name)
+        return (self._read(self.grw, name) + self.avg_ret * k) / (rp + k) - self.avg_ret
 
     def serve_skill(self, name: str, surf: str | None = None) -> float:
         """Surface-specific serve skill (relative to the surface baseline), shrunk
@@ -136,8 +173,8 @@ class ServeReturnState:
         k = self._p.surface_serve_shrinkage
         bs = self.base[surf]
         prior = bs + self.global_serve_skill(name)               # player's global level, on this surface
-        sp = self.ssp[surf].get(name, 0.0)
-        return (self.ssw[surf].get(name, 0.0) + prior * k) / (sp + k) - bs
+        sp = self._read(self.ssp[surf], name)
+        return (self._read(self.ssw[surf], name) + prior * k) / (sp + k) - bs
 
     def return_skill(self, name: str, surf: str | None = None) -> float:
         if surf is None or surf not in self.base:
@@ -145,8 +182,8 @@ class ServeReturnState:
         k = self._p.surface_serve_shrinkage
         br = 1.0 - self.base[surf]
         prior = br + self.global_return_skill(name)
-        rp = self.srp[surf].get(name, 0.0)
-        return (self.srw[surf].get(name, 0.0) + prior * k) / (rp + k) - br
+        rp = self._read(self.srp[surf], name)
+        return (self._read(self.srw[surf], name) + prior * k) / (rp + k) - br
 
     def event_offset(self, event: str | None, surf: str) -> float:
         """Shrunk fast/slow-court serve-pct offset for a named event (0 = unknown/off).
@@ -177,14 +214,16 @@ class ServeReturnState:
 
     # -- updates ------------------------------------------------------------
     def _add(self, name: str, surf: str, svpt: float, adj_spw: float, rpt: float, adj_rpw: float) -> None:
-        self.gsw[name] = self.gsw.get(name, 0.0) + adj_spw * svpt
-        self.gsp[name] = self.gsp.get(name, 0.0) + svpt
-        self.grw[name] = self.grw.get(name, 0.0) + adj_rpw * rpt
-        self.grp[name] = self.grp.get(name, 0.0) + rpt
-        self.ssw[surf][name] = self.ssw[surf].get(name, 0.0) + adj_spw * svpt
-        self.ssp[surf][name] = self.ssp[surf].get(name, 0.0) + svpt
-        self.srw[surf][name] = self.srw[surf].get(name, 0.0) + adj_rpw * rpt
-        self.srp[surf][name] = self.srp[surf].get(name, 0.0) + rpt
+        if hasattr(self, "_query_date"):
+            raise ValueError("cannot update a read-only serve-state view")
+        self.gsw[name] = self._read(self.gsw, name) + adj_spw * svpt
+        self.gsp[name] = self._read(self.gsp, name) + svpt
+        self.grw[name] = self._read(self.grw, name) + adj_rpw * rpt
+        self.grp[name] = self._read(self.grp, name) + rpt
+        self.ssw[surf][name] = self._read(self.ssw[surf], name) + adj_spw * svpt
+        self.ssp[surf][name] = self._read(self.ssp[surf], name) + svpt
+        self.srw[surf][name] = self._read(self.srw[surf], name) + adj_rpw * rpt
+        self.srp[surf][name] = self._read(self.srp[surf], name) + rpt
 
 
 def run_serve_return(df: pd.DataFrame,
@@ -195,20 +234,37 @@ def run_serve_return(df: pd.DataFrame,
 
     ``baseline_df`` controls only the league/surface serve priors.  Data-side state
     experiments pass their identical main-draw population here, so adding later lower
-    rows cannot retroactively change pre-experiment predictions through a full-frame
-    aggregate; the lower rows still update every player accumulator in ``df``.
+    rows cannot retroactively change priors. Only explicitly dated available statistics
+    strictly before each query enter the prior; lower rows still update player state.
+    Unknown prior information times are counted/excluded, never inferred from tourney_date.
     """
-    avg, base = serve_averages(df if baseline_df is None else baseline_df)
-    st = ServeReturnState(avg=avg, base=base, params=params or DEFAULT_SR_PARAMS)
+    prior = ServePriorState(population_policy="explicit-baseline" if baseline_df is not None else "walk-population")
+    observations = prior_observations(df if baseline_df is None else baseline_df, prior)
+    cursor = 0
+    avg, base = prior.before()
+    st = ServeReturnState(prior_state=prior, avg=avg, base=base, params=params or DEFAULT_SR_PARAMS)
+
+    def advance_prior(cutoff):
+        nonlocal cursor
+        cutoff = pd.Timestamp(cutoff).normalize()
+        while cursor < len(observations) and observations[cursor][0] < cutoff:
+            date, surface, points, won = observations[cursor]
+            prior.observe(surface, points, won, date)
+            cursor += 1
+        st.avg, st.base = prior.before()
+
+    if not df.date.is_monotonic_increasing or df.date.isna().any():
+        raise ValueError("serve walk requires non-null chronological dates")
     n = len(df)
     cols = ["w_serve_skill", "l_serve_skill", "w_return_skill", "l_return_skill",
-            "w_srv_pts", "l_srv_pts", "pa_serve", "pb_serve", "p_point"]
+            "w_srv_pts", "l_srv_pts", "pa_serve", "pb_serve", "p_point",
+            "prior_avg", "prior_surface", "prior_service_points"]
     out = {c: np.empty(n, dtype=float) for c in cols}
 
     winners = df["winner_name"].to_numpy(); losers = df["loser_name"].to_numpy()
     surfs = df["surface_b"].to_numpy(); dates = df["date"].to_numpy()
     best_of = pd.to_numeric(df["best_of"], errors="coerce").fillna(3).astype(int).to_numpy()
-    has_stats = df["has_stats"].to_numpy()
+    has_stats = valid_stat_mask(df)
     g = lambda c: pd.to_numeric(df[c], errors="coerce").to_numpy()
     w_svpt, l_svpt = g("w_svpt"), g("l_svpt")
     w_1w, w_2w = g("w_1stWon"), g("w_2ndWon")
@@ -226,6 +282,10 @@ def run_serve_return(df: pd.DataFrame,
 
     for i in range(n):
         w, l, s, t = winners[i], losers[i], surfs[i], dates[i]
+        advance_prior(t)
+        out["prior_avg"][i] = st.avg
+        out["prior_surface"][i] = st.base.get(s, st.avg)
+        out["prior_service_points"][i] = prior.points
         st._decay_to(w, t); st._decay_to(l, t)
 
         # pre-match skills (surface-specific for prediction; global for SoS adjustment)
@@ -271,6 +331,12 @@ def run_serve_return(df: pd.DataFrame,
                 esw[ek] = esw.get(ek, 0.0) + (raw_pool - exp_pool) * pool_pts
                 esp[ek] = esp.get(ek, 0.0) + pool_pts
 
+    # Saved state represents the completed walk, including admissible last-day observations.
+    if len(df):
+        advance_prior(df.date.max() + pd.Timedelta(days=1))
+    st.pending_prior_observations = tuple(
+        (str(day.date()), surface, points, won)
+        for day, surface, points, won in observations[cursor:])
     feats = pd.DataFrame(out, index=df.index)
     feats["serve_skill_diff"] = feats["w_serve_skill"] - feats["l_serve_skill"]
     feats["return_skill_diff"] = feats["w_return_skill"] - feats["l_return_skill"]

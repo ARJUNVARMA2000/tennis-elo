@@ -763,3 +763,48 @@ if __name__ == "__main__":
     test_predictor_stamps_trained_at_and_survives_a_pickle_round_trip()
     test_fixtures_upset_flag_agrees_with_the_rounded_prob_it_ships()
     print("\nALL PASSED")
+
+
+@pytest.mark.parametrize('full', [True, False])
+@pytest.mark.parametrize('tour', ['atp', 'wta'])
+def test_full_and_quick_export_produce_gate_valid_private_audit(monkeypatch, tmp_path, full, tour):
+    from datetime import UTC, datetime
+
+    from reviewed_fixtures import empty_reviewed_scope
+    from tennis_model.data.health import output_findings, read_outputs
+    from tennis_model.model.probability_audit import AUDIT_FILENAME
+    from test_probability import predictor
+
+    empty_reviewed_scope(monkeypatch, tmp_path / 'reviewed')
+
+    pred = predictor(tour, lower=tour == 'wta')
+    frame = pd.DataFrame({'date': pd.to_datetime(['2026-08-01']), 'tour': [tour],
+                          'winner_name': ['Alfa One'], 'loser_name': ['Bravo Two']})
+    frame.attrs['normalizedInputFingerprint'] = 'nm2:' + 'a' * 64
+    directory = tmp_path / tour; directory.mkdir()
+    monkeypatch.setattr(export, 'output_dir', lambda _: directory)
+    import tennis_model.data.health as health
+    monkeypatch.setattr(health, 'output_dir', lambda _: directory)
+    monkeypatch.setattr(export, '_clear_upcoming_outputs', lambda _: None)
+    monkeypatch.setattr(export, '_static_outputs_present', lambda _: True)
+    for name in ('build_profiles', '_cached_profile_styles', 'load_rankings', 'build_profiles_json',
+                 'build_method', 'build_fixtures', 'build_brackets_payload'):
+        monkeypatch.setattr(export, name, lambda *a, **kw: {})
+    for name in ('build_history', 'build_draws'):
+        monkeypatch.setattr(export, name, lambda *a, **kw: [])
+    for name in ('build_matrix_shards', 'build_profile_shards', 'build_scenario_shards'):
+        monkeypatch.setattr(export, name, lambda *a, **kw: ({}, {}))
+    monkeypatch.setattr(export, 'build_event_outputs', lambda *a: ({}, []))
+    monkeypatch.setattr(export, 'build_players', lambda *a, **kw: [{'name': n} for n in pred.elo.n])
+    monkeypatch.setattr(export, 'summary', lambda _: {'date_max':'2026-08-01','matches':1,'players':2})
+    export.export_all(tour, frame, pred.elo, pred.srv, {}, pred, full=full)
+    assert (directory / AUDIT_FILENAME).exists()
+    outputs = read_outputs(tour)
+    code = 'output.prediction.independent_audit_invalid'
+    assert code not in {f.code for f in output_findings(tour, outputs, pd.Timestamp(datetime.now(UTC)))}
+    chronology_code = 'output.chronology.contract_invalid'
+    assert chronology_code not in {f.code for f in output_findings(tour, outputs, pd.Timestamp.now(tz='UTC'))}
+    outputs['data']['meta']['chronology']['roundDateInversions'] = 1
+    assert chronology_code in {f.code for f in output_findings(tour, outputs, pd.Timestamp.now(tz='UTC'))}
+    (directory / AUDIT_FILENAME).write_bytes(b'{}')
+    assert code in {f.code for f in output_findings(tour, read_outputs(tour), pd.Timestamp.now(tz='UTC'))}

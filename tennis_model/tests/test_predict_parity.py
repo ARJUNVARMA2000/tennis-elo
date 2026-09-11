@@ -225,7 +225,7 @@ def test_wta_dual_state_survives_pickle_roundtrip():
     restored = pickle.loads(pickle.dumps(pred))
     assert restored._dual_state_threshold == 32
     assert restored._has_lower_state
-    assert restored._inference_schema_version == 3
+    assert restored._inference_schema_version == 5
 
 
 def test_home_flag_threads_event():
@@ -278,7 +278,7 @@ def test_component_matrices_batch_once_and_preserve_pair_orientation():
         predict.build_profiles = original
 
     assert pred.clf.calls == 1
-    assert profile_loads == 1
+    assert profile_loads == 0  # saved snapshot: no current/global profile read
     assert set(matrices) == {"eloBlend", "pointModel", "combiner"}
     for matrix in matrices.values():
         assert matrix.shape == (2, 2)

@@ -71,9 +71,9 @@ CANON = [
     "winner_rank", "loser_rank", "winner_rank_points", "loser_rank_points",
 ] + _STAT_COLS
 
-_HISTORICAL_CACHE_SCHEMA = 1
+_HISTORICAL_CACHE_SCHEMA = 2
 NORMALIZED_HISTORY_CACHE_DIR = DATA_DIR / "cache" / "normalized-history"
-_NORMALIZED_MATCH_CACHE_SCHEMA = 1
+_NORMALIZED_MATCH_CACHE_SCHEMA = 2
 NORMALIZED_MATCH_CACHE_DIR = DATA_DIR / "cache" / "normalized-matches"
 
 
@@ -82,6 +82,7 @@ def _read_dir(d: Path) -> pd.DataFrame:
     frames = []
     for f in files:
         df = pd.read_csv(f, encoding="utf-8-sig", low_memory=False)
+        df['source_file'] = str(Path(f).relative_to(DATA_DIR)) if Path(f).is_relative_to(DATA_DIR) else Path(f).name
         df = df.reindex(columns=[c for c in set(CANON) | set(df.columns)])  # keep extras, ensure canon
         frames.append(df)
     if not frames:
@@ -164,6 +165,10 @@ def _normalized_matches_fingerprint(tour: str, include_lower: bool) -> str:
     digest.update(f"pandas={pd.__version__}\nday={pd.Timestamp.now(tz='UTC').date()}\n".encode())
     for code in (
         Path(__file__), Path(__file__).with_name("events.py"),
+        Path(__file__).with_name("chronology.py"),
+        Path(__file__).with_name("result_ledger.py"),
+        Path(__file__).with_name("wta_results.py"),
+        Path(__file__).with_name("wta_stats.py"),
         Path(__file__).with_name("surface.py"),
         Path(__file__).with_name("scores.py"), Path(__file__).with_name("names.py"),
         Path(__file__).parents[1] / "config.py",
@@ -179,6 +184,10 @@ def _normalized_matches_fingerprint(tour: str, include_lower: bool) -> str:
     paths = [path for root in roots for path in root.glob("*.csv")
              if path.name != "upcoming.csv"]
     paths += [live_dir(tour) / "wiki_surface.json", live_dir(tour) / "wiki_category.json"]
+    from .result_ledger import LEDGER_DIR
+    paths.append(LEDGER_DIR / f'{tour}.json')
+    if tour == 'wta':
+        paths += list((stats_dir(tour) / '_httpcache').glob('*/*.json'))
     for path in sorted(set(paths), key=str):
         digest.update(str(path).encode() + b"\0")
         try:
@@ -471,7 +480,7 @@ def merge_sources(tour: str, include_lower: bool | None = None) -> pd.DataFrame:
     TML site for ATP, scraped for WTA) > fresh mirror (results, clean city names) >
     live ESPN overlay (same-day, but sponsor names / no surface). Rows carrying serve
     stats always beat results-only duplicates regardless of source (see the __hs sort),
-    so the stats overlay fills every match the frozen archive is missing.
+    while a separately reviewed result ledger admits factual results without stats.
     """
     hist = _read_historical(tour)
     stats = _read_dir(stats_dir(tour))
@@ -487,7 +496,15 @@ def merge_sources(tour: str, include_lower: bool | None = None) -> pd.DataFrame:
             .set_index("espn_id")["tourney_level"].to_dict()
         )
     hist["__src"], stats["__src"], fresh["__src"], live["__src"] = 0, 1, 2, 3
+    for frame, kind in ((hist, 'historical'), (stats, 'stats'), (fresh, 'fresh'), (live, 'live')):
+        frame['source_kind'] = kind
     frames = [hist, stats, fresh, live]
+    from .result_ledger import apply_quarantines, result_frame
+    reviewed = result_frame(tour)
+    if len(reviewed):
+        reviewed['__src'] = 5  # factual donor; optional stats keep their existing preference
+        reviewed['source_kind'] = 'reviewed'
+        frames.append(reviewed)
     from .. import config as _cfg
     configured_lower = ((_cfg.INCLUDE_CHALLENGERS and tour == "atp")
                         or (_cfg.INCLUDE_WTA_LOWER_STATE and tour == "wta"))
@@ -500,6 +517,7 @@ def merge_sources(tour: str, include_lower: bool | None = None) -> pd.DataFrame:
     low = _read_lower(tour)
     if len(low):
         low["__src"] = 4
+        low['source_kind'] = 'lower'
         frames.append(low)
     df = pd.concat(frames, ignore_index=True)
     df = _stamp_draw_level(df, tour=tour)
@@ -508,7 +526,10 @@ def merge_sources(tour: str, include_lower: bool | None = None) -> pd.DataFrame:
     df = _repair_corrupt_final_years(df)
     df = _drop_impossible_dates(df)
     df = _canonicalize_names(df)
+    df = apply_quarantines(df, tour)
     df = _reconcile_exact_live_result(df)
+    from .chronology import annotate_sources, carry_timing_evidence, resolve_dates
+    df = annotate_sources(df, tour)
 
     def _fill_espn_id(frame: pd.DataFrame, k: pd.Series) -> pd.DataFrame:
         """Carry `espn_id` onto every row of a match BEFORE a dedup picks its survivor.
@@ -550,6 +571,18 @@ def merge_sources(tour: str, include_lower: bool | None = None) -> pd.DataFrame:
     by_group = round_key.groupby(base_key).transform(_only_round)
     round_key = round_key.mask(round_key.eq("") & by_group.ne(""), by_group)
     df["__key"] = base_key + "|" + round_key
+    from .result_ledger import partition_reviewed_duplicates
+    df['__key'] = partition_reviewed_duplicates(df, df['__key'])
+    # A validated result and an optional box score are separate facts. The reviewed
+    # exact-result donor owns the outcome/score; a higher-priority stats payload may
+    # omit RET or use placeholder sets without changing whether the match finished.
+    donors = df[df.source_kind.eq('reviewed')]
+    if len(donors):
+        if donors['__key'].duplicated().any():
+            raise ValueError('reviewed real results collide in source dedup key')
+        factual_scores = df['__key'].map(donors.set_index('__key').score)
+        df['score'] = factual_scores.combine_first(df.score)
+    df = carry_timing_evidence(df, df['__key'])
     # Content-level lower provenance must survive source-preference deduplication.  The
     # lower overlay loses to the historical/stats copy by design, but its role/tier is a
     # fact about the match population rather than a source-quality field.
@@ -572,6 +605,7 @@ def merge_sources(tour: str, include_lower: bool | None = None) -> pd.DataFrame:
     df = _fill_espn_id(df, df["winner_name"].astype(str) + "|" + df["loser_name"].astype(str)
                        + "|" + df["date"].astype(str) + "|" + df["round"].astype(str))
     df = df.drop_duplicates(subset=["winner_name", "loser_name", "date", "round"], keep="first")
+    df = resolve_dates(df, tour)
     event_ids = df["espn_id"].astype("string").str.strip()
     # An earlier-source duplicate can win de-duplication after inheriting only the live
     # ESPN id. Carry the id-derived tier as well so the event-facing partition retains
@@ -792,7 +826,7 @@ def clean(df: pd.DataFrame, tour: str | None = None) -> pd.DataFrame:
 
 
 def chronological(df: pd.DataFrame) -> pd.DataFrame:
-    """Sort matches in true playing order (date, tournament, round, match number)."""
+    """Sort the declared retrospective date/event/round order; dates may be event starts."""
     tid = df["tourney_id"].where(df["tourney_id"].notna(), df["tourney_name"])
     mn = pd.to_numeric(df["match_num"], errors="coerce").fillna(0)
     return df.assign(_tid=tid.astype(str), _mn=mn).sort_values(
@@ -866,6 +900,8 @@ def load_matches(tour: str = "atp", include_lower: bool | None = None) -> pd.Dat
         # but must not re-hash every source once per soft-fail stage.  DataFrame attrs ride
         # through ordinary pipeline consumers without becoming a modeled/exported feature.
         df.attrs["normalizedInputFingerprint"] = f"nm1:{fingerprint}"
+    from .result_ledger import require_result_integrity
+    require_result_integrity(df, tour)
     thin = thin_seasons(df)
     if thin:
         counts = df["date"].dt.year.value_counts()

@@ -125,6 +125,7 @@ const LINEAGE_PRIVATE_TOUR_FILENAMES = Object.freeze([
   "predictor.pkl.envelope",
   "predictor.pkl.envelope.pending",
   "stage-status.private",
+  "prediction-audit.private",
   "stage-status.json",
   "health-source.json",
   "tournament_draws-status.private",
@@ -659,6 +660,34 @@ export async function verifyArtifactLineageRelease({
       const raw = await responseBytes(response, LINEAGE_ARTIFACT_MAX_BYTES, urlPath);
       lineageMust(raw.byteLength === record.bytes, `${urlPath} byte count differs from release manifest`);
       lineageMust(sha256(raw) === record.sha256, `${urlPath} digest differs from release manifest`);
+      if (record.path.endsWith("/meta.json")) {
+        const meta = parseStrictLineageJson(raw, urlPath);
+        if (meta.inferenceSchemaVersion >= 5 || Object.hasOwn(meta, "predictionAuditSchema")) {
+          lineageMust(
+            meta.inferenceSchemaVersion === 5 && meta.predictionAuditSchema === "prediction-audit-v1"
+              && SHA256_RE.test(meta.predictionAuditSHA256)
+              && SHA256_RE.test(meta.predictionAuditSourceGeneration)
+              && meta.predictorArtifactId === record.predictorArtifactId
+              && validUtcTimestamp(meta.predictionAuditObservedAt)
+              && validUtcTimestamp(meta.lastUpdated)
+              && Date.parse(meta.predictionAuditObservedAt) <= Date.parse(meta.lastUpdated)
+              && Date.parse(meta.lastUpdated) - Date.parse(meta.predictionAuditObservedAt) <= 7200000,
+            `${urlPath} prediction audit metadata binding is invalid`,
+          );
+          const chronology = meta.chronology;
+          const counts = chronology?.dateBasisCounts;
+          lineageMust(
+            chronology?.policy === "retrospective-verified-date-or-recorded-event-round-v1"
+              && chronology.roundDateInversions === 0
+              && Number.isInteger(chronology.checkedMatches) && chronology.checkedMatches === meta.matches
+              && counts && typeof counts === "object" && !Array.isArray(counts)
+              && Object.keys(counts).every((key) => ["unknown", "played_date", "event_start"].includes(key))
+              && Object.values(counts).every((value) => Number.isInteger(value) && value >= 0)
+              && Object.values(counts).reduce((sum, value) => sum + value, 0) === chronology.checkedMatches,
+            `${urlPath} chronology contract is invalid`,
+          );
+        }
+      }
       let indexPayload = null;
       if (LINEAGE_INDEX_ROLES.has(record.path.split("/")[1])) {
         indexPayload = parseStrictLineageJson(raw, urlPath);

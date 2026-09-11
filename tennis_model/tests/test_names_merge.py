@@ -13,10 +13,19 @@ import tempfile
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import tennis_model.data.results as results
+
+
+@pytest.fixture(autouse=True)
+def isolated_reviewed_input(monkeypatch, tmp_path):
+    # These tests supply a complete synthetic source universe. The real committed
+    # repair is exercised separately in test_result_ledger, including both merge orders.
+    from reviewed_fixtures import empty_reviewed_scope
+    empty_reviewed_scope(monkeypatch, tmp_path / 'reviewed')
 
 
 # ---------------------------------------------------------------------------
@@ -114,6 +123,18 @@ def test_xiaodi_you_name_order_joins_the_existing_rating_identity():
     assert falsify(proposal, asked, build_evidence(frame)) is None
     canonical = results._canonicalize_names(frame)
     assert canonical.winner_name.tolist() == ["Xiaodi You", "Xiaodi You"]
+
+
+def test_combined_release_preserves_production_and_reviewed_wta_identities():
+    frame = pd.DataFrame({
+        'winner_name': ['Xiaodi You', 'You Xiaodi', 'Xinyu Wang', 'Xin Yu Wang'],
+        'loser_name': ['Xiyu Wang'] * 4,
+        '__src': [0, 2, 0, 2],
+    })
+    canonical = results._canonicalize_names(frame)
+    assert canonical.winner_name.tolist() == [
+        'Xiaodi You', 'Xiaodi You', 'Xinyu Wang', 'Xinyu Wang']
+    assert canonical.loser_name.tolist() == ['Xiyu Wang'] * 4
 
 
 def test_sherif_aliases_preserve_the_completed_us_open_result_chain():

@@ -74,5 +74,14 @@ if [ "$MODE" = "quick" ] && [ ! -f "$PREDICTOR" ]; then
   WHY="no saved predictor at $PREDICTOR"
 fi
 
+# A schema/population/runtime migration also needs fresh evaluation, not just the
+# quick path's compatibility refit. Check both tours before choosing the workflow
+# branch, using the same strict byte/envelope contract that protects inference.
+if [ "$MODE" = "quick" ] \
+   && ! PYTHONPATH=tennis_model/src python -m tennis_model.model.artifact --check-current; then
+  MODE=full
+  WHY="saved predictor contract is missing, invalid or stale"
+fi
+
 [ -n "${GITHUB_OUTPUT:-}" ] && echo "mode=$MODE" >> "$GITHUB_OUTPUT"
 echo "Selected mode: $MODE (event=$EVENT_NAME hour=${NOW_HOUR}Z — $WHY)"

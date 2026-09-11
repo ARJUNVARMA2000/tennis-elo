@@ -179,15 +179,15 @@
       "asOf": "2026-07-09",
       "previousOutput": {
         "matches": 300000,
-        "match_population_version": 7,
+        "match_population_version": 8,
         "high_water_matches": 300000,
-        "high_water_match_population_version": 7
+        "high_water_match_population_version": 8
       },
       "expected": {
         "code": "output.population.match_count_drop",
         "severity": "error",
         "scope": "output",
-        "entity": "match-population:v7",
+        "entity": "match-population:v8",
         "channel": "sentinel"
       },
       "variants": {

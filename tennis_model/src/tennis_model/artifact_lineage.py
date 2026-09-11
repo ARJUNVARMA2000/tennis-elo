@@ -118,6 +118,7 @@ PRIVATE_MIRROR_FILES = frozenset({
     "predictor.pkl.envelope",
     "predictor.pkl.envelope.pending",
     "stage-status.private",
+    "prediction-audit.private",
 })
 _PRIVATE_PRODUCER_JSON = PRIVATE_JSON_FILES | frozenset({MANIFEST_FILENAME})
 
@@ -3018,7 +3019,36 @@ def _validate_meta_predictor_binding(root: Path, tour: str) -> dict:
             "meta.json model age does not match the strict predictor envelope",
             path=meta_path,
         )
+    meta = _load_artifact_json(root, meta_path)
+    # A current private model makes the witness mandatory even if both public rollout
+    # markers are stripped. Legacy fixtures/accepted graphs keep their prior contract.
+    if predictor_identity.get('inferenceSchema', 0) >= 5 or 'predictionAuditSchema' in meta:
+        _read_prediction_audit(root, tour, meta)
     return predictor_identity
+
+
+def _read_prediction_audit(root: Path, tour: str, meta: dict) -> bytes:
+    from .model.probability_audit import AUDIT_FILENAME, validate_audit_metadata
+
+    relative = f'{tour}/{AUDIT_FILENAME}'
+    try:
+        raw = _read_regular_file(_safe_join(root, relative), 256 * 1024, trusted_root=root)
+    except FileNotFoundError as exc:
+        raise ArtifactLineageError(LineageReason.GRAPH_INVALID,
+            'independent prediction audit is missing', path=relative) from exc
+    except OSError as exc:
+        raise ArtifactLineageError(LineageReason.IO_ERROR,
+            'independent prediction audit cannot be read', path=relative) from exc
+    receipt = _strict_json_loads(raw, reason=LineageReason.GRAPH_INVALID, path=relative)
+    try:
+        # Accepted historical releases must remain carryable: their immutable witness
+        # was fresh at generation time. Health separately checks freshness at publication.
+        now = datetime.fromisoformat(meta['lastUpdated'].replace('Z', '+00:00'))
+        validate_audit_metadata(receipt, meta, now=now, raw_sha256=hashlib.sha256(raw).hexdigest())
+    except (ValueError, TypeError, KeyError, AttributeError) as exc:
+        raise ArtifactLineageError(LineageReason.GRAPH_INVALID,
+            'independent prediction audit binding is invalid', path=relative) from exc
+    return raw
 
 
 def _validate_public_meta_identity(root: Path, tour: str) -> dict:
@@ -3390,6 +3420,9 @@ def _buffer_predictor_artifacts(root: Path) -> list[tuple[str, bytes]]:
             (envelope_relative, envelope),
             (payload_relative, payload),
         ))
+        meta = _load_artifact_json(root, f'{tour}/meta.json')
+        if identity.get('inferenceSchema', 0) >= 5 or 'predictionAuditSchema' in meta:
+            buffered.append((f'{tour}/prediction-audit.private', _read_prediction_audit(root, tour, meta)))
     return buffered
 
 

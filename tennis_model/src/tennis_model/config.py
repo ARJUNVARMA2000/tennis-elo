@@ -151,7 +151,29 @@ WTA_DUAL_STATE_GATE_THRESHOLD = 32
 # 2026 US Open qualifying results that had briefly been cached as main-draw observations.
 # Version 6 merges the Sherif full-name variants, collapsing duplicate source results.
 # Version 7 joins the reversed You Xiaodi spelling to Xiaodi You's existing history.
-MATCH_POPULATION_VERSION = 7
+# Version 8 preserves that production identity fix, restores reviewed 2024 WTA results
+# independently of stats and quarantines
+# one unresolvable 1980 self-pair; merges Xin Yu Wang's duplicate identity. Exact
+# ledgers are committed; missing/stale files fail.
+MATCH_POPULATION_VERSION = 8
+REVIEWED_RESULTS = {
+    'atp': {'sha256': '4ef5cc7a2728b28263b9c5678759a951f4828460394c18507cbc924abf949f6e',
+            'records': 0, 'quarantines': 0},
+    'wta': {'sha256': 'e7101928a764d10ad45d1b23154d6a977323f4349c55dbc97d7320478d3894b4',
+            'records': 528, 'quarantines': 1},
+}
+
+# Reviewed chronology repairs: official ATP event spans, not invented played dates.
+# Evidence: tasks/research/2026-09-10-general-release.md and its date-corrections CSV.
+ATP_EVENT_START_REPAIRS = {
+    '2024-341': ('2024-11-03', '2024-11-09', '2024-11-04'),
+    '2024-4787': ('2024-11-03', '2024-11-09', '2024-11-04'),
+    '2024-6242': ('2024-08-18', '2024-08-24', '2024-08-19'),
+}
+ATP_MATCH_EVENT_REPAIRS = (
+    ('2026-416', '2026-04-13', 'ben shelton', 'emilio nava',
+     '7-6,3-6,6-3', '2026-308'),
+)
 # Lower-tier (challenger + qualifying) ingestion starts here: 5 warm-up years of
 # rating history before the 2010 tune window; the full 1978+ archive would double
 # the walk for matches that can no longer influence any scored year.
@@ -787,6 +809,8 @@ PLAYER_ALIASES: dict[str, str] = {
     "zhang shuai": "Shuai Zhang",
     "wang xiyu": "Xiyu Wang",
     "wang xinyu": "Xinyu Wang",
+    # Exact archive/stats collision review and full-history falsifier, maintenance v7.
+    "xin yu wang": "Xinyu Wang",
     # The same cross-source Cincinnati evidence uses ESPN's full name for the stable/archive
     # nickname. Keep the 133-match historical spelling, not the five-match live fragment.
     "catherine mcnally": "Caty Mcnally",

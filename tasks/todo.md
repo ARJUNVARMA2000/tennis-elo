@@ -6312,3 +6312,36 @@ Pending remote merge receipts and scope clarification.
 
 Deployment repair and remote PR consolidation are complete. This record supersedes
 the earlier "closed as duplicates" status; both PRs now have verified merge receipts.
+
+
+## 2026-09-10 — authorized general correctness release execution
+
+User check-in: “Okay push then” authorizes the reviewed general-correctness integration,
+validation, production push and live verification. See
+[scope and evidence](research/2026-09-10-general-release.md) and
+[release plan](research/2026-09-10-general-improvements-release-plan.md).
+
+- [x] R0: Isolate from fresh origin/master; retain rollback metadata and recovery archive.
+- [x] R1: Integrate the reviewed fixes while retaining production recovery and identities;
+  combine population versions as 8, migrate reviewed ledger contracts, preserve schema 5.
+- [ ] R2: Complete the clean full Python suite, web tests/lint/type checks/build/browser checks.
+- [ ] R3: Rebuild ATP/WTA, evaluate and validate actual full/quick outputs, saved-model loads,
+  recovery and public mirroring with private receipts excluded.
+- [ ] R4: Commit the reviewed release, reconcile latest production, push master, monitor CI
+  and verify the live generation.
+- [ ] R5: Append deployment receipt and remaining separate candidate work.
+
+Review: Integration is in progress. No additional deployment permission is required.
+
+
+### R1/R2 review — release migration and clean checks
+
+- [x] R1b: Promote incompatible saved model contracts to full workflow refresh;
+  test both tours and preserve ordinary quick/schedule/dispatch behavior.
+- [x] R2: 1,312 clean Python tests, 359 web tests, lint/type/build, 10 browser checks
+  and repository Ruff passed. Existing web lint warnings remain unchanged.
+- [x] Recovery replay: 246 files including all 11 adopted WTA lower-history seasons.
+
+The first integration checks correctly rejected unmigrated reviewed-ledger versions;
+ledger metadata/hashes, alias contract and historical gate fixtures now consistently
+use population 8. No reviewed match or quarantine was changed by that migration.

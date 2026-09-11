@@ -100,10 +100,7 @@ def _align(base: pd.DataFrame, arm: pd.DataFrame) -> tuple[pd.DataFrame, pd.Data
         raise AssertionError("A/B pairing key is not unique — investigate before trusting d±SE")
     only_b, only_a = b.index.difference(a.index), a.index.difference(b.index)
     if len(only_b) or len(only_a):
-        print(f"  WARNING: eval sets differ: base-only={len(only_b)}, arm-only={len(only_a)} "
-              f"(scoring the intersection)")
-        common = b.index.intersection(a.index)
-        b, a = b.loc[common], a.loc[common]
+        raise AssertionError(f"eval sets differ: base-only={len(only_b)}, arm-only={len(only_a)}")
     return b, a.loc[b.index]
 
 
@@ -173,6 +170,9 @@ def _assert_unaffected_parity(b: pd.DataFrame, a: pd.DataFrame,
 
 def _verdict(b: pd.DataFrame, a: pd.DataFrame) -> None:
     """Paired d±SE table + gate for two row-aligned OOS frames (base, arm)."""
+    from .protocol import paired_report
+    report = paired_report(b, a)
+    _verdict.last_report = report
     print(f"\n=== paired eval set: {len(b):,} matches "
           f"({b['year'].min()}-{b['year'].max()}) ===")
     llb = -np.log(np.clip(b["p_combiner"].to_numpy(), 1e-12, None))
@@ -218,6 +218,11 @@ def _verdict(b: pd.DataFrame, a: pd.DataFrame) -> None:
                 and d_tune > 0 and d_val > -se_val)
     print(f"\nGATE: d_tune={d_tune:+.5f}  d_val={d_val:+.5f} (SE {se_val:.5f})  "
           f"-> {'PASS' if gate else 'REJECT'}")
+    print("Validation delta is " + ("positive" if report["positiveValidationDelta"] else "not positive")
+          + "; a gate pass alone is not demonstrated validation improvement.")
+    for window in ("tune", "validation"):
+        item = report["windows"][window]
+        print(f"  {window} block uncertainty: week={item.get('week')} event={item.get('event')}")
 
 
 def _pair_date_key(a: object, b: object, date: object) -> tuple[frozenset[str], object]:

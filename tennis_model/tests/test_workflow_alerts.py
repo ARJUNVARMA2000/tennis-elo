@@ -996,7 +996,8 @@ def test_watchdog_rejects_malformed_inputs_without_touching_issues():
 # alert scripts: shell that decides something this important needs a test.
 
 def _run_mode(event: str, hour: str = "06", dispatch: str = "auto", predictor: bool = True,
-              last_full: str | None = None, today: str = "2026-07-26"):
+              last_full: str | None = None, today: str = "2026-07-26",
+              contract_current: bool = True):
     """Run the real decide-mode.sh; returns (exit_code, selected_mode).
 
     `last_full` is the date in the marker file the retrain step writes (None = no marker)."""
@@ -1009,7 +1010,15 @@ def _run_mode(event: str, hour: str = "06", dispatch: str = "auto", predictor: b
         marker = Path(td) / ".last_full_run"
         if last_full:
             marker.write_text(last_full + "\n", encoding="utf-8")
+        bindir = Path(td) / 'bin'
+        bindir.mkdir()
+        checker = bindir / 'python'
+        checker.write_text('#!/usr/bin/env bash\n'
+                           '[[ "$*" == "-m tennis_model.model.artifact --check-current" ]] || exit 2\n'
+                           f'exit {0 if contract_current else 1}\n', encoding='utf-8')
+        checker.chmod(0o755)
         env = {**os.environ, "EVENT_NAME": event, "DISPATCH_MODE": dispatch,
+               "PATH": str(bindir) + os.pathsep + os.environ.get('PATH', ''),
                "NOW_HOUR": hour, "NOW_DATE": today, "MARKER": str(marker),
                "PREDICTOR": str(pkl), "GITHUB_OUTPUT": str(out)}
         p = subprocess.run([_BASH, str(MODE_SCRIPT)], env=env, capture_output=True,
@@ -1082,6 +1091,12 @@ def test_missing_predictor_forces_a_full_build():
     assert code == 0 and mode == "full", (code, mode)
     # ...but an explicit `quick` dispatch with no model must not be honoured into a crash
     assert _run_mode("workflow_dispatch", dispatch="quick", predictor=False) == (0, "full")
+
+
+def test_incompatible_either_tour_contract_forces_full_evaluation_refresh():
+    for event in ('push', 'schedule', 'workflow_dispatch'):
+        assert _run_mode(event, hour='03', dispatch='quick', contract_current=False) == (0, 'full')
+        assert _run_mode(event, hour='03', dispatch='quick', contract_current=True) == (0, 'quick')
 
 
 def test_push_runs_stay_quick():

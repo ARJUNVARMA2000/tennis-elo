@@ -27,6 +27,13 @@ def _frames():
     p_base = np.full(len(d), 0.5)
     base = pd.DataFrame({"year": years, "p_combiner": p_base})
     arm = pd.DataFrame({"year": years, "p_combiner": p_base * np.exp(d)})
+    for frame in (base, arm):
+        frame["date"] = [pd.Timestamp(year=y, month=1, day=1) + pd.Timedelta(days=i % 4)
+                         for i, y in enumerate(years)]
+        frame["winner_name"] = [f"A{i}" for i in range(len(frame))]
+        frame["loser_name"] = [f"B{i}" for i in range(len(frame))]
+        frame["round_order"] = 1
+        frame["tourney_id"] = [f"{y}-event" for y in years]
     return base, arm
 
 

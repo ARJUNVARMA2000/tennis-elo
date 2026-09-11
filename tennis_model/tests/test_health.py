@@ -79,8 +79,12 @@ def _healthy_bracket() -> dict:
 
 
 def _healthy_data() -> dict:
+    from tennis_model.data.result_ledger import coverage_receipt
+    receipt = coverage_receipt(pd.DataFrame(), 'atp')
+    receipt['checkedMatches'] = 300_000
     return {
         "meta": {"matches": 300_000, "activePlayers": 3, "features": ["f"] * len(FEATURES),
+                 'resultIntegrity': receipt,
                  "matchPopulationVersion": health.MATCH_POPULATION_VERSION,
                  "modelPopulationVersion": health.MATCH_POPULATION_VERSION,
                  "dualStateThreshold": None, "dualStateReady": False,

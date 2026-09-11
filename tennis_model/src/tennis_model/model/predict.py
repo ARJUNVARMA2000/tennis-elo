@@ -21,8 +21,9 @@ from ..config import (
     WTA_DUAL_STATE_GATE_THRESHOLD,
     output_dir,
 )
-from ..data.charting import STYLE_FEATURES, build_profiles, name_key
+from ..data.charting import STYLE_FEATURES, build_profiles, name_key  # noqa: F401
 from ..data.results import load_matches
+from ..data.style_history import StyleSnapshot, identity_version
 from ..points.markov import match_win_prob, score_distribution
 from .features import (
     DEFAULT_FEAT_PARAMS,
@@ -33,6 +34,7 @@ from .features import (
     feat_params_for,
     use_lower_state,
 )
+from .probability import paired_probability
 from .train import train_final
 
 
@@ -99,16 +101,21 @@ EVIDENCE_GROUPS: dict[str, tuple[str, ...]] = {
     "h2h": ("h2h_diff", "h2h_surface_diff", "log1p_h2h_total"),
     "style": tuple(STYLE_DIFFS),
 }
-INFERENCE_SCHEMA_VERSION = 3
+INFERENCE_SCHEMA_VERSION = 5
 
 
 class TennisPredictor:
     def __init__(self, clf, iso, elo, srv, ctx, meta, tour="atp", fp=None, *,
                  lower_elo=None, lower_srv=None, lower_ctx=None,
-                 dual_state_threshold: int | None = None):
+                 dual_state_threshold: int | None = None, style_snapshot=None):
         self.clf, self.iso = clf, iso
         self.elo, self.srv, self.ctx, self.meta = elo, srv, ctx, meta
         self.tour = tour
+        cutoff = str(pd.Timestamp(elo.last_date).date()) if getattr(elo, "last_date", None) is not None else "1970-01-01"
+        self.style_snapshot = (style_snapshot if style_snapshot is not None else
+                               getattr(ctx, "style_snapshot", None))
+        if self.style_snapshot is None:
+            self.style_snapshot = StyleSnapshot(tour, cutoff, "unavailable", identity_version())
         self.lower_elo, self.lower_srv, self.lower_ctx = lower_elo, lower_srv, lower_ctx
         self.dual_state_threshold = dual_state_threshold
         if dual_state_threshold is not None:
@@ -211,6 +218,9 @@ class TennisPredictor:
                       indoor: bool, tier_k: float, round_order: int,
                       event: str | None = None, as_of=None) -> dict:
         elo, srv, ctx = self._states_for(a, b)
+        asof = np.datetime64(pd.Timestamp(as_of if as_of is not None else elo.last_date).to_datetime64())
+        if hasattr(srv, "at"):
+            srv = srv.at(asof)
         meta = self.meta
         ma, mb = meta.get(a, {}), meta.get(b, {})
 
@@ -272,26 +282,18 @@ class TennisPredictor:
             "surf_hard": int(surface == "Hard"),
             "surf_clay": int(surface == "Clay"),
             "surf_grass": int(surface == "Grass"),
-            "log_min_srv_pts": math.log1p(min(srv.gsp.get(a, 0.0), srv.gsp.get(b, 0.0))),
+            "log_min_srv_pts": math.log1p(min(srv.serve_points(a), srv.serve_points(b)))
+            if hasattr(srv, "serve_points") else math.log1p(min(srv.gsp.get(a, 0.0), srv.gsp.get(b, 0.0))),
             "log_min_matches": math.log1p(min(elo.n.get(a, 0), elo.n.get(b, 0))),
             "log1p_h2h_total": math.log1p(h2a + h2b),
         }
-        # MCP tactical-style diffs (0 unless both players are profiled)
-        # Matrix export calls this thousands of times. MCP profiles are immutable during one
-        # predictor lifetime, so loading/parsing them per pair made the old matrix build spend
-        # most of its time repeating identical work.
-        profiles = getattr(self, "_style_profiles_cache", None)
-        if profiles is None:
-            profiles = build_profiles(self.tour)
-            self._style_profiles_cache = profiles
-        ka, kb = name_key(a), name_key(b)
-        row["has_style"] = int(ka in profiles and kb in profiles)
-        for s in STYLE_FEATURES:
-            diff = 0.0
-            if row["has_style"]:
-                va, vb = profiles[ka].get(s, np.nan), profiles[kb].get(s, np.nan)
-                diff = float(va - vb) if (va == va and vb == vb) else 0.0
-            row[s + "_diff"] = diff
+        # Exact immutable profile snapshot owned by this trained generation.
+        pa = self.style_snapshot.profile(name_key(a))
+        pb = self.style_snapshot.profile(name_key(b))
+        row["has_style"] = int(bool(pa) and bool(pb))
+        for feature in STYLE_FEATURES:
+            va, vb = pa.get(feature), pb.get(feature)
+            row[feature + "_diff"] = float(va - vb) if va is not None and vb is not None else 0.0
         return row
 
     def features(self, a: str, b: str, surface: str = "Hard", best_of: int = 3,
@@ -303,8 +305,7 @@ class TennisPredictor:
 
     # -- predictions ---------------------------------------------------------------
     def win_prob(self, a: str, b: str, **kw) -> float:
-        raw = self.clf.predict_proba(self.features(a, b, **kw))[:, 1]
-        return float(self.iso.predict(raw)[0])
+        return float(paired_probability(self.clf, self.iso, self.features(a, b, **kw))[0])
 
     @staticmethod
     def _prob_from_logit(value: float) -> float:
@@ -323,11 +324,10 @@ class TennisPredictor:
         row = self._feature_dict(a, b, surface, best_of, indoor, tier_k, round_order,
                                  event=event, as_of=as_of)
         X = pd.DataFrame([[row[c] for c in FEATURES]], columns=FEATURES)
-        raw = self.clf.predict_proba(X)[:, 1]
         return {
             "eloBlend": self._prob_from_logit(row["logit_p_blend"]),
             "pointModel": self._prob_from_logit(row["logit_p_point"]),
-            "combiner": float(self.iso.predict(raw)[0]),
+            "combiner": float(paired_probability(self.clf, self.iso, X)[0]),
         }
 
     def prediction_evidence(self, a: str, b: str, surface: str = "Hard",
@@ -346,7 +346,7 @@ class TennisPredictor:
         )
         elo, srv, ctx = self._states_for(a, b)
         frame = pd.DataFrame([[row[c] for c in FEATURES]], columns=FEATURES)
-        base = float(self.iso.predict(self.clf.predict_proba(frame)[:, 1])[0])
+        base = float(paired_probability(self.clf, self.iso, frame)[0])
         ref = np.datetime64(pd.Timestamp(
             as_of if as_of is not None else elo.last_date).to_datetime64())
 
@@ -360,11 +360,8 @@ class TennisPredictor:
         work_a = float(workload(a, ref, self._fp.fatigue_window_days)) if workload else None
         work_b = float(workload(b, ref, self._fp.fatigue_window_days)) if workload else None
         home = self._home_context(a, b, event, ref)
-        profiles = getattr(self, "_style_profiles_cache", None)
-        if profiles is None:
-            profiles = build_profiles(self.tour)
-            self._style_profiles_cache = profiles
-        profile_a, profile_b = profiles.get(name_key(a)), profiles.get(name_key(b))
+        profile_a = self.style_snapshot.profile(name_key(a))
+        profile_b = self.style_snapshot.profile(name_key(b))
         contrasts = []
         if profile_a and profile_b:
             for key in STYLE_FEATURES:
@@ -420,7 +417,7 @@ class TennisPredictor:
         for key, columns in EVIDENCE_GROUPS.items():
             neutral = frame.copy()
             neutral.loc[:, list(columns)] = 0.0
-            without = float(self.iso.predict(self.clf.predict_proba(neutral)[:, 1])[0])
+            without = float(paired_probability(self.clf, self.iso, neutral)[0])
             delta_pp = (base - without) * 100.0
             signals.append({
                 "key": key,
@@ -460,7 +457,7 @@ class TennisPredictor:
         values = {
             "eloBlend": np.array([self._prob_from_logit(r["logit_p_blend"]) for r in rows]),
             "pointModel": np.array([self._prob_from_logit(r["logit_p_point"]) for r in rows]),
-            "combiner": self.iso.predict(self.clf.predict_proba(X)[:, 1]),
+            "combiner": paired_probability(self.clf, self.iso, X),
         }
         ia, ja = np.array(ii), np.array(jj)
         for name, probs in values.items():
@@ -488,12 +485,12 @@ class TennisPredictor:
                 ii.append(i)
                 jj.append(j)
         frame = pd.DataFrame(rows, columns=FEATURES)
-        base = self.iso.predict(self.clf.predict_proba(frame)[:, 1])
+        base = paired_probability(self.clf, self.iso, frame)
         ia, ja = np.asarray(ii), np.asarray(jj)
         for key, columns in EVIDENCE_GROUPS.items():
             neutral = frame.copy()
             neutral.loc[:, list(columns)] = 0.0
-            without = self.iso.predict(self.clf.predict_proba(neutral)[:, 1])
+            without = paired_probability(self.clf, self.iso, neutral)
             delta = np.asarray(base) - np.asarray(without)
             effects[key][ia, ja] = delta
             effects[key][ja, ia] = -delta

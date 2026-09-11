@@ -56,7 +56,6 @@ def test_event_off_is_bit_identical():
 
 
 def test_event_offset_learns_court_speed():
-    from tennis_model.points.serve_return import serve_averages
     df = _df(_rows())
     _, base = run_serve_return(df)
     k = 500.0
@@ -66,7 +65,8 @@ def test_event_offset_learns_court_speed():
     # their only match), so the shrunk offset is (0.75 - league_base) * P/(P + k)
     # with P = 1200 accumulated service points — the FULL venue delta, shrunk
     # toward 0, not half of it (the exp_pool-includes-off regression)
-    lg, _bases = serve_averages(df)
+    # This fixture has no availability evidence: priors retain the declared 0.62 fallback.
+    lg = .62
     exp_off = (0.75 - lg) * 1200.0 / (1200.0 + k)
     assert abs(ev.loc[last, "pa_serve"] - (lg + exp_off)) < 1e-9
     assert abs(ev.loc[last, "pb_serve"] - (lg + exp_off)) < 1e-9
@@ -104,7 +104,8 @@ def test_main_baseline_freezes_priors_against_later_state_rows():
     _, global_prior = run_serve_return(combined)
 
     pd.testing.assert_frame_equal(baseline, controlled.iloc[:len(main)])
-    assert not baseline["pa_serve"].equals(global_prior.iloc[:len(main)]["pa_serve"])
+    pd.testing.assert_frame_equal(baseline, global_prior.iloc[:len(main)])
+    # A future appended row can no longer change either arm's earlier priors.
 
 
 if __name__ == "__main__":
