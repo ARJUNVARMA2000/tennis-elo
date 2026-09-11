@@ -204,6 +204,7 @@ def test_same_hour_new_predictor_generation_supersedes_retry_bucket():
             ["Alice", "Bob"], p=0.7,
             artifact_id="22222222-2222-4222-8222-222222222222",
         )
+        retrained.inference_schema_version = 5
         stamp = "2026-06-01T08:00:00+00:00"
 
         assert track.log_forecasts("atp", first, df, up, stamp) == 2
@@ -213,6 +214,8 @@ def test_same_hour_new_predictor_generation_supersedes_retry_bucket():
         records = track._read_log(track.FORECAST_DIR / "atp.jsonl")
         snapshots = [row for row in records if row["type"] == "match_snapshot"]
         assert [row["p"] for row in snapshots] == [0.6, 0.7]
+        assert "inference_schema_version" not in snapshots[0]
+        assert snapshots[1]["inference_schema_version"] == 5
         row = {"event": "TestOpen", "date": "2026-06-01", "round": "QF",
                "playerA": "Alice", "playerB": "Bob", "pA": 0.7}
         movement = track.movement_for_upcoming("atp", [row])[track.movement_key(row)]
@@ -224,6 +227,8 @@ def test_same_hour_new_predictor_generation_supersedes_retry_bucket():
             retrained.artifact_id,
         ]
         assert sum(point["firstSighting"] for point in movement["timeline"]) == 1
+        assert "inferenceSchemaVersion" not in movement["timeline"][0]
+        assert movement["timeline"][1]["inferenceSchemaVersion"] == 5
 
 
 def test_same_hour_strict_generation_supersedes_legacy_snapshot():

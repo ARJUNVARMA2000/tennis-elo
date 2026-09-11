@@ -6447,3 +6447,30 @@ failed logs are retained. No model fitting/selection was used to resolve those i
 
 Preserve the completed numerical replay; the state-binding proof explicitly records
 its later metadata-only source bridge. Do not rerun or overwrite accepted evidence.
+
+### P3b migration finding — revised bounded implementation
+
+The actual full build completed and saved witnesses matched, but its output gate
+rejected 917 immutable WTA timeline observations because old models emitted seven
+signals and the new current schema requires eight. Before continuing publication:
+
+- [ ] Preserve the failed gate and full-build evidence; keep current-model signal checks strict.
+- [ ] Validate historical evidence against its recorded inference schema; retain an explicit
+  legacy path for unstamped prior generations only. Stamp new forecast records/timeline points.
+- [ ] Carry surface match counts and their signed difference through backend timeline reversal.
+- [ ] Add migration/current-corruption/reversal tests, rerun the real gate, then continue
+  saved-model quick/recovery/mirror checks without changing fitted model parameters or bytes.
+
+This is a compatibility correction within the approved P2/P3 scope, not a new experiment.
+
+### P3b migration correction review
+
+- [x] Exact legacy seven-group histories remain valid; newly stamped schema6 histories
+  and the current WTA predictor generation require all eight groups.
+- [x] Forecast logging and timeline export carry inference schema; backend reversal
+  swaps surface counts and reverses their log difference without modifying saved records.
+- [x] All 223 focused migration/forecast/gate tests pass; the actual full-output gate now
+  passes. Saved model bytes and fitted probabilities are unchanged. The earlier 917
+  findings and first test-driver collector mistake remain in private evidence.
+- [ ] Commit this boundary fix, verify full local acceptance, then exercise the corrected
+  quick export, saved-generation identity, recovery, mirror/browser and active costs.

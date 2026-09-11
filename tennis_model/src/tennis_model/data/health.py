@@ -1326,6 +1326,7 @@ def output_findings(tour: str, oc: dict, now: pd.Timestamp,
     data = oc.get("data", {})
     prev = prev or {}
     meta = data.get("meta")
+    current_predictor_id = meta.get("predictorArtifactId") if isinstance(meta, dict) else None
     if isinstance(meta, dict):
         from .result_ledger import validate_receipt
         for reason in validate_receipt(meta.get('resultIntegrity'), tour, meta.get('matches')):
@@ -1755,7 +1756,8 @@ def output_findings(tour: str, oc: dict, now: pd.Timestamp,
             if m.get("forecast") is not None:
                 _check_forecast_history(
                     out, tour, f"upcoming {m.get('playerA')!r} vs {m.get('playerB')!r}",
-                    m.get("forecast"), current=m.get("pA"), entity=match_entity)
+                    m.get("forecast"), current=m.get("pA"), entity=match_entity,
+                    current_predictor_id=current_predictor_id)
             eid = str(m.get("espnId") or "")
             day = pd.to_datetime(m.get("date"), errors="coerce")
             if eid in event_ranges and pd.notna(day):
@@ -1918,7 +1920,8 @@ def output_findings(tour: str, oc: dict, now: pd.Timestamp,
             if isinstance(call, dict) and call.get("forecast") is not None:
                 _check_forecast_history(
                     out, tour, f"completed {call.get('playerA')!r} vs {call.get('playerB')!r}",
-                    call.get("forecast"), entity=_match_entity(
+                    call.get("forecast"), current_predictor_id=current_predictor_id,
+                    entity=_match_entity(
                         call,
                         player_a=call.get("playerA"),
                         player_b=call.get("playerB"),

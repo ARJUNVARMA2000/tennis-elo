@@ -246,8 +246,10 @@ def _check_matrix_evidence(out: list, tour: str, filename: str,
 
 def _check_prediction_evidence(out: list, tour: str, label: str, evidence: object,
                                player_a: object = None, player_b: object = None,
-                               probability_a: object = None, *, entity: str | None = None) -> None:
-    """Validate the seven grouped signals and their explicit non-causal contract."""
+                               probability_a: object = None, *, entity: str | None = None,
+                               signal_keys: tuple | None = None) -> None:
+    """Validate the selected generation's signals and explicit non-causal contract."""
+    expected_keys = _evidence_keys(tour) if signal_keys is None else signal_keys
     finding_entity = entity or _match_entity(
         {}, player_a=player_a, player_b=player_b)
     if not isinstance(evidence, dict) or evidence.get("schema") != "evidence-v1":
@@ -285,21 +287,21 @@ def _check_prediction_evidence(out: list, tour: str, label: str, evidence: objec
             f"{tour}: {label} evidence omits the non-causal disclaimer",
             severity="error", entity=finding_entity, evidence={})
     signals = evidence.get("signals")
-    if not isinstance(signals, list) or len(signals) != len(_evidence_keys(tour)):
+    if not isinstance(signals, list) or len(signals) != len(expected_keys):
         _add_finding(
             out, "output.prediction_evidence.signal_list_invalid",
             f"{tour}: {label} evidence signal list is malformed",
             severity="error", entity=finding_entity,
-            evidence={"expectedCount": len(_evidence_keys(tour)),
+            evidence={"expectedCount": len(expected_keys),
                       "actualCount": len(signals) if isinstance(signals, list) else None})
         return
     keys = [signal.get("key") for signal in signals if isinstance(signal, dict)]
-    if len(keys) != len(signals) or set(keys) != set(_evidence_keys(tour)):
+    if len(keys) != len(signals) or set(keys) != set(expected_keys):
         _add_finding(
             out, "output.prediction_evidence.signal_keys_invalid",
             f"{tour}: {label} evidence signal keys are missing/duplicated",
             severity="error", entity=finding_entity,
-            evidence={"expected": sorted(_evidence_keys(tour)), "actual": list(map(str, keys))})
+            evidence={"expected": sorted(expected_keys), "actual": list(map(str, keys))})
         return
     available_strengths = []
     unavailable_seen = False
@@ -401,7 +403,8 @@ def _check_profile_shards(out: list, tour: str, index: dict, shards: dict,
                           "actual": repr(shard.get("name"))})
 
 def _check_forecast_history(out: list, tour: str, label: str, forecast: object,
-                            current: object | None = None, *, entity: str | None = None) -> None:
+                            current: object | None = None, *, entity: str | None = None,
+                            current_predictor_id: str | None = None) -> None:
     """A visible timeline must be ordered, de-duplicated, and agree with its summary."""
     if not isinstance(forecast, dict):
         return
@@ -496,12 +499,37 @@ def _check_forecast_history(out: list, tour: str, label: str, forecast: object,
     for index, point in enumerate(timeline):
         if isinstance(point, dict) and point.get("evidence") is not None:
             evidence = point["evidence"]
+            schema = point.get("inferenceSchemaVersion")
+            is_current = (current_predictor_id is not None
+                          and point.get("predictorArtifactId") == current_predictor_id)
+            supported = {5, 6} if tour == "wta" else {5}
+            if (schema is not None and (type(schema) is not int or schema not in supported
+                    or (is_current and schema != (6 if tour == "wta" else 5)))):
+                _add_finding(
+                    out, "output.forecast.inference_schema_invalid",
+                    f"{tour}: {label} timeline point {index} has an incompatible inference schema",
+                    severity="error", entity=finding_entity,
+                    evidence={"schema": repr(schema), "currentGeneration": is_current})
+            keys = _evidence_keys(tour)
+            if not is_current:
+                signals = evidence.get("signals") if isinstance(evidence, dict) else None
+                # Immutable pre-migration records did not carry an inference schema.
+                # Only their exact original seven-key contract is grandfathered here;
+                # current calls/matrices and this release's generation remain strict.
+                legacy_shape = (schema is None and isinstance(signals, list)
+                                and len(signals) == len(_EVIDENCE_KEYS)
+                                and all(isinstance(s, dict) and isinstance(s.get("key"), str)
+                                        for s in signals)
+                                and {s.get("key") for s in signals} == set(_EVIDENCE_KEYS))
+                if schema == 5 or legacy_shape:
+                    keys = tuple(_EVIDENCE_KEYS)
             _check_prediction_evidence(
                 out, tour, f"{label} timeline point {index}", evidence,
                 evidence.get("playerA") if isinstance(evidence, dict) else None,
                 evidence.get("playerB") if isinstance(evidence, dict) else None,
                 point.get("p"),
                 entity=finding_entity,
+                signal_keys=keys,
             )
 
 def _check_performance(out: list, tour: str, performance: dict, profile_index: object,

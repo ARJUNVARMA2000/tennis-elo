@@ -420,3 +420,13 @@ Indexed in [`../lessons.md`](../lessons.md).
   **How to apply:** when a real bracket is published, block any live card whose main-draw result
   count exceeds the decided matches between two real draw occupants; keep the exact broken shape
   and valid progressed/upcoming twins in the production-replay suite.
+
+- **Historical forecast evidence belongs to its recorded model contract.** (2026-09-11)
+  Adding WTA's eighth evidence group made the current-schema gate reject 917 valid
+  seven-group observations in immutable older timelines. Stamp new forecast records and
+  timeline points with their inference schema. Validate old schema5 histories and exact
+  unstamped legacy histories separately, while requiring the current generation's full
+  group set even inside a timeline. Do not rewrite old forecasts or make current evidence
+  optional. New player-oriented facts must also participate in backend history reversal,
+  not only the frontend orientation helper. Exercise a real committed forecast history
+  during a model-schema migration; synthetic current-only fixtures miss this boundary.

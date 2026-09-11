@@ -55,6 +55,60 @@ def test_supported_tour_contract_matches_live_verifier():
     assert SURFACE_FEATURE not in antisymmetric_for("atp")
 
 
+@pytest.mark.parametrize("schema,generation,current_signal,expected_error", [
+    (None, "old", False, False), (5, "old", False, False),
+    (6, "old", True, False), (6, "current", True, False),
+    (None, "current", True, False),
+    (6, "old", False, True), (None, "current", False, True),
+    (5, "current", False, True), (7, "old", True, True),
+])
+def test_forecast_generation_evidence_migration(surface_predictor, schema, generation,
+                                              current_signal, expected_error):
+    from tennis_model.data.health import _FindingCollector
+    from tennis_model.data.health_checks.predictions import _check_forecast_history
+    from tennis_model.eval.track import _forecast_history
+
+    current_id = "11111111-1111-4111-8111-111111111111"
+    old_id = "22222222-2222-4222-8222-222222222222"
+    evidence = surface_predictor.prediction_evidence("A", "B", as_of="2025-06-01")
+    if not current_signal:
+        evidence["signals"] = [s for s in evidence["signals"] if s["key"] != "recentSurface"]
+    record = {"type": "match", "playerA": "A", "playerB": "B", "p": evidence["probabilityA"],
+              "as_of": "2025-06-01T00:00:00Z", "evidence": evidence,
+              "predictor_artifact_id": current_id if generation == "current" else old_id}
+    if schema is not None:
+        record["inference_schema_version"] = schema
+    before = copy.deepcopy(record)
+    history = _forecast_history([record], "A")
+    assert record == before
+    if schema is not None:
+        assert history["timeline"][0]["inferenceSchemaVersion"] == schema
+    out = _FindingCollector("output", "wta")
+    _check_forecast_history(out, "wta", "test", history, current_predictor_id=current_id)
+    assert bool(out.findings) is expected_error
+    if expected_error:
+        assert any(f.code in {"output.prediction_evidence.signal_list_invalid",
+                              "output.forecast.inference_schema_invalid"} for f in out.findings)
+
+
+def test_surface_history_reversal_preserves_original_record(surface_predictor):
+    from tennis_model.eval.track import _forecast_history
+
+    evidence = surface_predictor.prediction_evidence("A", "B", as_of="2025-06-01")
+    record = {"type": "match", "playerA": "A", "playerB": "B", "p": evidence["probabilityA"],
+              "as_of": "2025-06-01T00:00:00Z", "evidence": evidence,
+              "inference_schema_version": 6}
+    before = copy.deepcopy(record)
+    history = _forecast_history([record], "B")
+    original = next(s["facts"] for s in evidence["signals"] if s["key"] == "recentSurface")
+    reversed_facts = next(s["facts"] for s in history["timeline"][0]["evidence"]["signals"]
+                          if s["key"] == "recentSurface")
+    assert reversed_facts["matchesA"] == original["matchesB"]
+    assert reversed_facts["matchesB"] == original["matchesA"]
+    assert reversed_facts["logCountDifference"] == -original["logCountDifference"]
+    assert record == before
+
+
 @pytest.fixture(scope="module")
 def surface_predictor():
     model = _valid_predictor("wta")

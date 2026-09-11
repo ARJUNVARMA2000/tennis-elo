@@ -438,12 +438,13 @@ def _oriented_evidence(rec: dict, player_a: object) -> dict | None:
             ("daysSinceA", "daysSinceB"), ("workloadA", "workloadB"),
             ("winsA", "winsB"), ("surfaceWinsA", "surfaceWinsB"),
             ("playerAHome", "playerBHome"),
+            ("matchesA", "matchesB"),
         ):
             if left in facts or right in facts:
                 facts[left], facts[right] = facts.get(right), facts.get(left)
         if isinstance(facts.get("pointProbabilityA"), (int, float)):
             facts["pointProbabilityA"] = round(1.0 - float(facts["pointProbabilityA"]), 4)
-        for signed in ("gap", "serveEdge", "returnEdge", "diff"):
+        for signed in ("gap", "serveEdge", "returnEdge", "diff", "logCountDifference"):
             if isinstance(facts.get(signed), (int, float)):
                 facts[signed] = -facts[signed]
         for contrast in facts.get("contrasts") or []:
@@ -501,6 +502,8 @@ def _forecast_history(records: list[dict], player_a: object,
         generation = _predictor_generation(rec)
         if generation != "legacy":
             item["predictorArtifactId"] = generation
+        if "inference_schema_version" in rec:
+            item["inferenceSchemaVersion"] = rec["inference_schema_version"]
         components = _oriented_components(rec, player_a)
         if components:
             item["components"] = components
@@ -581,6 +584,9 @@ def log_forecasts(tour: str, predictor, df: pd.DataFrame,
         }
         if isinstance(predictor_artifact_id, str) and predictor_artifact_id.strip():
             base["predictor_artifact_id"] = predictor_artifact_id.strip()
+        schema = getattr(predictor, "inference_schema_version", None)
+        if schema is not None:
+            base["inference_schema_version"] = schema
         base["match_id"] = match_identity(base)
         bases.append(base)
 

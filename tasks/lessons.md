@@ -359,3 +359,7 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - Reviewed aliases must migrate readers of immutable benchmark IDs without rewriting
   original forecasts or upgrading timing eligibility. See [`lessons/ci-and-deploy.md`](lessons/ci-and-deploy.md). (2026-09-10)
+
+- Historical forecast evidence belongs to its recorded model contract; current-generation
+  requirements and every orientation path remain strict. See
+  [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-09-11)
