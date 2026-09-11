@@ -76,7 +76,7 @@ def _valid_predictor(tour: str = "atp") -> TennisPredictor:
     if dual:
         from tennis_model.model.surface_exposure import SurfaceExposureState
         predictor.ctx.surface_exposure = SurfaceExposureState()
-        predictor.lower_ctx.surface_exposure = SurfaceExposureState()
+        predictor.lower_ctx.surface_exposure = SurfaceExposureState(population="enriched")
     return predictor
 
 

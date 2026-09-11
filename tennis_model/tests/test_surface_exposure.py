@@ -61,7 +61,7 @@ def surface_predictor():
     for elo, ctx, repeats in ((model.elo, model.ctx, 2), (model.lower_elo, model.lower_ctx, 5)):
         elo.n.update(A=40, B=40, C=2)
         elo.last_date = np.datetime64("2025-06-01")
-        state = SurfaceExposureState()
+        state = SurfaceExposureState(population="main" if ctx is model.ctx else "enriched")
         for date in pd.date_range("2025-05-01", periods=repeats):
             state.observe("A", "C", "Hard", date, True)
         state.observe("B", "C", "Clay", "2025-06-01", True)
@@ -99,7 +99,7 @@ def test_selected_bundle_and_saved_routes(surface_predictor, tmp_path):
     assert len(contract["features"]) == 43
 
 
-@pytest.mark.parametrize("damage", ["absent", "policy", "cutoff", "order", "nonfinite", "type"])
+@pytest.mark.parametrize("damage", ["absent", "policy", "cutoff", "order", "nonfinite", "type", "swapped"])
 def test_tampered_saved_surface_state_rejected(surface_predictor, tmp_path, damage):
     path = tmp_path/"predictor.pkl"
     surface_predictor.save(path)
@@ -116,6 +116,8 @@ def test_tampered_saved_surface_state_rejected(surface_predictor, tmp_path, dama
             state.exposure["A"].reverse()
         elif damage == "nonfinite":
             state.exposure["A"].append((pd.NaT, "Hard"))
+        elif damage == "swapped":
+            model.ctx.surface_exposure, model.lower_ctx.surface_exposure = model.lower_ctx.surface_exposure, model.ctx.surface_exposure
         else:
             state.exposure["A"] = list(state.exposure["A"])
 

@@ -20,6 +20,7 @@ class SurfaceExposureState:
     exposure: dict = field(default_factory=dict)
     through: pd.Timestamp | None = None
     policy: str = SURFACE_POLICY
+    population: str = "main"
 
     def _date(self, value):
         date = pd.Timestamp(value)
@@ -51,8 +52,10 @@ class SurfaceExposureState:
         self.through = date
 
 
-def walk_surface_exposure(history):
-    state = SurfaceExposureState()
+def walk_surface_exposure(history, *, population="main"):
+    if population not in {"main", "enriched"}:
+        raise ValueError("invalid surface population")
+    state = SurfaceExposureState(population=population)
     values = []
     for row in history.itertuples():
         values.append(state.query(row.winner_name, row.loser_name, row.surface_b, row.date))
@@ -60,10 +63,12 @@ def walk_surface_exposure(history):
     return state, pd.Series(values, index=history.index, name=SURFACE_FEATURE, dtype=float)
 
 
-def validate_surface_state(state, cutoff):
+def validate_surface_state(state, cutoff, *, population="main"):
     """Validate the concrete saved history; malformed states cannot become neutral features."""
-    if (type(state) is not SurfaceExposureState or set(vars(state)) != {"exposure", "through", "policy"}
-            or state.policy != SURFACE_POLICY or type(state.exposure) is not dict):
+    if (type(state) is not SurfaceExposureState
+            or set(vars(state)) != {"exposure", "through", "policy", "population"}
+            or state.policy != SURFACE_POLICY or type(state.exposure) is not dict
+            or population not in {"main", "enriched"} or state.population != population):
         raise ValueError("invalid surface state type/fields/policy")
     if state.through is not None and (type(state.through) is not pd.Timestamp or pd.isna(state.through)):
         raise ValueError("invalid surface state cutoff")

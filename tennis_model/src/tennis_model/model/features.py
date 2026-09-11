@@ -279,7 +279,8 @@ def _run_all(df: pd.DataFrame, state_only_lower: bool = False):
     frame = _assemble(d, params=fp)
     if tour == "wta":
         from .surface_exposure import SURFACE_FEATURE, walk_surface_exposure
-        ctx_state.surface_exposure, signal = walk_surface_exposure(df)
+        ctx_state.surface_exposure, signal = walk_surface_exposure(
+            df, population="enriched" if state_only_lower else "main")
         frame[SURFACE_FEATURE] = signal
     return frame, elo_state, srv_state, ctx_state
 

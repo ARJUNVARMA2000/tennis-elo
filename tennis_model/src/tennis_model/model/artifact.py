@@ -903,7 +903,8 @@ def _validate_state_bundle(predictor: Any, tour: str) -> None:
         )
         if tour == "wta":
             try:
-                validate_surface_state(getattr(ctx, "surface_exposure", None), elo.last_date)
+                validate_surface_state(getattr(ctx, "surface_exposure", None), elo.last_date,
+                                       population="main" if name == "main" else "enriched")
             except (ValueError, TypeError, AttributeError, OverflowError) as exc:
                 raise PredictorArtifactError(PredictorArtifactReason.STATE_INVALID,
                                              f"{name} surface state: {exc}") from exc

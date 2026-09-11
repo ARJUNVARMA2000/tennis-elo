@@ -6431,3 +6431,19 @@ this original checkout receives only plans/reports. Review pending implementatio
 Earlier integration runs exposed stale 42-feature test fixtures, a method-count
 assumption, and one test using the legacy message-list collector. They are corrected;
 failed logs are retained. No model fitting/selection was used to resolve those issues.
+
+### P3a review and final state binding
+
+- [x] Source `9091769` exactly reproduces all 42,426 WTA candidate probabilities
+  across 2010–2026 and all selected 43-feature rows. The accepted saved ATP artifact
+  remains loadable and reproduces its 36 independent witnesses exactly.
+- [x] Final review adds an explicit main/enriched population tag to surface state,
+  preventing a same-cutoff state swap from passing artifact validation. This is metadata
+  only: all training/orientation/probability implementations remain unchanged; complete
+  walks over 129,228 main and 146,424 enriched rows reproduce the frozen feature and
+  history values exactly. The swap regression and 74 focused tests pass.
+- [ ] P3b: current-source refresh, production-runtime full/quick rebuild and gates,
+  public mirror/cache recovery, browser verification and active-player costs pending.
+
+Preserve the completed numerical replay; the state-binding proof explicitly records
+its later metadata-only source bridge. Do not rerun or overwrite accepted evidence.
