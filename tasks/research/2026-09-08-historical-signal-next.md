@@ -8,6 +8,30 @@ predictive hypothesis or timing-source survey is required for that work.
 
 ## Exact state to resume
 
+### September 10 production integration supersedes the checkout base below
+
+The general correctness release has been pushed as
+`c5dc31e2d17a312114efd0f246f81213ef9e4c30`; deployment acceptance is recorded in
+[the release receipt](2026-09-10-general-release.md). Check that receipt before
+continuing. Create the next implementation checkout from the latest accepted
+`origin/master`, with population **8** and inference schema **5**, rather than from
+the older historical-signals tip. The older tip and artifacts below remain the
+immutable evidence for the completed experiment, not the new production base.
+
+Port only the fixed WTA surface signal and its required research/serving helpers.
+Preserve the production recovery, identity, chronology, benchmark and release-gate
+fixes. Do not merge the older research branches wholesale or load their population-7
+artifacts as production predictors. Keep the 60-day feature definition, five bags,
+threshold32 and model settings fixed.
+
+Because the combined production population and corrected baseline differ from the
+original experiment, first register a compatibility check against that baseline.
+Rebuild the incumbent/candidate on the same frozen population-8 inputs, evaluate
+2010–2019, and apply the existing advancement rule before checking 2020+. Keep this
+separate from the preserved original results; do not change the signal in response
+to later-year results. Saved-route parity and serving-cost acceptance below still
+apply before any future adoption. This release does not adopt the surface candidate.
+
 `R = /Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation`.
 Latest checkout `R/worktrees/historical-signals`, branch `codex/model-historical-signals`.
 Base `c658c7149676a2e1f6032a1440e68f904bd692e6`; source freeze `755342d`.

@@ -7590,3 +7590,29 @@ This research-document checkout remains separate from production source. Continu
 verification in the release worktree. Subsequent WTA surface-candidate work must start from
 accepted production population8 and port the fixed candidate separately; do not merge all
 historical research branches into production.
+
+
+### R4/R5 review — scoped release deployed and independently verified
+
+- [x] Production run `34549366788` succeeded for source
+  `c5dc31e2d17a312114efd0f246f81213ef9e4c30`. CI passed 1,318 Python tests with one
+  macOS-only skip, 360 web tests, ten browser checks, lint/types/build, both model
+  rebuilds, pre-publication integrity and live serving checks.
+- [x] Independent live verification passed 22/22 checks: 462 exact artifacts and
+  18 required absent paths, health generation `2026-09-11T01:45:36Z`.
+- [x] Accepted release `482db1ef-70bb-4d1c-8672-b004a63b458e`; ATP predictor
+  `50b99b70-f87e-4b13-ab89-93c2ab8f6bb0`; WTA predictor
+  `7879edcb-b3e3-4861-b0f3-4b8da81922bd`. Both serve population8/schema5/42 features;
+  WTA threshold32, both state routes and all 528 reviewed results verified.
+- [x] Health is good with zero warnings/errors; the same three informational source
+  coverage notices present before deployment remain documented.
+- [x] Retained the real production forecast/benchmark update (`00c123b`). Final report
+  and `2026-09-10-general-release-deployment.json` contain the deployment receipt.
+- [x] Updated the historical-signal handoff: next implementation starts from accepted
+  `origin/master`, ports only the fixed WTA candidate, and revalidates on population8
+  before saved-serving acceptance or any adoption.
+
+Review complete: the authorized general correctness release is live at
+https://deuce-forecast.web.app. Experimental research remains separate; no surface,
+ranking, uncertainty or point-cap candidate was adopted. Continue new model work from
+the production baseline while preserving the earlier accepted experimental evidence.
