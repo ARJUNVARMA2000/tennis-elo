@@ -7528,3 +7528,24 @@ form fails year consistency. No new final predictor fit, source work, acquisitio
 A completed shortlist is not an exhausted research program.
 
 Research acceptance receipt: `1f3920aa6f1edb538a1d33e1d149b3d507086206` (`codex/model-historical-signals`), source freeze `755342d`. Three tune trials and the fixed two-tour arbiter are complete; WTA passes and ATP fails. Original checkout receives documents/logs only. Next is saved WTA candidate implementation and serving assessment, as documented in the signal handoff.
+
+## 2026-09-10 — general-improvement release assessment
+
+User asks whether to push general improvements before continuing model integration.
+Recommendation: a focused correctness release first. See
+`tasks/research/2026-09-10-general-improvements-release-plan.md` for scope and dependencies.
+
+- [x] Compare research with production; fetch latest `origin/master` (`749f599`).
+- [x] Identify general fixes, experimental exclusions and production repairs to preserve.
+- [x] Preview integration: five conflicts; identify both branches' incompatible uses of
+  population version7 and the inference schema migration.
+- [x] Record a concrete release plan and validation requirements.
+- [ ] On execution: isolated release branch, scoped integration and combined data version.
+- [ ] Rebuilt ATP/WTA models, current full/quick/recovery checks and pre-upload gate.
+- [ ] Reviewed release, production merge/push and post-deploy verification.
+
+### Review
+
+Assessment and plan complete. No push, production merge, implementation branch, model
+rebuild or new test run. Existing production repairs and research evidence remain intact.
+The WTA surface candidate remains separate from the proposed general correctness release.
