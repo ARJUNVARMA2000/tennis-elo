@@ -7549,3 +7549,44 @@ Recommendation: a focused correctness release first. See
 Assessment and plan complete. No push, production merge, implementation branch, model
 rebuild or new test run. Existing production repairs and research evidence remain intact.
 The WTA surface candidate remains separate from the proposed general correctness release.
+
+## 2026-09-10 — authorized general correctness release execution
+
+User check-in: “Okay push then” authorizes the scoped integration, validation, push to
+production `master` and live verification. Follow the recorded release plan. Preserve
+the experimental research branches; include general fixes and their complete dependencies.
+
+- [ ] R0: isolated release checkout from current production; preserve inputs and rollback evidence.
+- [ ] R1: integrate the reviewed fixes with production recovery, combined population8 and schema5.
+- [ ] R2: fresh full tests/lint/build plus combined-population and migration regression checks.
+- [ ] R3: rebuilt ATP/WTA artifacts; full/quick/recovery/mirror integrity and evaluation checks.
+- [ ] R4: commit, reconcile current production, push authorized release and verify CI/live serving.
+- [ ] R5: record final deployed commit/model generations and the remaining surface-candidate work.
+
+### Review
+
+Execution started; no further deployment confirmation is required within this scope.
+
+
+### R0–R4 progress — scoped release pushed, production verification pending
+
+- [x] Isolated release: `.research/2026-09-10-general-release`, branch
+  `codex/general-correctness-release`, based on production `749f599`.
+- [x] General fixes integrated; production recovery/identities preserved; population8,
+  inference schema5. Experimental surface/ranking/uncertainty/collector code excluded.
+- [x] 1,319 Python tests, 360 web tests, lint/types/build; 10 fixture and 8 real-data browser
+  checks. Both full/quick gates report zero findings; actual cache recovery and 462 public
+  artifacts / 18 absent paths verified; saved models preserve 36 exact witnesses per tour.
+- [x] Both 2010–2026 corrected baselines measured. Historical predictions are exact across
+  repeat full runs; metrics and source limitations are in the release report.
+- [x] Pushed `c5dc31e2d17a312114efd0f246f81213ef9e4c30` to production `master`.
+- [ ] Wait for production run `34549366788`, verify live serving and record deployed model IDs.
+
+Run: https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/34549366788
+Report: [general release](research/2026-09-10-general-release.md).
+Private evidence: `.research/2026-09-10-general-release-evidence`.
+
+This research-document checkout remains separate from production source. Continue release
+verification in the release worktree. Subsequent WTA surface-candidate work must start from
+accepted production population8 and port the fixed candidate separately; do not merge all
+historical research branches into production.
