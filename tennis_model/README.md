@@ -8,34 +8,36 @@ tournament-draw projections.
 
 ## Why this design
 
-The research is consistent: sophisticated ML does **not** beat a good Elo on its own —
-even graph neural nets only *match* Weighted Elo (~66% acc / 0.212 Brier), while the
-betting market is the ceiling (~69% / 0.196). The winning recipe is a **hybrid**:
-engineer strong Elo- and point-model features, then let gradient boosting *combine and
-calibrate* them. So Elo isn't replaced by XGBoost — it's the dominant feature feeding it.
+The model combines surface Elo, opponent-adjusted serving and returning, playing style,
+and match context. A five-seed boosted-tree ensemble is calibrated in both player
+orientations; the final probability averages those orientations so reversing the players
+returns the complementary probability.
 
-**Walk-forward, leakage-free results** (no future info, no market odds as inputs;
-2010–2026, 45,831 ATP / 42,126 WTA scored matches; measured 2026-07-25 on data through
-07-24 — reproduce with `walk_forward(main_rows(build_feature_frame(tour)), start_test=2010)`
-on a **snapshot-bootstrapped** checkout, see [Usage](#usage)):
+The corrected retrospective evaluation covers **46,205 ATP and 42,425 WTA matches** in
+annual folds from 2010–2026 (2026 is partial), measured on 2026-09-11 UTC after refreshing
+the recovery inputs. Market odds are evaluation-only. Exact historical publication times
+are not reconstructed; the walk uses verified dates where available and recorded event/round
+order otherwise. See the [release measurements](../tasks/research/2026-09-10-general-release.md).
 
-| Model | ATP acc | ATP Brier | WTA acc | WTA Brier |
-|---|---|---|---|---|
-| Elo (surface blend + cross-surface transfer) | 0.682 | 0.2006 | 0.662 | 0.2114 |
-| Serve/return point model | 0.669 | 0.2055 | 0.644 | 0.2152 |
-| **XGBoost combiner (seed-bagged)** | **0.696** | **0.1950** | **0.685** | **0.2017** |
-| _Bookmaker anchor (literature)_ | _0.690_ | _0.196_ | _0.690_ | _0.196_ |
+| Model (walk-forward 2010–2026) | ATP accuracy | ATP Brier | WTA accuracy | WTA Brier |
+|---|---:|---:|---:|---:|
+| Surface Elo + cross-surface transfer | 0.682 | 0.2009 | 0.664 | 0.2098 |
+| Serve/return point model | 0.669 | 0.2057 | 0.650 | 0.2131 |
+| XGBoost combiner (five-seed ensemble) | 0.692 | 0.1963 | 0.677 | 0.2042 |
 
-ATP now clears the literature bookmaker anchor on both accuracy (0.696 vs ~0.690) and
-Brier (0.1950 vs 0.196) — though on the repo's own odds-matched subset the bookmaker
-closing line still leads (Pinnacle through 2025, Bet365/average close after; see the
-root README) — WTA's remaining Brier gap is 0.0057,
-and calibration is near-perfect after Platt scaling. Every constant below is
-the survivor of Optuna sweeps gated by paired-SE tests (tune 2010–19, validate 2020+)
-plus a full walk-forward arbiter — the adoption protocol, and the experiments it
-rejected, are documented in [`tasks/tuning-results-*.md`](../tasks/).
+These figures replace the July headline metrics, which used an asymmetric evaluation path
+with the known winner first. Those old numbers are not a valid before/after comparison.
+Bookmaker studies also use different populations; the live Scorecard compares market and
+model forecasts on matched rows instead.
 
-## Architecture
+ATP includes Challenger and qualifying results in rating history while keeping those rows
+out of combiner training. WTA keeps separate main-only and qualifying/125-enriched histories,
+selecting the enriched history only when either player has fewer than 32 prior main-draw
+matches. The existing tuned parameters and selection policy are unchanged by this release.
+
+Model changes are selected on 2010–2019, checked on 2020+ using paired log-loss
+uncertainty, and then evaluated through the complete walk-forward arbiter. Historical
+experiments remain in [`tasks/tuning-results-*.md`](../tasks/).
 
 ```
 data ─┬─ surface Elo + cross-surface transfer  (per-surface ratings, every result feeds
@@ -116,13 +118,11 @@ src/tennis_model/
 ```bash
 cd tennis_model
 
-# FIRST: bootstrap from the release snapshot. `download` alone is NOT enough — the
-# scraped WTA serve-stats backfill (stats/2024+) exists ONLY in this asset, because no
-# free bulk source carries it. Skipping this leaves WTA 2024 at ~1,200 matches instead
-# of ~2,600, and every local metric you then measure is quietly on less data than
-# production has (this cost a round of wrong README numbers on 2026-07-25).
+# FIRST: restore the recovery snapshot. Current downloads cannot reconstruct all
+# adopted WTA qualifying/125 history or historical serving statistics. The checked
+# restorer preserves newer warm-cache files and invalidates stale model state.
 gh release download data-archive --pattern 'raw-archive.tar.gz' -O /tmp/raw-archive.tar.gz
-tar -xzf /tmp/raw-archive.tar.gz -C data
+PYTHONPATH=src uv run --with-requirements requirements.txt python -m tennis_model.data.raw_archive restore /tmp/raw-archive.tar.gz
 
 # THEN download all sources on top, and build both tours (predictor, site JSON, backtest)
 PYTHONPATH=src uv run --with-requirements requirements.txt python -m tennis_model.data.download --kind all

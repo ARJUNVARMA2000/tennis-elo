@@ -77,3 +77,59 @@ v1 while the Python producer uses v2. The verifier now requires v2; its healthy 
 reads the Python declaration, and an explicit v1 case must fail. **360 web tests**, lint
 and type checks pass after the repair. This change does not alter fitted model inputs.
 The live-site check remains required on actual generated artifacts.
+
+
+## Rebuilt historical measurements
+
+All 17 annual folds were evaluated with five bags and the unchanged tour settings.
+The normal full pipeline produced 2016–2026 predictions; retained identical feature
+frames supplied the six earlier tuning folds. This avoids rerunning or selecting on
+later folds. Refreshed source data includes partial 2026 coverage. These local results
+use Python 3.13.14 and the committed primary dependency pins; production rebuilds on
+CI's Python 3.12 runtime. Exact local dependency versions are retained privately.
+
+| Tour/window | Matches | Log loss | Brier | Accuracy |
+|---|---:|---:|---:|---:|
+| ATP all | 46,205 | 0.573974 | 0.196343 | 69.221% |
+| ATP 2010–2019 | 28,357 | 0.562589 | 0.191364 | 70.411% |
+| ATP 2020+ | 17,848 | 0.592062 | 0.204254 | 67.330% |
+| WTA all | 42,425 | 0.592987 | 0.204151 | 67.728% |
+| WTA 2010–2019 | 26,794 | 0.590693 | 0.203075 | 67.978% |
+| WTA 2020+ | 15,631 | 0.596920 | 0.205996 | 67.299% |
+
+[All years and uncertainty diagnostics](2026-09-10-general-release-metrics.json)
+include a same-fit comparison against the legacy canonical-name orientation. They do
+not treat the old winner-first headline scores as an honest baseline. Both READMEs now
+report the corrected results and timing limitations instead of those old scores.
+
+Against the accepted corrected maintenance baseline, on identical match keys:
+
+| Tour/window | Common matches | Log-loss improvement ± paired SE |
+|---|---:|---:|
+| ATP tune | 28,357 | 0.000000 ± 0.000000 |
+| ATP validation | 17,775 | −0.000015 ± 0.000045 |
+| WTA tune | 26,794 | −0.000044 ± 0.000036 |
+| WTA validation | 15,610 | +0.000128 ± 0.000103 |
+
+Positive means lower loss. These changes combine refreshed sources, corrected identities
+and restored production history; they are not a new hypothesis or adoption result.
+Every unmatched old/new scoring key is in 2026 (ATP 63 old/73 new keys, WTA 18/21);
+changed dates/names can change a key, so these are not counts of lost/added real-world
+matches. Exact keys and the [common-row comparison](2026-09-10-general-release-reference-comparison.json)
+are retained. All 28,357 ATP tuning probabilities match the maintenance reference exactly.
+
+### Saved-model and benchmark integration
+
+The first full run rebuilt 285,406 ATP and 129,227 WTA main/export rows, with valid
+reviewed-result and chronology receipts. Strict reload reproduced all **36 independent
+probability witnesses per tour exactly** across scalar, reversed, component, matrix and
+permuted-matrix routes.
+
+It also exposed a durable benchmark integration failure: a prior Tennis Abstract ledger
+row used `xin yu wang` in its immutable match ID, while the corrected identity resolves
+to `xinyu wang`. The reader now validates the original transition digest, event, season,
+round and exact canonical pair before returning an identity-normalized copy. Original
+records and probabilities remain unchanged; unproven timing remains excluded. Tests cover
+the committed WTA record, settled-result preservation, idempotent append, digest tampering
+and rejection of unrelated players/events/rounds/seasons. **1,319 Python tests pass** after
+this fix. The full pipeline is rerun to recover the benchmark before publication.

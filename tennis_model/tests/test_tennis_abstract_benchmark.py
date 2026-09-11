@@ -281,6 +281,53 @@ def test_comparison_ledger_recomputes_every_transition_digest(
         benchmark.load_comparison_ledger("atp", snapshot)
 
 
+def test_reviewed_alias_preserves_immutable_ledger_and_settled_result(tmp_path, monkeypatch):
+    monkeypatch.setattr(benchmark, 'TENNIS_ABSTRACT_DIR', tmp_path)
+    snapshot = _comparison_snapshot()
+    prior = {**_pending_comparison(snapshot), 'status':'graded', 'winner':'Alpha One',
+             'aWon':True, 'resultType':'completed'}
+    benchmark.append_comparison_ledger('atp', snapshot, [prior])
+    path = benchmark.ledger_path('atp')
+    original = path.read_bytes()
+    monkeypatch.setitem(benchmark.PLAYER_ALIASES, 'alpha one', 'Alpha Canonical')
+    rows = benchmark.load_comparison_ledger('atp', snapshot)
+    assert path.read_bytes() == original
+    assert rows[0]['matchId'] != prior['matchId']
+    assert {k:v for k,v in rows[0].items() if k != 'matchId'} == {
+        k:v for k,v in prior.items() if k != 'matchId'}
+    assert benchmark.merge_terminal_comparisons([_pending_comparison(snapshot)], rows) == rows
+    assert benchmark.append_comparison_ledger('atp', snapshot, rows) == 1
+    assert path.read_bytes().startswith(original)
+    assert benchmark.append_comparison_ledger('atp', snapshot, rows) == 0
+
+
+def test_committed_wta_comparison_history_survives_xinyu_alias(tmp_path, monkeypatch):
+    original = benchmark.ledger_path('wta').read_bytes()
+    snapshot = benchmark.first_capture_snapshot('wta')
+    monkeypatch.setattr(benchmark, 'TENNIS_ABSTRACT_DIR', tmp_path)
+    path = benchmark.ledger_path('wta')
+    path.parent.mkdir(parents=True)
+    path.write_bytes(original)
+    rows = benchmark.load_comparison_ledger('wta', snapshot)
+    relevant = [row for row in rows if row.get('playerB') == 'Xin Yu Wang']
+    assert relevant and all(row['matchId'].endswith('|xinyu wang') for row in relevant)
+    assert all(row['status'] == 'excluded' and row['reason'] == 'prestart_timing_unproven'
+               for row in relevant)
+    assert path.read_bytes() == original
+
+
+@pytest.mark.parametrize('before,after', [
+    ('espn:189-2026', 'espn:999-2026'), ('|2026|', '|2025|'),
+    ('|R128|', '|R64|'), ('alpha one', 'unrelated player'), ('v2|', 'v1|'),
+])
+def test_alias_migration_does_not_accept_a_different_match(before, after):
+    snapshot = _comparison_snapshot()
+    row = _pending_comparison(snapshot)
+    row['matchId'] = row['matchId'].replace(before, after)
+    with pytest.raises(benchmark.BenchmarkEvidenceError, match='row identity'):
+        benchmark._validate_ledger_comparison(snapshot, row)
+
+
 def test_terminal_ledger_state_survives_a_temporary_result_gap() -> None:
     snapshot = _comparison_snapshot()
     pending = _pending_comparison(snapshot)

@@ -717,15 +717,31 @@ def _ledger_row(row: dict) -> dict:
     return {key: row[key] for key in _LEDGER_FIELDS if key in row}
 
 
+def _current_ledger_match_id(snapshot: dict, match_id: object) -> str | None:
+    """Resolve reviewed aliases without changing the immutable stored transition."""
+    if not isinstance(match_id, str):
+        return None
+    parts = match_id.split('|')
+    if len(parts) != 6 or parts[:4] != [
+        track.MATCH_ID_VERSION, f"espn:{snapshot['espnId']}", str(snapshot['season']), 'R128',
+    ]:
+        return None
+    pair = sorted(player_identity_key(name) for name in parts[4:])
+    if not all(pair) or pair[0] == pair[1]:
+        return None
+    return '|'.join([*parts[:4], *pair])
+
+
 def _validate_ledger_comparison(snapshot: dict, row: object) -> dict:
     if not isinstance(row, dict) or row != _ledger_row(row):
         raise BenchmarkEvidenceError("comparison ledger row fields are malformed")
     match_id = row.get("matchId")
+    current_match_id = _current_ledger_match_id(snapshot, match_id)
     status = row.get("status")
     positions = row.get("drawPositions")
     if (
         not isinstance(match_id, str)
-        or match_id not in set(snapshot_match_ids(snapshot))
+        or current_match_id not in set(snapshot_match_ids(snapshot))
         or status not in {"pending", "graded", "excluded"}
         or row.get("round") != "R128"
         or not isinstance(positions, list)
@@ -733,7 +749,7 @@ def _validate_ledger_comparison(snapshot: dict, row: object) -> dict:
         or not all(isinstance(value, int) and not isinstance(value, bool) for value in positions)
         or not isinstance(row.get("playerA"), str)
         or not isinstance(row.get("playerB"), str)
-        or _canonical_match_id(snapshot, row) != match_id
+        or _canonical_match_id(snapshot, row) != current_match_id
         or not _valid_probability(row.get("pTennisAbstract"))
     ):
         raise BenchmarkEvidenceError("comparison ledger row identity is malformed")
@@ -752,7 +768,7 @@ def _validate_ledger_comparison(snapshot: dict, row: object) -> dict:
         raise BenchmarkEvidenceError("comparison ledger graded row is malformed")
     if status == "excluded" and not isinstance(row.get("reason"), str):
         raise BenchmarkEvidenceError("comparison ledger exclusion is malformed")
-    return row
+    return {**row, 'matchId': current_match_id}
 
 
 def _load_ledger_transitions(tour: str, snapshot: dict) -> list[dict]:
@@ -811,8 +827,9 @@ def _load_ledger_transitions(tour: str, snapshot: dict) -> list[dict]:
 
 
 def load_comparison_ledger(tour: str, snapshot: dict) -> list[dict]:
-    """Return validated comparison states in append order."""
-    return [transition["comparison"] for transition in _load_ledger_transitions(tour, snapshot)]
+    """Return current identities only after validating the original transition bytes."""
+    return [_validate_ledger_comparison(snapshot, transition["comparison"])
+            for transition in _load_ledger_transitions(tour, snapshot)]
 
 
 _TERMINAL_EXCLUSION_REASONS = frozenset({"walkover", "retirement"})

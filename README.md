@@ -18,7 +18,7 @@ web product that turns live tour data into calibrated match, set-score, and tour
 |---|---|
 | **Product** | Live ATP/WTA scores and forecasts, real tournament brackets, exact what-if scenarios, player dossiers, rankings, and model-vs-market reporting |
 | **Model** | 42-feature hybrid: surface Elo + opponent-adjusted serve/return Markov model + context and Match Charting style, fused by a five-seed XGBoost ensemble and Platt calibration |
-| **Evidence** | Leakage-free walk-forward evaluation; 0.1950 ATP and 0.2017 WTA Brier on the measured 2010–2026 research window |
+| **Evidence** | Retrospective annual walk-forward evaluation; corrected 2010–2026 Brier of 0.1963 ATP and 0.2042 WTA, with explicit date-availability limits |
 | **Operations** | Hourly data refresh and deployment, daily retraining, weekly recoverable data snapshots, two deployment gates, deduplicated alerts, and an independent liveness watchdog |
 | **Stack** | Python, pandas, NumPy, scikit-learn, XGBoost, Next.js 16, React 19, TypeScript, GitHub Actions, and Firebase Hosting |
 
@@ -44,33 +44,32 @@ web product that turns live tour data into calibrated match, set-score, and tour
 
 ## Measured performance
 
-The central design choice is a hybrid model. Sophisticated ML does not reliably beat a strong Elo
-by replacing it; gradient boosting is most useful when it combines well-engineered rating, point,
-style, and context signals and then calibrates their output.
+The model combines surface Elo, opponent-adjusted serving and returning, playing style,
+and match context. A five-seed boosted-tree ensemble is calibrated in both player
+orientations; the final probability averages those orientations so reversing the players
+returns the complementary probability.
 
-Walk-forward, leakage-free results below cover 45,831 ATP and 42,126 WTA scored matches. They were
-measured on 2026-07-25 with data through 2026-07-24; market odds are evaluation-only and are never
-model inputs.
+The corrected retrospective evaluation covers **46,205 ATP and 42,425 WTA matches** in
+annual folds from 2010–2026 (2026 is partial), measured on 2026-09-11 UTC after refreshing
+the recovery inputs. Market odds are evaluation-only. Exact historical publication times
+are not reconstructed; the walk uses verified dates where available and recorded event/round
+order otherwise. See the [release measurements](tasks/research/2026-09-10-general-release.md).
 
 | Model (walk-forward 2010–2026) | ATP accuracy | ATP Brier | WTA accuracy | WTA Brier |
 |---|---:|---:|---:|---:|
-| Surface Elo + cross-surface transfer | 0.682 | 0.2006 | 0.662 | 0.2114 |
-| Serve/return point model | 0.669 | 0.2055 | 0.644 | 0.2152 |
-| **XGBoost combiner (five-seed ensemble)** | **0.696** | **0.1950** | **0.685** | **0.2017** |
-| _Bookmaker literature anchor_ | _0.690_ | _0.196_ | _0.690_ | _0.196_ |
+| Surface Elo + cross-surface transfer | 0.682 | 0.2009 | 0.664 | 0.2098 |
+| Serve/return point model | 0.669 | 0.2057 | 0.650 | 0.2131 |
+| XGBoost combiner (five-seed ensemble) | 0.692 | 0.1963 | 0.677 | 0.2042 |
 
-The ATP model clears the literature anchor on this full research window. On the repository's own
-odds-matched subset, the closing market still leads 0.201 to 0.203 Brier—an important distinction
-that is shown on the live Scorecard rather than hidden behind the headline metric. The largest
-adopted improvement came from adding roughly 130,000 ATP Challenger and qualifying matches to the
-rating walks while keeping lower-tier rows out of combiner training: validation improved by
-`d = +0.0076 ± 0.0010`, with all 17 evaluated years positive.
+These figures replace the July headline metrics, which used an asymmetric evaluation path
+with the known winner first. Those old numbers are not a valid before/after comparison.
+Bookmaker studies also use different populations; the live Scorecard compares market and
+model forecasts on matched rows instead.
 
-WTA uses a stricter dual-state design because global lower-tier admission harmed established
-top-50 matchups. The model keeps main-only and qualifying/125-enriched state bundles, selecting the
-enriched bundle only when either player has fewer than 32 prior main-draw matches. The threshold was
-chosen on 2010–2019, then improved 2020+ paired log loss by +0.00098 ± 0.00066 and the
-outside-top-50 slice by +0.00145 ± 0.00059; gate-protected rows are bit-identical to baseline.
+ATP includes Challenger and qualifying results in rating history while keeping those rows
+out of combiner training. WTA keeps separate main-only and qualifying/125-enriched histories,
+selecting the enriched history only when either player has fewer than 32 prior main-draw
+matches. The existing tuned parameters and selection policy are unchanged by this release.
 
 ### How a model change ships
 
@@ -243,14 +242,15 @@ The model package has a deeper module and methodology guide in
 
 ## Run locally
 
-The WTA serve-stat backfill exists only in the rolling release snapshot, so a production-equivalent
-checkout must restore that archive before downloading current sources.
+The recovery snapshot preserves WTA serving statistics and adopted qualifying/125 history
+that current downloads cannot reconstruct. Restore it before refreshing current sources.
 
 ```bash
 # Model and data pipeline
 cd tennis_model
 gh release download data-archive --pattern 'raw-archive.tar.gz' -O /tmp/raw-archive.tar.gz
-tar -xzf /tmp/raw-archive.tar.gz -C data
+PYTHONPATH=src uv run --with-requirements requirements.txt \
+  python -m tennis_model.data.raw_archive restore /tmp/raw-archive.tar.gz
 
 PYTHONPATH=src uv run --with-requirements requirements.txt \
   python -m tennis_model.data.download --kind all

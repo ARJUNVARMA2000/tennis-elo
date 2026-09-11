@@ -313,3 +313,12 @@ live verifier and its healthy test fixture. Both separate suites passed because 
 consumer and fixture shared the same stale literal. Derive cross-runtime healthy
 fixtures from the producer's declared contract and explicitly reject the previous
 version. Also verify the real generated release, not only synthetic fixtures.
+
+
+## Alias changes and immutable benchmark rows (2026-09-10)
+
+A new reviewed player alias can invalidate an older comparison ID even when its source
+and transition digests remain correct. Validate the original stored transition first;
+normalize only a returned copy after checking event, season, round and canonical pair.
+Keep excluded timing excluded, and preserve settled results across identity migration.
+Exercise committed benchmark history before release, not only synthetic current-name rows.

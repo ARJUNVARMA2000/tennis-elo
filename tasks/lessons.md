@@ -356,3 +356,6 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - A consumer and its fixture can share the same stale version; derive cross-runtime
   healthy fixtures from the producer contract. See [`lessons/ci-and-deploy.md`](lessons/ci-and-deploy.md). (2026-09-10)
+
+- Reviewed aliases must migrate readers of immutable benchmark IDs without rewriting
+  original forecasts or upgrading timing eligibility. See [`lessons/ci-and-deploy.md`](lessons/ci-and-deploy.md). (2026-09-10)
