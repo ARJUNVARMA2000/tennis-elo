@@ -1,5 +1,27 @@
 # Resume after historical signal experiments
 
+## September 11 completion supersedes the historical next steps below
+
+The population-8 compatibility check and saved-serving assessment are complete.
+The fixed WTA surface candidate passes the historical, exact parity and serving-cost
+gates. Accepted checkout: `codex/wta-surface-serving` at
+`a6771f8f10d299493706b11c90eeb062f5c753cb`, based on accepted production `dda948c`.
+
+Read [the final assessment](2026-09-11-wta-surface-serving.md),
+[full-precision results](2026-09-11-wta-surface-result.json), and
+[the new production integration handoff](2026-09-11-wta-surface-next.md).
+Those documents replace the uncompleted serving instructions and older population-7
+artifact references below. Production remains the deployed 42-feature incumbent;
+the newly saved research candidate is separate and has not been deployed.
+
+Next: implement the supported WTA 43-feature training/artifact/export paths, cache
+recovery and release gates using the fixed candidate. No more numerical candidate
+selection or final fit into the accepted evidence directories is needed. The detailed
+handoff gives P0–P4 dependencies, exact file locations, validation and release criteria.
+Preserve 770 accepted evidence files and 18 accepted research heads in the next round.
+
+## Historical handoff retained for provenance
+
 The bounded numerical round is complete. **SIGNAL-02 passes the WTA historical gate**;
 ATP fails its own tune gate. The model is a research candidate, not a deployed predictor.
 Read the review, comparison/year CSVs, shortlist and result manifest beside this file.

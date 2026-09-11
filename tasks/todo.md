@@ -7616,3 +7616,105 @@ Review complete: the authorized general correctness release is live at
 https://deuce-forecast.web.app. Experimental research remains separate; no surface,
 ranking, uncertainty or point-cap candidate was adopted. Continue new model work from
 the production baseline while preserving the earlier accepted experimental evidence.
+
+## 2026-09-11 — fixed WTA surface candidate on accepted production
+
+Check-in: the user's “Keep going” continues the recorded surface-candidate handoff.
+Proceed with the fixed candidate and its serving assessment. Production adoption is
+a separate decision; this round will produce the concrete evidence for it.
+
+- [ ] C0: isolate from accepted `origin/master` (`dda948c`), verify the 733 protected
+  historical run files and 17 accepted research heads, and freeze copied population8
+  source inputs, code, runtime, evaluator and acceptance rules before fitting.
+- [ ] C1: rebuild identical WTA main/enriched inputs and test the unchanged 60-day
+  `surface_recent_diff` alone. Five bags, threshold32, current tuned constants and
+  calibration remain fixed. One candidate; no replacement hypothesis or parameter sweep.
+  Tune 2010–2019 must improve pooled log loss, improve both five-year halves and win
+  at least six years before any 2020+ scoring. Check the ordinary control against
+  the accepted release's matching tuning rows. Retain match keys, fold outputs and hashes.
+- [ ] C2: if C1 passes, run the fixed full arbiter and verify exact tuning replay.
+  Report log loss, accuracy, Brier, annual consistency, paired SE and week/event
+  uncertainty. The standing arbiter requires positive tuning delta and validation
+  delta greater than minus its paired SE. Reused validation is not an untouched holdout.
+- [ ] C3: if C2 passes, implement and fit one explicit offline saved WTA candidate
+  with both temporal states, 43 ordered features and the normal final split/seed.
+  Keep strict production artifact rejection; use a separate surface schema with
+  pinned source/input provenance and bounded pre-deserialization validation.
+- [ ] C4: prove historical query/state, selected-state, swap, scalar/components/evidence,
+  matrix/permutation and save/load parity, including unseen players and inactivity.
+  Preserve ordinary predictor behavior. Test artifact corruption, provenance and paths.
+- [ ] C5: compare candidate/reference singles, 30-player matrices, artifact bytes and
+  process memory using fixed representative populations and repeated measurements.
+  Serving acceptance requires median latency, artifact size and peak process memory
+  each at most 2x the paired reference; report p95 and absolute values as well.
+- [ ] C6: run applicable full checks, reverify preserved evidence and source history,
+  commit the isolated implementation, and record an adoption recommendation plus
+  exact artifacts, results table and next-session handoff. Keep production unchanged.
+
+Dependencies: C0 → C1 → C2 → C3 → C4/C5 → C6. Serving tests/cost fixtures may be
+prepared during a registered fit; no parallel agents are requested or used. If a
+numerical advancement gate fails, record the failure and stop dependent final fitting.
+
+### Review
+
+In progress. Full experiment and serving registrations will live in the new isolated
+checkout and `.research/2026-09-11-wta-surface-evidence`; prior accepted runs are immutable.
+
+### C0/C1 review — frozen comparison advances
+
+- [x] C0: isolated from `dda948c`; numerical source freeze `61d822c`. Verified all
+  733 protected run files and 17 historical heads; copied/hashes matched 294 raw files.
+- [x] Prepared main/enriched populations: 129,228/146,424 rows. Six saved signal-state
+  queries matched real historical prefixes exactly; raw inputs remained unchanged.
+- [x] C1: 31 initial signal/probability/protocol tests passed. All 26,794 incumbent
+  tuning probabilities exactly reproduce the accepted release control.
+- [x] The sole candidate improves tuning log loss by 0.000809949 ± 0.000208925 SE;
+  8/10 years and both halves positive. Accuracy −0.0261pp. It advances under the fixed rule.
+- [ ] C2: fixed full validation running; require exact tuning replay and the standing arbiter.
+
+The report is `research/2026-09-11-wta-surface-serving.md`. Future serving behavior/cost
+criteria were registered before measurement; production defaults remain unchanged.
+
+### C2/C3 review — historical gate and serving implementation accepted
+
+- [x] C2: full arbiter passes. Validation improves log loss by 0.000561397 ±
+  0.000321075 SE on 15,632 matches; five of seven years improve. Both tuning
+  predictions replay exactly. Week-block 95% interval includes zero; event-block
+  interval unavailable because event identity is missing. Accuracy falls 0.0128pp.
+- [x] C3 implementation: separate 43-feature WTA class/artifact; ordinary predictor
+  defaults and strict production rejection retained. Both real signal-state receipts
+  match their ordinary state cutoff (2026-09-10).
+- [x] 80 focused serving/artifact/probability tests and all 1,359 Python tests pass;
+  repository Ruff and whitespace checks pass.
+- [ ] Freeze serving code, then fit the single saved reference/candidate pair, complete
+  real-data route parity and registered cost assessment. No production change.
+
+### C3–C6 final review — offline WTA candidate accepted for integration
+
+- [x] C3: source frozen at `0583aa0`; one reference and one candidate final fit,
+  92,252 core / 2,424 calibration rows, seed12345. Candidate saved privately as
+  `candidate.surface`, ID `03be4ad7-a36d-45cc-bd9d-280f3e1e24af`.
+- [x] C4: 252 real saved matchup contexts pass exact feature/probability parity,
+  both state routes, unseen players, inactivity, save/load and read-only queries;
+  six historical prefix queries also match exactly. Ordinary 42-feature behavior retained.
+- [x] C5: all 2x cost limits pass. Ratios: scalar median1.035x, 30-player matrix
+  median1.308x, artifact bytes1.166x, peak process memory1.214x. Count-selected cohort
+  includes inactive players; active traffic/evidence-route costs remain release work.
+- [x] C6: 1,359 Python tests, 80 focused tests, repository Ruff and whitespace checks.
+  Reverified 733 prior files, 17 accepted heads, all 294 original/copied raw files,
+  frozen helper/source/prepared/numerical/final hashes. Retained 37 new evidence files.
+- [x] Full comparison, result manifest and dependency-ordered production integration
+  handoff recorded in `research/2026-09-11-wta-surface-{serving,next,result}` documents.
+
+Review complete: recommend advancing this fixed WTA candidate to production integration.
+Tune gain0.000809949 ±0.000208925 SE; validation gain0.000561397 ±0.000321075 SE.
+Accuracy falls slightly; validation week95 includes zero. This round did not deploy
+or change the live incumbent. The next work is the supported training/artifact/export,
+cache/recovery and two release-gate integration described in the handoff, not another
+predictive sweep or final fit into these accepted evidence directories.
+
+Accepted research checkout: `codex/wta-surface-serving` at
+`a6771f8f10d299493706b11c90eeb062f5c753cb`, clean after the completion commit.
+The original checkout receives only these reports and logs; production is unchanged.
+Future preservation adds this accepted head and the result manifest's 37 run files
+to the prior 17 heads / 733 files (18 heads / 770 files total).

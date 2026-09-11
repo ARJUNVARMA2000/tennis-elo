@@ -1,0 +1,1361 @@
+{
+  "schema": "wta-surface-serving-result-v1",
+  "completedAt": "2026-09-11T17:20:20.182Z",
+  "baseCommit": "dda948c8dfb0b2bb4d2ad0d205508d4e66cd7ef8",
+  "numericalSourceCommit": "61d822c7484179c157ff2a217eddfdc05d66831f",
+  "servingSourceCommit": "0583aa007c368bc2e8f78c0f43a383acc119b8c6",
+  "branch": "codex/wta-surface-serving",
+  "worktree": "/Users/varma/Projects/DEUCE/.research/2026-09-11-wta-surface-serving",
+  "evidence": "/Users/varma/Projects/DEUCE/.research/2026-09-11-wta-surface-evidence",
+  "decision": "advance-fixed-WTA-candidate-to-production-integration",
+  "productionChanged": false,
+  "trialBudget": 1,
+  "candidate": {
+    "feature": "surface_recent_diff",
+    "definition": "log1p(completed same-surface matches within inclusive 60 days), A minus B",
+    "rowPolicy": "query before every chronological row, including earlier same-date rows",
+    "features": [
+      "elo_diff",
+      "elo_overall_diff",
+      "elo_surface_diff",
+      "logit_p_blend",
+      "logit_p_point",
+      "serve_skill_diff",
+      "return_skill_diff",
+      "rankpts_diff",
+      "exp_diff",
+      "age_diff",
+      "ht_diff",
+      "hand_matchup",
+      "rest_diff",
+      "fatigue_diff",
+      "h2h_diff",
+      "log_days_since_diff",
+      "layoff_flag_diff",
+      "form90_diff",
+      "winrate10_diff",
+      "h2h_surface_diff",
+      "entry_q_diff",
+      "peak_age_dev_diff",
+      "home_flag_diff",
+      "style_serve_dom_diff",
+      "style_placement_diff",
+      "style_net_diff",
+      "style_snv_diff",
+      "style_aggression_diff",
+      "style_fhbh_diff",
+      "style_return_depth_diff",
+      "style_bp_clutch_diff",
+      "best_of",
+      "is_indoor",
+      "tier_k",
+      "round_order",
+      "surf_hard",
+      "surf_clay",
+      "surf_grass",
+      "log_min_srv_pts",
+      "log_min_matches",
+      "has_style",
+      "log1p_h2h_total",
+      "surface_recent_diff"
+    ],
+    "bags": 5,
+    "threshold": 32
+  },
+  "counts": {
+    "main": 129228,
+    "enriched": 146424
+  },
+  "metrics": {
+    "2010": {
+      "incumbent": {
+        "n": 2702,
+        "acc": 0.7031828275351591,
+        "logloss": 0.5721081910444517,
+        "brier": 0.19478342641831686
+      },
+      "candidate": {
+        "n": 2702,
+        "acc": 0.7050333086602517,
+        "logloss": 0.5720492951331055,
+        "brier": 0.19473322633539483
+      },
+      "deltaLogloss": 0.00005889591134606032,
+      "pairedSE": 0.000599291732186787,
+      "accuracyDeltaPP": 0.18504811250925624
+    },
+    "2011": {
+      "incumbent": {
+        "n": 2702,
+        "acc": 0.695040710584752,
+        "logloss": 0.580587250224393,
+        "brier": 0.19837240770143752
+      },
+      "candidate": {
+        "n": 2702,
+        "acc": 0.6909696521095485,
+        "logloss": 0.5806102493053685,
+        "brier": 0.19847105748753766
+      },
+      "deltaLogloss": -0.000022999080975600172,
+      "pairedSE": 0.0006416395458675592,
+      "accuracyDeltaPP": -0.4071058475203504
+    },
+    "2012": {
+      "incumbent": {
+        "n": 2808,
+        "acc": 0.6969373219373219,
+        "logloss": 0.5692361933799149,
+        "brier": 0.1941261867141024
+      },
+      "candidate": {
+        "n": 2808,
+        "acc": 0.6976495726495726,
+        "logloss": 0.5684567468483825,
+        "brier": 0.19368648403050964
+      },
+      "deltaLogloss": 0.0007794465315323369,
+      "pairedSE": 0.0006743403537383607,
+      "accuracyDeltaPP": 0.07122507122506727
+    },
+    "2013": {
+      "incumbent": {
+        "n": 2633,
+        "acc": 0.6889479680972275,
+        "logloss": 0.5693790428865422,
+        "brier": 0.19470714999198874
+      },
+      "candidate": {
+        "n": 2633,
+        "acc": 0.6935055070262058,
+        "logloss": 0.5682063462896223,
+        "brier": 0.1942515392714847
+      },
+      "deltaLogloss": 0.0011726965969199553,
+      "pairedSE": 0.0007127973574267523,
+      "accuracyDeltaPP": 0.45575389289783663
+    },
+    "2014": {
+      "incumbent": {
+        "n": 2611,
+        "acc": 0.6836461126005362,
+        "logloss": 0.5939187263987731,
+        "brier": 0.20365210825308813
+      },
+      "candidate": {
+        "n": 2611,
+        "acc": 0.679816162389889,
+        "logloss": 0.5930212086821552,
+        "brier": 0.2032857695646474
+      },
+      "deltaLogloss": 0.0008975177166179379,
+      "pairedSE": 0.000802165448837832,
+      "accuracyDeltaPP": -0.3829950210647248
+    },
+    "2015": {
+      "incumbent": {
+        "n": 2547,
+        "acc": 0.6584216725559482,
+        "logloss": 0.6049483051705123,
+        "brier": 0.20948280703091696
+      },
+      "candidate": {
+        "n": 2547,
+        "acc": 0.6592069100903023,
+        "logloss": 0.6039667017714284,
+        "brier": 0.20900956785364103
+      },
+      "deltaLogloss": 0.0009816033990838206,
+      "pairedSE": 0.0006703172136672153,
+      "accuracyDeltaPP": 0.07852375343541107
+    },
+    "2016": {
+      "incumbent": {
+        "n": 2812,
+        "acc": 0.670697012802276,
+        "logloss": 0.6022165504972775,
+        "brier": 0.20793109028618253
+      },
+      "candidate": {
+        "n": 2812,
+        "acc": 0.6703413940256046,
+        "logloss": 0.6019657072024954,
+        "brier": 0.2078392050518605
+      },
+      "deltaLogloss": 0.0002508432947821133,
+      "pairedSE": 0.0005934296612726279,
+      "accuracyDeltaPP": -0.035561877667145136
+    },
+    "2017": {
+      "incumbent": {
+        "n": 2708,
+        "acc": 0.6665435745937962,
+        "logloss": 0.6088146975547524,
+        "brier": 0.21095488296216933
+      },
+      "candidate": {
+        "n": 2708,
+        "acc": 0.6632200886262924,
+        "logloss": 0.6092335902203055,
+        "brier": 0.21114245207595805
+      },
+      "deltaLogloss": -0.00041889266555318085,
+      "pairedSE": 0.0006376747743481858,
+      "accuracyDeltaPP": -0.33234859675037587
+    },
+    "2018": {
+      "incumbent": {
+        "n": 2746,
+        "acc": 0.6584122359796067,
+        "logloss": 0.6073596820119512,
+        "brier": 0.2105662082866058
+      },
+      "candidate": {
+        "n": 2746,
+        "acc": 0.6598689002184996,
+        "logloss": 0.6051383866393617,
+        "brier": 0.20953345005935853
+      },
+      "deltaLogloss": 0.0022212953725894787,
+      "pairedSE": 0.0006238005119591732,
+      "accuracyDeltaPP": 0.1456664238892902
+    },
+    "2019": {
+      "incumbent": {
+        "n": 2525,
+        "acc": 0.6748514851485149,
+        "logloss": 0.5993737281633309,
+        "brier": 0.20659293675611493
+      },
+      "candidate": {
+        "n": 2525,
+        "acc": 0.6744554455445545,
+        "logloss": 0.5970710989317807,
+        "brier": 0.20549207036687356
+      },
+      "deltaLogloss": 0.0023026292315502573,
+      "pairedSE": 0.0006372766288092088,
+      "accuracyDeltaPP": -0.03960396039603964
+    },
+    "2020": {
+      "incumbent": {
+        "n": 1250,
+        "acc": 0.6688,
+        "logloss": 0.5948844265897633,
+        "brier": 0.20542604871076336
+      },
+      "candidate": {
+        "n": 1250,
+        "acc": 0.6632,
+        "logloss": 0.5945563600682056,
+        "brier": 0.20531352055319294
+      },
+      "deltaLogloss": 0.0003280665215577504,
+      "pairedSE": 0.0010002305948008743,
+      "accuracyDeltaPP": -0.5599999999999938
+    },
+    "2021": {
+      "incumbent": {
+        "n": 2485,
+        "acc": 0.6861167002012073,
+        "logloss": 0.5909938243485331,
+        "brier": 0.20273559924426818
+      },
+      "candidate": {
+        "n": 2485,
+        "acc": 0.689738430583501,
+        "logloss": 0.589643623255813,
+        "brier": 0.20219807640855875
+      },
+      "deltaLogloss": 0.0013502010927201186,
+      "pairedSE": 0.0007723115772950726,
+      "accuracyDeltaPP": 0.3621730382293742
+    },
+    "2022": {
+      "incumbent": {
+        "n": 2478,
+        "acc": 0.6658595641646489,
+        "logloss": 0.6023407831456672,
+        "brier": 0.20851675316800952
+      },
+      "candidate": {
+        "n": 2478,
+        "acc": 0.6610169491525424,
+        "logloss": 0.60235848363255,
+        "brier": 0.2085190602449431
+      },
+      "deltaLogloss": -0.000017700486882864277,
+      "pairedSE": 0.0009008659998775581,
+      "accuracyDeltaPP": -0.4842615012106477
+    },
+    "2023": {
+      "incumbent": {
+        "n": 2719,
+        "acc": 0.6794777491724899,
+        "logloss": 0.5932002243941953,
+        "brier": 0.20469164635381068
+      },
+      "candidate": {
+        "n": 2719,
+        "acc": 0.6765354909893343,
+        "logloss": 0.5929527221164754,
+        "brier": 0.20455642189340167
+      },
+      "deltaLogloss": 0.0002475022777199329,
+      "pairedSE": 0.0007534771321453841,
+      "accuracyDeltaPP": -0.29422581831556327
+    },
+    "2024": {
+      "incumbent": {
+        "n": 2303,
+        "acc": 0.6556665219279201,
+        "logloss": 0.6025528763379457,
+        "brier": 0.2087140079222595
+      },
+      "candidate": {
+        "n": 2303,
+        "acc": 0.657837603126357,
+        "logloss": 0.6027832499509995,
+        "brier": 0.2087901239344377
+      },
+      "deltaLogloss": -0.0002303736130537604,
+      "pairedSE": 0.0008767290146533208,
+      "accuracyDeltaPP": 0.21710811984368972
+    },
+    "2025": {
+      "incumbent": {
+        "n": 2402,
+        "acc": 0.670691090757702,
+        "logloss": 0.6068213589283279,
+        "brier": 0.20990256027879492
+      },
+      "candidate": {
+        "n": 2402,
+        "acc": 0.670691090757702,
+        "logloss": 0.6059504327098556,
+        "brier": 0.20959715932264603
+      },
+      "deltaLogloss": 0.0008709262184721742,
+      "pairedSE": 0.0008146539625151232,
+      "accuracyDeltaPP": 0
+    },
+    "2026": {
+      "incumbent": {
+        "n": 1995,
+        "acc": 0.6822055137844611,
+        "logloss": 0.5854890413156112,
+        "brier": 0.2012206200036489
+      },
+      "candidate": {
+        "n": 1995,
+        "acc": 0.6877192982456141,
+        "logloss": 0.5840755496685112,
+        "brier": 0.2006402820418527
+      },
+      "deltaLogloss": 0.0014134916470999836,
+      "pairedSE": 0.000847912616534912,
+      "accuracyDeltaPP": 0.5513784461152915
+    },
+    "tune": {
+      "incumbent": {
+        "n": 26794,
+        "acc": 0.6797790550123162,
+        "logloss": 0.5906930638400321,
+        "brier": 0.20307515519820668
+      },
+      "candidate": {
+        "n": 26794,
+        "acc": 0.6795178024930955,
+        "logloss": 0.5898831146812333,
+        "brier": 0.20270823225246146
+      },
+      "deltaLogloss": 0.0008099491587987741,
+      "pairedSE": 0.0002089245312031132,
+      "accuracyDeltaPP": -0.026125251922071158
+    },
+    "validation": {
+      "incumbent": {
+        "n": 15632,
+        "acc": 0.6730104912998977,
+        "logloss": 0.5969198997750043,
+        "brier": 0.20599610240140148
+      },
+      "candidate": {
+        "n": 15632,
+        "acc": 0.6728825486182191,
+        "logloss": 0.5963585026450238,
+        "brier": 0.2057687217099149
+      },
+      "deltaLogloss": 0.0005613971299803775,
+      "pairedSE": 0.0003210747185088383,
+      "accuracyDeltaPP": -0.012794268167859446
+    },
+    "firstHalf": {
+      "incumbent": {
+        "n": 13456,
+        "acc": 0.6936682520808561,
+        "logloss": 0.5769095665774883,
+        "brier": 0.19707290254626156
+      },
+      "candidate": {
+        "n": 13456,
+        "acc": 0.6935196195005945,
+        "logloss": 0.5763360820357237,
+        "brier": 0.19683063832359904
+      },
+      "deltaLogloss": 0.0005734845417645261,
+      "pairedSE": 0.00030749679879106756,
+      "accuracyDeltaPP": -0.014863258026165393
+    },
+    "secondHalf": {
+      "incumbent": {
+        "n": 13338,
+        "acc": 0.6657669815564552,
+        "logloss": 0.6045985023739044,
+        "brier": 0.2091305092006489
+      },
+      "candidate": {
+        "n": 13338,
+        "acc": 0.6653921127605338,
+        "logloss": 0.6035499966184036,
+        "brier": 0.20863782468811695
+      },
+      "deltaLogloss": 0.0010485057555008912,
+      "pairedSE": 0.00028268227986743535,
+      "accuracyDeltaPP": -0.03748687959214125
+    }
+  },
+  "pairedReport": {
+    "protocol": "paired-temporal-foundation-v1",
+    "pairColumns": [
+      "date",
+      "winner_name",
+      "loser_name",
+      "round_order",
+      "tour",
+      "tourney_id",
+      "round",
+      "match_num",
+      "source_match_id",
+      "draw_level"
+    ],
+    "windows": {
+      "tune": {
+        "n": 26794,
+        "deltaLogloss": 0.0008099491587987741,
+        "naiveSE": 0.0002089245312031132,
+        "week": {
+          "n": 26794,
+          "blocks": 388,
+          "status": "ok",
+          "mean": 0.0008099491587987741,
+          "bootstrapSE": 0.00023043491013256925,
+          "percentile95": [
+            0.00037363240309448785,
+            0.0012720409643628325
+          ],
+          "seed": 20260906,
+          "replicates": 2000
+        },
+        "event": {
+          "n": 26794,
+          "blocks": 1870,
+          "status": "ok",
+          "mean": 0.0008099491587987741,
+          "bootstrapSE": 0.0002187068611044745,
+          "percentile95": [
+            0.0003687884292325905,
+            0.0012410496701925355
+          ],
+          "seed": 20260906,
+          "replicates": 2000
+        }
+      },
+      "validation": {
+        "n": 15632,
+        "deltaLogloss": 0.0005613971299803775,
+        "naiveSE": 0.0003210747185088383,
+        "week": {
+          "n": 15632,
+          "blocks": 245,
+          "status": "ok",
+          "mean": 0.0005613971299803775,
+          "bootstrapSE": 0.0003598423494618306,
+          "percentile95": [
+            -0.00014633532592044478,
+            0.00125493893349697
+          ],
+          "seed": 20260906,
+          "replicates": 2000
+        },
+        "event": {
+          "n": 15632,
+          "blocks": null,
+          "status": "missing-block-identity"
+        }
+      },
+      "full": {
+        "n": 42426,
+        "deltaLogloss": 0.0007183693418353748,
+        "naiveSE": 0.0001772126152585543,
+        "week": {
+          "n": 42426,
+          "blocks": 633,
+          "status": "ok",
+          "mean": 0.0007183693418353748,
+          "bootstrapSE": 0.00019014923181846582,
+          "percentile95": [
+            0.0003484563462461565,
+            0.0010947296444005893
+          ],
+          "seed": 20260906,
+          "replicates": 2000
+        },
+        "event": {
+          "n": 42426,
+          "blocks": null,
+          "status": "missing-block-identity"
+        }
+      },
+      "year-2010": {
+        "n": 2702,
+        "deltaLogloss": 0.00005889591134606032,
+        "naiveSE": 0.000599291732186787,
+        "week": {
+          "n": 2702,
+          "blocks": 38,
+          "status": "ok",
+          "mean": 0.00005889591134606032,
+          "bootstrapSE": 0.0006239964618047521,
+          "percentile95": [
+            -0.001167060813201349,
+            0.0012665533124101714
+          ],
+          "seed": 20260906,
+          "replicates": 2000
+        },
+        "event": {
+          "n": 2702,
+          "blocks": 205,
+          "status": "ok",
+          "mean": 0.00005889591134606032,
+          "bootstrapSE": 0.0006031574760119647,
+          "percentile95": [
+            -0.0012194415318746781,
+            0.0012235863533395027
+          ],
+          "seed": 20260906,
+          "replicates": 2000
+        }
+      },
+      "year-2011": {
+        "n": 2702,
+        "deltaLogloss": -0.000022999080975600172,
+        "naiveSE": 0.0006416395458675592,
+        "week": {
+          "n": 2702,
+          "blocks": 38,
+          "status": "ok",
+          "mean": -0.000022999080975600172,
+          "bootstrapSE": 0.000655804317739205,
+          "percentile95": [
+            -0.0013271319524551255,
+            0.0012732822784332816
+          ],
+          "seed": 20260906,
+          "replicates": 2000
+        },
+        "event": {
+          "n": 2702,
+          "blocks": 207,
+          "status": "ok",
+          "mean": -0.000022999080975600172,
+          "bootstrapSE": 0.0006337039329539362,
+          "percentile95": [
+            -0.001338257698259063,
+            0.0011067608822244285
+          ],
+          "seed": 20260906,
+          "replicates": 2000
+        }
+      },
+      "year-2012": {
+        "n": 2808,
+        "deltaLogloss": 0.0007794465315323369,
+        "naiveSE": 0.0006743403537383607,
+        "week": {
+          "n": 2808,
+          "blocks": 39,
+          "status": "ok",
+          "mean": 0.0007794465315323369,
+          "bootstrapSE": 0.0006814480816142004,
+          "percentile95": [
+            -0.0005398871121501935,
+            0.002119612618805247
+          ],
+          "seed": 20260906,
+          "replicates": 2000
+        },
+        "event": {
+          "n": 2808,
+          "blocks": 230,
+          "status": "ok",
+          "mean": 0.0007794465315323369,
+          "bootstrapSE": 0.0006469150521203586,
+          "percentile95": [
+            -0.0005590700529919056,
+            0.0020729549308911104
+          ],
+          "seed": 20260906,
+          "replicates": 2000
+        }
+      },
+      "year-2013": {
+        "n": 2633,
+        "deltaLogloss": 0.0011726965969199553,
+        "naiveSE": 0.0007127973574267523,
+        "week": {
+          "n": 2633,
+          "blocks": 38,
+          "status": "ok",
+          "mean": 0.0011726965969199553,
+          "bootstrapSE": 0.0007616333316655365,
+          "percentile95": [
+            -0.00028122510230888924,
+            0.002707511298250479
+          ],
+          "seed": 20260906,
+          "replicates": 2000
+        },
+        "event": {
+          "n": 2633,
+          "blocks": 177,
+          "status": "ok",
+          "mean": 0.0011726965969199553,
+          "bootstrapSE": 0.0007820485955279298,
+          "percentile95": [
+            -0.00041620179063199325,
+            0.0026812810516396056
+          ],
+          "seed": 20260906,
+          "replicates": 2000
+        }
+      },
+      "year-2014": {
+        "n": 2611,
+        "deltaLogloss": 0.0008975177166179379,
+        "naiveSE": 0.000802165448837832,
+        "week": {
+          "n": 2611,
+          "blocks": 38,
+          "status": "ok",
+          "mean": 0.0008975177166179379,
+          "bootstrapSE": 0.0009019700968852585,
+          "percentile95": [
+            -0.000821908233392724,
+            0.0027966086261852034
+          ],
+          "seed": 20260906,
+          "replicates": 2000
+        },
+        "event": {
+          "n": 2611,
+          "blocks": 199,
+          "status": "ok",
+          "mean": 0.0008975177166179379,
+          "bootstrapSE": 0.0007714449354692081,
+          "percentile95": [
+            -0.0007013304006409778,
+            0.0023545531649504146
+          ],
+          "seed": 20260906,
+          "replicates": 2000
+        }
+      },
+      "year-2015": {
+        "n": 2547,
+        "deltaLogloss": 0.0009816033990838206,
+        "naiveSE": 0.0006703172136672153,
+        "week": {
+          "n": 2547,
+          "blocks": 38,
+          "status": "ok",
+          "mean": 0.0009816033990838206,
+          "bootstrapSE": 0.0007365581694273751,
+          "percentile95": [
+            -0.0004965941411383155,
+            0.0023764818616315827
+          ],
+          "seed": 20260906,
+          "replicates": 2000
+        },
+        "event": {
+          "n": 2547,
+          "blocks": 107,
+          "status": "ok",
+          "mean": 0.0009816033990838206,
+          "bootstrapSE": 0.0006638280777447122,
+          "percentile95": [
+            -0.00029686350196636113,
+            0.0022678518980453737
+          ],
+          "seed": 20260906,
+          "replicates": 2000
+        }
+      },
+      "year-2016": {
+        "n": 2812,
+        "deltaLogloss": 0.0002508432947821133,
+        "naiveSE": 0.0005934296612726279,
+        "week": {
+          "n": 2812,
+          "blocks": 40,
+          "status": "ok",
+          "mean": 0.0002508432947821133,
+          "bootstrapSE": 0.0005671196162996235,
+          "percentile95": [
+            -0.0008828072039187818,
+            0.0013622233804773715
+          ],
+          "seed": 20260906,
+          "replicates": 2000
+        },
+        "event": {
+          "n": 2812,
+          "blocks": 199,
+          "status": "ok",
+          "mean": 0.0002508432947821133,
+          "bootstrapSE": 0.0006432096161034542,
+          "percentile95": [
+            -0.001080575495977481,
+            0.0015079356424845855
+          ],
+          "seed": 20260906,
+          "replicates": 2000
+        }
+      },
+      "year-2017": {
+        "n": 2708,
+        "deltaLogloss": -0.00041889266555318085,
+        "naiveSE": 0.0006376747743481858,
+        "week": {
+          "n": 2708,
+          "blocks": 40,
+          "status": "ok",
+          "mean": -0.00041889266555318085,
+          "bootstrapSE": 0.0005430706695375839,
+          "percentile95": [
+            -0.0015407754773385696,
+            0.0005771897248349867
+          ],
+          "seed": 20260906,
+          "replicates": 2000
+        },
+        "event": {
+          "n": 2708,
+          "blocks": 195,
+          "status": "ok",
+          "mean": -0.00041889266555318085,
+          "bootstrapSE": 0.0005501646274561984,
+          "percentile95": [
+            -0.0016006093722348276,
+            0.0005723645623575628
+          ],
+          "seed": 20260906,
+          "replicates": 2000
+        }
+      },
+      "year-2018": {
+        "n": 2746,
+        "deltaLogloss": 0.0022212953725894787,
+        "naiveSE": 0.0006238005119591732,
+        "week": {
+          "n": 2746,
+          "blocks": 40,
+          "status": "ok",
+          "mean": 0.0022212953725894787,
+          "bootstrapSE": 0.0006223356115737037,
+          "percentile95": [
+            0.0009757621178601183,
+            0.0033967559541077004
+          ],
+          "seed": 20260906,
+          "replicates": 2000
+        },
+        "event": {
+          "n": 2746,
+          "blocks": 189,
+          "status": "ok",
+          "mean": 0.0022212953725894787,
+          "bootstrapSE": 0.000587552072149727,
+          "percentile95": [
+            0.0010714756758646393,
+            0.0033333963333897214
+          ],
+          "seed": 20260906,
+          "replicates": 2000
+        }
+      },
+      "year-2019": {
+        "n": 2525,
+        "deltaLogloss": 0.0023026292315502573,
+        "naiveSE": 0.0006372766288092088,
+        "week": {
+          "n": 2525,
+          "blocks": 39,
+          "status": "ok",
+          "mean": 0.0023026292315502573,
+          "bootstrapSE": 0.0007488431166157685,
+          "percentile95": [
+            0.0007992460775306873,
+            0.0037360651557140044
+          ],
+          "seed": 20260906,
+          "replicates": 2000
+        },
+        "event": {
+          "n": 2525,
+          "blocks": 162,
+          "status": "ok",
+          "mean": 0.0023026292315502573,
+          "bootstrapSE": 0.0007308223241457439,
+          "percentile95": [
+            0.0009039688389741282,
+            0.0037841007410323183
+          ],
+          "seed": 20260906,
+          "replicates": 2000
+        }
+      },
+      "year-2020": {
+        "n": 1250,
+        "deltaLogloss": 0.0003280665215577504,
+        "naiveSE": 0.0010002305948008743,
+        "week": {
+          "n": 1250,
+          "blocks": 18,
+          "status": "ok",
+          "mean": 0.0003280665215577504,
+          "bootstrapSE": 0.001298874893088667,
+          "percentile95": [
+            -0.0016550254792489587,
+            0.0032447017578429048
+          ],
+          "seed": 20260906,
+          "replicates": 2000
+        },
+        "event": {
+          "n": 1250,
+          "blocks": 112,
+          "status": "ok",
+          "mean": 0.0003280665215577504,
+          "bootstrapSE": 0.0011917457276107066,
+          "percentile95": [
+            -0.0017851256021234668,
+            0.002737390908646686
+          ],
+          "seed": 20260906,
+          "replicates": 2000
+        }
+      },
+      "year-2021": {
+        "n": 2485,
+        "deltaLogloss": 0.0013502010927201186,
+        "naiveSE": 0.0007723115772950726,
+        "week": {
+          "n": 2485,
+          "blocks": 37,
+          "status": "ok",
+          "mean": 0.0013502010927201186,
+          "bootstrapSE": 0.0008757510195987136,
+          "percentile95": [
+            -0.0004686781334019445,
+            0.0029011185628071232
+          ],
+          "seed": 20260906,
+          "replicates": 2000
+        },
+        "event": {
+          "n": 2485,
+          "blocks": 80,
+          "status": "ok",
+          "mean": 0.0013502010927201186,
+          "bootstrapSE": 0.0008284387455308084,
+          "percentile95": [
+            -0.0003825168479438236,
+            0.0028768845749643853
+          ],
+          "seed": 20260906,
+          "replicates": 2000
+        }
+      },
+      "year-2022": {
+        "n": 2478,
+        "deltaLogloss": -0.000017700486882864277,
+        "naiveSE": 0.0009008659998775581,
+        "week": {
+          "n": 2478,
+          "blocks": 36,
+          "status": "ok",
+          "mean": -0.000017700486882864277,
+          "bootstrapSE": 0.0009087212852501655,
+          "percentile95": [
+            -0.0017586426556070998,
+            0.0017787631581701342
+          ],
+          "seed": 20260906,
+          "replicates": 2000
+        },
+        "event": {
+          "n": 2478,
+          "blocks": 157,
+          "status": "ok",
+          "mean": -0.000017700486882864277,
+          "bootstrapSE": 0.0009056258008042467,
+          "percentile95": [
+            -0.0017205643122621037,
+            0.0017517568229597903
+          ],
+          "seed": 20260906,
+          "replicates": 2000
+        }
+      },
+      "year-2023": {
+        "n": 2719,
+        "deltaLogloss": 0.0002475022777199329,
+        "naiveSE": 0.0007534771321453841,
+        "week": {
+          "n": 2719,
+          "blocks": 38,
+          "status": "ok",
+          "mean": 0.0002475022777199329,
+          "bootstrapSE": 0.0007340151993331754,
+          "percentile95": [
+            -0.0011668050404754912,
+            0.001721162846594651
+          ],
+          "seed": 20260906,
+          "replicates": 2000
+        },
+        "event": {
+          "n": 2719,
+          "blocks": 161,
+          "status": "ok",
+          "mean": 0.0002475022777199329,
+          "bootstrapSE": 0.0006520547289184624,
+          "percentile95": [
+            -0.0010510555479502038,
+            0.001536576643619345
+          ],
+          "seed": 20260906,
+          "replicates": 2000
+        }
+      },
+      "year-2024": {
+        "n": 2303,
+        "deltaLogloss": -0.0002303736130537604,
+        "naiveSE": 0.0008767290146533208,
+        "week": {
+          "n": 2303,
+          "blocks": 36,
+          "status": "ok",
+          "mean": -0.0002303736130537604,
+          "bootstrapSE": 0.0011021630432216788,
+          "percentile95": [
+            -0.0024850830435381817,
+            0.001743588945203764
+          ],
+          "seed": 20260906,
+          "replicates": 2000
+        },
+        "event": {
+          "n": 2303,
+          "blocks": null,
+          "status": "missing-block-identity"
+        }
+      },
+      "year-2025": {
+        "n": 2402,
+        "deltaLogloss": 0.0008709262184721742,
+        "naiveSE": 0.0008146539625151232,
+        "week": {
+          "n": 2402,
+          "blocks": 44,
+          "status": "ok",
+          "mean": 0.0008709262184721742,
+          "bootstrapSE": 0.0008219071588269846,
+          "percentile95": [
+            -0.0008020325555499324,
+            0.0024484843835931285
+          ],
+          "seed": 20260906,
+          "replicates": 2000
+        },
+        "event": {
+          "n": 2402,
+          "blocks": null,
+          "status": "missing-block-identity"
+        }
+      },
+      "year-2026": {
+        "n": 1995,
+        "deltaLogloss": 0.0014134916470999836,
+        "naiveSE": 0.000847912616534912,
+        "week": {
+          "n": 1995,
+          "blocks": 37,
+          "status": "ok",
+          "mean": 0.0014134916470999836,
+          "bootstrapSE": 0.0006599714700577283,
+          "percentile95": [
+            0.00009787374663969299,
+            0.002723348962681616
+          ],
+          "seed": 20260906,
+          "replicates": 2000
+        },
+        "event": {
+          "n": 1995,
+          "blocks": null,
+          "status": "missing-block-identity"
+        }
+      }
+    },
+    "limitations": [
+      "Event IDs are source event identities; date provenance needs the timing audit.",
+      "Week/event blocks do not remove all repeated-player dependence."
+    ],
+    "unavailableSlices": [],
+    "slices": {
+      "tour:atp": {
+        "n": 0,
+        "deltaLogloss": null
+      },
+      "tour:wta": {
+        "n": 42426,
+        "deltaLogloss": 0.0007183693418353748
+      },
+      "source_kind:historical": {
+        "n": 36850,
+        "deltaLogloss": 0.0007170283436759733
+      },
+      "source_kind:stats": {
+        "n": 4923,
+        "deltaLogloss": 0.0008018319500519738
+      },
+      "source_kind:fresh": {
+        "n": 404,
+        "deltaLogloss": 0.0004078665854948099
+      },
+      "source_kind:live": {
+        "n": 2,
+        "deltaLogloss": -0.0059529974984507406
+      },
+      "source_kind:lower": {
+        "n": 0,
+        "deltaLogloss": null
+      },
+      "date_basis:played_date": {
+        "n": 151,
+        "deltaLogloss": 0.0035741764330485563
+      },
+      "date_basis:event_start": {
+        "n": 521,
+        "deltaLogloss": 0.0006604048996544747
+      },
+      "date_basis:unknown": {
+        "n": 41754,
+        "deltaLogloss": 0.0007087648154092375
+      },
+      "hard": {
+        "n": 26544,
+        "deltaLogloss": 0.0005177441000588848
+      },
+      "clay": {
+        "n": 11595,
+        "deltaLogloss": 0.0007489537535433209
+      },
+      "grass": {
+        "n": 4287,
+        "deltaLogloss": 0.0018778678638697844
+      },
+      "low-main-experience": {
+        "n": 12682,
+        "deltaLogloss": 0.00004731026094027852
+      },
+      "selected-wta-lower": {
+        "n": 12682,
+        "deltaLogloss": 0.00004731026094027852
+      },
+      "both-top-50": {
+        "n": 10113,
+        "deltaLogloss": 0.0006910960635797264
+      },
+      "outside-top-50": {
+        "n": 31258,
+        "deltaLogloss": 0.0007198765632389755
+      },
+      "inactive-120d": {
+        "n": 4403,
+        "deltaLogloss": -0.0001083405741118558
+      },
+      "no-prior-serve-evidence": {
+        "n": 2683,
+        "deltaLogloss": -0.00023957014191007021
+      }
+    },
+    "gatePass": true,
+    "positiveValidationDelta": true
+  },
+  "positiveTuneYears": 8,
+  "positiveValidationYears": [
+    "2020",
+    "2021",
+    "2023",
+    "2025",
+    "2026"
+  ],
+  "controlExact": true,
+  "tuneReplayExact": true,
+  "final": {
+    "completedAt": "2026-09-11T17:17:30.272523+00:00",
+    "fitWallSeconds": 10.644542791997083,
+    "finalSeed": 12345,
+    "coreRows": 92252,
+    "calibrationRows": 2424,
+    "calibrationCutoff": "2025-09-10 00:00:00",
+    "referenceArtifactId": "35e71d0c-cac3-42f6-b002-af213f07b4d5",
+    "candidateArtifactId": "03be4ad7-a36d-45cc-bd9d-280f3e1e24af",
+    "files": {
+      "provenance.json": "1a3b12073eb4ef1022a036a367ce1301a80017fbf7ef71651874f543318e5ffa",
+      "reference.pkl": "3ecd5be826330dfeb7592c9f491361dc7a6eb4d5bcaf70d04b913919d4565ee3",
+      "fitted-private.pkl": "7f22befdde266f1d1fe098a0f345d9384c52f3130f3f0c997f561238bb02bd16",
+      "candidate.surface": "5f48d8e2a16b17ad0c1747d830d0b438aa77c22a9b6654858cb2eb5fd9c8b0ea",
+      "reference.pkl.envelope": "9d38f3070c3c9251a614149c00aecc72825ef84dcd96e0c441a8a36921cd80a8"
+    }
+  },
+  "parity": {
+    "completedAt": "2026-09-11T17:18:01.669650+00:00",
+    "matchupContexts": 252,
+    "selectedStates": {
+      "main": 27,
+      "enriched": 225
+    },
+    "queryColumns": 43,
+    "referenceColumnsExact": 42,
+    "savedQueriesExact": true,
+    "scalarMatrixExact": true,
+    "queryNondestructive": true,
+    "historyParity": [
+      {
+        "state": "main",
+        "cutoffYear": 2009,
+        "maxQueryError": 0
+      },
+      {
+        "state": "main",
+        "cutoffYear": 2015,
+        "maxQueryError": 0
+      },
+      {
+        "state": "main",
+        "cutoffYear": 2018,
+        "maxQueryError": 0
+      },
+      {
+        "state": "enriched",
+        "cutoffYear": 2009,
+        "maxQueryError": 0
+      },
+      {
+        "state": "enriched",
+        "cutoffYear": 2015,
+        "maxQueryError": 0
+      },
+      {
+        "state": "enriched",
+        "cutoffYear": 2018,
+        "maxQueryError": 0
+      }
+    ],
+    "players": [
+      "Martina Navratilova",
+      "Venus Williams",
+      "Arantxa Sanchez Vicario",
+      "Darja Semenistaja",
+      "Victoria Jimenez Kasintseva",
+      "Jessika Ponchet",
+      "Unseen Alpha",
+      "Unseen Beta"
+    ]
+  },
+  "cost": {
+    "completedAt": "2026-09-11T17:18:36.747313+00:00",
+    "players": [
+      "Martina Navratilova",
+      "Venus Williams",
+      "Arantxa Sanchez Vicario",
+      "Serena Williams",
+      "Conchita Martinez",
+      "Steffi Graf",
+      "Svetlana Kuznetsova",
+      "Helena Sukova",
+      "Lindsay Davenport",
+      "Jelena Jankovic",
+      "Caroline Wozniacki",
+      "Nathalie Tauziat",
+      "Patty Schnyder",
+      "Pam Shriver",
+      "Zina Garrison",
+      "Daniela Hantuchova",
+      "Victoria Azarenka",
+      "Samantha Stosur",
+      "Francesca Schiavone",
+      "Amanda Coetzer",
+      "Darja Semenistaja",
+      "Victoria Jimenez Kasintseva",
+      "Jessika Ponchet",
+      "Elizabeth Mandlik",
+      "Carol Zhao",
+      "Carole Monnet",
+      "Marina Bassols Ribera",
+      "Maja Chwalinska",
+      "Nuria Brancaccio",
+      "Elvina Kalieva"
+    ],
+    "asOf": "2026-09-10 00:00:00",
+    "latency": {
+      "reference": {
+        "scalarMs": {
+          "n": 900,
+          "median": 5.255124939139932,
+          "p95": 5.533118394669145
+        },
+        "matrixMs": {
+          "n": 27,
+          "median": 56.79145804606378,
+          "p95": 57.598820712883025
+        }
+      },
+      "candidate": {
+        "scalarMs": {
+          "n": 900,
+          "median": 5.438624939415604,
+          "p95": 5.756272573489696
+        },
+        "matrixMs": {
+          "n": 27,
+          "median": 74.26100003067404,
+          "p95": 78.59035375295207
+        }
+      }
+    },
+    "artifactBytes": {
+      "reference": 25628872,
+      "candidate": 29872026
+    },
+    "peakProcessMiB": {
+      "reference": [
+        466.171875,
+        466.296875,
+        466.234375
+      ],
+      "candidate": [
+        566.1875,
+        566.21875,
+        566.28125
+      ]
+    },
+    "ratios": {
+      "scalarMs": 1.0349182945031377,
+      "matrixMs": 1.3076086190715626,
+      "artifactBytes": 1.1655614808174155,
+      "peakProcessMiB": 1.2144221425459907
+    },
+    "passed": true,
+    "populationNote": "Fixed match-count-selected cohorts include inactive players; not a traffic-weighted workload"
+  },
+  "preservation": {
+    "checkedAt": "2026-09-11T17:20:19.897Z",
+    "protectedCount": 733,
+    "protectedHeads": {
+      "coordinator": "c5cd3669d94fb93b7b0914e96bb28253d9e990a4",
+      "phase4": "51c9eb1535dc296e1464fb7c1290a779f7f34c15",
+      "maintenance": "975379b9411b1bd79937e31e5f80d412df3b5f09",
+      "dynamic-screen": "777a38e235755754e6175b294b47f48a70e90b31",
+      "dynamic-shadow": "64d62decfdc9d96e5777bb8017a29bb8d4c0993f",
+      "prospective-shadow": "3cd780af13e364c04714f7ae1d7e0b9bb7c9ba1c",
+      "source-audit": "3f4e99d64af66461e11e6e96fb164813e4144bfd",
+      "time-evidence": "129f811514cfd6b2a44edc087c42b26b45a475d4",
+      "start-source": "2e50cb560bb7ba394eae83883b76db9ad06ecff6",
+      "free-source": "64e70227281c1433a825fa7032a131c9a95ceb12",
+      "official-schedule": "70f5976cd9eb07ec5757674f5966c81b30c31477",
+      "official-link": "e10757fa432f08203642ef9e8fa784f77f906795",
+      "wta-coverage": "781d37b5d23b737f20ef185a25f094d32e3675d8",
+      "wta-lifecycle": "27cc95af1cb72aa56b316a6fcea30771a3d18094",
+      "timing-contract": "0214834d535654bd92da28180c0d74fb6d33b41b",
+      "historical-errors": "c658c7149676a2e1f6032a1440e68f904bd692e6",
+      "historical-signals": "1f3920aa6f1edb538a1d33e1d149b3d507086206"
+    },
+    "rawFiles": 294,
+    "rawSourceAndCopyExact": true,
+    "copiedHelpersExact": true,
+    "referenceOOSExact": true,
+    "preparedAndNumericalAndFinalExact": true,
+    "servingSourceExact": true
+  },
+  "checks": {
+    "pythonTests": 1359,
+    "focusedTests": 80,
+    "repositoryRuff": true,
+    "whitespace": true
+  },
+  "limitations": [
+    "Validation years have been used before and week-block interval includes zero.",
+    "Accuracy declines slightly in both windows; this is a probability-quality gain.",
+    "Event-block uncertainty unavailable because block identity is missing.",
+    "Retrospective same-date ordering is not physical feed-availability proof.",
+    "Registered cost cohort includes inactive players and is not traffic-weighted.",
+    "Local artifact is Python 3.13; production must rebuild under its pinned runtime.",
+    "Production pipeline, artifact/export contracts, recovery and release gates are not yet integrated."
+  ],
+  "runFiles": {
+    "closeout.mjs": "ad6f48114995f47cedbb90bfb51ca5d479d081db5908135e62a7d5c0f84e3fa0",
+    "comparison.csv": "1e4817645ebf602ad03bea4df04a40f5ab2796b4786499a4ea32a26ece181103",
+    "final-fit-001.log": "dd7241fb9634d51d4b90a8782d9a26dd3fe2ada28ad873374b2d9b28b76827ef",
+    "final/candidate.surface": "5f48d8e2a16b17ad0c1747d830d0b438aa77c22a9b6654858cb2eb5fd9c8b0ea",
+    "final/completion.json": "7386ff7c24ea85bac327b6fcd46e3894a62ba59a35a08a5158e050e1c438739b",
+    "final/fitted-private.pkl": "7f22befdde266f1d1fe098a0f345d9384c52f3130f3f0c997f561238bb02bd16",
+    "final/provenance.json": "1a3b12073eb4ef1022a036a367ce1301a80017fbf7ef71651874f543318e5ffa",
+    "final/reference.pkl": "3ecd5be826330dfeb7592c9f491361dc7a6eb4d5bcaf70d04b913919d4565ee3",
+    "final/reference.pkl.envelope": "9d38f3070c3c9251a614149c00aecc72825ef84dcd96e0c441a8a36921cd80a8",
+    "prepare.log": "03010c9449ce8d07e0e162f8c380b211270a6f3e78651222a5379f09bc688419",
+    "prepared/completion.json": "9161c19cfbc629b4ed7cddd72045a36add29af7b7dda20cec01b11d8d0361189",
+    "prepared/history-enriched.pkl": "8d9d85bc4fdc361dd8b19acac983542158bced4d2534a7033585a514755f55d9",
+    "prepared/history-main.pkl": "4db23c1fd179bd3752b183e9197378b86d653399e85981bd8cc1b6d3ea266c98",
+    "prepared/inputs.pkl": "7838943ef9b5d106708caf50eead4934c156c79ef82340283eba9471c97bfdf4",
+    "preservation.json": "0808b8e4de66439099624eae91297a14e4762131ad5474341c384a6bbcc0b341",
+    "python-full-001.log": "6776bbc820a95c9528f5f3cb35698839978f4028a63c707128400ebe05db9251",
+    "real-serving-parity-001.log": "dd7241fb9634d51d4b90a8782d9a26dd3fe2ada28ad873374b2d9b28b76827ef",
+    "real-serving-parity.json": "c2bc3e0ca5bb4e6661182960df03ab9d1460ed3ef974a61a3a3fba1d6d4f4218",
+    "registration.json": "5744e1a24979cc418bc0016693da28383b6cce135d9ebfb17ef80b515437018c",
+    "serving-cost-001.log": "dd7241fb9634d51d4b90a8782d9a26dd3fe2ada28ad873374b2d9b28b76827ef",
+    "serving-cost.json": "9d0590df20ce6900fb273d024fb52195faa264e42735855dd3284d0c7c710f5e",
+    "serving-focused-001.log": "dd833436fea4825c8d58a4060a22b7a34257f99e3d6efc5a5b3943944c7a762c",
+    "serving-freeze.json": "f113ff80ecb3124dbb1c6c7c9aba129b7d9a229b99bff3bd9f73cbc6d6d04575",
+    "serving-registration.json": "5120edd7203d9529c88cdc90b829b6e847083019990c77ef3138ea66395bf3a6",
+    "setup.json": "d0c6430bad0b2ec515810e3d965465bf6e84fa5f933cca6a511bba4b8c242b77",
+    "setup.mjs": "b118b756f71679f4772cd75e8b35f6fdf83b5a3b8a17eaa03538fa7ec29b7733",
+    "test_surface_candidate.draft.py": "bc0f0a1b3f51a11debb499fa266ca12f060d3cfe92d8fbf0d93afb76c98221ac",
+    "tune.log": "ce8136ac1818d83712d4e8ec70cda406bd7f9d2307e04860fe6534e269936c0d",
+    "tune/candidate-oos.pkl": "6af2b60463eac696530e5994c0c7401c132c25e0fb043ab5314ea4ed940d8db5",
+    "tune/completion.json": "631f857473e92ed3a3d187c26a42ac08bb7d6a82828af9548a9607ad69f1c335",
+    "tune/incumbent-oos.pkl": "39f4bcbc72ad671c931bb399b981f5e9a21076c569a1c49faef34f07b6464a0f",
+    "tune/registration.json": "6a61060964474e1b9b91db189e0ee471bae9f8f0a10911cede2a0c1fd9ad5119",
+    "validation.log": "e934a3761faf40502152565c5c3a17ae171e7c43405c5841c3630925b749be68",
+    "validation/candidate-oos.pkl": "74537e2cd64f11681c2906d53c84188fbc47058424066a41b112dc82df5403f7",
+    "validation/completion.json": "e70f5299aad901b55d09f8e8393026978642d159be531d7646f81fa8cd60a48f",
+    "validation/incumbent-oos.pkl": "339bff1d10ecbb6ebebfca36c79a585fd4015ad421d4f19cdfe57d1d8e5d94d2",
+    "validation/registration.json": "fed6d5519b491391787252e185634c48eacfe790baf54f0e49941ef7136b9fb0"
+  }
+}
