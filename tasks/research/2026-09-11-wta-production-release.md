@@ -5,6 +5,11 @@ statistics source.** Implementation and all local release checks below are compl
 “Keep going” authorized the P0–P4 integration work in `tasks/todo.md`. A new production
 push will be a separate, concrete release decision after the checks below.
 
+Follow-up: `2026-09-11-wta-readiness.md` records a newer successful incumbent refresh,
+the continuing provider outage, and a correction to the handoff's CI description.
+The source-readiness hold is our release recommendation; the existing workflow can
+deploy validated retained data after a failed download and report that failure afterward.
+
 ## Fixed candidate and scope
 
 WTA adds `surface_recent_diff`: `log1p(countA) - log1p(countB)` for completed

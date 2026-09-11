@@ -7761,3 +7761,44 @@ this original checkout receives only plans/reports. Review pending implementatio
   Restore strict source readiness, reconcile master, establish authorization for this
   WTA model release, then deploy through normal gates and verify the live generation.
   No production push or new hypothesis selection occurred in this round.
+
+## 2026-09-11 — WTA release readiness continuation
+
+Check-in: the user's next “Keep going” continues the committed release-readiness
+handoff. Investigate the remaining source hold, preserve the completed integration
+evidence, and prepare a concrete deployment decision. No new model selection.
+
+- [ ] R1: record bounded ATP provider connectivity and payload checks in a new
+  evidence directory; verify whether the provider publishes a current alternate.
+- [ ] R2: reconcile fresh origin/master and the latest scheduled production run;
+  inspect actual serving health using the incumbent's contract.
+- [ ] R3: reconcile the handoff with the workflow's actual source-failure behavior,
+  record release/rollback prerequisites, and retry full strict acquisition only if
+  bounded connectivity supports it.
+- [ ] R4: commit the readiness report and exact next steps. Deployment remains a
+  separate concrete decision after readiness; do not overwrite prior evidence.
+
+Review pending. These steps are sequential where results determine the next action;
+independent read-only source and production checks may run together.
+
+### Release-readiness continuation review
+
+- [x] R1: five bounded ATP provider probes failed before any HTTP response. The
+  provider's GitHub file contains only 137 January matches, so it was rejected as a
+  current fallback; published website paths reveal no separate current data host.
+- [x] R2: origin/master remains dda948c. Scheduled quick run34640536421 succeeded,
+  but still downloaded zero of two ATP statistics files. Independent live verification
+  passed 22/22 checks over the incumbent's accepted 462-artifact release.
+- [x] R3: corrected the handoff's CI claim. Full download failure can deploy retained
+  data and fail afterward; holding the new model is a release recommendation, not that
+  workflow's automatic gate. No full retry was justified while connections failed.
+- [x] R4: preserved all 1,675 prior evidence files, recorded 37 new evidence files,
+  and committed the documentation-only integration follow-up at 1c1131e. Results and
+  exact remaining actions are in research/2026-09-11-wta-readiness.md and its result JSON.
+- [ ] Production model release remains pending source recovery and its concrete
+  deployment decision. No model, workflow or ledger changes; no production push.
+
+The original checkout remains documentation-only. The implementation branch is
+codex/wta-surface-production at 1c1131e; functional source remains d75b7ef and its
+previous full tests/builds/replay still apply. Both earlier numerical evidence and
+this continuation's source/production observations are preserved separately.
