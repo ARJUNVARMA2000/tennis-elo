@@ -27,14 +27,16 @@ from ..data.style_history import StyleSnapshot, identity_version
 from ..points.markov import match_win_prob, score_distribution
 from .features import (
     DEFAULT_FEAT_PARAMS,
-    FEATURES,
     STYLE_DIFFS,
     build_dual_state_inputs,
     build_predictor_inputs,
     feat_params_for,
+    features_for,
+    inference_schema_for,
     use_lower_state,
 )
 from .probability import paired_probability
+from .surface_exposure import SURFACE_FEATURE, SURFACE_WINDOW_DAYS, SurfaceExposureState
 from .train import train_final
 
 
@@ -101,7 +103,7 @@ EVIDENCE_GROUPS: dict[str, tuple[str, ...]] = {
     "h2h": ("h2h_diff", "h2h_surface_diff", "log1p_h2h_total"),
     "style": tuple(STYLE_DIFFS),
 }
-INFERENCE_SCHEMA_VERSION = 5
+# Schema 5 remains ATP; WTA schema 6 adds the adopted surface state and feature.
 
 
 class TennisPredictor:
@@ -137,7 +139,7 @@ class TennisPredictor:
         self.match_population_version = MATCH_POPULATION_VERSION
         # Bump when prediction-time state/semantics change without changing FEATURES.
         # Quick mode must not reuse a pickle whose context lacks the rest/fatigue mirror.
-        self.inference_schema_version = INFERENCE_SCHEMA_VERSION
+        self.inference_schema_version = inference_schema_for(tour)
         # When this model was trained. Derived here rather than at the call sites (both of
         # them construct straight out of train_final) so no path can ship an unstamped
         # pickle — same reasoning as `fp` above. It rides INSIDE the pickle on purpose: the
@@ -294,6 +296,11 @@ class TennisPredictor:
         for feature in STYLE_FEATURES:
             va, vb = pa.get(feature), pb.get(feature)
             row[feature + "_diff"] = float(va - vb) if va is not None and vb is not None else 0.0
+        if self.tour == "wta":
+            state = getattr(ctx, "surface_exposure", None)
+            if type(state) is not SurfaceExposureState:
+                raise RuntimeError("selected WTA surface state is absent or incompatible")
+            row[SURFACE_FEATURE] = state.query(a, b, surface, asof)
         return row
 
     def features(self, a: str, b: str, surface: str = "Hard", best_of: int = 3,
@@ -301,11 +308,24 @@ class TennisPredictor:
                  event: str | None = None, as_of=None) -> pd.DataFrame:
         row = self._feature_dict(a, b, surface, best_of, indoor, tier_k, round_order,
                                  event=event, as_of=as_of)
-        return pd.DataFrame([[row[c] for c in FEATURES]], columns=FEATURES)
+        return pd.DataFrame([[row[c] for c in self.feature_columns]], columns=self.feature_columns)
+
+    @property
+    def feature_columns(self):
+        """The ordinary ordered schema; explicit research predictors override it."""
+        return features_for(self.tour)
+
+    @property
+    def evidence_groups(self):
+        return {**EVIDENCE_GROUPS, "recentSurface": (SURFACE_FEATURE,)} if self.tour == "wta" else EVIDENCE_GROUPS
+
+    def _combiner_probability(self, frame):
+        """One dispatch point shared by every public prediction path."""
+        return paired_probability(self.clf, self.iso, frame)
 
     # -- predictions ---------------------------------------------------------------
     def win_prob(self, a: str, b: str, **kw) -> float:
-        return float(paired_probability(self.clf, self.iso, self.features(a, b, **kw))[0])
+        return float(self._combiner_probability(self.features(a, b, **kw))[0])
 
     @staticmethod
     def _prob_from_logit(value: float) -> float:
@@ -323,11 +343,11 @@ class TennisPredictor:
         """
         row = self._feature_dict(a, b, surface, best_of, indoor, tier_k, round_order,
                                  event=event, as_of=as_of)
-        X = pd.DataFrame([[row[c] for c in FEATURES]], columns=FEATURES)
+        X = pd.DataFrame([[row[c] for c in self.feature_columns]], columns=self.feature_columns)
         return {
             "eloBlend": self._prob_from_logit(row["logit_p_blend"]),
             "pointModel": self._prob_from_logit(row["logit_p_point"]),
-            "combiner": float(paired_probability(self.clf, self.iso, X)[0]),
+            "combiner": float(self._combiner_probability(X)[0]),
         }
 
     def prediction_evidence(self, a: str, b: str, surface: str = "Hard",
@@ -345,8 +365,8 @@ class TennisPredictor:
             event=event, as_of=as_of,
         )
         elo, srv, ctx = self._states_for(a, b)
-        frame = pd.DataFrame([[row[c] for c in FEATURES]], columns=FEATURES)
-        base = float(paired_probability(self.clf, self.iso, frame)[0])
+        frame = pd.DataFrame([[row[c] for c in self.feature_columns]], columns=self.feature_columns)
+        base = float(self._combiner_probability(frame)[0])
         ref = np.datetime64(pd.Timestamp(
             as_of if as_of is not None else elo.last_date).to_datetime64())
 
@@ -413,11 +433,17 @@ class TennisPredictor:
             "h2h": (h2a + h2b) > 0,
             "style": bool(row["has_style"] and contrasts),
         }
+        if self.tour == "wta":
+            state = ctx.surface_exposure
+            facts["recentSurface"] = {"windowDays": SURFACE_WINDOW_DAYS, "surface": surface,
+                "matchesA": state.count(a, surface, ref), "matchesB": state.count(b, surface, ref),
+                "logCountDifference": row[SURFACE_FEATURE]}
+            available["recentSurface"] = True
         signals = []
-        for key, columns in EVIDENCE_GROUPS.items():
+        for key, columns in self.evidence_groups.items():
             neutral = frame.copy()
             neutral.loc[:, list(columns)] = 0.0
-            without = float(paired_probability(self.clf, self.iso, neutral)[0])
+            without = float(self._combiner_probability(neutral)[0])
             delta_pp = (base - without) * 100.0
             signals.append({
                 "key": key,
@@ -453,11 +479,11 @@ class TennisPredictor:
                                                as_of=as_of))
                 ii.append(i)
                 jj.append(j)
-        X = pd.DataFrame(rows, columns=FEATURES)
+        X = pd.DataFrame(rows, columns=self.feature_columns)
         values = {
             "eloBlend": np.array([self._prob_from_logit(r["logit_p_blend"]) for r in rows]),
             "pointModel": np.array([self._prob_from_logit(r["logit_p_point"]) for r in rows]),
-            "combiner": paired_probability(self.clf, self.iso, X),
+            "combiner": self._combiner_probability(X),
         }
         ia, ja = np.array(ii), np.array(jj)
         for name, probs in values.items():
@@ -471,8 +497,8 @@ class TennisPredictor:
                                      event: str | None = None, as_of=None) -> dict:
         """Batched signed group sensitivities for the static arbitrary-pair predictor."""
         n = len(players)
-        effects = {key: np.zeros((n, n), dtype=float) for key in EVIDENCE_GROUPS}
-        availability = {key: np.zeros((n, n), dtype=float) for key in EVIDENCE_GROUPS}
+        effects = {key: np.zeros((n, n), dtype=float) for key in self.evidence_groups}
+        availability = {key: np.zeros((n, n), dtype=float) for key in self.evidence_groups}
         if n < 2:
             return {"effects": effects, "available": availability}
         ii, jj, rows = [], [], []
@@ -484,13 +510,13 @@ class TennisPredictor:
                 ))
                 ii.append(i)
                 jj.append(j)
-        frame = pd.DataFrame(rows, columns=FEATURES)
-        base = paired_probability(self.clf, self.iso, frame)
+        frame = pd.DataFrame(rows, columns=self.feature_columns)
+        base = self._combiner_probability(frame)
         ia, ja = np.asarray(ii), np.asarray(jj)
-        for key, columns in EVIDENCE_GROUPS.items():
+        for key, columns in self.evidence_groups.items():
             neutral = frame.copy()
             neutral.loc[:, list(columns)] = 0.0
-            without = paired_probability(self.clf, self.iso, neutral)
+            without = self._combiner_probability(neutral)
             delta = np.asarray(base) - np.asarray(without)
             effects[key][ia, ja] = delta
             effects[key][ja, ia] = -delta
@@ -508,7 +534,7 @@ class TennisPredictor:
 
     def win_prob_matrix(self, players: list, surface: str = "Hard", best_of: int = 3,
                         indoor: bool = False, tier_k: float = 1.0, round_order: int = 3,
-                        event: str | None = None):
+                        event: str | None = None, as_of=None):
         """Pairwise P(i beats j) matrix, antisymmetrised so P[i,j] = 1 - P[j,i].
 
         Builds the upper triangle in one batched prediction (the hot path for the
@@ -516,7 +542,7 @@ class TennisPredictor:
         """
         return self.prediction_matrices(
             players, surface=surface, best_of=best_of, indoor=indoor,
-            tier_k=tier_k, round_order=round_order, event=event,
+            tier_k=tier_k, round_order=round_order, event=event, as_of=as_of,
         )["combiner"]
 
     def predict(self, a: str, b: str, surface: str = "Hard", best_of: int = 3, **kw) -> dict:

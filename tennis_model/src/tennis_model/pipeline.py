@@ -43,10 +43,10 @@ from .config import (
 from .data.results import load_matches
 from .model.export import export_all
 from .model.features import (
-    FEATURES,
     build_dual_state_inputs,
     build_predictor_inputs,
     feat_params_for,
+    features_for,
 )
 from .model.features import main_rows as main_rows  # noqa: F401 — compatibility seam for guard tests
 from .model.predict import TennisPredictor
@@ -415,7 +415,7 @@ def _backtest_contract_identity(tour: str, *, threshold, dual_input, end_year: i
         "endTest": end_year,
         "threshold": threshold,
         "dualInput": dual_input,
-        "features": list(FEATURES),
+        "features": features_for(tour),
         "featureParams": _json_input_identity(params),
         "xgbOverrides": _json_input_identity(xgb_params_for(tour)),
         "matchPopulationVersion": MATCH_POPULATION_VERSION,

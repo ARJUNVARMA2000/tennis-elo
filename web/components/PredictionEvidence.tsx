@@ -24,6 +24,12 @@ export function evidenceFactLine(signal: EvidenceSignal, a: string, b: string): 
     const p = num(f.pointProbabilityA);
     return p == null ? "Opponent-adjusted point model." : `Point model: ${pct(p, 1)} for ${a}.`;
   }
+  if (signal.key === "recentSurface") {
+    const left = num(f.matchesA), right = num(f.matchesB);
+    return left == null || right == null
+      ? "Recorded matches on this surface in the past 60 days."
+      : `Past 60 days on this surface: ${a} ${left.toFixed(0)} · ${b} ${right.toFixed(0)} matches.`;
+  }
   if (signal.key === "form") {
     const left = num(f.form90A), right = num(f.form90B);
     return left == null || right == null

@@ -114,6 +114,34 @@ SYMMETRIC = [
 ]
 FEATURES = ANTISYM + SYMMETRIC
 
+
+def features_for(tour: str) -> list[str]:
+    """Explicit ordered production schema; the legacy shared list remains ATP's."""
+    from .surface_exposure import SURFACE_FEATURE
+    if tour not in {"atp", "wta"}:
+        raise ValueError(f"unsupported feature tour: {tour!r}")
+    return [*FEATURES, SURFACE_FEATURE] if tour == "wta" else list(FEATURES)
+
+
+def antisymmetric_for(tour: str) -> list[str]:
+    return [c for c in features_for(tour) if c not in SYMMETRIC]
+
+
+def frame_tour(frame: pd.DataFrame) -> str:
+    """Resolve a single declared tour; bare model matrices use their exact schema."""
+    from .surface_exposure import SURFACE_FEATURE
+    if "tour" in frame and len(frame):
+        values = frame.tour.unique()
+        if len(values) != 1 or values[0] not in {"atp", "wta"}:
+            raise ValueError("feature frame must contain one supported tour")
+        return str(values[0])
+    return "wta" if SURFACE_FEATURE in frame else "atp"
+
+
+def inference_schema_for(tour: str) -> int:
+    features_for(tour)  # Validate rather than treating an unknown tour as ATP.
+    return 6 if tour == "wta" else 5
+
 # Pre-registered WTA dual-state gate candidates.  Selection is tune-only (2010-19),
 # after which exactly one threshold is frozen for the 2020+ arbiter.  Keeping this
 # finite list beside the shared gate makes the search auditable and prevents a
@@ -248,7 +276,12 @@ def _run_all(df: pd.DataFrame, state_only_lower: bool = False):
     cutoff = df.date.max() + pd.Timedelta(days=1) if len(df) else pd.Timestamp("1970-01-01")
     ctx_state.style_snapshot = history.snapshot(cutoff)
     d = df.join(elo).join(srv).join(ctx).join(history.pair_features(df))
-    return _assemble(d, params=fp), elo_state, srv_state, ctx_state
+    frame = _assemble(d, params=fp)
+    if tour == "wta":
+        from .surface_exposure import SURFACE_FEATURE, walk_surface_exposure
+        ctx_state.surface_exposure, signal = walk_surface_exposure(df)
+        frame[SURFACE_FEATURE] = signal
+    return frame, elo_state, srv_state, ctx_state
 
 
 def build_feature_frame(df: pd.DataFrame | None = None, tour: str = "atp",
@@ -347,7 +380,11 @@ def select_dual_state_features(base: pd.DataFrame, enriched: pd.DataFrame,
     out = base.reset_index(drop=True).copy()
     lower = enriched.reset_index(drop=True)
     mask = dual_state_gate_mask(out, threshold)
-    state_columns = list(FEATURES) + ["p_blend", "p_point"]
+    if frame_tour(base) != frame_tour(enriched):
+        raise ValueError("dual-state tours differ")
+    state_columns = features_for(frame_tour(base)) + ["p_blend", "p_point"]
+    if any(c not in out for c in state_columns):
+        raise ValueError("base dual-state frame is missing model columns")
     missing = [c for c in state_columns if c not in lower]
     if missing:
         raise ValueError(f"enriched dual-state frame is missing columns: {missing}")
@@ -550,12 +587,13 @@ def make_oriented_xy(feat: pd.DataFrame, seed: int = 0) -> tuple[pd.DataFrame, n
     flip = rng.random(len(feat)) < 0.5
     X = pd.DataFrame(index=feat.index)
     sign = np.where(flip, -1.0, 1.0)
-    for c in ANTISYM:
+    tour = frame_tour(feat)
+    for c in antisymmetric_for(tour):
         X[c] = feat[c].to_numpy() * sign
     for c in SYMMETRIC:
         X[c] = feat[c].to_numpy()
     y = np.where(flip, 0, 1).astype(int)
-    return X[FEATURES], y
+    return X[features_for(tour)], y
 
 
 if __name__ == "__main__":

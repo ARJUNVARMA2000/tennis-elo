@@ -10,7 +10,7 @@ import pandas as pd
 from ...config import (
     WTA_DUAL_STATE_GATE_THRESHOLD,
 )
-from ...model.features import FEATURES
+from ...model.features import features_for
 from ...timing import (
     PRODUCT_STAGE_MAX_SUCCESS_AGE_HOURS,
     PRODUCT_STAGE_NAMES,
@@ -62,12 +62,12 @@ def _check_method(out: list, tour: str, method: dict, meta: dict | None) -> None
             evidence={"value": repr(mults)})
     comb = method["combiner"]
     nfeat = comb.get("featureCount")
-    if nfeat != len(FEATURES):
+    if nfeat != len(features_for(tour)):
         _add_finding(
             out, "output.method.feature_count_invalid",
-            f"{tour}: method.json featureCount {nfeat} != {len(FEATURES)} (schema drift)",
+            f"{tour}: method.json featureCount {nfeat} != {len(features_for(tour))} (schema drift)",
             severity="error", entity="artifact:method.json#combiner:featureCount",
-            evidence={"actual": nfeat, "expected": len(FEATURES)})
+            evidence={"actual": nfeat, "expected": len(features_for(tour))})
     feats = (meta or {}).get("features")
     if isinstance(feats, list) and nfeat != len(feats):
         _add_finding(

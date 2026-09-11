@@ -127,21 +127,23 @@ def write_prediction_audit(predictor, frame, players, path):
         raise ValueError('prediction audit exceeds private byte bound')
     path = Path(path)
     _atomic_write_bytes(path, raw, trusted_root=path.parent.parent)
-    return {'predictionAuditSchema':AUDIT_SCHEMA, 'predictionAuditSourceGeneration':generation,
+    return {'tour':predictor.tour, 'predictionAuditSchema':AUDIT_SCHEMA, 'predictionAuditSourceGeneration':generation,
             'predictionAuditSHA256':hashlib.sha256(raw).hexdigest(),
             'predictionAuditObservedAt':receipt['observedAt'],
             'inferenceSchemaVersion':predictor.inference_schema_version}
 
 
 def validate_audit_metadata(receipt, meta, *, now, raw_sha256=None):
-    from .predict import INFERENCE_SCHEMA_VERSION
+    from .features import inference_schema_for
+
+    expected_schema = inference_schema_for(meta.get("tour"))
 
     if (meta.get('predictionAuditSchema') != AUDIT_SCHEMA
-            or meta.get('inferenceSchemaVersion') != INFERENCE_SCHEMA_VERSION
+            or meta.get('inferenceSchemaVersion') != expected_schema
             or not isinstance(receipt, dict)
             or meta.get('predictionAuditObservedAt') != receipt.get('observedAt')
             or (raw_sha256 is not None and meta.get('predictionAuditSHA256') != raw_sha256)):
         raise ValueError('prediction audit metadata/content binding mismatch')
     return validate_prediction_audit(receipt, artifact_id=meta.get('predictorArtifactId'),
-        inference_schema=INFERENCE_SCHEMA_VERSION,
+        inference_schema=expected_schema,
         source_generation=meta.get('predictionAuditSourceGeneration'), now=now)

@@ -6382,3 +6382,52 @@ use population 8. No reviewed match or quarantine was changed by that migration.
 
 Review complete: the authorized general correctness release is deployed and verified.
 No experimental candidate was adopted. See `research/2026-09-10-general-release.md`.
+
+## 2026-09-11 — authorized fixed WTA surface production integration
+
+Check-in: the user's “Keep going” continues the completed assessment's explicit
+production-integration recommendation. Implement and validate P0–P3 and prepare the
+concrete P4 release decision; do not publish an unverified candidate. Detailed plan:
+`research/2026-09-11-wta-surface-next.md`. No new model selection or parameter sweep.
+
+- [ ] P0: isolate from fresh accepted origin/master, verify 770 evidence files and
+  18 accepted research heads, copy/freeze population8 raw inputs and runtime.
+- [ ] P1: support the exact 60-day surface signal in WTA training, both temporal
+  states, final construction and all query routes; preserve ATP's 42-feature behavior.
+- [ ] P2: integrate explicit tour schemas into strict artifacts, receipts, exports,
+  feature caches, full/quick recovery and both release gates, with regression tests.
+- [ ] P3a: exact frozen-population feature and 17-year candidate OOS replay; saved
+  routes, selected states, boundaries, corruption and ordinary ATP parity.
+- [ ] P3b: full applicable Python/web checks, both-tour full/quick actual builds,
+  artifact reload, cache recovery, public mirror and local serving verification;
+  measure active-player scalar/matrix/evidence costs without competing workloads.
+- [ ] P4: reconcile source history, commit the concrete validated release and record
+  results, model IDs, remaining limitations and rollback/deployment decision.
+
+Dependencies: P0 → P1 → P2 → P3 → P4; gate fixtures can be prepared once the model
+contract is fixed. No parallel agents are requested. Prior research remains immutable;
+this original checkout receives only plans/reports. Review pending implementation.
+
+### P0–P2 implementation review
+
+- [x] P0: fresh accepted production remains `dda948c`; verified all 770 prior files,
+  18 accepted heads and 294 raw input files before creating this integration.
+- [x] P1: WTA has an explicit 43-column schema and schema6; ATP remains 42/schema5.
+  The surface-only state is owned by each context bundle, so both production factories
+  automatically carry the same main/enriched selection and temporal query behavior.
+- [x] All 43 features match the accepted research candidate over both 129,228-row
+  aligned frames and the selected frame. Every stored surface observation matches;
+  2,400 query comparisons are exact. Unused form/rank state is omitted, with this
+  full retained-history equivalence as its compaction proof.
+- [x] P2 implementation: strict WTA artifact/state/policy contract, old-cache rejection,
+  audit/feature-cache/backtest identities, tour-specific method/metadata/evidence,
+  Python output gates and live verifier updated. Recent surface evidence has a plain
+  label and player-oriented counts. Ordinary ATP artifact contract stays unchanged.
+- [x] 1,333 Python tests pass under production Python3.12 with existing pinned deps;
+  374 web tests, lint/types, repository Ruff and whitespace checks pass.
+- [ ] P3: freeze source, replay all 17 WTA folds exactly, prove saved ATP parity,
+  rebuild full/quick outputs, verify recovery/mirroring/browser serving and active costs.
+
+Earlier integration runs exposed stale 42-feature test fixtures, a method-count
+assumption, and one test using the legacy message-list collector. They are corrected;
+failed logs are retained. No model fitting/selection was used to resolve those issues.

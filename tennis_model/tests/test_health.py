@@ -83,7 +83,7 @@ def _healthy_data() -> dict:
     receipt = coverage_receipt(pd.DataFrame(), 'atp')
     receipt['checkedMatches'] = 300_000
     return {
-        "meta": {"matches": 300_000, "activePlayers": 3, "features": ["f"] * len(FEATURES),
+        "meta": {"matches": 300_000, "activePlayers": 3, "features": list(FEATURES),
                  'resultIntegrity': receipt,
                  "matchPopulationVersion": health.MATCH_POPULATION_VERSION,
                  "modelPopulationVersion": health.MATCH_POPULATION_VERSION,

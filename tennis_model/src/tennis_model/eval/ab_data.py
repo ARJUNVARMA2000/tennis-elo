@@ -25,9 +25,9 @@ from ..config import TUNE_YEARS, VAL_START, WTA_LOWER_STATE_FIRST_YEAR
 from ..data.names import name_key
 from ..data.results import load_matches
 from ..model.features import (
-    FEATURES,
     WTA_DUAL_STATE_GATE_THRESHOLDS,
     build_feature_frame,
+    features_for,
     main_rows,
     select_dual_state_features,
 )
@@ -138,7 +138,7 @@ def _build_dual_feature_frames(tour: str = "wta") -> tuple[pd.DataFrame, pd.Data
     base, enriched = _align_feature_frames(base, enriched)
 
     pre = base["year"].to_numpy() < WTA_LOWER_STATE_FIRST_YEAR
-    parity_columns = list(FEATURES) + ["p_blend", "p_point"]
+    parity_columns = features_for(tour) + ["p_blend", "p_point"]
     if pre.any() and not np.array_equal(
             base.loc[pre, parity_columns].to_numpy(),
             enriched.loc[pre, parity_columns].to_numpy(), equal_nan=True):

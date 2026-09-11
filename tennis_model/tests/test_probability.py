@@ -29,6 +29,9 @@ def predictor(tour="atp", lower=False):
     elo.last_date = np.datetime64("2026-08-01")
     srv = ServeReturnState(base={s: .62 for s in ("Hard", "Clay", "Grass")})
     ctx = H2HState({})
+    if tour == "wta":
+        from tennis_model.model.surface_exposure import SurfaceExposureState
+        ctx.surface_exposure = SurfaceExposureState(through=pd.Timestamp(elo.last_date))
     kw = dict(lower_elo=elo, lower_srv=srv, lower_ctx=ctx, dual_state_threshold=32) if lower else {}
     pred = TennisPredictor(AsymmetricClassifier(), AsymmetricCalibrator(), elo, srv, ctx,
                            {}, tour=tour, **kw)

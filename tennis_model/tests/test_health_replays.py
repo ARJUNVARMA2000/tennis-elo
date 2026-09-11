@@ -128,6 +128,17 @@ def _materialize_base(root: Path, tour: str, as_of: str) -> None:
     generation_date = (pd.Timestamp(as_of) - pd.Timedelta(days=1)).strftime("%Y-%m-%d")
     generation = f"{generation_date}T04:30:00Z"
 
+    from tennis_model.model.features import features_for
+    data["meta"]["features"] = features_for(tour)
+    data["method"]["combiner"]["featureCount"] = len(features_for(tour))
+    if tour == "wta":
+        for row in data["upcoming"]:
+            row["evidence"]["signals"].append({"key":"recentSurface", "available":True,
+                "supports":None, "impactPp":0., "facts":{}})
+            row["evidence"]["signals"].sort(key=lambda s: (not s["available"], -abs(s["impactPp"])))
+        for shard in shards.values():
+            if "evidence" in shard:
+                shard["evidence"]["effects"]["recentSurface"] = copy.deepcopy(shard["evidence"]["effects"]["form"])
     data["meta"].update(
         dualStateThreshold=threshold,
         dualStateReady=threshold is not None,

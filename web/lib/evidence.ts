@@ -4,6 +4,7 @@ export const EVIDENCE_LABELS = {
   surfaceElo: "Surface Elo",
   serveReturn: "Serve / return",
   form: "Recent form",
+  recentSurface: "Recent surface experience",
   rest: "Rest & workload",
   home: "Home advantage",
   h2h: "Head-to-head",
@@ -73,12 +74,12 @@ export function orientEvidence(
     for (const [left, right] of [
       ["a", "b"], ["form90A", "form90B"], ["recentWinRateA", "recentWinRateB"],
       ["daysSinceA", "daysSinceB"], ["workloadA", "workloadB"], ["winsA", "winsB"],
-      ["surfaceWinsA", "surfaceWinsB"], ["playerAHome", "playerBHome"],
+      ["surfaceWinsA", "surfaceWinsB"], ["matchesA", "matchesB"], ["playerAHome", "playerBHome"],
     ]) swap(facts, left, right);
     if (typeof facts.pointProbabilityA === "number") {
       facts.pointProbabilityA = Math.round((1 - facts.pointProbabilityA) * 10_000) / 10_000;
     }
-    for (const key of ["gap", "serveEdge", "returnEdge", "diff"]) {
+    for (const key of ["gap", "serveEdge", "returnEdge", "diff", "logCountDifference"]) {
       if (typeof facts[key] === "number") facts[key] = -facts[key];
     }
     if (Array.isArray(facts.contrasts)) {
@@ -113,7 +114,7 @@ export function matrixEvidence(
   const playerB = shard.players[b];
   if (!playerA || !playerB) return null;
   const packed = shard.evidence.encoding === "upper-triangle-bps-v1";
-  const signals = KEYS.map((key): EvidenceSignal => {
+  const signals = KEYS.filter((key) => key !== "recentSurface" || key in (shard.evidence?.effects ?? {})).map((key): EvidenceSignal => {
     const effect = encodedValue(
       shard.evidence?.effects?.[key], shard.players.length, a, b, true, packed,
     );

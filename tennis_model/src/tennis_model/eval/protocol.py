@@ -11,7 +11,7 @@ import pandas as pd
 
 from ..config import TUNE_YEARS, VAL_START
 from ..data.names import name_key
-from ..model.features import ANTISYM, FEATURES
+from ..model.features import antisymmetric_for, features_for, frame_tour
 from ..model.probability import calibrated_probability, reverse_features
 
 PROTOCOL_VERSION = 'paired-temporal-foundation-v1'
@@ -41,11 +41,13 @@ def legacy_orientation_diagnostics(clf, calibrator, frame):
     if a.eq(b).any() or a.eq('').any() or b.eq('').any():
         raise ValueError('canonical player identities are missing or collide')
     swap = a.gt(b).to_numpy()
-    canonical = frame[FEATURES].copy()
-    canonical.loc[swap, ANTISYM] = -canonical.loc[swap, ANTISYM]
+    columns = features_for(frame_tour(frame))
+    signed = antisymmetric_for(frame_tour(frame))
+    canonical = frame[columns].copy()
+    canonical.loc[swap, signed] = -canonical.loc[swap, signed]
     cp = calibrated_probability(clf, calibrator, canonical)
-    forward = calibrated_probability(clf, calibrator, frame[FEATURES])
-    reverse = calibrated_probability(clf, calibrator, reverse_features(frame[FEATURES]))
+    forward = calibrated_probability(clf, calibrator, frame[columns])
+    reverse = calibrated_probability(clf, calibrator, reverse_features(frame[columns]))
     return {
         'p_legacy_canonical': np.where(swap, 1 - cp, cp),
         'p_legacy_winnerfirst': forward,

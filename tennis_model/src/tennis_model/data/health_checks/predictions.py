@@ -170,12 +170,12 @@ def _check_matrix_evidence(out: list, tour: str, filename: str,
             evidence={"valueType": type(evidence).__name__})
         return
     effects = evidence.get("effects")
-    if not isinstance(effects, dict) or set(effects) != set(_EVIDENCE_KEYS):
+    if not isinstance(effects, dict) or set(effects) != set(_evidence_keys(tour)):
         _add_finding(
             out, "output.matrix_evidence.signal_set_invalid",
             f"{tour}: {filename} evidence signal set is malformed",
             severity="error", entity=f"artifact:{filename}",
-            evidence={"expected": sorted(_EVIDENCE_KEYS),
+            evidence={"expected": sorted(_evidence_keys(tour)),
                       "actual": sorted(map(str, effects)) if isinstance(effects, dict) else None})
         return
     packed = evidence.get("encoding") == "upper-triangle-bps-v1"
@@ -285,21 +285,21 @@ def _check_prediction_evidence(out: list, tour: str, label: str, evidence: objec
             f"{tour}: {label} evidence omits the non-causal disclaimer",
             severity="error", entity=finding_entity, evidence={})
     signals = evidence.get("signals")
-    if not isinstance(signals, list) or len(signals) != len(_EVIDENCE_KEYS):
+    if not isinstance(signals, list) or len(signals) != len(_evidence_keys(tour)):
         _add_finding(
             out, "output.prediction_evidence.signal_list_invalid",
             f"{tour}: {label} evidence signal list is malformed",
             severity="error", entity=finding_entity,
-            evidence={"expectedCount": len(_EVIDENCE_KEYS),
+            evidence={"expectedCount": len(_evidence_keys(tour)),
                       "actualCount": len(signals) if isinstance(signals, list) else None})
         return
     keys = [signal.get("key") for signal in signals if isinstance(signal, dict)]
-    if len(keys) != len(signals) or set(keys) != set(_EVIDENCE_KEYS):
+    if len(keys) != len(signals) or set(keys) != set(_evidence_keys(tour)):
         _add_finding(
             out, "output.prediction_evidence.signal_keys_invalid",
             f"{tour}: {label} evidence signal keys are missing/duplicated",
             severity="error", entity=finding_entity,
-            evidence={"expected": sorted(_EVIDENCE_KEYS), "actual": list(map(str, keys))})
+            evidence={"expected": sorted(_evidence_keys(tour)), "actual": list(map(str, keys))})
         return
     available_strengths = []
     unavailable_seen = False
@@ -1033,3 +1033,7 @@ def _check_watch_ranking(out: list, tour: str, upcoming: list,
                 f"{tour}: upcoming watchRank is not score-descending",
                 severity="error", entity="artifact:upcoming-index.json",
                 evidence={"scores": scores})
+
+
+def _evidence_keys(tour):
+    return (*_EVIDENCE_KEYS, "recentSurface") if tour == "wta" else _EVIDENCE_KEYS

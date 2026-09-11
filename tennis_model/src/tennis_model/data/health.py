@@ -68,7 +68,7 @@ from ..config import (
     output_dir,
     stats_dir,
 )
-from ..model.features import FEATURES
+from ..model.features import features_for, inference_schema_for
 from ..timing import (
     STAGE_STATUS_FILENAME,
     STAGE_STATUS_SCHEMA,
@@ -1337,7 +1337,7 @@ def output_findings(tour: str, oc: dict, now: pd.Timestamp,
                          f'{tour}: reviewed result input ledger is missing or stale',
                          entity='model:result-ledger', evidence={})
     # The strict private-model binding in lineage also rejects stripping both markers.
-    if isinstance(meta, dict) and ('predictionAuditSchema' in meta or meta.get('inferenceSchemaVersion') == 5):
+    if isinstance(meta, dict) and ('predictionAuditSchema' in meta or meta.get('inferenceSchemaVersion') in (5, 6)):
         from ..data.chronology import CHRONOLOGY_POLICY
         from ..model.probability_audit import validate_audit_metadata
         chronology = meta.get('chronology')
@@ -1423,10 +1423,18 @@ def output_findings(tour: str, oc: dict, now: pd.Timestamp,
     if isinstance(meta, dict):
         feats = meta.get("features")
         nfeat = len(feats) if isinstance(feats, list) else None
-        if nfeat != len(FEATURES):
+        if nfeat != len(features_for(tour)):
             _add_finding(out, "output.meta.feature_count_mismatch",
-                         f"{tour}: meta.features has {nfeat} entries (expected {len(FEATURES)})",
-                         entity="artifact:meta.json", evidence={"actual": nfeat, "expected": len(FEATURES)})
+                         f"{tour}: meta.features has {nfeat} entries (expected {len(features_for(tour))})",
+                         entity="artifact:meta.json", evidence={"actual": nfeat, "expected": len(features_for(tour))})
+        if isinstance(feats, list) and len(feats) == len(features_for(tour)) and feats != features_for(tour):
+            _add_finding(out, "output.meta.feature_schema_mismatch",
+                         f"{tour}: meta.features order/names differ from its production schema",
+                         entity="artifact:meta.json")
+        if meta.get("inferenceSchemaVersion") is not None and meta.get("inferenceSchemaVersion") != inference_schema_for(tour):
+            _add_finding(out, "output.meta.inference_schema_mismatch",
+                         f"{tour}: saved inference schema is stale or belongs to the other tour",
+                         entity="artifact:meta.json")
         if isinstance(feats, list) and any(
                 any(token in str(feature).lower() for token in ("expect", "performance", "residual"))
                 for feature in feats):
