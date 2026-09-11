@@ -6492,3 +6492,21 @@ This is a compatibility correction within the approved P2/P3 scope, not a new ex
 - [ ] Once the source recovers, follow `research/2026-09-11-wta-production-next.md` to
   reconcile production, establish this model release's push authorization, deploy through
   normal gates and verify the actual live generation. No master push occurred here.
+
+### September 11 release-readiness follow-up review
+
+The user's next “Keep going” authorized the remaining readiness investigation.
+No implementation, prediction, source-ledger or workflow changes were made.
+
+- [x] Bounded provider checks: five connection failures, including IPv4 and the
+  production User-Agent. The published January GitHub archive is not a current fallback.
+- [x] Fresh origin/master remains dda948c. Scheduled quick run34640536421 succeeded;
+  source downloads still failed0/2. Independent incumbent live verifier passes22/22,
+  with462 accepted public artifacts and matching retained model metadata.
+- [x] Corrected the handoff: full strict-download failure is deliberately nonfatal
+  until after deployment; this model's readiness hold is a release recommendation.
+- [x] All1675 accepted evidence files remain byte-identical. Separate readiness
+  evidence and exact next/rollback steps are recorded in research/2026-09-11-wta-readiness.md
+  and its result manifest. No duplicate fit or numerical selection was run.
+- [ ] New-model release remains pending source recovery and the concrete deployment
+  decision. No source-ready full acquisition or model push is claimed.

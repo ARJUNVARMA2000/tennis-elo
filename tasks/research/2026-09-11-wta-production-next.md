@@ -4,6 +4,10 @@ Read `2026-09-11-wta-production-release.md` and the matching result JSON first.
 This is a fixed-candidate integration, not a new experiment-selection round.
 The remaining decision is deployment readiness. All times in the evidence are UTC.
 
+September 11 follow-up: read `2026-09-11-wta-readiness.md` for the latest source and
+production receipt. The source still fails; the incumbent's newer quick run passes.
+The hold is a release recommendation, not a strict-download deployment gate.
+
 ## Where the work lives
 
 - Original checkout `/Users/varma/Projects/DEUCE`, branch
@@ -63,7 +67,10 @@ or remove this distinction to make a migration pass.
    cached WTA predictor to a full retrain. Build fresh Linux/Python3.12 artifacts in CI;
    never upload these local research/release pickles. Keep pre-upload integrity and
    accepted-publication checks, then follow the production workflow after an authorized
-   `master` push. A failed strict source step must leave the prior site live.
+   `master` push. The existing workflow deliberately permits retained-data deployment
+   after a failed full download, then reports that failure in a trailing step. Therefore
+   do not rely on `--strict` to enforce this release's hold; establish readiness before
+   the push, and follow the actual download outcome as well as the serving gates.
 5. **Verify live acceptance.** Use the new live verifier against the expected deployment
    health/generation; confirm ATP42/schema5, WTA43/schema6, actual predictor IDs, the full
    artifact graph and private-path exclusions. Record the workflow URL, final commit,
