@@ -852,8 +852,9 @@ def merge_terminal_comparisons(current: list[dict], prior: list[dict]) -> list[d
             merged.append(row)
             continue
         if row.get("status") == "graded" and settled.get("status") == "graded":
-            comparable = ("winner", "aWon", "resultType", "pDeuce", "pTennisAbstract")
-            if any(row.get(key) != settled.get(key) for key in comparable):
+            comparable = ("aWon", "resultType", "pDeuce", "pTennisAbstract")
+            if (player_identity_key(row.get("winner")) != player_identity_key(settled.get("winner"))
+                    or any(row.get(key) != settled.get(key) for key in comparable)):
                 raise BenchmarkEvidenceError(
                     f"current result contradicts terminal ledger state for {match_id}"
                 )

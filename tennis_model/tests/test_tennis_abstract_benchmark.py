@@ -296,6 +296,10 @@ def test_reviewed_alias_preserves_immutable_ledger_and_settled_result(tmp_path, 
     assert {k:v for k,v in rows[0].items() if k != 'matchId'} == {
         k:v for k,v in prior.items() if k != 'matchId'}
     assert benchmark.merge_terminal_comparisons([_pending_comparison(snapshot)], rows) == rows
+    current = {**rows[0], 'winner':'Alpha Canonical'}
+    assert benchmark.merge_terminal_comparisons([current], rows) == [current]
+    with pytest.raises(benchmark.BenchmarkEvidenceError, match='contradicts terminal'):
+        benchmark.merge_terminal_comparisons([{**current, 'winner':'Beta Two', 'aWon':False}], rows)
     assert benchmark.append_comparison_ledger('atp', snapshot, rows) == 1
     assert path.read_bytes().startswith(original)
     assert benchmark.append_comparison_ledger('atp', snapshot, rows) == 0
