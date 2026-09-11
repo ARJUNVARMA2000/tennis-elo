@@ -1,0 +1,307 @@
+{
+  "schema": "atp-source-alternative-assessment-v1",
+  "completedAt": "2026-09-11T20:16:03.490873+00:00",
+  "status": "assessment-complete-official-US-Open-pilot-recommended",
+  "productionChanged": false,
+  "rootHeadAtAssessment": "8c2aefd3a9303d475ac9f3c6bdb159465680884f",
+  "implementationHead": "1c1131e852dadc79ed1c0ac020796273534baa23",
+  "implementationClean": true,
+  "evidenceDirectory": "/Users/varma/Projects/DEUCE/.research/2026-09-11-atp-source-alternatives",
+  "httpAttemptCount": 24,
+  "httpStatusCounts": {
+    "403": 1,
+    "0": 4,
+    "200": 18,
+    "404": 1
+  },
+  "officialMatchStatisticsRetrieved": 11,
+  "recentMainSample": {
+    "completedAt": "2026-09-11T20:11:12.494567+00:00",
+    "productionDataChanged": false,
+    "samplePolicy": "All eight MS records from the published September 7, 8 and 9 completed-day lists; no subset selected for agreement.",
+    "httpSuccesses": 8,
+    "arithmeticPassed": 8,
+    "completed": 7,
+    "retired": 1,
+    "existingTMLRows": 0,
+    "absentFromRetainedTML": [
+      "1404",
+      "1401",
+      "1403",
+      "1402",
+      "1503",
+      "1504",
+      "1502",
+      "1501"
+    ],
+    "all18FieldExactRows": 0,
+    "pointTotalsExactRows": 0,
+    "atpBrowserPointTotalsEqual": true,
+    "atpBrowserSplitEqual": false,
+    "tmlInput": {
+      "path": "/Users/varma/Projects/DEUCE/.research/2026-09-11-wta-surface-production/tennis_model/data/raw/atp/stats/2026.csv",
+      "sha256": "490e37cec9e2660d54dd968722d737c36379743d664fc30c6e2fa12cd08ddade"
+    }
+  },
+  "overlapSample": {
+    "completedAt": "2026-09-11T20:12:55.470536+00:00",
+    "samplePolicy": "First three MQ records in the published August 28 completed-day list; fixed before fetching match statistics.",
+    "sampleSize": 3,
+    "pointTotalsExactMatches": 3,
+    "all18FieldExactMatches": 0,
+    "comparisons": [
+      {
+        "matchId": "11316",
+        "winner": "Rei Sakamoto",
+        "loser": "Kei Nishikori",
+        "score": "6-4 7-6(3)",
+        "stableIdsAndScoreMatch": true,
+        "all18FieldsEqual": false,
+        "pointTotalsEqual": true,
+        "differences": {
+          "w_1stIn": {
+            "retained": "45",
+            "official": 37
+          },
+          "w_1stWon": {
+            "retained": "34",
+            "official": 31
+          },
+          "w_2ndWon": {
+            "retained": "10",
+            "official": 13
+          },
+          "l_1stIn": {
+            "retained": "62",
+            "official": 51
+          },
+          "l_1stWon": {
+            "retained": "37",
+            "official": 32
+          },
+          "l_2ndWon": {
+            "retained": "12",
+            "official": 17
+          }
+        },
+        "pointDifferences": {}
+      },
+      {
+        "matchId": "11304",
+        "winner": "Jurij Rodionov",
+        "loser": "Jacob Fearnley",
+        "score": "4-6 6-4 6-4",
+        "stableIdsAndScoreMatch": true,
+        "all18FieldsEqual": false,
+        "pointTotalsEqual": true,
+        "differences": {
+          "w_1stIn": {
+            "retained": "61",
+            "official": 52
+          },
+          "w_1stWon": {
+            "retained": "44",
+            "official": 38
+          },
+          "w_2ndWon": {
+            "retained": "18",
+            "official": 24
+          },
+          "l_1stIn": {
+            "retained": "69",
+            "official": 63
+          },
+          "l_1stWon": {
+            "retained": "49",
+            "official": 48
+          },
+          "l_2ndWon": {
+            "retained": "11",
+            "official": 12
+          },
+          "l_df": {
+            "retained": "9",
+            "official": 10
+          }
+        },
+        "pointDifferences": {}
+      },
+      {
+        "matchId": "11314",
+        "winner": "Harry Wendelken",
+        "loser": "Vilius Gaubas",
+        "score": "6-7(3) 7-6(5) 7-6(5)",
+        "stableIdsAndScoreMatch": true,
+        "all18FieldsEqual": false,
+        "pointTotalsEqual": true,
+        "differences": {
+          "w_1stIn": {
+            "retained": "76",
+            "official": 64
+          },
+          "w_1stWon": {
+            "retained": "59",
+            "official": 53
+          },
+          "w_2ndWon": {
+            "retained": "21",
+            "official": 27
+          },
+          "l_1stIn": {
+            "retained": "89",
+            "official": 85
+          },
+          "l_1stWon": {
+            "retained": "59",
+            "official": 58
+          },
+          "l_2ndWon": {
+            "retained": "23",
+            "official": 24
+          }
+        },
+        "pointDifferences": {}
+      }
+    ],
+    "retainedFile": "/Users/varma/Projects/DEUCE/.research/2026-09-11-wta-surface-production/tennis_model/data/raw/atp/lower/2026_atp_quali.csv",
+    "retainedSHA256": "b6c409a40dadaaff454b95318b515c908975adf6705c7dd0f2356e28c26cbd6f"
+  },
+  "modelNumericMask": {
+    "numericStatRowsValid": 8,
+    "rows": 8,
+    "productionFunction": "tennis_model.points.serve_prior.valid_stat_mask",
+    "meaning": "Numeric validity only; does not grant match-population, timing or retirement eligibility. No production rows were written."
+  },
+  "retainedUSOpenCensus": {
+    "main": {
+      "rows": 0,
+      "rounds": {},
+      "path": "/Users/varma/Projects/DEUCE/.research/2026-09-11-wta-surface-production/tennis_model/data/raw/atp/stats/2026.csv",
+      "sha256": "490e37cec9e2660d54dd968722d737c36379743d664fc30c6e2fa12cd08ddade"
+    },
+    "qualifying": {
+      "rows": 112,
+      "rounds": {
+        "Q1": 64,
+        "Q2": 32,
+        "Q3": 16
+      },
+      "path": "/Users/varma/Projects/DEUCE/.research/2026-09-11-wta-surface-production/tennis_model/data/raw/atp/lower/2026_atp_quali.csv",
+      "sha256": "b6c409a40dadaaff454b95318b515c908975adf6705c7dd0f2356e28c26cbd6f"
+    }
+  },
+  "otherSources": {
+    "observedDateUTC": "2026-09-11",
+    "tennisDataApp": {
+      "url": "https://tennisdata.app/downloads/",
+      "providerClaims": {
+        "freeSeasons": [
+          2021,
+          2022,
+          2023,
+          2024,
+          2025,
+          2026
+        ],
+        "coverage": "ATP/WTA main tour plus Challenger; provider claims above 95%",
+        "currentUpdateFrequency": "Multiple times daily",
+        "winnerConvention": "winner_code 1=home, 2=away; stable provider player IDs"
+      },
+      "observed": "Browser page loaded; initial security verification completed automatically; ATP 2026 download button was clicked once. A subsequent human-verification checkbox appeared. No retrievable CSV sample was obtained through the available tool, and its columns were not inspected.",
+      "captchaSolvedByAgent": false,
+      "accountCreated": false,
+      "csvCoverageVerified": false,
+      "additionalPublicMatchPage": "https://tennisdata.app/atp-predictions/taylor-fritz-vs-alex-michelsen-876341/",
+      "publicMatchPageFinding": "Search-indexed provider page exposes exact serve-point fractions; this does not establish CSV fields, current-match freshness, or reliable automated access."
+    },
+    "liveTennisAPI": {
+      "url": "https://livetennisapi.com/pricing",
+      "evidence": "Provider pricing documentation only; no authenticated API sample or account",
+      "free": "Live/current scores, players and fixtures, 100/day; no completed-match history",
+      "basicMonthlyUSD": 9.99,
+      "basicIncludes": "Completed history and point-by-point tape; not documented as the detailed serve-statistics product",
+      "ultraMonthlyUSD": 99.99,
+      "ultraIncludes": "Live in-play statistics including serve split",
+      "assessment": "Not a demonstrated free replacement for the needed detailed statistics"
+    },
+    "tennisDataCoUK": {
+      "url": "https://www.tennis-data.co.uk/",
+      "observed": "Current HTTP probe failed TLS negotiation; web retrieval returned gateway errors. Existing repository adapter uses this provider for scores/odds, not serve statistics.",
+      "assessment": "Existing benchmark source; no new detailed-statistics replacement verified"
+    },
+    "espn": {
+      "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/atp/scoreboard",
+      "evidence": "Existing production results adapter and previous source audit; no new statistics-endpoint census in this round",
+      "assessment": "Continue existing results feed; its already-inspected scoreboard statistics do not fill the serve-count gap"
+    }
+  },
+  "reportSHA256": "c918728b62805e6821d1e9b0c9f6c5a53619c3b42135dc0937f56a358064df61",
+  "runFiles": {
+    "acquire-stats.py": "2c8c94f6d7b9145aabded6f45f621889eaf4f87f72b79ed810a1ba2f3eb97295",
+    "analysis.json": "8433345faa794251d2cb394bee93dd6ae669807f73396282ccdf158673c4a24d",
+    "analyze.py": "fc5892fb16487d1d6297a764ce429f94ebf5e6cfe52fab8b0b57ff55324a0037",
+    "atp-browser-observation.json": "e978b1539ea41fa54dc0bacf2afc9025941cff58c553144003766b3b335e39e6",
+    "atp-ms004/body": "63c583d9c0a9ff42c95f2614d8fa2bb48c1da330f656f7cda66fcb011c08946d",
+    "atp-ms004/receipt.json": "049c63d67ff4ab5211fb3af12b9433a9ae76bcb6ff255c31b7ea36968ea2b29f",
+    "compare-qualifying.py": "67143a54dbfaec9d7cd57f2d298044a5b799c0643a4112c2122830d07fc1cc7d",
+    "finalize.py": "f0c0978df68ecf7094a24baf591fe22eb61423ec01f508dc65c914c147c3f057",
+    "model-mask.json": "9c20217983d0d4c55781605aed6ff9135d2aa7275e6ff4d0adddca6a31274211",
+    "model-mask.py": "9c03d7796ccce5ea04b6b8efc6c45cff94fbd55aca19e9cb0bff42d92f699a0c",
+    "other-source-observations.json": "66582f0816a295f55c1aa3a3ac0ba6092f91dc3dc283685b286c523691732930",
+    "probe-http1.py": "cf7faf41782fb91f7ddb057beef8210556117d1bd743f59bf40a5234aba251c5",
+    "probe.py": "d527810ea665c45edbca0736823e7a0c0b60c86c1847087dfe9e3e012675a780",
+    "qualifying-comparison.json": "a807f7191123c12826f5678c684883e93787939ef38ceed8a549cc5ea068a342",
+    "tennis-data-home/headers": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "tennis-data-home/receipt.json": "e9fb89b579514a2931013122d334b8308ce1e79be7920ee6d5f533c223a3db2e",
+    "uso-complete11304/body": "be59009bed75af091d6f8356f239f9e4e6b245c72a1e071bc2ff37baada9f393",
+    "uso-complete11304/receipt.json": "6799f2b72deb48808ba89c7bb0a0782cbcd20f300391fb6efd5acb7172255528",
+    "uso-complete11314/body": "5d8d235fb04492fcd254dc77ee103494b69e9a754c55095823bd751de09055e9",
+    "uso-complete11314/receipt.json": "55bb1601fa67ea7069a7c4fadfd03c8d8e47a0d54b7f617c8b548481da25eeea",
+    "uso-complete11316/body": "a38ddd2e272fdb239284f4b9289e75bd0ad5e7aaee5e0dbd4245ad38661fd414",
+    "uso-complete11316/receipt.json": "0360ddf8449b5184a99b3992af58a9aaefd339dfbdcafdc3723d1dd81bc8bbac",
+    "uso-complete1401/body": "fc4c0ecfe8c77bb806d5d51c65edcf99d1a04706b463b80d067698e88275c6f7",
+    "uso-complete1401/receipt.json": "d00c1574c7e286c18ce9246af437ca76b78ea14be2164c9b5d8052e83df14cdc",
+    "uso-complete1402/body": "8a3d23dd8740ec24ec2d39692a0da61e98c37eade3f2d37e4ce4b4672cec28e0",
+    "uso-complete1402/receipt.json": "9fbb3d6c54ba63b42c742edf8474ba751f749547fab8fd141ec36af309c988d8",
+    "uso-complete1403/body": "728985828c8b5133c137bb63ea6c4fc8b34d26da626fa41a1c8613af1247703e",
+    "uso-complete1403/receipt.json": "1c891d9dd95016cc743466ef6616595f801d9262da2235d170366bf8d2e674e3",
+    "uso-complete1404/body": "389bf6c736faddc4c123a1a354dff75c14b9d7ef033390a325d28ce938e721e7",
+    "uso-complete1404/receipt.json": "b8dde397baf46105443a77abbb54b3592311ae14282e8a8831ce612c4de5a478",
+    "uso-complete1501/body": "58702e754a98635eee4bbfb87394aa7e568c0fc7762ed42f36de69d9f3063866",
+    "uso-complete1501/receipt.json": "9200fcd2ddc4b2680af4697c0363bc908317e31d047a20a0122bd0ac60d5a53e",
+    "uso-complete1502/body": "7771fedc0d3fa2cb961db6e14ea6ce76505ffcf86d340394590a0b2d0d9ef04d",
+    "uso-complete1502/receipt.json": "734cf5b9376d2ad17020896b1b7863b682fa2cd726b882404a37bfeb3c9ccbb2",
+    "uso-complete1503/body": "a0c2b5c726f2c26416b8e8676fc48a1356eb586472a87af67c8be5a930722162",
+    "uso-complete1503/receipt.json": "49f72e24ba457492d217003c76052bf6b7cde3b427312c8a9014484a1f385cf6",
+    "uso-complete1504/body": "2a9d2c5d4bfc3b548b4ccc6ec35da0d1024a3cb62a8bcecb600eb7ad3bbbef13",
+    "uso-complete1504/receipt.json": "db399807e77f176624169f6df437453ef981705220e2317e76bff8f013cc6a9f",
+    "uso-config/headers": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "uso-config/receipt.json": "554ceee8677c363d66446af5b5587cbd1aa0eff4761aea14c6b765a8cf5909c8",
+    "uso-config-http1/body": "d383035d8053a8af5f7789978c30208e5eb9a3a6b255376eb59e8dc30a524127",
+    "uso-config-http1/receipt.json": "0f1036e91779779053e9bdba37a449deef866ad05e8eac580fe91f809f9b2a42",
+    "uso-day16/body": "1284bfe812a374a0ddd32f77bd9432a08c6856cb82f29f1f6104d41fcae02acb",
+    "uso-day16/receipt.json": "48368792dbce863ba9ca50615cd9ebc951e1485e08e2fa9e25a67717d784e09a",
+    "uso-day17/body": "6563977ca5b3baa79abc6a434a7bdb07d147e67135cf530fafc4e127fe6e3fb2",
+    "uso-day17/receipt.json": "e9b916b9641cd29b90f3edf671f3058ae56b93264dea43acf857e10b6703c093",
+    "uso-day18/body": "27513c7d24f0c0867883ac15f4c17fc3047dd6a3603069d3029c93d0d5f26c90",
+    "uso-day18/receipt.json": "93e3f8e63b1c957854d7fc7417c9b88e4b675e34cbca6aceb0fd1eec1ba68ef1",
+    "uso-days/headers": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "uso-days/receipt.json": "66798c9deb4c3dae87a0ef8b18f6e6b392ab18f99f146dbb7c262c3f82bb64ad",
+    "uso-days-http1/body": "72fc83fdf26d4bb180732738838c290ef0c20640cfd488eb0e614d8206b589dd",
+    "uso-days-http1/receipt.json": "dfdd97ab682d8ec54487ed40060df486368c1b787ce38ddcc56ef8fe41d61487",
+    "uso-draws/headers": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "uso-draws/receipt.json": "709481ac934f6c837cb68a4eaf3d8bf50f24cba2c8b90275e8278bbde290baa9",
+    "uso-draws-http1/body": "5145ac8605a068c423d5245c892244b7fe6fb4f84a43f199847c8294b348a4c1",
+    "uso-draws-http1/receipt.json": "c3f0f7098856e8ceaa3a41359133a0f93b2e1f64c184c0edf4595e97fb368a53",
+    "uso-qualday6/body": "971c3bad57f438099bda61bec9b7363ed7f9fac0c1fe267ab725862640840fe3",
+    "uso-qualday6/receipt.json": "cf705aff449e59031713909bdfcd72a93820fe1242155941edc932b188694d79",
+    "uso-stats1504/body": "5f03593169afc03b36c2fe6e018e5e28a9b68fb8997f7447740ad4237d7aca54",
+    "uso-stats1504/receipt.json": "aa56d6beb7066b30dfdf261f104aea83c19f9e0a01e87c4aa3144263507b1dd3"
+  },
+  "remaining": [
+    "Implement and validate an event-scoped official statistics adapter before feeding these rows into model state.",
+    "Preserve existing valid history, provenance, event/player identity, population and timing semantics.",
+    "Broader ATP automated transport and all-tier coverage are unproven; no verified TennisData.app CSV sample.",
+    "The original TML outage and new WTA deployment decision remain separate open work."
+  ]
+}

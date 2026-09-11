@@ -7802,3 +7802,46 @@ The original checkout remains documentation-only. The implementation branch is
 codex/wta-surface-production at 1c1131e; functional source remains d75b7ef and its
 previous full tests/builds/replay still apply. Both earlier numerical evidence and
 this continuation's source/production observations are preserved separately.
+
+## 2026-09-11 — ATP statistics alternative-source assessment
+
+Check-in: the user asked to check alternatives to the unavailable ATP statistics
+provider. Inspect free and official sources first; test public access and actual
+statistical coverage where possible. This authorizes source assessment, not replacing
+the production feed or changing historical training data.
+
+- [ ] A1: inventory the model's required raw statistics and previous source research.
+- [ ] A2: inspect official ATP/event feeds and free downloadable alternatives; record
+  live access, freshness, fields, identities and any account/manual-access requirements.
+- [ ] A3: compare observed samples with retained match records where available;
+  distinguish complete counts from rounded percentages and scores-only feeds.
+- [ ] A4: commit a ranked recommendation and concrete implementation/validation steps,
+  with raw evidence kept separately from accepted model experiments.
+
+Read-only source inspections can run independently. Sample validation follows actual
+access; integration would follow a supported recommendation. Review pending.
+
+### ATP alternative-source assessment review
+
+- [x] A1: verified the production point model consumes service points played and
+  total first-plus-second service points won; previous research covered schedules,
+  not the missing ATP statistical feed.
+- [x] A2: official US Open detail feeds supplied 11/11 sampled ended matches without
+  accounts. Official ATP statistics are browser-readable but ordinary HTTP returned
+  403. TennisData.app advertises free CSVs; CSV contents/access remain unverified.
+  Live Tennis API's free tier does not include the required detailed statistics.
+- [x] A3: all eight recent men's main-draw rows passed identity, count, set-total and
+  opponent-complement checks plus the actual production numeric-stat mask. Three
+  preselected qualifying overlaps matched retained core point totals exactly; first/
+  second-serve splits differed, so a wholesale raw-row replacement is unsupported.
+- [x] A4: report, ranked sources, exact mappings and dependency-ordered implementation
+  plan committed under research/2026-09-11-atp-source-alternatives*. New manifest covers
+  60 private evidence files and 24 HTTP attempts, including failures. No production
+  data, model, workflow, account, purchase, message or deployment changes.
+- [ ] Next implementation: narrowly scoped official US Open missing-stat enrichment,
+  with explicit provenance, identity/population/timing guards and existing release
+  gates. Broader ATP transport and a real TennisData.app CSV sample remain separate.
+
+Integration branch codex/wta-surface-production remains clean at 1c1131e. All source
+assessment work lives in the root documentation branch and a new private evidence
+directory; the validated WTA integration and earlier evidence remain untouched.
