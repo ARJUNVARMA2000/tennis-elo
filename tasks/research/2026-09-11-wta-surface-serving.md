@@ -1,13 +1,27 @@
 # Fixed WTA surface candidate after the correctness release
 
-Status: tuning and fixed 2020+ validation accepted; saved-predictor assessment in progress.
-This is one compatibility experiment followed by serving assessment. Production remains
-the accepted 42-feature model.
+Status: **offline assessment complete; advance this fixed WTA candidate to production
+integration.** The candidate passes the registered historical, parity and serving-cost
+gates. Its gain is modest and uncertain on later years. Production remains the accepted
+42-feature model until the separate integration and release checks are completed.
+
+| What we tried | Result | Decision |
+|---|---|---|
+| Fixed WTA 60-day surface-exposure feature on population 8 | Tune log-loss gain +0.000809949 ± 0.000208925 SE; 8/10 years and both halves positive | Pass |
+| Same locked candidate on 2020–2026 partial | Gain +0.000561397 ± 0.000321075 SE; 5/7 years positive; week95 includes zero | Pass standing arbiter, with uncertainty |
+| Separate saved 43-feature predictor | 252 real matchup contexts, exact save/load and scalar/matrix parity | Pass |
+| Registered serving cost | 1.035x scalar time, 1.308x matrix time, 1.166x artifact bytes, 1.214x peak memory | Pass all 2x limits |
+| Winner accuracy | −0.0261pp tune, −0.0128pp validation | No accuracy improvement |
+
+No additional hypothesis, parameter setting or ATP candidate was tried this round.
+This assessment rechecks the previously selected surface candidate against the newly
+accepted production population and establishes its saved-serving behavior.
 
 ## Reproducible starting point
 
 - Production base: `dda948c8dfb0b2bb4d2ad0d205508d4e66cd7ef8`.
 - Numerical implementation freeze: `61d822c` on `codex/wta-surface-serving`.
+- Serving implementation freeze: `0583aa0` on the same branch.
 - Implementation checkout: `.research/2026-09-11-wta-surface-serving`.
 - Private evidence: `.research/2026-09-11-wta-surface-evidence`.
 - Original candidate evidence: accepted `1f3920a`, source freeze `755342d`, retained
@@ -65,32 +79,61 @@ standing full arbiter; this modest probability-quality gain does not establish a
 accuracy improvement or certain future benefit. The current population includes one
 additional 2026 match compared with the earlier release evaluation.
 
-## Serving acceptance, registered before measurement
+## Saved serving implementation and acceptance
 
-If validation passes, fit one separate 43-feature WTA artifact using the incumbent
-final split (last 365 days calibration), final seed and main-only training population.
-Keep the main/enriched signal states alongside the corresponding ordinary states.
-One common inference dispatch must supply the 43 columns across every prediction
-route; ordinary predictors must retain their exact 42-column behavior.
+The reference and candidate were each fitted once after validation passed, using
+92,252 core rows and 2,424 calibration rows with a 2025-09-10 calibration cutoff,
+final seed 12345 and five bags. Both use main-only completed rows since 1991. The
+paired fits took 10.64 seconds. Main/enriched signal states are retained with the
+corresponding ordinary states, both through 2026-09-10. One common inference dispatch
+supplies the 43 columns across prediction routes; ordinary ATP/WTA predictors retain
+their 42-column behavior.
 
-Use an explicit surface artifact schema outside production output. Its bounded header
+The explicit surface artifact schema stays outside production output. Its bounded header
 pins runtime, code, parameters, ordered features, inputs, selection and both temporal
 states before deserialization; typed structure and state receipts are rechecked afterward.
-Production readers and destinations must reject it. Check interruption, symlinks,
-wrong provenance, tampered bytes, altered states and swapped state bundles.
+Production readers and destinations reject it. Tests cover interruption, symlinks,
+wrong provenance, tampered bytes, altered states and swapped state bundles. The added
+production-module hooks are default-preserving; the scheduled pipeline never imports
+the research candidate.
 
-Test scalar, component, grouped-evidence, score-distribution and matrix routes, both
-WTA state selections, new players, inactivity, reversal/permutation, and exact save/load
-equality. Compare all 43 query features across serialization and the ordinary 42 against
-the reference's selected bundle. Distinguish this from historical metadata equality.
+The real saved-predictor check passed 252 matchup contexts across three surfaces and
+three dates (state date, +1 and +61 days), including 27 main-state and 225 enriched-state
+queries. All 43 features match across serialization; the ordinary 42 match the paired
+reference exactly. Scalar, components, `predict`, grouped evidence and matrix results
+agree; reversal/permutation checks pass at 1e-15 tolerance. Unseen-player and inactivity
+queries pass and do not mutate saved state. Six earlier real historical-prefix checks
+are separate evidence for the temporal signal mirror, not current metadata equality.
 
 The serving registration fixes 30 representative players: 20 with main experience
 and 10 eligible for the lower state, chosen by match counts with name tie-breaks.
-Measure all three surfaces, 100 scalar pairs, two warm-ups and nine measured rounds,
-alternating candidate/reference order. Report median/p95 latency, artifact bytes and
-three fresh-process memory measurements. Median latency, artifact bytes and peak
-process memory must each stay within 2x the paired reference. The adoption recommendation
-must account for both numerical uncertainty and these implementation costs.
+Measurements used all three surfaces, 100 scalar pairs, two warm-ups and nine measured
+rounds, alternating candidate/reference order. Each model has 900 scalar and 27 matrix
+measurements, plus three fresh-process peak-memory measurements. The count-selected
+cohort includes inactive players; it is not a traffic-weighted workload. No fit/test
+workload ran concurrently with timing measurements.
+
+| Cost | Reference | Candidate | Candidate/reference |
+|---|---:|---:|---:|
+| Scalar median | 5.255 ms | 5.439 ms | 1.035x |
+| Scalar p95 | 5.533 ms | 5.756 ms | 1.040x |
+| 30-player matrix median | 56.791 ms | 74.261 ms | 1.308x |
+| 30-player matrix p95 | 57.599 ms | 78.590 ms | 1.364x |
+| Saved artifact bytes | 25,628,872 | 29,872,026 | 1.166x |
+| Maximum of three fresh-process peaks | 466.30 MiB | 566.28 MiB | 1.214x |
+
+All registered median-latency, artifact-size and peak-memory ratios are below 2x.
+Artifact comparison includes the reference's envelope. Memory is total process peak,
+not incremental model allocation. The candidate retains the original full signal
+state (including unused form/rank histories); compacting it is optional future work
+and would require exact equivalence. Evidence-route/end-to-end production latency
+was not measured. The result manifest retains every timing, cohort and receipt hash.
+
+The saved candidate is `final/candidate.surface`, ID
+`03be4ad7-a36d-45cc-bd9d-280f3e1e24af`, SHA256
+`5f48d8e2a16b17ad0c1747d830d0b438aa77c22a9b6654858cb2eb5fd9c8b0ea`.
+The paired offline reference ID is `35e71d0c-cac3-42f6-b002-af213f07b4d5`; it does
+not replace the deployed reference. Both artifacts and their provenance remain private.
 
 ## Commands and continuation
 
@@ -102,14 +145,36 @@ Use `uv run --offline --no-project --python <runtime> python research/surface_ex
 <mode> --run <evidence-directory>`. Modes are `register`, `prepare`, `tune`, `validation`
 and `verify`. Registrations and run directories are create-only; do not overwrite them.
 
-Numerical source hashes remain frozen until validation completes. Serving code will
-have a later, separate freeze. Preserve the completed numerical evidence when adding
-that code. `serving-registration.json` and the prepared draft artifact tests are in
-the evidence directory. Do not deploy or merge an old research branch wholesale.
+Numerical source was frozen through validation. The later serving freeze explicitly
+permits only the two default-preserving changes to existing runtime modules,
+`model/predict.py` and `model/artifact.py`, plus the newly added research code. The
+assessment driver verifies that bridge and the completed numerical/input receipts.
+The numerical driver's original `verify` intentionally rejects this later source
+inventory. Do not rerun create-only modes into accepted output directories.
+
+Local artifacts use Python 3.13, NumPy 2.5.0, pandas 3.0.3, scikit-learn 1.9.0 and
+XGBoost 3.3.0. Production must rebuild with its pinned runtime; these saved local
+pickles are not deployment inputs.
+
+Detailed next-session implementation, dependencies, exact artifacts and commands are
+in [the integration handoff](2026-09-11-wta-surface-next.md). Full-precision pooled,
+half-window and annual metrics are in
+[`2026-09-11-wta-surface-comparison.csv`](2026-09-11-wta-surface-comparison.csv);
+[`2026-09-11-wta-surface-result.json`](2026-09-11-wta-surface-result.json) records
+the decision, model IDs, preservation, source freezes and all 37 new evidence-file hashes.
 
 ## Review
 
-Serving implementation passes 80 focused tests and the full 1,359-test Python suite;
-repository Ruff and whitespace checks pass. Real prepared states pass structural
-preflight and share the ordinary states' 2026-09-10 cutoff. The final two fits,
-real saved-route parity, cost measurements and recommendation remain pending.
+All C0–C6 work is complete. Eighty focused tests and the full 1,359-test Python suite
+passed; repository Ruff and whitespace checks passed. Final preservation rechecked
+all 733 prior files, 17 accepted checkout heads, 294 source/copied raw files, the
+unchanged original signal helpers, prepared/numerical/final artifacts and frozen
+serving source. There was no failed numerical trial or refit in this round.
+
+Recommend advancing the fixed WTA candidate to production integration because it
+meets the existing model gate and has acceptable measured cost. Keep the live
+incumbent until the supported training/artifact/export paths, cache recovery and
+full/quick/publication/live gates are integrated and verified. Later-year uncertainty,
+the small accuracy decrease and the retrospective timing limitation remain explicit.
+This recommendation does not imply a production push occurred. No production data,
+model default or deployment changed during this offline assessment.

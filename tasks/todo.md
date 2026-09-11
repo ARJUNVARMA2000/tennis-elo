@@ -6454,3 +6454,27 @@ criteria were registered before measurement; production defaults remain unchange
   repository Ruff and whitespace checks pass.
 - [ ] Freeze serving code, then fit the single saved reference/candidate pair, complete
   real-data route parity and registered cost assessment. No production change.
+
+### C3–C6 final review — offline WTA candidate accepted for integration
+
+- [x] C3: source frozen at `0583aa0`; one reference and one candidate final fit,
+  92,252 core / 2,424 calibration rows, seed12345. Candidate saved privately as
+  `candidate.surface`, ID `03be4ad7-a36d-45cc-bd9d-280f3e1e24af`.
+- [x] C4: 252 real saved matchup contexts pass exact feature/probability parity,
+  both state routes, unseen players, inactivity, save/load and read-only queries;
+  six historical prefix queries also match exactly. Ordinary 42-feature behavior retained.
+- [x] C5: all 2x cost limits pass. Ratios: scalar median1.035x, 30-player matrix
+  median1.308x, artifact bytes1.166x, peak process memory1.214x. Count-selected cohort
+  includes inactive players; active traffic/evidence-route costs remain release work.
+- [x] C6: 1,359 Python tests, 80 focused tests, repository Ruff and whitespace checks.
+  Reverified 733 prior files, 17 accepted heads, all 294 original/copied raw files,
+  frozen helper/source/prepared/numerical/final hashes. Retained 37 new evidence files.
+- [x] Full comparison, result manifest and dependency-ordered production integration
+  handoff recorded in `research/2026-09-11-wta-surface-{serving,next,result}` documents.
+
+Review complete: recommend advancing this fixed WTA candidate to production integration.
+Tune gain0.000809949 ±0.000208925 SE; validation gain0.000561397 ±0.000321075 SE.
+Accuracy falls slightly; validation week95 includes zero. This round did not deploy
+or change the live incumbent. The next work is the supported training/artifact/export,
+cache/recovery and two release-gate integration described in the handoff, not another
+predictive sweep or final fit into these accepted evidence directories.
