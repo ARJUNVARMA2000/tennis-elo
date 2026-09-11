@@ -1,0 +1,69 @@
+
+<html><head>
+<title>Tennis Abstract: 2026 US Open Womens' Draw Forecast Forecast</title>
+<link rel="stylesheet" href="https://www.tennisabstract.com/blue/style.css" type="text/css">
+<script type="text/javascript" src="https://www.tennisabstract.com/jquery-1.7.1-min.js"></script>
+<script type="text/javascript" src="https://www.tennisabstract.com/jquery.ui.core.js"></script>
+<script type="text/javascript" src="https://www.tennisabstract.com/jquery.ui.position.js"></script>
+<script type="text/javascript" src="https://www.tennisabstract.com/jquery.ui.widget.js"></script>
+<script type="text/javascript" src="https://www.tennisabstract.com/jquery.ui.autocomplete.js"></script>
+<script type="text/javascript" src="https://www.tennisabstract.com/cgi-bin/jsplayers/mwplayerlist.js"></script>
+<script type="text/javascript" src="https://www.tennisabstract.com/navbar.js"></script>
+<script language="JavaScript">
+
+$(document).ready(function() {
+
+    if (typeof navbar !== 'undefined') {
+        $("#navbar").html(navbar);
+        }
+        
+    $('#playersearch').append($('<input>').attr('id', 'tags'));
+    var searchbox = "Player Search";        
+    $("#tags").val(searchbox);
+    $("#tags").focus(function() {
+        if ($(this).val() == searchbox) {$(this).val("");}
+        $( "#tags" ).autocomplete({
+                source: playerlist,
+                minLength: 2,
+                select: function(e, ui) {
+                    var playerselect = ui.item.value;
+                    var player = playerselect.slice(4);
+                    var mw = playerselect.slice(1,2);
+                    if (mw == 'M') {
+                        var playerurl = 'https://www.tennisabstract.com/cgi-bin/player.cgi?p=' + player.replace(/ /g, '');
+                        }
+                    else {
+                        var playerurl = 'https://www.tennisabstract.com/cgi-bin/wplayer.cgi?p=' + player.replace(/ /g, '');
+                        }                        
+                    window.open(playerurl, "_self");
+                    }
+            });
+        });
+    })
+</script>
+</head>
+<body>
+
+<div id="header">
+
+<div id="navbar">
+</div>
+
+<table width="1280px">
+<tr>
+<td valign="top" width="1280px">
+<h2>2026 US Open Womens' Draw Forecast</h2>
+
+<table cellpadding=2 cellspacing=0><tr><td>Player</td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;F</td><td align="right">&nbsp;&nbsp;W</td></tr>
+<tr><td>(1)<a href="https://www.tennisabstract.com/cgi-bin/wplayer.cgi?p=ArynaSabalenka">Aryna Sabalenka</a> (BLR)</td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;64.1%</td><td align="right">&nbsp;&nbsp;37.9%</td></tr>
+<tr><td>(3)<a href="https://www.tennisabstract.com/cgi-bin/wplayer.cgi?p=JessicaPegula">Jessica Pegula</a> (USA)</td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;35.9%</td><td align="right">&nbsp;&nbsp;16.1%</td></tr>
+<tr><td>(4)<a href="https://www.tennisabstract.com/cgi-bin/wplayer.cgi?p=CocoGauff">Coco Gauff</a> (USA)</td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;46.3%</td><td align="right">&nbsp;&nbsp;20.4%</td></tr>
+<tr><td>(2)<a href="https://www.tennisabstract.com/cgi-bin/wplayer.cgi?p=ElenaRybakina">Elena Rybakina</a> (KAZ)</td><td align="right">&nbsp;&nbsp;&nbsp;</td><td align="right">&nbsp;&nbsp;53.7%</td><td align="right">&nbsp;&nbsp;25.6%</td></tr>
+</table>
+</td>
+</tr>
+</table>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a392fc565f230020',t:'MTc4OTA5MTA0OQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"592714df19074b3b85668cfe8f554b86","r":1,"spa":2}' crossorigin="anonymous"></script>
+</body>
+
+</html>
