@@ -155,7 +155,7 @@ WTA_DUAL_STATE_GATE_THRESHOLD = 32
 # independently of stats and quarantines
 # one unresolvable 1980 self-pair; merges Xin Yu Wang's duplicate identity. Exact
 # ledgers are committed; missing/stale files fail.
-# Version 9 joins Gao Xinyu to Xinyu Gao's existing WTA history (profile 322925).
+# Version 9 joins Gao Xinyu and Joelle Lilly Sophie Steur to their existing WTA histories.
 MATCH_POPULATION_VERSION = 9
 REVIEWED_RESULTS = {
     'atp': {'sha256': '4c193a96fff1054a1600625c46ddb628556217588de57e86976ddf9d67cb1764',
@@ -732,6 +732,10 @@ EVENT_WITHDRAWN_PLAYERS: dict[str, dict[str, dict[str, str | None]]] = {
 # relatives (the Zverevs, the Bryans). Add an entry when the health gate flags one, or when
 # `data/alias_proposer.py` opens a PR proposing one (that path is reviewed, never automatic).
 PLAYER_ALIASES: dict[str, str] = {
+    # WTA 328971 is Joelle Steur; ITF 800464256 and the Valencia draw use her full name.
+    # https://www.wtatennis.com/players/328971/joelle-steur
+    # https://www.itftennis.com/en/players/joelle-lilly-sophie-steur/800464256/ger/wt/s/overview/
+    "joelle lilly sophie steur": "Joelle Steur",
     # Caldas ESPN uses family-name-first; its official PDF says GAO, Xinyu.
     # https://www.wtatennis.com/players/322925/xinyu-gao
     "gao xinyu": "Xinyu Gao",

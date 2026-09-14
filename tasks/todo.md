@@ -6429,3 +6429,18 @@ Review pending.
 - [x] Final complete Python suite: 1,333 passed in 85.05s; repository Ruff clean.
   Both reviewed ledgers were compared with origin/master: only populationVersion changed;
   all 528 WTA admissions and the quarantine were preserved exactly.
+
+### Final gate follow-up — Valencia identity
+
+The rebuilt release cleared all four original blockers and #65, then caught one newly
+visible pending-match identity at Valencia: `Joelle Lilly Sophie Steur` / `Joelle Steur`.
+The WTA 328971 profile and ITF 800464256 profile corroborate the name; the retained WTA
+lower history contains the short name under 328971 and the match-evidence falsifier passes.
+
+- [x] Scan every current retained WTA draw against the rebuilt main/lower rating union:
+  Steur is the only additional unmatched real entrant.
+- [x] Add the explicit Steur alias within the still-unreleased population9 migration;
+  extend the same broken/clean producer-to-gate replay to Valencia's captured draw.
+- [x] 82 focused identity, predictor-contract and incident tests pass; final lint clean.
+- [ ] Rebuild the final alias contract, rerun the actual artifact gate and site build,
+  then deploy. The first local candidate remains unaccepted and was never published.

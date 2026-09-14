@@ -121,15 +121,20 @@ def test_sp_open_metadata_and_coverage_broken_and_clean_gate_replay(monkeypatch)
             assert coverage["shellKeys"] == []
 
 
-def test_caldas_pending_probability_broken_and_clean_producer_gate_replay(monkeypatch):
-    draw = INCIDENT["caldas"]
+@pytest.mark.parametrize("event, variant, canonical, opponent", [
+    ("caldas", "Gao Xinyu", "Xinyu Gao", "Francisca Jorge"),
+    ("valencia", "Joelle Lilly Sophie Steur", "Joelle Steur", "Charo Esquiva Banuls"),
+])
+def test_pending_probability_broken_and_clean_producer_gate_replay(
+        monkeypatch, event, variant, canonical, opponent):
+    draw = INCIDENT[event]
     frame = pd.DataFrame({"date": pd.to_datetime([]), "tourney_name": [], "round": []})
-    names = ["Xinyu Gao" if name == "Gao Xinyu" else name for name in draw["slots"]]
+    names = [canonical if name == variant else name for name in draw["slots"]]
     predictor = _Pred({name: 1500 + i * 10 for i, name in enumerate(names)})
     monkeypatch.setattr(tournaments, "_load_fields", lambda tour: {})
     monkeypatch.setattr(tournaments, "_load_upcoming", lambda tour: {})
     monkeypatch.setattr(tournaments, "_load_upcoming_bounds", lambda tour: {})
-    monkeypatch.setattr(tournaments, "_load_tournament_draws", lambda tour: {"1024-2026": draw})
+    monkeypatch.setattr(tournaments, "_load_tournament_draws", lambda tour: {draw["espnId"]: draw})
     monkeypatch.setattr(tournaments, "load_registry", lambda tour: {"events": {}})
     monkeypatch.setattr(tournaments, "resolve_surface_info", lambda *a, **kw: ("Hard", "wiki"))
     monkeypatch.setattr(tournaments, "resolve_level", lambda *a, **kw: "WTA 125")
@@ -139,7 +144,7 @@ def test_caldas_pending_probability_broken_and_clean_producer_gate_replay(monkey
     for broken in (True, False):
         aliases = dict(config.PLAYER_ALIASES)
         if broken:
-            aliases.pop("gao xinyu", None)
+            aliases.pop(results._name_key(variant), None)
         monkeypatch.setattr(tournaments, "PLAYER_ALIASES", aliases)
         card, = tournaments.build_tournaments(predictor, frame, "wta")
         bracket = {**card, "rounds": card["bracket"]}
@@ -147,15 +152,15 @@ def test_caldas_pending_probability_broken_and_clean_producer_gate_replay(monkey
         data.update(tournaments=[card], brackets=[bracket])
         findings = health.output_findings("wta", _oc(data=data), pd.Timestamp("2026-09-14"))
         hits = [f for f in findings if f.code == "output.bracket.pending_probability_missing"]
-        match = next(m for m in card["bracket"][0]["matches"] if m["a"] == "Francisca Jorge")
+        match = next(m for m in card["bracket"][0]["matches"] if opponent in (m["a"], m["b"]))
         if broken:
             assert len(hits) == 1
-            assert hits[0].evidence["players"] == ["Francisca Jorge", "Gao Xinyu"]
+            assert set(hits[0].evidence["players"]) == {opponent, variant}
             assert match["p"] is None
         else:
             assert not hits
-            assert match["b"] == "Xinyu Gao"
-            assert match["p"] == pytest.approx(round(predictor.win_prob("Francisca Jorge", "Xinyu Gao"), 4))
+            assert canonical in (match["a"], match["b"])
+            assert match["p"] == pytest.approx(round(predictor.win_prob(match["a"], match["b"]), 4))
             assert match["probSource"] == "model"
 
 
