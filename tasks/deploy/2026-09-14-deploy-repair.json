@@ -1,0 +1,213 @@
+{
+  "base": "https://deuce-forecast.web.app",
+  "source": "6b22175d9e4a8c1fbff4218fe9f4d375b1c88553",
+  "workflowRun": "34868064941",
+  "observedAt": "2026-09-14T17:00:02.411Z",
+  "generatedAt": "2026-09-14T16:58:13Z",
+  "releaseId": "738de886-131e-473f-95e4-683ee8364d0c",
+  "manifestSHA256": "1b9e1314c60c846f3634c879cb960d9376bfb1653891849c1118d0fc6446280e",
+  "mode": "full",
+  "healthOk": true,
+  "actionableFindingCount": 0,
+  "informationalFindings": [
+    {
+      "schema": "health-finding-v1",
+      "fingerprint": "hf1:26bab57c67924ea7b792d37eca3e84762b51d6f5be9ed9a7611efb8b75c6bac3",
+      "revision": "hr1:b31b5c001a3cb90aa4d0c9120568c6a97fedde36a18fcbd4e93fb233f4109f48",
+      "code": "source.charting.coverage_age",
+      "severity": "info",
+      "scope": "source",
+      "tour": "atp",
+      "entity": "match-charting:atp",
+      "evidence": {
+        "value": 116,
+        "limit": 90,
+        "unit": "d",
+        "date": "2026-05-21"
+      },
+      "message": "atp: Match charting (MCP): volunteer batch source; newest charted match is 116d old (coverage note after 90d)"
+    },
+    {
+      "schema": "health-finding-v1",
+      "fingerprint": "hf1:4bbc64e70c452839a78558d0d2c1378eeab9f479cca4db3f35a1f25c1875885f",
+      "revision": "hr1:af4e0dd67539e9a1728e3fffa8e47f95e88b331c6d3a32e99cdc8e2797670816",
+      "code": "source.charting.coverage_age",
+      "severity": "info",
+      "scope": "source",
+      "tour": "wta",
+      "entity": "match-charting:wta",
+      "evidence": {
+        "value": 113,
+        "limit": 90,
+        "unit": "d",
+        "date": "2026-05-24"
+      },
+      "message": "wta: Match charting (MCP): volunteer batch source; newest charted match is 113d old (coverage note after 90d)"
+    },
+    {
+      "schema": "health-finding-v1",
+      "fingerprint": "hf1:7485df5526671c74089bf0ac39fb9f67e9f485c107447eb45c3f74a8003f78a4",
+      "revision": "hr1:5c6ad6c52aa435a50580ab6adb586ed5a0d808652a89a015f5ec91cc77f5596f",
+      "code": "source.fresh_overlay.shadowed",
+      "severity": "info",
+      "scope": "source",
+      "tour": "wta",
+      "entity": "fresh-overlay:wta",
+      "evidence": {
+        "value": 15,
+        "limit": 14,
+        "unit": "d",
+        "date": "2026-08-30"
+      },
+      "message": "wta: Results overlay (fresh): frozen upstream, but shadowed — the serve-stats overlay is current, so results/ranks/stats all still flow"
+    },
+    {
+      "schema": "health-finding-v1",
+      "fingerprint": "hf1:a9e944c6439d1bfcfcdb4bce2461a99fb3e193d96309bd017810e73ce83614fa",
+      "revision": "hr1:5e1ddaf86c9da76c52336e5919c9bab8ccb6f6152c27b4ff5bdd54cefae1647f",
+      "code": "source.fresh_overlay.shadowed",
+      "severity": "info",
+      "scope": "source",
+      "tour": "atp",
+      "entity": "fresh-overlay:atp",
+      "evidence": {
+        "value": 22,
+        "limit": 14,
+        "unit": "d",
+        "date": "2026-08-23"
+      },
+      "message": "atp: Results overlay (fresh): frozen upstream, but shadowed — the serve-stats overlay is current, so results/ranks/stats all still flow"
+    }
+  ],
+  "tours": {
+    "atp": {
+      "predictorArtifactId": "271b3582-d05a-421a-81de-bce5cbdc11d6",
+      "modelTrainedAt": "2026-09-14T16:34:03Z",
+      "populationVersion": 9,
+      "inferenceSchema": 5,
+      "featureCount": 42,
+      "dataThrough": "2026-09-14",
+      "matches": 285468,
+      "producer": "tennis_model.pipeline@git:6b22175d9e4a8c1fbff4218fe9f4d375b1c88553",
+      "reviewedResultsVerified": 0
+    },
+    "wta": {
+      "predictorArtifactId": "e055ac53-d1f6-4e3d-8139-9f107ae562e7",
+      "modelTrainedAt": "2026-09-14T16:55:00Z",
+      "populationVersion": 9,
+      "inferenceSchema": 5,
+      "featureCount": 42,
+      "dataThrough": "2026-09-13",
+      "matches": 129235,
+      "producer": "tennis_model.pipeline@git:6b22175d9e4a8c1fbff4218fe9f4d375b1c88553",
+      "reviewedResultsVerified": 528
+    }
+  },
+  "affectedEvents": {
+    "spOpen": {
+      "espnId": "1005-2026",
+      "name": "SP Open",
+      "surface": "Hard",
+      "level": "WTA 250",
+      "drawSize": 32,
+      "drawSource": "wta",
+      "drawSourceId": "1139",
+      "drawEvidencePlayers": 32
+    },
+    "identities": [
+      {
+        "espnId": "1024-2026",
+        "a": "Francisca Jorge",
+        "b": "Xinyu Gao",
+        "seedA": null,
+        "seedB": null,
+        "winner": null,
+        "score": null,
+        "p": 0.518,
+        "probSource": "model",
+        "upset": null
+      },
+      {
+        "espnId": "871-2026",
+        "a": "Joelle Steur",
+        "b": "Charo Esquiva Banuls",
+        "seedA": null,
+        "seedB": null,
+        "winner": null,
+        "score": null,
+        "p": 0.7712,
+        "probSource": "model",
+        "upset": null
+      }
+    ]
+  },
+  "previous": {
+    "generatedAt": "2026-09-13T23:26:51Z",
+    "releaseId": "7a50e0c1-9394-41b4-b046-abe956a052f1"
+  },
+  "ci": {
+    "url": "https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/34868064941",
+    "conclusion": "success",
+    "startedAt": "2026-09-14T16:21:09Z",
+    "updatedAt": "2026-09-14T17:00:29Z",
+    "pythonTestsPassed": 1333,
+    "pythonTestsSkipped": 1,
+    "webTestsPassed": 360,
+    "browserChecksPassed": 10,
+    "existingWebLintWarnings": 9
+  },
+  "verification": {
+    "ciLiveChecksPassed": 22,
+    "independentLiveChecksPassed": 22,
+    "exactArtifacts": 464,
+    "requiredAbsentPaths": 18,
+    "referencedShards": 426,
+    "begunEvents": 12
+  },
+  "productionDataCommit": "0d97917",
+  "resolvedAlerts": [
+    {
+      "closedAt": "2026-09-14T16:41:10Z",
+      "number": 67,
+      "title": "Pipeline liveness: refresh.yml has not succeeded in 282h",
+      "url": "https://github.com/ARJUNVARMA2000/tennis-elo/issues/67"
+    },
+    {
+      "closedAt": "2026-09-14T16:59:53Z",
+      "number": 66,
+      "title": "[data-health] WTA · output.bracket.pending_probability_missing · espn:1024-2026#players:francisca jorge:gao xinyu",
+      "url": "https://github.com/ARJUNVARMA2000/tennis-elo/issues/66"
+    },
+    {
+      "closedAt": "2026-09-14T17:00:02Z",
+      "number": 65,
+      "title": "[data-health] ATP · output.tournament.no_active_event · artifact:tournaments.json",
+      "url": "https://github.com/ARJUNVARMA2000/tennis-elo/issues/65"
+    },
+    {
+      "closedAt": "2026-09-14T17:00:01Z",
+      "number": 64,
+      "title": "[data-health] WTA · output.tournament.tier_unresolved · espn:1005-2026",
+      "url": "https://github.com/ARJUNVARMA2000/tennis-elo/issues/64"
+    },
+    {
+      "closedAt": "2026-09-14T16:59:59Z",
+      "number": 63,
+      "title": "[data-health] WTA · output.event_coverage.shell_only · espn:1005-2026",
+      "url": "https://github.com/ARJUNVARMA2000/tennis-elo/issues/63"
+    },
+    {
+      "closedAt": "2026-09-14T16:59:56Z",
+      "number": 62,
+      "title": "[data-health] WTA · output.tournament.surface_guessed · espn:1005-2026",
+      "url": "https://github.com/ARJUNVARMA2000/tennis-elo/issues/62"
+    }
+  ],
+  "watchdogRecovery": {
+    "run": "34870101230",
+    "url": "https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/34870101230",
+    "conclusion": "success",
+    "issue": 67,
+    "note": "The failed monitor had reported a stale last-success timestamp. Its exact query returned the September 13 success on recheck; a normal rerun with the unchanged 26-hour window passed and closed the alert. No monitoring code was changed."
+  }
+}

@@ -6444,3 +6444,41 @@ lower history contains the short name under 328971 and the match-evidence falsif
 - [x] 82 focused identity, predictor-contract and incident tests pass; final lint clean.
 - [ ] Rebuild the final alias contract, rerun the actual artifact gate and site build,
   then deploy. The first local candidate remains unaccepted and was never published.
+
+### Local acceptance and production handoff
+
+- [x] Final ATP/WTA rebuild and evaluation completed under the population9 alias contract.
+  Pre-publication integrity gate passed; local release
+  `ef2429c8-4dca-41a9-ba1e-6b54ee689752` was accepted and mirrored with 464 artifacts.
+- [x] Local health generation `2026-09-14T16:20:23Z` has zero errors/warnings;
+  four informational upstream coverage/overlay notices remain. Static site build passes.
+- [x] Preserve local verification evidence separately and restore the production evaluation
+  ledgers before publishing source. No generated verification data was committed.
+- [x] Scoped source repair `6b22175` pushed to master. Production run `34868064941`
+  passed 1,333 Python tests with one platform-specific skip, 360 web tests, all ten browser
+  checks, lint/type checks and the fixture build. Nine existing web lint warnings remain.
+- [ ] Production full refresh is running; complete final live verification and alert recovery
+  before recording the deployment as accepted.
+
+### Final review — deployment repaired and verified
+
+- [x] All investigation, regression, rebuild and deployment items for this repair are complete.
+  Production run `34868064941` succeeded at source `6b22175`, including both full rebuilds,
+  the pre-publication integrity gate, accepted publication, Firebase deployment and live checks.
+- [x] CI and independent live verification each passed 22/22 checks: 464 exact artifacts,
+  18 required absent paths, 426 referenced shards and exact coverage of 12 begun events.
+  Live health generation `2026-09-14T16:58:13Z` has zero errors/warnings and four informational
+  upstream coverage/overlay notices. Release: `738de886-131e-473f-95e4-683ee8364d0c`.
+- [x] Both live model contracts are population9/schema5 and identify source `6b22175`.
+  SP Open is Hard/WTA250 with a 32-player official WTA 1139 draw and real projections.
+  Caldas and Valencia both serve finite model probabilities under the verified player names.
+  All 528 reviewed WTA results remain verified.
+- [x] Data alerts #62–66 closed automatically. A separate watchdog alert #67 had reported
+  an outdated last-success timestamp; its exact query returned the Sep 13 success on recheck.
+  Normal watchdog rerun `34870101230` passed with the unchanged 26-hour window and closed it.
+  No monitoring code was changed, and no open issues remained at verification.
+- [x] Preserve production forecast/benchmark commit `0d97917` by fast-forward. Research
+  remains isolated; local verification data was not substituted for production evidence.
+
+Review complete: the latest deployment is fixed and the published generation is verified.
+Machine-readable receipt: [2026-09-14-deploy-repair.json](deploy/2026-09-14-deploy-repair.json).
