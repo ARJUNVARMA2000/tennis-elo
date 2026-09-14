@@ -359,3 +359,10 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - Reviewed aliases must migrate readers of immutable benchmark IDs without rewriting
   original forecasts or upgrading timing eligibility. See [`lessons/ci-and-deploy.md`](lessons/ci-and-deploy.md). (2026-09-10)
+
+## September deployment recovery (2026-09-14)
+
+- Anchorless events need explicit metadata/draw locators; a pending player's reviewed alias
+  must also migrate the saved predictor contract. See [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md).
+- A dated tour-singles calendar gap exempts only the generic no-active-card advisory, not
+  freshness or observed-event coverage. See [`lessons/gates-and-health.md`](lessons/gates-and-health.md).

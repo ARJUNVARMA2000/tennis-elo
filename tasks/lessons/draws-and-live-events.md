@@ -436,3 +436,14 @@ Indexed in [`../lessons.md`](../lessons.md).
   player state, and gate scheduled pairings against the same event's draw occupants and rounds.
   Exempt qualifying, unseated entrants, absent draws and completed-event stale schedules.
   Verify each tour with current generated artifacts, including the formerly missing chain.
+
+- **An anchorless event needs explicit metadata and draw locators, and a player alias must
+  reach the saved predictor contract.** (2026-09-14, SP Open/Caldas, run 34853624801)
+  `SP Open` had no four-character distinctive token, so the guarded Wikipedia lookup returned
+  no metadata or draw. The WTA catalogue also omitted its current 1139 locator; the verified
+  official PDF matched all 32 ESPN entrants and the Sep 14–20 calendar. Add reviewed locators
+  without relaxing date/field acceptance. Separately, ESPN's `Gao Xinyu` failed the rated-name
+  lookup for WTA 322925 (`Xinyu Gao`), leaving one real pending pair unpriced. An explicit alias
+  repairs ingest and projection together; advance the population version, migrate only the
+  reviewed-ledger version metadata/hash and rebuild predictors. Preserve broken/clean gate
+  replays from the actual draw, including wrong-field and wrong-date rejection twins.

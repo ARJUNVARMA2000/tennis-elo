@@ -6382,3 +6382,50 @@ use population 8. No reviewed match or quarantine was changed by that migration.
 
 Review complete: the authorized general correctness release is deployed and verified.
 No experimental candidate was adopted. See `research/2026-09-10-general-release.md`.
+
+## 2026-09-14 — Repair blocked production refresh
+
+Check-in: user requested the latest deployment fix. Production at 08b46f8 is
+blocked by unresolved SP Open coverage/metadata and a missing Caldas da Rainha
+pending-match probability (run 34853624801). Work is isolated from model research.
+
+- [ ] Reproduce both producer failures against current provider evidence and retained data.
+- [ ] Repair event projection/identity as supported by evidence; add broken/clean
+  incident regressions and preserve the pre-deploy integrity gate.
+- [ ] Run relevant tests, CI lint, and an actual refreshed output gate; review the diff.
+- [ ] Publish the scoped repair through the normal deployment workflow and verify
+  the live accepted generation; record results and any remaining advisories.
+
+Review pending.
+
+### Investigation and regression review
+
+- [x] Reproduced all four production blockers in broken/clean incident replays.
+- [x] Verified SP Open's official WTA 1139 PDF: Sep 14–20, 32/32 shared ESPN entrants;
+  exact Wikipedia metadata and 32-slot singles fallback also resolve.
+- [x] Verified Gao's WTA 322925 identity, official `GAO, Xinyu` draw label and existing
+  70-row raw history; the repository falsifier rejects no contradiction.
+- [x] Added scoped event locators and explicit Gao alias. Advanced population 8 -> 9;
+  reviewed ledger records/quarantines remain byte-for-byte unchanged apart from version metadata.
+- [x] Incident tests cover producer -> health gate and preserve wrong-date/wrong-field
+  rejection. Population/alias contract and historical population-drop fixture migrated.
+- [ ] Full model/output rebuild and final publication checks are running; deployment pending.
+
+### Scope refinement — ATP calendar gap
+
+- [ ] Resolve advisory #65 as well: the official 2026 ATP calendar has no tour singles
+  event between the Sep 13 US Open final and Sep 23 Chengdu/Hangzhou starts. Add a
+  dated, per-tour exception only for the generic no-active-event warning; preserve
+  missing expected-event, empty-board, ingestion and freshness checks. Test gap boundaries,
+  WTA isolation and a missing observed event during the gap.
+
+- [x] ATP gap regression passes: Sep 14–22 only, ATP only, 2026 only; missing observed
+  events, an empty board and stale predictors retain their alerts. Official source:
+  https://www.atptour.com/en/news/what-is-the-2026-atp-tour-calendar/
+- [x] Final CI linter passes. The initial full Python run passed 1,324 tests and exposed
+  the intentionally pinned population/alias fingerprint; that contract is updated and
+  all 48 targeted contract/incident replays pass. Final full suite is running after #65.
+
+- [x] Final complete Python suite: 1,333 passed in 85.05s; repository Ruff clean.
+  Both reviewed ledgers were compared with origin/master: only populationVersion changed;
+  all 528 WTA admissions and the quarantine were preserved exactly.

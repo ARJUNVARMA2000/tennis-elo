@@ -155,11 +155,12 @@ WTA_DUAL_STATE_GATE_THRESHOLD = 32
 # independently of stats and quarantines
 # one unresolvable 1980 self-pair; merges Xin Yu Wang's duplicate identity. Exact
 # ledgers are committed; missing/stale files fail.
-MATCH_POPULATION_VERSION = 8
+# Version 9 joins Gao Xinyu to Xinyu Gao's existing WTA history (profile 322925).
+MATCH_POPULATION_VERSION = 9
 REVIEWED_RESULTS = {
-    'atp': {'sha256': '4ef5cc7a2728b28263b9c5678759a951f4828460394c18507cbc924abf949f6e',
+    'atp': {'sha256': '4c193a96fff1054a1600625c46ddb628556217588de57e86976ddf9d67cb1764',
             'records': 0, 'quarantines': 0},
-    'wta': {'sha256': 'e7101928a764d10ad45d1b23154d6a977323f4349c55dbc97d7320478d3894b4',
+    'wta': {'sha256': 'c196b37b793f593f0a26ae0d994258b5cad615a1f364670e4539a2c849164157',
             'records': 528, 'quarantines': 1},
 }
 
@@ -466,6 +467,11 @@ HEALTH_MAX_FUTURE_DATE_DAYS = 14      # newest match date may not sit further ah
                                       # live overlay's scheduled rows), so 14 clears reality by a
                                       # wide margin and still catches what ingest let through.
 HEALTH_OFFSEASON_RELAX_DAYS = 45      # December: tours are dark, staleness is expected
+# Dated tour-singles gaps affect only the generic no-active-card advisory, never source
+# freshness, the empty-board check, or independent expected-event coverage. ATP's 2026
+# US Open ends Sep 13; Chengdu/Hangzhou start Sep 23 (team events are outside this board).
+# https://www.atptour.com/en/news/what-is-the-2026-atp-tour-calendar/
+HEALTH_SCHEDULE_GAPS = {"atp": (("2026-09-14", "2026-09-22"),)}
 # Minimum has_stats fraction for the current season, per tour (WTA runs lower than
 # ATP because 125-level results carry no stats by design).
 HEALTH_MIN_STATS_FRACTION = {"atp": 0.60, "wta": 0.55}
@@ -594,6 +600,9 @@ WIKI_UA = "TennisEloModel/1.0 (https://github.com/; av3342@columbia.edu)"
 # "– Men's singles"/"– Women's singles" is appended at resolve time). Only needed when
 # the search API can't disambiguate; keep small, extend when draws_wiki logs a miss.
 WIKI_TITLE_OVERRIDES: dict[str, str] = {
+    # SP is too short for the guarded search anchor. The exact article supplies metadata.
+    # https://www.wtatennis.com/tournaments/1139/sao-paulo/2026
+    "SP Open": "SP Open",
     # Main-article metadata alias only: it supplies Los Cabos surface/tier evidence. A main
     # page is not necessarily a singles-bracket page, which is why draw location now belongs
     # to the first-party/source-neutral architecture instead of reusing this alias.
@@ -615,6 +624,7 @@ WIKI_DRAW_TITLE_OVERRIDES: dict[str, dict[str, str]] = {
     },
     "wta": {
         "189-2026": "2026 US Open – Women's singles",
+        "1005-2026": "2026 SP Open – Singles",
     },
 }
 
@@ -634,6 +644,9 @@ OFFICIAL_DRAW_ID_OVERRIDES: dict[str, dict[str, str]] = {
         "421-2026": "421",
     },
     "wta": {
+        # Official 2026 PDF spans Sep 14–20 and matches all 32 ESPN entrants.
+        # https://wtafiles.wtatennis.com/pdf/draws/2026/1139/MDS.pdf
+        "1005-2026": "1139",  # SP Open / Sao Paulo
         "888-2026": "1045",   # Washington DC
         "875-2026": "2064",   # Odlum Brown VanOpen / Vancouver 125
         "1073-2026": "1163",  # Axeria Open / Targu Mures 125
@@ -719,6 +732,9 @@ EVENT_WITHDRAWN_PLAYERS: dict[str, dict[str, dict[str, str | None]]] = {
 # relatives (the Zverevs, the Bryans). Add an entry when the health gate flags one, or when
 # `data/alias_proposer.py` opens a PR proposing one (that path is reviewed, never automatic).
 PLAYER_ALIASES: dict[str, str] = {
+    # Caldas ESPN uses family-name-first; its official PDF says GAO, Xinyu.
+    # https://www.wtatennis.com/players/322925/xinyu-gao
+    "gao xinyu": "Xinyu Gao",
     # WTA profile 322451 and its 2026 US Open qualifying report use both orders.
     # https://www.wtatennis.com/players/322451/xiaodi-you
     "you xiaodi": "Xiaodi You",

@@ -420,3 +420,10 @@ Indexed in [`../lessons.md`](../lessons.md).
   **How to apply:** when a real bracket is published, block any live card whose main-draw result
   count exceeds the decided matches between two real draw occupants; keep the exact broken shape
   and valid progressed/upcoming twins in the production-replay suite.
+
+- **A dated calendar gap is narrower than an off-season relaxation.** (2026-09-14, #65)
+  The generic no-active-card warning assumed every mid-season day had a tour singles event.
+  The ATP calendar explicitly leaves Sep 14–22, 2026 between the US Open and Chengdu/Hangzhou.
+  Scope that evidence to the one advisory and exact tour/year/date range; do not relax source
+  age, model freshness, empty-board checks or independently observed expected-event coverage.
+  Test both boundaries, the other tour/year, and a missing observed event inside the gap.

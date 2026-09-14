@@ -55,6 +55,7 @@ from ..config import (
     HEALTH_MIN_MATCHES,
     HEALTH_MIN_STATS_FRACTION,
     HEALTH_OFFSEASON_RELAX_DAYS,
+    HEALTH_SCHEDULE_GAPS,
     MATCH_POPULATION_VERSION,
     MAX_FUTURE_MATCH_DAYS,
     OUTPUT_DIR,
@@ -1600,11 +1601,14 @@ def output_findings(tour: str, oc: dict, now: pd.Timestamp,
     ts = data.get("tournaments")
     event_ranges: dict[str, tuple[pd.Timestamp, pd.Timestamp, str]] = {}
     if isinstance(ts, list):
+        schedule_gap = any(start <= str(now.date()) <= end
+                           for start, end in HEALTH_SCHEDULE_GAPS.get(tour, ()))
         if not ts and not offseason:
             _add_finding(out, "output.tournament.board_empty",
                          f"{tour}: tournaments.json is empty", severity="warning",
                          entity="artifact:tournaments.json")
-        elif ts and not offseason and not any(t.get("status") in ("live", "upcoming") for t in ts):
+        elif (ts and not offseason and not schedule_gap
+              and not any(t.get("status") in ("live", "upcoming") for t in ts)):
             _add_finding(out, "output.tournament.no_active_event",
                          f"{tour}: tournaments.json has no live/upcoming event", severity="warning",
                          entity="artifact:tournaments.json")
