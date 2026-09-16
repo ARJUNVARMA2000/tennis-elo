@@ -7845,3 +7845,40 @@ access; integration would follow a supported recommendation. Review pending.
 Integration branch codex/wta-surface-production remains clean at 1c1131e. All source
 assessment work lives in the root documentation branch and a new private evidence
 directory; the validated WTA integration and earlier evidence remain untouched.
+
+## 2026-09-15 — Issue #68: Monterrey coverage-only card
+
+Initial investigation: GitHub issue #68 reports `output.event_coverage.shell_only`
+for WTA `espn:341-2026`. Run 35025764676 completed quick generation but failed the
+pre-deploy gate; publication was skipped. Root cause remains unconfirmed. This
+checkout is the research documentation branch; local origin/master is cb53d9c,
+including the September 14 deployment repair. Refresh remote state before repair.
+
+- [x] Identify the latest open issue and inspect the failing run and existing gate.
+- [ ] Establish an isolated repair checkout from current production, preserving research work.
+- [ ] Recover incident source/output evidence and reproduce why Monterrey loses its
+  full tournament card; trace event identity, retention, and projection decisions.
+- [ ] Repair the responsible producer and add broken/clean incident replay coverage,
+  preserving the shell-only invariant unless evidence demonstrates a contract error.
+- [ ] Run targeted regressions and applicable integrity checks; verify regenerated
+  artifacts and record the exact repair, validation results, and release readiness.
+
+Check-in pending before implementation, as required by the global workflow rules.
+Production deployment will be a separate concrete decision after validation.
+
+### Review
+
+Investigation and plan only so far; no implementation or deployment performed.
+
+### Issue #68 implementation handoff
+
+- [x] User approved implementation. The isolated production-based repair is committed
+  at 296f43e on codex/issue-68-monterrey, checkout .research/2026-09-15-monterrey.
+- [x] Root cause: September 17 ESPN results advanced projection retention past the
+  September 15 coverage clock. Selection and cached-draw identity recovery now receive
+  coverage's buildDate. The gate remains unchanged.
+- [x] Reconstructed broken/clean replay and expiry boundaries pass; retained production
+  predictor restores Monterrey's 28-player, 27-result completed card. All 1,342 Python
+  tests pass; Ruff and whitespace checks pass.
+- [x] Full review and snapshot limitations are recorded at the repair checkout's todo
+  tail. No deployment or issue mutation; a fresh release must regenerate its audit.
