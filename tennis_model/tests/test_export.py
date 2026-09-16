@@ -374,7 +374,7 @@ def test_build_event_outputs_uses_event_view_for_coverage_and_cards(monkeypatch)
 
     model_frame, event_frame = object(), object()
     cards = [{"name": "Completed 125"}]
-    manifest = {"events": [{"key": "espn:1-2026"}]}
+    manifest = {"events": [{"key": "espn:1-2026"}], "buildDate": "2026-09-15"}
     seen = []
     monkeypatch.setattr(
         results, "event_match_view",
@@ -386,7 +386,8 @@ def test_build_event_outputs_uses_event_view_for_coverage_and_cards(monkeypatch)
     )
     monkeypatch.setattr(
         tournaments, "build_tournaments",
-        lambda predictor, df, tour: seen.append(("cards", predictor, df, tour)) or cards,
+        lambda predictor, df, tour, *, build_date: seen.append(
+            ("cards", predictor, df, tour, build_date)) or cards,
     )
     monkeypatch.setattr(
         event_coverage, "finalize_event_coverage",
@@ -402,7 +403,7 @@ def test_build_event_outputs_uses_event_view_for_coverage_and_cards(monkeypatch)
     assert seen == [
         ("view", model_frame, "wta"),
         ("coverage", event_frame, "wta"),
-        ("cards", predictor, event_frame, "wta"),
+        ("cards", predictor, event_frame, "wta", "2026-09-15"),
         ("finalize", manifest, cards),
     ]
 

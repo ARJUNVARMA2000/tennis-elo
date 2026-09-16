@@ -427,3 +427,10 @@ Indexed in [`../lessons.md`](../lessons.md).
   Scope that evidence to the one advisory and exact tour/year/date range; do not relax source
   age, model freshness, empty-board checks or independently observed expected-event coverage.
   Test both boundaries, the other tour/year, and a missing observed event inside the gap.
+
+- **Coverage and projection retention need the same generation clock.** (2026-09-15, #68)
+  An ESPN result dated September 17 advanced the projector's data-relative 18-day cutoff,
+  dropping Monterrey's August 29 final while the September 15 coverage manifest still
+  required it. Pass the manifest's build date through both event selection and cached-draw
+  identity recovery. Keep lifecycle evidence separate from retention, and replay the real
+  event through producer and gate with future and stale maxima plus the expiry boundary.

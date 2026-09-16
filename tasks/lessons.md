@@ -366,3 +366,6 @@ New lesson → append the entry to the matching topic file and add its lead line
   must also migrate the saved predictor contract. See [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md).
 - A dated tour-singles calendar gap exempts only the generic no-active-card advisory, not
   freshness or observed-event coverage. See [`lessons/gates-and-health.md`](lessons/gates-and-health.md).
+
+- Coverage and projection retention need the same generation clock. See
+  [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-09-15)

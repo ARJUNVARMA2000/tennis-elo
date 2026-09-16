@@ -995,7 +995,8 @@ def build_event_outputs(predictor, df: pd.DataFrame, tour: str) -> tuple[dict, l
     with timed(tour, "event_projection"):
         event_df = results.event_match_view(df, tour)
         coverage = event_coverage.build_event_coverage(event_df, tour)
-        cards = tournaments.build_tournaments(predictor, event_df, tour)
+        cards = tournaments.build_tournaments(
+            predictor, event_df, tour, build_date=coverage["buildDate"])
         coverage = event_coverage.finalize_event_coverage(coverage, cards)
     return coverage, cards
 

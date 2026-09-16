@@ -6482,3 +6482,39 @@ lower history contains the short name under 328971 and the match-evidence falsif
 
 Review complete: the latest deployment is fixed and the published generation is verified.
 Machine-readable receipt: [2026-09-14-deploy-repair.json](deploy/2026-09-14-deploy-repair.json).
+
+## 2026-09-15 — Issue #68 implementation
+
+User approved implementation after the root checkout's plan check-in. Repair branch
+`codex/issue-68-monterrey` starts at production 7899976; research remains separate.
+
+- [x] Trace the failure: run 35025764676 logged WTA results through September 17,
+  while coverage was built September 15. The projector's data-relative 18-day window
+  dropped Monterrey's August 29 final; coverage's build-relative window retained it.
+- [x] Capture the ESPN September 17 Caldas result and retained Monterrey rows/draw.
+  No failed-run artifact was available; the incident replay is explicitly reconstructed.
+- [ ] Bind projection retention and cached draw identity recovery to coverage's build date.
+- [ ] Add a broken/clean producer-to-gate replay and normal retention boundary checks.
+- [ ] Run regression suite and lint; record the final review and release readiness.
+
+### Review — issue #68 implementation complete
+
+- [x] Export passes coverage's buildDate to the tournament producer. Both its 18-day
+  selection and evidence-based cached-draw identity recovery use that date; observed
+  dates still control lifecycle inference. No health invariant or model contract changed.
+- [x] The reconstructed incident fails on the old exporter and passes after the fix.
+  Eight new cases cover the broken/clean producer-to-gate replay and September 15–17
+  retention boundaries with both stale and future data maxima. Full 27-match history
+  remains available while the August 29 final is retained.
+- [x] Focused suite: 106 passed. Complete Python suite: 1,342 passed in 121.10 seconds.
+  Repository Ruff and git diff whitespace checks pass. No web source/dependency changes.
+- [x] The validated retained WTA TennisPredictor also reproduces the broken shell and
+  restores the fixed 28-player, 27-result completed card with champion Diane Parry.
+  Private replay JSON and receipt live in tennis_model/data/cache/issue-68/.
+- [x] The snapshot's independent prediction audit is stale on the replay date in the
+  untouched baseline and both variants. This is a scoped incident verification, not a
+  fresh all-artifact release acceptance. A new production refresh must regenerate its audit.
+- [x] Record the generation-clock lesson and preserve the existing coverage gate.
+
+Implementation ready for release review on codex/issue-68-monterrey. No production push,
+workflow dispatch, issue comment, or issue closure performed.

@@ -32,7 +32,7 @@ from ..config import (
     PLAYER_ALIASES,
     live_dir,
 )
-from ..data.event_coverage import cached_draw_identity_aliases
+from ..data.event_coverage import COVERAGE_RETENTION_DAYS, cached_draw_identity_aliases
 from ..data.events import EventResolver, display_event_name, is_event_id, load_registry
 from ..data.participants import draw_is_meaningful, is_real_participant
 from ..data.results import _name_key
@@ -495,16 +495,22 @@ def _dedup_by_display_name(entries: list, tour: str) -> list:
 
 
 def recent_tournaments(df: pd.DataFrame, within_days: int = 40,
-                       recent_days: int = 18, max_events: int | None = None) -> list:
-    """(name, sub_df) for single-elim events ending within `recent_days` of the data."""
-    dmax = df["date"].max()
-    win = df[df["date"] >= dmax - pd.Timedelta(days=within_days)]
+                       recent_days: int = COVERAGE_RETENTION_DAYS,
+                       max_events: int | None = None, *, build_date=None) -> list:
+    """Recent single-elim events, retaining their full capture-window match history.
+
+    Publication supplies the coverage build date: a future-dated result must not advance
+    retention and evict an event the independent coverage manifest still requires. Standalone
+    historical callers may omit it to keep their data-relative window.
+    """
+    ref = pd.Timestamp(build_date).normalize() if build_date is not None else df["date"].max()
+    win = df[df["date"] >= ref - pd.Timedelta(days=within_days)]
     events = []
     for name, g in win.groupby("tourney_name"):
         if not (set(g["round"].dropna()) & _KO_ROUNDS):
             continue                                  # skip round-robin / team events
         end = g["date"].max()
-        if (dmax - end).days > recent_days:
+        if end < ref - pd.Timedelta(days=recent_days):
             continue
         events.append((str(name), g.copy(), end))
     events.sort(key=lambda e: e[2], reverse=True)
@@ -1173,7 +1179,11 @@ def _price_event_bracket(predictor, t: dict, match_lines: list) -> None:
     price_bracket(br, price_fn, lambda a, b: oriented_logged(index, a, b))
 
 
-def build_tournaments(predictor, df: pd.DataFrame, tour: str, **kw) -> list:
+def build_tournaments(predictor, df: pd.DataFrame, tour: str, *, build_date=None, **kw) -> list:
+    # This clock controls retention and identity recovery only. Lifecycle inference below
+    # still uses observed data dates, so a frozen feed cannot complete a live event by age.
+    retention_ref = build_date if build_date is not None else (
+        df["date"].max() if not df.empty else None)
     known = _known_names(df)
     top_set = set(sorted(predictor.elo.overall, key=predictor.elo.elo, reverse=True)[:100])
     espn_fields = _load_fields(tour)
@@ -1198,13 +1208,14 @@ def build_tournaments(predictor, df: pd.DataFrame, tour: str, **kw) -> list:
         for src in (draws, espn_fields) for k, v in (src or {}).items()
         if isinstance(v, dict) and v.get("espnId")]
         + cached_draw_identity_aliases(
-            df, draws, ref=df["date"].max() if not df.empty else None))
+            df, draws, ref=retention_ref))
     draws_by_id, draws_by_name = _split_by_key(draws)
     fields_by_id, fields_by_name = _split_by_key(espn_fields)
     up_by_id, up_by_name = _split_by_key(upcoming)
     bounds_by_id, bounds_by_name = _split_by_key(upcoming_bounds)
     out = []
-    for name, g, eid in _coalesce_groups(recent_tournaments(df), resolver):
+    for name, g, eid in _coalesce_groups(
+            recent_tournaments(df, build_date=build_date), resolver):
         matchups = [(resolve(a), resolve(b))
                     for a, b in (_lookup(up_by_id, up_by_name, eid, name) or [])]
         event_start, event_end = _event_bounds(
