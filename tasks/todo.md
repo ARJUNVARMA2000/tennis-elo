@@ -6527,3 +6527,23 @@ User requested push and merge after reviewing repair 296f43e. Production remains
 - [ ] Push the repair branch and fast-forward production master to the reviewed repair.
 - [ ] Follow push-triggered tests, refresh, integrity gate, deployment and live verification.
 - [ ] Verify issue #68 recovery and record the release outcome.
+
+### Release review — Monterrey repair deployed
+
+- [x] Repair branch pushed and production master fast-forwarded to 915eb04, containing
+  tested source fix 296f43e. No unrelated research was merged.
+- [x] Run 35046934852 passed 1,341 Python tests (one platform-specific skip), all 360
+  web tests, type/build checks and browser smoke checks. The quick refresh and
+  pre-deploy integrity gate passed; Firebase deployment succeeded.
+- [x] CI and independent live verification each passed 22/22 serving checks.
+  Published generation: 2026-09-16T02:24:27Z; accepted release:
+  955a988b-c650-46de-bf11-e3274077a329.
+- [x] Live Monterrey is a completed full card: 28 players, 27 main-draw results,
+  champion Diane Parry, no coverage shells. Issue #68 closed automatically.
+- [x] Preserve the distinct remaining outcome: overall workflow conclusion is failure
+  because the post-deploy data-health reporter opened warning #69 for one failed ATP
+  ESPN query (20260923; 27/28 queries succeeded). Deployment and serving succeeded;
+  the warning remains open and was not suppressed or manually closed.
+
+Receipt: tasks/deploy/2026-09-15-monterrey-release.json. Authorized merge/push and
+release verification are complete; the separate upstream warning remains observable.

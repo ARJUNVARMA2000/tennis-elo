@@ -1,0 +1,51 @@
+{
+  "issue": 68,
+  "repairCommit": "296f43e",
+  "deployedHead": "915eb044f003f409ea2eb1deb72aba8a6d11f842",
+  "runId": 35046934852,
+  "runUrl": "https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/35046934852",
+  "workflowConclusion": "failure",
+  "deployment": "success",
+  "integrityGate": "success",
+  "ci": {
+    "pythonPassed": 1341,
+    "pythonSkipped": 1,
+    "webPassed": 360,
+    "browserSmoke": "success",
+    "liveChecksPassed": 22
+  },
+  "independentLiveChecksPassed": 22,
+  "generatedAt": "2026-09-16T02:24:27Z",
+  "artifactLineage": {
+    "schema": "artifact-lineage-v1",
+    "status": "accepted",
+    "releaseId": "955a988b-c650-46de-bf11-e3274077a329",
+    "manifestSha256": "e6a3c57badff4525e3b3ba24c77ca809b8cb23769172a0cd0498917ae3c114a4",
+    "tours": [
+      "atp",
+      "wta"
+    ]
+  },
+  "monterrey": {
+    "espnId": "341-2026",
+    "coverageOnly": false,
+    "status": "completed",
+    "drawSize": 28,
+    "mainDrawMatchCount": 27,
+    "champion": "Diane Parry",
+    "shellKeys": []
+  },
+  "issue68": {
+    "state": "CLOSED",
+    "closedAt": "2026-09-16T02:25:47Z"
+  },
+  "remainingWarning": {
+    "issue": 69,
+    "code": "source.espn.partial_query_failure",
+    "tour": "atp",
+    "failedQuery": "20260923",
+    "successfulQueries": 27,
+    "attemptedQueries": 28,
+    "impact": "Post-deploy data-health reporter failed the workflow; deployment and both live verifications succeeded."
+  }
+}
