@@ -6518,3 +6518,12 @@ User approved implementation after the root checkout's plan check-in. Repair bra
 
 Implementation ready for release review on codex/issue-68-monterrey. No production push,
 workflow dispatch, issue comment, or issue closure performed.
+
+## 2026-09-15 — Authorized issue #68 release
+
+User requested push and merge after reviewing repair 296f43e. Production remains
+7899976, the repair's direct parent, so the tested fix can be fast-forward merged.
+
+- [ ] Push the repair branch and fast-forward production master to the reviewed repair.
+- [ ] Follow push-triggered tests, refresh, integrity gate, deployment and live verification.
+- [ ] Verify issue #68 recovery and record the release outcome.
