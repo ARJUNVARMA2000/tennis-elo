@@ -8521,3 +8521,35 @@ existing release readiness constraints must be checked before that step.
 - [x] M4 has its own distinct copied inputs and tested adapter at `8c4792f` in
       `worktrees/dynamic-screen` (`codex/model-dynamic-screen`), ready for frozen parity
       and the original eight-setting screen. Continue there; leave this reference intact.
+
+### 2026-09-17 consolidation — completed local review
+
+- [x] Saved all original refs and worktree locations plus a Git recovery bundle at
+  `.research/2026-09-17-branch-consolidation/` before changing branch ownership.
+- [x] Merged all remaining histories onto current production `12c95c0`, including the
+  separate maintenance report. Verified every local and fetched remote tip is an
+  ancestor of master. Preserved population9, chronology-v2 and the Monterrey repair.
+- [x] Reconciled WTA43 production feature validation with explicit research schemas.
+  Research adapters retain their registered feature/evidence sets; updated synthetic
+  state fixtures satisfy the production surface cutoff contract. No gate weakened.
+- [x] Python: 1,712 passed on the initial full run; its 132 failing/error cases all pass
+  after compatibility fixes. A further 23 orientation/signal tests pass. Web: 374 pass;
+  ESLint, TypeScript, Ruff and whitespace checks pass. Logs retained in the backup folder.
+- [x] Detached all 26 secondary clean worktrees, preserving their files. Removed all 28
+  non-master local branch names only after ancestor checks. Both original stashes remain.
+- [ ] Push master and delete the four already-incorporated remote branch names atomically;
+  verify local/remote master agreement and a clean checkout.
+
+The latest production refresh was already failing its pre-deploy integrity gate at
+`12c95c0` (run 35222110499). This consolidation preserves that gate. Publishing the
+combined source is not a claim that a new data generation or live deployment passed;
+normal production checks still govern the WTA schema migration and publication.
+
+### Publication blocked by automatic approval review
+
+Automatic approval review rejected the combined production push and remote deletions:
+it requires explicit authorization because pushing master deploys production and the
+request did not clearly authorize that deployment plus remote cleanup. No remote
+mutation occurred. Local consolidation and final validated fixes are ready for review.
+The initial full-run failures were resolved: all 132 failed/error cases pass on rerun,
+plus 23 affected orientation/signal tests; the remaining 1,712 full-run cases passed.

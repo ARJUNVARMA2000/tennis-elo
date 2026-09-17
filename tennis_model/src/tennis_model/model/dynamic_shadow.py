@@ -11,7 +11,7 @@ from ..config import DYNAMIC_SHADOW_PARAM_OVERRIDES, WTA_DUAL_STATE_GATE_THRESHO
 from ..ratings.dynamic import DYNAMIC_FEATURE, DynamicParams, attach_dynamic, run_dynamic
 from . import dynamic_research as dr
 from .features import DualStateInputs, build_dual_state_inputs, select_dual_state_features
-from .predict import TennisPredictor
+from .predict import EVIDENCE_GROUPS, TennisPredictor
 from .train import FINAL_TRAIN_SEED
 
 SHADOW_SCHEMA = "wta-dynamic-shadow-v1"
@@ -67,6 +67,11 @@ class DynamicShadowPredictor(TennisPredictor):
     @property
     def feature_columns(self):
         return dr.COLUMNS
+
+    @property
+    def evidence_groups(self):
+        """Keep the frozen dynamic experiment independent of later surface adoption."""
+        return EVIDENCE_GROUPS
 
     def _combiner_probability(self, frame):
         return dr.probability(self.clf, self.iso, frame)

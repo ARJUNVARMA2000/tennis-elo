@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from signal_combiner import checked, columns, fit_fold, probability
 from tennis_model.config import WTA_DUAL_STATE_GATE_THRESHOLD
-from tennis_model.model.predict import TennisPredictor
+from tennis_model.model.predict import EVIDENCE_GROUPS, TennisPredictor
 from tennis_model.model.train import FINAL_TRAIN_SEED
 
 FEATURE = "surface_recent_diff"
@@ -31,6 +31,11 @@ class SurfaceCandidatePredictor(TennisPredictor):
     @property
     def feature_columns(self):
         return COLUMNS
+
+    @property
+    def evidence_groups(self):
+        """The research adapter adds its own surface evidence below."""
+        return EVIDENCE_GROUPS
 
     def _combiner_probability(self, frame):
         return probability(self.clf, self.iso, frame, (FEATURE,))

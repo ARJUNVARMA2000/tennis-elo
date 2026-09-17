@@ -107,7 +107,7 @@ def test_orientation_mirrors_incumbent(extra):
     for s in SIGNALS:
         f[s] = np.arange(20) / 10
     x, y = oriented(f, 2010, extra)
-    old, oldy = make_oriented_xy(f, seed=2010)
+    old, oldy = make_oriented_xy(f[FEATURES], seed=2010)
     pd.testing.assert_frame_equal(x[FEATURES], old)
     np.testing.assert_array_equal(y, oldy)
     for s in extra:

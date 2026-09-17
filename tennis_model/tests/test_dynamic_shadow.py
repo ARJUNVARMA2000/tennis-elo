@@ -14,7 +14,7 @@ from tennis_model.model import artifact as a
 from tennis_model.model import dynamic_research as dr
 from tennis_model.model import shadow_artifact as sa
 from tennis_model.model.dynamic_shadow import DynamicShadowPredictor
-from tennis_model.model.features import FEATURES
+from tennis_model.model.features import FEATURES, features_for
 from tennis_model.model.predict import TennisPredictor
 from tennis_model.model.probability import paired_probability
 from tennis_model.model.train import BaggedClassifier, PlattCalibrator, production_xgb_params
@@ -40,6 +40,8 @@ def shadow():
                 elo.last_played[name] = day.to_datetime64()
                 elo.overall[name] = 1500 + dynamic.players[name].mean[0] * 100
         elo.last_date = day.to_datetime64()
+        ctx = ordinary.ctx if elo is ordinary.elo else ordinary.lower_ctx
+        ctx.surface_exposure.through = pd.Timestamp(elo.last_date)
         states.append(dynamic)
     rng = np.random.default_rng(751)
     x = pd.DataFrame(rng.normal(size=(256, 43)), columns=dr.COLUMNS)
@@ -124,7 +126,8 @@ def test_selected_dynamic_state_dates_and_original_features(shadow):
 def test_ordinary_schema_and_probabilities_stay_exact(tour, tmp_path):
     predictor = _valid_predictor(tour)
     feature = predictor.features("A", "B", **CONTEXT)
-    assert list(feature) == FEATURES and len(FEATURES) == 42
+    assert list(feature) == features_for(tour)
+    assert len(feature.columns) == (43 if tour == "wta" else 42)
     expected = paired_probability(predictor.clf, predictor.iso, feature)[0]
     assert predictor.win_prob("A", "B", **CONTEXT) == expected
     predictor.save(tmp_path / "predictor.pkl")

@@ -14,7 +14,7 @@ from historical_signals import SignalState
 from signal_combiner import probability
 from surface_candidate import COLUMNS, FEATURE, SurfaceCandidatePredictor
 from tennis_model.model import artifact as a
-from tennis_model.model.features import FEATURES
+from tennis_model.model.features import FEATURES, features_for
 from tennis_model.model.predict import TennisPredictor
 from tennis_model.model.probability import paired_probability
 from tennis_model.model.train import BaggedClassifier, PlattCalibrator, production_xgb_params
@@ -41,6 +41,8 @@ def candidate():
         for date, winner, loser in sorted(rows):
             state.observe(winner, loser, "Hard", date, 0.6, True, 100, 200)
         elo.last_date = state.through.to_datetime64()
+        ctx = ordinary.ctx if elo is ordinary.elo else ordinary.lower_ctx
+        ctx.surface_exposure.through = pd.Timestamp(elo.last_date)
         states.append(state)
     rng = np.random.default_rng(751)
     frame = pd.DataFrame(rng.normal(size=(256, 43)), columns=COLUMNS)
@@ -148,7 +150,8 @@ def test_production_schema_and_probabilities_stay_exact(tour, tmp_path):
     predictor = _valid_predictor(tour)
     features = predictor.features("A", "B", **CONTEXT)
     expected = paired_probability(predictor.clf, predictor.iso, features)[0]
-    assert list(features) == FEATURES and len(FEATURES) == 42
+    assert list(features) == features_for(tour)
+    assert len(features.columns) == (43 if tour == "wta" else 42)
     assert predictor.win_prob("A", "B", **CONTEXT) == expected
     path = tmp_path / "predictor.pkl"
     predictor.save(path)

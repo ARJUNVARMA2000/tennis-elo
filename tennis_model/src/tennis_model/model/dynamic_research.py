@@ -36,7 +36,7 @@ def checked(frame):
 
 
 def oriented(frame, seed, *, enabled=True):
-    original, y = make_oriented_xy(frame, seed=seed)
+    original, y = make_oriented_xy(frame[FEATURES], seed=seed)
     if not enabled:
         return original, y
     out = original.copy()

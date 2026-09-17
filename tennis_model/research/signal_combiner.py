@@ -29,7 +29,7 @@ def checked(frame, extra=()):
 
 
 def oriented(frame, seed, extra=()):
-    x, y = make_oriented_xy(frame, seed=seed)
+    x, y = make_oriented_xy(frame[FEATURES], seed=seed)
     for name in extra:
         x[name] = frame[name].to_numpy() * np.where(y == 0, -1., 1.)
     return checked(x, extra), y

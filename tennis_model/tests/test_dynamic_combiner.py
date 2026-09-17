@@ -26,9 +26,10 @@ class Calibrator:
 
 def test_orientation_preserves_incumbent_columns_and_adds_one_signed_signal():
     frame = features()
+    frame["surface_recent_diff"] = np.arange(len(frame))
     before = frame.copy()
     x, y = dr.oriented(frame, 2010)
-    original, original_y = make_oriented_xy(frame, seed=2010)
+    original, original_y = make_oriented_xy(frame[FEATURES], seed=2010)
     pd.testing.assert_frame_equal(x[FEATURES], original, check_exact=True)
     np.testing.assert_array_equal(y, original_y)
     np.testing.assert_array_equal(x[dr.DYNAMIC_FEATURE], frame[dr.DYNAMIC_FEATURE]*np.where(y==0,-1,1))
