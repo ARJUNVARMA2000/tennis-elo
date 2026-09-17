@@ -24,7 +24,7 @@ import numpy as np
 import pandas as pd
 
 from ..config import BACKTEST_START_YEAR, OUTPUT_DIR
-from .features import FEATURES, build_feature_frame, make_oriented_xy
+from .features import build_feature_frame, features_for, frame_tour, make_oriented_xy
 from .probability import paired_probability
 
 
@@ -48,7 +48,7 @@ def load_or_build_features(rebuild: bool = False, tour: str = "atp") -> pd.DataF
             if (type(payload) is dict and payload.get("schema") == FEATURE_CACHE_SCHEMA
                     and payload.get("identity") == identity
                     and isinstance(payload.get("frame"), pd.DataFrame)
-                    and set(FEATURES) <= set(payload["frame"].columns)):
+                    and set(features_for(tour)) <= set(payload["frame"].columns)):
                 return payload["frame"]
         except (OSError, ValueError, TypeError, EOFError, pickle.UnpicklingError):
             pass
@@ -265,7 +265,7 @@ def _fit_fold(core: pd.DataFrame, cal: pd.DataFrame, seed: int,
 def _stacked_predict(clf, cal_rows: pd.DataFrame, raw: np.ndarray,
                      test: pd.DataFrame) -> np.ndarray:
     """Fit a StackedCalibrator on the calibration season and apply it to `raw`."""
-    raw_cal = clf.predict_proba(cal_rows[FEATURES])[:, 1]
+    raw_cal = clf.predict_proba(cal_rows[features_for(frame_tour(cal_rows))])[:, 1]
     flip = np.arange(len(raw_cal)) % 2 == 1
 
     def _cols(pr, rows, fl):
@@ -281,7 +281,7 @@ def _stacked_predict(clf, cal_rows: pd.DataFrame, raw: np.ndarray,
             point = 1 / (1 + np.exp(-features["logit_p_point"].to_numpy()))
             p = stk.predict([raw_p, blend, point])
             return np.column_stack([1 - p, p])
-    return paired_probability(StackedForecast(), IdentityCalibrator(), test[FEATURES])
+    return paired_probability(StackedForecast(), IdentityCalibrator(), test[features_for(frame_tour(test))])
 
 
 def _combiner_rows(feat: pd.DataFrame, *, allow_lower: bool = False) -> pd.DataFrame:
@@ -338,15 +338,15 @@ def walk_forward(feat: pd.DataFrame, start_test: int = BACKTEST_START_YEAR,
                                    calibrator=("none" if cal == "stacked" else cal),
                                    pooled_raw=pooled, xgb_overrides=xgb_overrides,
                                    n_bag=n_bag, sample_weight=sw)
-        raw = clf.predict_proba(test[FEATURES])[:, 1]
+        raw = clf.predict_proba(test[features_for(frame_tour(test))])[:, 1]
         # P(winner wins) — test is winner-oriented
         p = (_stacked_predict(clf, cal_rows, raw, test) if cal == "stacked"
-             else paired_probability(clf, cal_model, test[FEATURES]))
+             else paired_probability(clf, cal_model, test[features_for(frame_tour(test))]))
         from ..eval.protocol import legacy_orientation_diagnostics
         diagnostics = (legacy_orientation_diagnostics(clf, cal_model, test) if cal != "stacked" else {})
         chunks.append(test.assign(p_combiner=p, p_raw=raw, probability_policy="calibrated-pair-average-v1",
                                   **diagnostics))
-        importances.append(pd.Series(clf.feature_importances_, index=FEATURES))
+        importances.append(pd.Series(clf.feature_importances_, index=features_for(frame_tour(feat))))
         if verbose:
             print(f"  {ty}: train={len(train):,} test={len(test):,}  combiner brier="
                   f"{np.mean((1 - p) ** 2):.4f}")
@@ -418,7 +418,7 @@ def walk_forward_state_gate(base_feat: pd.DataFrame, enriched_feat: pd.DataFrame
         clf, cal_model = _fit_fold(
             core, cal_rows, seed=ty, calibrator="platt",
             xgb_overrides=xgb_overrides, n_bag=n_bag)
-        importances.append(pd.Series(clf.feature_importances_, index=FEATURES))
+        importances.append(pd.Series(clf.feature_importances_, index=features_for(frame_tour(base))))
 
         for threshold, frame in arms.items():
             test_arm = frame[frame["year"] == ty]
@@ -426,8 +426,8 @@ def walk_forward_state_gate(base_feat: pd.DataFrame, enriched_feat: pd.DataFrame
                 raise AssertionError(
                     f"state-gate arm {threshold} changed {ty} test rows: "
                     f"{len(test_arm)} vs {len(test)}")
-            raw = clf.predict_proba(test_arm[FEATURES])[:, 1]
-            p = paired_probability(clf, cal_model, test_arm[FEATURES])
+            raw = clf.predict_proba(test_arm[features_for(frame_tour(test_arm))])[:, 1]
+            p = paired_probability(clf, cal_model, test_arm[features_for(frame_tour(test_arm))])
             from ..eval.protocol import legacy_orientation_diagnostics
             diagnostics = legacy_orientation_diagnostics(clf, cal_model, test_arm)
             chunks[threshold].append(test_arm.assign(p_combiner=p, p_raw=raw,
@@ -490,7 +490,7 @@ def train_final(feat: pd.DataFrame, min_train_year: int = 1991, cal_days: int = 
     clf, cal_model = _fit_fold(core, cal_rows, seed=FINAL_TRAIN_SEED,
                                calibrator=cal, pooled_raw=pooled,
                                xgb_overrides=xgb_overrides, n_bag=n_bag)
-    return clf, cal_model, FEATURES
+    return clf, cal_model, features_for(frame_tour(feat))
 
 
 if __name__ == "__main__":

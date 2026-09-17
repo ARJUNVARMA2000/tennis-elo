@@ -16,6 +16,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { MODEL_CONTRACTS } from "./model-contract.mjs";
 import { INDEXABLE_ROUTES, ROUTES } from "./routes.mjs";
 import {
   parseCacheControl,
@@ -663,8 +664,11 @@ export async function verifyArtifactLineageRelease({
       if (record.path.endsWith("/meta.json")) {
         const meta = parseStrictLineageJson(raw, urlPath);
         if (meta.inferenceSchemaVersion >= 5 || Object.hasOwn(meta, "predictionAuditSchema")) {
+          const contract = MODEL_CONTRACTS[record.path.split("/")[0]];
           lineageMust(
-            meta.inferenceSchemaVersion === 5 && meta.predictionAuditSchema === "prediction-audit-v1"
+            contract && meta.inferenceSchemaVersion === contract.inferenceSchema
+              && JSON.stringify(meta.features) === JSON.stringify(contract.features)
+              && meta.predictionAuditSchema === "prediction-audit-v1"
               && SHA256_RE.test(meta.predictionAuditSHA256)
               && SHA256_RE.test(meta.predictionAuditSourceGeneration)
               && meta.predictorArtifactId === record.predictorArtifactId

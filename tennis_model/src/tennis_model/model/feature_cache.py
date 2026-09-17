@@ -13,7 +13,7 @@ from ..data.style_history import STYLE_POLICY, STYLE_VERSION
 from ..points.serve_prior import PRIOR_POLICY
 from ..points.serve_return import sr_params_for
 from ..ratings.elo import params_for
-from .features import ANTISYM, FEATURES, SYMMETRIC, feat_params_for
+from .features import SYMMETRIC, antisymmetric_for, feat_params_for, features_for
 
 FEATURE_CACHE_SCHEMA = 2
 
@@ -47,7 +47,7 @@ def feature_cache_contract(tour):
         constants[key] = value
     return {
         'schema': FEATURE_CACHE_SCHEMA, 'tour': tour,
-        'features': FEATURES, 'antisymmetric': ANTISYM, 'symmetric': SYMMETRIC,
+        'features': features_for(tour), 'antisymmetric': antisymmetric_for(tour), 'symmetric': SYMMETRIC,
         'featureParams': asdict(feat_params_for(tour)), 'eloParams': asdict(params_for(tour)),
         'serveParams': asdict(sr_params_for(tour)), 'config': constants,
         'stylePolicy': STYLE_POLICY, 'styleVersion': STYLE_VERSION, 'priorPolicy': PRIOR_POLICY,

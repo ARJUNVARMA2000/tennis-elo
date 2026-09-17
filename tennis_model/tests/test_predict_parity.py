@@ -13,6 +13,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
@@ -149,6 +150,8 @@ def test_constructor_derives_tour_params():
             "Bravo Two": {"age": 27.0, "ht": 190.0, "hand": "L", "rank_points": 1500}}
     wta = TennisPredictor(clf=None, iso=None, elo=_Elo(), srv=_Srv(), ctx=_Ctx(),
                           meta=meta, tour="wta")
+    from tennis_model.model.surface_exposure import SurfaceExposureState
+    wta.ctx.surface_exposure = SurfaceExposureState(through=pd.Timestamp(wta.elo.last_date))
     assert wta.fp == feat_params_for("wta")
     assert wta.fp != DEFAULT_FEAT_PARAMS               # WTA overrides genuinely diverge
     row = _with_no_profiles(lambda: wta._feature_dict(
@@ -225,7 +228,7 @@ def test_wta_dual_state_survives_pickle_roundtrip():
     restored = pickle.loads(pickle.dumps(pred))
     assert restored._dual_state_threshold == 32
     assert restored._has_lower_state
-    assert restored._inference_schema_version == 5
+    assert restored._inference_schema_version == 6
 
 
 def test_home_flag_threads_event():

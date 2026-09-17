@@ -8032,3 +8032,131 @@ Accuracy falls slightly; validation week95 includes zero. This round did not dep
 or change the live incumbent. The next work is the supported training/artifact/export,
 cache/recovery and two release-gate integration described in the handoff, not another
 predictive sweep or final fit into these accepted evidence directories.
+
+## 2026-09-11 — authorized fixed WTA surface production integration
+
+Check-in: the user's “Keep going” continues the completed assessment's explicit
+production-integration recommendation. Implement and validate P0–P3 and prepare the
+concrete P4 release decision; do not publish an unverified candidate. Detailed plan:
+`research/2026-09-11-wta-surface-next.md`. No new model selection or parameter sweep.
+
+- [ ] P0: isolate from fresh accepted origin/master, verify 770 evidence files and
+  18 accepted research heads, copy/freeze population8 raw inputs and runtime.
+- [ ] P1: support the exact 60-day surface signal in WTA training, both temporal
+  states, final construction and all query routes; preserve ATP's 42-feature behavior.
+- [ ] P2: integrate explicit tour schemas into strict artifacts, receipts, exports,
+  feature caches, full/quick recovery and both release gates, with regression tests.
+- [ ] P3a: exact frozen-population feature and 17-year candidate OOS replay; saved
+  routes, selected states, boundaries, corruption and ordinary ATP parity.
+- [ ] P3b: full applicable Python/web checks, both-tour full/quick actual builds,
+  artifact reload, cache recovery, public mirror and local serving verification;
+  measure active-player scalar/matrix/evidence costs without competing workloads.
+- [ ] P4: reconcile source history, commit the concrete validated release and record
+  results, model IDs, remaining limitations and rollback/deployment decision.
+
+Dependencies: P0 → P1 → P2 → P3 → P4; gate fixtures can be prepared once the model
+contract is fixed. No parallel agents are requested. Prior research remains immutable;
+this original checkout receives only plans/reports. Review pending implementation.
+
+### P0–P2 implementation review
+
+- [x] P0: fresh accepted production remains `dda948c`; verified all 770 prior files,
+  18 accepted heads and 294 raw input files before creating this integration.
+- [x] P1: WTA has an explicit 43-column schema and schema6; ATP remains 42/schema5.
+  The surface-only state is owned by each context bundle, so both production factories
+  automatically carry the same main/enriched selection and temporal query behavior.
+- [x] All 43 features match the accepted research candidate over both 129,228-row
+  aligned frames and the selected frame. Every stored surface observation matches;
+  2,400 query comparisons are exact. Unused form/rank state is omitted, with this
+  full retained-history equivalence as its compaction proof.
+- [x] P2 implementation: strict WTA artifact/state/policy contract, old-cache rejection,
+  audit/feature-cache/backtest identities, tour-specific method/metadata/evidence,
+  Python output gates and live verifier updated. Recent surface evidence has a plain
+  label and player-oriented counts. Ordinary ATP artifact contract stays unchanged.
+- [x] 1,333 Python tests pass under production Python3.12 with existing pinned deps;
+  374 web tests, lint/types, repository Ruff and whitespace checks pass.
+- [ ] P3: freeze source, replay all 17 WTA folds exactly, prove saved ATP parity,
+  rebuild full/quick outputs, verify recovery/mirroring/browser serving and active costs.
+
+Earlier integration runs exposed stale 42-feature test fixtures, a method-count
+assumption, and one test using the legacy message-list collector. They are corrected;
+failed logs are retained. No model fitting/selection was used to resolve those issues.
+
+### P3a review and final state binding
+
+- [x] Source `9091769` exactly reproduces all 42,426 WTA candidate probabilities
+  across 2010–2026 and all selected 43-feature rows. The accepted saved ATP artifact
+  remains loadable and reproduces its 36 independent witnesses exactly.
+- [x] Final review adds an explicit main/enriched population tag to surface state,
+  preventing a same-cutoff state swap from passing artifact validation. This is metadata
+  only: all training/orientation/probability implementations remain unchanged; complete
+  walks over 129,228 main and 146,424 enriched rows reproduce the frozen feature and
+  history values exactly. The swap regression and 74 focused tests pass.
+- [ ] P3b: current-source refresh, production-runtime full/quick rebuild and gates,
+  public mirror/cache recovery, browser verification and active-player costs pending.
+
+Preserve the completed numerical replay; the state-binding proof explicitly records
+its later metadata-only source bridge. Do not rerun or overwrite accepted evidence.
+
+### P3b migration finding — revised bounded implementation
+
+The actual full build completed and saved witnesses matched, but its output gate
+rejected 917 immutable WTA timeline observations because old models emitted seven
+signals and the new current schema requires eight. Before continuing publication:
+
+- [ ] Preserve the failed gate and full-build evidence; keep current-model signal checks strict.
+- [ ] Validate historical evidence against its recorded inference schema; retain an explicit
+  legacy path for unstamped prior generations only. Stamp new forecast records/timeline points.
+- [ ] Carry surface match counts and their signed difference through backend timeline reversal.
+- [ ] Add migration/current-corruption/reversal tests, rerun the real gate, then continue
+  saved-model quick/recovery/mirror checks without changing fitted model parameters or bytes.
+
+This is a compatibility correction within the approved P2/P3 scope, not a new experiment.
+
+### P3b migration correction review
+
+- [x] Exact legacy seven-group histories remain valid; newly stamped schema6 histories
+  and the current WTA predictor generation require all eight groups.
+- [x] Forecast logging and timeline export carry inference schema; backend reversal
+  swaps surface counts and reverses their log difference without modifying saved records.
+- [x] All 223 focused migration/forecast/gate tests pass; the actual full-output gate now
+  passes. Saved model bytes and fitted probabilities are unchanged. The earlier 917
+  findings and first test-driver collector mistake remain in private evidence.
+- [ ] Commit this boundary fix, verify full local acceptance, then exercise the corrected
+  quick export, saved-generation identity, recovery, mirror/browser and active costs.
+
+### P3 final review and P4 release decision
+
+- [x] Actual full and quick two-tour builds, strict saved witness replay, output gates,
+  accepted mirrors, byte-identical model reuse and explicit post-fit source bridge.
+- [x] Final clean source: 1,344 Python tests; 374 web tests plus lint/types/build; 36 current
+  desktop/mobile checks and focused WTA/ATP evidence checks; local HTTP graph 462/18.
+- [x] Restored both strict model artifacts and 290 raw archive files including all 11
+  lower-history seasons; validated actual timeline orientation and current-schema rejection.
+- [x] Active-cohort costs: +3.9% scalar, +10.6% probability-matrix, +13.8–15.7%
+  explanation medians; +4.3% model bytes and +6.2% memory. All registered limits pass.
+- [x] Verified 770 prior evidence files and 18 accepted heads. Preserved nine generated
+  candidate records privately and restored accepted production ledgers in the branch.
+- [x] P4 concrete decision/report: locally validated candidate; hold production deployment.
+  The configured ATP statistics source still times out. Do not bypass strict download.
+- [ ] Once the source recovers, follow `research/2026-09-11-wta-production-next.md` to
+  reconcile production, establish this model release's push authorization, deploy through
+  normal gates and verify the actual live generation. No master push occurred here.
+
+### September 11 release-readiness follow-up review
+
+The user's next “Keep going” authorized the remaining readiness investigation.
+No implementation, prediction, source-ledger or workflow changes were made.
+
+- [x] Bounded provider checks: five connection failures, including IPv4 and the
+  production User-Agent. The published January GitHub archive is not a current fallback.
+- [x] Fresh origin/master remains dda948c. Scheduled quick run34640536421 succeeded;
+  source downloads still failed0/2. Independent incumbent live verifier passes22/22,
+  with462 accepted public artifacts and matching retained model metadata.
+- [x] Corrected the handoff: full strict-download failure is deliberately nonfatal
+  until after deployment; this model's readiness hold is a release recommendation.
+- [x] All1675 accepted evidence files remain byte-identical. Separate readiness
+  evidence and exact next/rollback steps are recorded in research/2026-09-11-wta-readiness.md
+  and its result manifest. No duplicate fit or numerical selection was run.
+- [ ] New-model release remains pending source recovery and the concrete deployment
+  decision. No source-ready full acquisition or model push is claimed.

@@ -432,3 +432,7 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 
 - A closed shortlist is not an exhausted research program. (2026-09-08; `lessons/model-research.md`)
+
+- Historical forecast evidence belongs to its recorded model contract; current-generation
+  requirements and every orientation path remain strict. See
+  [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-09-11)

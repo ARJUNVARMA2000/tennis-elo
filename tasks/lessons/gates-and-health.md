@@ -434,3 +434,13 @@ Indexed in [`../lessons.md`](../lessons.md).
   required it. Pass the manifest's build date through both event selection and cached-draw
   identity recovery. Keep lifecycle evidence separate from retention, and replay the real
   event through producer and gate with future and stale maxima plus the expiry boundary.
+
+- **Historical forecast evidence belongs to its recorded model contract.** (2026-09-11)
+  Adding WTA's eighth evidence group made the current-schema gate reject 917 valid
+  seven-group observations in immutable older timelines. Stamp new forecast records and
+  timeline points with their inference schema. Validate old schema5 histories and exact
+  unstamped legacy histories separately, while requiring the current generation's full
+  group set even inside a timeline. Do not rewrite old forecasts or make current evidence
+  optional. New player-oriented facts must also participate in backend history reversal,
+  not only the frontend orientation helper. Exercise a real committed forecast history
+  during a model-schema migration; synthetic current-only fixtures miss this boundary.

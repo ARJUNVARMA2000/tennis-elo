@@ -13,13 +13,13 @@ and match context. A five-seed boosted-tree ensemble is calibrated in both playe
 orientations; the final probability averages those orientations so reversing the players
 returns the complementary probability.
 
-The corrected retrospective evaluation covers **46,205 ATP and 42,425 WTA matches** in
+The pre-surface-signal reference evaluation below covers **46,205 ATP and 42,425 WTA matches** in
 annual folds from 2010–2026 (2026 is partial), measured on 2026-09-11 UTC after refreshing
 the recovery inputs. Market odds are evaluation-only. Exact historical publication times
 are not reconstructed; the walk uses verified dates where available and recorded event/round
 order otherwise. See the [release measurements](../tasks/research/2026-09-10-general-release.md).
 
-| Model (walk-forward 2010–2026) | ATP accuracy | ATP Brier | WTA accuracy | WTA Brier |
+| Reference model (walk-forward 2010–2026) | ATP accuracy | ATP Brier | WTA accuracy | WTA Brier |
 |---|---:|---:|---:|---:|
 | Surface Elo + cross-surface transfer | 0.682 | 0.2009 | 0.664 | 0.2098 |
 | Serve/return point model | 0.669 | 0.2057 | 0.650 | 0.2131 |
@@ -35,6 +35,17 @@ out of combiner training. WTA keeps separate main-only and qualifying/125-enrich
 selecting the enriched history only when either player has fewer than 32 prior main-draw
 matches. The existing tuned parameters and selection policy are unchanged by this release.
 
+
+The WTA integration adds one feature: the difference in log-transformed completed
+match counts on the same surface during the preceding 60 days (inclusive). Each main
+and enriched state owns its corresponding history. ATP remains at 42 features/schema5;
+WTA uses 43/schema6 and rejects the older saved WTA contract. The fixed candidate
+improved tuning log loss by 0.000810 ± 0.000209 SE and later-year log loss by
+0.000561 ± 0.000321 SE; the latter week-block 95% interval includes zero. Accuracy
+was essentially unchanged. These are retrospective results, not live timing proof.
+See the [integration and release record](../tasks/research/2026-09-11-wta-production-release.md) for the exact comparison,
+verification and deployment status.
+
 Model changes are selected on 2010–2019, checked on 2020+ using paired log-loss
 uncertainty, and then evaluated through the complete walk-forward arbiter. Historical
 experiments remain in [`tasks/tuning-results-*.md`](../tasks/).
@@ -46,7 +57,7 @@ data ─┬─ surface Elo + cross-surface transfer  (per-surface ratings, every
       │        hierarchical point→game→tiebreak→set→match Markov; Bo3/Bo5)
       └─ context  (rest, fatigue, H2H, hand, rank, age, home advantage, MCP style)
                          │
-     seed-bagged XGBoost combiner (42 features, 5 averaged fits) ──Platt──>
+     seed-bagged XGBoost combiner (ATP 42 / WTA 43 features, 5 fits) ──Platt──>
              calibrated P(A beats B) + set-score distribution
             ┌────────────┴────────────┐
      single-match predictor     Monte Carlo draw simulator (per-round + title odds)

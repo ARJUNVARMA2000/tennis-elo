@@ -53,7 +53,7 @@ def test_output_gate_requires_independent_receipt_after_declared_rollout():
 
     pred = predictor()
     receipt = audit(pred)
-    outputs = {'data':{'meta':{'predictionAuditSchema':AUDIT_SCHEMA,
+    outputs = {'data':{'meta':{'tour':'atp', 'predictionAuditSchema':AUDIT_SCHEMA,
         'inferenceSchemaVersion':pred.inference_schema_version,
         'predictionAuditObservedAt':receipt['observedAt'],
         'predictorArtifactId':pred.artifact_id,'predictionAuditSourceGeneration':'frozen-input'}}}

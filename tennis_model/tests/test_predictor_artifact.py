@@ -26,7 +26,7 @@ from tennis_model.model.artifact import (
     validate_predictor_artifact_identity,
     validate_predictor_structure,
 )
-from tennis_model.model.features import FEATURES, H2HState, feat_params_for
+from tennis_model.model.features import FEATURES, H2HState, feat_params_for, features_for
 from tennis_model.model.predict import TennisPredictor
 from tennis_model.model.train import (
     BaggedClassifier,
@@ -40,13 +40,14 @@ from xgboost import XGBClassifier
 
 
 def _valid_predictor(tour: str = "atp") -> TennisPredictor:
+    columns = features_for(tour)
     rng = np.random.default_rng(41)
     train_x = pd.DataFrame(
-        rng.normal(size=(128, len(FEATURES))), columns=FEATURES
+        rng.normal(size=(128, len(columns))), columns=columns
     )
     train_y = rng.integers(0, 2, len(train_x))
     cal_x = pd.DataFrame(
-        rng.normal(size=(128, len(FEATURES))), columns=FEATURES
+        rng.normal(size=(128, len(columns))), columns=columns
     )
     cal_y = rng.integers(0, 2, len(cal_x))
     members = []
@@ -58,7 +59,7 @@ def _valid_predictor(tour: str = "atp") -> TennisPredictor:
         np.linspace(0.05, 0.95, len(cal_y)), cal_y
     )
     dual = tour == "wta"
-    return TennisPredictor(
+    predictor = TennisPredictor(
         BaggedClassifier(members),
         calibrator,
         RatingState(params=params_for(tour)),
@@ -72,6 +73,12 @@ def _valid_predictor(tour: str = "atp") -> TennisPredictor:
         lower_ctx=H2HState({}) if dual else None,
         dual_state_threshold=WTA_DUAL_STATE_GATE_THRESHOLD if dual else None,
     )
+    if dual:
+        from tennis_model.model.surface_exposure import SurfaceExposureState
+        predictor.ctx.surface_exposure = SurfaceExposureState()
+        predictor.lower_ctx.surface_exposure = SurfaceExposureState(population="enriched")
+    return predictor
+
 
 
 @pytest.fixture(scope="module")

@@ -46,7 +46,7 @@ from ..data.charting import build_profiles, name_key
 from ..data.rankings import load_rankings
 from ..data.results import summary
 from ..timing import STAGE_STATUS_SCHEMA, timed
-from .features import FEATURES, STYLE_FEATURES
+from .features import STYLE_FEATURES, features_for
 from .predict import can_predict_match
 
 ACTIVE_DAYS = 550
@@ -738,7 +738,7 @@ def build_meta(df, players, accuracy, trained_at: str | None = None,
         "excludedWta125Matches": int(df.attrs.get("excluded_wta125_matches", 0)),
         "excludedUnclassifiedWtaLiveMatches": int(
             df.attrs.get("excluded_unclassified_wta_live_matches", 0)),
-        "features": FEATURES, "surfaces": list(SURFACES),
+        "features": features_for(tour), "surfaces": list(SURFACES),
         "backtest": accuracy.get("models") if accuracy else None,
         "notes": "Hybrid: surface-blended Elo + opponent-adjusted serve/return point model "
                  "+ MCP style -> XGBoost combiner (Platt-calibrated). Historical walk-forward evaluation.",
@@ -775,7 +775,7 @@ def build_method(tour: str) -> dict:
     from ..points.markov import P_CLIP
     from ..points.serve_return import sr_params_for
     from ..ratings.elo import params_for
-    from .features import ANTISYM, STYLE_DIFFS, SYMMETRIC, feat_params_for
+    from .features import STYLE_DIFFS, SYMMETRIC, antisymmetric_for, feat_params_for
     from .train import EARLY_STOPPING_ROUNDS, effective_xgb_params
 
     anchors = TIER_ANCHORS.get(tour)
@@ -806,9 +806,9 @@ def build_method(tour: str) -> dict:
             "calibration": "platt",
             "earlyStoppingRounds": EARLY_STOPPING_ROUNDS,
             "xgb": _camel(effective_xgb_params(tour)),
-            "featureCount": len(FEATURES),
+            "featureCount": len(features_for(tour)),
             "featureGroups": {
-                "antisymmetric": len(ANTISYM) - len(STYLE_DIFFS),
+                "antisymmetric": len(antisymmetric_for(tour)) - len(STYLE_DIFFS),
                 "style": len(STYLE_DIFFS),
                 "symmetric": len(SYMMETRIC),
             },

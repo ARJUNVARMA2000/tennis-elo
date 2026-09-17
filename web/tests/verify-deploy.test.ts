@@ -1,3 +1,4 @@
+import { MODEL_CONTRACTS } from "../scripts/model-contract.mjs";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 
@@ -1050,8 +1051,11 @@ describe("scrollShellProblems", () => {
   });
 });
 
-it.each(["valid", "missing digest", "wrong artifact", "stale", "missing marker", "chronology", "old chronology"])(
-  "checks schema-5 prediction receipt metadata: %s", async (caseName) => {
+it.each((["atp", "wta"] as const).flatMap((tour) => [
+  "valid", "missing digest", "wrong artifact", "stale", "missing marker", "chronology", "old chronology",
+  "wrong tour schema", "reordered features", "missing features",
+].map((caseName) => ({ tour, caseName }))))(
+  "checks $tour production receipt metadata: $caseName", async ({ tour, caseName }) => {
     let fixture = buildLineageFixture();
     // Derive the healthy fixture from the Python producer, so two copied stale
     // literals cannot make the producer and live verifier drift unnoticed.
@@ -1061,7 +1065,8 @@ it.each(["valid", "missing digest", "wrong artifact", "stale", "missing marker",
     const chronologyPolicy = /^CHRONOLOGY_POLICY = ['"]([^'"]+)['"]/m.exec(chronologySource)?.[1];
     expect(chronologyPolicy).toBeTypeOf("string");
     const meta: Record<string, unknown> = {
-      inferenceSchemaVersion: 5,
+      inferenceSchemaVersion: MODEL_CONTRACTS[tour].inferenceSchema,
+      features: [...MODEL_CONTRACTS[tour].features],
       predictionAuditSchema: "prediction-audit-v1",
       predictionAuditSHA256: "a".repeat(64),
       predictionAuditSourceGeneration: "b".repeat(64),
@@ -1080,10 +1085,13 @@ it.each(["valid", "missing digest", "wrong artifact", "stale", "missing marker",
     if (caseName === "old chronology") {
       (meta.chronology as Record<string, unknown>).policy = "retrospective-verified-date-or-recorded-event-round-v1";
     }
+    if (caseName === "wrong tour schema") meta.inferenceSchemaVersion = tour === "wta" ? 5 : 6;
+    if (caseName === "reordered features") (meta.features as string[]).reverse();
+    if (caseName === "missing features") delete meta.features;
     const raw = lineageBytes(meta);
-    fixture.files.set("atp/meta.json", raw);
+    fixture.files.set(`${tour}/meta.json`, raw);
     fixture = withLineageManifest(fixture, (manifest) => {
-      const record = manifest.artifacts.find((entry) => entry.path === "atp/meta.json")!;
+      const record = manifest.artifacts.find((entry) => entry.path === `${tour}/meta.json`)!;
       record.bytes = raw.byteLength;
       record.sha256 = lineageDigest(raw);
     });

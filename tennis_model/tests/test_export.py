@@ -228,7 +228,7 @@ def test_build_method_matches_accessors():
 def test_build_method_shape_and_strict_json():
     """Schema-level keys are camelCase, tuples arrive as lists, counts are coherent,
     and the payload survives a browser-strict round-trip through _finite."""
-    from tennis_model.model.features import FEATURES
+    from tennis_model.model.features import features_for
 
     def _assert_camel(d, path=""):
         for k, v in d.items():
@@ -241,7 +241,7 @@ def test_build_method_shape_and_strict_json():
         m = export.build_method(tour)
         _assert_camel(m)
         groups = m["combiner"]["featureGroups"]
-        assert sum(groups.values()) == m["combiner"]["featureCount"] == len(FEATURES)
+        assert sum(groups.values()) == m["combiner"]["featureCount"] == len(features_for(tour))
         for field in (m["tiers"]["anchors"], m["serveReturn"]["pClip"],
                       m["protocol"]["tuneYears"], m["surfaces"]):
             assert isinstance(field, list)

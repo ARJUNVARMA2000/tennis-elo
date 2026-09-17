@@ -38,8 +38,9 @@ from ..points.serve_prior import PRIOR_POLICY, ServePriorState
 from ..points.serve_return import ServeReturnState, sr_params_for
 from ..ratings.build import RatingState
 from ..ratings.elo import params_for
-from .features import FEATURES, H2HState, feat_params_for
+from .features import H2HState, feat_params_for, features_for, inference_schema_for
 from .probability import PROBABILITY_POLICY
+from .surface_exposure import SURFACE_POLICY, SurfaceExposureState, validate_surface_state
 from .train import (
     BaggedClassifier,
     PlattCalibrator,
@@ -199,11 +200,11 @@ def predictor_contract(tour: str) -> dict[str, Any]:
     from xgboost import Booster, XGBClassifier
 
     from ..config import REVIEWED_RESULTS
-    from .predict import INFERENCE_SCHEMA_VERSION, TennisPredictor
+    from .predict import TennisPredictor
 
     gate = WTA_DUAL_STATE_GATE_THRESHOLD if tour == "wta" else None
     return {
-        "features": list(FEATURES),
+        "features": features_for(tour),
         "featureParams": asdict(feat_params_for(tour)),
         "eloParams": asdict(params_for(tour)),
         "serveReturnParams": asdict(sr_params_for(tour)),
@@ -214,12 +215,13 @@ def predictor_contract(tour: str) -> dict[str, Any]:
             "playerAliases": [list(pair) for pair in sorted(PLAYER_ALIASES.items())],
         },
         "inference": {
-            "schemaVersion": INFERENCE_SCHEMA_VERSION,
+            "schemaVersion": inference_schema_for(tour),
             "probabilityPolicy": PROBABILITY_POLICY,
             "stylePolicy": STYLE_POLICY,
             "servePriorPolicy": PRIOR_POLICY,
             "chronologyPolicy": CHRONOLOGY_POLICY,
             "dualStateGateThreshold": gate,
+            **({"surfaceExposurePolicy": SURFACE_POLICY} if tour == "wta" else {}),
         },
         "classes": {
             "predictor": _class_name(TennisPredictor),
@@ -231,6 +233,7 @@ def predictor_contract(tour: str) -> dict[str, Any]:
             "eloState": _class_name(RatingState),
             "serveReturnState": _class_name(ServeReturnState),
             "contextState": _class_name(H2HState),
+            **({"surfaceExposureState": _class_name(SurfaceExposureState)} if tour == "wta" else {}),
             "styleSnapshot": _class_name(StyleSnapshot),
             "servePriorState": _class_name(ServePriorState),
         },
@@ -341,6 +344,8 @@ def _validate_contract_shape(contract: Any, expected: dict[str, Any]) -> None:
     for field in ("probabilityPolicy", "stylePolicy", "servePriorPolicy", "chronologyPolicy"):
         if type(inference[field]) is not str:
             _fail_schema(f"contract.inference.{field} must be a string")
+    if "surfaceExposurePolicy" in expected["inference"] and type(inference["surfaceExposurePolicy"]) is not str:
+        _fail_schema("contract.inference.surfaceExposurePolicy must be a string")
     gate = inference["dualStateGateThreshold"]
     if gate is not None and type(gate) is not int:
         _fail_schema("contract.inference.dualStateGateThreshold is invalid")
@@ -896,6 +901,16 @@ def _validate_state_bundle(predictor: Any, tour: str) -> None:
         _validate_mapping_fields(
             ctx, ("_h2h", "_h2h_surface", "_last10", "_recent_work"), f"{name}.ctx"
         )
+        if tour == "wta":
+            try:
+                validate_surface_state(getattr(ctx, "surface_exposure", None), elo.last_date,
+                                       population="main" if name == "main" else "enriched")
+            except (ValueError, TypeError, AttributeError, OverflowError) as exc:
+                raise PredictorArtifactError(PredictorArtifactReason.STATE_INVALID,
+                                             f"{name} surface state: {exc}") from exc
+        elif hasattr(ctx, "surface_exposure"):
+            raise PredictorArtifactError(PredictorArtifactReason.STATE_INVALID, "ATP carries WTA surface state")
+
 
     if vars(predictor)["fp"] != expected_fp:
         raise PredictorArtifactError(
@@ -1131,7 +1146,7 @@ def _validate_predictor(
     model_features=None,
 ) -> None:
     # Imported lazily to keep ``predict.TennisPredictor`` free to delegate here.
-    from .predict import INFERENCE_SCHEMA_VERSION, TennisPredictor
+    from .predict import TennisPredictor
 
     expected_type = TennisPredictor if predictor_type is None else predictor_type
     if type(predictor) is not expected_type:
@@ -1165,7 +1180,7 @@ def _validate_predictor(
         type(raw["match_population_version"]) is not int
         or raw["match_population_version"] != MATCH_POPULATION_VERSION
         or type(raw["inference_schema_version"]) is not int
-        or raw["inference_schema_version"] != INFERENCE_SCHEMA_VERSION
+        or raw["inference_schema_version"] != inference_schema_for(tour)
     ):
         raise PredictorArtifactError(
             PredictorArtifactReason.PREDICTOR_FIELDS, "raw version fields mismatch"

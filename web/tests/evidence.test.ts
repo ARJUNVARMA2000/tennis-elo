@@ -90,3 +90,19 @@ describe("model evidence context cards", () => {
     expect(html).toContain("not a causal explanation");
   });
 });
+
+it("shows recent surface counts with the correct player orientation", () => {
+  const evidence: PredictionEvidenceData = {
+    schema: "evidence-v1", playerA: "A", playerB: "B", signals: [{
+      key: "recentSurface", available: true, supports: "A", impactPp: 1.5,
+      facts: { matchesA: 7, matchesB: 2, logCountDifference: 0.98 },
+    }],
+  };
+  const reversed = orientEvidence(evidence, true);
+  expect(reversed.signals[0].facts).toMatchObject({ matchesA: 2, matchesB: 7, logCountDifference: -0.98 });
+  const html = renderToStaticMarkup(createElement(PredictionEvidence, {
+    evidence: reversed,
+  }));
+  expect(html).toContain("Recent surface experience");
+  expect(html).toContain("Past 60 days on this surface: B 2 · A 7 matches.");
+});

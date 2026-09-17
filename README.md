@@ -17,8 +17,8 @@ web product that turns live tour data into calibrated match, set-score, and tour
 | | |
 |---|---|
 | **Product** | Live ATP/WTA scores and forecasts, real tournament brackets, exact what-if scenarios, player dossiers, rankings, and model-vs-market reporting |
-| **Model** | 42-feature hybrid: surface Elo + opponent-adjusted serve/return Markov model + context and Match Charting style, fused by a five-seed XGBoost ensemble and Platt calibration |
-| **Evidence** | Retrospective annual walk-forward evaluation; corrected 2010–2026 Brier of 0.1963 ATP and 0.2042 WTA, with explicit date-availability limits |
+| **Model** | 42-feature ATP / 43-feature WTA hybrid: surface Elo + opponent-adjusted serve/return Markov model + context and Match Charting style, fused by a five-seed XGBoost ensemble and Platt calibration |
+| **Evidence** | Reference 42-feature annual walk-forward evaluation; corrected 2010–2026 Brier of 0.1963 ATP and 0.2042 WTA, with explicit date-availability limits |
 | **Operations** | Hourly data refresh and deployment, daily retraining, weekly recoverable data snapshots, two deployment gates, deduplicated alerts, and an independent liveness watchdog |
 | **Stack** | Python, pandas, NumPy, scikit-learn, XGBoost, Next.js 16, React 19, TypeScript, GitHub Actions, and Firebase Hosting |
 
@@ -49,13 +49,13 @@ and match context. A five-seed boosted-tree ensemble is calibrated in both playe
 orientations; the final probability averages those orientations so reversing the players
 returns the complementary probability.
 
-The corrected retrospective evaluation covers **46,205 ATP and 42,425 WTA matches** in
+The pre-surface-signal reference evaluation below covers **46,205 ATP and 42,425 WTA matches** in
 annual folds from 2010–2026 (2026 is partial), measured on 2026-09-11 UTC after refreshing
 the recovery inputs. Market odds are evaluation-only. Exact historical publication times
 are not reconstructed; the walk uses verified dates where available and recorded event/round
 order otherwise. See the [release measurements](tasks/research/2026-09-10-general-release.md).
 
-| Model (walk-forward 2010–2026) | ATP accuracy | ATP Brier | WTA accuracy | WTA Brier |
+| Reference model (walk-forward 2010–2026) | ATP accuracy | ATP Brier | WTA accuracy | WTA Brier |
 |---|---:|---:|---:|---:|
 | Surface Elo + cross-surface transfer | 0.682 | 0.2009 | 0.664 | 0.2098 |
 | Serve/return point model | 0.669 | 0.2057 | 0.650 | 0.2131 |
@@ -91,6 +91,17 @@ incumbent and candidate before collecting future paired forecasts. It preserves 
 timing evidence, excludes calls that cannot be proved pre-match, and supplements the arbiter
 without changing production predictions or automatically adopting a candidate.
 
+
+The WTA integration adds one feature: the difference in log-transformed completed
+match counts on the same surface during the preceding 60 days (inclusive). Each main
+and enriched state owns its corresponding history. ATP remains at 42 features/schema5;
+WTA uses 43/schema6 and rejects the older saved WTA contract. The fixed candidate
+improved tuning log loss by 0.000810 ± 0.000209 SE and later-year log loss by
+0.000561 ± 0.000321 SE; the latter week-block 95% interval includes zero. Accuracy
+was essentially unchanged. These are retrospective results, not live timing proof.
+See the [integration and release record](tasks/research/2026-09-11-wta-production-release.md) for the exact comparison,
+verification and deployment status.
+
 ## Architecture
 
 ```text
@@ -105,7 +116,7 @@ historical + current match data
       └─ context and style
            rest, workload, form, H2H, hand, rank, age, home advantage, Match Charting profile
                               │
-                 42-feature XGBoost ensemble (5 fits)
+                 ATP 42 / WTA 43 features → XGBoost ensemble (5 fits)
                               │
                        Platt calibration
                               │
