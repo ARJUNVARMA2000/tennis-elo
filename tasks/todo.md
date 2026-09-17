@@ -7882,3 +7882,20 @@ Investigation and plan only so far; no implementation or deployment performed.
   tests pass; Ruff and whitespace checks pass.
 - [x] Full review and snapshot limitations are recorded at the repair checkout's todo
   tail. No deployment or issue mutation; a fresh release must regenerate its audit.
+
+## 2026-09-17 — Consolidate all branches onto master
+
+User requested immediate consolidation and only the master branch. Check-in:
+all 27 worktrees are clean; preserve their files and the two existing stashes.
+
+- [ ] Save a recovery bundle and branch/worktree inventory before consolidation.
+- [ ] Bring master current and merge remaining branch histories, resolving overlaps
+  without losing production repairs or research evidence.
+- [ ] Run Python and web validation; review the combined changes.
+- [ ] Publish master, detach retained worktrees, and remove fully incorporated local
+  and remote branch names so only master remains.
+
+### Review
+
+Pending consolidation and validation. A push to master triggers production deploy;
+existing release readiness constraints must be checked before that step.
