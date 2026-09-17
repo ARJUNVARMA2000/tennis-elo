@@ -8505,3 +8505,19 @@ all 27 worktrees are clean; preserve their files and the two existing stashes.
 
 Pending consolidation and validation. A push to master triggers production deploy;
 existing release readiness constraints must be checked before that step.
+
+
+### M3 review — rebuilt reference accepted
+
+- [x] Implementation `1fbe42a`, freeze `1f531e2bf3ebb5e771a798e3eee3376a09794e94f721cd04f6230076a612c7ac`.
+- [x] ATP baseline: 46,195 scored, LL 0.5739541815713326; every probability identical
+      to Phase 3. WTA: 42,422 scored, LL 0.5930618887966231. No unexplained omissions.
+- [x] Both strict final artifacts pass reload, all-42-column OOS parity, 435 pair checks
+      (max 1.11e-16), producer audit, and exact 2010/2026 five-bag reproduction.
+- [x] Four full-prefix temporal probes pass with zero state-feature error, exact future
+      append parity, nondestructive serialized queries and delayed-prior boundaries.
+- [x] Common-result comparison separates 248 scored additions/23 removals from WTA's
+      small common-match loss change. No candidate gain or adoption is claimed.
+- [x] M4 has its own distinct copied inputs and tested adapter at `8c4792f` in
+      `worktrees/dynamic-screen` (`codex/model-dynamic-screen`), ready for frozen parity
+      and the original eight-setting screen. Continue there; leave this reference intact.
