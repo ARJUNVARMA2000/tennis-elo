@@ -1,0 +1,113 @@
+{
+  "repairCommit": "94ae91ee2c4ed32b63139b3a72bc2526aea2a4f9",
+  "runId": 35231682637,
+  "runUrl": "https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/35231682637",
+  "workflowConclusion": "success",
+  "deployment": "success",
+  "integrityGate": "success",
+  "siteUrl": "https://deuce-forecast.web.app",
+  "ci": {
+    "pythonPassed": 1849,
+    "pythonSkipped": 1,
+    "webPassed": 374,
+    "browserSmoke": "success",
+    "liveChecksPassed": 22,
+    "exactArtifactsVerified": 464,
+    "knownAbsentPathsVerified": 18
+  },
+  "generatedAt": "2026-09-17T14:56:36Z",
+  "healthOk": true,
+  "artifactLineage": {
+    "schema": "artifact-lineage-v1",
+    "status": "accepted",
+    "releaseId": "2dd8e906-6c96-48e2-80e4-4b1f2564bc7e",
+    "manifestSha256": "3ff4293d11cd890c53beb86e48c3009708c209c8e9f0dbc23c2bb2b4a3958ee0",
+    "tours": [
+      "atp",
+      "wta"
+    ]
+  },
+  "artifactCount": 464,
+  "models": {
+    "atp": {
+      "lastUpdated": "2026-09-17T14:27:17Z",
+      "modelTrainedAt": "2026-09-17T14:26:00Z",
+      "predictorArtifactId": "fad66326-42c4-4972-8c19-e44da8e47048",
+      "matchPopulationVersion": 10,
+      "modelPopulationVersion": 10,
+      "inferenceSchemaVersion": 5,
+      "featureCount": 42
+    },
+    "wta": {
+      "lastUpdated": "2026-09-17T14:54:37Z",
+      "modelTrainedAt": "2026-09-17T14:53:30Z",
+      "predictorArtifactId": "e604448a-8ac3-4fae-b831-1534d9c6e2fd",
+      "matchPopulationVersion": 10,
+      "modelPopulationVersion": 10,
+      "inferenceSchemaVersion": 6,
+      "featureCount": 43
+    }
+  },
+  "caldas": {
+    "espnId": "1024-2026",
+    "status": "live",
+    "drawSize": 32,
+    "mainDrawMatchCount": 22,
+    "round16": {
+      "a": "Susan Bandecchi",
+      "b": "Viktoria Hruncakova",
+      "seedA": 6,
+      "seedB": null,
+      "winner": "a",
+      "score": "6-3 6-2",
+      "p": 0.5813,
+      "probSource": "logged",
+      "upset": false
+    },
+    "quarterfinal": {
+      "a": "Susan Bandecchi",
+      "b": "Lisa Pigato",
+      "seedA": 6,
+      "seedB": 3,
+      "winner": null,
+      "score": null,
+      "p": 0.7177,
+      "probSource": "model",
+      "upset": null
+    }
+  },
+  "independentLiveVerification": {
+    "scope": "Exact manifest digest and four artifact digests; both model contracts; Caldas R16 and QF",
+    "status": "success"
+  },
+  "recoveredIssues": [
+    {
+      "number": 70,
+      "state": "CLOSED",
+      "closedAt": "2026-09-17T14:57:53Z"
+    },
+    {
+      "number": 71,
+      "state": "CLOSED",
+      "closedAt": "2026-09-17T14:57:59Z"
+    }
+  ],
+  "consolidation": {
+    "onlyLocalBranch": "master",
+    "onlyRemoteBranch": "master",
+    "removedLocalBranches": 28,
+    "removedRemoteBranches": 4,
+    "preservedDetachedWorktrees": 26,
+    "preservedStashes": 2,
+    "recoveryBundle": ".research/2026-09-17-branch-consolidation/before.bundle",
+    "forecastLogCommit": "380af6649b0e0337e927dc5c5e039ec3b2ac3b85"
+  },
+  "supersededDeployment": {
+    "runId": 35230420903,
+    "head": "8407c286d7a13db5e9d87358865f6eceaf19d5f9",
+    "conclusion": "cancelled",
+    "reason": "Stopped the superseded pre-publication rebuild so the validated incident repair could run next.",
+    "publicationOccurred": false
+  },
+  "remainingWarnings": []
+}

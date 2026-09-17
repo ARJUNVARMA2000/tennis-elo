@@ -8597,3 +8597,27 @@ population contract because restored historical/lower rows affect predictor stat
   validated repair through the normal serialized workflow, preserving release gates.
 - [ ] Confirm the repaired production run passes the pre-upload and post-deploy gates,
   inspect the live Caldas bracket, and record issue recovery and model identities.
+
+### Consolidation and Caldas repair — completed production review
+
+- [x] All branch histories are incorporated in master. Only master remains locally and
+  on GitHub; 28 local and four remote branch names were removed. All 26 secondary
+  worktrees remain detached and intact, both stashes remain, and the pre-consolidation
+  Git bundle is retained under `.research/2026-09-17-branch-consolidation/`.
+- [x] Repair `94ae91e` deployed successfully in run `35231682637`. The superseded
+  consolidation run `35230420903` was deliberately stopped before publication so the
+  validated repair could rebuild next. The repair's full rebuild, integrity gate,
+  accepted-release publication, Firebase deployment and all health reporters passed.
+- [x] CI: 1,849 Python tests passed, one skipped; all 374 web tests, lint, type checks,
+  static build and browser smoke passed. All 22 live serving checks passed, including
+  464 exact release artifacts and 18 known-absent paths.
+- [x] Independent public-data check confirms accepted release
+  `2dd8e906-6c96-48e2-80e4-4b1f2564bc7e`, health generated at
+  `2026-09-17T14:56:36Z`, and health `ok=true`. Both models are population10;
+  ATP retains schema5/42 features and WTA serves schema6/43 features.
+- [x] Live Caldas has 22 main-draw results, including Bandecchi's 6-3 6-2 R16 win
+  over Hruncakova and the Bandecchi–Pigato QF. Issues #70 and #71 closed automatically
+  after recovery. No remaining deployment warnings were reported.
+- [x] Fast-forwarded local master to the workflow's forecast-log commit `380af66`.
+  Durable model identities, release digest and recovery evidence are recorded in
+  `tasks/deploy/2026-09-17-consolidation-repair.json`.
