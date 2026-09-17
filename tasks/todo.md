@@ -8160,3 +8160,348 @@ No implementation, prediction, source-ledger or workflow changes were made.
   and its result manifest. No duplicate fit or numerical selection was run.
 - [ ] New-model release remains pending source recovery and the concrete deployment
   decision. No source-ready full acquisition or model push is claimed.
+
+
+Local implementation saved at `8080e34848a3f8b8362669125270cfe726e15c64` on `codex/model-foundation`.
+The original checkout receives only this documentation handoff; model code and outputs
+remain isolated. Start the next implementation session in the coordinator path recorded
+in the Phase 1 review. No push or production merge was performed.
+
+Local implementation saved at `8be9d74a5ba3d3411c92e9c89d0a3dbfb47dbcfe` on `codex/model-foundation`.
+The original checkout receives only the documentation handoff. Resume implementation
+in the isolated coordinator; the accepted freeze is `evaluator-freeze-v2.json`.
+
+Local research record saved at `c5cd3669d94fb93b7b0914e96bb28253d9e990a4` on `codex/model-foundation`.
+The original checkout receives documentation only. Resume Phase 4 from the isolated
+coordinator and its preregistration; the corrected implementation remains `8be9d74`.
+
+Local Phase 4 implementation and research record saved at `51c9eb1535dc296e1464fb7c1290a779f7f34c15` on
+`codex/model-phase4`. This checkout receives documentation only. Resume from the
+maintenance plan in the isolated Phase 4 checkout; coordinator remains frozen.
+
+Pending. Model gains remain unestablished until the unchanged full arbiter gate is met.
+- Maintenance implementation is now committed as `1fbe42a3e5c900b6b76594032e5f46b1054adbaa`
+  in `.research/2026-09-06-model-foundation/worktrees/maintenance` on
+  `codex/model-population-repair`. Read that checkout's
+  `tasks/research/2026-09-06-maintenance-review.md` and live todo tail to resume.
+  Full suite: 1,319 passed. `runs/maintenance/population-004` passes all three histories:
+  ATP unchanged; WTA +255 real results, −23 duplicate copies and −1 exact self-match.
+  Earlier Phase 4 absence counts are superseded. Original/coordinator/Phase 4 data,
+  all 25,826 snapshot files and 56 Phase 3 run files passed preservation checks.
+  New reference freeze: `1f531e2bf3ebb5e771a798e3eee3376a09794e94f721cd04f6230076a612c7ac`.
+  ATP baseline completed all 46,195 rows with LL 0.5739541815713326. WTA rebuilding,
+  normal final artifacts and the registered uncertainty screen remain in progress.
+  User's follow-up “Keep going then” confirms continuation. No new input is required.
+
+
+## 2026-09-06 — Round 4 and selected-model evaluation complete
+
+This is the final documentation-only handoff for the user's continued Phase 4 work.
+The maintenance rebuild, eight-setting screen and conditional Phase 5 arbiter all
+finished successfully. The earlier pending statuses above are now superseded.
+
+Implementation and final evidence are committed locally:
+- Population repair: `1fbe42a3e5c900b6b76594032e5f46b1054adbaa`.
+- Maintenance reference review: `975379b` on `codex/model-population-repair`.
+- Candidate code/registration: `8c4792fa8fd418d29a60ef58f8d8c994fc6a5f68`.
+- Candidate final evidence/handoff: `777a38e235755754e6175b294b47f48a70e90b31` on `codex/model-dynamic-screen`.
+
+The original `codex/model-research-preparation` checkout mirrors the completed
+reviews, result/hash JSONs, tables, registration, central plan and append-only logs.
+No implementation or data files were copied into the original checkout. All reference
+checkouts remain preserved. No prospective activation, production merge or push occurred.
+
+Local implementation is committed as `250693c` and final evidence/handoff as
+`64d62decfdc9d96e5777bb8017a29bb8d4c0993f` on `codex/model-dynamic-shadow`. This original checkout mirrors only the
+research documents and append-only logs. No source/data files were copied here;
+all completed reference checkouts remain clean and preserved. No deployment occurred.
+
+Research implementation is committed as `89002bc909c16a06c734c921f8889e0c865c8ac3`;
+final acceptance and handoff as `3cd780af13e364c04714f7ae1d7e0b9bb7c9ba1c` on
+`codex/model-prospective-shadow`. This original checkout mirrors only the four new
+handoff documents, central plan status and append-only log additions. Source/data
+remain in the isolated research checkout; no live activation or production release.
+
+Research commit receipt: source adapter/tests `c9b5b17`; final acceptance and handoff
+`3f4e99d64af66461e11e6e96fb164813e4144bfd` on `codex/model-source-audit`.
+The research checkout is clean. This original checkout carries only the matching
+research documents and appended task/lesson/ledger entries; no source code was merged.
+
+Research commit receipt: evaluator/tests `10c07ee726632f7186522e423205d661169123ce`;
+final acceptance/handoff `129f811514cfd6b2a44edc087c42b26b45a475d4` on
+`codex/model-time-evidence`. Research checkout clean. This checkout mirrors only
+research documents and append-only logs; no implementation was merged or deployed.
+
+Research commit receipt: source review and continuation plan `2e50cb560bb7ba394eae83883b76db9ad06ecff6` on
+`codex/model-start-source`. Research checkout clean; this checkout mirrors only documents
+and append-only logs. No implementation, training data or deployment was copied.
+
+Research commit receipt: free-source review and scraper handoff `64e70227281c1433a825fa7032a131c9a95ceb12`
+on `codex/model-free-source`. Research checkout clean. This checkout mirrors documents
+and append-only logs only; no model, evaluator or production integration was copied.
+
+Research commit receipt: implementation `cda539332c98f5983bf6950da999e74d03d02d5e`,
+acceptance `70f5976cd9eb07ec5757674f5966c81b30c31477` on `codex/model-official-schedule`.
+Research checkout clean. This checkout mirrors documents and append-only logs only;
+collector code, test fixtures and archives remain in the isolated research paths.
+
+Research commit receipt: source/tests `aab6ed05d66bac514e5b6d3903cb7924b06b6aff`,
+acceptance `e10757fa432f08203642ef9e8fa784f77f906795` on `codex/model-official-link`.
+Research checkout clean. This checkout mirrors documents and append-only logs only;
+implementation, fixtures and raw archives remain in the isolated research paths.
+
+Research acceptance receipt: `781d37b5d23b737f20ef185a25f094d32e3675d8` (`codex/model-wta-coverage`),
+source/tests `b6df856dffa0f397b17f79b7511fe3bc5ff730f1`. Original checkout mirrors only this round's documents and
+append-only logs; all implementation and retained evidence remain isolated.
+
+Research acceptance receipt: `27cc95af1cb72aa56b316a6fcea30771a3d18094` (`codex/model-wta-lifecycle`),
+source/tests `f355253f75071cfedeafe15adf67898d52aa36e2`. Original checkout mirrors only this round's
+documents and append-only logs; implementation and raw evidence remain isolated.
+
+Documentation mirror receipt: accepted isolated timing-contract research at `0214834d535654bd92da28180c0d74fb6d33b41b`. Research checkout is clean; original checkout receives the five research documents plus append-only logs only. No source or model was merged.
+
+Research acceptance receipt: `c658c7149676a2e1f6032a1440e68f904bd692e6` (`codex/model-historical-errors`), source freeze `814def6`. Completed three registered trials; no finalist. Original checkout receives documents/tables/logs only; no experimental source or model was merged.
+
+Research acceptance receipt: `1f3920aa6f1edb538a1d33e1d149b3d507086206` (`codex/model-historical-signals`), source freeze `755342d`. Three tune trials and the fixed two-tour arbiter are complete; WTA passes and ATP fails. Original checkout receives documents/logs only. Next is saved WTA candidate implementation and serving assessment, as documented in the signal handoff.
+
+## 2026-09-10 — general-improvement release assessment
+
+User asks whether to push general improvements before continuing model integration.
+Recommendation: a focused correctness release first. See
+`tasks/research/2026-09-10-general-improvements-release-plan.md` for scope and dependencies.
+
+- [x] Compare research with production; fetch latest `origin/master` (`749f599`).
+- [x] Identify general fixes, experimental exclusions and production repairs to preserve.
+- [x] Preview integration: five conflicts; identify both branches' incompatible uses of
+  population version7 and the inference schema migration.
+- [x] Record a concrete release plan and validation requirements.
+- [ ] On execution: isolated release branch, scoped integration and combined data version.
+- [ ] Rebuilt ATP/WTA models, current full/quick/recovery checks and pre-upload gate.
+- [ ] Reviewed release, production merge/push and post-deploy verification.
+
+Assessment and plan complete. No push, production merge, implementation branch, model
+rebuild or new test run. Existing production repairs and research evidence remain intact.
+The WTA surface candidate remains separate from the proposed general correctness release.
+
+## 2026-09-10 — authorized general correctness release execution
+
+User check-in: “Okay push then” authorizes the scoped integration, validation, push to
+production `master` and live verification. Follow the recorded release plan. Preserve
+the experimental research branches; include general fixes and their complete dependencies.
+
+- [ ] R0: isolated release checkout from current production; preserve inputs and rollback evidence.
+- [ ] R1: integrate the reviewed fixes with production recovery, combined population8 and schema5.
+- [ ] R2: fresh full tests/lint/build plus combined-population and migration regression checks.
+- [ ] R3: rebuilt ATP/WTA artifacts; full/quick/recovery/mirror integrity and evaluation checks.
+- [ ] R4: commit, reconcile current production, push authorized release and verify CI/live serving.
+- [ ] R5: record final deployed commit/model generations and the remaining surface-candidate work.
+
+Execution started; no further deployment confirmation is required within this scope.
+
+
+### R0–R4 progress — scoped release pushed, production verification pending
+
+- [x] Isolated release: `.research/2026-09-10-general-release`, branch
+  `codex/general-correctness-release`, based on production `749f599`.
+- [x] General fixes integrated; production recovery/identities preserved; population8,
+  inference schema5. Experimental surface/ranking/uncertainty/collector code excluded.
+- [x] 1,319 Python tests, 360 web tests, lint/types/build; 10 fixture and 8 real-data browser
+  checks. Both full/quick gates report zero findings; actual cache recovery and 462 public
+  artifacts / 18 absent paths verified; saved models preserve 36 exact witnesses per tour.
+- [x] Both 2010–2026 corrected baselines measured. Historical predictions are exact across
+  repeat full runs; metrics and source limitations are in the release report.
+- [x] Pushed `c5dc31e2d17a312114efd0f246f81213ef9e4c30` to production `master`.
+- [ ] Wait for production run `34549366788`, verify live serving and record deployed model IDs.
+
+Run: https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/34549366788
+Report: [general release](research/2026-09-10-general-release.md).
+Private evidence: `.research/2026-09-10-general-release-evidence`.
+
+This research-document checkout remains separate from production source. Continue release
+verification in the release worktree. Subsequent WTA surface-candidate work must start from
+accepted production population8 and port the fixed candidate separately; do not merge all
+historical research branches into production.
+
+
+### R4/R5 review — scoped release deployed and independently verified
+
+- [x] Production run `34549366788` succeeded for source
+  `c5dc31e2d17a312114efd0f246f81213ef9e4c30`. CI passed 1,318 Python tests with one
+  macOS-only skip, 360 web tests, ten browser checks, lint/types/build, both model
+  rebuilds, pre-publication integrity and live serving checks.
+- [x] Independent live verification passed 22/22 checks: 462 exact artifacts and
+  18 required absent paths, health generation `2026-09-11T01:45:36Z`.
+- [x] Accepted release `482db1ef-70bb-4d1c-8672-b004a63b458e`; ATP predictor
+  `50b99b70-f87e-4b13-ab89-93c2ab8f6bb0`; WTA predictor
+  `7879edcb-b3e3-4861-b0f3-4b8da81922bd`. Both serve population8/schema5/42 features;
+  WTA threshold32, both state routes and all 528 reviewed results verified.
+- [x] Health is good with zero warnings/errors; the same three informational source
+  coverage notices present before deployment remain documented.
+- [x] Retained the real production forecast/benchmark update (`00c123b`). Final report
+  and `2026-09-10-general-release-deployment.json` contain the deployment receipt.
+- [x] Updated the historical-signal handoff: next implementation starts from accepted
+  `origin/master`, ports only the fixed WTA candidate, and revalidates on population8
+  before saved-serving acceptance or any adoption.
+
+Review complete: the authorized general correctness release is live at
+https://deuce-forecast.web.app. Experimental research remains separate; no surface,
+ranking, uncertainty or point-cap candidate was adopted. Continue new model work from
+the production baseline while preserving the earlier accepted experimental evidence.
+
+Accepted research checkout: `codex/wta-surface-serving` at
+`a6771f8f10d299493706b11c90eeb062f5c753cb`, clean after the completion commit.
+The original checkout receives only these reports and logs; production is unchanged.
+Future preservation adds this accepted head and the result manifest's 37 run files
+to the prior 17 heads / 733 files (18 heads / 770 files total).
+
+### WTA integration completion review — September 11, 2026
+
+- [x] P0–P3 local implementation and verification completed in the isolated integration
+  branch; original checkout remains documentation-only. Final integration head: `3c8d41806c49df63d89393e137cf3649a65a32ac`.
+- [x] WTA43/schema6 supported in both production factories, both tagged state histories,
+  strict saved artifacts, exports and both release gates; ATP42/schema5 preserved.
+- [x] Exact 42,426-row/17-fold replay, both-tour full/quick builds, saved witness and
+  byte parity, legacy timeline migration, recovery, public mirror and HTTP/browser checks.
+- [x] Final 1,344 clean Python tests and 374 web tests passed. Active-player cost checks
+  passed: +3.9% scalar time, +10.6% matrices, +14–16% explanations, +6.2% memory.
+- [x] All 770 prior files/18 heads preserved; nine candidate-generated records kept
+  privately and excluded from source commits. Result manifest covers 1,675 evidence files.
+- [x] Detailed report and exact handoff copied to `research/2026-09-11-wta-production-*`.
+- [ ] P4 production deployment held: the ATP statistics endpoint still times out.
+  Restore strict source readiness, reconcile master, establish authorization for this
+  WTA model release, then deploy through normal gates and verify the live generation.
+  No production push or new hypothesis selection occurred in this round.
+
+## 2026-09-11 — WTA release readiness continuation
+
+Check-in: the user's next “Keep going” continues the committed release-readiness
+handoff. Investigate the remaining source hold, preserve the completed integration
+evidence, and prepare a concrete deployment decision. No new model selection.
+
+- [ ] R1: record bounded ATP provider connectivity and payload checks in a new
+  evidence directory; verify whether the provider publishes a current alternate.
+- [ ] R2: reconcile fresh origin/master and the latest scheduled production run;
+  inspect actual serving health using the incumbent's contract.
+- [ ] R3: reconcile the handoff with the workflow's actual source-failure behavior,
+  record release/rollback prerequisites, and retry full strict acquisition only if
+  bounded connectivity supports it.
+- [ ] R4: commit the readiness report and exact next steps. Deployment remains a
+  separate concrete decision after readiness; do not overwrite prior evidence.
+
+Review pending. These steps are sequential where results determine the next action;
+independent read-only source and production checks may run together.
+
+### Release-readiness continuation review
+
+- [x] R1: five bounded ATP provider probes failed before any HTTP response. The
+  provider's GitHub file contains only 137 January matches, so it was rejected as a
+  current fallback; published website paths reveal no separate current data host.
+- [x] R2: origin/master remains dda948c. Scheduled quick run34640536421 succeeded,
+  but still downloaded zero of two ATP statistics files. Independent live verification
+  passed 22/22 checks over the incumbent's accepted 462-artifact release.
+- [x] R3: corrected the handoff's CI claim. Full download failure can deploy retained
+  data and fail afterward; holding the new model is a release recommendation, not that
+  workflow's automatic gate. No full retry was justified while connections failed.
+- [x] R4: preserved all 1,675 prior evidence files, recorded 37 new evidence files,
+  and committed the documentation-only integration follow-up at 1c1131e. Results and
+  exact remaining actions are in research/2026-09-11-wta-readiness.md and its result JSON.
+- [ ] Production model release remains pending source recovery and its concrete
+  deployment decision. No model, workflow or ledger changes; no production push.
+
+The original checkout remains documentation-only. The implementation branch is
+codex/wta-surface-production at 1c1131e; functional source remains d75b7ef and its
+previous full tests/builds/replay still apply. Both earlier numerical evidence and
+this continuation's source/production observations are preserved separately.
+
+## 2026-09-11 — ATP statistics alternative-source assessment
+
+Check-in: the user asked to check alternatives to the unavailable ATP statistics
+provider. Inspect free and official sources first; test public access and actual
+statistical coverage where possible. This authorizes source assessment, not replacing
+the production feed or changing historical training data.
+
+- [ ] A1: inventory the model's required raw statistics and previous source research.
+- [ ] A2: inspect official ATP/event feeds and free downloadable alternatives; record
+  live access, freshness, fields, identities and any account/manual-access requirements.
+- [ ] A3: compare observed samples with retained match records where available;
+  distinguish complete counts from rounded percentages and scores-only feeds.
+- [ ] A4: commit a ranked recommendation and concrete implementation/validation steps,
+  with raw evidence kept separately from accepted model experiments.
+
+Read-only source inspections can run independently. Sample validation follows actual
+access; integration would follow a supported recommendation. Review pending.
+
+### ATP alternative-source assessment review
+
+- [x] A1: verified the production point model consumes service points played and
+  total first-plus-second service points won; previous research covered schedules,
+  not the missing ATP statistical feed.
+- [x] A2: official US Open detail feeds supplied 11/11 sampled ended matches without
+  accounts. Official ATP statistics are browser-readable but ordinary HTTP returned
+  403. TennisData.app advertises free CSVs; CSV contents/access remain unverified.
+  Live Tennis API's free tier does not include the required detailed statistics.
+- [x] A3: all eight recent men's main-draw rows passed identity, count, set-total and
+  opponent-complement checks plus the actual production numeric-stat mask. Three
+  preselected qualifying overlaps matched retained core point totals exactly; first/
+  second-serve splits differed, so a wholesale raw-row replacement is unsupported.
+- [x] A4: report, ranked sources, exact mappings and dependency-ordered implementation
+  plan committed under research/2026-09-11-atp-source-alternatives*. New manifest covers
+  60 private evidence files and 24 HTTP attempts, including failures. No production
+  data, model, workflow, account, purchase, message or deployment changes.
+- [ ] Next implementation: narrowly scoped official US Open missing-stat enrichment,
+  with explicit provenance, identity/population/timing guards and existing release
+  gates. Broader ATP transport and a real TennisData.app CSV sample remain separate.
+
+Integration branch codex/wta-surface-production remains clean at 1c1131e. All source
+assessment work lives in the root documentation branch and a new private evidence
+directory; the validated WTA integration and earlier evidence remain untouched.
+
+## 2026-09-15 — Issue #68: Monterrey coverage-only card
+
+Initial investigation: GitHub issue #68 reports `output.event_coverage.shell_only`
+for WTA `espn:341-2026`. Run 35025764676 completed quick generation but failed the
+pre-deploy gate; publication was skipped. Root cause remains unconfirmed. This
+checkout is the research documentation branch; local origin/master is cb53d9c,
+including the September 14 deployment repair. Refresh remote state before repair.
+
+- [x] Identify the latest open issue and inspect the failing run and existing gate.
+- [ ] Establish an isolated repair checkout from current production, preserving research work.
+- [ ] Recover incident source/output evidence and reproduce why Monterrey loses its
+  full tournament card; trace event identity, retention, and projection decisions.
+- [ ] Repair the responsible producer and add broken/clean incident replay coverage,
+  preserving the shell-only invariant unless evidence demonstrates a contract error.
+- [ ] Run targeted regressions and applicable integrity checks; verify regenerated
+  artifacts and record the exact repair, validation results, and release readiness.
+
+Check-in pending before implementation, as required by the global workflow rules.
+Production deployment will be a separate concrete decision after validation.
+
+Investigation and plan only so far; no implementation or deployment performed.
+
+### Issue #68 implementation handoff
+
+- [x] User approved implementation. The isolated production-based repair is committed
+  at 296f43e on codex/issue-68-monterrey, checkout .research/2026-09-15-monterrey.
+- [x] Root cause: September 17 ESPN results advanced projection retention past the
+  September 15 coverage clock. Selection and cached-draw identity recovery now receive
+  coverage's buildDate. The gate remains unchanged.
+- [x] Reconstructed broken/clean replay and expiry boundaries pass; retained production
+  predictor restores Monterrey's 28-player, 27-result completed card. All 1,342 Python
+  tests pass; Ruff and whitespace checks pass.
+- [x] Full review and snapshot limitations are recorded at the repair checkout's todo
+  tail. No deployment or issue mutation; a fresh release must regenerate its audit.
+
+## 2026-09-17 — Consolidate all branches onto master
+
+User requested immediate consolidation and only the master branch. Check-in:
+all 27 worktrees are clean; preserve their files and the two existing stashes.
+
+- [ ] Save a recovery bundle and branch/worktree inventory before consolidation.
+- [ ] Bring master current and merge remaining branch histories, resolving overlaps
+  without losing production repairs or research evidence.
+- [ ] Run Python and web validation; review the combined changes.
+- [ ] Publish master, detach retained worktrees, and remove fully incorporated local
+  and remote branch names so only master remains.
+
+Pending consolidation and validation. A push to master triggers production deploy;
+existing release readiness constraints must be checked before that step.

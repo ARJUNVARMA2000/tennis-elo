@@ -1034,7 +1034,7 @@ def _validate_model(predictor: Any, tour: str, *, features=None) -> None:
     from sklearn.linear_model import LogisticRegression
     from xgboost import Booster, XGBClassifier
 
-    features = FEATURES if features is None else features
+    features = features_for(tour) if features is None else features
     clf = predictor.clf
     if type(clf) is not BaggedClassifier or type(getattr(clf, "clfs", None)) is not list:
         raise PredictorArtifactError(

@@ -10,6 +10,8 @@ on `codex/model-foundation`, based on `8080e34`, in:
 
 `/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/coordinator`
 
+Implementation commit: **`8be9d74a5ba3d3411c92e9c89d0a3dbfb47dbcfe`**.
+
 The main checkout stays on `codex/model-research-preparation` with documentation only.
 No production merge, push, deployment, data refresh, parameter search, dependency change,
 or full real-data model fit occurred. The source comparisons used the frozen archive;

@@ -6,6 +6,10 @@ baseline evaluation are not finished.** The timing audit proved an additional bl
 Resolve it before Phase 2's evaluator freeze or Phase 3's corrected baseline. No claim
 of predictive improvement is made from the passing correctness tests.
 
+Implementation commit: `8080e34848a3f8b8362669125270cfe726e15c64` on `codex/model-foundation`.
+This copy is the discovery handoff in the original checkout; the implementation and
+its tests are committed in the coordinator worktree linked below.
+
 User authorization was “Continue to phase 1 then.” This work is pre-round maintenance
 on `codex/model-foundation`, based on `c68c321`, in the isolated coordinator checkout:
 

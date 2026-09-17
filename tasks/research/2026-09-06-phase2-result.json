@@ -459,5 +459,6 @@
     "WTA production priors use the identical main population in both states: enriched-frame timing-qualified counts are not automatically prior-admitted counts.",
     "Saved fitted real-data schema-5 artifacts and 435-pair checks await Phase 3. Synthetic fitted-artifact tests and real unfitted-state probes passed.",
     "No numerical improvement, candidate adoption, source refresh, dependency upgrade, production merge, push or deployment."
-  ]
+  ],
+  "implementationCommit": "8be9d74a5ba3d3411c92e9c89d0a3dbfb47dbcfe"
 }

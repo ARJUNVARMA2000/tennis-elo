@@ -1998,5 +1998,7 @@
     "web-lint-001.log": "36a874029bf7f1eac806a8de781225e8039e4d2eece1ca32524eac39f45f7b9d",
     "web-tests-001.log": "aa0b5e4cbe013fc44a17d44fc138057e072b20befa3fc78dc90ad62966c2b324",
     "web-types-001.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-  }
+  },
+  "integrationHead": "3c8d41806c49df63d89393e137cf3649a65a32ac",
+  "integrationResultSHA256": "03f1468bd7d1f6ba857687a3f94a5d0287e24a990ae99ca87e1579352684d5f0"
 }

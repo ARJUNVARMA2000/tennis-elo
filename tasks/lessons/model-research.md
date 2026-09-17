@@ -230,6 +230,7 @@ Indexed in [`../lessons.md`](../lessons.md).
   indoor, despite the training frame's neutral zero. Preserve the original diagnostic
   and correct its input context explicitly, without changing fitted outcomes or sources.
 
+
 - **A result update is not a complete settlement snapshot.** (2026-09-07)
   The old prospective grader retained source files but indexed only the current batch,
   so reporting a later event would make previously scored forecasts pending again.
@@ -347,7 +348,6 @@ Indexed in [`../lessons.md`](../lessons.md).
   serve cap gained 0.000084 overall yet lost 0.000131 in the later tuning half. Register
   stability requirements before fitting, preserve negative results and keep a small
   pooled gain from buying a new validation look after its required stability check fails.
-
 
 - **A closed shortlist is not an exhausted research program.** (2026-09-08)
   User correction after three small historical trials: try more mechanisms. Preserve

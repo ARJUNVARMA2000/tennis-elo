@@ -1791,5 +1791,6 @@
     "2026-09-06-phase4-stat-pilot.csv": "f1f0f1610f54dfccf7d47980faf472655debed75ff045ec5c43c1ca08ccef98d",
     "2026-09-06-phase4-wta-2024-audit.csv": "2761d1ead2f872193b12744ab465151252cc725e1156e75d7d3625900c5af7ff",
     "2026-09-06-phase4-wta-2025-audit.csv": "7b797304608eaba31b4c024bcb4943a85f2a3ebdde3ad49f249251c49bf37db0"
-  }
+  },
+  "researchCommit": "51c9eb1535dc296e1464fb7c1290a779f7f34c15"
 }

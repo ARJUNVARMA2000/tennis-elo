@@ -309,5 +309,6 @@
     "validationStart": 2020,
     "rule": "d_tune > 0 and d_val > -naiveSE",
     "unchanged": true
-  }
+  },
+  "implementationSHA": "8080e34848a3f8b8362669125270cfe726e15c64"
 }
