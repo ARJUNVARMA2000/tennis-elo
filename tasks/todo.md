@@ -8553,3 +8553,18 @@ request did not clearly authorize that deployment plus remote cleanup. No remote
 mutation occurred. Local consolidation and final validated fixes are ready for review.
 The initial full-run failures were resolved: all 132 failed/error cases pass on rerun,
 plus 23 affected orientation/signal tests; the remaining 1,712 full-run cases passed.
+
+## 2026-09-17 — Authorized production consolidation and deploy repair
+
+User explicitly approved “Merge and deploy,” then requested fixing the latest deploy
+issue once consolidation is done. Proceed through publication and repair to live verification.
+
+- [ ] Push the tested consolidated master and remove incorporated remote branches.
+- [ ] Inspect the latest deployment failure and reproduce its specific cause.
+- [ ] Repair the producer/contract with a regression in the appropriate release gate;
+  preserve checks and existing model acceptance policy.
+- [ ] Run relevant validation, deploy the repair, and verify production serving.
+
+### Review
+
+Remote master remains `12c95c0`; no remote changes since consolidation validation.
