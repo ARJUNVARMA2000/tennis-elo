@@ -1,0 +1,120 @@
+{
+  "final-events": {
+    "rawSHA256": "018e99c6dc172cf753b78a5065cfea8ef6a7872c9958738b8d1222952baf9604",
+    "compressedSHA256": "c62317042a53c5e8f1e4556901d28188ddf5bcd3008c31c449e2fc82512583c9",
+    "attempt": {
+      "schema": "wta-lifecycle-inspection-v1",
+      "url": "https://api.wtatennis.com/tennis/tournaments/2075/2025/matches/LS001/events",
+      "requestedAt": "2026-09-08T13:33:02.842338+00:00",
+      "purpose": "official WTA lifecycle/timing audit; no forecasts"
+    },
+    "receipt": {
+      "schema": "wta-lifecycle-inspection-v1",
+      "url": "https://api.wtatennis.com/tennis/tournaments/2075/2025/matches/LS001/events",
+      "requestedAt": "2026-09-08T13:33:02.842338+00:00",
+      "purpose": "official WTA lifecycle/timing audit; no forecasts",
+      "status": 200,
+      "responseUrl": "https://api.wtatennis.com/tennis/tournaments/2075/2025/matches/LS001/events",
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "98454",
+        "cache-control": "max-age=30",
+        "etag": "\"03ccc68845befe5cd08d3c2be78bd9ab2\"",
+        "date": "Tue, 08 Sep 2026 13:33:02 GMT"
+      },
+      "rawBytes": 98454,
+      "rawSHA256": "018e99c6dc172cf753b78a5065cfea8ef6a7872c9958738b8d1222952baf9604",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T13:33:03.023510+00:00",
+      "elapsedSeconds": 0.18094612495042384
+    }
+  },
+  "semifinal-events": {
+    "rawSHA256": "86d9309651edc0a8d455716ac69ca18a1a2721dc16e60c6417530915229e6a5b",
+    "compressedSHA256": "365c0bac689d0e998ddb1aedc4f9d441108f895b7c2885b1aceaae9965a5ac4d",
+    "attempt": {
+      "schema": "wta-lifecycle-inspection-v1",
+      "url": "https://api.wtatennis.com/tennis/tournaments/2075/2025/matches/LS002/events",
+      "requestedAt": "2026-09-08T13:33:33.852136+00:00",
+      "purpose": "official WTA lifecycle/timing audit; no forecasts"
+    },
+    "receipt": {
+      "schema": "wta-lifecycle-inspection-v1",
+      "url": "https://api.wtatennis.com/tennis/tournaments/2075/2025/matches/LS002/events",
+      "requestedAt": "2026-09-08T13:33:33.852136+00:00",
+      "purpose": "official WTA lifecycle/timing audit; no forecasts",
+      "status": 200,
+      "responseUrl": "https://api.wtatennis.com/tennis/tournaments/2075/2025/matches/LS002/events",
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "115534",
+        "cache-control": "max-age=30",
+        "etag": "\"0fad53de064b760270567cb7dec201f09\"",
+        "date": "Tue, 08 Sep 2026 13:33:33 GMT"
+      },
+      "rawBytes": 115534,
+      "rawSHA256": "86d9309651edc0a8d455716ac69ca18a1a2721dc16e60c6417530915229e6a5b",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T13:33:34.005191+00:00",
+      "elapsedSeconds": 0.1528114170068875
+    }
+  },
+  "final-points": {
+    "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "compressedSHA256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+    "attempt": {
+      "schema": "wta-lifecycle-inspection-v1",
+      "url": "https://api.wtatennis.com/tennis/tournaments/2075/2025/matches/LS001/point-by-point",
+      "requestedAt": "2026-09-08T13:33:25.497666+00:00",
+      "purpose": "official WTA lifecycle/timing audit; no forecasts"
+    },
+    "receipt": {
+      "schema": "wta-lifecycle-inspection-v1",
+      "url": "https://api.wtatennis.com/tennis/tournaments/2075/2025/matches/LS001/point-by-point",
+      "requestedAt": "2026-09-08T13:33:25.497666+00:00",
+      "purpose": "official WTA lifecycle/timing audit; no forecasts",
+      "status": 404,
+      "responseUrl": "https://api.wtatennis.com/tennis/tournaments/2075/2025/matches/LS001/point-by-point",
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "0",
+        "cache-control": "max-age=30",
+        "date": "Tue, 08 Sep 2026 13:33:26 GMT"
+      },
+      "rawBytes": 0,
+      "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T13:33:26.602573+00:00",
+      "elapsedSeconds": 1.1046970839379355
+    }
+  },
+  "semifinal-points": {
+    "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "compressedSHA256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+    "attempt": {
+      "schema": "wta-lifecycle-inspection-v1",
+      "url": "https://api.wtatennis.com/tennis/tournaments/2075/2025/matches/LS002/point-by-point",
+      "requestedAt": "2026-09-08T13:33:39.399302+00:00",
+      "purpose": "official WTA lifecycle/timing audit; no forecasts"
+    },
+    "receipt": {
+      "schema": "wta-lifecycle-inspection-v1",
+      "url": "https://api.wtatennis.com/tennis/tournaments/2075/2025/matches/LS002/point-by-point",
+      "requestedAt": "2026-09-08T13:33:39.399302+00:00",
+      "purpose": "official WTA lifecycle/timing audit; no forecasts",
+      "status": 404,
+      "responseUrl": "https://api.wtatennis.com/tennis/tournaments/2075/2025/matches/LS002/point-by-point",
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "0",
+        "cache-control": "max-age=30",
+        "date": "Tue, 08 Sep 2026 13:33:39 GMT"
+      },
+      "rawBytes": 0,
+      "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T13:33:39.565131+00:00",
+      "elapsedSeconds": 0.16559591598343104
+    }
+  }
+}

@@ -842,3 +842,7 @@ BACKTEST_START_YEAR = 2010    # walk-forward evaluation window start
 # also published to the site via model.export.build_method).
 TUNE_YEARS = (2010, 2019)     # the only window the optimizer ever sees
 VAL_START = 2020              # held-out validation window start (2020..latest)
+
+
+# Fixed selected candidate for explicit OFFLINE research only; no production caller.
+DYNAMIC_SHADOW_PARAM_OVERRIDES = {"wta": {"sigma0": 1.0, "q": 0.0001}}

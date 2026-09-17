@@ -1,0 +1,1028 @@
+{
+  "startedAt": "2026-09-06T22:15:58.561821+00:00",
+  "tours": {
+    "atp": {
+      "rows": 284893,
+      "inputFingerprint": "nm1:00e8be6a824234d5ccee3ae29a1988fe9460f6be6495a4950daa51e8d0a41314",
+      "recentCensus": [
+        {
+          "year": 2023,
+          "draw_level": "chall",
+          "observed": 5684,
+          "completed": 5470,
+          "has_stats": 5582,
+          "valid_stats": 5582,
+          "completed_valid_stats": 5391
+        },
+        {
+          "year": 2023,
+          "draw_level": "main",
+          "observed": 2993,
+          "completed": 2895,
+          "has_stats": 2812,
+          "valid_stats": 2812,
+          "completed_valid_stats": 2738
+        },
+        {
+          "year": 2023,
+          "draw_level": "qual",
+          "observed": 1354,
+          "completed": 1320,
+          "has_stats": 1351,
+          "valid_stats": 1351,
+          "completed_valid_stats": 1320
+        },
+        {
+          "year": 2024,
+          "draw_level": "chall",
+          "observed": 6027,
+          "completed": 5788,
+          "has_stats": 5949,
+          "valid_stats": 5947,
+          "completed_valid_stats": 5744
+        },
+        {
+          "year": 2024,
+          "draw_level": "main",
+          "observed": 3157,
+          "completed": 3037,
+          "has_stats": 3096,
+          "valid_stats": 3096,
+          "completed_valid_stats": 2998
+        },
+        {
+          "year": 2024,
+          "draw_level": "qual",
+          "observed": 1354,
+          "completed": 1324,
+          "has_stats": 1353,
+          "valid_stats": 1353,
+          "completed_valid_stats": 1324
+        },
+        {
+          "year": 2025,
+          "draw_level": "chall",
+          "observed": 6305,
+          "completed": 6035,
+          "has_stats": 6234,
+          "valid_stats": 6234,
+          "completed_valid_stats": 5993
+        },
+        {
+          "year": 2025,
+          "draw_level": "main",
+          "observed": 2938,
+          "completed": 2809,
+          "has_stats": 2664,
+          "valid_stats": 2664,
+          "completed_valid_stats": 2562
+        },
+        {
+          "year": 2025,
+          "draw_level": "qual",
+          "observed": 1261,
+          "completed": 1214,
+          "has_stats": 1259,
+          "valid_stats": 1259,
+          "completed_valid_stats": 1214
+        },
+        {
+          "year": 2026,
+          "draw_level": "chall",
+          "observed": 5259,
+          "completed": 5026,
+          "has_stats": 5239,
+          "valid_stats": 5239,
+          "completed_valid_stats": 5025
+        },
+        {
+          "year": 2026,
+          "draw_level": "main",
+          "observed": 2252,
+          "completed": 2187,
+          "has_stats": 2120,
+          "valid_stats": 2120,
+          "completed_valid_stats": 2066
+        },
+        {
+          "year": 2026,
+          "draw_level": "qual",
+          "observed": 897,
+          "completed": 877,
+          "has_stats": 894,
+          "valid_stats": 894,
+          "completed_valid_stats": 877
+        }
+      ],
+      "hasStatsButInvalid": 50,
+      "lowerBeforeDebut": {
+        "players": 1091,
+        "rows": 27225,
+        "tunePlayers": 500,
+        "validationPlayers": 330
+      },
+      "roundDateInversions": 8,
+      "inversionExamples": [
+        {
+          "event": "2024-341",
+          "year": 2024,
+          "player": "Alex Michelsen",
+          "gapDays": 1,
+          "earlierStored": {
+            "date": "2024-11-03 00:00:00",
+            "round": "SF",
+            "winner": "Benjamin Bonzi",
+            "loser": "Alex Michelsen"
+          },
+          "laterStored": {
+            "date": "2024-11-04 00:00:00",
+            "round": "QF",
+            "winner": "Alex Michelsen",
+            "loser": "Yunchaokete Bu"
+          }
+        },
+        {
+          "event": "2024-341",
+          "year": 2024,
+          "player": "Corentin Moutet",
+          "gapDays": 1,
+          "earlierStored": {
+            "date": "2024-11-03 00:00:00",
+            "round": "SF",
+            "winner": "Cameron Norrie",
+            "loser": "Corentin Moutet"
+          },
+          "laterStored": {
+            "date": "2024-11-04 00:00:00",
+            "round": "R16",
+            "winner": "Corentin Moutet",
+            "loser": "Jan-Lennard Struff"
+          }
+        },
+        {
+          "event": "2024-341",
+          "year": 2024,
+          "player": "Quentin Halys",
+          "gapDays": 1,
+          "earlierStored": {
+            "date": "2024-11-03 00:00:00",
+            "round": "QF",
+            "winner": "Benjamin Bonzi",
+            "loser": "Quentin Halys"
+          },
+          "laterStored": {
+            "date": "2024-11-04 00:00:00",
+            "round": "R16",
+            "winner": "Quentin Halys",
+            "loser": "Pierre-Hugues Herbert"
+          }
+        },
+        {
+          "event": "2024-4787",
+          "year": 2024,
+          "player": "Denis Shapovalov",
+          "gapDays": 1,
+          "earlierStored": {
+            "date": "2024-11-03 00:00:00",
+            "round": "F",
+            "winner": "Denis Shapovalov",
+            "loser": "Hamad Medjedovic"
+          },
+          "laterStored": {
+            "date": "2024-11-04 00:00:00",
+            "round": "QF",
+            "winner": "Denis Shapovalov",
+            "loser": "Christopher O'Connell"
+          }
+        },
+        {
+          "event": "2024-6242",
+          "year": 2024,
+          "player": "Arthur Cazaux",
+          "gapDays": 1,
+          "earlierStored": {
+            "date": "2024-08-18 00:00:00",
+            "round": "R32",
+            "winner": "Rinky Hijikata",
+            "loser": "Arthur Cazaux"
+          },
+          "laterStored": {
+            "date": "2024-08-19 00:00:00",
+            "round": "R64",
+            "winner": "Arthur Cazaux",
+            "loser": "Botic van de Zandschulp"
+          }
+        },
+        {
+          "event": "2024-6242",
+          "year": 2024,
+          "player": "Arthur Rinderknech",
+          "gapDays": 1,
+          "earlierStored": {
+            "date": "2024-08-18 00:00:00",
+            "round": "R16",
+            "winner": "David Goffin",
+            "loser": "Arthur Rinderknech"
+          },
+          "laterStored": {
+            "date": "2024-08-19 00:00:00",
+            "round": "R32",
+            "winner": "Arthur Rinderknech",
+            "loser": "Christopher O'Connell"
+          }
+        },
+        {
+          "event": "2024-6242",
+          "year": 2024,
+          "player": "Pablo Carreno Busta",
+          "gapDays": 1,
+          "earlierStored": {
+            "date": "2024-08-18 00:00:00",
+            "round": "SF",
+            "winner": "Alex Michelsen",
+            "loser": "Pablo Carreno Busta"
+          },
+          "laterStored": {
+            "date": "2024-08-19 00:00:00",
+            "round": "QF",
+            "winner": "Pablo Carreno Busta",
+            "loser": "Learner Tien"
+          }
+        },
+        {
+          "event": "2026-416",
+          "year": 2026,
+          "player": "Ben Shelton",
+          "gapDays": 26,
+          "earlierStored": {
+            "date": "2026-04-13 00:00:00",
+            "round": "R32",
+            "winner": "Ben Shelton",
+            "loser": "Emilio Nava"
+          },
+          "laterStored": {
+            "date": "2026-05-09 00:00:00",
+            "round": "R64",
+            "winner": "Nikoloz Basilashvili",
+            "loser": "Ben Shelton"
+          }
+        }
+      ],
+      "availableTimeColumns": [],
+      "identityAndCompletionCensus": [
+        {
+          "year": 2023,
+          "role": "chall",
+          "rows": 5684,
+          "completed": 5470,
+          "walkovers": 20,
+          "otherNonCompleted": 194,
+          "withSourceMatchId": 0,
+          "withBothPlayerIds": 5684
+        },
+        {
+          "year": 2023,
+          "role": "main",
+          "rows": 2993,
+          "completed": 2895,
+          "walkovers": 20,
+          "otherNonCompleted": 78,
+          "withSourceMatchId": 0,
+          "withBothPlayerIds": 2993
+        },
+        {
+          "year": 2023,
+          "role": "qual",
+          "rows": 1354,
+          "completed": 1320,
+          "walkovers": 3,
+          "otherNonCompleted": 31,
+          "withSourceMatchId": 0,
+          "withBothPlayerIds": 1354
+        },
+        {
+          "year": 2024,
+          "role": "chall",
+          "rows": 6027,
+          "completed": 5788,
+          "walkovers": 32,
+          "otherNonCompleted": 207,
+          "withSourceMatchId": 0,
+          "withBothPlayerIds": 6027
+        },
+        {
+          "year": 2024,
+          "role": "main",
+          "rows": 3157,
+          "completed": 3037,
+          "walkovers": 20,
+          "otherNonCompleted": 100,
+          "withSourceMatchId": 0,
+          "withBothPlayerIds": 3156
+        },
+        {
+          "year": 2024,
+          "role": "qual",
+          "rows": 1354,
+          "completed": 1324,
+          "walkovers": 1,
+          "otherNonCompleted": 29,
+          "withSourceMatchId": 0,
+          "withBothPlayerIds": 1354
+        },
+        {
+          "year": 2025,
+          "role": "chall",
+          "rows": 6305,
+          "completed": 6035,
+          "walkovers": 34,
+          "otherNonCompleted": 236,
+          "withSourceMatchId": 0,
+          "withBothPlayerIds": 6305
+        },
+        {
+          "year": 2025,
+          "role": "main",
+          "rows": 2938,
+          "completed": 2809,
+          "walkovers": 22,
+          "otherNonCompleted": 107,
+          "withSourceMatchId": 0,
+          "withBothPlayerIds": 2858
+        },
+        {
+          "year": 2025,
+          "role": "qual",
+          "rows": 1261,
+          "completed": 1214,
+          "walkovers": 2,
+          "otherNonCompleted": 45,
+          "withSourceMatchId": 0,
+          "withBothPlayerIds": 1261
+        },
+        {
+          "year": 2026,
+          "role": "chall",
+          "rows": 5259,
+          "completed": 5026,
+          "walkovers": 17,
+          "otherNonCompleted": 216,
+          "withSourceMatchId": 0,
+          "withBothPlayerIds": 5259
+        },
+        {
+          "year": 2026,
+          "role": "main",
+          "rows": 2252,
+          "completed": 2187,
+          "walkovers": 14,
+          "otherNonCompleted": 51,
+          "withSourceMatchId": 0,
+          "withBothPlayerIds": 2126
+        },
+        {
+          "year": 2026,
+          "role": "qual",
+          "rows": 897,
+          "completed": 877,
+          "walkovers": 3,
+          "otherNonCompleted": 17,
+          "withSourceMatchId": 0,
+          "withBothPlayerIds": 897
+        }
+      ],
+      "identityConfidence": "No confidence score is retained. ID presence counts are observability, not proof of correct identity. Source provenance is not retained in the normalized frame.",
+      "boundedRoundInversions": [
+        {
+          "event": "2024-341",
+          "year": 2024,
+          "player": "Alex Michelsen",
+          "gapDays": 1,
+          "earlierStored": {
+            "date": "2024-11-03 00:00:00",
+            "round": "SF",
+            "winner": "Benjamin Bonzi",
+            "loser": "Alex Michelsen"
+          },
+          "laterStored": {
+            "date": "2024-11-04 00:00:00",
+            "round": "QF",
+            "winner": "Alex Michelsen",
+            "loser": "Yunchaokete Bu"
+          }
+        },
+        {
+          "event": "2024-341",
+          "year": 2024,
+          "player": "Corentin Moutet",
+          "gapDays": 1,
+          "earlierStored": {
+            "date": "2024-11-03 00:00:00",
+            "round": "SF",
+            "winner": "Cameron Norrie",
+            "loser": "Corentin Moutet"
+          },
+          "laterStored": {
+            "date": "2024-11-04 00:00:00",
+            "round": "R16",
+            "winner": "Corentin Moutet",
+            "loser": "Jan-Lennard Struff"
+          }
+        },
+        {
+          "event": "2024-341",
+          "year": 2024,
+          "player": "Quentin Halys",
+          "gapDays": 1,
+          "earlierStored": {
+            "date": "2024-11-03 00:00:00",
+            "round": "QF",
+            "winner": "Benjamin Bonzi",
+            "loser": "Quentin Halys"
+          },
+          "laterStored": {
+            "date": "2024-11-04 00:00:00",
+            "round": "R16",
+            "winner": "Quentin Halys",
+            "loser": "Pierre-Hugues Herbert"
+          }
+        },
+        {
+          "event": "2024-4787",
+          "year": 2024,
+          "player": "Denis Shapovalov",
+          "gapDays": 1,
+          "earlierStored": {
+            "date": "2024-11-03 00:00:00",
+            "round": "F",
+            "winner": "Denis Shapovalov",
+            "loser": "Hamad Medjedovic"
+          },
+          "laterStored": {
+            "date": "2024-11-04 00:00:00",
+            "round": "QF",
+            "winner": "Denis Shapovalov",
+            "loser": "Christopher O'Connell"
+          }
+        },
+        {
+          "event": "2024-6242",
+          "year": 2024,
+          "player": "Arthur Cazaux",
+          "gapDays": 1,
+          "earlierStored": {
+            "date": "2024-08-18 00:00:00",
+            "round": "R32",
+            "winner": "Rinky Hijikata",
+            "loser": "Arthur Cazaux"
+          },
+          "laterStored": {
+            "date": "2024-08-19 00:00:00",
+            "round": "R64",
+            "winner": "Arthur Cazaux",
+            "loser": "Botic van de Zandschulp"
+          }
+        },
+        {
+          "event": "2024-6242",
+          "year": 2024,
+          "player": "Arthur Rinderknech",
+          "gapDays": 1,
+          "earlierStored": {
+            "date": "2024-08-18 00:00:00",
+            "round": "R16",
+            "winner": "David Goffin",
+            "loser": "Arthur Rinderknech"
+          },
+          "laterStored": {
+            "date": "2024-08-19 00:00:00",
+            "round": "R32",
+            "winner": "Arthur Rinderknech",
+            "loser": "Christopher O'Connell"
+          }
+        },
+        {
+          "event": "2024-6242",
+          "year": 2024,
+          "player": "Pablo Carreno Busta",
+          "gapDays": 1,
+          "earlierStored": {
+            "date": "2024-08-18 00:00:00",
+            "round": "SF",
+            "winner": "Alex Michelsen",
+            "loser": "Pablo Carreno Busta"
+          },
+          "laterStored": {
+            "date": "2024-08-19 00:00:00",
+            "round": "QF",
+            "winner": "Pablo Carreno Busta",
+            "loser": "Learner Tien"
+          }
+        }
+      ],
+      "longGapIdentityCandidates": [
+        {
+          "event": "2026-416",
+          "year": 2026,
+          "player": "Ben Shelton",
+          "gapDays": 26,
+          "earlierStored": {
+            "date": "2026-04-13 00:00:00",
+            "round": "R32",
+            "winner": "Ben Shelton",
+            "loser": "Emilio Nava"
+          },
+          "laterStored": {
+            "date": "2026-05-09 00:00:00",
+            "round": "R64",
+            "winner": "Nikoloz Basilashvili",
+            "loser": "Ben Shelton"
+          }
+        }
+      ],
+      "dataThrough": "2026-09-05"
+    },
+    "wta": {
+      "rows": 146078,
+      "inputFingerprint": "nm1:ff186947acfb8fba3922fa98bea6ec04f26a5e851be32cf76c4dc75b180300ac",
+      "recentCensus": [
+        {
+          "year": 2023,
+          "draw_level": "chall",
+          "observed": 890,
+          "completed": 890,
+          "has_stats": 890,
+          "valid_stats": 890,
+          "completed_valid_stats": 890
+        },
+        {
+          "year": 2023,
+          "draw_level": "main",
+          "observed": 2819,
+          "completed": 2719,
+          "has_stats": 2581,
+          "valid_stats": 2580,
+          "completed_valid_stats": 2507
+        },
+        {
+          "year": 2023,
+          "draw_level": "qual",
+          "observed": 1089,
+          "completed": 1089,
+          "has_stats": 1089,
+          "valid_stats": 1089,
+          "completed_valid_stats": 1089
+        },
+        {
+          "year": 2024,
+          "draw_level": "chall",
+          "observed": 1048,
+          "completed": 1048,
+          "has_stats": 1048,
+          "valid_stats": 1048,
+          "completed_valid_stats": 1048
+        },
+        {
+          "year": 2024,
+          "draw_level": "main",
+          "observed": 2121,
+          "completed": 2078,
+          "has_stats": 2109,
+          "valid_stats": 2109,
+          "completed_valid_stats": 2077
+        },
+        {
+          "year": 2024,
+          "draw_level": "qual",
+          "observed": 1092,
+          "completed": 1092,
+          "has_stats": 1092,
+          "valid_stats": 1092,
+          "completed_valid_stats": 1092
+        },
+        {
+          "year": 2025,
+          "draw_level": "chall",
+          "observed": 1434,
+          "completed": 1434,
+          "has_stats": 1434,
+          "valid_stats": 1434,
+          "completed_valid_stats": 1434
+        },
+        {
+          "year": 2025,
+          "draw_level": "main",
+          "observed": 2492,
+          "completed": 2402,
+          "has_stats": 2007,
+          "valid_stats": 2006,
+          "completed_valid_stats": 2002
+        },
+        {
+          "year": 2025,
+          "draw_level": "qual",
+          "observed": 1275,
+          "completed": 1275,
+          "has_stats": 1275,
+          "valid_stats": 1275,
+          "completed_valid_stats": 1275
+        },
+        {
+          "year": 2026,
+          "draw_level": "chall",
+          "observed": 1083,
+          "completed": 1083,
+          "has_stats": 1083,
+          "valid_stats": 1083,
+          "completed_valid_stats": 1083
+        },
+        {
+          "year": 2026,
+          "draw_level": "main",
+          "observed": 2055,
+          "completed": 1991,
+          "has_stats": 1986,
+          "valid_stats": 1986,
+          "completed_valid_stats": 1980
+        },
+        {
+          "year": 2026,
+          "draw_level": "qual",
+          "observed": 1457,
+          "completed": 1457,
+          "has_stats": 1457,
+          "valid_stats": 1456,
+          "completed_valid_stats": 1456
+        }
+      ],
+      "hasStatsButInvalid": 5,
+      "lowerBeforeDebut": {
+        "players": 331,
+        "rows": 1781,
+        "tunePlayers": 77,
+        "validationPlayers": 254
+      },
+      "roundDateInversions": 0,
+      "inversionExamples": [],
+      "availableTimeColumns": [],
+      "identityAndCompletionCensus": [
+        {
+          "year": 2023,
+          "role": "chall",
+          "rows": 890,
+          "completed": 890,
+          "walkovers": 0,
+          "otherNonCompleted": 0,
+          "withSourceMatchId": 890,
+          "withBothPlayerIds": 890
+        },
+        {
+          "year": 2023,
+          "role": "main",
+          "rows": 2819,
+          "completed": 2719,
+          "walkovers": 22,
+          "otherNonCompleted": 78,
+          "withSourceMatchId": 0,
+          "withBothPlayerIds": 2819
+        },
+        {
+          "year": 2023,
+          "role": "qual",
+          "rows": 1089,
+          "completed": 1089,
+          "walkovers": 0,
+          "otherNonCompleted": 0,
+          "withSourceMatchId": 1089,
+          "withBothPlayerIds": 1089
+        },
+        {
+          "year": 2024,
+          "role": "chall",
+          "rows": 1048,
+          "completed": 1048,
+          "walkovers": 0,
+          "otherNonCompleted": 0,
+          "withSourceMatchId": 1048,
+          "withBothPlayerIds": 1048
+        },
+        {
+          "year": 2024,
+          "role": "main",
+          "rows": 2121,
+          "completed": 2078,
+          "walkovers": 8,
+          "otherNonCompleted": 35,
+          "withSourceMatchId": 0,
+          "withBothPlayerIds": 2117
+        },
+        {
+          "year": 2024,
+          "role": "qual",
+          "rows": 1092,
+          "completed": 1092,
+          "walkovers": 0,
+          "otherNonCompleted": 0,
+          "withSourceMatchId": 1092,
+          "withBothPlayerIds": 1092
+        },
+        {
+          "year": 2025,
+          "role": "chall",
+          "rows": 1434,
+          "completed": 1434,
+          "walkovers": 0,
+          "otherNonCompleted": 0,
+          "withSourceMatchId": 1434,
+          "withBothPlayerIds": 1434
+        },
+        {
+          "year": 2025,
+          "role": "main",
+          "rows": 2492,
+          "completed": 2402,
+          "walkovers": 20,
+          "otherNonCompleted": 70,
+          "withSourceMatchId": 0,
+          "withBothPlayerIds": 2007
+        },
+        {
+          "year": 2025,
+          "role": "qual",
+          "rows": 1275,
+          "completed": 1275,
+          "walkovers": 0,
+          "otherNonCompleted": 0,
+          "withSourceMatchId": 1275,
+          "withBothPlayerIds": 1275
+        },
+        {
+          "year": 2026,
+          "role": "chall",
+          "rows": 1083,
+          "completed": 1083,
+          "walkovers": 0,
+          "otherNonCompleted": 0,
+          "withSourceMatchId": 1083,
+          "withBothPlayerIds": 1083
+        },
+        {
+          "year": 2026,
+          "role": "main",
+          "rows": 2055,
+          "completed": 1991,
+          "walkovers": 15,
+          "otherNonCompleted": 49,
+          "withSourceMatchId": 349,
+          "withBothPlayerIds": 1986
+        },
+        {
+          "year": 2026,
+          "role": "qual",
+          "rows": 1457,
+          "completed": 1457,
+          "walkovers": 0,
+          "otherNonCompleted": 0,
+          "withSourceMatchId": 1457,
+          "withBothPlayerIds": 1457
+        }
+      ],
+      "identityConfidence": "No confidence score is retained. ID presence counts are observability, not proof of correct identity. Source provenance is not retained in the normalized frame.",
+      "boundedRoundInversions": [],
+      "longGapIdentityCandidates": [],
+      "dataThrough": "2026-09-06"
+    }
+  },
+  "wtaCatalogues": {
+    "2024": {
+      "calendarEvents": 53,
+      "eventsWithFinishedMatchLists": 51,
+      "finishedCatalogueSingles": 2193,
+      "status": {
+        "matched": 1629,
+        "missing": 555,
+        "ambiguous": 9
+      },
+      "matchedMissingStats": 0,
+      "missingRowsWithCachedStats": 0,
+      "verifiedMatchDateRows": 2193,
+      "calendarWithoutFinishedList": [
+        {
+          "id": "2084",
+          "year": 2024,
+          "name": "UNITED CUP",
+          "level": "WTA500",
+          "draw_level": "main",
+          "draw": 0,
+          "start": "2023-12-29",
+          "end": "2024-01-07"
+        },
+        {
+          "id": "904",
+          "year": 2024,
+          "name": "WIMBLEDON",
+          "level": "Grand Slam",
+          "draw_level": "main",
+          "draw": 128,
+          "start": "2024-07-01",
+          "end": "2024-07-14"
+        }
+      ],
+      "denominatorLimit": "Finished singles catalogued in preserved first-party responses; not proof of complete calendar, draws, or all finished matches.",
+      "statusFields": {
+        "MatchState": {
+          "F": 2193
+        }
+      },
+      "matchTimestampParseable": 2193,
+      "topUnmatchedEvents": [
+        {
+          "event": "903",
+          "name": "ROLAND GARROS",
+          "expectedFinished": 127,
+          "matched": 0,
+          "unmatched": 127,
+          "ambiguous": 0,
+          "matchedWithoutStats": 0
+        },
+        {
+          "event": "905",
+          "name": "US OPEN",
+          "expectedFinished": 127,
+          "matched": 0,
+          "unmatched": 127,
+          "ambiguous": 0,
+          "matchedWithoutStats": 0
+        },
+        {
+          "event": "1038",
+          "name": "MADRID",
+          "expectedFinished": 94,
+          "matched": 1,
+          "unmatched": 93,
+          "ambiguous": 0,
+          "matchedWithoutStats": 0
+        },
+        {
+          "event": "709",
+          "name": "ROME",
+          "expectedFinished": 92,
+          "matched": 3,
+          "unmatched": 89,
+          "ambiguous": 0,
+          "matchedWithoutStats": 0
+        },
+        {
+          "event": "902",
+          "name": "MIAMI",
+          "expectedFinished": 88,
+          "matched": 3,
+          "unmatched": 85,
+          "ambiguous": 0,
+          "matchedWithoutStats": 0
+        },
+        {
+          "event": "1049",
+          "name": "AUCKLAND",
+          "expectedFinished": 31,
+          "matched": 2,
+          "unmatched": 29,
+          "ambiguous": 0,
+          "matchedWithoutStats": 0
+        },
+        {
+          "event": "901",
+          "name": "AUSTRALIAN OPEN",
+          "expectedFinished": 127,
+          "matched": 125,
+          "unmatched": 2,
+          "ambiguous": 0,
+          "matchedWithoutStats": 0
+        },
+        {
+          "event": "1039",
+          "name": "MONTERREY",
+          "expectedFinished": 27,
+          "matched": 26,
+          "unmatched": 1,
+          "ambiguous": 0,
+          "matchedWithoutStats": 0
+        }
+      ],
+      "matchedMissingStatsWithCachedPositiveDenominators": 0,
+      "eligibilityLimit": "Finished/Winner source state is an external result denominator, not the model completed-only scored denominator. Retirement/walkover and identity/date exceptions need row-level adjudication before acquisition."
+    },
+    "2025": {
+      "calendarEvents": 51,
+      "eventsWithFinishedMatchLists": 50,
+      "finishedCatalogueSingles": 2336,
+      "status": {
+        "matched": 2322,
+        "missing": 12,
+        "ambiguous": 2
+      },
+      "matchedMissingStats": 313,
+      "missingRowsWithCachedStats": 1,
+      "verifiedMatchDateRows": 2336,
+      "calendarWithoutFinishedList": [
+        {
+          "id": "2084",
+          "year": 2025,
+          "name": "UNITED CUP",
+          "level": "WTA500",
+          "draw_level": "main",
+          "draw": 0,
+          "start": "2024-12-27",
+          "end": "2025-01-05"
+        }
+      ],
+      "denominatorLimit": "Finished singles catalogued in preserved first-party responses; not proof of complete calendar, draws, or all finished matches.",
+      "statusFields": {
+        "MatchState": {
+          "F": 2336
+        }
+      },
+      "matchTimestampParseable": 2336,
+      "topUnmatchedEvents": [
+        {
+          "event": "903",
+          "name": "ROLAND GARROS",
+          "expectedFinished": 127,
+          "matched": 124,
+          "unmatched": 3,
+          "ambiguous": 0,
+          "matchedWithoutStats": 124
+        },
+        {
+          "event": "1049",
+          "name": "AUCKLAND",
+          "expectedFinished": 29,
+          "matched": 27,
+          "unmatched": 2,
+          "ambiguous": 0,
+          "matchedWithoutStats": 0
+        },
+        {
+          "event": "1050",
+          "name": "HOBART",
+          "expectedFinished": 30,
+          "matched": 28,
+          "unmatched": 2,
+          "ambiguous": 0,
+          "matchedWithoutStats": 0
+        },
+        {
+          "event": "901",
+          "name": "AUSTRALIAN OPEN",
+          "expectedFinished": 127,
+          "matched": 125,
+          "unmatched": 2,
+          "ambiguous": 0,
+          "matchedWithoutStats": 125
+        },
+        {
+          "event": "1039",
+          "name": "MONTERREY",
+          "expectedFinished": 26,
+          "matched": 25,
+          "unmatched": 1,
+          "ambiguous": 0,
+          "matchedWithoutStats": 0
+        },
+        {
+          "event": "904",
+          "name": "WIMBLEDON",
+          "expectedFinished": 127,
+          "matched": 126,
+          "unmatched": 1,
+          "ambiguous": 0,
+          "matchedWithoutStats": 63
+        },
+        {
+          "event": "905",
+          "name": "US OPEN",
+          "expectedFinished": 127,
+          "matched": 126,
+          "unmatched": 1,
+          "ambiguous": 0,
+          "matchedWithoutStats": 1
+        },
+        {
+          "event": "1003",
+          "name": "DOHA",
+          "expectedFinished": 53,
+          "matched": 53,
+          "unmatched": 0,
+          "ambiguous": 0,
+          "matchedWithoutStats": 0
+        }
+      ],
+      "matchedMissingStatsWithCachedPositiveDenominators": 0,
+      "eligibilityLimit": "Finished/Winner source state is an external result denominator, not the model completed-only scored denominator. Retirement/walkover and identity/date exceptions need row-level adjudication before acquisition."
+    }
+  },
+  "finishedAt": "2026-09-06T22:16:05.424047+00:00",
+  "matchingPolicy": "Exact year/WTA event ID + source match ID + real pair takes precedence; otherwise exact canonicalized pair, round and calendar date overlap, including adjacent calendar years. Multiple candidates stay ambiguous. No fuzzy event-name join.",
+  "diagnosticLimit": "Year plus event ID does not prove an event edition; long-gap inversions remain identity candidates. Missing date/player/event keys are excluded from this inversion diagnostic.",
+  "auditScriptSHA256": "c31f1ae13cffaff64660bf33178ee013c8d7a79c3b42ad9f1559985742b383bc"
+}

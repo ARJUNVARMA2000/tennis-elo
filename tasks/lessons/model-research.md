@@ -197,3 +197,161 @@ Indexed in [`../lessons.md`](../lessons.md).
   centralize eligibility around the predictor's selected state, and use that contract in every
   forecast consumer. A complete draw with an unpriced real-vs-real match must block publication.
   Treat broader ITF admission as a separate model change requiring walk-forward backtesting.
+
+- **A saved temporal state needs pending evidence as well as admitted totals.** (2026-09-06)
+  Recovering event-end availability exposed a gap: the historical walk would admit a
+  match's statistics at a later event-end date, but a predictor saved before that date
+  discarded the remaining observations. Its later forecasts therefore used another
+  prior. Preserve a validated, ordered pending queue in the artifact; a date query
+  admits eligible observations into a copied view without changing the saved state.
+  Test strict same-day exclusion, later-date walk parity and a real save/load roundtrip.
+
+- **A slice label does not establish the population its counts measure.** (2026-09-06)
+  The frozen `low-main-experience` diagnostic reads pre-match state counts. Those are
+  main-only for WTA, but include lower history in ATP's adopted enriched walk. The same
+  label therefore describes different populations across tours. Preserve and report the
+  actual count provenance; do not compare those slices as equivalent. A semantic repair
+  belongs in a separately versioned diagnostic change, never a silent mid-round relabeling.
+
+- **Validate numerical integration in the uncertainty regime the model can actually reach.** (2026-09-06)
+  A 20-node Gaussian quadrature looked adequate at the initial prior but missed a broad
+  logistic-normal probability by 0.03031 after uncertainty growth. Compare predictions
+  and posterior moments against an independent high-accuracy integral across variance
+  regimes before examining outcome scores. Use adaptive integration or fail explicitly
+  when a fixed rule is insufficient; numerical error is not a model improvement.
+
+
+- **A saved-query equality check and a historical match-row check have different inputs.**
+  (2026-09-07, uncertainty shadow) All 43 features survive serialization exactly and
+  all 19 learned-state features match their historical walk values, while frozen player
+  rank/age metadata differs from what a later match row supplies. Report those contracts
+  separately; do not turn a state-parity result into a claim of complete match-context
+  equality. Normalize missing context too: `bool(NaN)` made two QA matches falsely
+  indoor, despite the training frame's neutral zero. Preserve the original diagnostic
+  and correct its input context explicitly, without changing fitted outcomes or sources.
+
+- **A result update is not a complete settlement snapshot.** (2026-09-07)
+  The old prospective grader retained source files but indexed only the current batch,
+  so reporting a later event would make previously scored forecasts pending again.
+  The separately versioned mixed-format runner accumulates all admitted batches,
+  keeps pending updates from erasing terminal facts, and excludes conflicting terminal
+  claims while preserving them. Test two disjoint batches, retries, partial-to-complete
+  evidence and conflicts. Fix the intake endpoint before observing scores; late batches
+  must not extend it. Retained files alone do not prove accumulated reporting.
+
+
+- **HTTP freshness does not establish match-time semantics; represent the bound the experiment needs.** (2026-09-07)
+  The real ESPN/WTA source audit corroborated 119 completed results but did not establish
+  actual start/finish fields. A false estimate flag, `startDate`, fetch time or score
+  transition cannot silently stand in for actual play. Preserve exact acquisition
+  receipts and distinguish transport age from upstream update latency. The earlier
+  prospective contract also demanded an exact finish unnecessarily: a verified
+  completed observation may establish an upper bound, while pre-play proof requires
+  a defensible start lower bound. Version that change explicitly and validate the
+  evidence producer before live use. Never upgrade clock-simulated QA to live evidence.
+
+
+- **A result producer must carry contradictions as well as confirmed matches.** (2026-09-07)
+  Filtering a source update down to agreeing normal results can make a later terminal
+  disagreement disappear, leaving an earlier result eligible forever. The external
+  completion producer retains conflicting terminal claims and provider identity rows;
+  the bounds evaluator excludes their affected forecasts. Test a real source fixture
+  mutated to disagree on one terminal outcome, plus an identity-only replacement update.
+  A merely delayed live/complete pair is not two contradictory terminal claims.
+
+- **Resolve the owning checkout and working directory before constructing a research command.** (2026-09-07)
+  The original checkout carries documentation while implementation files live in isolated
+  research checkouts. Reusing root-relative tennis_model paths after selecting that
+  directory caused failed file creation; assuming a test filename caused an empty run.
+  Use absolute paths for private drivers/tools, inspect the actual test list, and preserve
+  failed launch logs separately. A command launch failure is not a model experiment.
+
+
+- **A timestamp and its derived elapsed clock can agree throughout corrupted data.** (2026-09-07)
+  The US Open point sample had a constant `EpochTimeStart - ElapsedTime` for every
+  point in both matches, including 114 start-after-end rows in one match. Algebraic
+  agreement is not independent timing validation. Require field semantics, defensible
+  precision and real chronological checks before a source can establish pre-play proof;
+  retain contradictions and never repair day offsets just to make a history plausible.
+
+
+- **A schedule catalogue's epoch can identify a different date from its published order.** (2026-09-07)
+  US Open's day-17 catalogue epoch resolved to September 7, while the September 8 PDF
+  heading, JSON label and every court start agreed on September 8. Preserve each field's
+  role; use explicit edition, printed calendar and corroborating venue clocks for schedule
+  extraction. Do not promote generic epochs to played times. Keep explicit not-before,
+  first-session start and sequence-only evidence separate, even when their UI looks similar.
+
+
+- **An official catalogue can mix match days with unrelated navigation entries.** (2026-09-07)
+  The US Open catalogue includes a practice link with `tournDay: null`; an initial
+  all-row numeric-day invariant rejected both valid retained schedules. Classify that
+  explicit practice entry before validating match-day identities, while rejecting
+  unknown null-day records. Exact whole-response fixtures catch assumptions that
+  a handpicked match-only sample misses. The regression belongs in source intake.
+
+
+- **A provider-looking player number is not proof of a shared ID namespace.** (2026-09-08)
+  The official US Open draw prefixes IDs with `wta`, yet 23 matchups have different
+  numbers from WTA match rows while 119 full results corroborate the event. Validate
+  IDs per canonical player, preserve both numeric claims and exclude disagreements;
+  neither stripping a prefix nor matching the unordered ID pair handles side swaps.
+  Do not turn this audit into an alias-table edit outside the established proposer.
+
+
+- **Multiple day listings in one order page are not observed temporal revisions.** (2026-09-08)
+  WTA's completed Guadalajara page retained 65 occurrences for 59 MatchIDs, including
+  31 main-singles occurrences for 27 matches, but no original start labels. Preserve
+  occurrence keys by edition/day/MatchID and compare complete occurrence sets between
+  independently timed collections. Do not interpret adjacent rows from one snapshot as
+  a revision sequence or reconstruct lost published times from completed API timestamps.
+  Whole raw HTML fixtures also preserve whitespace in printed rounds: normalize visible
+  text before checking round identity. Test retained page structure, not an invented fragment.
+
+
+- **A publisher's coarse LIVE status can include OnCourt and warm-up.** (2026-09-08)
+  WTA's own bundle maps these pre-play stages into LIVE. Two real Guadalajara event
+  arrays have distinct InProgress markers 21–24 minutes after the main match timestamp,
+  yet the last scoring records remain P even after the API reports a completed result.
+  Keep coarse display state, reported start, final-score corroboration and physical
+  clock qualification separate. A synthetic uniform ten-minute shift preserves local/
+  UTC/elapsed agreement and still must not become actual-start proof. Whole-record
+  fixtures also show MedicalTreatment omits Attributes.type: check conflicting duplicate
+  fields only when supplied, rather than treating that real optional field as corruption.
+
+
+- **An official match-start definition is not a public feed's clock contract.** (2026-09-08)
+  Primary rules define first serve and prompt handset scoring, but do not map public WTA
+  InProgress.Timestamp to a physical trigger with a measured UTC error. A separate
+  authenticated API's actualStartDate cannot supply that missing namespace bridge.
+  Verify main-tour rather than WTA 125 sections and keep PDF/printed page numbers distinct.
+  For calibration, independently bound observation-clock error and broadcast delay;
+  agreement among fields sharing one clock, or a finite sample maximum, cannot certify
+  an unseen future error bound. When this premise is missing, preserve a concrete
+  measurement protocol rather than implementing another generic audit layer.
+
+
+- **A blocked live-confirmation dependency must not consume the model-improvement program.** (2026-09-08)
+  User correction: return the next round to systematic incumbent errors, new hypotheses
+  and bounded historical experiments. Several successive source/clock rounds improved
+  evaluation infrastructure without testing another predictive mechanism. Keep that work
+  available, but do not make the entire research agenda wait for live timing evidence.
+  Diagnose saved walk-forward predictions on tuning years, select and freeze candidates
+  there, and report a concrete tried/improved/failed table. Treat reused 2020+ results as
+  validation, not an untouched holdout; keep fresh prospective confirmation separate.
+
+
+- **A systematic calibration slice is a hypothesis source, not proof of its apparent cause.** (2026-09-08)
+  First recorded WTA appearances were underconfident by 6.24pp in 696 tuning matches, but
+  neutralizing their artificial 365-day absence worsened log loss. A 40-point per-match
+  serve cap gained 0.000084 overall yet lost 0.000131 in the later tuning half. Register
+  stability requirements before fitting, preserve negative results and keep a small
+  pooled gain from buying a new validation look after its required stability check fails.
+
+
+- **A closed shortlist is not an exhausted research program.** (2026-09-08)
+  User correction after three small historical trials: try more mechanisms. Preserve
+  the prior round's preregistered stopping and advancement rules, but start a separately
+  registered round that seeks new information. Do not equate several failed encoding
+  or weighting tweaks with proof that the model cannot improve, and do not substitute
+  another infrastructure round for the requested predictive experiments.

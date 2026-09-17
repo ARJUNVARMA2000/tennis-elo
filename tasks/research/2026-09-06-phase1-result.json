@@ -1,0 +1,313 @@
+{
+  "schema": "deuce-phase1-checkpoint-v1",
+  "date": "2026-09-06",
+  "status": "components-and-bounded-audit-complete; integration-and-freeze-pending",
+  "baseSHA": "c68c321",
+  "implementationBranch": "codex/model-foundation",
+  "implementationCheckout": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/coordinator",
+  "originalCheckout": "/Users/varma/Projects/DEUCE",
+  "originalBranch": "codex/model-research-preparation",
+  "inferenceSchema": 4,
+  "featureCacheSchema": 2,
+  "protocol": "paired-temporal-foundation-v1",
+  "evaluatorFrozen": false,
+  "modelAdopted": false,
+  "sourceRefresh": false,
+  "deployed": false,
+  "tests": {
+    "pythonPassed": 1230,
+    "pytestElapsedSeconds": 43.16,
+    "ruff": "passed",
+    "gitDiffCheck": "passed",
+    "web": "not run; public contract unchanged"
+  },
+  "runtime": {
+    "python": "3.13.14",
+    "libraries": {
+      "numpy": "2.5.0",
+      "pandas": "3.0.3",
+      "scikit-learn": "1.9.0",
+      "xgboost": "3.3.0",
+      "pytest": "8.3.3"
+    }
+  },
+  "snapshot": {
+    "manifestSha256": "8636748e1012a1fa1f5a31ea0cdd52f414acfaa78ca5123931e24d1c86473cb9",
+    "originalProjectDataUnchanged": true,
+    "snapshotFiles": 25826,
+    "snapshotUnchanged": true,
+    "verifiedAt": "2026-09-06T22:15:16.071576+00:00"
+  },
+  "isolation": {
+    "allSixRootsHaveDistinctDataInodes": true,
+    "checkedAt": "2026-09-06T22:17:09.980630+00:00",
+    "dataFilesCheckedPerRoot": 18791,
+    "noWorktreeDataSymlinks": true,
+    "normalizedComparison": {
+      "atp-enriched": {
+        "equalFrameValueHash": true,
+        "rebuiltRows": 284893,
+        "savedRows": 284893
+      },
+      "atp-main": {
+        "equalFrameValueHash": false,
+        "rebuiltRows": 153480,
+        "savedRows": 1
+      },
+      "wta-enriched": {
+        "equalFrameValueHash": true,
+        "rebuiltRows": 146078,
+        "savedRows": 146078
+      },
+      "wta-main": {
+        "equalFrameValueHash": false,
+        "rebuiltRows": 128978,
+        "savedRows": 1
+      }
+    },
+    "status": "passed",
+    "workspaces": [
+      {
+        "cacheDifferences": [],
+        "dataFiles": 18791,
+        "lane": "coordinator",
+        "rawAndOutputUnchanged": true
+      },
+      {
+        "cacheDifferences": [
+          {
+            "after": {
+              "bytes": 16601624,
+              "kind": "file",
+              "path": "cache/normalized-matches/atp-enriched.pkl.gz",
+              "sha256": "b73252419266d056edadf9c3ebcbbcdd8b9be71215d14362444a9af3d0caf007"
+            },
+            "before": {
+              "bytes": 16601624,
+              "kind": "file",
+              "path": "cache/normalized-matches/atp-enriched.pkl.gz",
+              "sha256": "a10a5c802b770f9525c3142d386a27a3e8a238779a59abcf2611a892efb0ccbb"
+            },
+            "path": "cache/normalized-matches/atp-enriched.pkl.gz"
+          },
+          {
+            "after": {
+              "bytes": 8660985,
+              "kind": "file",
+              "path": "cache/normalized-matches/atp-main.pkl.gz",
+              "sha256": "e9c7ee038db61dff7c79b99a191473f02fb1a22a83c69f5caa126ed67ff3c690"
+            },
+            "before": {
+              "bytes": 1625,
+              "kind": "file",
+              "path": "cache/normalized-matches/atp-main.pkl.gz",
+              "sha256": "b4e6b6dab4b728400e37794b7540344ff0e38a92c94839490a911a220f118c81"
+            },
+            "path": "cache/normalized-matches/atp-main.pkl.gz"
+          },
+          {
+            "after": {
+              "bytes": 6685428,
+              "kind": "file",
+              "path": "cache/normalized-matches/wta-enriched.pkl.gz",
+              "sha256": "a9c0d81d4ad5b4c135528201b8b62268716a8ceed401997adc6a1a2866b718a6"
+            },
+            "before": {
+              "bytes": 6685217,
+              "kind": "file",
+              "path": "cache/normalized-matches/wta-enriched.pkl.gz",
+              "sha256": "1faf1b02c141f614e97782db903d9d58718c99fce00f63db70064235a8ead6a5"
+            },
+            "path": "cache/normalized-matches/wta-enriched.pkl.gz"
+          },
+          {
+            "after": {
+              "bytes": 5694617,
+              "kind": "file",
+              "path": "cache/normalized-matches/wta-main.pkl.gz",
+              "sha256": "2d6f6103296dc7060a85927d7da1d2655c9b07cf87064518a436f1f747b320ab"
+            },
+            "before": {
+              "bytes": 2012,
+              "kind": "file",
+              "path": "cache/normalized-matches/wta-main.pkl.gz",
+              "sha256": "f6d79cdbbefe1c0d779f33ed514d4ac13b001ad3bf3e56739d14eedbaa0c24c3"
+            },
+            "path": "cache/normalized-matches/wta-main.pkl.gz"
+          }
+        ],
+        "dataFiles": 18791,
+        "lane": "a",
+        "rawAndOutputUnchanged": true
+      },
+      {
+        "cacheDifferences": [],
+        "dataFiles": 18791,
+        "lane": "b",
+        "rawAndOutputUnchanged": true
+      },
+      {
+        "cacheDifferences": [],
+        "dataFiles": 18791,
+        "lane": "c",
+        "rawAndOutputUnchanged": true
+      }
+    ]
+  },
+  "temporal": {
+    "atp": {
+      "styleSourceSHA256": "af03842cc3464e44d6a065ec1e05508097991fdfedd1625206062b204bd81756",
+      "chartExclusions": {
+        "ambiguousMetadataRows": 2,
+        "stats-Overview:conflictingRows": 32,
+        "stats-Overview": 2,
+        "stats-ServeBasics:conflictingRows": 24,
+        "stats-ServeBasics": 2,
+        "stats-ServeDirection:conflictingRows": 24,
+        "stats-ServeDirection": 2,
+        "stats-NetPoints:conflictingRows": 16,
+        "stats-NetPoints": 2,
+        "stats-SnV:conflictingRows": 8,
+        "stats-SnV": 2,
+        "stats-ReturnDepth:conflictingRows": 22,
+        "stats-ReturnDepth": 2,
+        "stats-KeyPointsServe:conflictingRows": 4,
+        "stats-KeyPointsServe": 2,
+        "conflictingMatches": 8,
+        "withoutOverview": 4
+      },
+      "stylePlayersWithEvidence": 1002,
+      "stylePlayersQualified": 482,
+      "stylePrefixCutoff": "2024-01-01",
+      "stylePrefixSnapshotParity": true,
+      "stylePrefixPlayers": 870,
+      "normalizedFingerprint": "00e8be6a824234d5ccee3ae29a1988fe9460f6be6495a4950daa51e8d0a41314",
+      "servePrefixRows": 219,
+      "serveFullRows": 500,
+      "servePrefixFeatureParity": true,
+      "serveSavedQueryMaxError": 0.0,
+      "queryDate": "2019-01-14",
+      "priorAdmittedPoints": 0.0,
+      "priorExcludedUnknownTime": 486,
+      "limitation": "Serve check uses frozen normalized ordering; it does not repair or validate played dates. No verified prior availability columns are present."
+    },
+    "wta": {
+      "styleSourceSHA256": "016318c877aa3013985c3e6dca5d5458aaa5007f1dd35a0fcf2dcca4bb7575c6",
+      "chartExclusions": {
+        "ambiguousMetadataRows": 14,
+        "invalidDateRows": 4,
+        "stats-Overview:conflictingRows": 0,
+        "stats-Overview": 20,
+        "stats-ServeBasics:conflictingRows": 0,
+        "stats-ServeBasics": 20,
+        "stats-ServeDirection:conflictingRows": 0,
+        "stats-ServeDirection": 20,
+        "stats-NetPoints:conflictingRows": 0,
+        "stats-NetPoints": 20,
+        "stats-SnV:conflictingRows": 0,
+        "stats-SnV": 3,
+        "stats-ReturnDepth:conflictingRows": 0,
+        "stats-ReturnDepth": 20,
+        "stats-KeyPointsServe:conflictingRows": 0,
+        "stats-KeyPointsServe": 20,
+        "conflictingMatches": 0,
+        "withoutOverview": 4
+      },
+      "stylePlayersWithEvidence": 730,
+      "stylePlayersQualified": 338,
+      "stylePrefixCutoff": "2024-01-01",
+      "stylePrefixSnapshotParity": true,
+      "stylePrefixPlayers": 554,
+      "normalizedFingerprint": "ff186947acfb8fba3922fa98bea6ec04f26a5e851be32cf76c4dc75b180300ac",
+      "servePrefixRows": 293,
+      "serveFullRows": 500,
+      "servePrefixFeatureParity": true,
+      "serveSavedQueryMaxError": 0.0,
+      "queryDate": "2019-01-28",
+      "priorAdmittedPoints": 0.0,
+      "priorExcludedUnknownTime": 488,
+      "limitation": "Serve check uses frozen normalized ordering; it does not repair or validate played dates. No verified prior availability columns are present."
+    },
+    "elapsedSeconds": 3.8059796250308864
+  },
+  "maintenanceSourceDigest": "c81b681dfa983ef2eb3da214b7e34c0abfa95afa62ee57aa6cdd6aa8697ac2b0",
+  "sourceDigestMeaning": "Current Python source inventory digest; not the final frozen experiment evaluator identity.",
+  "privateEvidence": [
+    {
+      "path": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/runs/phase1/isolation-final.json",
+      "bytes": 3529,
+      "sha256": "d771a9f9824c1c80db2218ba57ece83620215f9c6a48f69234f572a7061ef20f"
+    },
+    {
+      "path": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/snapshot-verification.json",
+      "bytes": 238,
+      "sha256": "b69f9aab176754be52172efa9461419d35c06670c8878a5e8f76fa90ad127a7e"
+    },
+    {
+      "path": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/runs/phase1/data-audit-fast/summary.json",
+      "bytes": 12669,
+      "sha256": "4f922ff7c0e49964a5aabee8147f22040b8a26eef1cd0be86067ade0ea66fc64"
+    },
+    {
+      "path": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/runs/phase1/data-audit-fast/review-summary.json",
+      "bytes": 28718,
+      "sha256": "3e7dcd3944381d4e97f8285f0afa8545fecc11ff834b1a9460bc2ff826b6ab95"
+    },
+    {
+      "path": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/runs/phase1/temporal-prefix-result.json",
+      "bytes": 2920,
+      "sha256": "9e275a149dd8a4949ffd56dd11b14d2b0f4e25fc1e1162f3ac2741a47e28afd0"
+    },
+    {
+      "path": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/tools/phase1-data-audit-fast.py",
+      "bytes": 9704,
+      "sha256": "c31f1ae13cffaff64660bf33178ee013c8d7a79c3b42ad9f1559985742b383bc"
+    },
+    {
+      "path": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/coordinator/.research/phase0/logs/phase1-final-tests.log",
+      "bytes": 1521,
+      "sha256": "9af3bf4423f10115f4cdffe3d17bc381bb792283ab292aa8325a49179c3625ef"
+    },
+    {
+      "path": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/coordinator/.research/phase0/logs/phase1-final-tests-result.json",
+      "bytes": 304,
+      "sha256": "426ca8d2014247b9269253813a7a5d8cb536f257073edf994ebc9b61c209e290"
+    }
+  ],
+  "outstanding": [
+    {
+      "id": "B3-R1",
+      "blocks": "Phase 2 freeze and Phase 3 baseline",
+      "work": "Repair mixed date ordering, preserve provenance and justify prior availability; revalidate affected state mirrors."
+    },
+    {
+      "id": "A-INTEGRATION",
+      "blocks": "Phase 2 completion",
+      "work": "Emit and bind independent prediction receipt on full/quick builds; integrate private release copying/public exclusion and live serving tests."
+    },
+    {
+      "id": "D-FREEZE",
+      "blocks": "numerical research",
+      "work": "Complete source-coverage reporting and manifest runner population; freeze reviewed evaluator/input/runtime identities."
+    },
+    {
+      "id": "REAL-PREDICTOR-PROBES",
+      "blocks": "Phase 3 baseline acceptance",
+      "work": "Fit compatible predictors normally, repeat actual 435-pair probes with timing; never bypass schema-3 rejection."
+    }
+  ],
+  "dataAudit": "2026-09-06-phase1-data-audit.json",
+  "dataThrough": {
+    "atp": "2026-09-05",
+    "wta": "2026-09-06"
+  },
+  "gate": {
+    "tuneYears": [
+      2010,
+      2019
+    ],
+    "validationStart": 2020,
+    "rule": "d_tune > 0 and d_val > -naiveSE",
+    "unchanged": true
+  }
+}

@@ -6547,3 +6547,1392 @@ User requested push and merge after reviewing repair 296f43e. Production remains
 
 Receipt: tasks/deploy/2026-09-15-monterrey-release.json. Authorized merge/push and
 release verification are complete; the separate upstream warning remains observable.
+
+## 2026-09-06 — Assess model improvement opportunities
+
+The user requested a detailed assessment of whether more data, time or AI-assisted research
+could improve DEUCE. This entry records the assessment and a proposed next round; it does
+not supersede the separate production deployment verification above.
+
+- [x] Inspect the adopted model, research ledger, rejected ideas and prospective evaluator.
+- [x] Check local data coverage, saved paired-effect precision and player-order consistency.
+- [x] Record evidence, priorities and limitations in
+      `tasks/research/2026-09-06-model-improvement-assessment.md`.
+- [ ] Proposed implementation: correct historical information cutoffs and enforce identical
+      forecasts under player exchange; extend regression coverage and the relevant output gate.
+- [ ] Reproduce the corrected incumbent, then select bounded data and uncertainty-model
+      experiments from paired error slices under a frozen evaluation protocol.
+- [ ] Validate promising candidates with the full arbiter, production-state parity and a
+      predeclared future comparison appropriate to the effect size and update policy.
+
+Check-in: the current request is assessment. The staged implementation above is a proposal
+for review before code changes under the project's planning convention.
+
+### Review
+
+At `e170298`, both validated saved predictors give different implied probabilities when the
+same hypothetical matchup is reversed: 435 pairs per tour among the first 30 exported live
+ranks show mean discrepancies of 0.973 percentage points ATP and 1.466 WTA. Source review
+also identified current career-style profiles and full-frame serve priors in historical
+features; their effect on model scores remains unmeasured. Local data coverage and the
+saved WTA threshold-32 comparison informed the proposal. No candidate was trained or
+adopted, no production artifact was rewritten, and no deployment was initiated.
+
+## 2026-09-06 — Detailed model research plan and new-session handoff
+
+The user requested a detailed staged plan identifying dependencies, parallel work and
+the exact completed research and remaining implementation. The authoritative handoff is
+`tasks/research/2026-09-06-model-research-plan.md`, supported by the assessment and
+`tasks/research/2026-09-06-model-assessment-evidence.json`.
+
+- [x] Reconcile current code/history and separate verified findings from hypotheses.
+- [x] Record artifact identities, diagnostic recipes and limits of the available evidence.
+- [x] Define phases, shared interfaces, owners, parallel lanes, acceptance tests and budgets.
+- [x] Document the WTA dual-state baseline, research/prospective protocol limits and resume steps.
+- [x] Phase 0: after implementation check-in, preserve inputs, isolate work and agree contracts.
+- [ ] Phase 1A: enforce player-exchange consistency across all prediction paths and gate it.
+- [ ] Phase 1B: chronological style/serve state, serialization parity and bounded timing audit.
+- [ ] Phase 1C: independent match/stat coverage census and prioritized acquisition proposal.
+- [ ] Phase 1D: outcome-independent evaluation, uncertainty reporting and cache/experiment identity.
+- [ ] Phase 2: sequential integration, complete regression verification and evaluator freeze.
+- [ ] Phase 3: reproduce the corrected ATP and dual-state WTA incumbents; inspect paired errors.
+- [ ] Phase 4A: acquire/freeze one justified data candidate in staging.
+- [ ] Phase 4B: build a bounded uncertainty-model prototype with prediction-state parity.
+- [ ] Phase 5: run data/model full A/B experiments sequentially and record every verdict.
+- [ ] Phase 6: register an appropriate future comparison and activate collection when ready.
+- [ ] Phase 7: review any adoption, rebuild through both gates and verify an authorized release.
+
+Check-in: this task creates the plan. Implementation is not started. Phases 1A/1B/1C may
+use separate workers after phase 0; the coordinator owns 1D, shared contracts and merges.
+Data acquisition and model coding may overlap in isolated roots. Different numerical
+hypothesis searches and Tier-2 arbiters remain sequential under `PROGRAM.md`.
+
+### Review
+
+Rechecked Git at `f4a221b`; its change from the assessed `e170298` is deployment
+documentation only. The plan reconciles that completed deployment, records the exact
+saved predictor IDs and hashes, distinguishes source-level look-ahead findings from
+unmeasured predictive effects, and includes acceptance criteria and session-end records.
+The next implementation action is phase 0, not another unrestricted tuning sweep.
+Only planning/evidence documentation changed; no model, evaluator, source acquisition,
+scheduled collector or deployment was changed by this task.
+
+## 2026-09-06 — Phase 0: preserve and prepare the model research baseline
+
+The user explicitly authorized Phase 0. Complete the preparation checkpoint and its
+interface decisions; do not begin the Phase 1 fixes or a candidate search in this task.
+Preparation clock recorded at 2026-09-06T21:33:48Z; code baseline is `f4a221b`, with
+the same model implementation as the assessment at `e170298`.
+
+- [x] Reconcile status/history, review the handoff and relevant research lessons, and check disk.
+- [x] Commit the research plan/evidence and preparation log without unrelated changes.
+- [x] Create isolated coordinator and allocated worker worktrees with independent data/runtime roots.
+- [x] Preserve and hash inputs, normalized identities, source/config/dependency information,
+      predictor artifacts, selected player lists and archived A/B evidence in a private snapshot.
+- [x] Reproduce the saved exchange diagnostic and WTA paired delta through the supported loader.
+- [x] Run the incumbent Python suite and Ruff in the isolated environment; record actual timings.
+- [x] Save decisions for shared probability, temporal style state, serve priors, evaluation
+      orientation and versioned cache/receipt contracts; assign shared-file ownership.
+- [x] Verify snapshot/workspace isolation, reconcile Git and commit the Phase 0 review and handoff.
+
+Check-in: Phase 0 is authorized by the current request. Private snapshots and worktrees
+will live under the ignored project `.research/` directory. No source downloads,
+dependency upgrades, new model fits, collector activation or deployment are planned.
+
+### Review
+
+Phase 0 completed; see `tasks/research/2026-09-06-phase0-review.md`, its linked interface
+decisions and machine-readable results. The preserved source base is `f4a221b`; plan
+commit `d95afc6` seeded four isolated coordinator/A/B/C worktrees. The read-only private
+snapshot under `.research/2026-09-06-model-foundation/snapshot/` preserves 18,791 data
+files and the existing compatible runtime, with manifest SHA-256
+`8636748e1012a1fa1f5a31ea0cdd52f414acfaa78ca5123931e24d1c86473cb9`.
+
+Baseline verification: 1,198 Python tests passed (64.68 s), Ruff passed, and both saved
+predictors loaded through strict checks in all four worktrees. The 435-pair exchange
+probes and archived WTA paired delta reproduced the assessment. Normalized replays
+reconstructed ATP main/enriched 153,480/284,893 rows and WTA 128,978/146,078; enriched
+frame-value hashes exactly match the snapshot. The copied main caches contained one
+row each and were rejected normally rather than treated as the main population.
+
+All worktree raw data and model outputs are unchanged, every data file has a distinct
+inode across the original/snapshot/four worktrees, and the original project data is
+unchanged. Test-modified coordinator caches were recorded and restored; diagnostic A
+retains only its four normal-loader cache reconstructions. Five shared contracts and
+the file-owner map are saved. Preparation changes only docs and the private ignore rule;
+Phase 1 repairs, evaluator maintenance, data acquisition and candidate searches have
+not started. No push or deployment occurred.
+
+## 2026-09-06 — Phase 1: model correctness and evaluation foundations
+
+The user authorized continuing to Phase 1. Work in the prepared coordinator checkout
+on `codex/model-foundation`, based on `c68c321`; preserve the Phase 0 snapshot and the
+main project's outputs. This is pre-round maintenance, not a numerical candidate search.
+The A/B/C ownership boundaries remain useful implementation boundaries; no additional
+agents are required to execute them. Phase 2's final integration/freeze and Phase 3's
+full corrected baseline runs remain separate checkpoints.
+
+- [x] A: shared calibrated pair probability, actual predictor/training consumers,
+      independent exchange/permutation/parity fixtures and private gate-witness contract.
+- [x] B1: date-indexed chart evidence, immutable saved style snapshot, prefix and artifact parity.
+- [x] B2: chronological serve-prior sufficient statistics, coherent estimator algebra,
+      population controls, serialized state and prefix tests.
+- [x] B3: audit source date bases and calibration policies; name any newly proven blocker.
+- [x] C: frozen-source event/role/stat census, independent expected denominators, lower-to-main
+      evidence and a ranked acquisition proposal with explicit unresolved coverage.
+- [x] D: outcome-independent legacy evaluation, paired block uncertainty and fixed slices,
+      experiment manifest and complete feature-cache identity; retain existing gate thresholds.
+- [x] Run focused validation, document actual results and remaining integration dependencies,
+      reconcile Git, and commit a resumable Phase 1 review without publishing or fitting candidates.
+
+Check-in: the user's “Continue to phase 1” authorizes these maintenance changes and
+their necessary tests and read-only source research. No data purchase, source ingestion
+refresh, dependency change, experiment, collector activation or deployment is in scope.
+
+
+### Review
+
+Implemented the Phase 1 components in the isolated coordinator checkout on
+`codex/model-foundation`, based on `c68c321`. The shared calibrated pair probability,
+saved temporal style/prior state and strict schema-4 artifact contract are tested with
+their inference mirrors. The evaluator now labels legacy orientation, requires exact
+paired keys, retains the existing gate and adds block uncertainty; feature-cache identity
+includes input bytes and effective settings. Final validation: 1,230 Python tests passed
+in 43.16 seconds, Ruff and diff checks passed. Real style-prefix and serialized serve
+query checks passed on both tours. No numerical model experiment or deployment occurred.
+
+See `tasks/research/2026-09-06-phase1-review.md`, its data audit, bounded CSV and JSON
+receipts for the exact implementation and next-session commands. The audit found seven
+ATP round/date inversions and promoted **B3-R1** to a blocker before Phase 2's freeze.
+Neither normalized tour has verified prior-availability columns: the new prior honestly
+excludes those observations and currently stays at 0.62. Do not claim global temporal
+correctness or a forecast improvement from the component tests.
+
+The private probability receipt builder/validator and conditional health finding are
+implemented; full/quick producer wiring, private release copying/public exclusion and
+live serving probes remain Phase 2 integration work. The original plan's compatible
+real-artifact 435-pair checks remain pending a normal schema-4 fit in Phase 3. The
+source-coverage slice awaits preserved provenance; evaluator/runner freeze is pending.
+These outstanding acceptance checks are not represented as operationally enforced.
+
+Read-only frozen-input audit: 555 WTA 2024 catalogued finished results remain unmatched
+under the recorded join policy; 313 matched WTA 2025 rows lack serve statistics, with
+no cached positive-denominator record for those 313. Expected full-calendar coverage,
+status eligibility and acquisition yield remain uncertain. A 2024-only candidate cannot
+pass the unchanged positive-tune gate. Raw/output data, original project and snapshot
+are unchanged; isolated test caches were restored and A's normal-loader caches retained.
+
+## 2026-09-06 — Phase 2: timing repair, release integration and evaluator freeze
+
+The user said “Okay keep going” after the Phase 1 handoff, authorizing the documented
+next phase. Continue in the coordinator checkout on `codex/model-foundation` from
+`8080e34`; preserve the original checkout, Phase 0 snapshot and raw archive. This is
+pre-round correctness/integration work. Full corrected baseline fits are Phase 3;
+no source refresh, candidate search, dependency upgrade, push or deployment is planned.
+
+- [x] Trace B3-R1's seven inversions and the long-gap identity candidate to raw sources;
+      choose an explicit, evidence-backed chronology/availability policy before coding.
+- [x] Preserve timing/source provenance through normalization and fix the proven ordering
+      defect without inventing played timestamps; populate only justified serve-prior times.
+- [x] Add affected walk/prediction state parity and real-data regression checks; review any
+      population/version change separately from changes to prediction semantics.
+- [x] Wire independent probability-audit receipts into full and quick producers, enforce
+      metadata/artifact/input binding, and integrate private release copying/exclusion.
+- [x] Extend both health gates and producer-generated regression tests for missing/stale/
+      inconsistent witnesses and accidental public exposure.
+- [x] Complete explicit source-coverage diagnostics and research manifest-runner integration;
+      freeze evaluator/config/input/runtime identities only after correctness checks pass.
+- [x] Run required Python/Ruff and web validation, recheck preserved inputs and Git, and
+      commit an exact Phase 2 review/resume handoff including unresolved limits.
+
+Check-in: the current request authorizes implementing the previously documented Phase 2
+steps. If evidence changes the intended chronology policy or proves a new blocker,
+record the revised design here before proceeding; do not score around an unresolved defect.
+
+### Timing design decision (before implementation)
+
+Raw-file inspection and primary ATP records identify the 2024 defects as conflicting
+**event-start stamps**, not recoverable exact match times. Normalize only the three
+verified event editions (Metz/Belgrade 3–9 Nov; Winston-Salem 18–24 Aug) to their verified
+start while retaining raw dates and marking the basis as event-start. Order their rounds
+explicitly; do not turn those dates into played-time claims. Repair the single 2026
+Shelton–Nava Munich row by exact pair/date/score evidence, not event-name similarity.
+
+Preserve winning payload source/file and original date/event ID. Recover first-party
+WTA played-date/event-bound evidence read-only from the already frozen response cache,
+with exact event/match/player/result agreement; carry unique evidence across existing
+dedup groups without changing their membership. Stamp fresh WTA adapter evidence for
+future normal runs. Admit only justified played-date/event-end serve-prior observations.
+Unknown dates remain excluded. The historical benchmark remains explicitly retrospective
+where source publication times and exact played dates are unavailable; it must not be
+advertised as a certified real-time forecast archive. A new within-edition knockout
+inversion must block feature construction instead of being silently scored.
+
+Timing refinement: the first corrected replay preserves ATP's 284,893 matches and removes
+all seven inversions (17 start-stamp corrections plus the one exact event-ID repair).
+Partial WTA played-date recovery exposes mixed bases in four historical editions. When
+one exact-result donor establishes unique calendar bounds and every selected row lies
+inside them, but played-day evidence is incomplete, use the verified event start for the
+whole edition's retrospective round order. Preserve actual played dates separately for
+availability. This conservative fallback changes no selected match and never creates a
+played timestamp. Conflicting/out-of-bound evidence remains unresolved and must fail the
+inversion check. The evaluator must report how many rows use each date basis.
+
+Timing refinement after the WTA replay: Bol 2016/2017 have one uniform archive
+edition stamp exactly one day before the first-party calendar start. Permit this
+specific representation pattern only with unique verified bounds and exact-result
+donors; retain the original uniform stamp for round ordering and the verified
+calendar/played dates for availability. Mixed or larger out-of-span dates remain
+unresolved. This labels retrospective ordering rather than fabricating played dates.
+
+Saved-state refinement before freeze: event-end availability creates observations whose
+availability is later than the last walked event-start stamp. Preserve the remaining
+observations in the saved serve state and admit them into a copied date view strictly
+after their availability day. Without this mirror, a later walk would update the prior
+while the saved predictor would permanently forget it. Extend the schema-5 validation
+and serialization/parity tests in this same maintenance change.
+
+Gate integration: the public metadata now carries the declared chronology policy,
+checked row count, date-basis coverage and unresolved inversion count. The pre-upload
+health gate and live verifier reject missing/inconsistent coverage or any inversion;
+the real frame check still runs before feature construction and before either export
+mode. This operational summary is not independent proof of historical played or
+publication times; unknown-basis rows remain explicitly counted.
+
+
+### Review
+
+Phase 2 maintenance and the evaluator freeze are complete in the coordinator checkout.
+All three adopted populations preserve exact selected membership and have zero unresolved
+round/date inversions; the WTA main rows remain aligned across both states. Full/quick
+private prediction receipts, both output gates and private release copying/exclusion are
+wired and tested. Inference schema is 5; population version stays 6. Pending event-end
+statistics now survive serialization and enter copied query views at the correct date.
+
+Full suite: 1,258 Python tests passed; final runner canonicalization had four focused
+passes and an actual freeze/verify readback. Ruff passed. Web: 359 tests passed, typecheck
+and production build passed, lint had zero errors and nine unchanged warnings. Original
+and worktree raw/output inputs are preserved; isolated verified caches were restored.
+See `tasks/research/2026-09-06-phase2-review.md` and its JSON/CSV for the exact frozen
+contract, research findings and sequential Phase 3 commands. No baseline fit, numerical
+improvement claim, candidate adoption, source refresh, push or deployment occurred.
+Real fitted-artifact 435-pair probes remain explicitly assigned to Phase 3's normal fits.
+
+## 2026-09-06 — Phase 3 corrected incumbent and diagnostics
+
+User check-in: “Proceed to phase 3” authorizes the Phase 2 handoff sequence. Work uses
+the coordinator at `8be9d74` and the accepted `evaluator-freeze-v2.json`; no source,
+evaluator, configuration, dependency or input changes during this measurement round.
+
+- [x] Verify the frozen contract and register fresh private run directories.
+- [x] Run the five-bag ATP then production-policy WTA 2010–2026 baselines sequentially;
+      retain predictions, row identities, coverage, exclusions, clocks and receipts.
+- [x] Establish bounded deterministic reproduction and report yearly/window/fixed-slice
+      scores, calibration and paired diagnostics without claiming candidate adoption.
+- [x] Fit both real schema-5 final predictors sequentially, save privately and reload
+      through the strict loader; run the 435-pair and WTA branch/matrix/receipt checks.
+- [x] Pre-register the next hypotheses with budgets, dependencies, slice targets and
+      negative controls; preserve unknown acquisition denominators as unknown.
+- [x] Verify preserved inputs and Git, write a durable results/resume handoff, and
+      commit the research record plus a docs-only handoff in the original checkout.
+
+### Review
+
+Phase 3 completed on frozen implementation `8be9d74`. ATP: 46,195 scored rows,
+LL 0.573954 / Brier 0.196334 / accuracy 69.212%; WTA: 42,197 rows,
+LL 0.593586 / Brier 0.204403 / accuracy 67.648%. Every eligible selected row was
+scored; all 42 feature columns reproduced exactly on every scored row. First/last
+fold probabilities were bit-identical. Both normal saved schema-5 predictors passed
+435-pair API checks (max error 1.11e-16), plus validated real producer receipts;
+WTA receipts exercise both branches. No model/evaluator/config/input changes or adoption.
+
+The report retains unknown historical availability, missing event-block identities
+(196 ATP / 411 WTA) and the ATP enriched-count slice-label limitation. WTA strong
+favourites are not globally overconfident; data yield remains unverified. Phase 4
+has a concrete source-adjudication plan and an eight-setting uncertainty screen,
+with independent staging/design work and sequential numerical decisions.
+See `tasks/research/2026-09-06-phase3-review.md`, its result/CSV files, and
+`2026-09-06-phase4-preregistration.md`. All original/snapshot/raw/output data remain
+preserved. No source tests changed; real fit/replay checks passed. Local research
+record and docs-only original-checkout handoff use separate commits; no push/deploy.
+
+
+## 2026-09-06 — Phase 4 candidate preparation
+
+User check-in: “Keep going for round 4” authorizes the saved Phase 4 plan. Preserve
+the coordinator/Phase 3 reference and work in a separate candidate checkout. Staged
+source feasibility happens before the numerical round; no input refresh during fitting.
+
+- [ ] Create and verify an isolated candidate checkout from `c5cd366`, with distinct
+      input files and the same frozen runtime; record contracts and measured clocks.
+- [ ] Re-adjudicate the 2024 WTA 903/905 result samples and the remaining named events;
+      classify evidence, outcomes, identities and any actual population defect.
+- [ ] Run the bounded 2025 serving-stat source pilot and older-history feasibility;
+      freeze one justified data candidate or document why none is admissible.
+- [ ] Specify and implement the small uncertainty state, query-time mirror and tests;
+      retain the existing evaluator and inference artifact guards.
+- [ ] If no correctness blocker remains, run the eight registered tune-only settings
+      sequentially; preserve every result and select at most one Phase 5 candidate.
+- [ ] Verify preservation, tests and Git; commit exact results, limitations and the
+      next-session handoff. No adoption, prospective activation or deployment this phase.
+
+### Review
+
+Pending. If the result audit proves a population defect, stop candidate scoring and
+record the required maintenance and new-reference design before continuing.
+
+### Uncertainty prototype design, before implementation or screening
+
+Use a four-dimensional Gaussian per player: global logit strength plus Hard/Clay/Grass
+deviations. Initial mean zero; covariance `sigma0^2 * diag(1,.25,.25,.25)`. Before a
+query/update, add `q * elapsed_days * diag(1,.25,.25,.25)` to a copied covariance; no
+mean drift. Surface design vector selects global plus that surface. Marginal match
+probability integrates the logistic likelihood over the Gaussian strength difference
+using fixed 20-node Gauss-Hermite quadrature. Updates moment-match that same scalar
+likelihood, then project its moments back into each player's mean/covariance. Discard
+posterior cross-player covariance explicitly; retain within-player covariance.
+
+Likelihood power equals the existing tier weight, with WTA's adopted 0.72 retirement
+multiplier and existing walkover-admission policy; no extra margin-of-victory weighting.
+Record predictions before updates in the existing retrospective row order. Queries
+cannot read before the saved cutoff and never mutate state. Main and enriched WTA
+walks remain separate, selected by baseline-owned threshold-32 counts. The only proposed
+combiner addition is `logit_p_dynamic`; disabled mode bypasses it exactly.
+
+Implement this as a research-only ratings module with an explicit JSON state roundtrip,
+without production imports or changing the schema-5 loader. Tests precede any real
+screening. The eight sigma/q combinations and all numerical stop conditions remain as
+registered; no validation scoring until a candidate is selected and Phase 5 begins.
+
+Numerical design correction before screening: a 20-node Hermite grid has 0.03031
+absolute probability error at contrast mean -2 / variance 100 against independent
+adaptive integration. Replace it with 64 nodes for variance <=4 and adaptive
+normal-coordinate integration above 4 (absolute/relative tolerance 1e-11, integration
+bounds +/-12 SD, fail if numerical evidence is unresolved). This is an integration
+accuracy repair, selected without outcome scores; the eight parameter settings and
+single feature representation remain unchanged. Add independent probability and
+posterior-moment comparisons across both integration paths before real replay.
+
+A1 has established a missing-result population defect in 2024 Slams. Per the explicit
+preregistration stop condition, B2 candidate scoring and A3 candidate freezing are
+on hold. Complete source adjudication, source feasibility, research-only state tests
+and a maintenance/new-reference handoff. Do not expand Phase 4 into an unregistered
+population migration or compare a new model against incomplete history.
+
+Real-history check found one additional correctness blocker: the normalized 1980-04-30
+record at event 1980-1040 has Marcie Louie as both winner and loser. The prototype
+correctly rejects this; preserve the failed full-history attempt and the raw record.
+Do not skip it inside a scored walk or invent an opponent. For runtime and serialization
+QA only, register a separate contiguous 1991-2019 replay initialized cold at 1991;
+this is NOT certification of the full-history candidate and produces no loss comparison.
+Add a self-match rejection test. Full warm-up replay remains a maintenance prerequisite.
+
+
+### Phase 4 review and final disposition
+
+- [x] Isolated `codex/model-phase4` from coordinator `c5cd366`; 18,791 distinct data
+      files verified. Frozen coordinator and original inputs/outputs are unchanged.
+- [x] Re-adjudicated cached 2024/2025 source evidence and corrected cache-year/alias
+      errors. Corroborated 491 absent completed results in five 2024 events.
+- [x] Completed fixed 2025 stats and bounded 2015 history pilots; no usable data
+      candidate. Source responses, failures, row dispositions and hashes are preserved.
+- [x] Implemented research-only uncertainty state, exact disabled path, saved query
+      mirror and 25 new tests. 108 targeted tests and lint passed.
+- [x] Completed separately registered 1991-2019 replay/serialization QA and a five-bag
+      incumbent 2010 refit with bit-identical probabilities; measured runtime saved.
+- [ ] Full-history replay remains blocked by the raw 1980 same-player record.
+- [ ] Eight-setting tune screen and candidate selection deferred by the preregistered
+      missing-population stop condition; zero candidate scoring trials were run.
+- [x] Preserved all original/coordinator data, 25,826 snapshot files and 56 Phase 3
+      run artifacts; only two disposable candidate normalized caches changed.
+- [x] Wrote the maintenance implementation sequence and exact resume handoff in
+      `tasks/research/2026-09-06-phase4-maintenance-plan.md`, plus Phase 4 review,
+      result JSON and four row-level CSVs. No model adoption or deployment.
+
+Next is population/timing maintenance and a new reference, then finishing Phase 4
+screening. Phase 5 evaluation, future confirmation and integration remain later work.
+
+
+## 2026-09-06 — Population maintenance and Phase 4 continuation
+
+User check-in: “Keep going” authorizes the saved maintenance sequence following Phase 4.
+Preserve the coordinator and Phase 4 commits/inputs; implement in a new maintenance
+checkout. No production deployment, purchase or prospective activation is included.
+
+- [ ] Register an isolated maintenance checkout from `51c9eb1`, distinct inputs and
+      immutable source/runtime/cutoff records; preserve all earlier research runs.
+- [ ] Implement the independently audited result ledger with strict identities, roles,
+      outcomes and provenance, keeping optional statistics separate from result admission.
+- [ ] Adjudicate the self-match and estimated-date evidence; record reviewed quarantines
+      rather than guessing, and audit both tours for the same failure classes.
+- [ ] Integrate reviewed results and completeness receipts, add typed integrity gates
+      and meaningful regression tests, and establish the population-version boundary.
+- [ ] Freeze repaired inputs; rebuild both incumbent baselines sequentially and verify
+      saved predictor/parity contracts. Report changed membership separately from loss.
+- [ ] Finish full-history dynamic-state parity and the registered eight-setting tune-only
+      screen if the maintenance gates pass; preserve every outcome and select <=1 candidate.
+- [ ] Reconcile Git, preservation and evidence; commit the implementation and exact
+      next-session handoff, with a documentation-only update in the original checkout.
+
+### Review
+
+Pending. Model gains remain unestablished until the unchanged full arbiter gate is met.
+
+### Maintenance implementation contract
+
+Use a committed, hash-pinned review ledger in the package, separate from ignored raw
+statistics. It enumerates the five reviewed 2024 WTA editions, every source record and
+its disposition, and the exact 1980 quarantine. The full package fingerprint already
+includes JSON; add it explicitly to the normalizer cache fingerprint. A result adapter
+requires matching numeric record/header edition IDs, main singles, a coherent winner,
+round and outcome. It never fabricates serving statistics or historical player profiles.
+The existing scraper gets an optional result accumulator before its known-stat skip;
+automatic admission outside the reviewed scope is not activated in this migration.
+
+Use exact ESPN event IDs established by the already corroborated rows (Madrid 413,
+Rome 414, Miami 713, Roland Garros 172, US Open 189; all 2024). The apparent Rome
+Shnaider–Minnen score conflict is a real repeated pair: Rome May 7 (6-2 6-3), Parma
+May 15 (6-4 6-3, ESPN 870). Date overlap alone mixed these. Retain both results.
+The 22 remaining completed results have unique same-edition/opponent/round/score
+evidence and explicit provider name/ID crosswalks; six retirements and one walkover
+are recorded separately. No general name-order alias rule is added.
+
+Validate expected exact result identities against the final frame independently of
+source-survivor tags. Both full and quick export check this before writing anything,
+then embed the receipt in meta. The typed output gate checks the pinned ledger identity,
+expected key counts, missing/conflicting keys, self-pair count and checked population.
+An absent receipt is a failure for population version 7. Synthetic fixtures gain the
+new contract without changing their existing assertions.
+
+Explicit estimated-start flags override previously cached played-date claims; preserve
+event bounds even without a played day. Conflicting record/header editions provide no
+timing evidence. Chronology policy advances to v2. The unknown 1980 opponent remains
+unknown: quarantine only its exact source/event/date/round/match-number/pair/score key.
+
+### Real-history adjudication correction before any scoring
+
+The 528-row coverage check correctly stopped the first WTA load, but inspection showed
+265 supposed missing results on the archive's uniform start-minus-one-day stamp, a date
+basis explicitly allowed by chronology v1/v2. They were present, mostly with stats.
+The Phase 4 calendar-window absence counts and the claimed Rome missing/conflicting
+match therefore overstate restoration. Preserve the old audit as superseded evidence.
+The receipt must recognize only the documented event-start anchor with exact event
+bounds, original stamp, verified evidence and matching ESPN edition; ordinary out-of-span
+played dates remain failures. Recount actual additions/removals from normalized history.
+
+One apparent new Madrid result is an existing Garcia–Xin Yu Wang match under the
+whitespace-split name. The repository falsifier was run on all 146,078 frozen enriched
+WTA rows: no meetings between the two spellings, canonical spelling present, no stable-ID
+contradiction. All 23 alias collision groups are exact same-edition results in 2024
+(46 rows), with archive and stats copies. Evidence and row-level review are preserved in
+`runs/maintenance/staging/xinyu-alias-review.json` and `xinyu-alias-collisions.csv`.
+Add the exact `xin yu wang` -> `Xinyu Wang` alias within the unshipped version-7 boundary;
+do not merge Xiyu Wang or add a general whitespace/name-order transformation.
+
+The next preflight caught a second concrete join error: Swiatek–Cirstea had identical
+6-1 6-1 scores and R32 labels in Doha and Madrid 2024. The broad season/pair/round/games
+key collapsed them and donated Madrid timing to Doha, which the chronology check blocked.
+Partition only reviewed donor groups by corroborated ESPN/native edition and bounds
+before outcome/timing donation. Preserve both results; unreviewed broad-key groups remain
+outside this ledger's completeness claim. Add a regression for this exact rematch.
+Population attempts 001–003 remain preserved; the next attempt uses a canonical-name
+comparison on both sides so renamed identities are not counted as additions/removals.
+
+### M0–M2 review — verified population repair
+
+- [x] Isolated maintenance checkout and 18,791 distinct input files registered.
+- [x] Added the hash-pinned, independently adjudicated 528-result WTA ledger and exact
+      1980 self-match quarantine, with scoped alias and event-bound dedup repairs.
+- [x] Added full/quick integrity receipts, typed output findings, cache checks, population
+      version 7, chronology v2 and saved-artifact ledger binding.
+- [x] Full suite: 1,319 passed; focused rematch/source suite: 70 passed. Lint fixes after
+      these runs only change import order and statement line breaks.
+- [x] `population-004` passes for ATP and both WTA state populations: all 528 reviewed
+      results, no invalid self-pairs, no chronology inversions. ATP unchanged; WTA gains
+      255 real results and removes 23 duplicates plus one self-match (net +231).
+- [x] Existing paired ordering dates remain unchanged; availability metadata changes on
+      286 WTA main and 8,161 enriched rows. No model/evaluator settings were changed.
+- [ ] Complete preservation check, commit repair, freeze/rebuild the new reference,
+      then finish the registered uncertainty screen and conditional full arbiter.
+
+See `tasks/research/2026-09-06-maintenance-review.md` for corrected evidence, failed
+attempts and the exact commands/drivers. Phase 4's absence counts are superseded.
+
+Preservation passed at 2026-09-07 02:53 UTC: original, coordinator and Phase 4 data
+unchanged; all 25,826 snapshot files and 56 Phase 3 run files verified; five distinct
+inodes per original input. Maintenance raw bytes are unchanged. Only four disposable
+normalized caches differ. Receipt: `runs/maintenance/preservation.json`.
+- [x] M3 now passes: maintenance freeze `1f531e2bf3ebb5e771a798e3eee3376a09794e94f721cd04f6230076a612c7ac`,
+  46,195 ATP and 42,422 WTA scored rows, no unexplained omissions. Both normal final
+  predictors pass strict reload, exact 42-column feature parity, first/last-fold
+  reproduction and 435-pair exchange (maximum error 1.11e-16). Existing references
+  remain unchanged. WTA final driver completed in 50.18 seconds; ATP in 71.56 seconds.
+
+## 2026-09-06 — Finish the registered uncertainty screen
+
+User check-in: “Keep going then” continues M4 and its conditional Phase 5 arbiter.
+Isolated checkout `worktrees/dynamic-screen`, branch `codex/model-dynamic-screen`,
+from tested repair `1fbe42a`. Preserve the maintenance reference and its input copies.
+
+- [ ] Clone and hash-check distinct maintenance inputs; record source/reference manifests.
+- [ ] Install/test the prepared 43-column research adapter and strict schema, with no
+      production/evaluator changes. Disabled routes delegate to the incumbent exactly.
+- [ ] Commit the tested representation and a new candidate freeze. Recheck full warm-up,
+      three historical cutoff serialization mirrors, threshold-32 attachment and disabled
+      five-bag 2010/2018 probabilities against maintenance before candidate screening.
+- [ ] Run the original eight WTA tune-only settings sequentially, five bags, 45-minute
+      cap; preserve each attempt and select at most one by positive mean tune delta.
+- [ ] If selected, run full 2010–2026 paired arbiter with unchanged inequalities and
+      week/event diagnostics. Reproduce the selected tune probabilities exactly.
+- [ ] Verify preservation, record every verdict, reconcile Git and write the precise
+      next-session handoff in this checkout and documentation-only original checkout.
+
+### Review
+
+Pending. Future confirmation and production integration remain separate. No candidate
+has been scored or selected. Prepared draft hashes and original grid are recorded in
+`runs/maintenance/dynamic-preparation.json` before any candidate numerical trial.
+
+- [x] Cloned and hash-verified 18,791 distinct inputs (5.84 seconds).
+- [x] Added the isolated 43-column adapter, retaining every existing state/evaluator test.
+      Focused suite: 31 passed; full suite: 1,325 passed in 140.56 seconds. Lint clean.
+- [x] Recorded exact adapter policy, seeds, fitting/calibration populations, eight-setting
+      order, selection rule and budget in `2026-09-06-dynamic-screen-registration.md`.
+- [ ] Full repaired-prefix temporal probes are running in the maintenance reference;
+      then freeze this committed candidate, run state parity, and start the tune screen.
+
+
+### Final review — repaired reference and completed candidate gate
+
+This append completes the previously pending M0–M4 and conditional Phase 5 items;
+older progress entries remain as history.
+
+- [x] M0–M2: repaired/reviewed population and source boundaries committed as `1fbe42a`.
+      ATP remains 284,893 enriched rows; WTA main/enriched become 129,209/146,309.
+      WTA adds 255 real results and removes 23 duplicate copies plus one exact self-match.
+      All 528 independently reviewed results survive; self-pair/chronology gates pass.
+- [x] M3: both repaired five-bag references and strict normal final artifacts pass.
+      ATP scores 46,195 rows at LL 0.5739541815713326, bit-exact to Phase 3;
+      WTA scores 42,422 at LL 0.5930618887966231. Maintenance review commit `975379b`
+      includes full-prefix future-append and pending-prior tests with exact state parity.
+- [x] M4 preparation: isolated 43-column adapter/code registration committed as `8c4792f`;
+      1,325 full-suite tests and 31 focused state/adapter tests pass; lint clean.
+      Frozen candidate contract is
+      `20bdae999b8d235028af72a8160276b850211ecd38d4a9ec15a6948f84d93185`.
+      Full dynamic histories and 240 serialized continuations pass; disabled five-bag
+      2010/2018 predictions and all original columns reproduce the reference exactly.
+- [x] M4 screen: all eight registered WTA settings complete in 426.88 seconds.
+      Selected only by tune delta: sigma0=1, daily variance q=0.0001. Selection was
+      saved at 2026-09-07 03:27:38 UTC before candidate validation, SHA-256
+      `85ba263dbdf914cba8a824f4df9346cc4e1ec22925db9f4115fc7d3cf25158f4`.
+- [x] Conditional Phase 5: selected full arbiter completes in 76.04 seconds and passes
+      the unchanged gate. Tune dLL +0.000302865 ± 0.000104815 (26,794 pairs);
+      validation +0.000239993 ± 0.000127945 (15,628 pairs). Selected tune predictions
+      reproduce exactly. Validation week-bootstrap 95% interval crosses zero and
+      accuracy falls 0.173 percentage points (27 fewer correct winner classifications).
+- [x] Preservation: all protected data/source inventories, 25,826 snapshot files,
+      56 Phase 3, 77 Phase 4 and 104 maintenance run files remain exact. Six distinct
+      inodes per each original input. Four test-replaced disposable caches were preserved
+      as evidence and restored; the final candidate inventory is exact. Scoring used
+      separately hash-pinned population/features throughout. Final receipt and all 61
+      candidate run-file hashes are in `2026-09-06-dynamic-result.json`.
+- [x] Recorded all eight outcomes and the arbiter in the append-only ledger; documented
+      selection, uncertainty, accuracy tradeoff, fixed-slice scope and exact next steps.
+      Reconciled Git history before this handoff. No source edits followed passing tests.
+
+**Decision:** retain the candidate as research evidence; **defer production adoption**.
+The corrected 42-column research incumbent remains current. This is a small retrospective
+probability-quality gain, not independently confirmed future performance. Production
+has not been pushed, merged or deployed, and no prospective collector/automation is active.
+
+Read `tasks/research/2026-09-06-dynamic-screen-review.md` for the exact resume sequence.
+The next separately scoped implementation would prepare an offline WTA-specific shadow
+artifact, declare per-tour schema/state contracts, implement every serving mirror and
+strict loading check, and measure latency. Fresh-cohort design can proceed independently;
+activation needs a verified saved candidate and separate authorization. Do not repeat or
+expand the now-validation-exposed grid. Earlier optional-data pilots produced no admissible
+candidate. No further input was needed to finish this round.
+
+Current checkout: `.research/2026-09-06-model-foundation/worktrees/dynamic-screen`, branch
+`codex/model-dynamic-screen`; code `8c4792fa8fd418d29a60ef58f8d8c994fc6a5f68`.
+Corrected reference: `worktrees/maintenance`, branch `codex/model-population-repair`,
+code `1fbe42a3e5c900b6b76594032e5f46b1054adbaa`, review `975379b`.
+Maintenance contract: `1f531e2bf3ebb5e771a798e3eee3376a09794e94f721cd04f6230076a612c7ac`.
+Private evidence: `runs/maintenance` and `runs/dynamic-continuation` under the research
+root. Private driver hashes and package/input identities are recorded in the result JSONs.
+The original checkout receives documentation only; reference checkouts remain preserved.
+
+
+## 2026-09-07 — Offline uncertainty candidate and serving assessment
+
+User check-in: “Keep going” authorizes the next implementation in the completed handoff.
+Build in a fresh `codex/model-dynamic-shadow` checkout from `777a38e`; preserve all
+references. The fixed selected parameters remain sigma0=1 and q=0.0001. This is
+implementation/parity/complexity assessment, not a new tuning round or adoption.
+
+- [ ] S0: register a new checkout, distinct input copy and hashes of protected references;
+      record the schema/state interface and fixed acceptance checks before source edits.
+- [ ] S1: add shared prediction schema/probability hooks whose ordinary defaults retain
+      all 42 columns. Add an explicit WTA-only shadow predictor with both selected dynamic
+      states, nondestructive dated queries and the registered 43-column orientation.
+- [ ] S2: fit the fixed five-bag final shadow from main-only completed 1991+ rows and a
+      365-day calibration holdout with the existing final seed. Reuse the registered
+      training adapter. Keep adopted parameters untouched; shadow parameters live in config.
+- [ ] S3: save/load a separate strict research format: a single atomic file with bounded
+      JSON header plus exact pickle payload, runtime/configuration/population/selection
+      binding before deserialization and concrete model/state checks afterward. Reuse
+      existing secure filesystem primitives. Ordinary loaders must reject this format.
+- [ ] S4: add tests for all prediction paths, wrong/missing/corrupt states, schema/runtime/
+      provenance mismatches, pre-deserialization rejection and filesystem/crash behavior.
+      Run focused and full suites plus lint. Existing assertions/evaluator remain frozen.
+- [ ] S5: register final real-data acceptance after code commit; reproduce all frozen
+      candidate OOS features/probabilities without reselection, fit/save/reload the WTA
+      shadow, verify dated prefix/state parity and scalar/component/evidence/matrix paths.
+      Recheck existing ATP/WTA 42-column artifacts and ATP exact probabilities. Measure
+      build/save/load cost, artifact bytes and repeated scalar/30-player matrix latency.
+- [ ] S6: draft a fresh-cohort confirmation protocol using the actual saved-artifact
+      interface and existing collector constraints; keep activation pending. Reconcile
+      Git, verify protected inputs/results, commit detailed review and mirror docs here.
+
+Dependencies: S0 precedes edits; S1/S2 establish the constructor and schema for S3;
+S4 precedes frozen S5 real fits. Cohort design is independent of fitting, while activation
+requires a verified artifact. Work is sequential in this session; no agents. No new
+source downloads/dependencies, parameter search, production merge/push or collector.
+
+### Review
+
+Pending. Implementation will retain the default production 42-column contract. The
+research format is an explicit version boundary rather than prematurely advancing the
+production format. The selected candidate has already seen historical validation;
+reproduction cannot count as new performance evidence.
+
+- [x] S0–S3 implementation prepared in the isolated shadow checkout: seven distinct
+  input copies, explicit shared schema/probability hooks, fixed WTA final fitter and
+  strict single-file research persistence. Interface recorded before source edits in
+  `2026-09-07-shadow-interface.md`.
+- [x] S4: 88 focused tests pass; full suite 1,352 passed in 125.68 seconds. The first
+  new fixture omitted the required surface argument; corrected before any real fit.
+  Existing tests/assertions remain byte-identical. Four disposable normalized caches
+  from tests are preserved/restored before acceptance; source inputs stay frozen.
+- [ ] Commit and freeze source, then run immutable real-data acceptance and temporal
+  QA. No additional parameter search or prospective activation is included.
+
+
+### S0–S6 final review — saved shadow accepted
+
+This append completes the pending offline-serving items above; the historical entries
+remain unchanged. The user's continued instruction was carried through final verification.
+
+- [x] S0: isolated `codex/model-dynamic-shadow` from `777a38e`, seven distinct input
+  copies and explicit pre-edit interface. Original and four reference checkouts preserved.
+- [x] S1–S3: implemented shared default-preserving schema/probability dispatch, the fixed
+  WTA shadow builder/final fitter, and strictly bound atomic research persistence.
+  Source/tests committed as `250693c`; all source remained frozen during acceptance.
+- [x] S4: 88 focused tests, 1,352 full tests in 125.68 seconds, full lint passed.
+  All 76 preexisting test files and evaluator/program/workflow/web files remain exact.
+- [x] S5: rebuilt the complete candidate features and reproduced all 42,422 OOS rows,
+  all 43 columns and both raw/calibrated probabilities across all 17 folds bit-for-bit.
+  Final fit uses 92,226 core / 2,446 calibration rows and five bags. The artifact saves
+  and reloads strictly; 435 scalar/component/matrix pairs, exchange/permutation and
+  evidence checks pass. Both ordinary tours reproduce the frozen serving controls exactly.
+- [x] S5 temporal: three full historical prefixes preserve all 43 feature columns under
+  future append and all 43 query columns under save/load. All 19 learned-state query
+  features match their walk values exactly. Corrected missing indoor flags in the private
+  QA context only; residual age/rank snapshot differences are explicitly reported.
+  Current main and lower branch witnesses also pass. No historical QA forecast scores.
+- [x] S5 costs: matrix30 medians 62.54 -> 69.31 ms (+10.8%); scalar 4.73 -> 4.82 ms.
+  Model files 25.80 -> 29.12 MB. Complete feature building 35.31s, final fit 3.91s,
+  save/load 0.71/0.58s; real acceptance 119.19s. Raw samples are retained.
+- [x] S6: documented the future mixed-format runner, version migration and fixed
+  30-day/200-pair pilot design, including why it cannot resolve this tiny gain reliably.
+  No prospective registration, collector, automation, merge, push or deployment activated.
+- [x] Preservation passes: seven distinct copies of 18,791 input files, all 25,826
+  read-only snapshot files, 56 Phase 3 / 77 Phase 4 / 104 maintenance / 61 selected-model
+  run files, all protected sources and the shadow's unchanged input copy. The result
+  JSON hashes all 37 files in this phase's private run directory.
+
+**Decision:** offline engineering acceptance passes; uncertainty adoption remains deferred.
+The corrected 42-column research incumbent remains current. The small historical gain
+and winner-accuracy tradeoff are unchanged; exact reproduction is not new validation.
+See `2026-09-07-shadow-review.md`, `2026-09-07-shadow-result.json` and
+`2026-09-07-shadow-confirmation-plan.md` for the complete handoff and next dependencies.
+
+Checkout: `.research/2026-09-06-model-foundation/worktrees/dynamic-shadow`.
+Implementation freeze: `c50b69e13921cc4f3bb59eb975aea27e9c4a732c9a4746ed69c2f4b14f196828`.
+Artifact: `runs/dynamic-shadow/acceptance-001/candidate.shadow`; exact payload, source,
+selection and input hashes plus explicit loading provenance are in the result JSON.
+Private drivers and exclusive completed runs must be preserved; no reruns or retuning
+are needed. Next is a separately scoped mixed-format prospective runner, then real
+future collection. The original checkout receives documentation only.
+
+
+## 2026-09-07 — Mixed-format prospective runner and frozen model migration
+
+User check-in: “kEEP GOING” continues the completed shadow handoff. Work in a new
+`codex/model-prospective-shadow` checkout from `64d62de`; no live collection starts.
+
+- [ ] P0: preserve reference inputs/results, copy inputs independently, and record the
+  versioned runner contract before implementation.
+- [ ] P1: add a separate WTA-only mixed-format runner, pinned provenance and strict
+  artifact copying, immutable bounded receipts, first-capture retries and timing checks.
+- [ ] P2: accumulate result evidence, fail closed on conflicting outcomes, implement
+  a 30-day capture horizon and seven-day settlement grace, and report paired metrics,
+  exclusions, accuracy, staleness and week/event uncertainty without automatic adoption.
+- [ ] P3: add real fitted-artifact integration and negative tests; preserve all existing
+  tests and evaluator sources; run focused/full tests and lint, then commit/freeze code.
+- [ ] P4: rebuild the same selected shadow on identical sealed inputs under the new
+  source contract; prove exact forecasts against the protected old artifact. Exercise
+  the complete mixed-format runner using explicitly synthetic QA observations.
+- [ ] P5: inspect source readiness without collecting live observations; verify all
+  protected files; record detailed evidence and remaining activation requirements,
+  reconcile Git, commit research handoff and mirror only documents to this checkout.
+
+Dependencies: P0 precedes implementation; P1/P2 precede P3; frozen P3 precedes P4.
+Source inventory is independent of fitting. No agents, new dependencies, parameter
+search, production merge/push or scheduled collector. The fixed incumbent is retained.
+
+### Review
+
+Pending. Engineering QA and exact migration do not create fresh performance evidence.
+
+### P0–P3 implementation review
+
+- [x] P0: isolated checkout and independent 18,791-file input copy registered. The
+  new interface was written before source edits; all completed checkouts are preserved.
+- [x] P1/P2: new `eval/prospective_shadow.py` supports strict ordinary/shadow roles,
+  exact byte copies, explicit provenance/source configuration, serialized create-only
+  evidence, post-inference freshness checks, accumulated/conflicted results, and a
+  fixed 30+7-day endpoint with paired loss/Brier/accuracy and week/event uncertainty.
+- [x] P3: 59 new tests; focused selection 145 passed in 6.82s. Full suite 1,411 passed
+  in 146.83s; full lint passed. All 77 old test files and all old package sources remain
+  byte-identical. Four disposable test caches were preserved privately then restored.
+
+The old artifact control has been captured in its protected runtime: final fitted
+outputs on all 129,209 selected rows, six dated 30-player matrices, all five booster
+identities, calibrator and dynamic-state receipts. Next: commit/freeze this new source
+before the fixed migration fit and explicitly synthetic end-to-end acceptance.
+
+### P0–P5 final review — runner and migration accepted
+
+This append closes the live implementation plan while preserving prior log entries.
+
+- [x] P0/P1/P2: completed the separate WTA runner and fixed 30-day/200-pair/seven-day
+  protocol, strict mixed-format registration, immutable capture, accumulated evidence,
+  conflict exclusions and endpoint reporting. No existing package source was edited.
+- [x] P3: implementation/tests committed at `89002bc`; 59 new tests, focused 145 passed,
+  full 1,411 passed in 146.83s, full lint passed; all 77 preexisting test files exact.
+- [x] P4: source/input freeze `969eb8eeb77d09f051ee52c415eb2d15e5ffa7d138e9b4149166e51eda3a355c`;
+  one registered fixed migration fit. Complete main/selected 129,209-row feature frames,
+  all five booster hashes, calibrator, both dynamic states, all 129,209 fitted outputs
+  and six dated 30-player matrices match the protected old model exactly. Both artifact
+  versions enforce their source boundaries. Build 35.96s; fit 3.92s; no reselection.
+- [x] P4 QA: actual full-size models captured two invented matchups covering main/lower
+  branches. Retry preserves the first receipt, separate result batches accumulate 1→2
+  graded pairs, the simulated endpoint is stable and rejects late intake. All evidence
+  is `synthetic-qa`; zero real forecasts, live registrations or fresh outcomes.
+- [x] P5: read-only source review confirms current adapters do not certify the required
+  actual start/finish evidence. Detailed D0–D5 source/activation handoff, review and JSON
+  record are complete. All five reference checkouts, eight copies of each original
+  input, 25,826 read-only snapshot files and 335 protected prior run files verified.
+  Four disposable test cache outputs were retained before restoring sealed inputs.
+
+**Decision:** engineering acceptance passes; corrected 42-column incumbent retained;
+uncertainty adoption still deferred. More fitting is not fresh evidence. Next implement
+and audit the live source adapter outside the frozen package, then activate a real
+future interval only after timing/context/cadence are verified. No production merge,
+push, deployment, scheduler or live collector was performed.
+
+Latest checkout: `worktrees/prospective-shadow`, `codex/model-prospective-shadow`.
+Artifact: `runs/prospective-shadow/migration-001/candidate.shadow`, SHA-256
+`43dd88b1461913f11b90b6d2aa6aa82f7bbfe3ba7ad597d978c6a46b73d45fcc`.
+The result JSON hashes all 42 phase run files and three private drivers. Read
+`2026-09-07-prospective-shadow-review.md`, `...-result.json` and `...-next.md` on resume.
+The original checkout receives only docs and append-only log additions.
+
+
+## 2026-09-07 — Prospective source adapter and timing audit
+
+User check-in: “kEEP GOING” authorizes the next source-readiness phase. Create a fresh
+`codex/model-source-audit` checkout from `3cd780a`. Keep the model package and all
+accepted artifacts unchanged; source tooling lives outside `src/tennis_model`.
+
+- [ ] D0: append this scope, preserve prior run/source identities and create an exclusive
+  source-audit directory. No model fit or new duplicate training-data copy is needed.
+- [ ] D1: inspect primary documentation and a bounded sample of current ESPN/WTA raw
+  responses. Record actual local request/receive times, raw bytes, hashes, cache/status
+  headers and failures. Identify exactly which identity/context/timing fields are proved.
+- [ ] D2: implement a versioned external acquisition/audit adapter with bounded secure
+  receipts, explicit source status/identity handling and fail-closed batch conversion.
+  Preserve ambiguous or unsupported timing; never relabel estimates as actual times.
+- [ ] D2 tests: use retained provider fixtures plus negative/synthetic variations for
+  transport failures, duplicate/replaced identities, timezone/status/round distinctions,
+  exclusions, lifecycle comparison and frozen-runner integration. Keep old tests exact.
+- [ ] D3: run the tested adapter against the bounded live sample and assess readiness.
+  A source lifecycle audit may remain incomplete if real transitions have not elapsed;
+  report it precisely. Do not activate a model pilot without verified timing and cadence.
+- [ ] D4 handoff: reconcile Git, verify protected evidence/source files, commit the
+  external tooling and detailed source-readiness report, and mirror documents only here.
+
+Dependencies: initial source inspection informs mapping; tested acquisition precedes
+acceptance; live activation requires complete source evidence and execution cadence.
+No agents, paid sources, new dependencies, retuning, package changes, production push
+or unattended scheduler. Existing model/runner tests are supplemented, not rewritten.
+
+### Review
+
+Pending. Live source audit receipts are factual acquisition evidence, not backfilled
+forecasts or fresh model-performance results.
+
+
+### D0–D4 final review — source adapter accepted, live readiness unmet
+
+This append records completion without rewriting the earlier plan.
+
+- [x] D0: new `codex/model-source-audit` checkout from `3cd780a`; bounded exclusive
+  source-audit runs. No new training-data copy or model fit.
+- [x] D1: six successful public HTTP reads with real timestamps/raw receipts, plus a
+  retained local sandbox DNS failure. Primary timing documentation investigated.
+- [x] D2: external adapter and failure/output-boundary fixes committed at `c9b5b17`;
+  42 new tests, 187 focused tests passed in 7.45s, full source/research/test lint passed.
+  All 78 preexisting tests and the entire model package remain unchanged.
+- [x] D3 readiness assessment: tested real ESPN/WTA fetches succeeded. 119 completed
+  main-draw matches corroborate the event mapping; zero have verified actual timing.
+  Two provisional schedule drafts; four changed provider records across three matches;
+  no full scheduled/live/terminal lifecycle. Live export correctly refuses activation.
+- [x] D3 integration QA: unchanged full-size artifacts captured two diagnostic forecasts
+  under an explicitly simulated QA registration clock; zero graded, two pending.
+  These are `synthetic-qa`, not real forecasts, and must never be upgraded or scored live.
+- [x] D4: preservation, detailed review/result hashes and next-session R0–R3 plan recorded.
+  Seven existing/original data inventories, eight distinct copies of 18,791 inputs,
+  25,826 snapshot files and all 377 prior run files verified. Research work is committed
+  locally; only documents and append-only log entries are mirrored to the original tree.
+
+**Decision:** adapter engineering is accepted; live source qualification and pilot
+activation remain outstanding. The prior protocol may unnecessarily demand exact finish
+stamps. Next specify and test typed time bounds that retain defensible pre-play proof,
+then validate the producer before activating collection. Corrected incumbent retained;
+no new model-performance evidence, retuning, production merge/push or scheduler.
+Read `2026-09-07-source-audit-review.md`, `...-result.json` and `...-next.md` on resume.
+
+
+## 2026-09-07 — Typed prospective time evidence
+
+User check-in: “Can you keep going?” authorizes the source-audit handoff's next phase.
+Keep all completed experiments immutable. This is evidence-engineering work, not a
+new model fit or a parameter-search round.
+
+- [ ] R0: inspect primary scheduling/timing rules, define sufficient lower/upper-bound
+  evidence and counterexamples before source edits; record an explicit version contract.
+- [ ] R1: create `codex/model-time-evidence` from the accepted source-audit checkout,
+  preserve prior hashes, and validate the supported completion producer on retained raw
+  observations. Only collect a new bounded observation if it resolves a concrete gap.
+- [ ] R2: implement the feasible typed evidence path outside the frozen model package,
+  with immutable source links, conservative interval arithmetic, conflict handling,
+  fixed intake deadlines and explicit rejection of unsupported schedule/latency claims.
+  Keep v1 receipts, model artifacts and historical scores unchanged.
+- [ ] R2 QA: add meaningful negative and real-artifact integration tests; exercise the
+  new version with explicitly synthetic timing evidence, and audit actual source
+  coverage separately. No QA evidence can become a live experiment.
+- [ ] R3 review: establish what is now usable and what live qualification still needs;
+  verify protected evidence, reconcile Git, commit a detailed review and resumable
+  implementation plan, and mirror only documents and append-only logs here.
+
+Dependencies: R0 defines the contract before R2. Completion-bound implementation and
+source qualification are independent, but live activation needs verified start evidence
+and a registered execution cadence. No agents, dependencies, model fitting, migration,
+production merge/push or unattended collector are part of this scope.
+
+### Review
+
+Pending. Exact finish times may be unnecessary; proof of pre-play capture is essential.
+
+
+### R0–R3 review — bounds evaluator and completion producer accepted
+
+- [x] R0: primary scheduling/commencement rules inspected; typed interval contract fixed
+  before implementation. No schedule/API field was promoted to actual-start proof.
+- [x] R1 completion evidence: preserved ESPN/WTA receipts supply 119 corroborated finish
+  upper bounds and 246 provider identity rows, with the original 00:48:17.709639 UTC
+  observation time. No new live scoreboard reads and zero verified start bounds.
+- [x] R2: `prospective-bounds-v2` and external evidence module committed at `10c07ee`.
+  Typed starts/completions, timing conflicts, earlier schedules, source replacements,
+  terminal disagreement, partial updates and uncertain week grouping are implemented.
+  V1/model package stays unchanged; external code hashes are pinned in registration.
+- [x] R2 QA: 58 new tests; combined 231 passed in 9.92s; full source/research/test lint
+  passed. All 82 existing tracked test/fixture files exact. Full-size acceptance took
+  10.86s: main/lower branches, exact direct probabilities, first receipt preservation,
+  missing-start exclusion, accumulated 1→2 graded QA pairs, stable endpoint/late refusal.
+- [x] R3 closeout: all 415 prior run files, 25,826 read-only snapshot files, seven protected
+  data inventories and eight copies of 18,791 original input files verified. Detailed
+  review/result/next-source plan recorded. No model fit, migration or new training copy.
+- [ ] Live qualification and activation remain outstanding: no start-evidence producer
+  or acquisition cadence is qualified. Live registration deliberately fails before files.
+
+**Decision:** the completion-time obstacle is resolved in a separately versioned evaluator;
+start evidence still requires a concrete validated source. Do not build another generic
+framework or refit the unchanged model. Next follow `2026-09-07-time-evidence-next.md`
+for bounded source/access qualification. Synthetic QA is not performance evidence and
+cannot become a live pilot. Corrected incumbent retained; no merge/push/deployment.
+
+
+## 2026-09-07 — Match-start source qualification
+
+User check-in: “Keep going” authorizes the time-evidence handoff's bounded source phase.
+
+- [ ] S0: inspect concrete first-party WTA/US Open timing endpoints or official order
+  evidence, preserving a small sample and distinguishing scheduled from actual times.
+  Consult a licensed timeline's primary contract only if public evidence is insufficient.
+- [ ] S1 conditional: implement a source producer only if its field semantics and timing
+  bounds are supported; pin its source/qualification evidence and extend relevant tests.
+  Otherwise document the exact source/access gap, without adding another framework.
+- [ ] S2: verify model/evaluator/prior-run preservation, reconcile Git, and commit a
+  source verdict plus the smallest remaining activation plan. Mirror documents only.
+
+Use an isolated `codex/model-start-source` checkout from `129f811` if research files
+are needed. No model fit, new training-data copy, generic evaluator, paid account/trial,
+new dependency, unattended collector, production merge/push or subagents. Live activation
+still requires qualified start evidence and an actual registered acquisition cadence.
+
+### Review
+
+Pending. Real source qualification is the task; synthetic timestamps cannot satisfy it.
+
+
+### S0–S2 review — public source sample complete; live qualification unmet
+
+- [x] S0: 18 preserved HTTP reads; US Open point history found, but one of two records
+  has 114/118 starts after their ends. Both WTA point samples return 404 and event
+  samples are empty. Primary licensed-timeline documentation inspected; no live starts qualified.
+- [x] S1 conditional resolved: source semantics/clock accuracy and lifecycle qualification
+  are insufficient. No producer or generic framework added; exact source gap recorded.
+- [x] S2: all 443 prior run files, 91 frozen package files, both models and 354 tracked
+  files under program/web/workflow trees verified; eight completed checkouts remain clean.
+  Source review, raw-response manifest and specific next-step handoff recorded.
+- [x] User access answer recorded: no provider subscription; ongoing Sportradar access
+  is commercial, with a documented limited free trial. No signup, trial, purchase or contact.
+- [ ] Follow-up: qualify one concrete published not-before order, then conditionally
+  implement its justified evidence producer. Live source qualification/cadence remain unmet.
+
+**Decision:** completed bounded source research, no model/evaluator change or fresh
+performance evidence. The free-source search is not exhaustive; official-order evidence
+is the next untested route. Read `2026-09-07-start-source-review.md` and
+`2026-09-07-start-source-next.md`; do not repeat these point-feed reads or fit the same
+model again. Prior tests were not rerun for a documentation-only phase. No new training
+copy, collector, merge, push or deployment.
+
+
+## 2026-09-07 — Free alternatives and public scraping
+
+User check-in: “Can we check for a free alternative or scraping?” authorizes this
+bounded investigation and a source-specific scraper if the actual evidence supports it.
+
+- [ ] F0: inspect one official published not-before order and its public structured feed,
+  preserving at most six initial HTTP responses and checking identity, timezone and revision
+  semantics. Reuse the prior point audit; do not repeat its 18 calls.
+- [ ] F1: compare a small set of free alternatives using primary documentation and actual
+  samples where accessible. Distinguish free historical data, free current feeds, paid
+  add-ons and missing actual-start semantics; no account, subscription or bypass.
+- [ ] F2 conditional: if justified, implement and test only a concrete useful source scraper
+  outside the frozen model package. Preserve the distinction between schedule observations
+  and supported actual-start evidence. Otherwise record the exact qualification gap.
+- [ ] F3: verify preserved runs/models/code, record the source comparison and detailed
+  continuation plan, reconcile Git and commit. Mirror documents and append-only logs here.
+
+Use `codex/model-free-source` from `2e50cb5`; no training copy, refit, generic timing
+framework, paid/trial signup, provider communication, unattended collector, subagents,
+production merge/push or deployment is included.
+
+### Review
+
+Pending. Source observations and scraping feasibility are the deliverables; no synthetic
+or assumed start time may become observed evidence.
+
+
+### F0–F3 review — free scraping demonstrated; collection integration remains
+
+- [x] F0: six public HTTP responses retained; two official daily schedules and PDFs.
+  Four PDF pages visually checked. Six WTA singles rows extracted from 132 total rows;
+  one explicit not-before and five session starts. Catalogue day-17 epoch/date mismatch recorded.
+- [x] F1: current primary free-tier documentation compared. Live Tennis API offers a free
+  scoreboard tier, not free event/history access; BSD tennis is a $5/month add-on.
+  Existing WTA/ESPN adapters should be reused. No account or paid subscription created.
+- [x] F2 sample: private receipt-backed extractor produced six schedule observations,
+  including two acquired before their published times; zero forecasts or actual-start claims.
+  Production/evaluator integration was not justified by this bounded observation alone.
+- [x] F3: all 500 prior run files, 91 frozen package files, both models and 354 tracked
+  files under program/web/workflow trees verified; nine completed research checkouts clean.
+  Comparison, raw manifest and detailed source-specific implementation handoff recorded.
+- [ ] Follow-up: implement immutable schedule/revision collection, then qualify its
+  timing contract before live evaluation. No collector or live pilot is active.
+
+**Decision:** a concrete no-cost collection route exists; the public order inspection is
+complete. Read `2026-09-07-free-source-review.md` and `2026-09-07-free-source-next.md`.
+Do not repeat these six reads, add a generic timing framework or refit the unchanged model.
+Private extraction assertions passed; no implementation tests needed rerunning because
+program/evaluator/test files are unchanged. No training copy, account, purchase, provider
+contact, model adoption, merge/push or deployment.
+
+
+## 2026-09-07 — Official schedule collector (authorized continuation)
+
+User check-in: “Build on official feeds and keep going” authorizes implementation of
+the accepted free-source handoff in isolated `codex/model-official-schedule` from `64e7022`.
+
+- [ ] U0: freeze the US Open observation, receipt and revision contract.
+- [ ] U1: implement external immutable catalogue/day collection, exact retained fixtures,
+  coverage exclusions and cumulative revision reporting; test malformed and failed updates.
+- [ ] U2: replay both retained orders; if tests pass, make at most two new public reads
+  (catalogue plus released day 17) to check a genuine revision with the collector.
+- [ ] U3: verify prior runs and frozen code/models, record acceptance and remaining timing
+  qualification work, commit research and mirror documents/logs to the original checkout.
+
+No model fit, training copy, dependencies, account, unattended collection, live pilot,
+production merge/push/deploy or general evaluator change. Schedule observations stay
+outside qualified actual-start intake. No additional check-in is needed for this scope.
+
+### Review
+
+Pending implementation, real replay, bounded acquisition and preservation checks.
+
+
+### U0–U3 review — official collector implemented and real acquisition passed
+
+- [x] U0: source-specific acquisition, normalization and immutable revision contract frozen.
+- [x] U1: external US Open collector plus 46 new tests; 146 focused tests passed in 5.19s.
+  Lint, retained imports, history CLI, failure and revision checks passed.
+- [x] U2: exactly two new public reads succeeded at 2026-09-08 03:25 UTC; current daily
+  bytes match the retained order. Six WTA matches have eight versions, zero actual revisions.
+- [x] U3: all 526 prior run files, 91 frozen package files, both models and 354 existing
+  program/web/workflow files preserved; ten completed prior checkouts clean. This phase
+  adds 27 files for a next protected inventory of 553. Review/result/handoff recorded.
+- [ ] Remaining: future explicit not-before evidence, actual subsequent lifecycle versions
+  and a justified timing premise before a qualified producer or primary live evaluation.
+
+**Decision:** manual schedule collection is implemented at `cda5393`; evidence is schedule-only.
+No unattended cadence, forecast, model fit, new training copy, account, purchase, provider
+contact, model/evaluator change, production merge/push or deployment. Read
+`2026-09-07-official-schedule-review.md` and `2026-09-07-official-schedule-next.md`.
+
+
+## 2026-09-08 — Official feed lifecycle and identity continuation
+
+User check-in: “Keep going” authorizes the next bounded phase from accepted `70f5976`
+in isolated `codex/model-official-link`; no extra implementation check-in is needed.
+
+- [ ] L0: inspect the actual current official catalogue/order once (at most two reads),
+  compare all prior versions, and record whether a future explicit not-before row exists.
+- [ ] L1: verify the official timing rule and its limits using primary material; while
+  event progression is pending, inspect the official draw index and selected WTA draw
+  (at most two more reads) to establish a broad identity bridge to existing WTA/ESPN data.
+- [ ] L2 conditional: if the draw evidence supports a unique mapping, implement and test
+  a source-specific identity audit outside frozen packages; preserve exclusions and
+  contradictions. Never upgrade schedule observations or old source timestamps.
+- [ ] L3: verify frozen models/code and all 553 prior run files, record exact findings
+  and next real-time dependency, reconcile Git, commit research and mirror docs/logs only.
+
+Use existing collector; do not rebuild it. No new fitting, training-data copy, dependency,
+account, subscription/trial, provider contact, scheduled automation, live evaluation or
+production merge/push/deploy. Match identity work can advance while waiting for play;
+that dependency statement does not authorize subagents.
+
+### Review
+
+Pending source observations, supported integration, tests and preservation checks.
+
+
+### L0–L3 review — official identities corroborated; real event progression pending
+
+- [x] L0: current catalogue/order acquired once; all ten saved versions compared.
+  No revisions; later days 18–22 remain unpublished; current rows use session starts.
+- [x] L1: primary timing rule checked; it does not verify an API actual-start clock.
+  Official draw index and WS draw acquired; four total HTTP reads, all successful.
+- [x] L2: external identity audit implemented at `aab6ed0`; 119 common completed results,
+  100 strict match links, 23 player-number-disagreement exclusions, ten associated versions.
+  29 new tests; 175 focused tests passed in 5.32s, lint and actual archive CLI passed.
+- [x] L3: 553 prior run files, 91 frozen package files, both models and 360 existing
+  program/web/workflow files exact; eleven prior checkouts clean. Added 19 run files
+  for 572 next round. Detailed review/result/continuation handoff recorded.
+- [ ] Remaining: later real lifecycle evidence, qualified timing premise and broader
+  official tournament coverage. Only seven pending US Open WTA slots remain.
+
+**Decision:** the source identity dependency advanced without changing frozen models,
+evaluators, schedule collector or identity tables. Annotations are retrospective; no
+forecast, fresh model-performance claim, fit, training copy, account, provider contact,
+automation, live pilot or production merge/push/deploy. Read the official-link review
+and next-session handoff; avoid another immediate duplicate overnight capture.
+
+
+## 2026-09-08 — WTA coverage and next official schedule source
+
+User check-in: “Keep going” authorizes this bounded continuation from accepted `e10757f`
+in isolated `codex/model-wta-coverage`, with no additional implementation check-in.
+
+- [ ] C0: inspect the official WTA calendar for the next events and compute transparent
+  possible match coverage in the fixed 30-day window, separating full/partial events.
+- [ ] C1: inspect the next official order source and its public transport/edition metadata;
+  preserve a bounded sample (initial budget eight HTTP reads, no retries), including
+  unpublished/empty responses. Reuse the retained WTA scripts and source helpers.
+- [ ] C2 conditional: implement a source-specific coverage/schedule adapter only where
+  actual samples justify its fields; test identity, timezone/edition, revision and
+  failed/unpublished states. Leave unsupported timing semantics explicit.
+- [ ] C3: verify all 572 prior run files and frozen models/code, record acceptance and
+  exact next-source/publication dependencies, commit research and mirror docs/logs only.
+
+No repeated US Open overnight acquisition, model fit, training copy, dependency install,
+account/trial/purchase, provider contact, subagents, scheduled automation, live evaluation,
+production merge/push or deployment. Calendar capacity is not a forecast of eligible pairs.
+
+### Review
+
+Pending real source research, justified implementation and preservation checks.
+
+
+### C0–C3 review — WTA orders implemented; live evidence still pending
+
+- [x] C0: official 31-edition calendar inspected; September 8–October 8 exclusive window
+  has 116 fully contained future match slots plus a 95-match whole Beijing draw ceiling.
+  Ongoing US Open remaining capacity is unknown from calendar; no eligible-pair forecast.
+- [x] C1: eight retained HTTP responses succeeded; exact calendar/script and three
+  page/API witnesses preserved. Future Guadalajara is unpublished; historical start
+  labels are missing. Current WTA order supplies one corroborated first-court clock.
+- [x] C2: external order observer and calendar planner at `b6df856`; 62 new tests,
+  237 focused passed in 8.63s, lint and five real offline CLI operations passed.
+  Three intakes: 155 occurrences / 151 unique main-singles IDs, zero temporal revisions,
+  one unpublished gap. Contradictory identity/round evidence persists across versions.
+- [x] C3: 572 prior run files, 91 frozen package files, both models and 365 prior
+  program/web/workflow files exact; twelve prior checkouts clean. Added 34 run files
+  for a next protection inventory of 606. Detailed review/result/handoff recorded.
+- [ ] Remaining: actual publication/progression, qualified timing premise and sufficient
+  prospective paired coverage before any live pilot. Calendar ceilings are not usable pairs.
+
+**Decision:** accept bounded source/coverage engineering. Candidate unchanged/deferred;
+no start qualification, new forecast, model-performance claim, fit, training copy, account,
+provider contact, automation, live evaluation or production merge/push/deploy. Continue
+from the WTA coverage handoff when source change or independent timing work is justified.
+
+
+## 2026-09-08 — WTA lifecycle and timing witnesses
+
+User check-in: “Keep going” authorizes this continuation from accepted `781d37b` in
+isolated `codex/model-wta-lifecycle`; no repeated implementation approval is needed.
+
+- [ ] T0: reconcile the handoff and verify the 606 preserved run files, frozen models/
+  package and accepted code before deriving further evidence.
+- [ ] T1: after the seven-hour gap, acquire one current WTA US Open page/API pair with
+  the accepted collector; compare every prior same-source observation for revisions.
+- [ ] T2: test official WTA match-event/point coverage on two already-observed completed
+  Guadalajara 2025 singles. Initial retained HTTP budget is six reads total (two for
+  current orders, four across those two matches), no retries or endpoint guessing.
+  Inspect retained primary scripts and authoritative field semantics where available.
+- [ ] T3 conditional: implement only the source interpretation supported by real new
+  evidence, with contradiction/identity/timing tests. No field becomes actual-start
+  evidence without satisfying the established independent timing contract.
+- [ ] T4: run appropriate tests/replays, verify preservation, record exact findings and
+  next dependencies, commit isolated research and mirror documents/logs only.
+
+No new model fitting, training copies, dependency installation, account/purchase/trial,
+provider contact, subagents, unattended automation, live evaluation or production deploy.
+The current date/time is 2026-09-08 around 13:30 UTC; next scheduled US Open play is later.
+
+### Review
+
+Pending bounded acquisitions, evidence-supported interpretation and acceptance checks.
+
+
+### T0–T4 review — reported WTA event timelines audited; physical qualification pending
+
+- [x] T0: verified all 606 protected prior run files, 91 frozen package files, both
+  model payloads and 377 prior program/web/workflow files; accepted checkouts preserved.
+- [x] T1: current WTA US Open order/API captured at 13:32:46 UTC after the seven-hour
+  gap; 124 main singles / 248 versions over two collections, zero revisions or gaps.
+- [x] T2: six retained reads total, four 200s and two empty point-by-point 404s. WTA's
+  Guadalajara final/semifinal event feeds contain 185/220 records and reported initial
+  OnCourt/PlayersArrived/Warmup/InProgress transitions. No physical error bound established.
+- [x] T3: external read-only event auditor at `f355253`; 59 new tests passed, 296 focused
+  tests passed in 11.34s, lint and three real offline CLI replays passed. Full timelines
+  have 255 scoring records and matching final games; no terminal F event was fabricated.
+- [x] T4: thirteen prior checkouts clean; preservation rechecked; detailed review,
+  acceptance manifest and exact next-session handoff recorded. 29 new run files produce
+  a next protection count of 635. Large external inventories were not rehashed here.
+- [ ] Remaining: independently justified physical timing/uncertainty, real live event
+  versions, and sufficient new prospective pairs before live evaluation.
+
+**Decision:** accept the reported-event source audit. Main API timestamp is 21–24 minutes
+before reported InProgress in these samples; coarse LIVE includes warm-up. Internal clock
+arithmetic alone does not qualify actual starts. Candidate unchanged/deferred, no new
+forecast/fit/score, account, provider contact, automation, live pilot or production change.
+
+
+## 2026-09-08 — official timing contract and qualification feasibility
+
+User check-in: “Keep going” authorizes this bounded continuation from accepted `27cc95a`
+in isolated `codex/model-timing-contract`, without another implementation check-in.
+
+- [ ] Q0: verify the 635 retained run files, frozen models/package and accepted code.
+- [ ] Q1: inspect current primary officiating/scoring-device documentation and WTA rules
+  for the physical start trigger, timestamp provenance, clock synchronization/corrections
+  and any defensible error bound. Initial budget four retained primary-document reads;
+  no repeated match feeds or broad source shopping. Preserve exact relevant pages.
+- [ ] Q2: map the documented claims to the actual Guadalajara fields; explicitly separate
+  independent source evidence, inference and missing guarantees. Specify a concrete
+  calibration/collection protocol and identify what can proceed now versus after play.
+- [ ] Q3 conditional: implement a qualified producer only if the full existing contract
+  is evidenced. Otherwise finish an explicit go/no-go decision and actionable handoff;
+  do not add another generic auditor or weaken the primary gate to create progress.
+- [ ] Q4: verify preservation, check any justified implementation, commit the research
+  findings and mirror documents/append-only logs only into the original checkout.
+
+No new fit, training copies, dependency install, account/trial/purchase, provider contact,
+subagents, recurring automation, live pilot or production merge/push/deployment. Existing
+schedule/event audits remain reusable. Clock consistency alone cannot establish accuracy.
+
+### Review
+
+Pending bounded primary-source investigation and qualification decision.
+
+
+### Q0–Q4 review — primary documentation checked; independent witness still required
+
+- [x] Q0: all 635 protected run files, 91 frozen package files, both models and 384
+  inherited program/web/workflow files exact; fourteen prior accepted checkouts clean.
+- [x] Q1: four retained primary-document reads succeeded; nine complete PDF pages were
+  rendered/visually inspected. Physical first-serve semantics are defined, but no public
+  WTA field-to-clock mapping or defensible physical timing error bound was established.
+- [x] Q2: documented evidence/inference/missing guarantees, actual Guadalajara field
+  mapping and a precise independent-witness protocol with sequential/parallel dependencies.
+- [x] Q3: conditional implementation evaluated: no-go until qualifying evidence exists.
+  No new producer, generic audit layer, program/test change or weakened eligibility rule.
+- [x] Q4: two existing event reports reverified; exact result/review/handoff recorded.
+  Prior 296-test pass is historical, not rerun. 29 new files bring protection to 664.
+  Full large external inventories were last checked at 01:58:44 UTC, not rehashed here.
+- [ ] Remaining: independently timed physical witness, real live event versions, then
+  evidence-supported adapter/revision implementation and a sufficiently covered future run.
+
+**Decision:** accept the bounded document/evidence review. Candidate unchanged/deferred;
+zero qualified starts or new model-performance claims. More waiting helps only through
+new observations and prospective pairs. No fit, training copy, account, provider contact,
+automation, live pilot or production change. Follow the timing-contract handoff; avoid
+repeating document surveys or generating another generic auditor without new evidence.
+
+
+## 2026-09-08 — return to historical predictive improvement
+
+User direction: diagnose tuning-year incumbent errors, choose two or three new mechanisms,
+run bounded historical experiments, and deliver a tried/improved/failed comparison table.
+This planning response records that direction; no fit or experiment has started.
+Read `tasks/research/2026-09-08-historical-error-round-plan.md` before implementation.
+
+- [x] P0: reconcile the accepted reference, predictive experiment history, backlog and
+  evaluation rules; record the user's priority correction in committed lessons.
+- [x] P1: write an executable plan with reference paths, tune-only diagnostics, novelty
+  checks, bounded variants, a locked finalist, unchanged arbiter and exact result table.
+- [ ] H0: create the next isolated research checkout, verify preserved artifacts and
+  reproduce the corrected incumbent from saved walk-forward predictions.
+- [ ] H1: diagnose systematic tuning-year probability errors with predefined slices,
+  outcome-independent orientation, sample counts and year stability.
+- [ ] H2: select up to three defensible mechanisms; freeze at most two variants each,
+  budget/order/selection rules and serving-parity requirements before candidate validation.
+- [ ] H3: run bounded tune-only experiments sequentially against the same incumbent;
+  preserve all outcomes and select at most one overall finalist.
+- [ ] H4: lock the finalist, run the full historical arbiter, report paired metrics,
+  year consistency and uncertainty; retain incumbent unless replacement is justified.
+- [ ] H5: produce the comparison table/CSV, update logs and verify preservation; commit
+  isolated research and mirror documents only. Live confirmation remains separate.
+
+### Planning review
+
+The direction is adopted as the next research priority. Use historical walk-forward
+predictions, not all-history fitted-model predictions. 2020+ has prior research exposure
+and remains validation, not an untouched holdout. The plan caps model search, preserves
+the formal gate and requires honest no-improvement outcomes. No new candidate result,
+performance claim, network acquisition, dependency change or production change occurred.
+
+
+## 2026-09-08 — historical error round execution
+
+User check-in: “Okay get started” authorizes H0–H5 of the recorded plan. Started at
+2026-09-08 14:50:33 UTC; three-hour cap, 45-minute diagnosis/selection checkpoint.
+Checkout `codex/model-historical-errors` from `0214834`. No agents, downloads,
+installs, production changes or new live-data work in this round.
+
+- [ ] H0 verify reference and preservation.
+- [ ] H1 tune-only systematic error diagnosis.
+- [ ] H2 register a distinct fixed shortlist, maximum three mechanisms/two variants.
+- [ ] H3 execute tune experiments and lock at most one finalist.
+- [ ] H4 conditional complete arbiter; no new validation view before selection.
+- [ ] H5 comparison table/CSV, tests/preservation, commits and document mirror.
+
+### Review
+
+Pending actual diagnostics and experiments.
+
+
+### H0–H5 review — three predictive trials complete; incumbent retained
+
+- [x] H0: verified 664 prior run files and both frozen models; fifteen accepted
+  checkouts clean. All 26,794 WTA tuning predictions reproduced bit-for-bit.
+- [x] H1: fixed tune-only error tables plus a registered first-appearance refinement.
+  First recorded appearances show underconfidence; the aggregate is already calibrated.
+- [x] H2: two distinct mechanisms, three exact variants registered before fitting.
+  No closed sweep reopened; no new candidate validation viewed.
+- [x] H3: completed all three five-bag tuning trials. Absence neutralization ΔLL
+  -0.000061430; cap40 +0.000084255; cap80 -0.000025093. Exact uncertainty/year tables saved.
+- [x] H4: conditional advancement decided: none qualifies. Cap 40 loses in 2015–2019;
+  the other two lose overall. No 2020+ candidate evaluation or ATP trial was warranted.
+- [x] H5: comparison/years/diagnostic CSVs, review, manifest and handoff recorded.
+  60 focused tests pass, including 24 new; lint and 20 real parity/control checks pass.
+  All prior artifacts preserved; 32 new run files bring protection to 696.
+
+**Decision:** keep the corrected 42-column incumbent. Three actual predictive experiments
+are complete, with no gain robust enough to advance. Preserve the old uncertainty shadow
+as a separate deferred candidate. No final predictor fit, production change, live-data
+read, download, installation or automation. Do not expand this grid or default back to
+source infrastructure. Full large external inventories were not rehashed this round.
+
+
+## 2026-09-08 — historical signal round
+
+User check-in: “We can't try more things?” authorizes another bounded predictive round.
+The previous three failures close their registered shortlist, not the research program.
+Start 15:52:33 UTC; three-hour cap. New isolated branch from accepted `c658c71`.
+No agents or external acquisition; original checkout receives documents only.
+
+- [ ] S0: verify 696 retained files, sixteen accepted checkouts and the reference models.
+- [ ] S1: predeclare and inspect tune-only residual associations for opponent-adjusted
+  recent results, recent current-surface exposure, and ranking-points trajectory; audit
+  novelty against rejected families before choosing at most three fixed candidates.
+- [ ] S2: implement selected temporal states and saved-query mirrors with causal,
+  serialization, orientation and real-prefix parity checks in the same source commit.
+- [ ] S3: freeze code and trial registration; reproduce the incumbent; run up to three
+  separate five-bag 2010–2019 trials. No combination sweep or adaptive variants.
+- [ ] S4: select at most one finalist: positive pooled gain, at least six positive years,
+  and positive gains in both tuning halves. Evaluate only that locked finalist on 2020+
+  with the unchanged full arbiter; assess ATP separately if a WTA candidate survives.
+- [ ] S5: report all trials, accuracy, yearly consistency and uncertainty; preserve
+  incumbent unless justified, commit research and mirror the results and handoff.
+
+### Review
+
+Pending new diagnostics and experiments. Earlier 2020+ exposure remains validation,
+not an untouched holdout. The earlier absence transform and 40/80-point caps stay closed.
+
+
+### S0–S5 review — three further hypotheses, WTA surface candidate passes
+
+- [x] S0: 696 earlier files, reference models and sixteen accepted checkouts verified.
+- [x] S1: three preregistered temporal histories; tune residual evidence and fixed shortlist.
+- [x] S2: external signal states, saved-query mirrors and orientation adapter committed
+  with 17 new tests; no production package change.
+- [x] S3: exact 26,794-row incumbent replay and three five-bag trials complete. Form
+  +0.000230527 (5/10 positive years); surface +0.000697431 (8/10); rank +0.000392500 (8/10).
+- [x] S4: surface locked before validation. WTA 2020+ +0.000532760 ± 0.000311990,
+  5/7 positive years, formal gate passes. ATP tune −0.000047701, formal gate fails.
+- [x] S5: complete metric/year/uncertainty tables, review, manifest and implementation
+  handoff. 74 focused tests /1.14s, lint and six real-prefix saved queries pass.
+  Thirty-seven new run files bring protection to 733; next accepted checkout count seventeen.
+
+**Decision:** advance the fixed WTA surface candidate to saved-predictor serving assessment.
+Incumbent artifact/defaults remain unchanged. Validation week95 spans zero, so report a
+modest positive historical result. Ranking trend is an unvalidated eligible runner-up;
+form fails year consistency. No new final predictor fit, source work, acquisition or deploy.
+A completed shortlist is not an exhausted research program.

@@ -130,3 +130,96 @@ are closed questions — re-opening one requires the underlying space to have ch
 | Combiner training-window truncation (mty; graded version = W1d) | tuning-results-2026-07-06-autoresearch-r2.md R2-004 |
 | Tier/importance sample weighting in combiner folds (tierw; family 0-for-2 with W1d) | tuning-results-2026-07-06-autoresearch-r2.md R2-005 |
 | Cross-tour pooled combiner, tour flag or not (contamination = A5-full shape) | tuning-results-2026-07-06-autoresearch-r2.md R2-006 |
+
+
+## 2026-09-06 repaired-reference uncertainty verdict
+
+- **Reviewed WTA results — maintenance complete.** The five-edition ledger covers 528
+  expected results; normalized history actually gains 255 results and removes 23 duplicate
+  copies plus one exact invalid self-match. Earlier absence counts were overstated and
+  are superseded. Timing/source/identity integrity repairs and a new frozen reference are
+  complete. This is factual population maintenance, not a candidate feature gain. See
+  [maintenance review](2026-09-06-maintenance-review.md).
+- **Filtered Gaussian uncertainty signal — PASS-gate, DEFER-adoption.** Eight fixed
+  tune-only settings screened once; sigma0=1, daily variance=0.0001 selected. Full WTA
+  arbiter d_tune +0.000302865 ± 0.000104815, d_val +0.000239993 ± 0.000127945.
+  Validation week interval crosses zero; winner-classification accuracy falls by 0.173 pp.
+  Keep the corrected 42-column incumbent and preserve the research candidate. Do not
+  retune this grid against its exposed validation data. Serving complexity assessment,
+  a strictly saved WTA shadow artifact and fresh-cohort evidence are separate next phases;
+  no collector is active. See [completion and implementation handoff](2026-09-06-dynamic-screen-review.md).
+- **Original optional-data candidates — no admissible addition this round.** The fixed
+  2025 stats/2015 history pilots remain recorded in Phase 4. More elapsed fitting time or
+  repeating closed feature families does not supply independent evidence. A new source
+  or hypothesis requires its own availability, identity, parity and evaluation registration.
+
+
+## 2026-09-07 uncertainty serving assessment
+
+- **Fixed uncertainty shadow — engineering acceptance passed, adoption deferred.**
+  A saved WTA 43-column model now reproduces all frozen OOS probabilities and every
+  serving route; both default tours remain exact. Matrix30 median overhead is 6.77 ms
+  (+10.8%); file growth about 3.32 MB. 1,352 tests pass. Learned-state and saved-query
+  parity are verified; inherited age/rank snapshot differences remain explicit.
+  This is implementation evidence, not another accuracy experiment. No fresh cohort
+  or collector is active. The next concrete work is a typed mixed-format runner and
+  fixed future pilot; do not reopen the already validation-exposed parameter grid.
+  See [shadow review](2026-09-07-shadow-review.md) and
+  [confirmation plan](2026-09-07-shadow-confirmation-plan.md).
+
+
+## 2026-09-08 next-round direction — historical prediction errors
+
+- **Error-led historical mechanisms — DONE, three trials/no adoption.** Historical planning note: The next
+  priority is tune-only diagnosis of the corrected 42-column incumbent, then up to
+  three genuinely distinct mechanisms supported by those errors. Audit against all
+  closed families above before fitting; no uncertainty-grid retune on exposed validation.
+  Freeze at most two variants per mechanism, select at most one overall finalist on
+  2010–2019, and evaluate that locked finalist on the unchanged 2020+ arbiter. Later
+  years remain reused validation, not an untouched holdout. No experiment has run.
+  See the [execution plan and required result table](2026-09-08-historical-error-round-plan.md).
+- **Live timing/source confirmation — separate dependency.** Existing collectors,
+  event audit and calibration protocol remain preserved. Their physical witness gap
+  does not block new historical experiments. Resume only with useful new evidence;
+  do not make another source survey the default next model-improvement round.
+
+
+## 2026-09-08 historical error round — completed, no adoption
+
+- **HIST-01 absence-neutral — DONE-REJECT.** Neutral pair rest/log-days/layoff when
+  either player has no earlier record. New missing-value semantics, no extra column.
+  Tune ΔLL -0.000061430 ± 0.000096304; 4/10 positive years. The first-appearance error
+  does not prove this encoding caused it. No validation.
+- **HIST-02/03 player-state point caps — DONE-DECLINED/REJECT.** Per-match effective
+  point caps 40/80 preserve rates and original prior populations. Cap 40 tune ΔLL
+  +0.000084255 ± 0.000118810, 6/10 positive years, but 2015–2019 ΔLL -0.000130844.
+  Cap 80 ΔLL -0.000025093 ± 0.000065230; 4/10 positive years. Neither qualified under
+  the registered tune stability rule. No parameter expansion or validation.
+
+Three variants complete on the same 26,794 tuning matches; no finalist and no ATP trial.
+Do not retry these mechanisms in this regime without a materially new premise. Read
+the [results](2026-09-08-historical-error-review.md), [comparison](2026-09-08-historical-comparison.csv)
+and [resume notes](2026-09-08-historical-error-next.md). Live confirmation remains separate.
+
+
+## 2026-09-08 historical signal round — new temporal information
+
+- **SIGNAL-01 recent opponent-adjusted form — DONE-DECLINED-CONSISTENCY.** Last10 completed
+  outcomes within90d minus pre-match Elo expectations, sum/(5+n); one extra column.
+  WTA tune +0.000230527 ± 0.000114560, but 5/10 positive years. No validation.
+- **SIGNAL-02 recent surface experience — HISTORICAL-PASS-WTA; SERVING-NEXT.** log1p
+  current-surface completed-match counts within60d, player difference. WTA tune
+  +0.000697431 ± 0.000208347 (8/10 years); locked 2020+ +0.000532760 ± 0.000311990
+  (5/7 years). Validation week95 [−0.000132157,+0.001177076]. Query mirror tested;
+  saved final predictor/serving-route assessment remains. No production adoption yet.
+  ATP tune −0.000047701 ± 0.000267304, so ATP gate fails despite positive validation.
+- **SIGNAL-03 ranking-points trajectory — TUNE-ELIGIBLE, UNSELECTED.** Current log points
+  change vs latest valid90–365d snapshot, pair-neutral when unavailable. WTA tune
+  +0.000392500 ± 0.000121949, 8/10 years and both halves positive. Lower tune gain than
+  surface, so no validation. Keep as a fixed runner-up for a separately registered round.
+
+See [review](2026-09-08-historical-signal-review.md),
+[comparison](2026-09-08-historical-signal-comparison.csv) and
+[serving implementation handoff](2026-09-08-historical-signal-next.md).
+These new histories do not reopen the rejected career-count gate, raw ordinal rank,
+serve-skill trend, absence or point-cap grids. No surface/rank combination was tried.

@@ -1,0 +1,611 @@
+{
+  "schema": "deuce-start-source-result-v1",
+  "recordedAt": "2026-09-08T02:44:00.402262+00:00",
+  "baseCommit": "129f811514cfd6b2a44edc087c42b26b45a475d4",
+  "status": "bounded-source-audit-complete-live-start-unqualified",
+  "privateRunRoot": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/runs/start-source",
+  "sourceReads": 18,
+  "httpStatusCounts": {
+    "200": 16,
+    "404": 2
+  },
+  "receipts": {
+    "uso-completed-match": {
+      "schema": "start-source-inspection-v1",
+      "url": "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/2117.json",
+      "requestedAt": "2026-09-08T02:30:05.788879+00:00",
+      "purpose": "timing source qualification; no forecasts",
+      "status": 200,
+      "responseUrl": "https://www.usopen.org/en_US/scores/feeds/2026/matches/complete/2117.json",
+      "headers": {
+        "content-type": "application/json",
+        "last-modified": "Sun, 30 Aug 2026 17:43:48 GMT",
+        "etag": "W/\"bcd4c8da1c5cf83a0a2ad213e1581ac6\"",
+        "cache-control": "max-age=150",
+        "date": "Tue, 08 Sep 2026 02:30:05 GMT",
+        "content-length": "16135"
+      },
+      "rawBytes": 16135,
+      "rawSHA256": "c23844477cae1b1026c03faedf53d57fce12dffc5fa8a1eceaa2ac768b97d6bd",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T02:30:06.064770+00:00",
+      "elapsedSeconds": 0.27556512504816055
+    },
+    "uso-completed-record": {
+      "schema": "start-source-inspection-v1",
+      "url": "https://www.usopen.org/en_US/scores/feeds/2026/completed_matches/matches/2117.json",
+      "requestedAt": "2026-09-08T02:31:38.102118+00:00",
+      "purpose": "timing source qualification; no forecasts",
+      "status": 200,
+      "responseUrl": "https://www.usopen.org/en_US/scores/feeds/2026/completed_matches/matches/2117.json",
+      "headers": {
+        "content-type": "application/json",
+        "last-modified": "Sun, 30 Aug 2026 17:43:51 GMT",
+        "etag": "W/\"560f76d18be664d0765225fb7ab47c3d\"",
+        "cache-control": "max-age=30",
+        "date": "Tue, 08 Sep 2026 02:31:38 GMT",
+        "content-length": "1720"
+      },
+      "rawBytes": 1720,
+      "rawSHA256": "e0bc6121320d773326e8d9ac9b53918661322b7a739abfd5dc5ed17b8d9fb038",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T02:31:38.282489+00:00",
+      "elapsedSeconds": 0.18009295803494751
+    },
+    "uso-completed-record-2148": {
+      "schema": "start-source-inspection-v1",
+      "url": "https://www.usopen.org/en_US/scores/feeds/2026/completed_matches/matches/2148.json",
+      "requestedAt": "2026-09-08T02:39:42.432294+00:00",
+      "purpose": "timing source qualification; no forecasts",
+      "status": 200,
+      "responseUrl": "https://www.usopen.org/en_US/scores/feeds/2026/completed_matches/matches/2148.json",
+      "headers": {
+        "content-type": "application/json",
+        "last-modified": "Wed, 02 Sep 2026 00:43:54 GMT",
+        "etag": "W/\"2478b7751c0916442a6af0b2146dfe4f\"",
+        "cache-control": "max-age=30",
+        "date": "Tue, 08 Sep 2026 02:39:42 GMT",
+        "content-length": "1700"
+      },
+      "rawBytes": 1700,
+      "rawSHA256": "0f382ca41adb6cc95a9956c9e3c4636f7bca2f7b5d4c7807543859da82ff2413",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T02:39:42.607098+00:00",
+      "elapsedSeconds": 0.1745699580060318
+    },
+    "uso-config": {
+      "schema": "start-source-inspection-v1",
+      "url": "https://www.usopen.org/en_US/json/gen/config_web.json",
+      "requestedAt": "2026-09-08T02:28:57.236858+00:00",
+      "purpose": "timing source qualification; no forecasts",
+      "status": 200,
+      "responseUrl": "https://www.usopen.org/en_US/json/gen/config_web.json",
+      "headers": {
+        "content-type": "application/json",
+        "last-modified": "Mon, 31 Aug 2026 19:05:11 GMT",
+        "etag": "W/\"d2c3a5a966179d6c3c540e30ad533191\"",
+        "cache-control": "max-age=12",
+        "date": "Tue, 08 Sep 2026 02:28:57 GMT"
+      },
+      "rawBytes": 82730,
+      "rawSHA256": "d383035d8053a8af5f7789978c30208e5eb9a3a6b255376eb59e8dc30a524127",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T02:28:57.385302+00:00",
+      "elapsedSeconds": 0.14810887502972037
+    },
+    "uso-main-script": {
+      "schema": "start-source-inspection-v1",
+      "url": "https://www.usopen.org/assets/js/main.e4eb5d40.js",
+      "requestedAt": "2026-09-08T02:28:23.272493+00:00",
+      "purpose": "timing source qualification; no forecasts",
+      "status": 200,
+      "responseUrl": "https://www.usopen.org/assets/js/main.e4eb5d40.js",
+      "headers": {
+        "content-type": "text/javascript",
+        "last-modified": "Fri, 04 Sep 2026 21:51:04 GMT",
+        "etag": "W/\"39922ef99e6386e0a8031ef8539193bf\"",
+        "cache-control": "max-age=2587657",
+        "date": "Tue, 08 Sep 2026 02:28:23 GMT"
+      },
+      "rawBytes": 2499437,
+      "rawSHA256": "fe0f390b880f5eaf920a092a3b2a00537b1686015a7393afb100bd24d8533e0f",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T02:28:23.511741+00:00",
+      "elapsedSeconds": 0.23903799999970943
+    },
+    "uso-match-api": {
+      "schema": "start-source-inspection-v1",
+      "url": "https://www.usopen.org/api/tennis/matches/match/2117",
+      "requestedAt": "2026-09-08T02:29:31.381243+00:00",
+      "purpose": "timing source qualification; no forecasts",
+      "status": 200,
+      "responseUrl": "https://www.usopen.org/api/tennis/matches/match/2117",
+      "headers": {
+        "content-type": "text/html",
+        "last-modified": "Fri, 04 Sep 2026 22:15:43 GMT",
+        "etag": "W/\"62751c542ca7f4ae74c5890494c4e91b\"",
+        "cache-control": "max-age=297",
+        "date": "Tue, 08 Sep 2026 02:29:31 GMT",
+        "content-length": "4084"
+      },
+      "rawBytes": 4084,
+      "rawSHA256": "37a4ea006d30d411c36d65118f251bafd3487ad11165475f06d9f5d51cc5af63",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T02:29:31.502245+00:00",
+      "elapsedSeconds": 0.12068187503609806
+    },
+    "uso-match-page": {
+      "schema": "start-source-inspection-v1",
+      "url": "https://www.usopen.org/en_US/scores/stats/2117.html",
+      "requestedAt": "2026-09-08T02:27:24.181433+00:00",
+      "purpose": "timing source qualification; no forecasts",
+      "status": 200,
+      "responseUrl": "https://www.usopen.org/en_US/scores/stats/2117.html",
+      "headers": {
+        "content-type": "text/html",
+        "last-modified": "Fri, 04 Sep 2026 22:15:43 GMT",
+        "etag": "W/\"62751c542ca7f4ae74c5890494c4e91b\"",
+        "cache-control": "max-age=26",
+        "date": "Tue, 08 Sep 2026 02:27:24 GMT",
+        "content-length": "4084"
+      },
+      "rawBytes": 4084,
+      "rawSHA256": "37a4ea006d30d411c36d65118f251bafd3487ad11165475f06d9f5d51cc5af63",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T02:27:24.347177+00:00",
+      "elapsedSeconds": 0.16543683304917067
+    },
+    "uso-point-history": {
+      "schema": "start-source-inspection-v1",
+      "url": "https://www.usopen.org/en_US/scores/feeds/2026/slamtracker/history/2117C.json",
+      "requestedAt": "2026-09-08T02:29:36.861601+00:00",
+      "purpose": "timing source qualification; no forecasts",
+      "status": 200,
+      "responseUrl": "https://www.usopen.org/en_US/scores/feeds/2026/slamtracker/history/2117C.json",
+      "headers": {
+        "content-type": "application/json",
+        "last-modified": "Sun, 30 Aug 2026 17:43:42 GMT",
+        "etag": "W/\"e20b8905cf7590fe838b63072d4959e6\"",
+        "cache-control": "max-age=30",
+        "date": "Tue, 08 Sep 2026 02:29:36 GMT"
+      },
+      "rawBytes": 212558,
+      "rawSHA256": "a88cd54642e822f170de482c9f9aad6402993e3195efa5fca09a8f2598ac2fa7",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T02:29:37.094028+00:00",
+      "elapsedSeconds": 0.23216749995481223
+    },
+    "uso-point-history-2148": {
+      "schema": "start-source-inspection-v1",
+      "url": "https://www.usopen.org/en_US/scores/feeds/2026/slamtracker/history/2148C.json",
+      "requestedAt": "2026-09-08T02:31:43.125986+00:00",
+      "purpose": "timing source qualification; no forecasts",
+      "status": 200,
+      "responseUrl": "https://www.usopen.org/en_US/scores/feeds/2026/slamtracker/history/2148C.json",
+      "headers": {
+        "content-type": "application/json",
+        "last-modified": "Wed, 02 Sep 2026 13:30:33 GMT",
+        "etag": "W/\"97c2388535a1526a993bbc3d5ec40195\"",
+        "cache-control": "max-age=30",
+        "date": "Tue, 08 Sep 2026 02:31:43 GMT"
+      },
+      "rawBytes": 201168,
+      "rawSHA256": "b4338e2b3885b00bb6c6c36c9ee3f92b24fe034b70f7c0bded8b9345eb5c88b2",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T02:31:43.384885+00:00",
+      "elapsedSeconds": 0.2585609999950975
+    },
+    "wta-events-gauff": {
+      "schema": "start-source-inspection-v1",
+      "url": "https://api.wtatennis.com/tennis/tournaments/905/2026/matches/LS74124830/events",
+      "requestedAt": "2026-09-08T02:39:51.866087+00:00",
+      "purpose": "timing source qualification; no forecasts",
+      "status": 200,
+      "responseUrl": "https://api.wtatennis.com/tennis/tournaments/905/2026/matches/LS74124830/events",
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "1684",
+        "cache-control": "max-age=30",
+        "etag": "\"0b3870fe109dfd026018a299ba7f0e191\"",
+        "date": "Tue, 08 Sep 2026 02:39:51 GMT"
+      },
+      "rawBytes": 1684,
+      "rawSHA256": "17e13f72ed5539cc75a366bfc647a678b5c098cac510ca4c27867ab6a391d9b1",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T02:39:51.969921+00:00",
+      "elapsedSeconds": 0.10342679196037352
+    },
+    "wta-events-pegula": {
+      "schema": "start-source-inspection-v1",
+      "url": "https://api.wtatennis.com/tennis/tournaments/905/2026/matches/LS74124878/events",
+      "requestedAt": "2026-09-08T02:39:09.041425+00:00",
+      "purpose": "timing source qualification; no forecasts",
+      "status": 200,
+      "responseUrl": "https://api.wtatennis.com/tennis/tournaments/905/2026/matches/LS74124878/events",
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "1684",
+        "cache-control": "max-age=30",
+        "etag": "\"0b3870fe109dfd026018a299ba7f0e191\"",
+        "date": "Tue, 08 Sep 2026 02:39:08 GMT"
+      },
+      "rawBytes": 1684,
+      "rawSHA256": "17e13f72ed5539cc75a366bfc647a678b5c098cac510ca4c27867ab6a391d9b1",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T02:39:09.137523+00:00",
+      "elapsedSeconds": 0.0957877499749884
+    },
+    "wta-main-script": {
+      "schema": "start-source-inspection-v1",
+      "url": "https://www.wtatennis.com/resources/v7.50.44/scripts/bundle-es.js",
+      "requestedAt": "2026-09-08T02:33:04.546041+00:00",
+      "purpose": "timing source qualification; no forecasts",
+      "status": 200,
+      "responseUrl": "https://www.wtatennis.com/resources/v7.50.44/scripts/bundle-es.js",
+      "headers": {
+        "content-type": "text/javascript",
+        "content-length": "58353",
+        "date": "Fri, 04 Sep 2026 21:22:19 GMT",
+        "last-modified": "Thu, 03 Sep 2026 12:58:11 GMT",
+        "etag": "\"6e34284c869c135b6bcc25811dc47528\"",
+        "cache-control": "max-age=31536000",
+        "age": "277845"
+      },
+      "rawBytes": 58353,
+      "rawSHA256": "a6972b61c6623cd09e80e12280b3723790c90270325e39542396ed1bcf6dad94",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T02:33:04.713057+00:00",
+      "elapsedSeconds": 0.16674912499729544
+    },
+    "wta-match-centre": {
+      "schema": "start-source-inspection-v1",
+      "url": "https://www.wtatennis.com/resources/v7.50.44/scripts/match-centre.js",
+      "requestedAt": "2026-09-08T02:37:12.726347+00:00",
+      "purpose": "timing source qualification; no forecasts",
+      "status": 200,
+      "responseUrl": "https://www.wtatennis.com/resources/v7.50.44/scripts/match-centre.js",
+      "headers": {
+        "content-type": "text/javascript",
+        "content-length": "166871",
+        "date": "Tue, 08 Sep 2026 02:37:13 GMT",
+        "last-modified": "Thu, 03 Sep 2026 12:58:12 GMT",
+        "etag": "\"dd66f71a0943203f28ae8ddfb024a371\"",
+        "cache-control": "max-age=31536000"
+      },
+      "rawBytes": 166871,
+      "rawSHA256": "9536daab9e8540a90fbee2cf030b774834560e6b79368634d815d963005cad16",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T02:37:13.014397+00:00",
+      "elapsedSeconds": 0.2876900000264868
+    },
+    "wta-player-service": {
+      "schema": "start-source-inspection-v1",
+      "url": "https://www.wtatennis.com/resources/v7.50.44/scripts/tournament-player-service.js",
+      "requestedAt": "2026-09-08T02:38:05.632491+00:00",
+      "purpose": "timing source qualification; no forecasts",
+      "status": 200,
+      "responseUrl": "https://www.wtatennis.com/resources/v7.50.44/scripts/tournament-player-service.js",
+      "headers": {
+        "content-type": "text/javascript",
+        "content-length": "2449",
+        "date": "Sat, 05 Sep 2026 15:37:54 GMT",
+        "last-modified": "Thu, 03 Sep 2026 12:58:13 GMT",
+        "etag": "\"2c7d6c4b5674500baaa36031016f1255\"",
+        "cache-control": "max-age=31536000",
+        "age": "212412"
+      },
+      "rawBytes": 2449,
+      "rawSHA256": "4c0cd4373e0db07e52ad2a0f9901bf9652f6764d4fa84e42dae45293cb9ee7c9",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T02:38:05.700732+00:00",
+      "elapsedSeconds": 0.06797837489284575
+    },
+    "wta-point-by-point-gauff": {
+      "schema": "start-source-inspection-v1",
+      "url": "https://api.wtatennis.com/tennis/tournaments/905/2026/matches/LS74124830/point-by-point",
+      "requestedAt": "2026-09-08T02:39:47.316273+00:00",
+      "purpose": "timing source qualification; no forecasts",
+      "status": 404,
+      "responseUrl": "https://api.wtatennis.com/tennis/tournaments/905/2026/matches/LS74124830/point-by-point",
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "0",
+        "cache-control": "max-age=30",
+        "date": "Tue, 08 Sep 2026 02:39:48 GMT"
+      },
+      "rawBytes": 0,
+      "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T02:39:48.330021+00:00",
+      "elapsedSeconds": 1.0133797080488876
+    },
+    "wta-point-by-point-pegula": {
+      "schema": "start-source-inspection-v1",
+      "url": "https://api.wtatennis.com/tennis/tournaments/905/2026/matches/LS74124878/point-by-point",
+      "requestedAt": "2026-09-08T02:39:04.898115+00:00",
+      "purpose": "timing source qualification; no forecasts",
+      "status": 404,
+      "responseUrl": "https://api.wtatennis.com/tennis/tournaments/905/2026/matches/LS74124878/point-by-point",
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "0",
+        "cache-control": "max-age=30",
+        "date": "Tue, 08 Sep 2026 02:39:05 GMT"
+      },
+      "rawBytes": 0,
+      "rawSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T02:39:05.989519+00:00",
+      "elapsedSeconds": 1.091117666917853
+    },
+    "wta-score-page": {
+      "schema": "start-source-inspection-v1",
+      "url": "https://www.wtatennis.com/tournaments/905/us-open/2026/scores",
+      "requestedAt": "2026-09-08T02:27:38.861066+00:00",
+      "purpose": "timing source qualification; no forecasts",
+      "status": 200,
+      "responseUrl": "https://www.wtatennis.com/tournaments/905/us-open/2026/scores",
+      "headers": {
+        "content-type": "text/html;charset=utf-8",
+        "date": "Tue, 08 Sep 2026 02:27:38 GMT",
+        "cache-control": "max-age=30, stale-while-revalidate=600, stale-if-error=86400"
+      },
+      "rawBytes": 2489691,
+      "rawSHA256": "0f6a83cfd5b9eadb79d93d2400498d8918828dc04663a01da70a067a47e15583",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T02:27:39.278404+00:00",
+      "elapsedSeconds": 0.417097834055312
+    },
+    "wta-store": {
+      "schema": "start-source-inspection-v1",
+      "url": "https://www.wtatennis.com/resources/v7.50.44/scripts/store.js",
+      "requestedAt": "2026-09-08T02:37:59.727233+00:00",
+      "purpose": "timing source qualification; no forecasts",
+      "status": 200,
+      "responseUrl": "https://www.wtatennis.com/resources/v7.50.44/scripts/store.js",
+      "headers": {
+        "content-type": "text/javascript",
+        "content-length": "79468",
+        "date": "Tue, 08 Sep 2026 02:38:00 GMT",
+        "last-modified": "Thu, 03 Sep 2026 12:58:12 GMT",
+        "etag": "\"3a431f8c990265665284eb12fa650daf\"",
+        "cache-control": "max-age=31536000"
+      },
+      "rawBytes": 79468,
+      "rawSHA256": "962ac90ce75b610c06037e22234131a67307e73fec81834538626e2fed0efc15",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T02:37:59.932612+00:00",
+      "elapsedSeconds": 0.2050652919569984
+    }
+  },
+  "matchDiagnostics": {
+    "2117": {
+      "wtaMatchID": "LS74124878",
+      "playerIDsInSourceOrder": [
+        "wta316956",
+        "wta320408"
+      ],
+      "score": [
+        [
+          6,
+          3
+        ],
+        [
+          6,
+          2
+        ]
+      ],
+      "pairRoundScoreAgreementWithRetainedWTA": true,
+      "rows": 127,
+      "pointRows": 125,
+      "prefaceRows": 2,
+      "untimedPrefaceRows": 2,
+      "firstPointID": "010101",
+      "firstPointServeNumber": "1",
+      "firstPointStartUTC": "2026-08-30T16:13:37+00:00",
+      "firstPointEndUTC": "2026-08-30T16:13:44+00:00",
+      "reversedStartEndRows": 0,
+      "maxStartMinusEndSeconds": -2,
+      "startRegressionPointIDs": [],
+      "endRegressionPointIDs": [],
+      "epochStartMinusElapsedSecondsDistinct": [
+        1788106417
+      ],
+      "epochElapsedAgreementIndependent": false,
+      "serveNumberCounts": {
+        "1": 80,
+        "2": 41,
+        "0": 4
+      },
+      "completedRecordEpochUTCIfMilliseconds": "2026-08-30T12:36:30+00:00",
+      "firstPointMinusCompletedRecordEpochSeconds": 13027.0,
+      "wtaPointHistoryHTTPStatus": 404,
+      "wtaEventCount": 0,
+      "verifiedStartBounds": 0
+    },
+    "2148": {
+      "wtaMatchID": "LS74124830",
+      "playerIDsInSourceOrder": [
+        "wta326907",
+        "wta328560"
+      ],
+      "score": [
+        [
+          3,
+          6
+        ],
+        [
+          4,
+          6
+        ]
+      ],
+      "pairRoundScoreAgreementWithRetainedWTA": true,
+      "rows": 120,
+      "pointRows": 118,
+      "prefaceRows": 2,
+      "untimedPrefaceRows": 2,
+      "firstPointID": "010101",
+      "firstPointServeNumber": "1",
+      "firstPointStartUTC": "2026-09-01T23:15:42+00:00",
+      "firstPointEndUTC": "2026-09-01T23:15:49+00:00",
+      "reversedStartEndRows": 114,
+      "maxStartMinusEndSeconds": 86398,
+      "startRegressionPointIDs": [
+        "010304",
+        "010706",
+        "010802",
+        "020102"
+      ],
+      "endRegressionPointIDs": [],
+      "epochStartMinusElapsedSecondsDistinct": [
+        1788304542
+      ],
+      "epochElapsedAgreementIndependent": false,
+      "serveNumberCounts": {
+        "1": 67,
+        "2": 46,
+        "0": 5
+      },
+      "completedRecordEpochUTCIfMilliseconds": "2026-09-01T19:35:49+00:00",
+      "firstPointMinusCompletedRecordEpochSeconds": 13193.0,
+      "wtaPointHistoryHTTPStatus": 404,
+      "wtaEventCount": 0,
+      "verifiedStartBounds": 0
+    }
+  },
+  "retainedWTAIdentitySource": {
+    "path": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/runs/source-audit/wta-matches-inspect-001/response.bin",
+    "sha256": "f211c30a3035c18015481135baa9cfbe053f57cca7f8b5a42da98fd6cbb335f4",
+    "freshThisPhase": false
+  },
+  "preservation": {
+    "protectedRunFilesVerified": {
+      "phase3": 56,
+      "phase4": 77,
+      "maintenance": 104,
+      "dynamic-continuation": 61,
+      "dynamic-shadow": 37,
+      "prospective-shadow": 42,
+      "source-audit": 38,
+      "time-evidence": 28
+    },
+    "totalProtectedRunFilesVerified": 443,
+    "frozenPackageFilesVerified": 91,
+    "trackedProgramWebWorkflowFilesExactVsTimeEvidence": 354,
+    "completedCheckoutsClean": {
+      "coordinator": "c5cd3669d94fb93b7b0914e96bb28253d9e990a4",
+      "phase4": "51c9eb1535dc296e1464fb7c1290a779f7f34c15",
+      "maintenance": "975379b9411b1bd79937e31e5f80d412df3b5f09",
+      "dynamic-screen": "777a38e235755754e6175b294b47f48a70e90b31",
+      "dynamic-shadow": "64d62decfdc9d96e5777bb8017a29bb8d4c0993f",
+      "prospective-shadow": "3cd780af13e364c04714f7ae1d7e0b9bb7c9ba1c",
+      "source-audit": "3f4e99d64af66461e11e6e96fb164813e4144bfd",
+      "time-evidence": "129f811514cfd6b2a44edc087c42b26b45a475d4"
+    },
+    "modelHashes": {
+      "maintenance/wta-final-001/predictor.pkl": "8cf280c43f813a6944244d585248af8d5fcbc1ff628e535f98d4e10866730e34",
+      "prospective-shadow/migration-001/candidate.shadow": "43dd88b1461913f11b90b6d2aa6aa82f7bbfe3ba7ad597d978c6a46b73d45fcc"
+    },
+    "newTrainingCopies": 0,
+    "inheritedTrackedDataFilesExact": 33,
+    "fullTrainingAndSnapshotInventoriesRehashedThisPhase": false,
+    "lastFullTrainingAndSnapshotVerificationUTC": "2026-09-08T01:58:44.035725+00:00"
+  },
+  "verifiedStartBounds": 0,
+  "sourceProducerImplemented": false,
+  "modelFits": 0,
+  "newForecasts": 0,
+  "newPerformanceEvidence": false,
+  "livePilotActive": false,
+  "testsRunThisPhase": false,
+  "reasonNoTests": "Source investigation and documentation only; package, evaluator and tests unchanged.",
+  "userProviderAccess": false,
+  "accountTrialOrPurchaseCreated": false,
+  "driverHashes": {
+    "start-source-probe.py": "560663f17a4a237012082d913b01a2508ce202e1a32a2a19d4ad2de615219af4",
+    "start-source-analyze.py": "18a385194283f7ab4f635e04e567e28a97222b62943ffc892ff0f34763278690"
+  },
+  "limitations": [
+    "Two retrospectively sampled matches do not establish tour-wide coverage or a live lifecycle.",
+    "No field dictionary or physical clock-error bound qualified.",
+    "Published not-before order evidence remains untested.",
+    "User has no provider access; no signup, trial, purchase or provider communication authorized.",
+    "No live start producer, collector or fresh performance result."
+  ],
+  "primaryDocumentation": [
+    {
+      "url": "https://developer.sportradar.com/tennis/docs/ig-account-maintenance",
+      "checkedOnUTC": "2026-09-08",
+      "basis": "web documentation read, not authenticated data"
+    },
+    {
+      "url": "https://developer.sportradar.com/tennis/docs/tennis-ig-live-match-retrieval",
+      "checkedOnUTC": "2026-09-08",
+      "basis": "web documentation read, not authenticated data"
+    },
+    {
+      "url": "https://developer.sportradar.com/tennis/reference/sport-event-timeline",
+      "checkedOnUTC": "2026-09-08",
+      "basis": "web documentation read, not authenticated data"
+    }
+  ],
+  "runFiles": {
+    "analysis.json": "f995858baa1427d7a43b78793ee31ee1b036604fb1e0322532e81a828aa6cf36",
+    "local-setup-notes.json": "7bd2112af420bdd464ac8f1b504f71d1dc71eab726f2e5f9d9499c81a775bba8",
+    "protected-run-files.json": "45bfdf41c5d63ef81fab4cdbfeff2a21d8438975e247db7c277f5a4b74a6f92f",
+    "uso-completed-match/attempt.json": "0bfe458cd321db39fa0df7d357220f2ff9e018d11597922302ba4610110d766c",
+    "uso-completed-match/receipt.json": "8bcb36a900ea6f76d58dfde316a595cedf3b036a0700a7f0ace892b45d884299",
+    "uso-completed-match/response.bin": "c23844477cae1b1026c03faedf53d57fce12dffc5fa8a1eceaa2ac768b97d6bd",
+    "uso-completed-record/attempt.json": "521ea6f4d6fa044144a9830b55bc29bd048c4ce04823b356999d2d28040b590d",
+    "uso-completed-record/receipt.json": "68f6776cc13883506cd478f056ce4365e5f2193d46910757bba32b9dcbea6ae5",
+    "uso-completed-record/response.bin": "e0bc6121320d773326e8d9ac9b53918661322b7a739abfd5dc5ed17b8d9fb038",
+    "uso-completed-record-2148/attempt.json": "aad76d103204eca01f0d8b1f0af121a673bae05c382bed5f1db32c956eebad7d",
+    "uso-completed-record-2148/receipt.json": "4ab06b8139d2abb901af03b6d2d093210401559c0d9b9428e7c941536b29185e",
+    "uso-completed-record-2148/response.bin": "0f382ca41adb6cc95a9956c9e3c4636f7bca2f7b5d4c7807543859da82ff2413",
+    "uso-config/attempt.json": "579888b19c23fd6345ff943291b158bf00f559bf46f0e9a4e1b557a35ed64d3f",
+    "uso-config/receipt.json": "9218e4575a7f7df48905e268c3a23cbe391b052da6b016495d5202d581f4529c",
+    "uso-config/response.bin": "d383035d8053a8af5f7789978c30208e5eb9a3a6b255376eb59e8dc30a524127",
+    "uso-main-script/attempt.json": "325e80a98e34b1539f2810c218101b94e3d8b011b0ddacae44547965f88ab634",
+    "uso-main-script/receipt.json": "570f0529eccc5ac56031ec9a84715be8911eb7496c137ed0b7e4e509e7ed6482",
+    "uso-main-script/response.bin": "fe0f390b880f5eaf920a092a3b2a00537b1686015a7393afb100bd24d8533e0f",
+    "uso-match-api/attempt.json": "882b8874ccbbc78549c7f7f531978c7d2581889a859014d5798991494cfd1433",
+    "uso-match-api/receipt.json": "a5eb833f44061d30e20eceef02899caee702d220f5cfed66b85c2cdc19ac38c6",
+    "uso-match-api/response.bin": "37a4ea006d30d411c36d65118f251bafd3487ad11165475f06d9f5d51cc5af63",
+    "uso-match-page/attempt.json": "97de9c43dedd8752f0810858581686200cf4ba37dd095c942ebd331e89ea391d",
+    "uso-match-page/receipt.json": "a63f78e07fdc1a66e504d3bbe48beb43c87f0bdddf53bcc713fed8fad3c9c8ee",
+    "uso-match-page/response.bin": "37a4ea006d30d411c36d65118f251bafd3487ad11165475f06d9f5d51cc5af63",
+    "uso-point-history/attempt.json": "bcd480654f78ad93fae093902269b31a9587fe60747b750c8c3c29ab3ea18036",
+    "uso-point-history/receipt.json": "43938b11d36c864a25e8c70703486e376e03707b6e78d14a71614908d64e8a56",
+    "uso-point-history/response.bin": "a88cd54642e822f170de482c9f9aad6402993e3195efa5fca09a8f2598ac2fa7",
+    "uso-point-history-2148/attempt.json": "bed5b93d09ac18e32f3eb97a6189a334d24e638ea641e24ae3014e750835042c",
+    "uso-point-history-2148/receipt.json": "c7f90b7c152ee4ddcfc026aa9aac9256da49016a42125528634da32479246d81",
+    "uso-point-history-2148/response.bin": "b4338e2b3885b00bb6c6c36c9ee3f92b24fe034b70f7c0bded8b9345eb5c88b2",
+    "wta-events-gauff/attempt.json": "334566381fd792e3a536b1893fbc023c97b55aa6943f2435c19d3df4133b4cda",
+    "wta-events-gauff/receipt.json": "0b32a9716fb67bc209e725faf382c6dd768053be1c2d2a464592fabf7ed82d83",
+    "wta-events-gauff/response.bin": "17e13f72ed5539cc75a366bfc647a678b5c098cac510ca4c27867ab6a391d9b1",
+    "wta-events-pegula/attempt.json": "a3f62169a501dcc8547a82d9558b749bbbe3183900623c4eeec95dcf96a4b38e",
+    "wta-events-pegula/receipt.json": "dfa6833e04c4b2086df02a1eb323bb3562600280fd74d066e8f1bb413c12cdf9",
+    "wta-events-pegula/response.bin": "17e13f72ed5539cc75a366bfc647a678b5c098cac510ca4c27867ab6a391d9b1",
+    "wta-main-script/attempt.json": "1abde8ee3c92e41241d2dbfb7453c7b1556c87c44cdb7da9d850034b92847c71",
+    "wta-main-script/receipt.json": "6039b514bc2f892694f3da2e81c9344250548787bdb29ab797f1acfd9982b47d",
+    "wta-main-script/response.bin": "a6972b61c6623cd09e80e12280b3723790c90270325e39542396ed1bcf6dad94",
+    "wta-match-centre/attempt.json": "f4b9476f9c9c6ad1d03cf1deff2fb351c9c6c442da9f7df9d944566dd8a34a02",
+    "wta-match-centre/receipt.json": "961cb610099ce05f7c9e5af8d7c732db5335c0168c3bcbdf95122f94a576953a",
+    "wta-match-centre/response.bin": "9536daab9e8540a90fbee2cf030b774834560e6b79368634d815d963005cad16",
+    "wta-player-service/attempt.json": "1f255e86ca5f6f66d762d8b96f268f631334d92c393712c53703d1141fe2874a",
+    "wta-player-service/receipt.json": "fb0f36d52fad1b5ed4f1580412f3fca48848602f1c73ef437b3255ebba2c7460",
+    "wta-player-service/response.bin": "4c0cd4373e0db07e52ad2a0f9901bf9652f6764d4fa84e42dae45293cb9ee7c9",
+    "wta-point-by-point-gauff/attempt.json": "930d721cdd21e78a1886808da923e63f8c971cc7c09b945ed6757a2964a53cfc",
+    "wta-point-by-point-gauff/receipt.json": "5fdd286442001e3aa1026658fcb3d9e3c1696cfc506a27ba7ab955d368876c34",
+    "wta-point-by-point-gauff/response.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "wta-point-by-point-pegula/attempt.json": "b65ab3d935ae07a4eeed422566f4ef5e2f7baca7beba2870ae61f75281083d24",
+    "wta-point-by-point-pegula/receipt.json": "d31109727da320f952a600d0ab8b589ef7a444174bc7d363957129ad3512700f",
+    "wta-point-by-point-pegula/response.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "wta-score-page/attempt.json": "4e5d46719a0a715b23708ad88e21bf91d06f92e5773cacfa9586d5c06ef05cd8",
+    "wta-score-page/receipt.json": "e2bcff04e3d4402508697589f1c0d9f554481fb1c416fca8209d57dec4a700e3",
+    "wta-score-page/response.bin": "0f6a83cfd5b9eadb79d93d2400498d8918828dc04663a01da70a067a47e15583",
+    "wta-store/attempt.json": "cb773f2b6e167b87c5a91c3dd3310a71f3fa8dcc5b200f7c8d14b2594771bd0a",
+    "wta-store/receipt.json": "c79d4df14916fca998c69c8f618a12d1635dfca07fa72a56466ce5bab1ae7dd2",
+    "wta-store/response.bin": "962ac90ce75b610c06037e22234131a67307e73fec81834538626e2fed0efc15"
+  }
+}

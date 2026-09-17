@@ -227,3 +227,38 @@ Indexed in [`../lessons.md`](../lessons.md).
   across the exact dedup group before choosing a source survivor, and only then filter lower rows
   when state admission is off. Enabling state may add rows; it must never change which rows the two
   arms call main draw.
+
+- **A cache directory is an acquisition boundary, not an event edition.** (2026-09-06)
+  The 2024 WTA HTTP cache contains 2025 Auckland/Brisbane records, and source match IDs
+  repeat by season. An audit keyed by directory year therefore invented missing matches.
+  Join explicit record/header year and numeric event IDs (including zero-padded forms),
+  apply verified player aliases on both sides, and keep conflicts separate. Preserve
+  failed audit attempts and publish a reconciliation before using their missing counts.
+
+- **Even warm-up history needs a distinct-player invariant.** (2026-09-06)
+  The raw 1980 Berkeley R16 record names Marcie Louie, ID 200358, on both sides. It lies
+  before the scoring era but still enters historical state walks. Reject/quarantine a
+  self-pair explicitly; do not invent the opponent, silently skip it inside a comparison,
+  or treat a later-starting diagnostic replay as full-history parity. Couple the eventual
+  population repair with an independent integrity check and a versioned reference.
+
+- **A calendar window is not an absence test for an event-stamped archive.** (2026-09-06)
+  The Phase 4 WTA audit called many 2024 Madrid/Rome/Miami results absent because their
+  uniform archive stamp was one day before the official calendar. The chronology policy
+  already recognized that convention. Reconcile date bases before counting missing rows:
+  require the exact edition, pair, outcome/score, round and documented event-start anchor.
+  Ordinary out-of-span played dates remain invalid. Count actual normalized membership
+  after dedup, and keep superseded audits visible rather than quietly replacing them.
+
+- **Once an event ID is corroborated, constrain the match audit to it.** (2026-09-06)
+  Shnaider–Minnen played Rome on May 7 and Parma on May 15, 2024. Both fell inside the
+  Rome calendar window, so a pair/date-overlap check manufactured a score conflict.
+  The preserved scoreboards distinguish ESPN 414-2024 from 870-2024. Establish the exact
+  event mapping from independent shared results, then retain both real matchups.
+
+- **Identical scores and rounds do not identify a same-season result.** (2026-09-06)
+  Swiatek beat Cirstea 6-1 6-1 in both Doha and Madrid's 2024 R32. A season/pair/round/games
+  key collapsed the results; adding a reviewed Madrid donor then moved Doha's survivor
+  into April. Partition reviewed donor groups using proven edition IDs before donating
+  timing or outcome facts. Preserve real rematches and check chronological round order
+  on full history before fitting; scope completeness claims to what was actually audited.

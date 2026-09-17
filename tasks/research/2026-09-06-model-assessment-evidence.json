@@ -1,0 +1,167 @@
+{
+  "schema": "deuce-model-assessment-evidence-v1",
+  "assessmentDate": "2026-09-06",
+  "sourceCommit": "e1702985bd2849905c9a4ea40c05243eca312dc7",
+  "provenance": "Fingerprints recorded during the follow-up planning session. Predictor IDs match the prior assessment. This is not a frozen copy of all raw inputs; mutable local files may later change. No candidate was trained.",
+  "fingerprints": {
+    "python": "3.13.14",
+    "files": [
+      {
+        "path": "data/output/atp/predictor.pkl",
+        "bytes": 21814019,
+        "sha256": "1039297547bd8e568a317d4d05071406a33f2c2ef481774d34aa297ef5f9b0fc"
+      },
+      {
+        "path": "data/output/atp/predictor.pkl.envelope",
+        "bytes": 4121,
+        "sha256": "d216c45dba4becf6dc3d55b39647b58f5728ccfa52f6477184ecca02cf9b428c"
+      },
+      {
+        "path": "data/output/atp/players.json",
+        "bytes": 127086,
+        "sha256": "c0bf5e244e41e11b5d15602b8f772f97a3c4285e80bc5594be039a9c4df5713f"
+      },
+      {
+        "path": "data/output/wta/predictor.pkl",
+        "bytes": 25819582,
+        "sha256": "8c1f06e82605129808dac9eaa10348433e9d8b829bf473dae82b3dc294de19ef"
+      },
+      {
+        "path": "data/output/wta/predictor.pkl.envelope",
+        "bytes": 4123,
+        "sha256": "95182ddbfec564f5880eb3fb5b28956297aff0cde716e7dcaf31c75bff769eef"
+      },
+      {
+        "path": "data/output/wta/players.json",
+        "bytes": 127176,
+        "sha256": "8ada6168e216cd548e3c2974f27f5e019cc8472886886df4280d4f5c2248541d"
+      },
+      {
+        "path": "data/output/tuning/ab_gated_wta_base.pkl",
+        "bytes": 19096384,
+        "sha256": "468bea4304a8c4685940c5f52e5c534b03559a83ccf97a99b764d9df07e2ceac"
+      },
+      {
+        "path": "data/output/tuning/ab_gated_wta_t32.pkl",
+        "bytes": 19390581,
+        "sha256": "e823c3846df208bed6f47f867c9a915aeaf2560f9639e0b54cbc7fbc1eba4586"
+      }
+    ],
+    "predictors": {
+      "atp": {
+        "predictorArtifactId": "6698386b-2d0c-41b3-b7d8-95a72e43c1df",
+        "modelTrainedAt": "2026-09-06T16:42:22Z",
+        "dataThrough": "2026-09-05",
+        "matchPopulationVersion": 6,
+        "dualStateThreshold": null
+      },
+      "wta": {
+        "predictorArtifactId": "c28905e5-36d9-455f-b5a5-f1618372e04d",
+        "modelTrainedAt": "2026-09-06T16:42:26Z",
+        "dataThrough": "2026-09-06",
+        "matchPopulationVersion": 6,
+        "dualStateThreshold": 32
+      }
+    }
+  },
+  "exchangeProbe": {
+    "selection": "First 30 players sorted ascending by non-null liveRank in each local exported players.json",
+    "context": {
+      "surface": "Hard",
+      "best_of": 3,
+      "indoor": false,
+      "tier_k": 1,
+      "round_order": 3,
+      "event": null,
+      "as_of": "2026-09-06"
+    },
+    "statistic": "abs(P(A beats B)+P(B beats A)-1), in percentage points",
+    "atp": {
+      "pairs": 435,
+      "mean": 0.973,
+      "p95": 2.342,
+      "max": 4.683,
+      "example": [
+        "Novak Djokovic",
+        "Rafael Jodar"
+      ],
+      "forward": 0.5873073385651089,
+      "reverse": 0.36586741123384525
+    },
+    "wta": {
+      "pairs": 435,
+      "mean": 1.466,
+      "p95": 3.678,
+      "max": 6.632,
+      "example": [
+        "Sorana Cirstea",
+        "Alexandra Eala"
+      ],
+      "forward": 0.507551961478496,
+      "reverse": 0.4261270884463299
+    }
+  },
+  "completedMainStatsCoverage": {
+    "denominator": "Local normalized main-draw rows marked completed, not an independent census of all real matches",
+    "atp": [
+      {
+        "year": 2023,
+        "n": 2895,
+        "percent": 94.6
+      },
+      {
+        "year": 2024,
+        "n": 3037,
+        "percent": 98.7
+      },
+      {
+        "year": 2025,
+        "n": 2809,
+        "percent": 91.2
+      },
+      {
+        "year": 2026,
+        "n": 2187,
+        "percent": 94.5
+      }
+    ],
+    "wta": [
+      {
+        "year": 2023,
+        "n": 2719,
+        "percent": 92.2
+      },
+      {
+        "year": 2024,
+        "n": 2078,
+        "percent": 100
+      },
+      {
+        "year": 2025,
+        "n": 2402,
+        "percent": 83.4
+      },
+      {
+        "year": 2026,
+        "n": 1991,
+        "percent": 99.4
+      }
+    ]
+  },
+  "archivedWtaGate": {
+    "description": "Row-aligned threshold 32 vs main-only baseline; year>=2020",
+    "n": 15247,
+    "lastDate": "2026-08-17",
+    "loglossDelta": 0.000982254589040282,
+    "pairDifferenceSd": 0.08142658551564082,
+    "naiveSe": 0.0006594380819309958,
+    "twoSeIllustrativePairs": 27488.073658383673,
+    "limitation": "Illustrative precision calculation at fixed effect/variance with independent pairs, not a power guarantee or a current candidate result"
+  },
+  "unmeasured": [
+    "Effect of career-aggregate MCP look-ahead on loss",
+    "Effect of full-frame serve priors on loss",
+    "Accuracy effect of enforcing exchange symmetry",
+    "Gains from additional data or uncertainty models"
+  ]
+}

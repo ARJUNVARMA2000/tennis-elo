@@ -1,0 +1,239 @@
+{
+  "calendar-001": {
+    "rawSHA256": "6c8cd872feb9fee15478e3a9c5490d117115bbc748aa90cdc6d296b0a664f340",
+    "compressedSHA256": "78c2fe16281c2fa72bfb4e6a8301108d8c5c0f6b2aeef82857a5a932df2c93fc",
+    "receipt": {
+      "schema": "wta-coverage-inspection-v1",
+      "url": "https://api.wtatennis.com/tennis/tournaments/?from=2026-09-01&to=2026-10-31&page=0&pageSize=100",
+      "requestedAt": "2026-09-08T05:33:24.903434+00:00",
+      "purpose": "official WTA coverage/source audit; no forecasts",
+      "status": 200,
+      "responseUrl": "https://api.wtatennis.com/tennis/tournaments/?from=2026-09-01&to=2026-10-31&page=0&pageSize=100",
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "27314",
+        "cache-control": "max-age=30",
+        "etag": "\"0e08ac47e68a31571026604557204141a\"",
+        "date": "Tue, 08 Sep 2026 05:33:25 GMT"
+      },
+      "rawBytes": 27314,
+      "rawSHA256": "6c8cd872feb9fee15478e3a9c5490d117115bbc748aa90cdc6d296b0a664f340",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T05:33:25.497502+00:00",
+      "elapsedSeconds": 0.5936309579992667
+    },
+    "attempt": {
+      "schema": "wta-coverage-inspection-v1",
+      "url": "https://api.wtatennis.com/tennis/tournaments/?from=2026-09-01&to=2026-10-31&page=0&pageSize=100",
+      "requestedAt": "2026-09-08T05:33:24.903434+00:00",
+      "purpose": "official WTA coverage/source audit; no forecasts"
+    }
+  },
+  "guadalajara-page": {
+    "rawSHA256": "060110b667affb0dce82d0730cea95988c7dd73747b230cb3c00cb7256588e8c",
+    "compressedSHA256": "3368a173d2e1fc77ee8f39e63cac1b3349888aad2d80e52965165ec4d720f25a",
+    "receipt": {
+      "schema": "wta-coverage-inspection-v1",
+      "url": "https://www.wtatennis.com/tournaments/2075/guadalajara/2026/order-of-play",
+      "requestedAt": "2026-09-08T05:34:08.688799+00:00",
+      "purpose": "official WTA coverage/source audit; no forecasts",
+      "status": 200,
+      "responseUrl": "https://www.wtatennis.com/tournaments/2075/guadalajara/2026/order-of-play",
+      "headers": {
+        "content-type": "text/html;charset=utf-8",
+        "date": "Tue, 08 Sep 2026 05:34:09 GMT",
+        "cache-control": "max-age=30, stale-while-revalidate=600, stale-if-error=86400"
+      },
+      "rawBytes": 216753,
+      "rawSHA256": "060110b667affb0dce82d0730cea95988c7dd73747b230cb3c00cb7256588e8c",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T05:34:09.494757+00:00",
+      "elapsedSeconds": 0.8056435829494148
+    },
+    "attempt": {
+      "schema": "wta-coverage-inspection-v1",
+      "url": "https://www.wtatennis.com/tournaments/2075/guadalajara/2026/order-of-play",
+      "requestedAt": "2026-09-08T05:34:08.688799+00:00",
+      "purpose": "official WTA coverage/source audit; no forecasts"
+    }
+  },
+  "guadalajara-2025-page": {
+    "rawSHA256": "7efef07d8f34a5176fe5e1f543b8a59ea3245af30fd5c7f1f2003f64eb24aa86",
+    "compressedSHA256": "5bca6395d8b711b3f6928df2b792e3db641911424505ce5ae85ddd00b0185418",
+    "receipt": {
+      "schema": "wta-coverage-inspection-v1",
+      "url": "https://www.wtatennis.com/tournaments/2075/guadalajara/2025/order-of-play",
+      "requestedAt": "2026-09-08T05:35:32.795700+00:00",
+      "purpose": "official WTA coverage/source audit; no forecasts",
+      "status": 200,
+      "responseUrl": "https://www.wtatennis.com/tournaments/2075/guadalajara/2025/order-of-play",
+      "headers": {
+        "content-type": "text/html;charset=utf-8",
+        "date": "Tue, 08 Sep 2026 05:35:33 GMT",
+        "cache-control": "max-age=30, stale-while-revalidate=600, stale-if-error=86400"
+      },
+      "rawBytes": 824091,
+      "rawSHA256": "7efef07d8f34a5176fe5e1f543b8a59ea3245af30fd5c7f1f2003f64eb24aa86",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T05:35:33.483420+00:00",
+      "elapsedSeconds": 0.6873980829259381
+    },
+    "attempt": {
+      "schema": "wta-coverage-inspection-v1",
+      "url": "https://www.wtatennis.com/tournaments/2075/guadalajara/2025/order-of-play",
+      "requestedAt": "2026-09-08T05:35:32.795700+00:00",
+      "purpose": "official WTA coverage/source audit; no forecasts"
+    }
+  },
+  "guadalajara-2026-matches": {
+    "rawSHA256": "5ecb59eb6ec157523c9ec72e393df85c3738880d4dc8d8ef02278e6ee98768d9",
+    "compressedSHA256": "1f30f3230730cc3f802590a5bc9d81d084e4e137bd56b0b053a3486a3453b7d7",
+    "receipt": {
+      "adapterSHA256": "a0c73268af8c615f56cd2c14fd0e850c1a41d05a7bbce1a62cd18d9e790b33fb",
+      "elapsedSeconds": 0.11971354193519801,
+      "event": "2075",
+      "headers": {
+        "cache-control": "max-age=30",
+        "content-length": "1560",
+        "content-type": "application/json",
+        "date": "Tue, 08 Sep 2026 05:35:38 GMT",
+        "etag": "\"03e40cba735bcbcd1f46c7dc02a738b42\""
+      },
+      "outcome": "ok",
+      "purpose": "source audit only; no forecasts",
+      "rawBytes": 1560,
+      "rawComplete": true,
+      "rawSHA256": "5ecb59eb6ec157523c9ec72e393df85c3738880d4dc8d8ef02278e6ee98768d9",
+      "receivedAt": "2026-09-08T05:35:38.327092+00:00",
+      "requestedAt": "2026-09-08T05:35:38.207288+00:00",
+      "responseUrl": "https://api.wtatennis.com/tennis/tournaments/2075/2026/matches?page=0&pageSize=100",
+      "schema": "prospective-source-audit-v1",
+      "sha256": "e5e2f7e0a9f92974c4cd99df86d36b93d0da553eb8b81c4c0e5008929350db01",
+      "source": "wta",
+      "status": 200,
+      "url": "https://api.wtatennis.com/tennis/tournaments/2075/2026/matches?page=0&pageSize=100",
+      "year": 2026
+    },
+    "attempt": {
+      "adapterSHA256": "a0c73268af8c615f56cd2c14fd0e850c1a41d05a7bbce1a62cd18d9e790b33fb",
+      "event": "2075",
+      "purpose": "source audit only; no forecasts",
+      "requestedAt": "2026-09-08T05:35:38.207288+00:00",
+      "schema": "prospective-source-audit-v1",
+      "sha256": "4b48c805ec427ccd566116325c6f889d039d78f10d07a7e74dbe789f8893acc4",
+      "source": "wta",
+      "url": "https://api.wtatennis.com/tennis/tournaments/2075/2026/matches?page=0&pageSize=100",
+      "year": 2026
+    }
+  },
+  "guadalajara-2025-matches": {
+    "rawSHA256": "126993470ddf3fbe40d684df7f8a8174689a3df16f1d6211ca2cd1f1664a0426",
+    "compressedSHA256": "03289477e51607333b1b02a3179b16194cb7e8c486f2594471f26a7f74a89f7f",
+    "receipt": {
+      "adapterSHA256": "a0c73268af8c615f56cd2c14fd0e850c1a41d05a7bbce1a62cd18d9e790b33fb",
+      "elapsedSeconds": 0.12794483406469226,
+      "event": "2075",
+      "headers": {
+        "cache-control": "max-age=30",
+        "content-length": "70815",
+        "content-type": "application/json",
+        "date": "Tue, 08 Sep 2026 05:35:38 GMT",
+        "etag": "\"0eeb2e5095091e6664d2e6e346df4410f\""
+      },
+      "outcome": "ok",
+      "purpose": "source audit only; no forecasts",
+      "rawBytes": 70815,
+      "rawComplete": true,
+      "rawSHA256": "126993470ddf3fbe40d684df7f8a8174689a3df16f1d6211ca2cd1f1664a0426",
+      "receivedAt": "2026-09-08T05:35:38.458191+00:00",
+      "requestedAt": "2026-09-08T05:35:38.330253+00:00",
+      "responseUrl": "https://api.wtatennis.com/tennis/tournaments/2075/2025/matches?page=0&pageSize=100",
+      "schema": "prospective-source-audit-v1",
+      "sha256": "f98d8e4f088442de3705a2b2ad357195eb5735d83a245aa9477ed01a5a27888d",
+      "source": "wta",
+      "status": 200,
+      "url": "https://api.wtatennis.com/tennis/tournaments/2075/2025/matches?page=0&pageSize=100",
+      "year": 2025
+    },
+    "attempt": {
+      "adapterSHA256": "a0c73268af8c615f56cd2c14fd0e850c1a41d05a7bbce1a62cd18d9e790b33fb",
+      "event": "2075",
+      "purpose": "source audit only; no forecasts",
+      "requestedAt": "2026-09-08T05:35:38.330253+00:00",
+      "schema": "prospective-source-audit-v1",
+      "sha256": "49fcec76ac9d896c3c13f2eb35f439680a20daae85e33e6b403adca08392f394",
+      "source": "wta",
+      "url": "https://api.wtatennis.com/tennis/tournaments/2075/2025/matches?page=0&pageSize=100",
+      "year": 2025
+    }
+  },
+  "wta-live-order-page": {
+    "rawSHA256": "a1889a8a5968b4b5d6c983fffa3661b5e0590e948354bfb67de73f63d6db828a",
+    "compressedSHA256": "e0851626e0dc0192fcdbc97a93dc86ab6cb543534b8f70d033d402c4647d67b9",
+    "receipt": {
+      "schema": "wta-coverage-inspection-v1",
+      "url": "https://www.wtatennis.com/tournaments/905/us-open/2026/order-of-play",
+      "requestedAt": "2026-09-08T05:36:57.591546+00:00",
+      "purpose": "official WTA coverage/source audit; no forecasts",
+      "status": 200,
+      "responseUrl": "https://www.wtatennis.com/tournaments/905/us-open/2026/order-of-play",
+      "headers": {
+        "content-type": "text/html;charset=utf-8",
+        "date": "Tue, 08 Sep 2026 05:37:00 GMT",
+        "cache-control": "max-age=30, stale-while-revalidate=600, stale-if-error=86400"
+      },
+      "rawBytes": 2997621,
+      "rawSHA256": "a1889a8a5968b4b5d6c983fffa3661b5e0590e948354bfb67de73f63d6db828a",
+      "rawComplete": true,
+      "receivedAt": "2026-09-08T05:37:00.778430+00:00",
+      "elapsedSeconds": 3.186601374996826
+    },
+    "attempt": {
+      "schema": "wta-coverage-inspection-v1",
+      "url": "https://www.wtatennis.com/tournaments/905/us-open/2026/order-of-play",
+      "requestedAt": "2026-09-08T05:36:57.591546+00:00",
+      "purpose": "official WTA coverage/source audit; no forecasts"
+    }
+  },
+  "wta-live-matches": {
+    "rawSHA256": "66996a3fba345ebe5a4b4773e1f16d35d2be2aa6d32fe1e7fa5ad277f2e94ad5",
+    "compressedSHA256": "4fe58664f50bff0f7104b047eb4d3f2ef41ba10e4826f1f33c52acefb2d58477",
+    "receipt": {
+      "adapterSHA256": "a0c73268af8c615f56cd2c14fd0e850c1a41d05a7bbce1a62cd18d9e790b33fb",
+      "elapsedSeconds": 2.363544541061856,
+      "event": "905",
+      "headers": {
+        "cache-control": "max-age=30",
+        "content-length": "345894",
+        "content-type": "application/json",
+        "date": "Tue, 08 Sep 2026 05:41:22 GMT",
+        "etag": "\"0733c564e2075e82fab3021af77a89b31\""
+      },
+      "outcome": "ok",
+      "purpose": "source audit only; no forecasts",
+      "rawBytes": 345894,
+      "rawComplete": true,
+      "rawSHA256": "66996a3fba345ebe5a4b4773e1f16d35d2be2aa6d32fe1e7fa5ad277f2e94ad5",
+      "receivedAt": "2026-09-08T05:41:23.049109+00:00",
+      "requestedAt": "2026-09-08T05:41:20.685473+00:00",
+      "responseUrl": "https://api.wtatennis.com/tennis/tournaments/905/2026/matches?page=0&pageSize=100",
+      "schema": "prospective-source-audit-v1",
+      "sha256": "d35ea5999db2e082b11a7ffc94ede21c8410ce165f26d51e45fa971269bad878",
+      "source": "wta",
+      "status": 200,
+      "url": "https://api.wtatennis.com/tennis/tournaments/905/2026/matches?page=0&pageSize=100",
+      "year": 2026
+    },
+    "attempt": {
+      "adapterSHA256": "a0c73268af8c615f56cd2c14fd0e850c1a41d05a7bbce1a62cd18d9e790b33fb",
+      "event": "905",
+      "purpose": "source audit only; no forecasts",
+      "requestedAt": "2026-09-08T05:41:20.685473+00:00",
+      "schema": "prospective-source-audit-v1",
+      "sha256": "ad561ee6d96c45e493ae0e18eb15ed66849b4141ac9f23fe2714056c958b247f",
+      "source": "wta",
+      "url": "https://api.wtatennis.com/tennis/tournaments/905/2026/matches?page=0&pageSize=100",
+      "year": 2026
+    }
+  }
+}

@@ -369,3 +369,66 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - Coverage and projection retention need the same generation clock. See
   [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-09-15)
+
+- A saved temporal state needs pending evidence as well as admitted totals. See
+  [`lessons/model-research.md`](lessons/model-research.md). (2026-09-06)
+
+- A slice label does not establish the population its counts measure. See [`lessons/model-research.md`](lessons/model-research.md). (2026-09-06)
+
+- A cache directory is an acquisition boundary, not an event edition. See
+  [`lessons/data-sources.md`](lessons/data-sources.md). (2026-09-06)
+- Even warm-up history needs a distinct-player invariant. See
+  [`lessons/data-sources.md`](lessons/data-sources.md). (2026-09-06)
+- Validate numerical integration in the uncertainty regime the model can actually reach.
+  See [`lessons/model-research.md`](lessons/model-research.md). (2026-09-06)
+
+- A calendar window is not an absence test for an event-stamped archive. See
+  [`lessons/data-sources.md`](lessons/data-sources.md). (2026-09-06)
+- Once an event ID is corroborated, constrain the match audit to it. See
+  [`lessons/data-sources.md`](lessons/data-sources.md). (2026-09-06)
+- Same-season score/round collisions need proven edition boundaries before timing donation: [data-sources](lessons/data-sources.md).
+
+
+- Saved-query equality and historical match-row equality use different metadata;
+  normalize missing context and report state parity separately. See
+  [`lessons/model-research.md`](lessons/model-research.md). (2026-09-07)
+
+- A result update is not a complete settlement snapshot. See
+  [`lessons/model-research.md`](lessons/model-research.md). (2026-09-07)
+
+- HTTP freshness does not establish match-time semantics; represent the bound the experiment needs. See
+  [`lessons/model-research.md`](lessons/model-research.md). (2026-09-07)
+
+- A result producer must carry contradictions as well as confirmed matches. See
+  [`lessons/model-research.md`](lessons/model-research.md). (2026-09-07)
+- Resolve the owning checkout and working directory before constructing a research command. See
+  [`lessons/model-research.md`](lessons/model-research.md). (2026-09-07)
+
+- A timestamp and its derived elapsed clock can agree throughout corrupted data. See
+  [`lessons/model-research.md`](lessons/model-research.md). (2026-09-07)
+
+- A schedule catalogue's epoch can identify a different date from its published order. See
+  [`lessons/model-research.md`](lessons/model-research.md). (2026-09-07)
+
+- An official catalogue can mix match days with unrelated navigation entries. See
+  [`lessons/model-research.md`](lessons/model-research.md). (2026-09-07)
+
+- A provider-looking player number is not proof of a shared ID namespace. See
+  [`lessons/model-research.md`](lessons/model-research.md). (2026-09-08)
+
+- Multiple day listings in one order page are not observed temporal revisions; completed
+  archives may have lost original start labels. See
+  [`lessons/model-research.md`](lessons/model-research.md). (2026-09-08)
+
+- A publisher's coarse LIVE status can include OnCourt and warm-up; validate the detailed
+  event and physical clock separately. See
+  [`lessons/model-research.md`](lessons/model-research.md). (2026-09-08)
+
+- An official match-start definition is not a public feed's clock contract. (2026-09-08; `lessons/model-research.md`)
+
+- A blocked live-confirmation dependency must not consume the model-improvement program. (2026-09-08; `lessons/model-research.md`)
+
+- A systematic calibration slice is a hypothesis source, not proof of its apparent cause. (2026-09-08; `lessons/model-research.md`)
+
+
+- A closed shortlist is not an exhausted research program. (2026-09-08; `lessons/model-research.md`)

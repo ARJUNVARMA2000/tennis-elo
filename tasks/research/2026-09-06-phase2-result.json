@@ -1,0 +1,463 @@
+{
+  "status": "phase2-maintenance-complete",
+  "baselineFitStatus": "not-started",
+  "codeBase": "8080e34848a3f8b8362669125270cfe726e15c64",
+  "coordinator": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/coordinator",
+  "freezePath": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/runs/phase2/evaluator-freeze-v2.json",
+  "freezeContractSHA256": "add41de4629703455fad849c59dfc21a82fa569f13e91970417894127615217d",
+  "inputsSHA256": "40cea9552a51ef7fc1f90dca47e4c5be7fa87987b0d73f5f4b96837bd86387bd",
+  "evaluatorSHA256": "0e10742cfc0c12b28055e270936965cacb47a8065b9001e949b35f54fc9e0a1b",
+  "dataThrough": {
+    "atp": "2026-09-05",
+    "wta": "2026-09-06"
+  },
+  "runtime": {
+    "python": [
+      3,
+      13,
+      14
+    ],
+    "libraries": {
+      "numpy": "2.5.0",
+      "pandas": "3.0.3",
+      "scikit-learn": "1.9.0",
+      "xgboost": "3.3.0"
+    }
+  },
+  "replays": {
+    "atp-enriched": {
+      "label": "atp-enriched",
+      "rows": 284893,
+      "dataThrough": "2026-09-05",
+      "normalizationSeconds": 63.42955995799275,
+      "priorMembershipSHA256": "7f9f5d26b7c898e367ff2edcf7d27da563ff87c7bccdbe9dbd1b61c647df7b0a",
+      "preservedMembershipSHA256": "7f9f5d26b7c898e367ff2edcf7d27da563ff87c7bccdbe9dbd1b61c647df7b0a",
+      "exactSelectedMembershipUnchanged": true,
+      "dateBasis": {
+        "unknown": 284501,
+        "played_date": 255,
+        "event_start": 137
+      },
+      "sourceKind": {
+        "historical": 151286,
+        "lower": 88218,
+        "stats": 45188,
+        "live": 114,
+        "fresh": 87
+      },
+      "statsAvailabilityBasis": {
+        "unknown": 284501,
+        "played_date": 255,
+        "event_end": 137
+      },
+      "dateCorrections": {
+        "conflicting-event-start": 17,
+        "exact-result-event-id": 1
+      },
+      "inversions": [],
+      "normalizedFingerprint": "nm1:817d15e692448bd7e47c08805e3e542c38ab18b218bd2b6667614923085387e5",
+      "eligiblePriorObservations": 268,
+      "priorUnknownTimeExclusions": 202226,
+      "priorInvalidStatsExclusions": 50,
+      "selectedWalkDateChanges": 118,
+      "selectedEventIdChanges": 1,
+      "changedDateEvidence": {
+        "espn-competition-local-date": 101,
+        "reviewed-atp-event:2024-6242": 7,
+        "reviewed-atp-event:2024-341": 7,
+        "reviewed-atp-event:2024-4787": 3
+      }
+    },
+    "wta-main": {
+      "label": "wta-main",
+      "rows": 128978,
+      "dataThrough": "2026-09-05",
+      "normalizationSeconds": 94.35684033302823,
+      "priorMembershipSHA256": "b7d8f249d961e327c37282b8568de59e8ce73744962640975d41378be5cc0a83",
+      "preservedMembershipSHA256": "b7d8f249d961e327c37282b8568de59e8ce73744962640975d41378be5cc0a83",
+      "exactSelectedMembershipUnchanged": true,
+      "dateBasis": {
+        "unknown": 128723,
+        "played_date": 235,
+        "event_start": 20
+      },
+      "sourceKind": {
+        "historical": 123473,
+        "stats": 4947,
+        "fresh": 549,
+        "live": 9
+      },
+      "statsAvailabilityBasis": {
+        "unknown": 128723,
+        "played_date": 235,
+        "event_end": 20
+      },
+      "dateCorrections": {},
+      "inversions": [],
+      "normalizedFingerprint": "nm1:66daf2b72e22d42107c0e60f46eb2a387e50e17d997562249a09ccb75f89da06",
+      "eligiblePriorObservations": 239,
+      "priorUnknownTimeExclusions": 45827,
+      "priorInvalidStatsExclusions": 4,
+      "selectedWalkDateChanges": 32,
+      "selectedEventIdChanges": 0,
+      "changedDateEvidence": {
+        "espn-competition-local-date": 32
+      }
+    },
+    "wta-enriched": {
+      "label": "wta-enriched",
+      "rows": 146078,
+      "dataThrough": "2026-09-06",
+      "normalizationSeconds": 57.9808281250298,
+      "priorMembershipSHA256": "7116fc122da52b18eec593ac0f082550fd2eb17da3bd73d953caaa95fd9c2aff",
+      "preservedMembershipSHA256": "7116fc122da52b18eec593ac0f082550fd2eb17da3bd73d953caaa95fd9c2aff",
+      "exactSelectedMembershipUnchanged": true,
+      "dateBasis": {
+        "unknown": 139139,
+        "played_date": 6815,
+        "event_start": 124
+      },
+      "sourceKind": {
+        "historical": 123577,
+        "lower": 16996,
+        "stats": 4947,
+        "fresh": 549,
+        "live": 9
+      },
+      "statsAvailabilityBasis": {
+        "unknown": 139139,
+        "played_date": 6919,
+        "event_end": 20
+      },
+      "dateCorrections": {
+        "mixed-date-bases-event-start": 91
+      },
+      "inversions": [],
+      "normalizedFingerprint": "nm1:fda7644013c56eaecd60cb39a01fff6b6f93bfc172746007a6244c3584e162cc",
+      "eligiblePriorObservations": 6923,
+      "priorUnknownTimeExclusions": 56242,
+      "priorInvalidStatsExclusions": 5,
+      "selectedWalkDateChanges": 32,
+      "selectedEventIdChanges": 0,
+      "changedDateEvidence": {
+        "espn-competition-local-date": 32
+      }
+    }
+  },
+  "temporal": {
+    "atp-enriched": {
+      "rows": 371,
+      "targetDate": "2024-11-11",
+      "futureAppendFeaturePrefixEqual": true,
+      "savedQueryColumns": [
+        "elo_diff",
+        "elo_overall_diff",
+        "elo_surface_diff",
+        "logit_p_blend",
+        "logit_p_point",
+        "serve_skill_diff",
+        "return_skill_diff",
+        "rest_diff",
+        "fatigue_diff",
+        "h2h_diff",
+        "log_days_since_diff",
+        "layoff_flag_diff",
+        "form90_diff",
+        "winrate10_diff",
+        "h2h_surface_diff",
+        "log_min_srv_pts",
+        "log_min_matches",
+        "log1p_h2h_total"
+      ],
+      "maxStateFeatureError": 0.0,
+      "savedStateUnchanged": true,
+      "pendingPriorObservations": 0
+    },
+    "wta-main": {
+      "rows": 8,
+      "targetDate": "2017-06-12",
+      "futureAppendFeaturePrefixEqual": true,
+      "savedQueryColumns": [
+        "elo_diff",
+        "elo_overall_diff",
+        "elo_surface_diff",
+        "logit_p_blend",
+        "logit_p_point",
+        "serve_skill_diff",
+        "return_skill_diff",
+        "rest_diff",
+        "fatigue_diff",
+        "h2h_diff",
+        "log_days_since_diff",
+        "layoff_flag_diff",
+        "form90_diff",
+        "winrate10_diff",
+        "h2h_surface_diff",
+        "log_min_srv_pts",
+        "log_min_matches",
+        "log1p_h2h_total"
+      ],
+      "maxStateFeatureError": 0.0,
+      "savedStateUnchanged": true,
+      "pendingPriorObservations": 5
+    }
+  },
+  "wtaDualStateTemporal": {
+    "mainRows": 8,
+    "enrichedRows": 76,
+    "targetDate": "2017-06-12",
+    "selectedLowerState": true,
+    "threshold": 32,
+    "bothFeaturePrefixesExact": true,
+    "savedPredictorUnchanged": true,
+    "maxSelectedStateFeatureError": 0.0,
+    "columns": [
+      "elo_diff",
+      "elo_overall_diff",
+      "elo_surface_diff",
+      "logit_p_blend",
+      "logit_p_point",
+      "serve_skill_diff",
+      "return_skill_diff",
+      "rest_diff",
+      "fatigue_diff",
+      "h2h_diff",
+      "log_days_since_diff",
+      "layoff_flag_diff",
+      "form90_diff",
+      "winrate10_diff",
+      "h2h_surface_diff",
+      "log_min_srv_pts",
+      "log_min_matches",
+      "log1p_h2h_total"
+    ]
+  },
+  "wtaAlignment": {
+    "rows": 128978,
+    "sameOrderedMainIdentitiesDatesAndAvailability": true,
+    "columns": [
+      "date",
+      "tourney_id",
+      "round",
+      "match_num",
+      "source_match_id",
+      "winner_name",
+      "loser_name",
+      "date_basis",
+      "stats_available_at",
+      "stats_availability_basis"
+    ]
+  },
+  "validation": {
+    "pythonFull": {
+      "passed": 1258,
+      "seconds": 135.68,
+      "log": "/Users/varma/Projects/DEUCE/.research/2026-09-06-model-foundation/worktrees/coordinator/.research/phase0/logs/phase2-python-gates-final.log"
+    },
+    "subsequentRunnerCanonicalization": {
+      "passed": 4,
+      "seconds": 0.26,
+      "note": "Final freeze readback exposed integer-key JSON ordering; regression and actual CLI freeze/verify now pass."
+    },
+    "ruff": "passed",
+    "webTests": 359,
+    "webTestFiles": 27,
+    "webLint": {
+      "errors": 0,
+      "preexistingWarnings": 9
+    },
+    "webTypecheck": "passed",
+    "webProductionBuild": "passed"
+  },
+  "isolation": {
+    "allSixRootsHaveDistinctDataInodes": true,
+    "checkedAt": "2026-09-06T22:54:13.373642+00:00",
+    "dataFilesCheckedPerRoot": 18791,
+    "noWorktreeDataSymlinks": true,
+    "status": "passed",
+    "workspaces": [
+      {
+        "cacheDifferences": [
+          {
+            "after": {
+              "bytes": 56795529,
+              "kind": "file",
+              "path": "cache/normalized-history/atp.pkl",
+              "sha256": "8830bb7b2f6241293595d8734cfb5d045c8ed0475496f95a8f45ae664422475b"
+            },
+            "before": {
+              "bytes": 56037151,
+              "kind": "file",
+              "path": "cache/normalized-history/atp.pkl",
+              "sha256": "c86cb2f50aa7e7a49691706fdfc8885f53a2297d6aa12a0df9beabdad5bc46cf"
+            },
+            "path": "cache/normalized-history/atp.pkl"
+          },
+          {
+            "after": {
+              "bytes": 47855771,
+              "kind": "file",
+              "path": "cache/normalized-history/wta.pkl",
+              "sha256": "b1453f261c2965aa14df8f80b751f02f26145bcef776b21f24b975cf2699bb56"
+            },
+            "before": {
+              "bytes": 47235562,
+              "kind": "file",
+              "path": "cache/normalized-history/wta.pkl",
+              "sha256": "fc2ebe304256ad84457e8cfd8ce04fe961cf1017758fa773bb300df2d4e47cde"
+            },
+            "path": "cache/normalized-history/wta.pkl"
+          },
+          {
+            "after": {
+              "bytes": 16957458,
+              "kind": "file",
+              "path": "cache/normalized-matches/atp-enriched.pkl.gz",
+              "sha256": "e6af501156efb09432f0c42a06bc3ce5abe0779aaeb33256f2f4442f5a17f315"
+            },
+            "before": {
+              "bytes": 16601624,
+              "kind": "file",
+              "path": "cache/normalized-matches/atp-enriched.pkl.gz",
+              "sha256": "a10a5c802b770f9525c3142d386a27a3e8a238779a59abcf2611a892efb0ccbb"
+            },
+            "path": "cache/normalized-matches/atp-enriched.pkl.gz"
+          },
+          {
+            "after": {
+              "bytes": 2007,
+              "kind": "file",
+              "path": "cache/normalized-matches/atp-main.pkl.gz",
+              "sha256": "e8fe7141937020ebdcbf8c1a401b9e2aca89655fae97ca5c25f2b72dc37f64e6"
+            },
+            "before": {
+              "bytes": 1625,
+              "kind": "file",
+              "path": "cache/normalized-matches/atp-main.pkl.gz",
+              "sha256": "b4e6b6dab4b728400e37794b7540344ff0e38a92c94839490a911a220f118c81"
+            },
+            "path": "cache/normalized-matches/atp-main.pkl.gz"
+          },
+          {
+            "after": {
+              "bytes": 6991861,
+              "kind": "file",
+              "path": "cache/normalized-matches/wta-enriched.pkl.gz",
+              "sha256": "d1cbca96b222e664e17e712d69c81c6d17e5d14d662f6043e556676f70191af4"
+            },
+            "before": {
+              "bytes": 6685217,
+              "kind": "file",
+              "path": "cache/normalized-matches/wta-enriched.pkl.gz",
+              "sha256": "1faf1b02c141f614e97782db903d9d58718c99fce00f63db70064235a8ead6a5"
+            },
+            "path": "cache/normalized-matches/wta-enriched.pkl.gz"
+          },
+          {
+            "after": {
+              "bytes": 5908015,
+              "kind": "file",
+              "path": "cache/normalized-matches/wta-main.pkl.gz",
+              "sha256": "6901852b29f4260f607c1128e3e51db310aa31fd41c0b8ba9eb16d6bcb07537d"
+            },
+            "before": {
+              "bytes": 2012,
+              "kind": "file",
+              "path": "cache/normalized-matches/wta-main.pkl.gz",
+              "sha256": "f6d79cdbbefe1c0d779f33ed514d4ac13b001ad3bf3e56739d14eedbaa0c24c3"
+            },
+            "path": "cache/normalized-matches/wta-main.pkl.gz"
+          }
+        ],
+        "dataFiles": 18791,
+        "lane": "coordinator",
+        "rawAndOutputUnchanged": true
+      },
+      {
+        "cacheDifferences": [
+          {
+            "after": {
+              "bytes": 16601624,
+              "kind": "file",
+              "path": "cache/normalized-matches/atp-enriched.pkl.gz",
+              "sha256": "b73252419266d056edadf9c3ebcbbcdd8b9be71215d14362444a9af3d0caf007"
+            },
+            "before": {
+              "bytes": 16601624,
+              "kind": "file",
+              "path": "cache/normalized-matches/atp-enriched.pkl.gz",
+              "sha256": "a10a5c802b770f9525c3142d386a27a3e8a238779a59abcf2611a892efb0ccbb"
+            },
+            "path": "cache/normalized-matches/atp-enriched.pkl.gz"
+          },
+          {
+            "after": {
+              "bytes": 8660985,
+              "kind": "file",
+              "path": "cache/normalized-matches/atp-main.pkl.gz",
+              "sha256": "e9c7ee038db61dff7c79b99a191473f02fb1a22a83c69f5caa126ed67ff3c690"
+            },
+            "before": {
+              "bytes": 1625,
+              "kind": "file",
+              "path": "cache/normalized-matches/atp-main.pkl.gz",
+              "sha256": "b4e6b6dab4b728400e37794b7540344ff0e38a92c94839490a911a220f118c81"
+            },
+            "path": "cache/normalized-matches/atp-main.pkl.gz"
+          },
+          {
+            "after": {
+              "bytes": 6685428,
+              "kind": "file",
+              "path": "cache/normalized-matches/wta-enriched.pkl.gz",
+              "sha256": "a9c0d81d4ad5b4c135528201b8b62268716a8ceed401997adc6a1a2866b718a6"
+            },
+            "before": {
+              "bytes": 6685217,
+              "kind": "file",
+              "path": "cache/normalized-matches/wta-enriched.pkl.gz",
+              "sha256": "1faf1b02c141f614e97782db903d9d58718c99fce00f63db70064235a8ead6a5"
+            },
+            "path": "cache/normalized-matches/wta-enriched.pkl.gz"
+          },
+          {
+            "after": {
+              "bytes": 5694617,
+              "kind": "file",
+              "path": "cache/normalized-matches/wta-main.pkl.gz",
+              "sha256": "2d6f6103296dc7060a85927d7da1d2655c9b07cf87064518a436f1f747b320ab"
+            },
+            "before": {
+              "bytes": 2012,
+              "kind": "file",
+              "path": "cache/normalized-matches/wta-main.pkl.gz",
+              "sha256": "f6d79cdbbefe1c0d779f33ed514d4ac13b001ad3bf3e56739d14eedbaa0c24c3"
+            },
+            "path": "cache/normalized-matches/wta-main.pkl.gz"
+          }
+        ],
+        "dataFiles": 18791,
+        "lane": "a",
+        "rawAndOutputUnchanged": true
+      },
+      {
+        "cacheDifferences": [],
+        "dataFiles": 18791,
+        "lane": "b",
+        "rawAndOutputUnchanged": true
+      },
+      {
+        "cacheDifferences": [],
+        "dataFiles": 18791,
+        "lane": "c",
+        "rawAndOutputUnchanged": true
+      }
+    ]
+  },
+  "limitations": [
+    "Historical played/publication times remain unknown for most rows; this is a retrospective event/round benchmark.",
+    "WTA production priors use the identical main population in both states: enriched-frame timing-qualified counts are not automatically prior-admitted counts.",
+    "Saved fitted real-data schema-5 artifacts and 435-pair checks await Phase 3. Synthetic fitted-artifact tests and real unfitted-state probes passed.",
+    "No numerical improvement, candidate adoption, source refresh, dependency upgrade, production merge, push or deployment."
+  ]
+}

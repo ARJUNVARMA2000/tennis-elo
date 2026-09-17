@@ -229,6 +229,7 @@ class ServeReturnState:
 def run_serve_return(df: pd.DataFrame,
                      params: ServeReturnParams | None = None,
                      baseline_df: pd.DataFrame | None = None,
+                     *, state_class: type[ServeReturnState] = ServeReturnState,
                      ) -> tuple[ServeReturnState, pd.DataFrame]:
     """Chronological pass: record pre-match skills + point-model probability.
 
@@ -242,7 +243,7 @@ def run_serve_return(df: pd.DataFrame,
     observations = prior_observations(df if baseline_df is None else baseline_df, prior)
     cursor = 0
     avg, base = prior.before()
-    st = ServeReturnState(prior_state=prior, avg=avg, base=base, params=params or DEFAULT_SR_PARAMS)
+    st = state_class(prior_state=prior, avg=avg, base=base, params=params or DEFAULT_SR_PARAMS)
 
     def advance_prior(cutoff):
         nonlocal cursor

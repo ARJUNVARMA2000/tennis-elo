@@ -1,0 +1,59 @@
+{
+  "espn": {
+    "originalReceipt": {
+      "schema": "source-inspection-v1",
+      "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard?limit=300",
+      "requestedAt": "2026-09-08T00:26:27.413360+00:00",
+      "purpose": "source audit only; no forecasts",
+      "status": 200,
+      "responseUrl": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard?limit=300",
+      "headers": {
+        "date": "Tue, 08 Sep 2026 00:26:27 GMT",
+        "content-type": "application/json;charset=UTF-8",
+        "content-length": "1970442",
+        "cache-control": "max-age=1"
+      },
+      "receivedAt": "2026-09-08T00:26:27.699355+00:00",
+      "rawBytes": 1970442,
+      "rawSHA256": "c8675722a077482f65846ba6ceeb57fbaf0226bb39ef6c877c6334bd8fdd10d3",
+      "topLevelKeys": [
+        "leagues",
+        "season",
+        "day",
+        "events",
+        "provider"
+      ]
+    },
+    "rawSHA256": "c8675722a077482f65846ba6ceeb57fbaf0226bb39ef6c877c6334bd8fdd10d3",
+    "compressedSHA256": "83f20248c4e12a8c2b7ce2bc75e255faeeb7db52fa6732de9df53e4cab4a9492",
+    "rawBytes": 1970442
+  },
+  "wta": {
+    "originalReceipt": {
+      "schema": "source-inspection-v1",
+      "url": "https://api.wtatennis.com/tennis/tournaments/905/2026/matches?page=0&pageSize=100",
+      "requestedAt": "2026-09-08T00:27:10.343635+00:00",
+      "purpose": "source audit only; no forecasts",
+      "status": 200,
+      "responseUrl": "https://api.wtatennis.com/tennis/tournaments/905/2026/matches?page=0&pageSize=100",
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "345853",
+        "cache-control": "max-age=30",
+        "etag": "\"0adfd3c831a9a073ed317a460d553fd01\"",
+        "date": "Tue, 08 Sep 2026 00:27:12 GMT"
+      },
+      "receivedAt": "2026-09-08T00:27:12.491559+00:00",
+      "rawBytes": 345853,
+      "rawSHA256": "f211c30a3035c18015481135baa9cfbe053f57cca7f8b5a42da98fd6cbb335f4",
+      "topLevelKeys": [
+        "lastUpdated",
+        "matches",
+        "tournament"
+      ]
+    },
+    "rawSHA256": "f211c30a3035c18015481135baa9cfbe053f57cca7f8b5a42da98fd6cbb335f4",
+    "compressedSHA256": "0388790014bfa220ae41c5748dec98bb60dc1e7b89891e79580b30fb3fde4dd4",
+    "rawBytes": 345853
+  }
+}
