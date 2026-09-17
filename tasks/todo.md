@@ -8568,3 +8568,32 @@ issue once consolidation is done. Proceed through publication and repair to live
 ### Review
 
 Remote master remains `12c95c0`; no remote changes since consolidation validation.
+
+### Caldas diagnosis and repair check-in
+
+The retained September 14 raw archive plus September 17 ESPN response reproduces the
+missing Bandecchi quarterfinal feeder. Her August 26 US Open qualifying win over
+Hruncakova has the identical 6-3 6-2 score and no round. The year-wide unknown-round
+fallback merges it with the September 16 Caldas R16, donating qualification role and
+removing the real main-event result. Nullable match keys also allow event-id donation
+between unrelated unknown-round rows under pandas3. Repair both identity seams, keep
+unknown rounds from borrowing across unproven editions, and replay source -> bracket
+-> existing scheduled-match gate with the captured draw and results. Advance the
+population contract because restored historical/lower rows affect predictor state.
+
+### Caldas repair — validated for publication
+
+- [x] Production archive plus retained ESPN response reproduced the lost feeder and
+  widespread null-key event-ID donation. The fixed replay retains all 20 Caldas results,
+  including Bandecchi–Hruncakova on September 16; older qualifying remains separate.
+- [x] New source/identity and broken+clean gate replays: four pass. Running the same
+  tests against the original producer gives three failures and one expected broken replay.
+- [x] Full Python suite: 1,848 passed in 209.84 seconds. Expanded stale-population
+  checks: four passed. Ruff and whitespace checks pass. No web changes in this repair.
+- [x] Population10 forces a fresh predictor; reviewed result/quarantine contents are
+  unchanged, with only population metadata and corresponding pinned hashes advanced.
+- [x] Consolidation `8407c28` is on GitHub and the four remote branches were deleted.
+  Its CI test jobs passed; the production full retrain is still running. Queue this
+  validated repair through the normal serialized workflow, preserving release gates.
+- [ ] Confirm the repaired production run passes the pre-upload and post-deploy gates,
+  inspect the live Caldas bracket, and record issue recovery and model identities.

@@ -156,11 +156,12 @@ WTA_DUAL_STATE_GATE_THRESHOLD = 32
 # one unresolvable 1980 self-pair; merges Xin Yu Wang's duplicate identity. Exact
 # ledgers are committed; missing/stale files fail.
 # Version 9 joins Gao Xinyu and Joelle Lilly Sophie Steur to their existing WTA histories.
-MATCH_POPULATION_VERSION = 9
+# Version 10 separates unproven missing-round rematches and prevents null-key event donation.
+MATCH_POPULATION_VERSION = 10
 REVIEWED_RESULTS = {
-    'atp': {'sha256': '4c193a96fff1054a1600625c46ddb628556217588de57e86976ddf9d67cb1764',
+    'atp': {'sha256': 'eaa2b9e02b27eb0c60a37cf8e4fd2dfa6f0c8c20d1a95a8ae0be67b403834e08',
             'records': 0, 'quarantines': 0},
-    'wta': {'sha256': 'c196b37b793f593f0a26ae0d994258b5cad615a1f364670e4539a2c849164157',
+    'wta': {'sha256': '6c960c4b3bc6bcd0dcb33900d7ad6281de6fbe5273c7b946cd74d265bc84b132',
             'records': 528, 'quarantines': 1},
 }
 

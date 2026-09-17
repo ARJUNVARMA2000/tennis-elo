@@ -995,11 +995,12 @@ def test_error_reason_is_typed_and_stable():
 
 
 @pytest.mark.parametrize('tour', ['atp', 'wta'])
-def test_combined_release_rejects_both_prior_version_seven_populations(tour):
-    """Production and research used version 7 for different reviewed populations."""
+@pytest.mark.parametrize('stale_population', [7, 9])
+def test_combined_release_rejects_prior_populations(tour, stale_population):
+    """Reject both divergent version-7 histories and the pre-Caldas version-9 state."""
     predictor = _valid_predictor(tour)
     validate_predictor_structure(predictor, tour)
-    predictor.match_population_version = 7
+    predictor.match_population_version = stale_population
     with pytest.raises(PredictorArtifactError) as rejected:
         validate_predictor_structure(predictor, tour)
     assert rejected.value.reason is PredictorArtifactReason.PREDICTOR_FIELDS

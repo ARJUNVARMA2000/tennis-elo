@@ -543,7 +543,10 @@ def merge_sources(tour: str, include_lower: bool | None = None) -> pd.DataFrame:
         """
         if "espn_id" not in frame.columns or not frame["espn_id"].notna().any():
             return frame
-        src = frame.loc[frame["espn_id"].notna()]
+        # Missing composite keys are not shared identities. pandas3 preserves nulls
+        # through astype(str), so a missing round can otherwise donate an event ID
+        # to every unrelated row whose composite key is also null.
+        src = frame.loc[frame["espn_id"].notna() & k.notna()]
         m = dict(zip(k.loc[src.index], src["espn_id"]))
         frame["espn_id"] = frame["espn_id"].where(frame["espn_id"].notna(), k.map(m))
         return frame
@@ -563,13 +566,11 @@ def merge_sources(tour: str, include_lower: bool | None = None) -> pd.DataFrame:
         return str(known[0]) if len(known) == 1 else ""
 
     # Some overlays omit `round` while another copy of the SAME match supplies it. Treat an
-    # empty value as a wildcard only when its exact-date bucket (preferred), or its entire
-    # old-key bucket, has one unambiguous known round. Otherwise keep it separate: guessing
-    # which of two real rematches it belongs to would silently delete evidence again.
+    # empty value as a wildcard only when its exact-date bucket has one unambiguous
+    # known round. A unique round across a season is not edition evidence: Bandecchi
+    # beat Hruncakova 6-3 6-2 in US Open qualifying and again at Caldas three weeks later.
     by_day = round_key.groupby(base_key + "|" + df["date"].astype(str)).transform(_only_round)
     round_key = round_key.mask(round_key.eq("") & by_day.ne(""), by_day)
-    by_group = round_key.groupby(base_key).transform(_only_round)
-    round_key = round_key.mask(round_key.eq("") & by_group.ne(""), by_group)
     df["__key"] = base_key + "|" + round_key
     from .result_ledger import partition_reviewed_duplicates
     df['__key'] = partition_reviewed_duplicates(df, df['__key'])

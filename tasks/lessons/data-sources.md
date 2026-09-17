@@ -262,3 +262,14 @@ Indexed in [`../lessons.md`](../lessons.md).
   into April. Partition reviewed donor groups using proven edition IDs before donating
   timing or outcome facts. Preserve real rematches and check chronological round order
   on full history before fitting; scope completeness claims to what was actually audited.
+
+- **An unknown round is not a wildcard across an entire season.** (2026-09-17, #70)
+  Bandecchi beat Hruncakova 6-3 6-2 in US Open qualifying and again in Caldas R16.
+  Filling the qualifying row's missing round from the season-wide score bucket merged
+  the matches, donated qualification role to Caldas, and erased a bracket feeder.
+  Infer an absent round only from exact-date evidence; an event-start/played-date bridge
+  needs independent edition evidence. Also reject null composite keys before donating
+  event IDs: pandas3 preserves nulls through string conversion, so a null dictionary key
+  can otherwise associate unrelated results with the last donor event. Replay both
+  failures from ingestion through the existing scheduled-pair gate, and version the
+  restored model population before reusing saved predictors.

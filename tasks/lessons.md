@@ -436,3 +436,5 @@ New lesson → append the entry to the matching topic file and add its lead line
 - Historical forecast evidence belongs to its recorded model contract; current-generation
   requirements and every orientation path remain strict. See
   [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-09-11)
+- Missing-round rematches need exact-date evidence, and null composite keys cannot donate
+  event identity. See [`lessons/data-sources.md`](lessons/data-sources.md). (2026-09-17)
