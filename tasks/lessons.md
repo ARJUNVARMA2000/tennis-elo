@@ -438,3 +438,6 @@ New lesson → append the entry to the matching topic file and add its lead line
   [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-09-11)
 - Missing-round rematches need exact-date evidence, and null composite keys cannot donate
   event identity. See [`lessons/data-sources.md`](lessons/data-sources.md). (2026-09-17)
+
+- A match-level probability requirement cannot depend on unrelated draw slots being resolved.
+  See [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-09-20)

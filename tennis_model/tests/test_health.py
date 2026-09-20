@@ -1528,6 +1528,7 @@ def test_output_bracket_early_draw_with_qualifiers_is_clean():
     # real Gstaad shape: a 32-slot draw with 2 named + 26 qualifiers + 4 byes -> drawSize 28
     slots = (["Named One", "Named Two"] + [f"Qualifier {i}" for i in range(1, 27)] + [None] * 4)
     rounds = [{"round": "R32", "matches": [pend(slots[i], slots[i + 1]) for i in range(0, 32, 2)]}]
+    rounds[0]["matches"][0].update(p=0.6, probSource="model")
     for lab, n in (("R16", 8), ("QF", 4), ("SF", 2), ("F", 1)):
         rounds.append({"round": lab, "matches": [pend() for _ in range(n)]})
     d = _healthy_data()

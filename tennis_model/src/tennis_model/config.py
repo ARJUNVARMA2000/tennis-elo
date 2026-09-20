@@ -157,11 +157,12 @@ WTA_DUAL_STATE_GATE_THRESHOLD = 32
 # ledgers are committed; missing/stale files fail.
 # Version 9 joins Gao Xinyu and Joelle Lilly Sophie Steur to their existing WTA histories.
 # Version 10 separates unproven missing-round rematches and prevents null-key event donation.
-MATCH_POPULATION_VERSION = 10
+# Version 11 joins Korea Open's reversed Yuan/Yao names to their existing WTA histories.
+MATCH_POPULATION_VERSION = 11
 REVIEWED_RESULTS = {
-    'atp': {'sha256': 'eaa2b9e02b27eb0c60a37cf8e4fd2dfa6f0c8c20d1a95a8ae0be67b403834e08',
+    'atp': {'sha256': '04c1bf9cdc5ffd4b9061f0207ac2d32e704824432adf6bdda6695cb5b4fdbe22',
             'records': 0, 'quarantines': 0},
-    'wta': {'sha256': '6c960c4b3bc6bcd0dcb33900d7ad6281de6fbe5273c7b946cd74d265bc84b132',
+    'wta': {'sha256': 'd565483669b5c5df5473be57a0ecf8b9eecade62488d7ecb31f2cd466c094572',
             'records': 528, 'quarantines': 1},
 }
 
@@ -733,6 +734,11 @@ EVENT_WITHDRAWN_PLAYERS: dict[str, dict[str, dict[str, str | None]]] = {
 # relatives (the Zverevs, the Bryans). Add an entry when the health gate flags one, or when
 # `data/alias_proposer.py` opens a PR proposing one (that path is reviewed, never automatic).
 PLAYER_ALIASES: dict[str, str] = {
+    # Korea Open ESPN/draw uses family-name-first; the same WTA profiles show both orders.
+    # https://www.wtatennis.com/players/324325/yue-yuan
+    # https://www.wtatennis.com/players/331361/xinxin-yao
+    "yuan yue": "Yue Yuan",
+    "yao xinxin": "Xinxin Yao",
     # WTA 328971 is Joelle Steur; ITF 800464256 and the Valencia draw use her full name.
     # https://www.wtatennis.com/players/328971/joelle-steur
     # https://www.itftennis.com/en/players/joelle-lilly-sophie-steur/800464256/ger/wt/s/overview/

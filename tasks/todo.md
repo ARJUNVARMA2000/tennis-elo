@@ -8621,3 +8621,58 @@ population contract because restored historical/lower rows affect predictor stat
 - [x] Fast-forwarded local master to the workflow's forecast-log commit `380af66`.
   Durable model identities, release digest and recovery evidence are recorded in
   `tasks/deploy/2026-09-17-consolidation-repair.json`.
+
+## 2026-09-20 — Korea Open blocked deployment repair
+
+User requests fixing the deployment. Production is at `3a6b491`; failed refresh
+`35536907277` stops at the pre-upload gate on two Korea Open pending matches
+without probabilities (Yuan Yue–Dayeon Back and Yao Xinxin–Maya Joint).
+Checked current Git history: changes since the prior repair are evaluation logs only.
+
+- [x] Reproduce both missing predictions from source/draw and predictor evidence;
+  independently diagnose the ATP source-age alert.
+- [x] Repair the verified identity/state cause and add broken/clean producer-to-gate
+  regression coverage, preserving release checks and model acceptance policy.
+- [x] Run Python tests, exact CI lint, and relevant generated-output checks.
+- [ ] Publish the validated repair, verify the accepted live release and affected
+  matches, and append the deployment review.
+
+Plan check-in shared before implementation; investigation and evidence capture first.
+
+### Diagnosis and implementation review
+
+Both failures are exact reversed-name identity joins: ESPN's Yuan Yue (2916) and
+Yao Xinxin (13682) correspond to archived Yue Yuan (WTA 324325) and Xinxin Yao
+(WTA 331361). Their official WTA profiles show both orders; both proposals pass
+`falsify()` against all 274 relevant retained raw archive rows. Dayeon Back's name
+was already correct. The captured source has 16 first-round pairings under the stable
+event `811-2026`; the fixture preserves those plus the live early draw's ordered seats.
+
+The existing gate only checked missing probabilities once every draw slot was real.
+The early live Korea draw therefore already exposed Yuan–Back without odds while four
+qualifiers remained. The repair checks each real pending pair independently; named
+qualifiers, byes, and undecided future-round slots remain correctly distinct.
+
+Population11 invalidates saved predictors after the two verified aliases. Reviewed
+ledger records and quarantines are byte-content equivalent except population metadata;
+their pinned hashes advance accordingly. No feature/model selection or freshness
+threshold changes. ATP source age (#72) is separate from the publication blockers and
+coincides with the already recorded Sep 14–22 ATP calendar gap; the strict source
+finding remains visible rather than being suppressed.
+
+Focused validation: 164 tests pass, including broken/clean early and settled producer
+replays. Ruff passes. Full Python validation and real production release verification
+are next; local predictor artifacts predate the current production contract.
+
+### Validated for production
+
+- Full Python run: 1,852 passed; two failures were version-10 fixtures deliberately
+  coupled to the population contract. Updated those fixtures for version11; all 45
+  affected pipeline/replay/Korea tests pass. Expanded prior-population/cache-rejection
+  checks pass (8 tests, now explicitly including version10). Ruff and whitespace pass.
+- Exact live early-bracket replay against old/current gate: old misses Yuan–Back,
+  repaired flags it. All ten published WTA brackets produce only that expected finding;
+  the live ATP board has no retained brackets. Both repaired full/early source replays
+  price every known pair and retain null probabilities only for unresolved entrants.
+- The prior run `35544126784` finished with the same gate failure. Publish the repair
+  through normal tests, full migration rebuild, semantic gate and live-serving checks.

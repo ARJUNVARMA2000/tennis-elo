@@ -444,3 +444,11 @@ Indexed in [`../lessons.md`](../lessons.md).
   optional. New player-oriented facts must also participate in backend history reversal,
   not only the frontend orientation helper. Exercise a real committed forecast history
   during a model-schema migration; synthetic current-only fixtures miss this boundary.
+
+- **A match-level probability requirement cannot depend on unrelated draw slots being resolved.**
+  (2026-09-20, Korea Open, #73/#74) The released early draw paired Yuan Yue with Dayeon
+  Back but had four qualifiers elsewhere. The all-slots-settled guard let their missing
+  probability ship; resolving the qualifiers then blocked every refresh, also exposing
+  Yao Xinxin. Require a probability whenever both pending entrants are real, regardless
+  of other slots. Keep unknown/bye pairs exempt, repair only corroborated name aliases,
+  rebuild the versioned predictor, and replay both early and settled captured draws.

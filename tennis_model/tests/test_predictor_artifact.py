@@ -995,9 +995,9 @@ def test_error_reason_is_typed_and_stable():
 
 
 @pytest.mark.parametrize('tour', ['atp', 'wta'])
-@pytest.mark.parametrize('stale_population', [7, 9])
+@pytest.mark.parametrize('stale_population', [7, 9, 10])
 def test_combined_release_rejects_prior_populations(tour, stale_population):
-    """Reject both divergent version-7 histories and the pre-Caldas version-9 state."""
+    """Reject prior histories, including the pre-Korea version-10 player identities."""
     predictor = _valid_predictor(tour)
     validate_predictor_structure(predictor, tour)
     predictor.match_population_version = stale_population

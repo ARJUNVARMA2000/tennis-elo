@@ -1,0 +1,309 @@
+{
+  "sourceRun": 35536907277,
+  "sourceScoreboard": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard?dates=20260921",
+  "captureDate": "2026-09-20",
+  "draw": {
+    "name": "Korea Open",
+    "espnId": "811-2026",
+    "start": "2026-09-18",
+    "end": "2026-09-28",
+    "drawSize": 32,
+    "bracketSize": 32,
+    "bestOf": 3,
+    "slots": [
+      "Jelena Ostapenko",
+      "Anastasia Zakharova",
+      "Taylah Preston",
+      "Himeno Sakatsume",
+      "Alina Korneeva",
+      "Mananchaya Sawangkaew",
+      "Darya Astakhova",
+      "Magda Linette",
+      "Lanlana Tararudee",
+      "Moyuka Uchijima",
+      "Sohyun Park",
+      "Robin Montgomery",
+      "Yuan Yue",
+      "Dayeon Back",
+      "Yao Xinxin",
+      "Maya Joint",
+      "Anna Bondar",
+      "Renata Zarazua",
+      "Alina Charaeva",
+      "Sofia Kenin",
+      "Alevtina Ibragimova",
+      "Yeonwoo Ku",
+      "Eva Lys",
+      "Elena Gabriela Ruse",
+      "Kamilla Rakhimova",
+      "Polina Kudermetova",
+      "Katie Volynets",
+      "Elvina Kalieva",
+      "Emerson Jones",
+      "Ma YeXin",
+      "Tamara Zidansek",
+      "Kimberly Birrell"
+    ],
+    "seeds": {
+      "Jelena Ostapenko": 1,
+      "Magda Linette": 7,
+      "Lanlana Tararudee": 3,
+      "Maya Joint": 5,
+      "Anna Bondar": 6,
+      "Elena Gabriela Ruse": 4,
+      "Kamilla Rakhimova": 8,
+      "Kimberly Birrell": 2
+    },
+    "source": "wta",
+    "sourceId": "1024",
+    "sourceUrl": "https://wtafiles.wtatennis.com/pdf/draws/2026/1024/MDS.pdf",
+    "sourceStart": "2026-09-21",
+    "sourceEnd": "2026-09-27",
+    "evidencePlayers": 32,
+    "evidenceFieldPlayers": 32
+  },
+  "earlySlots": [
+    "Jelena Ostapenko",
+    "Anastasia Zakharova",
+    "Taylah Preston",
+    "Himeno Sakatsume",
+    "Alina Korneeva",
+    "Mananchaya Sawangkaew",
+    "Qualifier 1",
+    "Magda Linette",
+    "Lanlana Tararudee",
+    "Moyuka Uchijima",
+    "Sohyun Park",
+    "Robin Montgomery",
+    "Yuan Yue",
+    "Dayeon Back",
+    "Qualifier 2",
+    "Maya Joint",
+    "Anna Bondar",
+    "Renata Zarazua",
+    "Alina Charaeva",
+    "Sofia Kenin",
+    "Qualifier 3",
+    "Yeonwoo Ku",
+    "Eva Lys",
+    "Elena Gabriela Ruse",
+    "Kamilla Rakhimova",
+    "Polina Kudermetova",
+    "Katie Volynets",
+    "Elvina Kalieva",
+    "Emerson Jones",
+    "Qualifier 4",
+    "Tamara Zidansek",
+    "Kimberly Birrell"
+  ],
+  "sourceMatches": [
+    {
+      "id": "184046",
+      "players": [
+        {
+          "name": "Elvina Kalieva",
+          "espnId": "5937"
+        },
+        {
+          "name": "Katie Volynets",
+          "espnId": "3746"
+        }
+      ]
+    },
+    {
+      "id": "184041",
+      "players": [
+        {
+          "name": "Moyuka Uchijima",
+          "espnId": "5734"
+        },
+        {
+          "name": "Lanlana Tararudee",
+          "espnId": "6953"
+        }
+      ]
+    },
+    {
+      "id": "184031",
+      "players": [
+        {
+          "name": "Maya Joint",
+          "espnId": "14146"
+        },
+        {
+          "name": "Yao Xinxin",
+          "espnId": "13682"
+        }
+      ]
+    },
+    {
+      "id": "184045",
+      "players": [
+        {
+          "name": "Mananchaya Sawangkaew",
+          "espnId": "5613"
+        },
+        {
+          "name": "Alina Korneeva",
+          "espnId": "9169"
+        }
+      ]
+    },
+    {
+      "id": "184035",
+      "players": [
+        {
+          "name": "Polina Kudermetova",
+          "espnId": "6413"
+        },
+        {
+          "name": "Kamilla Rakhimova",
+          "espnId": "3908"
+        }
+      ]
+    },
+    {
+      "id": "184032",
+      "players": [
+        {
+          "name": "Dayeon Back",
+          "espnId": "11552"
+        },
+        {
+          "name": "Yuan Yue",
+          "espnId": "2916"
+        }
+      ]
+    },
+    {
+      "id": "184043",
+      "players": [
+        {
+          "name": "Magda Linette",
+          "espnId": "1649"
+        },
+        {
+          "name": "Darya Astakhova",
+          "espnId": "6259"
+        }
+      ]
+    },
+    {
+      "id": "184034",
+      "players": [
+        {
+          "name": "Himeno Sakatsume",
+          "espnId": "11317"
+        },
+        {
+          "name": "Taylah Preston",
+          "espnId": "7672"
+        }
+      ]
+    },
+    {
+      "id": "184042",
+      "players": [
+        {
+          "name": "Kimberly Birrell",
+          "espnId": "2588"
+        },
+        {
+          "name": "Tamara Zidansek",
+          "espnId": "3034"
+        }
+      ]
+    },
+    {
+      "id": "184033",
+      "players": [
+        {
+          "name": "Renata Zarazua",
+          "espnId": "2751"
+        },
+        {
+          "name": "Anna Bondar",
+          "espnId": "2734"
+        }
+      ]
+    },
+    {
+      "id": "184036",
+      "players": [
+        {
+          "name": "Anastasia Zakharova",
+          "espnId": "5775"
+        },
+        {
+          "name": "Jelena Ostapenko",
+          "espnId": "2195"
+        }
+      ]
+    },
+    {
+      "id": "184037",
+      "players": [
+        {
+          "name": "Elena-Gabriela Ruse",
+          "espnId": "2748"
+        },
+        {
+          "name": "Eva Lys",
+          "espnId": "5260"
+        }
+      ]
+    },
+    {
+      "id": "184038",
+      "players": [
+        {
+          "name": "Yeonwoo Ku",
+          "espnId": "5737"
+        },
+        {
+          "name": "Alevtina Ibragimova",
+          "espnId": "14955"
+        }
+      ]
+    },
+    {
+      "id": "184039",
+      "players": [
+        {
+          "name": "Sofia Kenin",
+          "espnId": "2746"
+        },
+        {
+          "name": "Alina Charaeva",
+          "espnId": "6570"
+        }
+      ]
+    },
+    {
+      "id": "184040",
+      "players": [
+        {
+          "name": "Robin Montgomery",
+          "espnId": "6723"
+        },
+        {
+          "name": "Sohyun Park",
+          "espnId": "3651"
+        }
+      ]
+    },
+    {
+      "id": "184044",
+      "players": [
+        {
+          "name": "Ma YeXin",
+          "espnId": "13615"
+        },
+        {
+          "name": "Emerson Jones",
+          "espnId": "12287"
+        }
+      ]
+    }
+  ]
+}
