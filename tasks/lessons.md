@@ -441,3 +441,6 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - A match-level probability requirement cannot depend on unrelated draw slots being resolved.
   See [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-09-20)
+
+- A probability invariant needs independently verified unavailability for real newcomers.
+  See [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-09-20)

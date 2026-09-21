@@ -158,11 +158,12 @@ WTA_DUAL_STATE_GATE_THRESHOLD = 32
 # Version 9 joins Gao Xinyu and Joelle Lilly Sophie Steur to their existing WTA histories.
 # Version 10 separates unproven missing-round rematches and prevents null-key event donation.
 # Version 11 joins Korea Open's reversed Yuan/Yao names to their existing WTA histories.
-MATCH_POPULATION_VERSION = 11
+# Version 12 joins Ankara's reversed Tian Fangran to Fangran Tian's existing history.
+MATCH_POPULATION_VERSION = 12
 REVIEWED_RESULTS = {
-    'atp': {'sha256': '04c1bf9cdc5ffd4b9061f0207ac2d32e704824432adf6bdda6695cb5b4fdbe22',
+    'atp': {'sha256': 'd7530c2648d1d71898df0f7fb4af68e9ee85d64a1cc39b0a5b97fb7c79530e5e',
             'records': 0, 'quarantines': 0},
-    'wta': {'sha256': 'd565483669b5c5df5473be57a0ecf8b9eecade62488d7ecb31f2cd466c094572',
+    'wta': {'sha256': 'd5576883272ecb4dc063946b788e2a1ad6a38126cffd37cebdda1fda63b26e22',
             'records': 528, 'quarantines': 1},
 }
 
@@ -734,6 +735,9 @@ EVENT_WITHDRAWN_PLAYERS: dict[str, dict[str, dict[str, str | None]]] = {
 # relatives (the Zverevs, the Bryans). Add an entry when the health gate flags one, or when
 # `data/alias_proposer.py` opens a PR proposing one (that path is reviewed, never automatic).
 PLAYER_ALIASES: dict[str, str] = {
+    # WTA 329397 and ITF 800531870: the official draw uses TIAN, Fangran.
+    # https://www.wtatennis.com/players/329397/fangran-tian
+    "tian fangran": "Fangran Tian",
     # Korea Open ESPN/draw uses family-name-first; the same WTA profiles show both orders.
     # https://www.wtatennis.com/players/324325/yue-yuan
     # https://www.wtatennis.com/players/331361/xinxin-yao

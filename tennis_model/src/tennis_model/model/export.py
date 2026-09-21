@@ -47,7 +47,7 @@ from ..data.rankings import load_rankings
 from ..data.results import summary
 from ..timing import STAGE_STATUS_SCHEMA, timed
 from .features import STYLE_FEATURES, features_for
-from .predict import can_predict_match
+from .predict import can_predict_match, predictor_player_names
 
 ACTIVE_DAYS = 550
 TOP_MATRIX = 120          # players in the precomputed pairwise matrix
@@ -694,7 +694,8 @@ def build_meta(df, players, accuracy, trained_at: str | None = None,
                dual_state_ready: bool = False,
                predictor_artifact_id: str | None = None,
                prediction_audit: dict | None = None,
-               result_integrity: dict | None = None) -> dict:
+               result_integrity: dict | None = None,
+               model_player_names: tuple[str, ...] | None = None) -> dict:
     """`lastUpdated` is when this JSON was written; `modelTrainedAt` is when the predictor
     behind it was trained. They diverge on every quick refresh — which republishes the
     saved pickle — so only the latter can reveal a daily retrain that has been failing.
@@ -707,6 +708,7 @@ def build_meta(df, players, accuracy, trained_at: str | None = None,
     levels = (df["tourney_level"].astype("string").str.replace(r"\s+", "", regex=True)
               if "tourney_level" in df else pd.Series(dtype="string"))
     return {
+        **({"modelPlayerNames": sorted(model_player_names)} if model_player_names is not None else {}),
         **(prediction_audit or {}),
         'resultIntegrity': (coverage_receipt(df, tour) if result_integrity is None else result_integrity),
         "chronology": {"policy": CHRONOLOGY_POLICY, "checkedMatches": len(df),
@@ -1100,6 +1102,7 @@ def export_all(tour, df, elo, srv, meta, predictor, oos=None, *, full: bool = Tr
         getattr(predictor, "artifact_id", None),
         prediction_audit=audit_meta,
         result_integrity=result_integrity,
+        model_player_names=predictor_player_names(predictor),
     ))
     if static:
         _write(tour, "method.json", build_method(tour))

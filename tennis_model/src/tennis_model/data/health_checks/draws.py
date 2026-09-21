@@ -453,12 +453,19 @@ def _check_bracket_upcoming_probability_parity(
                 },
             )
 
-def _check_brackets(out: list, tour: str, brackets: list, tournaments) -> None:
+def _check_brackets(out: list, tour: str, brackets: list, tournaments, *, rated_players=None) -> None:
     """The /bracket payload must be a structurally-sound single-elim draw consistent with
     tournaments.json. A displayed bracket is reconstructed by folding an ordered draw
     forward and joining results (sim/bracket.py); the failure classes are a fold that
     doesn't halve, a winner not fed to the next round, a live event whose final is already
     decided, a prob out of range, or a champion that disagrees with tournaments.json."""
+    # This inventory comes from the model bundle, independently of match annotations.
+    # A reversed-name candidate is ambiguous identity, never proof of no history.
+    valid_inventory = (isinstance(rated_players, list) and bool(rated_players)
+                       and all(isinstance(p, str) and bool(p.strip()) for p in rated_players)
+                       and len(set(rated_players)) == len(rated_players))
+    rated_keys = {_norm_name(p) for p in rated_players} if valid_inventory else set()
+    rated_tokens = {tuple(sorted(p.split())) for p in rated_keys}
     from ...data.draws_official import official_dates_match
     from ...data.results import _name_key
     from ...sim.draws import SIZE_NAME
@@ -753,9 +760,26 @@ def _check_brackets(out: list, tour: str, brackets: list, tournaments) -> None:
                         f"{tour}: bracket {name!r} p/probSource presence mismatch (p={p!r}, src={src!r})",
                         severity="error", entity=match_entity,
                         evidence={"probability": repr(p), "probabilitySource": repr(src)})
+                unrated = m.get("unratedPlayers")
+                expected_unrated = sorted({p for p in (m.get("a"), m.get("b"))
+                                           if _is_real_name(p) and _norm_name(p) not in rated_keys})
+                justified_unrated = bool(
+                    valid_inventory and isinstance(unrated, list) and unrated
+                    and unrated == expected_unrated
+                    and w is None and p is None and src is None
+                    and _is_real_name(m.get("a")) and _is_real_name(m.get("b"))
+                    and all(tuple(sorted(_norm_name(name).split())) not in rated_tokens
+                            for name in unrated))
+                if unrated is not None and not justified_unrated:
+                    _add_finding(
+                        out, "output.bracket.unrated_evidence_invalid",
+                        f"{tour}: bracket {name!r} has unverified no-history evidence",
+                        severity="error", entity=match_entity,
+                        evidence={"players": unrated, "expected": expected_unrated,
+                                  "modelInventoryAvailable": valid_inventory})
                 # An unresolved qualifier elsewhere cannot excuse missing odds for
                 # two already named entrants (Korea Open, September 2026).
-                if (w is None and p is None
+                if (w is None and p is None and not justified_unrated
                         and _is_real_name(m.get("a")) and _is_real_name(m.get("b"))):
                     _add_finding(
                         out, "output.bracket.pending_probability_missing",

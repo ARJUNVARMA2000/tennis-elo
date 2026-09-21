@@ -334,9 +334,11 @@ def test_build_meta_separates_build_time_from_model_time():
     artifact_id = "7e15df9a-85f8-4b24-968e-f39438d31c27"
     meta = export.build_meta(df, players=[], accuracy=None, trained_at=trained,
                              model_population_version=export.MATCH_POPULATION_VERSION,
-                             predictor_artifact_id=artifact_id)
+                             predictor_artifact_id=artifact_id,
+                             model_player_names=("Lower Only", "A", "B"))
     assert meta["modelTrainedAt"] == trained
     assert meta["predictorArtifactId"] == artifact_id
+    assert meta["modelPlayerNames"] == ["A", "B", "Lower Only"]
     assert meta["stageStatusSchema"] == export.STAGE_STATUS_SCHEMA
     assert meta["modelPopulationVersion"] == export.MATCH_POPULATION_VERSION
     assert meta["dualStateThreshold"] is None and meta["dualStateReady"] is False

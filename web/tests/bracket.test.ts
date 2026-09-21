@@ -1,4 +1,7 @@
 import { describe, it, expect } from "vitest";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import BracketTree from "@/components/BracketTree";
 import {
   type BracketEvent,
   currentRoundIndex,
@@ -43,6 +46,19 @@ function mkEvent(size: number, name = "Test", extra: Partial<BracketEvent> = {})
 }
 
 describe("slot labels", () => {
+  it("explains missing model history without inventing odds or hiding entrants", () => {
+    const ev = mkEvent(4, "Ankara");
+    Object.assign(ev.rounds[0].matches[0], {
+      a: "Aysegul Mert", b: "Isabella Shinikova", unratedPlayers: ["Aysegul Mert"],
+    });
+    const html = renderToStaticMarkup(createElement(BracketTree, {
+      ev, section: 0, tour: "wta", roster: new Set(["Isabella Shinikova"]),
+    }));
+    expect(html).toContain("Aysegul Mert");
+    expect(html).toContain("No model history for Aysegul Mert");
+    expect(html).toContain(">No model history</span>");
+  });
+
   it("labels first-party and fallback draw provenance explicitly", () => {
     expect(drawSourceLabel("atp")).toBe("ATP official draw");
     expect(drawSourceLabel("wta")).toBe("WTA official draw");

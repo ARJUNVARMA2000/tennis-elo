@@ -16,6 +16,7 @@ export type BracketMatch = {
   seedB: number | null;
   p: number | null;
   probSource: ProbSource;
+  unratedPlayers?: string[];
   winner: "a" | "b" | null;
   score: string | null;
   upset: boolean | null;

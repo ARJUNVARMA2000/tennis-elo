@@ -299,7 +299,8 @@ function BracketInner() {
       <div className="mono mt-3 text-[10px] leading-relaxed text-[var(--color-faint)]">
         {mode === "actual" ? (
           <>Win % is P(top player). Completed matches show the forecast logged before play;
-          &quot;retro&quot; marks a retrospective estimate. Byes and unreleased qualifiers are unpriced.</>
+          &quot;retro&quot; marks a retrospective estimate. Byes and unreleased qualifiers are unpriced.
+          Players without model history are marked.</>
         ) : (
           <>Reach and title odds are exact conditional probabilities through the ordered draw.
           Confirmed results stay fixed; scenario picks describe what-if paths and never enter model evaluation.</>

@@ -106,6 +106,11 @@ function MatchCard({
               {Math.round(m.p * 100)}<span className="text-[var(--color-faint)]">/</span>
               {100 - Math.round(m.p * 100)}
             </span>
+          ) : m.unratedPlayers?.length ? (
+            <span className="text-[10px] text-[var(--color-faint)]"
+              title={`No model history for ${m.unratedPlayers.join(" and ")}`}>
+              No model history
+            </span>
           ) : (
             <span className="mono text-[10px] text-[var(--color-faint)]">—</span>
           )}

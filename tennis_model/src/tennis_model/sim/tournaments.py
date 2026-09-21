@@ -38,7 +38,7 @@ from ..data.participants import draw_is_meaningful, is_real_participant
 from ..data.results import _name_key
 from ..data.surface import resolve_level, resolve_surface_info
 from ..model.predict import can_predict_match, predictor_player_names
-from .bracket import bracket_is_meaningful, bracket_rounds, oriented_logged, price_bracket
+from .bracket import bracket_is_meaningful, bracket_rounds, is_real, oriented_logged, price_bracket
 from .draws import advance_slots, draw_status, live_draw, standard_seed_draw
 
 _KO_ROUNDS = {"R128", "R64", "R32", "R16", "QF", "SF", "F"}
@@ -1177,6 +1177,18 @@ def _price_event_bracket(predictor, t: dict, match_lines: list) -> None:
         return None
 
     price_bracket(br, price_fn, lambda a, b: oriented_logged(index, a, b))
+    # Preserve factual entrants with no model history without inventing a price.
+    # Metadata independently exports this complete inventory for the release gate.
+    known_players = set(predictor_player_names(predictor))
+    for rnd in br:
+        for match in rnd["matches"]:
+            match.pop("unratedPlayers", None)
+            a, b = match.get("a"), match.get("b")
+            if (match.get("winner") is None and match.get("p") is None
+                    and is_real(a) and is_real(b)):
+                missing = sorted({p for p in (a, b) if p not in known_players})
+                if missing:
+                    match["unratedPlayers"] = missing
 
 
 def build_tournaments(predictor, df: pd.DataFrame, tour: str, *, build_date=None, **kw) -> list:

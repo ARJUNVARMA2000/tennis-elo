@@ -452,3 +452,11 @@ Indexed in [`../lessons.md`](../lessons.md).
   Yao Xinxin. Require a probability whenever both pending entrants are real, regardless
   of other slots. Keep unknown/bye pairs exempt, repair only corroborated name aliases,
   rebuild the versioned predictor, and replay both early and settled captured draws.
+
+- **A probability invariant needs independently verified unavailability for real newcomers.**
+  (2026-09-20, Ankara, #75–#77) Requiring prices for every real pair correctly exposed
+  reversed identities but also blocked two entrants absent from all retained model history.
+  Preserve those factual matches with an explicit no-history label. Export the complete
+  main/lower model inventory independently, and require exact missing-player evidence in
+  the gate; reject absent inventories, rated players, reversed-name candidates, and stale
+  labels on priced or completed matches. A producer's annotation alone is not proof.

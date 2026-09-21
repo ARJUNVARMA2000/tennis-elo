@@ -1695,7 +1695,8 @@ def output_findings(tour: str, oc: dict, now: pd.Timestamp,
     br = data.get("brackets")
     bracket_rounds: dict[tuple[str, frozenset[str]], set[str]] = {}
     if isinstance(br, list):
-        _check_brackets(out, tour, br, ts if isinstance(ts, list) else None)
+        _check_brackets(out, tour, br, ts if isinstance(ts, list) else None,
+                        rated_players=meta.get("modelPlayerNames") if isinstance(meta, dict) else None)
         # One stable event id + exact real-player pair locates a factual bracket round.
         # Build this once for both scheduled and completed-match cross-artifact checks.
         for event in br:

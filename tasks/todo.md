@@ -8676,3 +8676,37 @@ are next; local predictor artifacts predate the current production contract.
   price every known pair and retain null probabilities only for unresolved entrants.
 - The prior run `35544126784` finished with the same gate failure. Publish the repair
   through normal tests, full migration rebuild, semantic gate and live-serving checks.
+
+### Re-plan after fresh Ankara evidence (2026-09-21 UTC)
+
+Run `35544542147` passed CI and rebuilt population11 successfully. Both Korea findings
+are gone. Publication then stopped on three newly captured Ankara pairs: Mert–Shinikova,
+Altinel–Shi, and Falei–Tian. Retained history has no Mert or Altinel rows, while Tian
+Fangran has a verified existing Fangran Tian history (WTA 329397). The strengthened gate
+needs a truthful no-history state; requiring invented probabilities would be incorrect.
+
+- [x] Add the verified Tian alias, advance the population contract, and retain all
+  reviewed result/quarantine contents unchanged.
+- [x] Export the model's complete rated-name inventory independently in metadata.
+  Annotate genuinely unrated pending pairs; validate that evidence against the inventory
+  in the gate. Missing inventory, rated players, and reversed-name candidates must still
+  fail closed. Never infer an alias or fabricate a probability for a new entrant.
+- [x] Show an explicit no-model-history label for those pairs, and replay Ankara's
+  broken/clean states alongside Korea, including forged and stale unavailability evidence.
+- [ ] Run affected tests and CI lint, publish the completed repair, and verify the actual
+  release and browser. Review the remaining ATP finding from fresh output.
+
+Updated plan shared before implementation. The original release gate remains active.
+
+### Ankara repair validation
+
+- Full Python suite: 1,868 passed. Web suite: 375 passed. Ruff, TypeScript, and
+  whitespace checks pass; web lint has only the existing React hook warnings.
+- The captured Ankara producer/gate replay prices canonical Fangran Tian, retains two
+  factual newcomer pairs with validated no-history evidence, and rejects the original
+  reversed Tian name. Additional checks reject missing/malformed inventories, false
+  rated-player claims, reversed-name candidates, and labels retained after pricing or
+  completion. Repricing after history arrives removes the label.
+- Population12 preserves all reviewed records and quarantines; only the population
+  stamp and its corresponding file hashes change. Git history remains at the first
+  repair `d8fa3a6` before publishing this follow-up. Production verification is pending.
