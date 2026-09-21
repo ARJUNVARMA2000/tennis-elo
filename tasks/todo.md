@@ -8634,7 +8634,7 @@ Checked current Git history: changes since the prior repair are evaluation logs 
 - [x] Repair the verified identity/state cause and add broken/clean producer-to-gate
   regression coverage, preserving release checks and model acceptance policy.
 - [x] Run Python tests, exact CI lint, and relevant generated-output checks.
-- [ ] Publish the validated repair, verify the accepted live release and affected
+- [x] Publish the validated repair, verify the accepted live release and affected
   matches, and append the deployment review.
 
 Plan check-in shared before implementation; investigation and evidence capture first.
@@ -8693,7 +8693,7 @@ needs a truthful no-history state; requiring invented probabilities would be inc
   fail closed. Never infer an alias or fabricate a probability for a new entrant.
 - [x] Show an explicit no-model-history label for those pairs, and replay Ankara's
   broken/clean states alongside Korea, including forged and stale unavailability evidence.
-- [ ] Run affected tests and CI lint, publish the completed repair, and verify the actual
+- [x] Run affected tests and CI lint, publish the completed repair, and verify the actual
   release and browser. Review the remaining ATP finding from fresh output.
 
 Updated plan shared before implementation. The original release gate remains active.
@@ -8710,3 +8710,24 @@ Updated plan shared before implementation. The original release gate remains act
 - Population12 preserves all reviewed records and quarantines; only the population
   stamp and its corresponding file hashes change. Git history remains at the first
   repair `d8fa3a6` before publishing this follow-up. Production verification is pending.
+
+### Live deployment review — 2026-09-21 UTC
+
+- Repair `a995d72` deployed through run `35547383070`. CI passes: 1,867 Python tests
+  with one skipped, 375 web tests, lint/type/build, and real-browser smoke checks.
+  The full population12 rebuild, pre-upload integrity gate, accepted release publication,
+  Firebase deployment, raw snapshot, and all 22 live-serving checks succeeded.
+- Live accepted release `4b528647-46f1-4fc1-8091-36f9ca5f79f2` contains 463 exact
+  artifacts; its health report was generated at `2026-09-21T01:07:59Z`. Independently
+  verified its manifest digest, both population12 models, and four public artifact digests.
+- Korea now prices Yue Yuan–Dayeon Back at 79.95% for Yuan and Xinxin Yao–Maya Joint
+  at 18.18% for Yao. Ankara prices Falei–Fangran Tian at 51.5% for Falei. Mert and
+  Altinel remain factual entrants with validated no-model-history labels. Browser checks
+  confirm all three forecasts and both labels on the live site.
+- Bracket incidents #73–#77 closed automatically. The sole remaining finding is existing
+  ATP `source.results.stale` (#72): newest completed match is seven days old versus a
+  five-day limit. Consequently `Report data health` makes the full workflow red **after
+  successful deployment**; health `ok` remains false. No freshness policy was weakened.
+- Synced the workflow's evaluation-log commit `d424a25` and reconciled Git history.
+  Durable release/model identities, probabilities, browser checks, recovery, and the
+  remaining alert are in `tasks/deploy/2026-09-20-korea-repair.json`.
