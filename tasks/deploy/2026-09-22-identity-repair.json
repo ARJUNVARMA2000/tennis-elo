@@ -68,5 +68,100 @@
     "verifiedLastSuccess": "2026-09-21T06:27:15Z",
     "verifiedRun": 35568559970,
     "conclusion": "Exact API query now returns the recent success; no reproducible script defect. The true success was still older than the 26-hour limit at the failed watchdog run."
+  },
+  "deployment": {
+    "commit": "82a2e615e048a61eae9ff15f88481474221cc8d8",
+    "run": 35752757503,
+    "conclusion": "success",
+    "url": "https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/35752757503",
+    "forecastLedgerCommit": "7446340",
+    "liveChecksPassed": 22
+  },
+  "liveVerification": {
+    "generatedAt": "2026-09-22T17:07:23Z",
+    "healthOk": true,
+    "lineage": {
+      "schema": "artifact-lineage-v1",
+      "status": "accepted",
+      "releaseId": "1b998279-5e38-4d58-b17d-e18b874b5b3f",
+      "manifestSha256": "e15728a77ca91a9da2bdab8d5012142538e29bf7d65f15d9ec39922bf22ba2c6",
+      "tours": [
+        "atp",
+        "wta"
+      ]
+    },
+    "artifactCount": 464,
+    "artifacts": {
+      "atp/meta.json": "93cd951b99caa05491551a0afd461ded8c0a07bd488c4ae208f06dacc1637ada",
+      "atp/brackets.json": "1e2a79ff8e9273c921301ab094da7227c37cd8962d98df1eee1dc6bb7b750f4c",
+      "wta/meta.json": "a0f3ea94175b5172726de5c7de8f10a1799ef4e052273e0d40ef46c76b2164e8",
+      "wta/brackets.json": "bacec2c4c6fd057a34a8247d1e3f97bebb185251bbd8264e4fe86b0b7ae4f8f8"
+    },
+    "forecasts": [
+      {
+        "tour": "atp",
+        "event": "1001-2026",
+        "a": "Zhizhen Zhang",
+        "b": "Coleman Wong",
+        "p": 0.3484,
+        "probSource": "model",
+        "winner": null
+      },
+      {
+        "tour": "atp",
+        "event": "441-2026",
+        "a": "Juan Manuel Cerundolo",
+        "b": "Yi Zhou",
+        "p": 0.7094,
+        "probSource": "model",
+        "winner": null
+      },
+      {
+        "tour": "wta",
+        "event": "1077-2026",
+        "a": "Han Shi",
+        "b": "Ayla Aksu",
+        "p": 0.4532,
+        "probSource": "model",
+        "winner": null
+      }
+    ]
+  },
+  "browserVerification": {
+    "Hangzhou": "Zhizhen Zhang\u2013Coleman Wong displays 35 / 65",
+    "Chengdu": "Juan Manuel Cerundolo\u2013Yi Zhou displays 71 / 29 in section 2",
+    "Ankara": "Han Shi\u2013Ayla Aksu displays 45 / 55; genuine newcomer Mert retains a no-model-history label"
+  },
+  "localValidation": {
+    "pythonPassed": 1876,
+    "webPassed": 375,
+    "ruff": "passed",
+    "typescript": "passed",
+    "webLint": "passed with 9 existing warnings",
+    "whitespace": "passed"
+  },
+  "resolvedDataHealthIssues": [
+    72,
+    78,
+    79,
+    80,
+    81,
+    82,
+    83,
+    85,
+    86
+  ],
+  "watchdogRecovery": {
+    "run": 35758906317,
+    "conclusion": "success",
+    "closedIssue": 84,
+    "remainingOpenIssues": []
+  },
+  "ciValidation": {
+    "pythonPassed": 1875,
+    "pythonSkipped": 1,
+    "webPassed": 375,
+    "liveChecksPassed": 22,
+    "browserSmoke": "passed"
   }
 }

@@ -8771,3 +8771,27 @@ last-success date. Plan check-in shared before implementation.
 - [x] Full Python suite: 1,876 passed. All planned local checks are complete. The
   existing integrity gate remains unchanged and rejects the captured broken states.
   The production model rebuild, publication gate, and live verification are next.
+
+### Production review — 2026-09-22 UTC
+
+- [x] Repair `82a2e61` deployed successfully through refresh `35752757503`.
+  CI passed 1,875 Python tests with one skipped, 375 web tests, lint, type checks,
+  static build, and browser smoke checks. The full population13 rebuild, integrity
+  gate, accepted publication, Firebase deploy, and all 22 live-serving checks passed.
+- [x] Live health at `2026-09-22T17:07:23Z` is **ok=true**. Accepted release
+  `1b998279-5e38-4d58-b17d-e18b874b5b3f` contains 464 artifacts. Independently
+  verified its manifest digest, both population13 model metadata files, and both
+  public bracket digests against that manifest.
+- [x] Verified the actual published forecasts and browser views: Zhang–Wong prices
+  Zhang at 34.84%; Cerundolo–Zhou prices Cerundolo at 70.94%; Shi–Aksu prices Shi
+  at 45.32%. All three have model probabilities and no false no-history labels.
+  Genuine newcomer Mert retains the validated no-model-history label in Ankara.
+- [x] Data-health incidents #72 and #78–#83/#85–#86 closed automatically, including
+  the prior ATP source-age alert. The release did not weaken a health threshold.
+- Synced the workflow's forecast-ledger commit `7446340` and reconciled Git history.
+  Full release identities, independent digest checks, forecasts and browser verification
+  are in `tasks/deploy/2026-09-22-identity-repair.json`. Watchdog recovery is being
+  checked through its existing workflow, run `35758906317`.
+
+- [x] Watchdog run `35758906317` succeeded and closed #84. GitHub now has no open
+  issues. Deployment repair, live verification, and alert recovery are complete.
