@@ -8731,3 +8731,43 @@ Updated plan shared before implementation. The original release gate remains act
 - Synced the workflow's evaluation-log commit `d424a25` and reconciled Git history.
   Durable release/model identities, probabilities, browser checks, recovery, and the
   remaining alert are in `tasks/deploy/2026-09-20-korea-repair.json`.
+
+## Latest deployment repair — 2026-09-22
+
+Request: fix the latest deployment. HEAD is `82535b6`; refresh `35744062722`
+stopped before publication on pending Zhang Zhizhen–Coleman Wong,
+Juan Manuel Cerundolo–Zhou Yi, and Shi Han–Ayla Aksu probabilities plus
+unverified no-history evidence. The watchdog also reports an inconsistent
+last-success date. Plan check-in shared before implementation.
+
+- [ ] Capture current source/failed-run evidence and verify the three candidate player
+  aliases using official profiles and the retained raw-history falsifier.
+- [ ] Repair verified identities, migrate the saved-predictor population contract, and
+  add broken/clean producer-to-gate regression coverage for the actual failing pairs.
+- [ ] Investigate the watchdog timestamp; repair and test a confirmed defect if present.
+- [ ] Run full Python tests and CI lint, relevant web checks, and release validation.
+- [ ] Publish through the normal workflow, verify accepted live artifacts and affected
+  forecasts, and append the final review with any remaining findings.
+
+### Diagnosis and validation review
+
+- [x] The three exact reviewed aliases are Zhang Zhizhen → Zhizhen Zhang (ATP Z371),
+  Zhou Yi → Yi Zhou (ATP Z0CQ), and Shi Han → Han Shi (WTA 329824). Official sources
+  and all 788 relevant retained raw rows support the mappings; all three pass `falsify()`.
+  The current source capture retains four matches, including Shi's completed first round
+  and the next pending pairing. Evidence is in `tasks/deploy/2026-09-22-identity-repair.json`.
+- [x] Population13 invalidates both saved predictors. Reviewed ATP/WTA records and
+  quarantines are identical apart from the population stamp and corresponding hashes.
+  Each captured pending pair reproduces both blocking findings before the correction
+  and receives a model probability afterward; unresolved neighboring slots stay unpriced.
+  The prior population12 artifact is explicitly rejected on both tours.
+- [x] The watchdog's exact API query now returns Sep 21's successful run `35568559970`,
+  not the August date reported in the failure. No script defect is reproducible, and
+  even the correct success was over 26 hours old when it ran. No policy change is needed.
+- Focused Python validation: 118 passed. Web: 375 passed. Ruff, TypeScript and whitespace
+  checks pass; web lint has its nine existing React hook warnings. Full Python validation
+  is running. HEAD remains `82535b6` before publishing this repair.
+
+- [x] Full Python suite: 1,876 passed. All planned local checks are complete. The
+  existing integrity gate remains unchanged and rejects the captured broken states.
+  The production model rebuild, publication gate, and live verification are next.

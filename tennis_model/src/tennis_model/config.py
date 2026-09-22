@@ -159,11 +159,12 @@ WTA_DUAL_STATE_GATE_THRESHOLD = 32
 # Version 10 separates unproven missing-round rematches and prevents null-key event donation.
 # Version 11 joins Korea Open's reversed Yuan/Yao names to their existing WTA histories.
 # Version 12 joins Ankara's reversed Tian Fangran to Fangran Tian's existing history.
-MATCH_POPULATION_VERSION = 12
+# Version 13 joins the Hangzhou/Chengdu Zhang/Zhou and Ankara Shi names to rated history.
+MATCH_POPULATION_VERSION = 13
 REVIEWED_RESULTS = {
-    'atp': {'sha256': 'd7530c2648d1d71898df0f7fb4af68e9ee85d64a1cc39b0a5b97fb7c79530e5e',
+    'atp': {'sha256': 'de819484c2c47405c4010b570afaa8a4796591148ba75d45e0d4bd766a4b00fa',
             'records': 0, 'quarantines': 0},
-    'wta': {'sha256': 'd5576883272ecb4dc063946b788e2a1ad6a38126cffd37cebdda1fda63b26e22',
+    'wta': {'sha256': '3c6ef8df0bdf4950d91bdaa664cdf4bfc8e95fe8260e089a77694495fc2aeada',
             'records': 528, 'quarantines': 1},
 }
 
@@ -735,6 +736,14 @@ EVENT_WITHDRAWN_PLAYERS: dict[str, dict[str, dict[str, str | None]]] = {
 # relatives (the Zverevs, the Bryans). Add an entry when the health gate flags one, or when
 # `data/alias_proposer.py` opens a PR proposing one (that path is reviewed, never automatic).
 PLAYER_ALIASES: dict[str, str] = {
+    # 2026-09-22 deployment: official profiles and the retained raw-history falsifier
+    # corroborate the source's family-name-first spellings for these rated players.
+    # https://www.atptour.com/en/players/zhizhen-zhang/z371/overview
+    # https://www.atptour.com/en/players/yi-zhou/z0cq/overview
+    # https://www.wtatennis.com/players/329824/han-shi
+    "zhang zhizhen": "Zhizhen Zhang",
+    "zhou yi": "Yi Zhou",
+    "shi han": "Han Shi",
     # WTA 329397 and ITF 800531870: the official draw uses TIAN, Fangran.
     # https://www.wtatennis.com/players/329397/fangran-tian
     "tian fangran": "Fangran Tian",

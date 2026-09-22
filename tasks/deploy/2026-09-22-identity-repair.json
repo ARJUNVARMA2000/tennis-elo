@@ -1,0 +1,72 @@
+{
+  "atp": {
+    "rawRows": 769,
+    "aliases": [
+      {
+        "variant": "Zhang Zhizhen",
+        "canonical": "Zhizhen Zhang",
+        "falsifier": null,
+        "counts": {
+          "Zhang Zhizhen": 0,
+          "Zhizhen Zhang": 586
+        },
+        "ids": {
+          "Zhang Zhizhen": [],
+          "Zhizhen Zhang": [
+            "Z371"
+          ]
+        }
+      },
+      {
+        "variant": "Zhou Yi",
+        "canonical": "Yi Zhou",
+        "falsifier": null,
+        "counts": {
+          "Zhou Yi": 0,
+          "Yi Zhou": 183
+        },
+        "ids": {
+          "Zhou Yi": [],
+          "Yi Zhou": [
+            "Z0CQ"
+          ]
+        }
+      }
+    ]
+  },
+  "wta": {
+    "rawRows": 19,
+    "aliases": [
+      {
+        "variant": "Shi Han",
+        "canonical": "Han Shi",
+        "falsifier": null,
+        "counts": {
+          "Shi Han": 0,
+          "Han Shi": 19
+        },
+        "ids": {
+          "Shi Han": [],
+          "Han Shi": []
+        }
+      }
+    ]
+  },
+  "sourceRun": 35744062722,
+  "previousHead": "82535b68d9ec7fc04052afd5352981fa93b9afae",
+  "populationVersion": 13,
+  "officialSources": [
+    "https://www.atptour.com/en/players/-/Z371/bio",
+    "https://www.atptour.com/-/media/files/media-guide/2023/2023-atp-media-guide-full.pdf",
+    "https://www.atptour.com/en/players/yi-zhou/z0cq/overview",
+    "https://www.atptour.com/en/atp-challenger-tour/challenger-tv/challenger-tv-search-results/2026-2795-ms010-nonthaburi-yi-zhou-vs-christian-langmo/2026/2795/all",
+    "https://www.wtatennis.com/players/329824/x"
+  ],
+  "watchdogReview": {
+    "failedRun": 35738357694,
+    "reportedLastSuccess": "2026-08-25T23:40:31Z",
+    "verifiedLastSuccess": "2026-09-21T06:27:15Z",
+    "verifiedRun": 35568559970,
+    "conclusion": "Exact API query now returns the recent success; no reproducible script defect. The true success was still older than the 26-hour limit at the failed watchdog run."
+  }
+}
