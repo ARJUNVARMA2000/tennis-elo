@@ -1,0 +1,58 @@
+{
+  "sourceRun": 35862622820,
+  "previousHead": "c4654a407267923f72e6f03da4edab23a3ab6228",
+  "populationVersion": 14,
+  "rawRows": 340,
+  "aliases": [
+    {
+      "variant": "Cui Jie",
+      "canonical": "Jie Cui",
+      "falsifier": null,
+      "counts": {
+        "Cui Jie": 0,
+        "Jie Cui": 133
+      },
+      "ids": {
+        "Cui Jie": [],
+        "Jie Cui": [
+          "C0AJ"
+        ]
+      }
+    },
+    {
+      "variant": "Sun Fajing",
+      "canonical": "Fajing Sun",
+      "falsifier": null,
+      "counts": {
+        "Sun Fajing": 0,
+        "Fajing Sun": 207
+      },
+      "ids": {
+        "Sun Fajing": [],
+        "Fajing Sun": [
+          "SX90"
+        ]
+      }
+    }
+  ],
+  "officialSources": [
+    "https://www.atptour.com/en/players/jie-cui/c0aj/overview",
+    "https://www.atptour.com/en/atp-challenger-tour/challenger-tv/challenger-tv-search-results/2025-6965-ms030-guangzhou-jie-cui-vs-yi-zhou/2025/6965/all",
+    "https://www.atptour.com/en/players/fajing-sun/sx90/overview",
+    "https://www.atptour.com/en/news/guillen-meza-santos-challenger-2025-final"
+  ],
+  "rawEvidenceSha256": "f3b812ef8c92096c8ac170612ca8c84c31d1edc199b67232abbd77132eb2540f",
+  "latestFailedRun": 35898522932,
+  "localValidation": {
+    "pythonPassed": 1882,
+    "focusedPythonPassed": 110,
+    "webPassed": 375,
+    "ruff": "passed",
+    "typescript": "passed",
+    "webLint": "passed with 9 existing warnings",
+    "whitespace": "passed",
+    "failingFirstRegressions": 4
+  },
+  "reviewedLedgers": "Both tours unchanged except populationVersion 13 -> 14 and corresponding hashes.",
+  "liveBefore": "2026-09-23T06:53:27Z"
+}

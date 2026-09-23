@@ -8795,3 +8795,38 @@ last-success date. Plan check-in shared before implementation.
 
 - [x] Watchdog run `35758906317` succeeded and closed #84. GitHub now has no open
   issues. Deployment repair, live verification, and alert recovery are complete.
+
+## Latest deployment repair — 2026-09-23
+
+Request: fix the latest deployment. Production HEAD is `c4654a4`; refresh
+`35862622820` stopped before publication on Hangzhou's pending Cui Jie–Adolfo
+Daniel Vallejo and Sun Fajing–Roman Safiullin pairings. Each has missing model
+probability and unverified no-history findings (#87–#90). Plan check-in shared
+before implementation; the existing integrity gate remains active.
+
+- [ ] Capture current source evidence and verify both candidate aliases against official
+  profiles and retained raw-history falsification.
+- [ ] Add only verified aliases, migrate the saved-predictor population contract, and
+  replay the captured broken/clean pairs through the producer and integrity gate.
+- [ ] Run full Python validation, CI lint, and relevant web checks.
+- [ ] Publish through the normal workflow, verify live accepted artifacts and both
+  affected forecasts, and append the deployment review and alert recovery.
+
+### Diagnosis and validation review
+
+- [x] Official ATP profiles and Challenger coverage corroborate Cui Jie → Jie Cui
+  (C0AJ) and Sun Fajing → Fajing Sun (SX90). All 340 relevant retained raw rows
+  support the mappings; both pass `falsify()` with no opposing-player or conflicting-ID
+  evidence. Captured ESPN R32 matches are `183350` and `183346`, event `1001-2026`.
+- [x] The four new regressions failed before the alias correction. The repaired replay
+  prices both exact pending pairs, removes false no-history labels, and leaves unresolved
+  neighboring slots unpriced. Broken replays still trigger both blocking findings.
+  Population14 rejects the prior saved state on both tours. Reviewed records and
+  quarantines are identical apart from population stamps and corresponding hashes.
+- Focused Python validation: 110 passed. Web: 375 passed. Ruff, TypeScript, and
+  whitespace checks pass; web lint retains nine existing warnings. Full Python
+  validation is running. Git history remains at `c4654a4` before publication.
+
+- [x] Full Python suite: 1,882 passed. All planned local checks are complete.
+  Newer refresh `35898522932` failed on the same four findings. The verified repair
+  is ready for the production rebuild, publication gate, and live serving checks.

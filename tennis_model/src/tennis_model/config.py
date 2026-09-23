@@ -160,11 +160,12 @@ WTA_DUAL_STATE_GATE_THRESHOLD = 32
 # Version 11 joins Korea Open's reversed Yuan/Yao names to their existing WTA histories.
 # Version 12 joins Ankara's reversed Tian Fangran to Fangran Tian's existing history.
 # Version 13 joins the Hangzhou/Chengdu Zhang/Zhou and Ankara Shi names to rated history.
-MATCH_POPULATION_VERSION = 13
+# Version 14 joins Hangzhou's reversed Cui/Sun names to their existing ATP histories.
+MATCH_POPULATION_VERSION = 14
 REVIEWED_RESULTS = {
-    'atp': {'sha256': 'de819484c2c47405c4010b570afaa8a4796591148ba75d45e0d4bd766a4b00fa',
+    'atp': {'sha256': '7446cde4995fb44295720599cced80d4e722457ac28c08389221206fc4c91050',
             'records': 0, 'quarantines': 0},
-    'wta': {'sha256': '3c6ef8df0bdf4950d91bdaa664cdf4bfc8e95fe8260e089a77694495fc2aeada',
+    'wta': {'sha256': 'd82b4fe6807d8140bc298a670b8f405c262d38b4a21d42e978530526253bf0b9',
             'records': 528, 'quarantines': 1},
 }
 
@@ -744,6 +745,12 @@ PLAYER_ALIASES: dict[str, str] = {
     "zhang zhizhen": "Zhizhen Zhang",
     "zhou yi": "Yi Zhou",
     "shi han": "Han Shi",
+    # Hangzhou's ESPN R32 entrants are ATP C0AJ and SX90. Official profiles and
+    # Challenger coverage corroborate both name orders; retained history passes falsify().
+    # https://www.atptour.com/en/players/jie-cui/c0aj/overview
+    # https://www.atptour.com/en/players/fajing-sun/sx90/overview
+    "cui jie": "Jie Cui",
+    "sun fajing": "Fajing Sun",
     # WTA 329397 and ITF 800531870: the official draw uses TIAN, Fangran.
     # https://www.wtatennis.com/players/329397/fangran-tian
     "tian fangran": "Fangran Tian",
