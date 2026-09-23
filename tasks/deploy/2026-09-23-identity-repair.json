@@ -54,5 +54,67 @@
     "failingFirstRegressions": 4
   },
   "reviewedLedgers": "Both tours unchanged except populationVersion 13 -> 14 and corresponding hashes.",
-  "liveBefore": "2026-09-23T06:53:27Z"
+  "liveBefore": "2026-09-23T06:53:27Z",
+  "deployment": {
+    "commit": "b650a77c8f77f989ce272e18286f5d36d0654e4f",
+    "run": 35915327594,
+    "conclusion": "success",
+    "url": "https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/35915327594",
+    "forecastLedgerCommit": "b351a74",
+    "liveChecksPassed": 22
+  },
+  "liveVerification": {
+    "generatedAt": "2026-09-23T21:15:25Z",
+    "healthOk": true,
+    "lineage": {
+      "schema": "artifact-lineage-v1",
+      "status": "accepted",
+      "releaseId": "5af00e46-d713-418a-a785-024a1f9c3d2f",
+      "manifestSha256": "393e0035a811a59b0885a102152fd7d9d42035eeb8a064e44b07b604b28d45f0",
+      "tours": [
+        "atp",
+        "wta"
+      ]
+    },
+    "artifactCount": 466,
+    "artifacts": {
+      "atp/meta.json": "7e039f4899f229863dd9cdf56deb13cce35f6369f8471f49f0ff9ad337a19efc",
+      "atp/brackets.json": "7a8cb298bcfbebcc9ce7364001ec94c5890e0376713a7a78537dfa8c170c209f",
+      "wta/meta.json": "6f9934396ba220817b5de2ffd718308769220fc018f60b6b850085fc749ffd31",
+      "wta/brackets.json": "0d57b489b217c4192039c06bc5e393f44e4b4a2cd5dcf9d7900e9d17d62675b3"
+    },
+    "forecasts": [
+      {
+        "a": "Jie Cui",
+        "b": "Adolfo Daniel Vallejo",
+        "p": 0.1824,
+        "probSource": "model",
+        "winner": null
+      },
+      {
+        "a": "Fajing Sun",
+        "b": "Roman Safiullin",
+        "p": 0.214,
+        "probSource": "model",
+        "winner": null
+      }
+    ]
+  },
+  "browserVerification": {
+    "Hangzhou": "Jie Cui\u2013Adolfo Daniel Vallejo displays 18 / 82; Fajing Sun\u2013Roman Safiullin displays 21 / 79; both appear without no-model-history labels."
+  },
+  "ciValidation": {
+    "pythonPassed": 1881,
+    "pythonSkipped": 1,
+    "webPassed": 375,
+    "browserSmoke": "passed",
+    "liveChecksPassed": 22
+  },
+  "resolvedDataHealthIssues": [
+    87,
+    88,
+    89,
+    90
+  ],
+  "remainingOpenIssues": []
 }

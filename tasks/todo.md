@@ -8830,3 +8830,22 @@ before implementation; the existing integrity gate remains active.
 - [x] Full Python suite: 1,882 passed. All planned local checks are complete.
   Newer refresh `35898522932` failed on the same four findings. The verified repair
   is ready for the production rebuild, publication gate, and live serving checks.
+
+### Production review — 2026-09-23 UTC
+
+- [x] All four plan items are complete. Repair `b650a77` deployed successfully through
+  refresh `35915327594`. CI passed 1,881 Python tests with one skipped, 375 web tests,
+  lint/type checks, static build, and browser smoke checks. The full population14
+  rebuild, unchanged integrity gate, accepted publication, Firebase deployment, and
+  all 22 live-serving checks succeeded.
+- [x] Live health at `2026-09-23T21:15:25Z` is **ok=true**. Accepted release
+  `5af00e46-d713-418a-a785-024a1f9c3d2f` contains 466 artifacts. Independently verified
+  the manifest digest, both population14 model metadata files, and both public bracket
+  digests. The live verifier checked the exact artifact graph and 18 known absent paths.
+- [x] The published Hangzhou forecasts price Jie Cui–Adolfo Daniel Vallejo at 18.24%
+  for Cui and Fajing Sun–Roman Safiullin at 21.40% for Sun. Browser checks show
+  18 / 82 and 21 / 79, with no false no-model-history labels.
+- [x] All four data-health alerts (#87–#90) closed through the normal reporter. GitHub
+  has no open issues. Synced the workflow's forecast-ledger commit `b351a74` and
+  reconciled Git history. Release identities, hashes, forecasts, and validation evidence
+  are recorded in `tasks/deploy/2026-09-23-identity-repair.json`.
