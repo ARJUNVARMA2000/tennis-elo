@@ -1,13 +1,13 @@
 # Model vs Kalshi — match-by-match scorecard
 
-_Generated 2026-09-22T17:06:50Z. Positive d = model better than Kalshi (paired per-match; SE = std/√n, tune.py convention). Kalshi price = de-vigged bid/ask mid at 08:00 UTC on match day (morning-of line — always pre-match; Kalshi's own start timestamps mutate on settled markets and cannot be trusted), from 1-min candlesticks; markets with spread > 0.10 excluded. Do not compare these numbers to the closing-line scorecard (market.json): different price time, different match mix. Live model forecasts are the latest saved snapshot at or before that quote; legacy first-sighting-only rows remain in coverage but are excluded from scoring._
+_Generated 2026-09-23T06:52:54Z. Positive d = model better than Kalshi (paired per-match; SE = std/√n, tune.py convention). Kalshi price = de-vigged bid/ask mid at 08:00 UTC on match day (morning-of line — always pre-match; Kalshi's own start timestamps mutate on settled markets and cannot be trusted), from 1-min candlesticks; markets with spread > 0.10 excluded. Do not compare these numbers to the closing-line scorecard (market.json): different price time, different match mix. Live model forecasts are the latest saved snapshot at or before that quote; legacy first-sighting-only rows remain in coverage but are excluded from scoring._
 
 ## Coverage
 
 | tour | events | matched | pending | unmatched | cancelled | ambiguous | walkovers | retirements | no price | range |
 |---|---|---|---|---|---|---|---|---|---|---|
-| atp | 1841 | 1734 | 40 | 10 | 57 | 0 | 11 | 19 | 51 | 2026-05-03..2026-09-23 |
-| wta | 1943 | 1175 | 37 | 679 | 52 | 0 | 8 | 15 | 31 | 2026-05-02..2026-09-23 |
+| atp | 1841 | 1749 | 25 | 10 | 57 | 0 | 11 | 19 | 48 | 2026-05-03..2026-09-23 |
+| wta | 1948 | 1177 | 24 | 695 | 52 | 0 | 8 | 15 | 25 | 2026-05-02..2026-09-24 |
 
 ## Headline (scored set)
 
@@ -129,6 +129,6 @@ When they disagree by >= 0.1: model closer to the outcome in **90/214** matches.
 - Scored quotes stamped after their 08:00 anchor: 0 (must be 0 — requoter + health gate enforce; >0 means the pending-race freeze escaped again).
 - Our winner vs Kalshi settlement disagreements: 0 (join bugs surface here; these rows are auto-healed, so a persistent nonzero means healing failed).
 - Sensitivity incl. retirements: n=1341, d_ll -0.0071 ±0.0052 — vacuous by construction: matched retired rows never carry p_model (the backtest OOS frame is completed-only), so this can equal the headline; it detects nothing until a live-forecast retirement lands.
-- Unmatched qualifying markets: 536 (structural — no qualifying results source for that tour/era).
+- Unmatched qualifying markets: 552 (structural — no qualifying results source for that tour/era).
 - Unmatched by event (clusters = structural gaps, singletons = alias candidates): {'French Open': 65, 'US Open': 57, 'WTA Memphis': 9, 'WTA Washington': 8, 'WTA Hamburg': 6, 'WTA Iasi': 5, 'ATP Cincinnati': 1, 'ATP Los Cabos': 1}
 - Unmatched Kalshi names, main draw (40): Akasha Urhobo, Aleksandr Shevchenko, Alexander Bublik, Alexandra Eala, Alexandra Shubladze, Aliaksandra Sasnovich, Alice Rame, Alice Tubello, Alina Charaeva, Alina Korneeva, Aliona Falei, Amandine Monnot, Ana Sofia Sanchez, Anastasia Gasanova, Anastasiia Sobolieva, Andrea Lazaro Garcia, Angela Fita Boluda, Anhelina Kalinina, Ankita Raina, Anna Frey, Anna Siskova, Anna-Lena Friedsam, Annika Penickova, Anouk Koevermans, Aoi Ito, Aran Teixido Garcia, Arantxa Rus, Ashlyn Krueger, Astra Sharma, Ayana Akli, Bella Payne, Bianca Andreescu, Cadence Brace, Camila Soares, Carol Young Suh Lee, Carol Zhao, Carole Monnet, Caroline Dolehide, Carolyn Ansari, Carson Branstine
