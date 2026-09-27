@@ -1106,29 +1106,38 @@ def project_upcoming(predictor, name: str, wd: dict, tour: str, df: pd.DataFrame
     best_of = int(wd.get("bestOf") or bo or 3)
     level = resolve_level(tour, name, event_id=espn_id)
     slots = advance_slots(wslots, walkovers)
+    published_size = wd.get("publishedDrawSize")
+    if type(published_size) is not int or not 8 <= published_size <= len(wslots):
+        published_size = None
+    unresolved_geometry = (published_size is not None
+                           and sum(s is not None for s in wslots) != published_size
+                           and any(s is not None and not is_real(s) for s in wslots))
     # Same rule as the live path: an early capture that is mostly "Qualifier N" ships as a
     # schedule card (name/dates/surface/tier/drawSize) with no odds, until qualifying resolves.
-    if projection_is_meaningful(field_pool):
+    if not unresolved_geometry and projection_is_meaningful(field_pool):
         proj, favorite = _simulate_projection(predictor, slots, surface, best_of, name,
                                               n_sims, seed)
     else:
         proj, favorite = [], None
     rseeds = {resolve(k): v for k, v in (wd.get("seeds") or {}).items()}
     bracket = bracket_rounds(wslots, [], rseeds, withdrawn=walkovers)  # released draw, no results
-    if not bracket_is_meaningful(bracket, len(field_pool)):
+    if unresolved_geometry or not bracket_is_meaningful(bracket, len(field_pool)):
         bracket = None                               # mostly-placeholder early draw -> not worth showing
+    # Unfilled templates are schedule evidence, not a released ordered draw.
+    # Only a source-declared size can establish the field while geometry is unknown.
+    card_size = len(field_pool) if bracket is not None else published_size
     return {
         "name": _display_name(name, known or set(), tour=tour, event_id=espn_id),
         "surface": surface, "level": level, "bestOf": best_of,
         "start": str(wd.get("start") or ""), "end": str(wd.get("end") or wd.get("start") or ""),
-        "status": "upcoming", "drawStatus": "real",
+        "status": "upcoming", "drawStatus": "real" if bracket is not None else "partial",
         "espnId": espn_id, "surfaceSource": surface_src,
         # Pre-start there are no eliminations and no live field to disagree with yet; the key
         # ships anyway so every card carries the same schema and the gate never has to guess
         # whether an absent list means "clean" or "this producer forgot".
         "drawnNotInField": [],
-        "drawSize": len(field_pool), "mainDrawMatchCount": 0,
-        "aliveCount": len(field_pool),
+        "drawSize": card_size, "mainDrawMatchCount": 0,
+        "aliveCount": card_size,
         "champion": None, "runnerUp": None,
         "modelFavorite": favorite, "favoritePicked": False,
         "projection": proj,

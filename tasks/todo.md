@@ -8849,3 +8849,40 @@ before implementation; the existing integrity gate remains active.
   has no open issues. Synced the workflow's forecast-ledger commit `b351a74` and
   reconciled Git history. Release identities, hashes, forecasts, and validation evidence
   are recorded in `tasks/deploy/2026-09-23-identity-repair.json`.
+
+## Deployment repair — 2026-09-27
+
+Request: fix the deploy. Production HEAD is `6282fd0`. Refresh `36324603903`
+failed its integrity gate on China Open WTA draw size 126 and four Jingshan
+pending pairs with unresolved player identities. Full-retrain incident #92 also
+needs diagnosis. Plan check-in shared before implementation.
+
+- [x] Capture current source evidence and the failed full-retrain traceback; reproduce
+  China Open geometry and verify the four proposed identities against provider IDs
+  and retained match history.
+- [x] Repair the producers and saved-state contract as required; add broken/clean
+  incident regressions while preserving the deployment gates.
+- [x] Run focused and full validation, inspect the final diff, and reconcile Git history.
+- [ ] Deploy through the normal workflow; verify accepted live artifacts, affected
+  events, full/quick recovery, and alert resolution. Append a review with evidence.
+
+### Diagnosis and local review
+
+- Captured Jingshan matches `184181`, `184178`, `184170`, and `184173` and the
+  China Open Wikipedia source. Four reviewed WTA aliases pass `falsify()` against
+  103 relevant retained rows. Official WTA IDs are 333741, 321329, 328426, and 324323.
+- China Open's source declares 96 entrants, but its 128-position unfinished template
+  proves only two byes and names only two players. The producer now preserves the
+  declared size on a partial schedule card and withholds unresolved geometry.
+  Fully named invalid fields still fail the original integrity gate.
+- Full run `36222962228` failed because the independent prediction audit requested
+  UTC midnight before a selected WTA state cutoff. Its common context now respects
+  both saved cutoffs; direct requests to rewind the predictor remain rejected.
+- Population15 rejects the prior predictor on both tours. Reviewed ledger contents
+  are identical apart from the population stamp and corresponding hashes.
+- Targeted incident/audit/gate validation: 39 passed. Web: 375 passed. Ruff,
+  TypeScript, and whitespace checks pass; ESLint retains nine existing warnings.
+  Full Python validation is running. Git history remains at `6282fd0` before release.
+
+- [x] Full Python suite: 1,900 passed. All local checks are complete; the normal
+  production rebuild, publication gate, and live checks are next.

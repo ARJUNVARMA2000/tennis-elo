@@ -444,3 +444,8 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - A probability invariant needs independently verified unavailability for real newcomers.
   See [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-09-20)
+
+- An unfinished bye-draw template does not establish the entrant count. See
+  [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md). (2026-09-27)
+- An independent audit must query at or after every saved state branch's cutoff. See
+  [`lessons/ci-and-deploy.md`](lessons/ci-and-deploy.md). (2026-09-27)

@@ -1,0 +1,95 @@
+{
+  "sourceRun": 36324603903,
+  "previousHead": "6282fd0",
+  "rawRows": 103,
+  "aliases": [
+    {
+      "variant": "Wang Yuhan",
+      "canonical": "Yuhan Wang",
+      "wtaId": "333741",
+      "falsifier": null,
+      "counts": {
+        "Wang Yuhan": 0,
+        "Yuhan Wang": 3
+      },
+      "ids": {
+        "Wang Yuhan": [],
+        "Yuhan Wang": []
+      }
+    },
+    {
+      "variant": "Zheng Wushuang",
+      "canonical": "Wushuang Zheng",
+      "wtaId": "321329",
+      "falsifier": null,
+      "counts": {
+        "Zheng Wushuang": 0,
+        "Wushuang Zheng": 26
+      },
+      "ids": {
+        "Zheng Wushuang": [],
+        "Wushuang Zheng": []
+      }
+    },
+    {
+      "variant": "Wei Sijia",
+      "canonical": "Sijia Wei",
+      "wtaId": "328426",
+      "falsifier": null,
+      "counts": {
+        "Wei Sijia": 0,
+        "Sijia Wei": 59
+      },
+      "ids": {
+        "Wei Sijia": [],
+        "Sijia Wei": []
+      }
+    },
+    {
+      "variant": "Yang Yidi",
+      "canonical": "Yidi Yang",
+      "wtaId": "324323",
+      "falsifier": null,
+      "counts": {
+        "Yang Yidi": 0,
+        "Yidi Yang": 15
+      },
+      "ids": {
+        "Yang Yidi": [],
+        "Yidi Yang": []
+      }
+    }
+  ],
+  "rawEvidenceSha256": "dbbbb59ed237a0f7a341201112d6789d954d3b72af7444946635bd8131ba4cf4",
+  "populationVersion": 15,
+  "officialSources": [
+    "https://www.wtatennis.com/players/333741/yuhan-wang",
+    "https://www.wtatennis.com/players/321329/wushuang-zheng",
+    "https://www.wtatennis.com/players/328426/sijia-wei",
+    "https://www.wtatennis.com/players/324323/yidi-yang"
+  ],
+  "chinaSource": {
+    "url": "https://en.wikipedia.org/wiki/2026_China_Open_%E2%80%93_Women%27s_singles",
+    "sha256": "1b489d696750d0e4355c530f72b569049a6cb4562320e0eaefb95fe0972e4f8d",
+    "publishedSize": 96,
+    "parsedSlots": 128,
+    "provenByes": 2,
+    "realPlayers": 2
+  },
+  "fullFailure": {
+    "run": 36222962228,
+    "reason": "Probability audit queried UTC midnight before the selected saved surface state cutoff",
+    "logSha256": "e1f4353790e0ca73be73aa61c13e64f6e9e1d7287c5928ad4818643e81337e4b"
+  },
+  "reviewedLedgers": "Both tours identical apart from populationVersion 14 -> 15 and corresponding hashes.",
+  "localValidation": {
+    "webPassed": 375,
+    "ruff": "passed",
+    "typescript": "passed",
+    "webLint": "passed with 9 existing warnings",
+    "whitespace": "passed",
+    "failingFirstCases": 13,
+    "pythonPassed": 1900,
+    "targetedPassed": 39
+  }
+}

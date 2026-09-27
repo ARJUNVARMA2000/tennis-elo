@@ -161,11 +161,12 @@ WTA_DUAL_STATE_GATE_THRESHOLD = 32
 # Version 12 joins Ankara's reversed Tian Fangran to Fangran Tian's existing history.
 # Version 13 joins the Hangzhou/Chengdu Zhang/Zhou and Ankara Shi names to rated history.
 # Version 14 joins Hangzhou's reversed Cui/Sun names to their existing ATP histories.
-MATCH_POPULATION_VERSION = 14
+# Version 15 joins Jingshan's reversed Wang/Zheng/Wei/Yang names to WTA histories.
+MATCH_POPULATION_VERSION = 15
 REVIEWED_RESULTS = {
-    'atp': {'sha256': '7446cde4995fb44295720599cced80d4e722457ac28c08389221206fc4c91050',
+    'atp': {'sha256': '6f000df740eb76dd8dfd3a3afe7a05dc8afd5cde0961ab4bf9873f335fca58c4',
             'records': 0, 'quarantines': 0},
-    'wta': {'sha256': 'd82b4fe6807d8140bc298a670b8f405c262d38b4a21d42e978530526253bf0b9',
+    'wta': {'sha256': '3840a1a3e9b364ee18ddfc05f73bf9d6b8de7a27276d05d4357ede5a8f02d564',
             'records': 528, 'quarantines': 1},
 }
 
@@ -751,6 +752,15 @@ PLAYER_ALIASES: dict[str, str] = {
     # https://www.atptour.com/en/players/fajing-sun/sx90/overview
     "cui jie": "Jie Cui",
     "sun fajing": "Fajing Sun",
+    # Jingshan 2026 ESPN entrants; WTA profiles and retained match history agree.
+    # https://www.wtatennis.com/players/333741/yuhan-wang
+    # https://www.wtatennis.com/players/321329/wushuang-zheng
+    # https://www.wtatennis.com/players/328426/sijia-wei
+    # https://www.wtatennis.com/players/324323/yidi-yang
+    "wang yuhan": "Yuhan Wang",
+    "zheng wushuang": "Wushuang Zheng",
+    "wei sijia": "Sijia Wei",
+    "yang yidi": "Yidi Yang",
     # WTA 329397 and ITF 800531870: the official draw uses TIAN, Fangran.
     # https://www.wtatennis.com/players/329397/fangran-tian
     "tian fangran": "Fangran Tian",

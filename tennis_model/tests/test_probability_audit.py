@@ -114,3 +114,42 @@ def test_private_writer_rejects_symlinked_tour_before_external_write(tmp_path):
     with pytest.raises(ArtifactLineageError):
         write_prediction_audit(predictor(), frame, [], root / 'atp' / AUDIT_FILENAME)
     assert not list(outside.iterdir())
+
+
+@pytest.mark.parametrize('main_date,lower_date,expected', [
+    ('2026-09-25', '2026-09-25', '2026-09-26T00:00:00'),
+    ('2026-09-26', '2026-09-27', '2026-09-27T00:00:00'),
+    ('2026-09-27', '2026-09-26', '2026-09-27T00:00:00'),
+    ('2026-09-26T08:00:00', '2026-09-26', '2026-09-26T08:00:00'),
+])
+def test_writer_queries_at_or_after_both_saved_state_cutoffs(
+        monkeypatch, tmp_path, main_date, lower_date, expected):
+    import json
+
+    import numpy as np
+    import pandas as pd
+    from tennis_model.model import probability_audit as pa
+
+    class Clock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return cls(2026, 9, 26, 6, tzinfo=UTC)
+
+    monkeypatch.setattr(pa, 'datetime', Clock)
+    pred = predictor('wta', True)
+    pred.lower_elo, pred.lower_ctx = deepcopy(pred.elo), deepcopy(pred.ctx)
+    for elo, ctx, date in ((pred.elo, pred.ctx, main_date),
+                           (pred.lower_elo, pred.lower_ctx, lower_date)):
+        elo.last_date = np.datetime64(date)
+        ctx.surface_exposure.through = pd.Timestamp(date)
+    frame = pd.DataFrame()
+    frame.attrs['normalizedInputFingerprint'] = 'nm2:' + 'a' * 64
+    path = tmp_path / 'wta' / pa.AUDIT_FILENAME
+    path.parent.mkdir()
+    pa.write_prediction_audit(pred, frame, [], path)
+    receipt = json.loads(path.read_text())
+    assert {c['as_of'] for c in receipt['contexts']} == {expected}
+    assert receipt['pairCount'] == 18
+    # Do not relax the selected state's own anti-rewind contract.
+    with pytest.raises(ValueError, match='precedes'):
+        pred.win_prob('Alfa One', 'Charlie Three', as_of='2026-09-24')

@@ -309,8 +309,21 @@ def fetch_draw(event: str, year: int, tour: str, meta: dict) -> dict | None:
     draw = _parse_bracket(wt)
     if not draw:
         return None                               # article exists but no draw posted yet
+    # An early bye-draw template can leave both entrant and bye positions blank.
+    # Its non-null slot count is then only geometry under construction. Retain the
+    # independently published field size without inventing which omissions are byes.
+    import mwparserfromhell
+    published_size = None
+    for template in mwparserfromhell.parse(wt).filter_templates():
+        if (str(template.name).strip().casefold() == "infobox tennis tournament event"
+                and template.has("draw")):
+            match = re.match(r"\s*(\d+)\b", template.get("draw").value.strip_code())
+            if match and 8 <= int(match[1]) <= len(draw["slots"]):
+                published_size = int(match[1])
+            break
     return {
         **draw,
+        "publishedDrawSize": published_size,
         "drawSize": sum(slot is not None for slot in draw["slots"]),
         "start": meta.get("start"), "end": meta.get("end"), "espnId": meta.get("espnId"),
         "title": title,

@@ -447,3 +447,9 @@ Indexed in [`../lessons.md`](../lessons.md).
   repairs ingest and projection together; advance the population version, migrate only the
   reviewed-ledger version metadata/hash and rebuild predictors. Preserve broken/clean gate
   replays from the actual draw, including wrong-field and wrong-date rejection twins.
+
+- **An unfinished bye-draw template does not establish the entrant count.** (2026-09-27)
+  China Open's 96-player infobox accompanied 128 leaf positions with only two proven byes;
+  unresolved positions inflated the slot-derived field to 126. Keep the declared size
+  separately, preserve unresolved positions, and publish a partial schedule card until
+  geometry supports a bracket. A fully named invalid field must still fail the gate.

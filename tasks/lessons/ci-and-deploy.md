@@ -322,3 +322,9 @@ and transition digests remain correct. Validate the original stored transition f
 normalize only a returned copy after checking event, season, round and canonical pair.
 Keep excluded timing excluded, and preserve settled results across identity migration.
 Exercise committed benchmark history before release, not only synthetic current-name rows.
+
+- **An independent audit must query at or after every saved state branch's cutoff.**
+  (2026-09-27; full-run incident 36222962228) UTC midnight can precede a source-calendar
+  cutoff in the main or enriched WTA state. Select one audit date at least as late as
+  both cutoffs, include it in the evidence digest, and preserve the predictor's strict
+  anti-rewind check. Test distinct branch cutoffs and same-day timestamps.

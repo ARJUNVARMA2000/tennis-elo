@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 
 from .probability import PROBABILITY_POLICY
 
@@ -113,7 +114,14 @@ def write_prediction_audit(predictor, frame, players, path):
         roster = hot + cold
     else:
         roster = sorted(names, key=lambda n: (-counts.get(n, 0), n))[:4]
-    as_of = datetime.now(UTC).date().isoformat()
+    # This audit exercises the saved generation, not a historical forecast. Source
+    # calendars can put its main/enriched cutoff ahead of UTC midnight. A single
+    # context must be valid for both state branches; never rewind either bundle.
+    cutoffs = [pd.Timestamp(datetime.now(UTC).date())]
+    for elo in (predictor.elo, getattr(predictor, 'lower_elo', None)):
+        if elo is not None and elo.last_date is not None:
+            cutoffs.append(pd.Timestamp(elo.last_date))
+    as_of = max(cutoffs).isoformat()
     contexts = [{'surface':s, 'best_of':b, 'as_of':as_of}
                 for s in ('Hard', 'Clay', 'Grass') for b in (3, 5)]
     generation = _digest({'normalizedInput':normalized, 'asOf':as_of,
