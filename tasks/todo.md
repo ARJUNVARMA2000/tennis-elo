@@ -8863,7 +8863,7 @@ needs diagnosis. Plan check-in shared before implementation.
 - [x] Repair the producers and saved-state contract as required; add broken/clean
   incident regressions while preserving the deployment gates.
 - [x] Run focused and full validation, inspect the final diff, and reconcile Git history.
-- [ ] Deploy through the normal workflow; verify accepted live artifacts, affected
+- [x] Deploy through the normal workflow; verify accepted live artifacts, affected
   events, full/quick recovery, and alert resolution. Append a review with evidence.
 
 ### Diagnosis and local review
@@ -8886,3 +8886,25 @@ needs diagnosis. Plan check-in shared before implementation.
 
 - [x] Full Python suite: 1,900 passed. All local checks are complete; the normal
   production rebuild, publication gate, and live checks are next.
+
+### Production review — 2026-09-27 UTC
+
+- [x] Repair `c589bcd` deployed successfully through refresh `36326438526`.
+  The full rebuild, unchanged integrity gate, accepted publication, data health,
+  Firebase deployment, and all 22 live-serving checks passed. Full-path alert #92
+  and all nine data-health alerts (#94–#102) closed automatically.
+- [x] Independently verified live health **ok=true** at `2026-09-27T15:30:34Z`,
+  accepted release `939e04ce-5846-4a0f-9afb-f3fe82d0c435` with 457 artifacts,
+  the manifest digest, both population15 model identities, both bracket digests,
+  and the WTA tournament digest against the manifest.
+- [x] The four Jingshan pairs now have model probabilities. Browser verification
+  shows Rajecki–Wang 76/24, Yamaguchi–Zheng 59/41, Wei–Huang 42/58, and
+  Yang–Ferro 19/81, without false no-history labels on those matches.
+  China Open displays **96 draw** and **draw incomplete**, with title odds withheld.
+- [x] CI passed 1,899 Python tests with one skipped, all 375 web tests, lint/type
+  checks, static build, and browser smoke checks. Quick-refresh compatibility is
+  covered by the shared-producer, cache-normalization, and saved-state tests;
+  the verified production run used the required full rebuild.
+- [x] Synced forecast-ledger commit `185b52e` and reconciled Git history. No issues
+  remain open. Full source, validation, release, hash, and forecast evidence is in
+  `tasks/deploy/2026-09-27-repair.json`.
