@@ -871,6 +871,9 @@ PLAYER_ALIASES: dict[str, str] = {
     # The same cross-source Cincinnati evidence uses ESPN's full name for the stable/archive
     # nickname. Keep the 133-match historical spelling, not the five-match live fragment.
     "catherine mcnally": "Caty Mcnally",
+    # 2026-09-28 alias-proposer: WTA and ITF sources show the same player identity details for this person, and the current WTA player list uses Yexin Ma.
+    # https://www.wtatennis.com/players/322417/name
+    "ye xin ma": "Yexin Ma",
 }
 
 
