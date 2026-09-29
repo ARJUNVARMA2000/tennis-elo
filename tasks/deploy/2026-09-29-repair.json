@@ -31,6 +31,19 @@
       "officialUrl": "https://www.wtatennis.com/players/333677/yihan-qu",
       "retainedRows": 3,
       "falsifier": null
+    },
+    {
+      "variant": "Bai Zhuoxuan",
+      "canonical": "Zhuoxuan Bai",
+      "wtaId": "327196",
+      "stableIds": [
+        "222296",
+        "327196"
+      ],
+      "retainedRows": 63,
+      "falsifier": null,
+      "officialUrl": "https://www.wtatennis.com/players/327196/zhuoxuan-bai",
+      "variantEvidenceUrl": "https://www.wtatennis.com/news/3828833/___bai"
     }
   ],
   "atpSource": "https://stats.tennismylife.org/data/2026_challenger.csv",
@@ -116,5 +129,163 @@
     "liveChecksPassed": 22,
     "allOriginalIssuesClosed": true
   },
-  "finalLocalPythonPassed": 1913
+  "finalLocalPythonPassed": 1913,
+  "latestFieldAudit": {
+    "source": "https://en.wikipedia.org/wiki/2026_China_Open_%E2%80%93_Women%27s_singles",
+    "sourceSha256": "456111c710932cdc5a0bdaa3575921aa392ea2bda448d498e60c15713068aca3",
+    "qualifiersAndLuckyLosers": [
+      "Bai Zhuoxuan",
+      "Harriet Dart",
+      "Shi Han",
+      "Marina Bassols Ribera",
+      "Katarzyna Kawa",
+      "Aliaksandra Sasnovich",
+      "Andrea L\u00e1zaro Garc\u00eda",
+      "Maddison Inglis",
+      "Storm Hunter",
+      "Mai Hontama",
+      "Elsa Jacquemot",
+      "Robin Montgomery",
+      "Elvina Kalieva",
+      "Linda Fruhvirtov\u00e1"
+    ],
+    "additionalRequiredMainDrawAlias": "Bai Zhuoxuan -> Zhuoxuan Bai",
+    "allSourceCandidates": [
+      {
+        "variant": "Bai Zhuoxuan",
+        "canonical": "Zhuoxuan Bai",
+        "wtaId": null,
+        "stableIds": [
+          "222296",
+          "327196"
+        ],
+        "retainedRows": 63,
+        "falsifier": null
+      },
+      {
+        "variant": "Dang Yiming",
+        "canonical": "Yiming Dang",
+        "wtaId": "329671",
+        "stableIds": [
+          "329671"
+        ],
+        "retainedRows": 6,
+        "falsifier": null
+      },
+      {
+        "variant": "Guo Meiqi",
+        "canonical": "Meiqi Guo",
+        "wtaId": "326546",
+        "stableIds": [
+          "326546"
+        ],
+        "retainedRows": 7,
+        "falsifier": null
+      },
+      {
+        "variant": "Li Zongyu",
+        "canonical": "Zongyu Li",
+        "wtaId": "331259",
+        "stableIds": [
+          "331259"
+        ],
+        "retainedRows": 11,
+        "falsifier": null
+      },
+      {
+        "variant": "Lu Jia-Jing",
+        "canonical": "Jia Jing Lu",
+        "wtaId": null,
+        "stableIds": [
+          "203288",
+          "313225"
+        ],
+        "retainedRows": 59,
+        "falsifier": null
+      },
+      {
+        "variant": "Ren Yufei",
+        "canonical": "Yufei Ren",
+        "wtaId": "332913",
+        "stableIds": [
+          "332913"
+        ],
+        "retainedRows": 14,
+        "falsifier": null
+      },
+      {
+        "variant": "Tian Jialin",
+        "canonical": "Jialin Tian",
+        "wtaId": null,
+        "stableIds": [],
+        "retainedRows": 0,
+        "falsifier": "canonical spelling 'Jialin Tian' does not appear in the match record"
+      },
+      {
+        "variant": "Wang Jiaqi",
+        "canonical": "Jiaqi Wang",
+        "wtaId": "327056",
+        "stableIds": [
+          "327056"
+        ],
+        "retainedRows": 6,
+        "falsifier": null
+      },
+      {
+        "variant": "Wang Jiayi",
+        "canonical": "Jiayi Wang",
+        "wtaId": null,
+        "stableIds": [],
+        "retainedRows": 0,
+        "falsifier": "canonical spelling 'Jiayi Wang' does not appear in the match record"
+      },
+      {
+        "variant": "Ye Shiyu",
+        "canonical": "Shiyu Ye",
+        "wtaId": null,
+        "stableIds": [],
+        "retainedRows": 0,
+        "falsifier": "canonical spelling 'Shiyu Ye' does not appear in the match record"
+      },
+      {
+        "variant": "Zhang Junhan",
+        "canonical": "Junhan Zhang",
+        "wtaId": null,
+        "stableIds": [],
+        "retainedRows": 0,
+        "falsifier": "canonical spelling 'Junhan Zhang' does not appear in the match record"
+      },
+      {
+        "variant": "Zhang Ruien",
+        "canonical": "Ruien Zhang",
+        "wtaId": "333415",
+        "stableIds": [
+          "333415"
+        ],
+        "retainedRows": 5,
+        "falsifier": null
+      },
+      {
+        "variant": "Zhang Ying",
+        "canonical": "Ying Zhang",
+        "wtaId": null,
+        "stableIds": [
+          "213947",
+          "321742"
+        ],
+        "retainedRows": 9,
+        "falsifier": null
+      }
+    ],
+    "note": "Other candidates are eliminated qualifying/lower-field spellings or lack local retained match evidence; not adopted speculatively."
+  },
+  "population17Run": {
+    "run": 36552687009,
+    "result": "rebuild passed; predeploy gate blocked newly announced Bai pair, preserving last accepted release"
+  },
+  "population18LocalTests": {
+    "pythonPassed": 1917,
+    "focusedPassed": 118,
+    "ruff": "passed"
+  }
 }

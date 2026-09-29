@@ -468,3 +468,10 @@ Indexed in [`../lessons.md`](../lessons.md).
   Review every named entrant against the independent model inventory; token-equivalent
   rated names demand review even beside a placeholder. Never auto-merge on tokens,
   and keep genuinely unseen entrants and unresolved opponents unpriced.
+
+- **A live-artifact audit misses qualifiers announced during the rebuild.** (2026-09-29)
+  The previous accepted draw had unresolved slots; Bai Zhuoxuan appeared only in the
+  next source capture. Include the current qualifying winners and lucky losers in
+  the identity review before a long rebuild. Do not widen aliases to unverified
+  candidates merely to empty an audit list; each adoption still needs retained
+  match evidence and official identity corroboration.

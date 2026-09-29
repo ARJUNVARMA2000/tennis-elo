@@ -8964,3 +8964,25 @@ so the pending-real-pair gate does not yet fire. Re-plan check-in shared before 
 
 - [x] Final full Python suite: 1,913 passed. Ruff and whitespace checks pass.
   Git history reconciled with `e7798f0`. The final follow-up is ready to deploy.
+
+### Source changed during final rebuild — 2026-09-29
+
+Run `36552687009` rebuilt successfully but the publication gate caught a newly
+announced China Open pair: Bai Zhuoxuan–Linda Fruhvirtova (#111–#113). The previous
+healthy release stayed live. Re-plan check-in shared before further edits.
+
+- [ ] Capture the latest main and qualifying fields; audit all current identity
+  candidates, verify them with provider profiles and retained-history falsification.
+- [ ] Add reviewed aliases and captured regressions, version the population, validate.
+- [ ] Deploy and verify the final full/quick release and live alert recovery.
+
+- [x] Captured the updated source and verified all 12 qualifiers plus two lucky
+  losers against the model inventory after the Bai repair. Bai is the sole additional
+  required main-draw alias; WTA 327196 and 63 retained rows corroborate it.
+  Other audited eliminated/lower-field candidates were not adopted speculatively.
+- [x] Added the captured Bai–Fruhvirtova replay; population18 rejects the cached
+  population17 predictors. Focused validation: 118 passed; Ruff/whitespace pass.
+  Full validation is running.
+
+- [x] Population18 full Python validation: 1,917 passed. Remote history reconciled
+  at `cd2d658`; the qualified-entrant repair is ready for guarded deployment.

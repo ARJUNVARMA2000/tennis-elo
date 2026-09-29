@@ -455,3 +455,6 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - Audit every named draw entrant before opponents are released, not only blocked
   pairs. See [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-09-29)
+
+- Include the current qualifying winners and lucky losers when auditing identities
+  before a rebuild. See [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-09-29)

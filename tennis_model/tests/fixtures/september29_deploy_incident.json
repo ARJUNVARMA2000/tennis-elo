@@ -33,6 +33,19 @@
       "officialUrl": "https://www.wtatennis.com/players/333677/yihan-qu",
       "retainedRows": 3,
       "falsifier": null
+    },
+    {
+      "variant": "Bai Zhuoxuan",
+      "canonical": "Zhuoxuan Bai",
+      "wtaId": "327196",
+      "stableIds": [
+        "222296",
+        "327196"
+      ],
+      "retainedRows": 63,
+      "falsifier": null,
+      "officialUrl": "https://www.wtatennis.com/players/327196/zhuoxuan-bai",
+      "variantEvidenceUrl": "https://www.wtatennis.com/news/3828833/___bai"
     }
   ],
   "matches": [
@@ -137,6 +150,32 @@
       },
       "sourceUrl": "https://deuce-forecast.web.app/data/wta/brackets.json",
       "sourceSha256": "969d6c602f455b1cc4dfc0855d3d8cfee9645fb4a1142114ab5262c5b9d9ed5d"
+    },
+    {
+      "tour": "wta",
+      "espnId": "959-2026",
+      "name": "China Open",
+      "start": "2026-09-27",
+      "end": "2026-10-12",
+      "matchId": "184233",
+      "date": "2026-09-30T06:00Z",
+      "round": {
+        "id": "1",
+        "displayName": "Round 1"
+      },
+      "completed": false,
+      "players": [
+        {
+          "name": "Linda Fruhvirtova",
+          "espnId": "6929"
+        },
+        {
+          "name": "Bai Zhuoxuan",
+          "espnId": "5712"
+        }
+      ],
+      "sourceUrl": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard?dates=20260929&limit=300",
+      "sourceSha256": "78087f357ff233d83b48a83e51b87169a3ad46bd4461649c653c5ccda2f57eee"
     }
   ]
 }

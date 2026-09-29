@@ -164,11 +164,12 @@ WTA_DUAL_STATE_GATE_THRESHOLD = 32
 # Version 15 joins Jingshan's reversed Wang/Zheng/Wei/Yang names to WTA histories.
 # Version 16 joins China Open Sun/Shao/Zhu identities and separates reviewed San Diego editions.
 # Version 17 also resolves the unpaired China Open Qu identity before qualifier settlement.
-MATCH_POPULATION_VERSION = 17
+# Version 18 joins newly qualified China Open entrant Bai Zhuoxuan to rated history.
+MATCH_POPULATION_VERSION = 18
 REVIEWED_RESULTS = {
-    'atp': {'sha256': '604ae65d69956eb09c4349bf29ad428292a558ce1d6df31bfb81849331905ba3',
+    'atp': {'sha256': 'c3a7d2c77ab6833cc9b6ff28bb00b9a7e90bd8d51dade75f4a1ac95d071cebe7',
             'records': 0, 'quarantines': 0},
-    'wta': {'sha256': 'a451dcad03d4b02b423a301be56f2973845665ad319c0a818b5f506f7855cb70',
+    'wta': {'sha256': 'b01520a7b30586538e9dfa73e884b170299928e5a5a6622a613e2ef624342973',
             'records': 528, 'quarantines': 1},
 }
 
@@ -772,6 +773,7 @@ PLAYER_ALIASES: dict[str, str] = {
     "shao yushan": "Yushan Shao",
     "zhu lin": "Lin Zhu",
     "qu yihan": "Yihan Qu",  # WTA 333677; reviewed 2026-09-29
+    "bai zhuoxuan": "Zhuoxuan Bai",  # WTA 327196; reviewed 2026-09-29
     "zheng wushuang": "Wushuang Zheng",
     "wei sijia": "Sijia Wei",
     "yang yidi": "Yidi Yang",
