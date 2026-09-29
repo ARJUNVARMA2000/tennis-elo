@@ -273,3 +273,10 @@ Indexed in [`../lessons.md`](../lessons.md).
   can otherwise associate unrelated results with the last donor event. Replay both
   failures from ingestion through the existing scheduled-pair gate, and version the
   restored model population before reusing saved predictors.
+
+- **A source tournament ID plus year can still name two editions.** (2026-09-29)
+  TML's `2026-2971` identifies two complete San Diego draws, stamped January 26
+  and September 21. Grouping them together creates false round/date inversions
+  for returning players. Disambiguate only the reviewed edition windows, preserve
+  all source rows and dates, and replay both complete draws plus genuine inversions
+  within each. Do not disable chronology checks or split every event by match day.

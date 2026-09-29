@@ -162,11 +162,12 @@ WTA_DUAL_STATE_GATE_THRESHOLD = 32
 # Version 13 joins the Hangzhou/Chengdu Zhang/Zhou and Ankara Shi names to rated history.
 # Version 14 joins Hangzhou's reversed Cui/Sun names to their existing ATP histories.
 # Version 15 joins Jingshan's reversed Wang/Zheng/Wei/Yang names to WTA histories.
-MATCH_POPULATION_VERSION = 15
+# Version 16 joins China Open Sun/Shao/Zhu identities and separates reviewed San Diego editions.
+MATCH_POPULATION_VERSION = 16
 REVIEWED_RESULTS = {
-    'atp': {'sha256': '6f000df740eb76dd8dfd3a3afe7a05dc8afd5cde0961ab4bf9873f335fca58c4',
+    'atp': {'sha256': 'ecac5ce2215d5bb95d6592ed96766bfd753c9412f06cd432e5a73f670122b85b',
             'records': 0, 'quarantines': 0},
-    'wta': {'sha256': '3840a1a3e9b364ee18ddfc05f73bf9d6b8de7a27276d05d4357ede5a8f02d564',
+    'wta': {'sha256': '346d2b20d4d5a759ea2a16ef871a6ef35de1d0d6cd8aff140d39c8470cb0cdc9',
             'records': 528, 'quarantines': 1},
 }
 
@@ -176,6 +177,12 @@ ATP_EVENT_START_REPAIRS = {
     '2024-341': ('2024-11-03', '2024-11-09', '2024-11-04'),
     '2024-4787': ('2024-11-03', '2024-11-09', '2024-11-04'),
     '2024-6242': ('2024-08-18', '2024-08-24', '2024-08-19'),
+}
+# TML reuses this ID for two complete 31-match draws with uniform archive stamps.
+# These reviewed windows only disambiguate editions; no match date is moved.
+# Evidence: tasks/deploy/2026-09-29-repair.json and captured San Diego fixture.
+ATP_EVENT_EDITION_WINDOWS = {
+    '2026-2971': (('2026-01-26', '2026-02-01'), ('2026-09-21', '2026-09-27')),
 }
 ATP_MATCH_EVENT_REPAIRS = (
     ('2026-416', '2026-04-13', 'ben shelton', 'emilio nava',
@@ -758,6 +765,11 @@ PLAYER_ALIASES: dict[str, str] = {
     # https://www.wtatennis.com/players/328426/sijia-wei
     # https://www.wtatennis.com/players/324323/yidi-yang
     "wang yuhan": "Yuhan Wang",
+    # Reviewed China Open identities: WTA 335958, 335219, 317306;
+    # retained main/lower history passes the alias falsifier (2026-09-29).
+    "sun xinran": "Xinran Sun",
+    "shao yushan": "Yushan Shao",
+    "zhu lin": "Lin Zhu",
     "zheng wushuang": "Wushuang Zheng",
     "wei sijia": "Sijia Wei",
     "yang yidi": "Yidi Yang",

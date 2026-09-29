@@ -8908,3 +8908,32 @@ needs diagnosis. Plan check-in shared before implementation.
 - [x] Synced forecast-ledger commit `185b52e` and reconciled Git history. No issues
   remain open. Full source, validation, release, hash, and forecast evidence is in
   `tasks/deploy/2026-09-27-repair.json`.
+
+## Deployment repair — 2026-09-29
+
+Request: continue fixing the deployment. HEAD `68771d1`; refresh `36510586478`
+fails ATP chronology for edition `2026-2971`. Existing WTA gate alerts #103–#108
+identify three unresolved China Open identities. Plan check-in shared before edits.
+
+- [ ] Capture and reconcile source dates/rounds for the ATP inversion and official
+  identity evidence for the three WTA pairs; run the alias falsifier.
+- [ ] Repair the shared producers/contracts and add broken/clean regression tests.
+- [ ] Run appropriate validation, review the diff and reconcile Git history.
+- [ ] Deploy normally, verify live output and alert recovery, and append a review.
+
+### Diagnosis and local validation
+
+- [x] Captured two complete San Diego draws (62 rows); the same source ID spans
+  January and September. Edition windows preserve dates and membership while
+  preventing false cross-edition inversions; genuine internal inversions still fail.
+- [x] Verified Sun Xinran, Shao Yushan and Zhu Lin against WTA IDs 335958, 335219,
+  317306 and 315 retained source rows. All three pass the alias falsifier.
+- [x] Added paired broken/clean producer-to-gate identity replays and captured ATP
+  chronology regression. Population16 forces rebuilding stale saved predictors;
+  reviewed ledger content remains identical apart from its population stamp.
+- [x] Focused validation: 119 passed. Full validation and production verification next.
+
+- [x] Full Python suite: 1,909 passed; web suite: 375 passed; Ruff and whitespace
+  checks passed. Full local ATP history (285,578 matches) passes chronology with
+  both 31-match San Diego editions retained. Reviewed ledger records/quarantines
+  are unchanged. Remote master remains `68771d1` before this deployment.

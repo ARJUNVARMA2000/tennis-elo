@@ -1,0 +1,38 @@
+{
+  "aliases": [
+    {
+      "variant": "Sun Xinran",
+      "canonical": "Xinran Sun",
+      "wtaId": "335958",
+      "officialUrl": "https://www.wtatennis.com/players/335958/xinran-sun",
+      "falsifier": null,
+      "retainedRows": 2
+    },
+    {
+      "variant": "Shao Yushan",
+      "canonical": "Yushan Shao",
+      "wtaId": "335219",
+      "officialUrl": "https://www.wtatennis.com/players/335219/yushan-shao",
+      "falsifier": null,
+      "retainedRows": 2
+    },
+    {
+      "variant": "Zhu Lin",
+      "canonical": "Lin Zhu",
+      "wtaId": "317306",
+      "officialUrl": "https://www.wtatennis.com/players/317306/lin-zhu",
+      "falsifier": null,
+      "retainedRows": 311
+    }
+  ],
+  "atpSource": "https://stats.tennismylife.org/data/2026_challenger.csv",
+  "atpSha256": "654b3ad1e0d5249efff0ee02c5fa830fce0c3bd7e07e0360a840f56de2d2a4d9",
+  "atpEditions": {
+    "20260126": 31,
+    "20260921": 31
+  },
+  "januaryDraw": "https://www.protennislive.com/posting/2026/2971/mds.pdf",
+  "localAtpNormalizedMatches": 285578,
+  "localAtpChronology": "passed",
+  "focusedTests": 119
+}

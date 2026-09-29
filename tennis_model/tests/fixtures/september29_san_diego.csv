@@ -1,0 +1,63 @@
+tourney_id,tourney_name,tourney_date,round,winner_name,loser_name,score
+2026-2971,San Diego,20260126,R32,Sebastian Korda,Daniel Milavsky,6-4 7-5
+2026-2971,San Diego,20260126,R32,Rinky Hijikata,Stefan Dostanic,2-6 6-3 6-2
+2026-2971,San Diego,20260126,R32,Patrick Kypson,Tyler Zink,7-6(5) 6-1
+2026-2971,San Diego,20260126,R32,Zachary Svajda,Evan Zhu,6-2 6-4
+2026-2971,San Diego,20260126,R32,Sho Shimabukuro,Stefan Kozlov,6-2 4-6 7-6(5)
+2026-2971,San Diego,20260126,R32,Andrew Fenty,Bor Artnak,6-2 7-5
+2026-2971,San Diego,20260126,R32,Andre Ilagan,Fryderyk Lechno-Wasiutynski,6-1 7-5
+2026-2971,San Diego,20260126,R32,Garrett Johns,Karl Poling,6-2 7-6(5)
+2026-2971,San Diego,20260126,R32,Keegan Smith,Raphael Perot,6-3 7-6(6)
+2026-2971,San Diego,20260126,R32,Bernard Tomic,Felix Corwin,7-6(6) 6-3
+2026-2971,San Diego,20260126,R32,Liam Draxl,Murphy Cassone,6-2 6-2
+2026-2971,San Diego,20260126,R32,Colton Smith,Christian Langmo,6-3 6-3
+2026-2971,San Diego,20260126,R32,Toby Samuel,Tristan Boyer,6-3 5-7 6-4
+2026-2971,San Diego,20260126,R32,Blaise Bicknell,Alex Rybakov,6-4 7-5
+2026-2971,San Diego,20260126,R32,Mitchell Krueger,Cedrik-Marcel Stebe,6-1 6-1
+2026-2971,San Diego,20260126,R32,Trevor Svajda,Micah Braswell,6-2 6-2
+2026-2971,San Diego,20260126,R16,Sebastian Korda,Andre Ilagan,6-2 4-6 6-3
+2026-2971,San Diego,20260126,R16,Rinky Hijikata,Bernard Tomic,3-6 6-4 6-3
+2026-2971,San Diego,20260126,R16,Patrick Kypson,Garrett Johns,7-6(4) 6-2
+2026-2971,San Diego,20260126,R16,Zachary Svajda,Keegan Smith,7-6(2) 6-4
+2026-2971,San Diego,20260126,R16,Sho Shimabukuro,Andrew Fenty,6-4 1-6 7-6(2)
+2026-2971,San Diego,20260126,R16,Liam Draxl,Trevor Svajda,6-3 6-4
+2026-2971,San Diego,20260126,R16,Colton Smith,Blaise Bicknell,5-7 7-6(3) 6-1
+2026-2971,San Diego,20260126,R16,Mitchell Krueger,Toby Samuel,6-4 6-4
+2026-2971,San Diego,20260126,QF,Sebastian Korda,Liam Draxl,7-6(4) 6-4
+2026-2971,San Diego,20260126,QF,Sho Shimabukuro,Rinky Hijikata,6-4 6-4
+2026-2971,San Diego,20260126,QF,Patrick Kypson,Colton Smith,7-6(5) 6-0
+2026-2971,San Diego,20260126,QF,Zachary Svajda,Mitchell Krueger,6-3 2-6 6-2
+2026-2971,San Diego,20260126,SF,Sebastian Korda,Patrick Kypson,7-6(4) 6-2
+2026-2971,San Diego,20260126,SF,Zachary Svajda,Sho Shimabukuro,6-4 6-1
+2026-2971,San Diego,20260126,F,Zachary Svajda,Sebastian Korda,6-4 7-6(5)
+2026-2971,San Diego 2,20260921,R32,Nishesh Basavareddy,Mees Rottgering,6-3 6-3
+2026-2971,San Diego 2,20260921,R32,Keaton Hance,Andres Martin,6-4 7-5
+2026-2971,San Diego 2,20260921,R32,Darwin Blanch,J.J. Wolf,4-6 7-6(9) 6-1
+2026-2971,San Diego 2,20260921,R32,Andres Andrade,Abdullah Shelbayh,4-6 7-5 6-3
+2026-2971,San Diego 2,20260921,R32,Keegan Smith,Edward Winter,6-3 4-6 6-2
+2026-2971,San Diego 2,20260921,R32,Dylan Dietrich,Dinko Dinev,6-3 6-1
+2026-2971,San Diego 2,20260921,R32,Henry Searle,Evan Zhu,6-3 6-7(8) 6-3
+2026-2971,San Diego 2,20260921,R32,Liam Draxl,Jack Kennedy,6-4 6-4
+2026-2971,San Diego 2,20260921,R32,Tristan Boyer,Spencer Johnson,7-6(4) 6-1
+2026-2971,San Diego 2,20260921,R32,Sebastian Gorzny,Mitchell Krueger,4-6 7-5 7-5
+2026-2971,San Diego 2,20260921,R32,Timo Legout,Daniel Milavsky,7-5 6-7(5) 6-2
+2026-2971,San Diego 2,20260921,R32,Colton Smith,Stefan Kozlov,6-4 6-2
+2026-2971,San Diego 2,20260921,R32,Patrick Maloney,Braden Shick,6-3 7-6(5)
+2026-2971,San Diego 2,20260921,R32,Igor Marcondes,Ozan Baris,6-1 6-3
+2026-2971,San Diego 2,20260921,R32,Trevor Svajda,Erik Arutiunian,6-3 6-3
+2026-2971,San Diego 2,20260921,R32,Federico Agustin Gomez,Tyler Zink,6-2 6-3
+2026-2971,San Diego 2,20260921,R16,Nishesh Basavareddy,Keaton Hance,6-2 4-6 6-3
+2026-2971,San Diego 2,20260921,R16,Andres Andrade,Darwin Blanch,3-6 6-3 7-5
+2026-2971,San Diego 2,20260921,R16,Dylan Dietrich,Keegan Smith,6-2 7-6(4)
+2026-2971,San Diego 2,20260921,R16,Henry Searle,Liam Draxl,7-6(7) 2-6 6-4
+2026-2971,San Diego 2,20260921,R16,Tristan Boyer,Sebastian Gorzny,6-4 7-6(7)
+2026-2971,San Diego 2,20260921,R16,Timo Legout,Colton Smith,6-3 6-3
+2026-2971,San Diego 2,20260921,R16,Igor Marcondes,Patrick Maloney,3-6 7-6(7) 6-2
+2026-2971,San Diego 2,20260921,R16,Federico Agustin Gomez,Trevor Svajda,7-5 6-4
+2026-2971,San Diego 2,20260921,QF,Nishesh Basavareddy,Andres Andrade,6-3 6-2
+2026-2971,San Diego 2,20260921,QF,Dylan Dietrich,Henry Searle,6-3 7-5
+2026-2971,San Diego 2,20260921,QF,Timo Legout,Tristan Boyer,2-6 7-5 7-5
+2026-2971,San Diego 2,20260921,QF,Igor Marcondes,Federico Agustin Gomez,4-6 6-4 6-1
+2026-2971,San Diego 2,20260921,SF,Nishesh Basavareddy,Dylan Dietrich,6-7(10) 6-4 5-1 RET
+2026-2971,San Diego 2,20260921,SF,Igor Marcondes,Timo Legout,6-7(5) 7-5 7-5
+2026-2971,San Diego 2,20260921,F,Nishesh Basavareddy,Igor Marcondes,7-5 6-4

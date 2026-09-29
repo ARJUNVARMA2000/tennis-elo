@@ -449,3 +449,6 @@ New lesson → append the entry to the matching topic file and add its lead line
   [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md). (2026-09-27)
 - An independent audit must query at or after every saved state branch's cutoff. See
   [`lessons/ci-and-deploy.md`](lessons/ci-and-deploy.md). (2026-09-27)
+
+- A source tournament ID and year may still cover multiple editions. See
+  [`lessons/data-sources.md`](lessons/data-sources.md). (2026-09-29)

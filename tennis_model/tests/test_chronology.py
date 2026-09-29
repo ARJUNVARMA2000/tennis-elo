@@ -114,3 +114,31 @@ def test_unresolved_chronology_stops_every_export_before_writes(monkeypatch, ful
     monkeypatch.setattr(export, '_clear_upcoming_outputs', lambda *a: pytest.fail('write before guard'))
     with pytest.raises(ValueError, match='inversions'):
         export.export_all('atp', frame, None, None, None, None, full=full)
+
+
+def test_captured_san_diego_editions_preserve_rows_and_reject_internal_inversions(monkeypatch):
+    from pathlib import Path
+
+    from tennis_model.data.chronology import round_date_inversions
+    frame = pd.read_csv(Path(__file__).parent / 'fixtures/september29_san_diego.csv')
+    frame['date'] = pd.to_datetime(frame.tourney_date.astype(str), format='%Y%m%d')
+    frame['round_order'] = frame['round'].map(config.ROUND_ORDER)
+    frame['source_kind'] = 'stats'
+    frame['espn_id'] = None
+    annotated = annotate_sources(frame, 'atp')
+    fixed = resolve_dates(annotated, 'atp')
+    assert len(fixed) == 62
+    assert fixed.groupby('event_edition').size().tolist() == [31, 31]
+    pd.testing.assert_series_equal(fixed.date, frame.date)
+    pd.testing.assert_series_equal(fixed.tourney_id, frame.tourney_id)
+    assert fixed.played_date.isna().all()  # edition evidence never invents a played date
+    require_chronology(fixed)
+    monkeypatch.setattr(config, 'ATP_EVENT_EDITION_WINDOWS', {})
+    assert round_date_inversions(resolve_dates(annotated, 'atp'))
+    for edition in fixed.event_edition.unique():
+        bad = fixed.copy()
+        # A first-round result after the final is still a real inversion in either edition.
+        mask = bad.event_edition.eq(edition) & bad['round'].eq('R32')
+        bad.loc[mask, 'date'] += pd.Timedelta(days=1)
+        with pytest.raises(ValueError, match='inversions'):
+            require_chronology(bad)

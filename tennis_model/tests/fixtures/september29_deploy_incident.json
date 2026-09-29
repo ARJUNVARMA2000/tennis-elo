@@ -1,0 +1,103 @@
+{
+  "sourceRun": 36510586478,
+  "sourceDate": "2026-09-28",
+  "aliases": [
+    {
+      "variant": "Sun Xinran",
+      "canonical": "Xinran Sun",
+      "wtaId": "335958",
+      "officialUrl": "https://www.wtatennis.com/players/335958/xinran-sun",
+      "falsifier": null,
+      "retainedRows": 2
+    },
+    {
+      "variant": "Shao Yushan",
+      "canonical": "Yushan Shao",
+      "wtaId": "335219",
+      "officialUrl": "https://www.wtatennis.com/players/335219/yushan-shao",
+      "falsifier": null,
+      "retainedRows": 2
+    },
+    {
+      "variant": "Zhu Lin",
+      "canonical": "Lin Zhu",
+      "wtaId": "317306",
+      "officialUrl": "https://www.wtatennis.com/players/317306/lin-zhu",
+      "falsifier": null,
+      "retainedRows": 311
+    }
+  ],
+  "matches": [
+    {
+      "tour": "wta",
+      "espnId": "959-2026",
+      "name": "China Open",
+      "start": "2026-09-27",
+      "end": "2026-10-12",
+      "matchId": "184268",
+      "date": "2026-10-01T04:00Z",
+      "round": {
+        "id": "1",
+        "displayName": "Round 1"
+      },
+      "completed": false,
+      "players": [
+        {
+          "name": "Anastasia Zakharova",
+          "espnId": "5775"
+        },
+        {
+          "name": "Shao Yushan",
+          "espnId": "15422"
+        }
+      ],
+      "sourceUrl": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard?dates=20260928&limit=300",
+      "sourceSha256": "b34c61238214dd967c529d396c15110354b48438bd0857f449da595837f2822c"
+    },
+    {
+      "tour": "wta",
+      "espnId": "959-2026",
+      "name": "China Open",
+      "start": "2026-09-27",
+      "end": "2026-10-12",
+      "matchId": "184274",
+      "date": "2026-10-01T04:00Z",
+      "round": {
+        "id": "1",
+        "displayName": "Round 1"
+      },
+      "completed": false,
+      "players": [
+        {
+          "name": "Zhu Lin",
+          "espnId": "2780"
+        },
+        {
+          "name": "Alycia Parks",
+          "espnId": "5309"
+        }
+      ],
+      "sourceUrl": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard?dates=20260928&limit=300",
+      "sourceSha256": "b34c61238214dd967c529d396c15110354b48438bd0857f449da595837f2822c"
+    },
+    {
+      "tour": "wta",
+      "espnId": "959-2026",
+      "name": "China Open",
+      "start": "2026-09-27",
+      "end": "2026-10-12",
+      "matchId": "issue-103",
+      "completed": false,
+      "players": [
+        {
+          "name": "Eva Lys"
+        },
+        {
+          "name": "Sun Xinran"
+        }
+      ],
+      "sourceUrl": "https://github.com/ARJUNVARMA2000/tennis-elo/issues/103",
+      "captureKind": "predeploy gate pair; scheduling metadata not captured"
+    }
+  ]
+}

@@ -211,6 +211,12 @@ def resolve_dates(frame, tour):
     # Edition identity uses an explicit source year when present, never fuzzy event names.
     year = out.tourney_id.astype('string').str.extract(r'^(\d{4})-', expand=False).fillna(out.date.dt.year.astype(str))
     out['event_edition'] = tour + ':' + year + ':' + out.tourney_id.astype('string')
+    if tour == 'atp':
+        for eid, windows in config.ATP_EVENT_EDITION_WINDOWS.items():
+            for start, end in windows:
+                mask = out.tourney_id.eq(eid) & out.recorded_date.between(
+                    pd.Timestamp(start), pd.Timestamp(end))
+                out.loc[mask, 'event_edition'] += ':' + start
     return out
 
 
