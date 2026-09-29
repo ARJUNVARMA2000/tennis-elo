@@ -687,6 +687,19 @@ def _check_brackets(out: list, tour: str, brackets: list, tournaments, *, rated_
         # the names). Only byes (null) are excluded on both sides. Excluding placeholders here
         # would false-positive against drawSize (Gstaad's early draw, 2026-07-13).
         nonbye0 = [p for m in r0 for p in (m.get("a"), m.get("b")) if p is not None]
+        # Review ambiguous rated identities before an unreleased opponent becomes
+        # a real pair. Token equivalence is a review signal, never an auto-alias.
+        if status in ("upcoming", "live") and valid_inventory:
+            for player in sorted({p for p in nonbye0 if _is_real_name(p)}):
+                key = _norm_name(player)
+                if key not in rated_keys and tuple(sorted(key.split())) in rated_tokens:
+                    _add_finding(
+                        out, "output.bracket.player_identity_unresolved",
+                        f"{tour}: bracket {name!r} has an unresolved rated-player identity {player!r}",
+                        severity="error", entity=f"{event_entity}#player:{key}",
+                        evidence={"player": player, "ratedCandidates": sorted(
+                            p for p in rated_players
+                            if sorted(_norm_name(p).split()) == sorted(key.split()))})
         ds = ev.get("drawSize")
         if isinstance(ds, int) and len(nonbye0) != ds:
             _add_finding(

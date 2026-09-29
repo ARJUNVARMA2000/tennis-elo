@@ -452,3 +452,6 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - A source tournament ID and year may still cover multiple editions. See
   [`lessons/data-sources.md`](lessons/data-sources.md). (2026-09-29)
+
+- Audit every named draw entrant before opponents are released, not only blocked
+  pairs. See [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-09-29)

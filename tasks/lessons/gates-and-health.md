@@ -460,3 +460,11 @@ Indexed in [`../lessons.md`](../lessons.md).
   main/lower model inventory independently, and require exact missing-player evidence in
   the gate; reject absent inventories, rated players, reversed-name candidates, and stale
   labels on priced or completed matches. A producer's annotation alone is not proof.
+
+- **Audit named entrants before their opponents are released.** (2026-09-29)
+  Repairing only blocked real-player pairs left Qu Yihan unresolved elsewhere in
+  the China Open draw despite model history for Yihan Qu. The next qualifier
+  announcement would turn that latent identity error into another blocked refresh.
+  Review every named entrant against the independent model inventory; token-equivalent
+  rated names demand review even beside a placeholder. Never auto-merge on tokens,
+  and keep genuinely unseen entrants and unresolved opponents unpriced.

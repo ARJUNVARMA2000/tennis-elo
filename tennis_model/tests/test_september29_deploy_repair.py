@@ -36,7 +36,7 @@ def test_captured_identity_joins_retained_history(tour, variant, canonical, play
     assert results._canonicalize_names(frame).winner_name.tolist() == [canonical] * 2
 
 
-@pytest.mark.parametrize("source", [m for m in INCIDENT["matches"] if not m["completed"]],
+@pytest.mark.parametrize("source", [m for m in INCIDENT["matches"] if not m["completed"] and not m.get("unresolvedOpponent")],
                          ids=lambda m: m["matchId"])
 def test_pending_source_pair_broken_and_clean_producer_gate(monkeypatch, source):
     # Isolate each captured pair in a small draw with unresolved neighboring slots.
@@ -87,3 +87,39 @@ def test_pending_source_pair_broken_and_clean_producer_gate(monkeypatch, source)
             unresolved = card["bracket"][0]["matches"][1]
             assert unresolved["p"] is None and unresolved["probSource"] is None
 
+
+
+def test_unpaired_captured_entrant_is_reviewed_before_opponent_is_announced(monkeypatch):
+    source = next(m for m in INCIDENT['matches'] if m.get('unresolvedOpponent'))
+    names = [p['name'] for p in source['players']]
+    rated = ['Yihan Qu'] + [f'Opponent {i}' for i in range(6)]
+    predictor = _Pred({n: 1500 for n in rated})
+    monkeypatch.setattr(tournaments, 'resolve_surface_info', lambda *a, **kw: ('Hard', 'wiki'))
+    monkeypatch.setattr(tournaments, 'resolve_level', lambda *a, **kw: 'WTA 1000')
+    frame = pd.DataFrame({'date': pd.to_datetime([]), 'tourney_name': [], 'round': []})
+    draw = dict(slots=names + rated[1:], start=source['start'])
+    code = 'output.bracket.player_identity_unresolved'
+    for broken in (True, False):
+        aliases = dict(config.PLAYER_ALIASES)
+        if broken:
+            aliases.pop('qu yihan')
+        canonical = lambda n, aliases=aliases: aliases.get(results._name_key(n), n)
+        card = tournaments.project_upcoming(predictor, source['name'], draw, 'wta',
+                                            frame, set(), canonical, espn_id=source['espnId'])
+        data = copy.deepcopy(_healthy_data())
+        data['meta']['modelPlayerNames'] = rated
+        data.update(tournaments=[card], brackets=[{**card, 'rounds': card['bracket']}])
+        findings = health.output_findings('wta', _oc(data=data), pd.Timestamp('2026-09-29'))
+        hits = [f for f in findings if f.code == code]
+        assert bool(hits) is broken
+        if broken:
+            assert hits[0].evidence == {'player': 'Qu Yihan', 'ratedCandidates': ['Yihan Qu']}
+            assert health._gate_blocks(hits[0])
+        else:
+            match = card['bracket'][0]['matches'][0]
+            assert 'Yihan Qu' in (match['a'], match['b'])
+            assert match.get('p') is None  # unknown opponents must remain unpriced
+        # A genuine newcomer with no token-equivalent model identity is still allowed.
+        data['meta']['modelPlayerNames'] = rated[1:]
+        assert code not in {f.code for f in health.output_findings(
+            'wta', _oc(data=data), pd.Timestamp('2026-09-29'))}

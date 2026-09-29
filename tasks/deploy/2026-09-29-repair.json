@@ -23,6 +23,14 @@
       "officialUrl": "https://www.wtatennis.com/players/317306/lin-zhu",
       "falsifier": null,
       "retainedRows": 311
+    },
+    {
+      "variant": "Qu Yihan",
+      "canonical": "Yihan Qu",
+      "wtaId": "333677",
+      "officialUrl": "https://www.wtatennis.com/players/333677/yihan-qu",
+      "retainedRows": 3,
+      "falsifier": null
     }
   ],
   "atpSource": "https://stats.tennismylife.org/data/2026_challenger.csv",
@@ -34,5 +42,79 @@
   "januaryDraw": "https://www.protennislive.com/posting/2026/2971/mds.pdf",
   "localAtpNormalizedMatches": 285578,
   "localAtpChronology": "passed",
-  "focusedTests": 119
+  "focusedTests": 119,
+  "repairCommit": "eb998854466980789e462d625d3758b8e64bf50c",
+  "deploymentRun": 36521026718,
+  "localTests": {
+    "pythonPassed": 1909,
+    "webPassed": 375,
+    "ruff": "passed"
+  },
+  "ciTests": {
+    "pythonPassed": 1908,
+    "pythonSkipped": 1,
+    "webPassed": 375,
+    "eslintErrors": 0,
+    "eslintExistingWarnings": 9
+  },
+  "fullDeployment": {
+    "generatedAt": "2026-09-29T05:08:37Z",
+    "healthOk": true,
+    "lineage": {
+      "schema": "artifact-lineage-v1",
+      "status": "accepted",
+      "releaseId": "3e7b584b-7d2a-4b2e-b933-2f5c56171c80",
+      "manifestSha256": "d94c8b9923966d0c190bc8ebb071c9a3547162495588051a6177f2a6e312c34d",
+      "tours": [
+        "atp",
+        "wta"
+      ]
+    },
+    "artifactCount": 464,
+    "artifacts": {
+      "atp/meta.json": "744203ac994e374820fe724099850d9181d090baf2c9b40176234402f07a1486",
+      "wta/meta.json": "43a238fe9dd10ed8c6e170af30905af7472e6cf6247a2beceadff451d1e56c01",
+      "atp/brackets.json": "656f1701b14e026e665767ac321d6ba7cf3c5a428fd66d0d2ec00c71aa9306da",
+      "wta/brackets.json": "a61c4d9d0a174a7d924e45394cdd436f5287fb93c2f6db4a42f57fe3c7b45d4c",
+      "wta/tournaments.json": "ef0363bf17306ab03f8a830deb5571beaedba2f7a4c272ec151b9b590cc75aab"
+    },
+    "forecasts": [
+      {
+        "a": "Eva Lys",
+        "b": "Xinran Sun",
+        "p": 0.8537,
+        "probSource": "model",
+        "winner": null
+      },
+      {
+        "a": "Yushan Shao",
+        "b": "Anastasia Zakharova",
+        "p": 0.1611,
+        "probSource": "model",
+        "winner": null
+      },
+      {
+        "a": "Alycia Parks",
+        "b": "Lin Zhu",
+        "p": 0.5966,
+        "probSource": "model",
+        "winner": null
+      }
+    ],
+    "china": {
+      "espnId": "959-2026",
+      "drawSize": 96,
+      "drawStatus": "real",
+      "status": "upcoming",
+      "aliveCount": 96
+    },
+    "liveChecksPassed": 22
+  },
+  "followupReason": "Live field audit found Qu Yihan with unresolved opponent and existing model history as Yihan Qu; no other reversed rated identities in either current active bracket inventory.",
+  "initialQuickRecovery": {
+    "run": 36529046090,
+    "liveChecksPassed": 22,
+    "allOriginalIssuesClosed": true
+  },
+  "finalLocalPythonPassed": 1913
 }

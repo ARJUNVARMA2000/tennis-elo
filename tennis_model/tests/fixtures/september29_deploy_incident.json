@@ -25,6 +25,14 @@
       "officialUrl": "https://www.wtatennis.com/players/317306/lin-zhu",
       "falsifier": null,
       "retainedRows": 311
+    },
+    {
+      "variant": "Qu Yihan",
+      "canonical": "Yihan Qu",
+      "wtaId": "333677",
+      "officialUrl": "https://www.wtatennis.com/players/333677/yihan-qu",
+      "retainedRows": 3,
+      "falsifier": null
     }
   ],
   "matches": [
@@ -98,6 +106,37 @@
       ],
       "sourceUrl": "https://github.com/ARJUNVARMA2000/tennis-elo/issues/103",
       "captureKind": "predeploy gate pair; scheduling metadata not captured"
+    },
+    {
+      "tour": "wta",
+      "espnId": "959-2026",
+      "name": "China Open",
+      "start": "2026-09-27",
+      "end": "2026-10-12",
+      "matchId": "live-unresolved-qu",
+      "completed": false,
+      "unresolvedOpponent": true,
+      "players": [
+        {
+          "name": "Qualifier/Unresolved 5"
+        },
+        {
+          "name": "Qu Yihan"
+        }
+      ],
+      "sourceMatch": {
+        "a": "Qualifier/Unresolved 5",
+        "b": "Qu Yihan",
+        "seedA": null,
+        "seedB": null,
+        "winner": null,
+        "score": null,
+        "p": null,
+        "probSource": null,
+        "upset": null
+      },
+      "sourceUrl": "https://deuce-forecast.web.app/data/wta/brackets.json",
+      "sourceSha256": "969d6c602f455b1cc4dfc0855d3d8cfee9645fb4a1142114ab5262c5b9d9ed5d"
     }
   ]
 }

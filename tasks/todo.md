@@ -8937,3 +8937,30 @@ identify three unresolved China Open identities. Plan check-in shared before edi
   checks passed. Full local ATP history (285,578 matches) passes chronology with
   both 31-match San Diego editions retained. Reviewed ledger records/quarantines
   are unchanged. Remote master remains `68771d1` before this deployment.
+
+### Follow-up found during live review — 2026-09-29
+
+The repaired full release passed all 22 live checks and closed #103–#108. Quick
+verification run `36529046090` is in progress. Auditing every currently published
+WTA entrant against the independent model inventory found one additional reversed
+identity: `Qu Yihan` / `Yihan Qu`, WTA 333677. Her current opponent is unresolved,
+so the pending-real-pair gate does not yet fire. Re-plan check-in shared before edits.
+
+- [ ] Verify the fourth identity with retained source history and the falsifier;
+  capture the unresolved source pair and add an identity normalization regression.
+- [ ] Extend the reviewed aliases and population contract, validate, and deploy.
+- [ ] Verify the final live release and saved-model quick refresh; append final review.
+
+- [x] The first repaired full deployment `36521026718` and saved-model quick run
+  `36529046090` both passed all 22 live checks. All seven original alerts closed.
+  Independent hashes and browser checks confirm Sun/Shao/Zhu forecasts.
+- [x] Verified Qu against WTA 333677 and three retained lower-tour rows; falsifier
+  passes. Audited both tours' active bracket inventories: no other unresolved
+  token-equivalent rated identities. Added a typed early identity finding and a
+  broken/clean producer replay, preserving genuine newcomer and unknown-opponent
+  behavior. Population17 forces the final reviewed-identity rebuild.
+- [x] Follow-up focused tests: 259 passed after correcting the regression's optional
+  probability-field assertion; Ruff and whitespace checks passed. Full suite running.
+
+- [x] Final full Python suite: 1,913 passed. Ruff and whitespace checks pass.
+  Git history reconciled with `e7798f0`. The final follow-up is ready to deploy.
