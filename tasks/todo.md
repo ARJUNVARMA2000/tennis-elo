@@ -8986,3 +8986,29 @@ healthy release stayed live. Re-plan check-in shared before further edits.
 
 - [x] Population18 full Python validation: 1,917 passed. Remote history reconciled
   at `cd2d658`; the qualified-entrant repair is ready for guarded deployment.
+
+### Final production review — 2026-09-29 UTC
+
+- [x] All diagnosis, implementation, validation and deployment items above are complete.
+  San Diego's two source editions retain all 62 matches with their original dates;
+  internal inversions remain blocked. Five reviewed China Open identities resolve
+  to model history, including qualifiers announced while rebuilding.
+- [x] Final repair `d5113ec` passed full refresh `36576371340`, the integrity gate,
+  accepted publication and all 22 live-serving checks. Local Python: 1,917 passed;
+  CI: 1,916 passed / one skipped; web: 375 passed. Ruff, type/build checks and browser
+  smoke passed; ESLint retained nine existing warnings.
+- [x] Both subsequent saved-model quick refreshes succeeded: manually dispatched
+  `36588526387` and scheduled `36593920183`. Each passed all 22 live checks.
+  All original alerts (#103–#109) and newly caught Bai alerts (#111–#113) closed
+  automatically. No issues remain open.
+- [x] Independently verified health **ok=true** at `2026-09-29T15:59:41Z`, accepted
+  release `d60221d0-c2e0-4c48-a7ec-44a0f88bac05`, 460 artifacts, manifest digest,
+  both population18 model identities and public bracket/tournament hashes. This
+  snapshot belongs to scheduled quick run `36593920183`, following the manual run.
+- [x] Browser checks show Lys–Sun 85/15, Shao–Zakharova 16/84, Parks–Zhu 60/40,
+  Dart–Qu 84/16 and Bai–Fruhvirtova 43/57. China Open has 96 entrants. The early
+  identity gate now examines named entrants even before their opponents are known.
+- [x] Synced ledger commit `15eb2c0` and reconciled Git history. Full source, identity,
+  validation and release evidence is in `tasks/deploy/2026-09-29-repair.json`.
+  Only the final review documents remain to commit; `tasks/**` is excluded from
+  push-triggered production refreshes.

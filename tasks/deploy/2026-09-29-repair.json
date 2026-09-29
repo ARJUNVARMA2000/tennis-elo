@@ -287,5 +287,160 @@
     "pythonPassed": 1917,
     "focusedPassed": 118,
     "ruff": "passed"
-  }
+  },
+  "finalFullDeployment": {
+    "commit": "d5113ecad3096ac21b8a4e678cdbb328ffd39788",
+    "run": 36576371340,
+    "liveChecksPassed": 22,
+    "live": {
+      "generatedAt": "2026-09-29T14:31:41Z",
+      "healthOk": true,
+      "lineage": {
+        "schema": "artifact-lineage-v1",
+        "status": "accepted",
+        "releaseId": "42d7c6ea-b044-48a9-bfb6-c6667908beb0",
+        "manifestSha256": "2bc06121c58637df59b7dbd4ca464d7595dd33fd5784c4d8990fba95456226c7",
+        "tours": [
+          "atp",
+          "wta"
+        ]
+      },
+      "artifactCount": 460,
+      "artifacts": {
+        "atp/meta.json": "a11d9d1f0eb5fb026cef632cbf04f509beeda35cf0072e26110003bdcc1575e2",
+        "wta/meta.json": "36babb0ec982309212c99541c8921e867a3fb6220eae63c645c7c7b323d9a457",
+        "atp/brackets.json": "48150ef5efa84bc5ea9c855f83de30a098af6c05fb3fa0d31304718aba27eeba",
+        "wta/brackets.json": "ba324e2c18e63e716614a9f5ec91ca07907ebb8f558d96dd399c153f305c68b7",
+        "wta/tournaments.json": "8a992a5d426d3326368af3c45a6cb6a098f2f2bd093f8b78bd59db4527acbcd4"
+      },
+      "forecasts": [
+        {
+          "a": "Eva Lys",
+          "b": "Xinran Sun",
+          "p": 0.8537,
+          "probSource": "model",
+          "winner": null
+        },
+        {
+          "a": "Yushan Shao",
+          "b": "Anastasia Zakharova",
+          "p": 0.1611,
+          "probSource": "model",
+          "winner": null
+        },
+        {
+          "a": "Alycia Parks",
+          "b": "Lin Zhu",
+          "p": 0.5966,
+          "probSource": "model",
+          "winner": null
+        },
+        {
+          "a": "Zhuoxuan Bai",
+          "b": "Linda Fruhvirtova",
+          "p": 0.426,
+          "probSource": "model",
+          "winner": null
+        }
+      ],
+      "qu": {
+        "a": "Harriet Dart",
+        "b": "Yihan Qu",
+        "p": 0.8409,
+        "probSource": "model"
+      },
+      "china": {
+        "espnId": "959-2026",
+        "drawSize": 96,
+        "drawStatus": "real",
+        "status": "upcoming",
+        "aliveCount": 96
+      }
+    },
+    "ciTests": {
+      "pythonPassed": 1916,
+      "pythonSkipped": 1,
+      "webPassed": 375
+    }
+  },
+  "finalQuickVerification": {
+    "manualRun": 36588526387,
+    "scheduledRun": 36593920183,
+    "liveChecksPassedPerRun": 22,
+    "savedModelsReused": true,
+    "allIssuesClosed": true,
+    "live": {
+      "generatedAt": "2026-09-29T15:59:41Z",
+      "healthOk": true,
+      "lineage": {
+        "schema": "artifact-lineage-v1",
+        "status": "accepted",
+        "releaseId": "d60221d0-c2e0-4c48-a7ec-44a0f88bac05",
+        "manifestSha256": "66cae106781d0dac125c24a39e633cea9f3b2ed8d9b82cd93496778de68ad165",
+        "tours": [
+          "atp",
+          "wta"
+        ]
+      },
+      "artifactCount": 460,
+      "artifacts": {
+        "atp/meta.json": "63666936b062bf1a2b19fe79759baeb08070c964e982993586d1964e6f12e512",
+        "wta/meta.json": "e2ddefc7b54cb6e9c27759498e67f74c6d37730a508be7d1903ceb8b980495e8",
+        "atp/brackets.json": "a5fe498593cd24f2202293161878dafb3dddb9d23eb5757109a8665edd9fadcb",
+        "wta/brackets.json": "2ee8fcccd8c66772687fa122ffab2f255f70cd3b584a13cf8590c37d6cb4b469",
+        "wta/tournaments.json": "7dbfa0794aa806635e2aa42c630d61dfd2479c3bfe93b7a4f03a9f101a22735a"
+      },
+      "forecasts": [
+        {
+          "a": "Eva Lys",
+          "b": "Xinran Sun",
+          "p": 0.8537,
+          "probSource": "model",
+          "winner": null
+        },
+        {
+          "a": "Yushan Shao",
+          "b": "Anastasia Zakharova",
+          "p": 0.1611,
+          "probSource": "model",
+          "winner": null
+        },
+        {
+          "a": "Alycia Parks",
+          "b": "Lin Zhu",
+          "p": 0.5966,
+          "probSource": "model",
+          "winner": null
+        },
+        {
+          "a": "Zhuoxuan Bai",
+          "b": "Linda Fruhvirtova",
+          "p": 0.426,
+          "probSource": "model",
+          "winner": null
+        }
+      ],
+      "qu": {
+        "a": "Harriet Dart",
+        "b": "Yihan Qu",
+        "p": 0.8409,
+        "probSource": "model"
+      },
+      "china": {
+        "espnId": "959-2026",
+        "drawSize": 96,
+        "drawStatus": "real",
+        "status": "upcoming",
+        "aliveCount": 96
+      }
+    }
+  },
+  "browserVerification": {
+    "Sun": "Lys\u2013Sun 85/15",
+    "Shao": "Shao\u2013Zakharova 16/84",
+    "Zhu": "Parks\u2013Zhu 60/40",
+    "Qu": "Dart\u2013Qu 84/16",
+    "Bai": "Bai\u2013Fruhvirtova 43/57"
+  },
+  "finalStatus": "Full rebuild and two subsequent quick refreshes passed; latest accepted live release healthy; no open issues."
 }
