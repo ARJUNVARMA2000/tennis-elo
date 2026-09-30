@@ -165,11 +165,12 @@ WTA_DUAL_STATE_GATE_THRESHOLD = 32
 # Version 16 joins China Open Sun/Shao/Zhu identities and separates reviewed San Diego editions.
 # Version 17 also resolves the unpaired China Open Qu identity before qualifier settlement.
 # Version 18 joins newly qualified China Open entrant Bai Zhuoxuan to rated history.
-MATCH_POPULATION_VERSION = 18
+# Version 19 joins Jingshan's Lu and Ma's split histories; standardizes newcomer Lin's name.
+MATCH_POPULATION_VERSION = 19
 REVIEWED_RESULTS = {
-    'atp': {'sha256': 'c3a7d2c77ab6833cc9b6ff28bb00b9a7e90bd8d51dade75f4a1ac95d071cebe7',
+    'atp': {'sha256': 'f639e118d290f6a5cdf4874e5e793a6f2954cfca785c2717388599d61d98d025',
             'records': 0, 'quarantines': 0},
-    'wta': {'sha256': 'b01520a7b30586538e9dfa73e884b170299928e5a5a6622a613e2ef624342973',
+    'wta': {'sha256': 'bf4fd146865ca90b917a8bfb4eaed24da7267031ac25e8ab9679f0773c011cb2',
             'records': 528, 'quarantines': 1},
 }
 
@@ -774,6 +775,11 @@ PLAYER_ALIASES: dict[str, str] = {
     "zhu lin": "Lin Zhu",
     "qu yihan": "Yihan Qu",  # WTA 333677; reviewed 2026-09-29
     "bai zhuoxuan": "Zhuoxuan Bai",  # WTA 327196; reviewed 2026-09-29
+    # 2026-09-30: official Jingshan draw/profile 313225 + 59 retained appearances.
+    "lu jia jing": "Jia Jing Lu",
+    # Official China Open slot 27 and ESPN's same pairing both identify Yu Jun Lin.
+    # Neither spelling has retained history: normalize display without inventing a rating.
+    "lin yujun": "Yu Jun Lin",
     "zheng wushuang": "Wushuang Zheng",
     "wei sijia": "Sijia Wei",
     "yang yidi": "Yidi Yang",
@@ -876,6 +882,10 @@ PLAYER_ALIASES: dict[str, str] = {
     # https://www.wtatennis.com/players/322417/ye-xin-ma
     # https://www.itftennis.com/en/players/yexin-ma/800439388/chn/wt/D/overview/
     "ma yexin": "Ye Xin Ma",
+    # 2026-09-30: WTA 322417 now displays Yexin Ma. The lower-tour 334089 record
+    # matches official Wuhan 2024 RS021 (Bronzetti, 1-6 6-1 6-4); it is not a second Ma.
+    # Map directly to the retained majority spelling, avoiding an alias chain.
+    "yexin ma": "Ye Xin Ma",
     # 2026-08-17 Cincinnati duplicates: the stable WTA feed and ESPN record the same
     # opponents, dates and scores under family-name-first vs western order. Keep these
     # explicit: general token reversal would merge unrelated people.

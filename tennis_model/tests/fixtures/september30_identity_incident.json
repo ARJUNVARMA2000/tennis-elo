@@ -1,0 +1,1467 @@
+{
+  "sourceDate": "2026-09-30",
+  "sources": {
+    "wta-espn-20260930": {
+      "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard?limit=300&dates=20260930",
+      "sha256": "66c7e1c3ec9aeb5eaa7d9c168bee3ee693b022fcd79b746f85159707a725cca7"
+    }
+  },
+  "officialDraws": [
+    {
+      "tour": "wta",
+      "id": "1028-2026",
+      "url": "https://wtafiles.wtatennis.com/pdf/draws/2026/1143/MDS.pdf",
+      "sha256": "a0ead9fb49c2e2744a832bcead7e2015ea5c49fca8c81483a6bbf264fc9974e0",
+      "officialEntrants": 32,
+      "officialOnly": [
+        "Jia-Jing Lu"
+      ],
+      "liveOnly": [
+        "Lu Jia-Jing"
+      ],
+      "slots": [
+        "Jessica Bouzas Maneiro",
+        "Fangran Tian",
+        "Amelia Rajecki",
+        "Yuhan Wang",
+        "Katarina Zavatska",
+        "Sofya Lansere",
+        "Kristina Mladenovic",
+        "So\ufb01a Costoulas",
+        "Tyra Caterina Grant",
+        "Aliona Falei",
+        "Kristiana Sidorova",
+        "Daria Egorova",
+        "Mei Yamaguchi",
+        "Wushuang Zheng",
+        "Viktoria Morvayova",
+        "Sara Sorribes Tormo",
+        "Alevtina Ibragimova",
+        "Darya Khamutsianskaya",
+        "Kyoka Okamura",
+        "Ru Xi Wu",
+        "Sara Saito",
+        "Chenting Zhu",
+        "Haruka Kaji",
+        "Emerson Jones",
+        "Alexandra Shubladze",
+        "Rina Saigo",
+        "Jia-Jing Lu",
+        "Hayu Kinoshita",
+        "Sijia Wei",
+        "Yujia Huang",
+        "Yidi Yang",
+        "Fiona Ferro"
+      ]
+    },
+    {
+      "tour": "wta",
+      "id": "959-2026",
+      "url": "https://wtafiles.wtatennis.com/pdf/draws/2026/1020/MDS.pdf",
+      "sha256": "0ca02ea8aef5a4c48bd0b3bb2d0c4e964ee7085c06ae07e0a495ec09134f3819",
+      "officialEntrants": 96,
+      "officialOnly": [
+        "Yu Jun Lin",
+        "Yexin Ma"
+      ],
+      "liveOnly": [
+        "Lin Yujun",
+        "Mayar Sherif"
+      ],
+      "slots": [
+        "Elena Rybakina",
+        null,
+        "Yuliia Starodubtseva",
+        "Alina Charaeva",
+        "Sonay Kartal",
+        "Andrea Lazaro Garcia",
+        null,
+        "Xinyu Wang",
+        "Marie Bouzkova",
+        null,
+        "Aoi Ito",
+        "Kimberly Birrell",
+        "Qinwen Zheng",
+        "Han Shi",
+        null,
+        "Anna Kalinskaya",
+        "Belinda Bencic",
+        null,
+        "Yushan Shao",
+        "Anastasia Zakharova",
+        "So\ufb01a Kenin",
+        "Ashlyn Krueger",
+        null,
+        "Ann Li",
+        "Maria Sakkari",
+        null,
+        "Yu Jun Lin",
+        "Storm Hunter",
+        "Magda Linette",
+        "Katerina Siniakova",
+        null,
+        "Elina Svitolina",
+        "Coco Gauff",
+        null,
+        "Lanlana Tararudee",
+        "Camila Osorio",
+        "Eva Lys",
+        "Xinran Sun",
+        null,
+        "Cristina Bucsa",
+        "Jelena Ostapenko",
+        null,
+        "Paula Badosa",
+        "Daria Kasatkina",
+        "Katie Volynets",
+        "Robin Montgomery",
+        null,
+        "Elise Mertens",
+        "Iva Jovic",
+        null,
+        "Harriet Dart",
+        "Yihan Qu",
+        "Marina Bassols Ribera",
+        "Kamilla Rakhimova",
+        null,
+        "Leylah Fernandez",
+        "Donna Vekic",
+        null,
+        "Alycia Parks",
+        "Lin Zhu",
+        "Xinyu Gao",
+        "Panna Udvardy",
+        null,
+        "Iga Swiatek",
+        "Linda Noskova",
+        null,
+        "Elena-Gabriela Ruse",
+        "Lilli Tagger",
+        "Viktorija Golubic",
+        "Elvina Kalieva",
+        null,
+        "Peyton Stearns",
+        "Ekaterina Alexandrova",
+        null,
+        "Aliaksandra Sasnovich",
+        "Talia Gibson",
+        "Janice Tjen",
+        "Anhelina Kalinina",
+        null,
+        "Diana Shnaider",
+        "Jasmine Paolini",
+        null,
+        "Daria Snigur",
+        "Katarzyna Kawa",
+        "Taylah Preston",
+        "Tamara Korpatsch",
+        null,
+        "Diane Parry",
+        "Clara Tauson",
+        null,
+        "Yexin Ma",
+        "Polina Kudermetova",
+        "Oleksandra Oliynykova",
+        "Yue Yuan",
+        null,
+        "Mirra Andreeva",
+        "Karolina Muchova",
+        null,
+        "Mai Hontama",
+        "Katie Boulter",
+        "Zhuoxuan Bai",
+        "Linda Fruhvirtova",
+        null,
+        "Liudmila Samsonova",
+        "Sara Bejlek",
+        null,
+        "Maddison Inglis",
+        "Zeynep Sonmez",
+        "Darja Vidmanova",
+        "Maria Timofeeva",
+        null,
+        "Naomi Osaka",
+        "Anastasia Potapova",
+        null,
+        "Maya Joint",
+        "Sinja Kraus",
+        "Caty Mcnally",
+        "Dayana Yastremska",
+        null,
+        "Maja Chwalinska",
+        "Nikola Bartunkova",
+        null,
+        "Elsa Jacquemot",
+        "Magdalena Frech",
+        "Anna Bondar",
+        "Renata Zarazua",
+        null,
+        "Aryna Sabalenka"
+      ]
+    }
+  ],
+  "jingshanBracket": {
+    "name": "Jingshan Tennis Open",
+    "espnId": "1028-2026",
+    "start": "2026-09-25",
+    "end": "2026-10-05",
+    "drawSourceUrl": "https://wtafiles.wtatennis.com/pdf/draws/2026/1143/MDS.pdf",
+    "rounds": [
+      {
+        "round": "R32",
+        "matches": [
+          {
+            "a": "Jessica Bouzas Maneiro",
+            "b": "Fangran Tian",
+            "seedA": 1,
+            "seedB": null,
+            "winner": "a",
+            "score": "6-3 4-1",
+            "p": 0.8607,
+            "probSource": "logged",
+            "upset": false
+          },
+          {
+            "a": "Amelia Rajecki",
+            "b": "Yuhan Wang",
+            "seedA": null,
+            "seedB": null,
+            "winner": "b",
+            "score": "6-4 3-6 7-6(1)",
+            "p": 0.755,
+            "probSource": "logged",
+            "upset": true
+          },
+          {
+            "a": "Katarina Zavatska",
+            "b": "Sofya Lansere",
+            "seedA": null,
+            "seedB": null,
+            "winner": "b",
+            "score": "6-3 6-0",
+            "p": 0.636,
+            "probSource": "logged",
+            "upset": true
+          },
+          {
+            "a": "Kristina Mladenovic",
+            "b": "Sofia Costoulas",
+            "seedA": null,
+            "seedB": 5,
+            "winner": "b",
+            "score": "6-2 7-5",
+            "p": 0.1827,
+            "probSource": "logged",
+            "upset": false
+          },
+          {
+            "a": "Tyra Caterina Grant",
+            "b": "Aliona Falei",
+            "seedA": 4,
+            "seedB": null,
+            "winner": "b",
+            "score": "6-4 6-1",
+            "p": 0.6417,
+            "probSource": "logged",
+            "upset": true
+          },
+          {
+            "a": "Kristiana Sidorova",
+            "b": "Daria Egorova",
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": "6-3 6-4",
+            "p": 0.7302,
+            "probSource": "logged",
+            "upset": false
+          },
+          {
+            "a": "Mei Yamaguchi",
+            "b": "Wushuang Zheng",
+            "seedA": null,
+            "seedB": null,
+            "winner": "b",
+            "score": "6-1 6-3",
+            "p": 0.5935,
+            "probSource": "logged",
+            "upset": true
+          },
+          {
+            "a": "Viktoria Morvayova",
+            "b": "Sara Sorribes Tormo",
+            "seedA": null,
+            "seedB": 8,
+            "winner": "b",
+            "score": "6-0 2-6 7-6(1)",
+            "p": 0.2681,
+            "probSource": "logged",
+            "upset": false
+          },
+          {
+            "a": "Alevtina Ibragimova",
+            "b": "Darya Khamutsianskaya",
+            "seedA": 7,
+            "seedB": null,
+            "winner": "a",
+            "score": "3-6 6-4 7-5",
+            "p": 0.781,
+            "probSource": "logged",
+            "upset": false
+          },
+          {
+            "a": "Kyoka Okamura",
+            "b": "Ru Xi Wu",
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": "6-2 6-4",
+            "p": 0.7635,
+            "probSource": "logged",
+            "upset": false
+          },
+          {
+            "a": "Sara Saito",
+            "b": "Chenting Zhu",
+            "seedA": null,
+            "seedB": null,
+            "winner": "b",
+            "score": "6-2 6-3",
+            "p": 0.7933,
+            "probSource": "logged",
+            "upset": true
+          },
+          {
+            "a": "Haruka Kaji",
+            "b": "Emerson Jones",
+            "seedA": null,
+            "seedB": 3,
+            "winner": "b",
+            "score": "6-2 6-4",
+            "p": 0.213,
+            "probSource": "logged",
+            "upset": false
+          },
+          {
+            "a": "Alexandra Shubladze",
+            "b": "Rina Saigo",
+            "seedA": 6,
+            "seedB": null,
+            "winner": "a",
+            "score": "7-5 6-3",
+            "p": 0.6189,
+            "probSource": "logged",
+            "upset": false
+          },
+          {
+            "a": "Lu Jia-Jing",
+            "b": "Hayu Kinoshita",
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": "6-4 6-3",
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": "Sijia Wei",
+            "b": "Yujia Huang",
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": "6-3 1-6 7-6(6)",
+            "p": 0.4173,
+            "probSource": "logged",
+            "upset": true
+          },
+          {
+            "a": "Yidi Yang",
+            "b": "Fiona Ferro",
+            "seedA": null,
+            "seedB": 2,
+            "winner": "b",
+            "score": "6-4 2-6 6-1",
+            "p": 0.1886,
+            "probSource": "logged",
+            "upset": false
+          }
+        ]
+      },
+      {
+        "round": "R16",
+        "matches": [
+          {
+            "a": "Jessica Bouzas Maneiro",
+            "b": "Yuhan Wang",
+            "seedA": 1,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.8788,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Sofya Lansere",
+            "b": "Sofia Costoulas",
+            "seedA": null,
+            "seedB": 5,
+            "winner": null,
+            "score": null,
+            "p": 0.1902,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Aliona Falei",
+            "b": "Kristiana Sidorova",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.4666,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Wushuang Zheng",
+            "b": "Sara Sorribes Tormo",
+            "seedA": null,
+            "seedB": 8,
+            "winner": null,
+            "score": null,
+            "p": 0.2305,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Alevtina Ibragimova",
+            "b": "Kyoka Okamura",
+            "seedA": 7,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.6418,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Chenting Zhu",
+            "b": "Emerson Jones",
+            "seedA": null,
+            "seedB": 3,
+            "winner": null,
+            "score": null,
+            "p": 0.1431,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Alexandra Shubladze",
+            "b": "Lu Jia-Jing",
+            "seedA": 6,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null,
+            "unratedPlayers": [
+              "Lu Jia-Jing"
+            ]
+          },
+          {
+            "a": "Sijia Wei",
+            "b": "Fiona Ferro",
+            "seedA": null,
+            "seedB": 2,
+            "winner": null,
+            "score": null,
+            "p": 0.2641,
+            "probSource": "model",
+            "upset": null
+          }
+        ]
+      }
+    ]
+  },
+  "chinaBracket": {
+    "name": "China Open",
+    "espnId": "959-2026",
+    "start": "2026-09-27",
+    "end": "2026-10-12",
+    "drawSourceUrl": "https://en.wikipedia.org/wiki/2026_China_Open_%E2%80%93_Women%27s_singles",
+    "rounds": [
+      {
+        "round": "R128",
+        "matches": [
+          {
+            "a": "Elena Rybakina",
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": "Yuliia Starodubtseva",
+            "b": "Alina Charaeva",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.5145,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Sonay Kartal",
+            "b": "Andrea Lazaro Garcia",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.7849,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Xinyu Wang",
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": "Marie Bouzkova",
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": "Aoi Ito",
+            "b": "Kimberly Birrell",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.2253,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Qinwen Zheng",
+            "b": "Han Shi",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.9082,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Anna Kalinskaya",
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": "Belinda Bencic",
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": "Yushan Shao",
+            "b": "Anastasia Zakharova",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.1611,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Sofia Kenin",
+            "b": "Ashlyn Krueger",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.5103,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Ann Li",
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": "Maria Sakkari",
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": "Lin Yujun",
+            "b": "Storm Hunter",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null,
+            "unratedPlayers": [
+              "Lin Yujun"
+            ]
+          },
+          {
+            "a": "Magda Linette",
+            "b": "Katerina Siniakova",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.4059,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Elina Svitolina",
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": "Coco Gauff",
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": "Lanlana Tararudee",
+            "b": "Camila Osorio",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.5851,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Eva Lys",
+            "b": "Xinran Sun",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.8537,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Cristina Bucsa",
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": "Jelena Ostapenko",
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": "Paula Badosa",
+            "b": "Daria Kasatkina",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.6702,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Katie Volynets",
+            "b": "Robin Montgomery",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.583,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Elise Mertens",
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": "Iva Jovic",
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": "Harriet Dart",
+            "b": "Yihan Qu",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.8409,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Marina Bassols Ribera",
+            "b": "Kamilla Rakhimova",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.2843,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Leylah Fernandez",
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": "Donna Vekic",
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": "Alycia Parks",
+            "b": "Lin Zhu",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.5966,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Xinyu Gao",
+            "b": "Panna Udvardy",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.2624,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Iga Swiatek",
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": "Linda Noskova",
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": "Elena Gabriela Ruse",
+            "b": "Lilli Tagger",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.5385,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Viktorija Golubic",
+            "b": "Elvina Kalieva",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.5431,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Peyton Stearns",
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": "Ekaterina Alexandrova",
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": "Aliaksandra Sasnovich",
+            "b": "Talia Gibson",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.2957,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Janice Tjen",
+            "b": "Anhelina Kalinina",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.4936,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Diana Shnaider",
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": "Jasmine Paolini",
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": "Daria Snigur",
+            "b": "Katarzyna Kawa",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.7798,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Taylah Preston",
+            "b": "Tamara Korpatsch",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.6462,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Diane Parry",
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": "Clara Tauson",
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": "Mayar Sherif",
+            "b": "Polina Kudermetova",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.4599,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Oleksandra Oliynykova",
+            "b": "Yue Yuan",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.5962,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Mirra Andreeva",
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": "Karolina Muchova",
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": "Mai Hontama",
+            "b": "Katie Boulter",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.2508,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Zhuoxuan Bai",
+            "b": "Linda Fruhvirtova",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.426,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Liudmila Samsonova",
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": "Sara Bejlek",
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": "Maddison Inglis",
+            "b": "Zeynep Sonmez",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.3042,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Darja Vidmanova",
+            "b": "Maria Timofeeva",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.5466,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Naomi Osaka",
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": "Anastasia Potapova",
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": "Maya Joint",
+            "b": "Sinja Kraus",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.8523,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Caty Mcnally",
+            "b": "Dayana Yastremska",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.6915,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Maja Chwalinska",
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": "Nikola Bartunkova",
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": "Elsa Jacquemot",
+            "b": "Magdalena Frech",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.2124,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Anna Bondar",
+            "b": "Renata Zarazua",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.6471,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Aryna Sabalenka",
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": "a",
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          }
+        ]
+      }
+    ]
+  },
+  "matches": [
+    {
+      "espnId": "1028-2026",
+      "id": "184172",
+      "round": {
+        "id": "1",
+        "displayName": "Round 1"
+      },
+      "date": "2026-09-28T05:10Z",
+      "status": {
+        "period": 2,
+        "type": {
+          "id": "3",
+          "name": "STATUS_FINAL",
+          "state": "post",
+          "completed": true,
+          "description": "Final",
+          "detail": "Final",
+          "shortDetail": "Final"
+        }
+      },
+      "players": [
+        {
+          "name": "Hayu Kinoshita",
+          "id": null
+        },
+        {
+          "name": "Lu Jia-Jing",
+          "id": null
+        }
+      ]
+    },
+    {
+      "espnId": "1028-2026",
+      "id": "184194",
+      "round": {
+        "id": "2",
+        "displayName": "Round 2"
+      },
+      "date": "2026-09-30T03:00Z",
+      "status": {
+        "period": 1,
+        "type": {
+          "id": "2",
+          "name": "STATUS_IN_PROGRESS",
+          "state": "in",
+          "completed": false,
+          "description": "In Progress",
+          "detail": "1st Set",
+          "shortDetail": "1st"
+        }
+      },
+      "players": [
+        {
+          "name": "Lu Jia-Jing",
+          "id": null
+        },
+        {
+          "name": "Alexandra Shubladze",
+          "id": null
+        }
+      ]
+    },
+    {
+      "espnId": "959-2026",
+      "id": "186222",
+      "round": {
+        "id": "11",
+        "displayName": "Qualifying 1st Round"
+      },
+      "date": "2026-09-28T03:10Z",
+      "status": {
+        "period": 3,
+        "type": {
+          "id": "3",
+          "name": "STATUS_FINAL",
+          "state": "post",
+          "completed": true,
+          "description": "Final",
+          "detail": "Final",
+          "shortDetail": "Final"
+        }
+      },
+      "players": [
+        {
+          "name": "Ma YeXin",
+          "id": null
+        },
+        {
+          "name": "Ren Yufei",
+          "id": null
+        }
+      ]
+    },
+    {
+      "espnId": "959-2026",
+      "id": "186213",
+      "round": {
+        "id": "14",
+        "displayName": "Qualifying Final"
+      },
+      "date": "2026-09-29T03:10Z",
+      "status": {
+        "period": 2,
+        "type": {
+          "id": "3",
+          "name": "STATUS_FINAL",
+          "state": "post",
+          "completed": true,
+          "description": "Final",
+          "detail": "Final",
+          "shortDetail": "Final"
+        }
+      },
+      "players": [
+        {
+          "name": "Ma YeXin",
+          "id": null
+        },
+        {
+          "name": "Harriet Dart",
+          "id": null
+        }
+      ]
+    },
+    {
+      "espnId": "959-2026",
+      "id": "184266",
+      "round": {
+        "id": "1",
+        "displayName": "Round 1"
+      },
+      "date": "2026-09-30T04:30Z",
+      "status": {
+        "period": 1,
+        "type": {
+          "id": "1",
+          "name": "STATUS_SCHEDULED",
+          "state": "pre",
+          "completed": false,
+          "description": "Scheduled",
+          "detail": "Wed, September 29th at 12:30 AM EDT",
+          "shortDetail": "9/30 - 12:30 AM EDT"
+        }
+      },
+      "players": [
+        {
+          "name": "Polina Kudermetova",
+          "id": null
+        },
+        {
+          "name": "Ma YeXin",
+          "id": null
+        }
+      ]
+    },
+    {
+      "espnId": "959-2026",
+      "id": "184271",
+      "round": {
+        "id": "1",
+        "displayName": "Round 1"
+      },
+      "date": "2026-10-01T04:00Z",
+      "status": {
+        "period": 1,
+        "type": {
+          "id": "1",
+          "name": "STATUS_SCHEDULED",
+          "state": "pre",
+          "completed": false,
+          "description": "Scheduled",
+          "detail": "M/d - 'TBD'",
+          "shortDetail": "TBD"
+        }
+      },
+      "players": [
+        {
+          "name": "Storm Hunter",
+          "id": null
+        },
+        {
+          "name": "Yu Jun Lin",
+          "id": null
+        }
+      ]
+    }
+  ],
+  "history": {
+    "Lu Jia-Jing": {
+      "appearances": 0,
+      "rawIds": []
+    },
+    "Jia Jing Lu": {
+      "appearances": 59,
+      "rawIds": [
+        "203288",
+        "313225"
+      ]
+    },
+    "Ye Xin Ma": {
+      "appearances": 39,
+      "rawIds": [
+        "215946",
+        "322417"
+      ]
+    },
+    "Yexin Ma": {
+      "appearances": 6,
+      "rawIds": [
+        "132988",
+        "334089"
+      ]
+    },
+    "Ma YeXin": {
+      "appearances": 0,
+      "rawIds": []
+    },
+    "Lin Yujun": {
+      "appearances": 0,
+      "rawIds": []
+    },
+    "Yu Jun Lin": {
+      "appearances": 0,
+      "rawIds": []
+    },
+    "Yujun Lin": {
+      "appearances": 0,
+      "rawIds": []
+    }
+  },
+  "identityReview": {
+    "lu": {
+      "canonical": "Jia Jing Lu",
+      "officialProfile": "https://www.wtatennis.com/players/313225/x",
+      "retainedRows": 59,
+      "falsifier": null
+    },
+    "ma": {
+      "canonical": "Ye Xin Ma",
+      "profile": "https://www.wtatennis.com/players/322417/ye-xin-ma",
+      "legacyProfile": "https://www.wtatennis.com/players/334089/yexin-ma",
+      "legacyMatch": "https://www.wtatennis.com/tournaments/1075/wuhan/2024/scores/RS021",
+      "legacyMatchDate": "2024-10-05",
+      "legacyMatchWinner": "Lucia Bronzetti",
+      "legacyMatchScore": "1-6 6-1 6-4",
+      "note": "Official score page links to legacy 334089. Current official 322417 profile displays Yexin Ma and Ye-Xin Ma. Retained 39 majority plus 6 alternate-name rows; no mutual opponent collision.",
+      "falsifier": null
+    },
+    "lin": {
+      "canonical": "Yu Jun Lin",
+      "officialSlot": 27,
+      "opponent": "Storm Hunter",
+      "retainedHistory": false,
+      "note": "Newcomer display alias supported by the same slot/opponent in official and ESPN feeds; not a historical merge. Falsifier canonical-history prerequisite is inapplicable; do not add history or weaken falsify()."
+    }
+  }
+}

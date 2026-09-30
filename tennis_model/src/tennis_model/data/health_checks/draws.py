@@ -11,6 +11,7 @@ from ...config import (
     HEALTH_MAX_SLAM_UPCOMING_START_LAG_DAYS,
     HEALTH_MAX_UPCOMING_START_LAG_DAYS,
 )
+from ..names import name_key
 from ..surface import LEVEL_VOCAB
 from .common import (
     _BYE_DRAW_SIZES,
@@ -464,7 +465,7 @@ def _check_brackets(out: list, tour: str, brackets: list, tournaments, *, rated_
     valid_inventory = (isinstance(rated_players, list) and bool(rated_players)
                        and all(isinstance(p, str) and bool(p.strip()) for p in rated_players)
                        and len(set(rated_players)) == len(rated_players))
-    rated_keys = {_norm_name(p) for p in rated_players} if valid_inventory else set()
+    rated_keys = {name_key(p) for p in rated_players} if valid_inventory else set()
     rated_tokens = {tuple(sorted(p.split())) for p in rated_keys}
     from ...data.draws_official import official_dates_match
     from ...data.results import _name_key
@@ -691,7 +692,7 @@ def _check_brackets(out: list, tour: str, brackets: list, tournaments, *, rated_
         # a real pair. Token equivalence is a review signal, never an auto-alias.
         if status in ("upcoming", "live") and valid_inventory:
             for player in sorted({p for p in nonbye0 if _is_real_name(p)}):
-                key = _norm_name(player)
+                key = name_key(player)
                 if key not in rated_keys and tuple(sorted(key.split())) in rated_tokens:
                     _add_finding(
                         out, "output.bracket.player_identity_unresolved",
@@ -699,7 +700,7 @@ def _check_brackets(out: list, tour: str, brackets: list, tournaments, *, rated_
                         severity="error", entity=f"{event_entity}#player:{key}",
                         evidence={"player": player, "ratedCandidates": sorted(
                             p for p in rated_players
-                            if sorted(_norm_name(p).split()) == sorted(key.split()))})
+                            if sorted(name_key(p).split()) == sorted(key.split()))})
         ds = ev.get("drawSize")
         if isinstance(ds, int) and len(nonbye0) != ds:
             _add_finding(
@@ -775,13 +776,13 @@ def _check_brackets(out: list, tour: str, brackets: list, tournaments, *, rated_
                         evidence={"probability": repr(p), "probabilitySource": repr(src)})
                 unrated = m.get("unratedPlayers")
                 expected_unrated = sorted({p for p in (m.get("a"), m.get("b"))
-                                           if _is_real_name(p) and _norm_name(p) not in rated_keys})
+                                           if _is_real_name(p) and name_key(p) not in rated_keys})
                 justified_unrated = bool(
                     valid_inventory and isinstance(unrated, list) and unrated
                     and unrated == expected_unrated
                     and w is None and p is None and src is None
                     and _is_real_name(m.get("a")) and _is_real_name(m.get("b"))
-                    and all(tuple(sorted(_norm_name(name).split())) not in rated_tokens
+                    and all(tuple(sorted(name_key(name).split())) not in rated_tokens
                             for name in unrated))
                 if unrated is not None and not justified_unrated:
                     _add_finding(

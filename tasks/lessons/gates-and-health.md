@@ -475,3 +475,11 @@ Indexed in [`../lessons.md`](../lessons.md).
   the identity review before a long rebuild. Do not widen aliases to unverified
   candidates merely to empty an audit list; each adoption still needs retained
   match evidence and official identity corroboration.
+
+- **Identity review must use the same punctuation-aware key as ingestion.** (2026-09-30)
+  The early entrant gate lowercased and split whitespace, so `Lu Jia-Jing` did not
+  match the reversed tokens of rated `Jia Jing Lu`. It also accepted a false
+  no-history annotation and shipped a missing R16 forecast. Use shared `name_key`
+  for both model inventory lookup and ambiguous-token review; test hyphens and
+  accents, known and unknown opponents, and genuine newcomers separately. A green
+  deployment check does not substitute for the independent source-to-inventory audit.

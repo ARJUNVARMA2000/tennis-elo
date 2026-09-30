@@ -9012,3 +9012,54 @@ healthy release stayed live. Re-plan check-in shared before further edits.
   validation and release evidence is in `tasks/deploy/2026-09-29-repair.json`.
   Only the final review documents remain to commit; `tasks/**` is excluded from
   push-triggered production refreshes.
+
+### Latest tournament identity audit — 2026-09-29 evening
+
+- [ ] Capture current ATP/WTA public tournaments, draws and independent model inventories.
+- [ ] Compare current source event IDs, names and entrants; review qualifier and unknown-opponent identities.
+- [ ] Recheck prior identity repairs, document findings and any limits of verification.
+
+### Tournament audit review — 2026-09-30 UTC
+
+- [x] Captured the accepted 00:51:43Z release and fresh ESPN featured/date feeds.
+  Audited five live/upcoming events, 224 first-round entrants, and both independent
+  model inventories. Tournament names match ESPN under tour plus event ID.
+- [x] Downloaded all five official draws. ATP China Open, Japan Open and Adana
+  fields reconcile; shortened ATP PDF labels are not additional identity errors.
+- [x] Confirmed one missed identity error: Jingshan's Lu Jia-Jing is official
+  Jia-Jing Lu, represented in model history as Jia Jing Lu (59 retained appearances).
+  Her R16 against Alexandra Shubladze has no forecast. The gate's whitespace-only
+  normalization misses the hyphenated token reversal; this remains unfixed.
+- [x] Confirmed a newer China Open replacement: the official 10:31 AM local draw
+  lists lucky loser Yexin Ma instead of Mayar Sherif, also observed in fresh ESPN.
+  The source revision postdates the accepted release. Ma's two model spellings
+  need provider-ID review before merging; passing the falsifier alone is insufficient.
+- [x] Confirmed Lin Yujun / Yu Jun Lin refers to the same published slot versus
+  Storm Hunter. Neither spelling has model history; no forecast is expected, but
+  display naming remains inconsistent. The five prior China Open aliases resolve.
+- [x] Git history reconciled at 64828c7. Findings and source hashes saved in
+  tasks/deploy/2026-09-30-tournament-audit.json. This was an audit only; no production
+  code, aliases, model artifacts, or deployment changed.
+
+### Tournament identity repair — 2026-09-30
+
+- [ ] Corroborate Lu, Ma and Lin with official match/draw evidence; retain source captures.
+- [ ] Add direct reviewed aliases, fix hyphen-aware identity validation, and replay
+  the new lucky-loser replacement without inventing history for Lin.
+- [ ] Version the changed match population, run Python/web checks, and deploy.
+- [ ] Verify the live names, replacement and forecasts; check a saved-model refresh
+  and append the final review.
+
+- [x] Confirmed Lu via WTA 313225, Ma via current WTA 322417 and the exact official
+  Wuhan 2024 RS021 record behind legacy 334089, and newcomer Lin via the same official
+  draw slot/opponent and ESPN pairing. Lin has no retained history and stays unpriced.
+- [x] Added three direct aliases, shared-name-key gate checks, captured regression
+  replays and population19 contracts. The existing withdrawal resolver correctly
+  replaces Sherif when the captured Ma–Kudermetova pairing is supplied.
+- [x] Focused Python: 278 passed; web: 375 passed; Ruff and whitespace checks passed.
+  Fresh source re-audit resolves every current entrant except genuine newcomer Lin.
+  Full Python validation is running before the production push.
+
+- [x] Full Python validation: 1,926 passed. Reviewed the final changes against
+  64828c7; population19 invalidates the saved predictors so the deployment rebuilds
+  before publishing the corrected identities and updated draw.

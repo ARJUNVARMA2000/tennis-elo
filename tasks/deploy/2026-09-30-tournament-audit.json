@@ -1,0 +1,667 @@
+{
+  "auditedReleaseGeneratedAt": "2026-09-30T00:51:43Z",
+  "scope": "Read-only audit of five live/upcoming tournaments; no deployment or production code change.",
+  "entrants": 224,
+  "sources": {
+    "health": {
+      "url": "https://deuce-forecast.web.app/data/health.json",
+      "sha256": "e26789c9df322d2390d30a0a8cd0dad388ad02edd3809b74c37cc426a55e3c8e"
+    },
+    "atp-meta": {
+      "url": "https://deuce-forecast.web.app/data/atp/meta.json",
+      "sha256": "969a29ac507390af4c93523f1bdc7329b3a7110fb4f34bf6e8155cf1f3653dd5"
+    },
+    "atp-tournaments": {
+      "url": "https://deuce-forecast.web.app/data/atp/tournaments.json",
+      "sha256": "41396f8da5d9761e5cc0f462bc6d91e75c8306dfbed8c435a4b72f78c9dc6f33"
+    },
+    "atp-brackets": {
+      "url": "https://deuce-forecast.web.app/data/atp/brackets.json",
+      "sha256": "91cdc6eee4672adfbf8804abb790436f94ad0537798a5db0a3d96df3c6115580"
+    },
+    "atp-event_coverage": {
+      "url": "https://deuce-forecast.web.app/data/atp/event_coverage.json",
+      "sha256": "a365365f1a9436bd7e5723cb37a7d47d726b203f09f405e28ea173ebacdf4ab8"
+    },
+    "atp-espn-featured": {
+      "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/atp/scoreboard?limit=300",
+      "sha256": "470a7876837fc37002474abf0e5d09b9febd3670d1ea6bb5356d4082bd18f1a7"
+    },
+    "atp-espn-20260929": {
+      "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/atp/scoreboard?limit=300&dates=20260929",
+      "sha256": "37e6c9a47ae089ca68ae0895434b6eef4550a3febdbefee83e73a3ba28bb9ffa"
+    },
+    "atp-espn-20260930": {
+      "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/atp/scoreboard?limit=300&dates=20260930",
+      "sha256": "3143502171b97cf2e7c2f5f072250860eddcf49303bc8eba7ec9b4d4a2d0495a"
+    },
+    "atp-espn-20261001": {
+      "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/atp/scoreboard?limit=300&dates=20261001",
+      "sha256": "94d9cd5779863c5fb1afc1efa7beb6d12cc2fa2bd01b0545bdd312b99bd2dfcf"
+    },
+    "wta-meta": {
+      "url": "https://deuce-forecast.web.app/data/wta/meta.json",
+      "sha256": "c7a9a6b68c70e9af3bbfa7c3623724545e4c0c9f50038471825c91445256f140"
+    },
+    "wta-tournaments": {
+      "url": "https://deuce-forecast.web.app/data/wta/tournaments.json",
+      "sha256": "fd48ae9e920bb8eaacbcb596e9878a475d67acfc5e8abcc48dbb271600a6e1f5"
+    },
+    "wta-brackets": {
+      "url": "https://deuce-forecast.web.app/data/wta/brackets.json",
+      "sha256": "26f2ce7845ebc21c881e4311eebc8f36c707bc365b080f146b5970105264348a"
+    },
+    "wta-event_coverage": {
+      "url": "https://deuce-forecast.web.app/data/wta/event_coverage.json",
+      "sha256": "f8fa45c972fffb45895f905114b372ec6c031041c694ef07a0f0701d7b059ca9"
+    },
+    "wta-espn-featured": {
+      "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard?limit=300",
+      "sha256": "a4016b2e5d3c8a3ab5369590aa48e030c8404a18bc76e7097fe79bd055cad47d"
+    },
+    "wta-espn-20260929": {
+      "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard?limit=300&dates=20260929",
+      "sha256": "66c7e1c3ec9aeb5eaa7d9c168bee3ee693b022fcd79b746f85159707a725cca7"
+    },
+    "wta-espn-20260930": {
+      "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard?limit=300&dates=20260930",
+      "sha256": "66c7e1c3ec9aeb5eaa7d9c168bee3ee693b022fcd79b746f85159707a725cca7"
+    },
+    "wta-espn-20261001": {
+      "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard?limit=300&dates=20261001",
+      "sha256": "66c7e1c3ec9aeb5eaa7d9c168bee3ee693b022fcd79b746f85159707a725cca7"
+    }
+  },
+  "events": [
+    {
+      "tour": "atp",
+      "name": "China Open",
+      "espnId": "959-2026",
+      "status": "upcoming",
+      "start": "2026-09-27",
+      "end": "2026-10-12",
+      "drawSize": 32,
+      "drawStatus": "real",
+      "sourceNames": [
+        "China Open"
+      ],
+      "sourceStart": "2026-09-27T04:00Z",
+      "sourceEnd": "2026-10-12T03:59Z",
+      "entrants": 32,
+      "uniqueEntrants": 32,
+      "unratedEntrants": [],
+      "noncanonicalEntrants": [],
+      "duplicateEntrants": [],
+      "sourceMainPlayers": 32,
+      "sourceUnrated": [],
+      "sourceMainMissingFromBracket": [],
+      "drawSourceUrl": "https://www.protennislive.com/posting/2026/747/mds.pdf",
+      "pendingUnpriced": [],
+      "entrantNames": [
+        "Alexander Zverev",
+        "Cameron Norrie",
+        "Shang Juncheng",
+        "Sebastian Baez",
+        "Juan Manuel Cerundolo",
+        "Bu Yunchaokete",
+        "Nuno Borges",
+        "Novak Djokovic",
+        "Daniil Medvedev",
+        "Pablo Carreno Busta",
+        "Jan-Lennard Struff",
+        "Thiago Agustin Tirante",
+        "Botic van de Zandschulp",
+        "Francisco Cerundolo",
+        "Alexander Bublik",
+        "Jakub Mensik",
+        "Alex de Minaur",
+        "Mariano Navone",
+        "Ignacio Buse",
+        "Quentin Halys",
+        "Tallon Griekspoor",
+        "Andrey Rublev",
+        "Roman Safiullin",
+        "Flavio Cobolli",
+        "Learner Tien",
+        "Hubert Hurkacz",
+        "Zhizhen Zhang",
+        "Arthur Gea",
+        "Alex Molcan",
+        "Arthur Rinderknech",
+        "Karen Khachanov",
+        "Felix Auger-Aliassime"
+      ]
+    },
+    {
+      "tour": "atp",
+      "name": "Kinoshita Group Japan Open Tennis Championships",
+      "espnId": "5-2026",
+      "status": "upcoming",
+      "start": "2026-09-27",
+      "end": "2026-10-07",
+      "drawSize": 32,
+      "drawStatus": "real",
+      "sourceNames": [
+        "Kinoshita Group Japan Open Tennis Championships"
+      ],
+      "sourceStart": "2026-09-27T04:00Z",
+      "sourceEnd": "2026-10-07T03:59Z",
+      "entrants": 32,
+      "uniqueEntrants": 32,
+      "unratedEntrants": [],
+      "noncanonicalEntrants": [],
+      "duplicateEntrants": [],
+      "sourceMainPlayers": 32,
+      "sourceUnrated": [],
+      "sourceMainMissingFromBracket": [],
+      "drawSourceUrl": "https://www.protennislive.com/posting/2026/329/mds.pdf",
+      "pendingUnpriced": [],
+      "entrantNames": [
+        "Carlos Alcaraz",
+        "Alex Michelsen",
+        "Matteo Arnaldi",
+        "Rei Sakamoto",
+        "Denis Shapovalov",
+        "Sho Shimabukuro",
+        "Alejandro Tabilo",
+        "Tommy Paul",
+        "Taylor Fritz",
+        "Jaume Munar",
+        "Lorenzo Musetti",
+        "Arthur Fery",
+        "Holger Rune",
+        "Kyrian Jacquet",
+        "Luciano Darderi",
+        "Casper Ruud",
+        "Brandon Nakashima",
+        "Ugo Humbert",
+        "Jiri Lehecka",
+        "Zizou Bergs",
+        "Alejandro Davidovich Fokina",
+        "Matteo Berrettini",
+        "Adolfo Daniel Vallejo",
+        "Rafael Jodar",
+        "Valentin Vacherot",
+        "Alexander Blockx",
+        "Tomas Martin Etcheverry",
+        "Stefanos Tsitsipas",
+        "Arthur Fils",
+        "Luca Van Assche",
+        "Kei Nishikori",
+        "Frances Tiafoe"
+      ]
+    },
+    {
+      "tour": "wta",
+      "name": "Adana Open",
+      "espnId": "1078-2026",
+      "status": "live",
+      "start": "2026-09-26",
+      "end": "2026-10-05",
+      "drawSize": 32,
+      "drawStatus": "real",
+      "sourceNames": [
+        "Adana Open"
+      ],
+      "sourceStart": "2026-09-26T04:00Z",
+      "sourceEnd": "2026-10-05T03:59Z",
+      "entrants": 32,
+      "uniqueEntrants": 32,
+      "unratedEntrants": [],
+      "noncanonicalEntrants": [],
+      "duplicateEntrants": [],
+      "sourceMainPlayers": 32,
+      "sourceUnrated": [],
+      "sourceMainMissingFromBracket": [],
+      "drawSourceUrl": "https://wtafiles.wtatennis.com/pdf/draws/2026/1179/MDS.pdf",
+      "pendingUnpriced": [],
+      "entrantNames": [
+        "Antonia Ruzic",
+        "Vendula Valdmannova",
+        "Julia Riera",
+        "Anna Siskova",
+        "Teodora Kostovic",
+        "Berfu Cengiz",
+        "Dalma Galfi",
+        "Elena Micic",
+        "Leolia Jeanjean",
+        "Suzan Lamens",
+        "Lola Radivojevic",
+        "Melisa Ercan",
+        "Carole Monnet",
+        "Cagla Buyukakcay",
+        "Elena Ruxandra Bertea",
+        "Lucrezia Stefanini",
+        "Noma Noha Akugue",
+        "Fiona Crawley",
+        "Elena Pridankina",
+        "Ayla Aksu",
+        "Polina Iatcenko",
+        "Erika Andreeva",
+        "Anastasia Tikhonova",
+        "Simona Waltert",
+        "Lucia Bronzetti",
+        "Lois Boisson",
+        "Ksenia Efremova",
+        "Martyna Kubka",
+        "Viktoria Hruncakova",
+        "Anastasia Gasanova",
+        "Emiliana Arango",
+        "Anna Blinkova"
+      ]
+    },
+    {
+      "tour": "wta",
+      "name": "Jingshan Tennis Open",
+      "espnId": "1028-2026",
+      "status": "live",
+      "start": "2026-09-25",
+      "end": "2026-10-05",
+      "drawSize": 32,
+      "drawStatus": "real",
+      "sourceNames": [
+        "Jingshan Tennis Open"
+      ],
+      "sourceStart": "2026-09-25T04:00Z",
+      "sourceEnd": "2026-10-05T03:59Z",
+      "entrants": 32,
+      "uniqueEntrants": 32,
+      "unratedEntrants": [
+        {
+          "name": "Lu Jia-Jing",
+          "canonical": "Lu Jia-Jing",
+          "rated": false,
+          "possibleReversed": [
+            "Jia Jing Lu"
+          ]
+        }
+      ],
+      "noncanonicalEntrants": [],
+      "duplicateEntrants": [],
+      "sourceMainPlayers": 32,
+      "sourceUnrated": [
+        {
+          "name": "Lu Jia-Jing",
+          "canonical": "Lu Jia-Jing",
+          "rated": false,
+          "possibleReversed": [
+            "Jia Jing Lu"
+          ]
+        }
+      ],
+      "sourceMainMissingFromBracket": [],
+      "drawSourceUrl": "https://wtafiles.wtatennis.com/pdf/draws/2026/1143/MDS.pdf",
+      "pendingUnpriced": [
+        {
+          "round": "R16",
+          "a": "Alexandra Shubladze",
+          "b": "Lu Jia-Jing",
+          "seedA": 6,
+          "seedB": null,
+          "winner": null,
+          "score": null,
+          "p": null,
+          "probSource": null,
+          "upset": null,
+          "unratedPlayers": [
+            "Lu Jia-Jing"
+          ]
+        }
+      ],
+      "entrantNames": [
+        "Jessica Bouzas Maneiro",
+        "Fangran Tian",
+        "Amelia Rajecki",
+        "Yuhan Wang",
+        "Katarina Zavatska",
+        "Sofya Lansere",
+        "Kristina Mladenovic",
+        "Sofia Costoulas",
+        "Tyra Caterina Grant",
+        "Aliona Falei",
+        "Kristiana Sidorova",
+        "Daria Egorova",
+        "Mei Yamaguchi",
+        "Wushuang Zheng",
+        "Viktoria Morvayova",
+        "Sara Sorribes Tormo",
+        "Alevtina Ibragimova",
+        "Darya Khamutsianskaya",
+        "Kyoka Okamura",
+        "Ru Xi Wu",
+        "Sara Saito",
+        "Chenting Zhu",
+        "Haruka Kaji",
+        "Emerson Jones",
+        "Alexandra Shubladze",
+        "Rina Saigo",
+        "Lu Jia-Jing",
+        "Hayu Kinoshita",
+        "Sijia Wei",
+        "Yujia Huang",
+        "Yidi Yang",
+        "Fiona Ferro"
+      ]
+    },
+    {
+      "tour": "wta",
+      "name": "China Open",
+      "espnId": "959-2026",
+      "status": "upcoming",
+      "start": "2026-09-27",
+      "end": "2026-10-12",
+      "drawSize": 96,
+      "drawStatus": "real",
+      "sourceNames": [
+        "China Open"
+      ],
+      "sourceStart": "2026-09-27T04:00Z",
+      "sourceEnd": "2026-10-12T03:59Z",
+      "entrants": 96,
+      "uniqueEntrants": 96,
+      "unratedEntrants": [
+        {
+          "name": "Lin Yujun",
+          "canonical": "Lin Yujun",
+          "rated": false,
+          "possibleReversed": []
+        }
+      ],
+      "noncanonicalEntrants": [],
+      "duplicateEntrants": [],
+      "sourceMainPlayers": 96,
+      "sourceUnrated": [
+        {
+          "name": "Yu Jun Lin",
+          "canonical": "Yu Jun Lin",
+          "rated": false,
+          "possibleReversed": []
+        }
+      ],
+      "sourceMainMissingFromBracket": [
+        {
+          "name": "Ma YeXin",
+          "canonical": "Ye Xin Ma",
+          "rated": true,
+          "possibleReversed": []
+        },
+        {
+          "name": "Yu Jun Lin",
+          "canonical": "Yu Jun Lin",
+          "rated": false,
+          "possibleReversed": []
+        }
+      ],
+      "drawSourceUrl": "https://en.wikipedia.org/wiki/2026_China_Open_%E2%80%93_Women%27s_singles",
+      "pendingUnpriced": [
+        {
+          "round": "R128",
+          "a": "Lin Yujun",
+          "b": "Storm Hunter",
+          "seedA": null,
+          "seedB": null,
+          "winner": null,
+          "score": null,
+          "p": null,
+          "probSource": null,
+          "upset": null,
+          "unratedPlayers": [
+            "Lin Yujun"
+          ]
+        }
+      ],
+      "entrantNames": [
+        "Elena Rybakina",
+        "Yuliia Starodubtseva",
+        "Alina Charaeva",
+        "Sonay Kartal",
+        "Andrea Lazaro Garcia",
+        "Xinyu Wang",
+        "Marie Bouzkova",
+        "Aoi Ito",
+        "Kimberly Birrell",
+        "Qinwen Zheng",
+        "Han Shi",
+        "Anna Kalinskaya",
+        "Belinda Bencic",
+        "Yushan Shao",
+        "Anastasia Zakharova",
+        "Sofia Kenin",
+        "Ashlyn Krueger",
+        "Ann Li",
+        "Maria Sakkari",
+        "Lin Yujun",
+        "Storm Hunter",
+        "Magda Linette",
+        "Katerina Siniakova",
+        "Elina Svitolina",
+        "Coco Gauff",
+        "Lanlana Tararudee",
+        "Camila Osorio",
+        "Eva Lys",
+        "Xinran Sun",
+        "Cristina Bucsa",
+        "Jelena Ostapenko",
+        "Paula Badosa",
+        "Daria Kasatkina",
+        "Katie Volynets",
+        "Robin Montgomery",
+        "Elise Mertens",
+        "Iva Jovic",
+        "Harriet Dart",
+        "Yihan Qu",
+        "Marina Bassols Ribera",
+        "Kamilla Rakhimova",
+        "Leylah Fernandez",
+        "Donna Vekic",
+        "Alycia Parks",
+        "Lin Zhu",
+        "Xinyu Gao",
+        "Panna Udvardy",
+        "Iga Swiatek",
+        "Linda Noskova",
+        "Elena Gabriela Ruse",
+        "Lilli Tagger",
+        "Viktorija Golubic",
+        "Elvina Kalieva",
+        "Peyton Stearns",
+        "Ekaterina Alexandrova",
+        "Aliaksandra Sasnovich",
+        "Talia Gibson",
+        "Janice Tjen",
+        "Anhelina Kalinina",
+        "Diana Shnaider",
+        "Jasmine Paolini",
+        "Daria Snigur",
+        "Katarzyna Kawa",
+        "Taylah Preston",
+        "Tamara Korpatsch",
+        "Diane Parry",
+        "Clara Tauson",
+        "Mayar Sherif",
+        "Polina Kudermetova",
+        "Oleksandra Oliynykova",
+        "Yue Yuan",
+        "Mirra Andreeva",
+        "Karolina Muchova",
+        "Mai Hontama",
+        "Katie Boulter",
+        "Zhuoxuan Bai",
+        "Linda Fruhvirtova",
+        "Liudmila Samsonova",
+        "Sara Bejlek",
+        "Maddison Inglis",
+        "Zeynep Sonmez",
+        "Darja Vidmanova",
+        "Maria Timofeeva",
+        "Naomi Osaka",
+        "Anastasia Potapova",
+        "Maya Joint",
+        "Sinja Kraus",
+        "Caty Mcnally",
+        "Dayana Yastremska",
+        "Maja Chwalinska",
+        "Nikola Bartunkova",
+        "Elsa Jacquemot",
+        "Magdalena Frech",
+        "Anna Bondar",
+        "Renata Zarazua",
+        "Aryna Sabalenka"
+      ]
+    }
+  ],
+  "officialDraws": [
+    {
+      "tour": "atp",
+      "id": "959-2026",
+      "url": "https://www.protennislive.com/posting/2026/747/mds.pdf",
+      "sha256": "ce76036391bcf34e077f59308d8b486bba1050ba1691b226f2b327a4b444939c",
+      "officialEntrants": 32,
+      "officialOnly": [
+        "Juncheng Shang",
+        "Juan M\u2026 Cerundolo",
+        "Yunchaokete Bu",
+        "Van De Zandschulp\u2026",
+        "Learner Wc7 Tien",
+        "F\u2026 Auger-Aliassime"
+      ],
+      "liveOnly": [
+        "Shang Juncheng",
+        "Juan Manuel Cerundolo",
+        "Bu Yunchaokete",
+        "Botic van de Zandschulp",
+        "Learner Tien",
+        "Felix Auger-Aliassime"
+      ]
+    },
+    {
+      "tour": "atp",
+      "id": "5-2026",
+      "url": "https://www.protennislive.com/posting/2026/329/mds.pdf",
+      "sha256": "2b7f4d81d2e061a343e21f1f7d383b8af09913c0f158194d4f1b6993c8108e84",
+      "officialEntrants": 32,
+      "officialOnly": [
+        "A\u2026 Davidovich Fokina",
+        "Tomas M\u2026 Etcheverry"
+      ],
+      "liveOnly": [
+        "Alejandro Davidovich Fokina",
+        "Tomas Martin Etcheverry"
+      ]
+    },
+    {
+      "tour": "wta",
+      "id": "1078-2026",
+      "url": "https://wtafiles.wtatennis.com/pdf/draws/2026/1179/MDS.pdf",
+      "sha256": "b7e5d5bc8575b5f93c0329349acbe04a9ae4754de6a3372390e4a18452575394",
+      "officialEntrants": 32,
+      "officialOnly": [],
+      "liveOnly": []
+    },
+    {
+      "tour": "wta",
+      "id": "1028-2026",
+      "url": "https://wtafiles.wtatennis.com/pdf/draws/2026/1143/MDS.pdf",
+      "sha256": "a0ead9fb49c2e2744a832bcead7e2015ea5c49fca8c81483a6bbf264fc9974e0",
+      "officialEntrants": 32,
+      "officialOnly": [
+        "Jia-Jing Lu"
+      ],
+      "liveOnly": [
+        "Lu Jia-Jing"
+      ]
+    },
+    {
+      "tour": "wta",
+      "id": "959-2026",
+      "url": "https://wtafiles.wtatennis.com/pdf/draws/2026/1020/MDS.pdf",
+      "sha256": "0ca02ea8aef5a4c48bd0b3bb2d0c4e964ee7085c06ae07e0a495ec09134f3819",
+      "officialEntrants": 96,
+      "officialOnly": [
+        "Yu Jun Lin",
+        "Yexin Ma"
+      ],
+      "liveOnly": [
+        "Lin Yujun",
+        "Mayar Sherif"
+      ]
+    }
+  ],
+  "retainedHistory": {
+    "Lu Jia-Jing": {
+      "appearances": 0,
+      "rawIds": []
+    },
+    "Jia Jing Lu": {
+      "appearances": 59,
+      "rawIds": [
+        "203288",
+        "313225"
+      ]
+    },
+    "Ye Xin Ma": {
+      "appearances": 39,
+      "rawIds": [
+        "215946",
+        "322417"
+      ]
+    },
+    "Yexin Ma": {
+      "appearances": 6,
+      "rawIds": [
+        "132988",
+        "334089"
+      ]
+    },
+    "Ma YeXin": {
+      "appearances": 0,
+      "rawIds": []
+    },
+    "Lin Yujun": {
+      "appearances": 0,
+      "rawIds": []
+    },
+    "Yu Jun Lin": {
+      "appearances": 0,
+      "rawIds": []
+    },
+    "Yujun Lin": {
+      "appearances": 0,
+      "rawIds": []
+    }
+  },
+  "falsifier": [
+    {
+      "variant": "Lu Jia-Jing",
+      "canonical": "Jia Jing Lu",
+      "rejection": null
+    },
+    {
+      "variant": "Ye Xin Ma",
+      "canonical": "Yexin Ma",
+      "rejection": null
+    }
+  ],
+  "review": {
+    "tournamentNames": "All five exactly match current ESPN event names under tour + espnId. ATP and WTA China Open intentionally share an ESPN event ID.",
+    "atpOfficialDifferences": "Official shortened labels and given/family name order explain the eight comparison differences. All 64 live ATP entrants match ESPN and resolve to model inventory. No production aliases inferred from PDF truncation.",
+    "adana": "All 32 entrants match the official draw and model inventory.",
+    "jingshan": "Lu Jia-Jing maps to official Jia-Jing Lu (WTA 313225); retained model spelling Jia Jing Lu has 59 raw appearances. Current R16 versus Alexandra Shubladze has null probability and incorrectly claims no history. Other 31 entrants resolve.",
+    "gateBlindSpot": {
+      "cause": "The reversed-token gate uses whitespace/case-only _norm_name, so Jia-Jing is one token; shared name_key splits the hyphen and reveals the identity candidate.",
+      "gateKeys": [
+        "lu jia-jing",
+        "jia jing lu"
+      ],
+      "sharedKeys": [
+        "lu jia jing",
+        "jia jing lu"
+      ]
+    },
+    "chinaReplacement": "Official draw released 30 Sep 2026 10:31 AM local lists lucky loser Yexin Ma in slot 91, replacing Mayar Sherif. Fresh ESPN agrees; accepted live release from 00:51:43Z still lists Sherif. Source update postdates that release.",
+    "maIdentityCaution": "Model inventory contains both Ye Xin Ma and Yexin Ma. WTA 322417 official profile spells Yexin Ma, but retained raw histories have differing numeric IDs, including 334089 on Yexin Ma. Numeric WTA IDs are ignored by the existing falsifier because source namespaces differ. A passing falsifier is not sufficient identity proof; review provider-specific IDs before any merge.",
+    "lin": "Official Yu Jun Lin versus live Lin Yujun: same draw slot/opponent Storm Hunter; no history under either spelling or Yujun Lin, so missing forecast is expected, but displayed naming is inconsistent.",
+    "priorRepairs": "Xinran Sun, Yushan Shao, Lin Zhu, Yihan Qu and Zhuoxuan Bai all resolve in the live 96-player field and retain model forecasts. All 12 original qualifiers and two prior lucky losers are present; current source adds a third lucky loser, Ma.",
+    "limits": "No code or data fix was applied. Completed historical tournaments and all eliminated qualifying entrants were not individually re-adjudicated. Findings are tied to captured snapshot hashes."
+  }
+}

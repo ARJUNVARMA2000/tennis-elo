@@ -458,3 +458,6 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - Include the current qualifying winners and lucky losers when auditing identities
   before a rebuild. See [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-09-29)
+
+- Identity review must use the same punctuation-aware key as ingestion. See
+  [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-09-30)
