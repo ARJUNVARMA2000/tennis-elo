@@ -9063,3 +9063,27 @@ healthy release stayed live. Re-plan check-in shared before further edits.
 - [x] Full Python validation: 1,926 passed. Reviewed the final changes against
   64828c7; population19 invalidates the saved predictors so the deployment rebuilds
   before publishing the corrected identities and updated draw.
+
+### Follow-up after publication — 2026-09-30
+
+The full deployment passed, and live checks confirm Lu's repaired forecast and Lin's
+consistent no-history label. Independent verification caught Sherif still in the China
+Open draw despite the new Ma pairing. Re-plan shared before further implementation.
+
+- [ ] Reproduce the draw acquisition/fallback behavior with the captured replacement.
+- [ ] Repair the stale pre-start draw path and add a gate-backed regression.
+- [ ] Deploy the follow-up, then verify all three outcomes and saved-model refresh.
+
+- [x] Reproduced the cause: WTA calls China Open BEIJING, eighth among overlapping
+  calendar candidates, beyond the six-request bound. Explicit source ID 1020 resolves
+  the updated official draw with date evidence and 95/96 current players.
+- [x] Added the reviewed locator and pre-start replacement recovery using current
+  event-ID-scoped field and scheduled opponent. Absence alone never creates a walkover.
+  Extended the schedule gate to catch a new opening-round entrant missing from the draw.
+- [x] Producer-level broken/clean replay and negative controls pass: 235 focused
+  Python tests, Ruff and whitespace checks. Full Python suite is running.
+
+- [x] Follow-up full Python suite: 1,930 passed. The first release passed all 22
+  serving checks and browser verification shows Shubladze–Lu 61/39; Lin remains
+  honestly unpriced. Automated ledger e7375ef is the only remote advance. The draw
+  follow-up reuses population19 models and is ready for guarded deployment.

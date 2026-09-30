@@ -1086,7 +1086,8 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
 
 def project_upcoming(predictor, name: str, wd: dict, tour: str, df: pd.DataFrame,
                      known: set | None, resolve, espn_id: str | None = None,
-                     n_sims: int = 8000, seed: int = 11) -> dict | None:
+                     n_sims: int = 8000, seed: int = 11,
+                     espn_field=None, matchups: list | None = None) -> dict | None:
     """Pre-start projection for an event whose complete draw is out but which hasn't
     played a match yet (so it's absent from the results-driven event list). The full real
     bracket, no eliminations -> honest 'real' pre-tournament title odds from release."""
@@ -1094,7 +1095,16 @@ def project_upcoming(predictor, name: str, wd: dict, tour: str, df: pd.DataFrame
     # A player can withdraw between the draw release and the first ball. The released draw
     # still names them, so the pre-start board must drop them here too — otherwise an event
     # would list them as a contender right up until it goes live and the other path fixes it.
-    withdrawals = _withdrawn_at(tour, espn_id, resolve)
+    # A provider outage may leave a settled but stale pre-start draw. A scheduled
+    # pairing against the vacated slot's opponent is positive replacement evidence,
+    # just as on the live path. Absence alone must not invent a pre-start walkover.
+    replacements = {}
+    if espn_field and matchups:
+        derived, _ = _derive_withdrawals(
+            wslots, {resolve(p) for p in espn_field if is_real(p)}, [],
+            [(resolve(a), resolve(b)) for a, b in matchups])
+        replacements = {gone: entrant for gone, entrant in derived.items() if entrant}
+    withdrawals = {**replacements, **_withdrawn_at(tour, espn_id, resolve)}
     walkovers = {gone for gone, repl in withdrawals.items() if not repl}
     wslots = [(withdrawals.get(s) or s) if s else None for s in wslots]
     field_pool = {s for s in wslots if s is not None} - walkovers
@@ -1294,7 +1304,9 @@ def build_tournaments(predictor, df: pd.DataFrame, tour: str, *, build_date=None
         if bound_end:
             bounded["end"] = max(str(wd.get("end") or bound_end), bound_end)
         t = project_upcoming(predictor, name, bounded, tour, df, known, resolve,
-                             espn_id=wd_id or resolver.id_of(name), **kw)
+                             espn_id=wd_id or resolver.id_of(name),
+                             espn_field=(_lookup(fields_by_id, fields_by_name, wd_id, name) or {}).get("field"),
+                             matchups=_lookup(up_by_id, up_by_name, wd_id, name), **kw)
         if t:
             out.append(t)
     # The results loop groups by RAW tourney_name, so an event whose live/ESPN feed uses a

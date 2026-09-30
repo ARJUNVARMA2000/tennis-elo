@@ -453,3 +453,13 @@ Indexed in [`../lessons.md`](../lessons.md).
   unresolved positions inflated the slot-derived field to 126. Keep the declared size
   separately, preserve unresolved positions, and publish a partial schedule card until
   geometry supports a bracket. A fully named invalid field must still fail the gate.
+
+- **Replacement recovery must run before play starts, not just on live draws.** (2026-09-30)
+  China Open's official BEIJING locator ranked eighth behind overlapping city-calendar
+  entries, outside the six-provider probe bound. The fallback kept Sherif after Ma took
+  her slot; a passing `_derive_withdrawals` test did not prove the upcoming-event caller
+  used it. Pin the independently verified provider locator, feed current field/pairings
+  into the pre-start projection, and apply only positively corroborated replacements.
+  Absence alone must not invent a walkover. The schedule gate must recognize a new
+  opening-round entrant paired with an existing opponent, and a producer-level replay
+  must cover the cached-draw fallback through the real `build_tournaments` entry point.

@@ -376,6 +376,7 @@ def _check_bracket_upcoming_probability_parity(
     pending: dict[tuple[str, str, frozenset[str]], list[dict]] = {}
     represented: set[tuple[str, str, frozenset[str]]] = set()
     event_rounds: dict[str, set[str]] = {}
+    opening_rounds: dict[str, str] = {}
     entrants: dict[str, set[str]] = {}
     for event in brackets:
         if not isinstance(event, dict):
@@ -383,6 +384,8 @@ def _check_bracket_upcoming_probability_parity(
         event_id = str(event.get("espnId") or "").strip()
         if not event_id:
             continue
+        if event.get("status") != "completed" and event.get("rounds"):
+            opening_rounds[event_id] = str(event["rounds"][0].get("round") or "").strip()
         for rnd in event.get("rounds") or []:
             round_name = str(rnd.get("round") or "").strip()
             if event.get("status") != "completed" and round_name:
@@ -415,8 +418,14 @@ def _check_bracket_upcoming_probability_parity(
         # its own derived mainDrawMatchCount still agrees. Limit this witness to entrants
         # in an existing active draw and one of its rounds: qualifying, absent draws and
         # stale schedules for completed events must not be treated as missing main matches.
+        seated = entrants.get(event_id, set())
+        # An opening-round replacement is deliberately absent from the old draw.
+        # One seated opponent plus an exact main-draw round witnesses that new slot;
+        # qualifying rounds and schedules naming two unrelated players stay excluded.
+        replacement_witness = (round_name == opening_rounds.get(event_id)
+                               and bool(pair & seated))
         if (round_name in event_rounds.get(event_id, set()) and len(pair) == 2
-                and pair <= entrants.get(event_id, set()) and key not in represented):
+                and (pair <= seated or replacement_witness) and key not in represented):
             _add_finding(
                 out, "output.bracket.scheduled_match_missing",
                 f"{tour}: scheduled match {a!r} vs {b!r} in {round_name} "

@@ -662,6 +662,9 @@ OFFICIAL_DRAW_ID_OVERRIDES: dict[str, dict[str, str]] = {
     "wta": {
         # Official 2026 PDF spans Sep 14–20 and matches all 32 ESPN entrants.
         # https://wtafiles.wtatennis.com/pdf/draws/2026/1139/MDS.pdf
+        # ESPN China Open vs WTA BEIJING falls outside the six-candidate probe window.
+        # Official 2026 draw 1020 corroborated by dates and 95/96 current entrants.
+        "959-2026": "1020",
         "1005-2026": "1139",  # SP Open / Sao Paulo
         "888-2026": "1045",   # Washington DC
         "875-2026": "2064",   # Odlum Brown VanOpen / Vancouver 125

@@ -110,3 +110,75 @@ def test_accent_and_hyphen_equivalent_rated_names_cannot_claim_no_history(monkey
     _, findings = _project(monkeypatch, ["Jia-Jing Lú", "Alexandra Shubladze"],
                            ["Jia Jing Lu", "Alexandra Shubladze"], lambda n: n)
     assert UNRATED in {f.code for f in findings}
+
+
+def test_china_official_id_is_probed_before_calendar_city_candidates(monkeypatch):
+    from tennis_model.data import draws_official
+
+    # The actual WTA catalogue calls this event BEIJING, after seven nearby entries.
+    nearby = [dict(id=str(i), name=f"City {i}", start="2026-09-27", end="2026-10-04")
+              for i in range(7)]
+    nearby.append(dict(id="1020", name="BEIJING", start="2026-09-30", end="2026-10-11"))
+    monkeypatch.setattr(draws_official, "wta_catalog", lambda year: tuple(nearby))
+    candidates = draws_official.wta_candidate_ids(2026, {
+        "name": "China Open", "espnId": "959-2026", "start": "2026-09-27", "end": "2026-10-12"})
+    assert candidates[0]["id"] == "1020"
+    assert sum(c["id"] == "1020" for c in candidates) == 1
+
+
+@pytest.mark.parametrize("scheduled", [False, True])
+def test_prestart_cached_draw_replacement_and_gate(monkeypatch, scheduled):
+    old = CAPTURE["chinaBracket"]
+    slots = [m[s] for m in old["rounds"][0]["matches"] for s in ("a", "b")]
+    old_field = {_canonical(p) for p in slots if p}
+    current_field = sorted(old_field - {"Mayar Sherif"} | {"Ye Xin Ma"})
+    predictor = _Pred({n: 1500 for n in old_field | set(current_field)})
+    draw = {k: old[k] for k in ("name", "espnId", "start", "end")}
+    draw.update(slots=slots, source="wikipedia", sourceUrl=old["drawSourceUrl"])
+    # Different source display names must still join by the stable edition ID.
+    monkeypatch.setattr(tournaments, "_load_fields", lambda tour: {
+        "Sponsor title": {"espnId": "959-2026", "field": current_field, "eliminated": []}})
+    monkeypatch.setattr(tournaments, "_load_upcoming", lambda tour: {
+        "959-2026": [("Ma YeXin", "Polina Kudermetova")] if scheduled else []})
+    monkeypatch.setattr(tournaments, "_load_upcoming_bounds", lambda tour: {})
+    monkeypatch.setattr(tournaments, "_load_tournament_draws", lambda tour: {"959-2026": draw})
+    monkeypatch.setattr(tournaments, "load_registry", lambda tour: {"events": {}})
+    monkeypatch.setattr(tournaments, "resolve_surface_info", lambda *a, **kw: ("Hard", "wiki"))
+    monkeypatch.setattr(tournaments, "resolve_level", lambda *a, **kw: "WTA 1000")
+    from tennis_model.eval import track
+    monkeypatch.setattr(track, "_read_log", lambda path: [])
+    frame = pd.DataFrame({"date": pd.to_datetime([]), "tourney_name": [], "round": []})
+    card, = tournaments.build_tournaments(predictor, frame, "wta")
+    match = card["bracket"][0]["matches"][45]
+    assert (match["a"], match["b"]) == (
+        "Ye Xin Ma" if scheduled else "Mayar Sherif", "Polina Kudermetova")
+    assert match["winner"] is None and match["p"] == 0.5
+    assert card["drawSize"] == 96
+    data = _healthy_data()
+    data.update(brackets=[{**card, "rounds": card["bracket"]}], upcoming=[{
+        "espnId": "959-2026", "event": "Another sponsor title", "round": "R128",
+        "playerA": "Ma YeXin", "playerB": "Polina Kudermetova", "pA": 0.5}])
+    def missing(d):
+        return [f for f in health.output_findings("wta", _oc(data=d), pd.Timestamp("2026-09-30"))
+                if f.code == "output.bracket.scheduled_match_missing"]
+    assert bool(missing(data)) is not scheduled
+    for change in [dict(round="Q3"), dict(espnId="other-2026"),
+                   dict(playerA="Unrelated A", playerB="Unrelated B")]:
+        unrelated = copy.deepcopy(data)
+        unrelated["upcoming"][0].update(change)
+        assert missing(unrelated) == []
+
+
+def test_prestart_partial_field_does_not_invent_a_walkover(monkeypatch):
+    # ESPN may not yet name the full field. Only a corroborated replacement may move a slot.
+    monkeypatch.setattr(tournaments, "resolve_surface_info", lambda *a, **kw: ("Hard", "wiki"))
+    monkeypatch.setattr(tournaments, "resolve_level", lambda *a, **kw: "WTA 1000")
+    names = ["Mayar Sherif", "Polina Kudermetova"] + [f"Opponent {i}" for i in range(6)]
+    predictor = _Pred({n: 1500 for n in names})
+    frame = pd.DataFrame({"date": pd.to_datetime([]), "tourney_name": [], "round": []})
+    card = tournaments.project_upcoming(
+        predictor, "China Open", {"slots": names, "start": "2026-09-30"}, "wta", frame,
+        set(), _canonical, espn_id="959-2026", espn_field=names[1:],
+        matchups=[("Opponent 0", "Opponent 1")])
+    match = card["bracket"][0]["matches"][0]
+    assert match["a"] == "Mayar Sherif" and match["winner"] is None

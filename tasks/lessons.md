@@ -461,3 +461,6 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - Identity review must use the same punctuation-aware key as ingestion. See
   [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-09-30)
+
+- Replacement recovery must run before play starts, not just on live draws. See
+  [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md). (2026-09-30)
