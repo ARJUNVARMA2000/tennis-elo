@@ -9087,3 +9087,21 @@ Open draw despite the new Ma pairing. Re-plan shared before further implementati
   serving checks and browser verification shows Shubladze–Lu 61/39; Lin remains
   honestly unpriced. Automated ledger e7375ef is the only remote advance. The draw
   follow-up reuses population19 models and is ready for guarded deployment.
+
+### Final tournament repair review — 2026-09-30
+
+- [x] All identity and replacement implementation, validation and deployment items
+  above are complete. Identity repair c98b812 rebuilt population19 successfully in
+  36663846324. Follow-up d9a87f3 passed saved-model deployment 36668508954 after
+  the initial quick verification 36667007430.
+- [x] Final local Python: 1,930 passed; final CI: 1,929 passed / one skipped; web:
+  375 passed. Ruff, integrity gate and all 22 live-serving checks passed. No alerts
+  remain open. Git history reconciled through d9a87f3 and ledger e7375ef.
+- [x] Independently verified accepted release b761f9fb-d195-4d2e-9e43-856e4a00e813
+  at 2026-09-30T04:53:44Z: 461 artifacts, manifest digest, six public artifact hashes,
+  both population19 predictor identities, one Ma model identity and 96 China entrants.
+- [x] Browser and JSON checks agree: Shubladze–Jia Jing Lu 61/39, Ye Xin Ma–Polina
+  Kudermetova 42/58 in Sherif's former slot, and Yu Jun Lin–Storm Hunter explicitly
+  unpriced with no model history. All five previous China Open identity repairs persist.
+- [x] Final evidence saved in tasks/deploy/2026-09-30-repair.json. Only review documents
+  remain to commit; tasks/** is excluded from push-triggered production refreshes.

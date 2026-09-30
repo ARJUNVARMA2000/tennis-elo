@@ -1,0 +1,91 @@
+{
+  "generatedAt": "2026-09-30T04:53:44Z",
+  "healthOk": true,
+  "lineage": {
+    "schema": "artifact-lineage-v1",
+    "status": "accepted",
+    "releaseId": "b761f9fb-d195-4d2e-9e43-856e4a00e813",
+    "manifestSha256": "290c8455de7b9bc2480bcb07aa451c097c3385f7896d20b7c20a22f7555b9b10",
+    "tours": [
+      "atp",
+      "wta"
+    ]
+  },
+  "artifactCount": 461,
+  "verifiedDigests": {
+    "atp/meta.json": "0465b1c358cd4af9f4d406f0d9db3ff6395f87be956feafcb1f4682cd231d8e0",
+    "atp/brackets.json": "7b886cfa2454cfb5f5336937e62374916bff29bcd0a2ba98e2f3b69908f3e55e",
+    "atp/tournaments.json": "47a5a21e5dd7058e361c818c45c1c2285659ba350af29e28dff1fe45c179d8ba",
+    "wta/meta.json": "b14a2ebd06d2d4a0301c79f088f43b55b2a10242f235f737a11468ffb176b7b6",
+    "wta/brackets.json": "745933052b33439a8b5a1f5d8ee07692a0ada7fc8ab0fbad574cff89fa97682a",
+    "wta/tournaments.json": "660184630fba8f71ddd39f0069146761b6271947932ef0b686e65233089bf67a"
+  },
+  "matches": [
+    {
+      "a": "Alexandra Shubladze",
+      "b": "Jia Jing Lu",
+      "seedA": 6,
+      "seedB": null,
+      "winner": null,
+      "score": null,
+      "p": 0.614,
+      "probSource": "model",
+      "upset": null
+    },
+    {
+      "a": "Ye Xin Ma",
+      "b": "Polina Kudermetova",
+      "seedA": null,
+      "seedB": null,
+      "winner": null,
+      "score": null,
+      "p": 0.4208,
+      "probSource": "model",
+      "upset": null
+    },
+    {
+      "a": "Yu Jun Lin",
+      "b": "Storm Hunter",
+      "seedA": null,
+      "seedB": null,
+      "winner": null,
+      "score": null,
+      "p": null,
+      "probSource": null,
+      "upset": null,
+      "unratedPlayers": [
+        "Yu Jun Lin"
+      ]
+    }
+  ],
+  "chinaEntrants": 96,
+  "maSingleModelIdentity": true,
+  "priorFiveRepairsPresent": true,
+  "status": "complete",
+  "identityCommit": "c98b812d71e7c26d0afa4ca2c642c7dec913c1a6",
+  "drawCommit": "d9a87f3df37d98a095eebda7af8c165b0d483aa7",
+  "fullRun": 36663846324,
+  "initialQuickRun": 36667007430,
+  "finalQuickRun": 36668508954,
+  "localPythonPassed": 1930,
+  "ciPython": {
+    "passed": 1929,
+    "skipped": 1
+  },
+  "webPassed": 375,
+  "liveChecksPassed": 22,
+  "openAlerts": [],
+  "browserVerification": {
+    "jingshan": "Shubladze / Jia Jing Lu 61 / 39; forecast views enabled",
+    "chinaSection6": "Ye Xin Ma / Polina Kudermetova 42 / 58",
+    "chinaSection2": "Yu Jun Lin / Storm Hunter; No model history"
+  },
+  "localNormalizedHistory": {
+    "mainMatches": 129211,
+    "withLowerMatches": 146309,
+    "withLowerMaMatches": 45,
+    "withLowerLuMatches": 58,
+    "selfPairs": 0
+  },
+  "note": "The first full release repaired identities but retained Sherif in the Wikipedia draw. Final quick deployment uses verified WTA locator 1020 plus pre-start scheduled-replacement recovery and a stronger schedule gate; all three user-requested outcomes verified independently."
+}
