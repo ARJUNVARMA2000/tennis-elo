@@ -464,3 +464,6 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - Replacement recovery must run before play starts, not just on live draws. See
   [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md). (2026-09-30)
+
+- Both-tour entrant audits must query both tour source indexes, including unfinished
+  qualifiers. See [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-10-04)

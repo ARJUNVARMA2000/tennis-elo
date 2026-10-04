@@ -297,7 +297,9 @@
         "round": {
           "id": "1",
           "displayName": "Round 1"
-        }
+        },
+        "officialProfile": "https://www.itftennis.com/en/players/elvin-egribel/800643741/tur/jt/s/overview/",
+        "retainedHistoryMatches": 0
       }
     ]
   },
@@ -380,9 +382,118 @@
     "webLintErrors": 0,
     "webLintExistingWarnings": 9,
     "ruff": "passed",
-    "fullPython": 1947
+    "fullPython": 1947,
+    "ciPythonPassed": 1946,
+    "ciPythonSkipped": 1,
+    "independentLiveChecks": 22
   },
   "deployment": {
-    "status": "pending"
+    "status": "success",
+    "runId": 37238801743,
+    "commit": "0515154cc32fc894801ed8f860eb929cc947d42e",
+    "mode": "full",
+    "tests": "passed",
+    "sourceDownloads": "passed",
+    "url": "https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/37238801743",
+    "automatedLedgerCommit": "be9f08a",
+    "integrityGate": "passed",
+    "liveServingChecks": 22,
+    "openIssues": []
+  },
+  "liveVerification": {
+    "generatedAt": "2026-10-04T22:59:44Z",
+    "releaseId": "a66981d7-9077-476f-a1e0-9f32c15082dc",
+    "manifestSha256": "aac89ad20a191cb89e2001589a8c6db57c41edc473da7b8330b5e09f91a7c4e3",
+    "artifactCount": 460,
+    "verifiedArtifacts": [
+      {
+        "path": "atp/meta.json",
+        "sha256": "f3b547eff411b3895b8715ee4d2022bd97a9a0eadb116ba1c4a77c01d7b94db4",
+        "producer": "tennis_model.pipeline@git:0515154cc32fc894801ed8f860eb929cc947d42e"
+      },
+      {
+        "path": "atp/tournaments.json",
+        "sha256": "93283100c94c1856033042db6176939cf5dc8457075e7c5426676e1a434539f2",
+        "producer": "tennis_model.pipeline@git:0515154cc32fc894801ed8f860eb929cc947d42e"
+      },
+      {
+        "path": "atp/brackets.json",
+        "sha256": "27f8239a14de7c3135cca8db2f353bbc57d399371efd2d6ef8cce55d077f4932",
+        "producer": "tennis_model.pipeline@git:0515154cc32fc894801ed8f860eb929cc947d42e"
+      },
+      {
+        "path": "wta/meta.json",
+        "sha256": "d9f6eb5eb7cd9066a9070d90741dde926da8d65386a5ab06743a8dae369c65fe",
+        "producer": "tennis_model.pipeline@git:0515154cc32fc894801ed8f860eb929cc947d42e"
+      },
+      {
+        "path": "wta/tournaments.json",
+        "sha256": "a9384bdb32429ebbb25f4a769484fb29c04d82f877fde4f62d41264a2f59a07d",
+        "producer": "tennis_model.pipeline@git:0515154cc32fc894801ed8f860eb929cc947d42e"
+      },
+      {
+        "path": "wta/brackets.json",
+        "sha256": "2b6f6320ca62d391999de5a66844f495c49a190d7175b9d56150219597ec033e",
+        "producer": "tennis_model.pipeline@git:0515154cc32fc894801ed8f860eb929cc947d42e"
+      }
+    ],
+    "populationVersion": 20,
+    "fixedMatches": [
+      {
+        "a": "Hanyu Guo",
+        "b": "Aliona Falei",
+        "seedA": null,
+        "seedB": null,
+        "winner": null,
+        "score": null,
+        "p": 0.5959,
+        "probSource": "model",
+        "upset": null
+      },
+      {
+        "a": "Ruien Zhang",
+        "b": "Tatiana Prozorova",
+        "seedA": null,
+        "seedB": null,
+        "winner": null,
+        "score": null,
+        "p": 0.0835,
+        "probSource": "model",
+        "upset": null
+      }
+    ],
+    "findings": [
+      {
+        "schema": "health-finding-v1",
+        "fingerprint": "hf1:26bab57c67924ea7b792d37eca3e84762b51d6f5be9ed9a7611efb8b75c6bac3",
+        "revision": "hr1:82abce9c1dcba962a26a00b43c29cdaf9a849c5c99883313944d2488dedec4a7",
+        "code": "source.charting.coverage_age",
+        "severity": "info",
+        "scope": "source",
+        "tour": "atp",
+        "entity": "match-charting:atp",
+        "evidence": {
+          "value": 136,
+          "limit": 90,
+          "unit": "d",
+          "date": "2026-05-21"
+        },
+        "message": "atp: Match charting (MCP): volunteer batch source; newest charted match is 136d old (coverage note after 90d)"
+      }
+    ],
+    "modelIdentities": {
+      "atp": "308ca81d-2915-45f2-846f-974d8e0b1ef2",
+      "wta": "9a493c30-b2a2-46bf-8e6f-02215caa6ebe"
+    }
+  },
+  "browserVerification": {
+    "url": "https://deuce-forecast.web.app/bracket/?tour=wta&e=1029-2026",
+    "section1": "Hanyu Guo 60 / 40 Aliona Falei",
+    "section2": "Ruien Zhang 8 / 92 Tatiana Prozorova"
+  },
+  "verificationLogs": {
+    "deploy.log": "d53d3803e4856da43f11e06b227b6a870121ef413804954df6d34c8ce4880323",
+    "live-checks.log": "055a799f5f2e637ce62061a27152ebe587ef39434c91a49c5e7067b8b3be6f7c",
+    "python-tests-final.log": "71e1732bbf5cf5cfa19566a76b365d8889058e9ff449537c97dd9d2e3660b3da"
   }
 }

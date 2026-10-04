@@ -483,3 +483,11 @@ Indexed in [`../lessons.md`](../lessons.md).
   for both model inventory lookup and ambiguous-token review; test hyphens and
   accents, known and unknown opponents, and genuine newcomers separately. A green
   deployment check does not substitute for the independent source-to-inventory audit.
+
+- **Query both tour indexes when auditing the next fields.** (2026-10-04)
+  ESPN's WTA scoreboard includes some men's events, but it did not expose the new
+  Shanghai qualifying field returned by the ATP scoreboard. A both-tour model
+  inventory does not make a single endpoint's entrant list complete. Query both
+  endpoints across current/upcoming dates, include unfinished qualifying matches,
+  and distinguish eliminated historical names from entrants who can still advance.
+  This caught Xiao/Te/Zhang before another rebuild could finish with latent aliases.

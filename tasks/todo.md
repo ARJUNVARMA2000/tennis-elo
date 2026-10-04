@@ -9126,3 +9126,20 @@ Open draw despite the new Ma pairing. Re-plan shared before further implementati
 - [x] Final full Python suite: 1,947 passed. Git history reconciled through d2fbe0e;
   all remote changes since the last repair are automated ledger updates. The five
   reviewed mappings and population20 rebuild are ready for guarded production deploy.
+
+### Final deploy repair review — 2026-10-04
+
+- [x] All items in this round are complete. Repair 0515154 deployed successfully in
+  full refresh 37238801743; retained the automated ledger commit be9f08a afterward.
+- [x] Local Python: 1,947 passed. CI Python: 1,946 passed / one skipped. Web: 375
+  passed. Ruff, build/browser checks, data integrity and all 22 live checks passed.
+  An independent rerun of the live-serving suite also passed all 22 checks.
+- [x] Verified live release a66981d7-9077-476f-a1e0-9f32c15082dc, generated
+  2026-10-04T22:59:44Z: 460 artifacts, matching manifest and six core artifact hashes,
+  repair-commit producers, both rebuilt population20 models, and all five identities.
+- [x] Browser and JSON agree: Hanyu Guo–Aliona Falei 60/40 (p=.5959), Ruien
+  Zhang–Tatiana Prozorova 8/92 (p=.0835); both are model forecasts. All six blocking
+  alerts closed. Health is OK, with only the existing informational charting-age note.
+- [x] Saved evidence in tasks/deploy/2026-10-04-repair.json and documented the
+  both-source-index audit lesson. Git history reconciled through be9f08a; final
+  changes are review documents only, excluded from push-triggered refreshes.
