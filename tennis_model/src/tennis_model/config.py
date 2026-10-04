@@ -166,11 +166,12 @@ WTA_DUAL_STATE_GATE_THRESHOLD = 32
 # Version 17 also resolves the unpaired China Open Qu identity before qualifier settlement.
 # Version 18 joins newly qualified China Open entrant Bai Zhuoxuan to rated history.
 # Version 19 joins Jingshan's Lu and Ma's split histories; standardizes newcomer Lin's name.
-MATCH_POPULATION_VERSION = 19
+# Version 20 joins Suzhou's Guo/Zhang and Shanghai's Xiao/Te/Zhang to rated histories.
+MATCH_POPULATION_VERSION = 20
 REVIEWED_RESULTS = {
-    'atp': {'sha256': 'f639e118d290f6a5cdf4874e5e793a6f2954cfca785c2717388599d61d98d025',
+    'atp': {'sha256': 'c28344a33e737148184428c453abbed488d13adaee86392a6134c112663b03ee',
             'records': 0, 'quarantines': 0},
-    'wta': {'sha256': 'bf4fd146865ca90b917a8bfb4eaed24da7267031ac25e8ab9679f0773c011cb2',
+    'wta': {'sha256': '6e999f8042b1a8cd7353d810b947935ca21a4a2e468abf9f3460773553e17424',
             'records': 528, 'quarantines': 1},
 }
 
@@ -765,6 +766,13 @@ PLAYER_ALIASES: dict[str, str] = {
     # https://www.atptour.com/en/players/fajing-sun/sx90/overview
     "cui jie": "Jie Cui",
     "sun fajing": "Fajing Sun",
+    # Shanghai 2026 qualifying: exact official draw pairs and retained ATP IDs agree.
+    # https://www.atptour.com/en/players/linang-xiao/x01a/overview
+    # https://www.atptour.com/en/players/rigele-te/tg30/overview
+    # https://www.atptour.com/en/players/tianhui-zhang/z0d1/overview
+    "xiao linang": "Linang Xiao",
+    "te rigele": "Rigele Te",
+    "zhang tianhui": "Tianhui Zhang",
     # Jingshan 2026 ESPN entrants; WTA profiles and retained match history agree.
     # https://www.wtatennis.com/players/333741/yuhan-wang
     # https://www.wtatennis.com/players/321329/wushuang-zheng
@@ -778,6 +786,11 @@ PLAYER_ALIASES: dict[str, str] = {
     "zhu lin": "Lin Zhu",
     "qu yihan": "Yihan Qu",  # WTA 333677; reviewed 2026-09-29
     "bai zhuoxuan": "Zhuoxuan Bai",  # WTA 327196; reviewed 2026-09-29
+    # Suzhou's official 2026 draw agrees with WTA 323087 / 333415 and retained history.
+    # https://www.wtatennis.com/players/323087/hanyu-guo
+    # https://www.wtatennis.com/players/333415/ruien-zhang
+    "guo hanyu": "Hanyu Guo",
+    "zhang ruien": "Ruien Zhang",
     # 2026-09-30: official Jingshan draw/profile 313225 + 59 retained appearances.
     "lu jia jing": "Jia Jing Lu",
     # Official China Open slot 27 and ESPN's same pairing both identify Yu Jun Lin.

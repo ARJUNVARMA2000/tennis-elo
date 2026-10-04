@@ -1,0 +1,388 @@
+{
+  "capturedAt": "2026-10-04T22:04:02.314484+00:00",
+  "failedRun": 37236494459,
+  "baselineCommit": "d2fbe0e15f2bb5af5f92138f14b24c305f85c721",
+  "cause": "Suzhou source names Guo Hanyu and Zhang Ruien did not resolve to rated Hanyu Guo and Ruien Zhang; the existing integrity gate blocked six findings.",
+  "populationVersion": 20,
+  "identityReview": [
+    {
+      "kind": "player_alias",
+      "tour": "wta",
+      "variant": "Guo Hanyu",
+      "canonical": "Hanyu Guo",
+      "same_person": true,
+      "falsifierRejection": null,
+      "counts": {
+        "Guo Hanyu": 0,
+        "Hanyu Guo": 60
+      }
+    },
+    {
+      "kind": "player_alias",
+      "tour": "wta",
+      "variant": "Zhang Ruien",
+      "canonical": "Ruien Zhang",
+      "same_person": true,
+      "falsifierRejection": null,
+      "counts": {
+        "Zhang Ruien": 0,
+        "Ruien Zhang": 5
+      }
+    },
+    {
+      "kind": "player_alias",
+      "tour": "atp",
+      "variant": "Xiao Linang",
+      "canonical": "Linang Xiao",
+      "same_person": true,
+      "falsifierRejection": null,
+      "atpId": "X01A",
+      "profileUrl": "https://www.atptour.com/en/players/linang-xiao/x01a/overview",
+      "counts": {
+        "Xiao Linang": 0,
+        "Linang Xiao": 29
+      },
+      "stableIds": {
+        "Xiao Linang": [],
+        "Linang Xiao": [
+          "X01A"
+        ]
+      }
+    },
+    {
+      "kind": "player_alias",
+      "tour": "atp",
+      "variant": "Te Rigele",
+      "canonical": "Rigele Te",
+      "same_person": true,
+      "falsifierRejection": null,
+      "atpId": "TG30",
+      "profileUrl": "https://www.atptour.com/en/players/rigele-te/tg30/overview",
+      "counts": {
+        "Te Rigele": 0,
+        "Rigele Te": 105
+      },
+      "stableIds": {
+        "Te Rigele": [],
+        "Rigele Te": [
+          "TG30"
+        ]
+      }
+    },
+    {
+      "kind": "player_alias",
+      "tour": "atp",
+      "variant": "Zhang Tianhui",
+      "canonical": "Tianhui Zhang",
+      "same_person": true,
+      "falsifierRejection": null,
+      "atpId": "Z0D1",
+      "profileUrl": "https://www.atptour.com/en/players/tianhui-zhang/z0d1/overview",
+      "counts": {
+        "Zhang Tianhui": 0,
+        "Tianhui Zhang": 9
+      },
+      "stableIds": {
+        "Zhang Tianhui": [],
+        "Tianhui Zhang": [
+          "Z0D1"
+        ]
+      }
+    }
+  ],
+  "pendingAudit": {
+    "pendingEvents": [
+      {
+        "tour": "atp",
+        "espnId": "959-2026",
+        "name": "China Open",
+        "entrants": [
+          "Alex de Minaur",
+          "Daniil Medvedev",
+          "Hubert Hurkacz",
+          "Novak Djokovic"
+        ]
+      },
+      {
+        "tour": "atp",
+        "espnId": "5-2026",
+        "name": "Kinoshita Group Japan Open Tennis Championships",
+        "entrants": [
+          "Carlos Alcaraz",
+          "Jaume Munar",
+          "Jiri Lehecka",
+          "Valentin Vacherot"
+        ]
+      },
+      {
+        "tour": "atp",
+        "espnId": "315-2026",
+        "name": "Rolex Shanghai Masters",
+        "entrants": [
+          "Adam Walton",
+          "Aleksandar Vukic",
+          "Aleksandr Shevchenko",
+          "Alex Bolt",
+          "Alexandre Muller",
+          "Alexis Galarneau",
+          "Andre Ilagan",
+          "Aziz Dougaz",
+          "Bernard Tomic",
+          "Billy Harris",
+          "Chak Lam Coleman Wong",
+          "Chun-Hsin Tseng",
+          "Cruz Hewitt",
+          "Cui Jie",
+          "Dalibor Svrcina",
+          "Dane Sweeny",
+          "Elias Ymer",
+          "Federico Agustin Gomez",
+          "Federico Cina",
+          "Hugo Gaston",
+          "Ilia Simakin",
+          "Kimmer Coppejans",
+          "Kyrian Jacquet",
+          "Liam Draxl",
+          "Lloyd Harris",
+          "Lorenzo Sonego",
+          "Luka Pavlovic",
+          "Martin Damm",
+          "Mattia Bellucci",
+          "Michael Zheng",
+          "Nicolas Mejia",
+          "Nikoloz Basilashvili",
+          "Nishesh Basavareddy",
+          "Pavel Kotov",
+          "Rei Sakamoto",
+          "Rio Noguchi",
+          "Roman Safiullin",
+          "SeongChan Hong",
+          "Shintaro Mochizuki",
+          "Stefanos Sakellaridis",
+          "Taro Daniel",
+          "Te Rigele",
+          "Terence Atmane",
+          "Timofey Skatov",
+          "Tristan Schoolkate",
+          "Xiao Linang",
+          "Yoshihito Nishioka",
+          "Zhang Tianhui"
+        ]
+      },
+      {
+        "tour": "wta",
+        "espnId": "959-2026",
+        "name": "China Open",
+        "entrants": [
+          "Alina Charaeva",
+          "Ann Li",
+          "Belinda Bencic",
+          "Coco Gauff",
+          "Daria Snigur",
+          "Donna Vekic",
+          "Ekaterina Alexandrova",
+          "Elina Svitolina",
+          "Elise Mertens",
+          "Iga Swiatek",
+          "Iva Jovic",
+          "Jelena Ostapenko",
+          "Kamilla Rakhimova",
+          "Karolina Muchova",
+          "Linda Noskova",
+          "Maria Sakkari",
+          "Marie Bouzkova",
+          "Mirra Andreeva",
+          "Naomi Osaka",
+          "Nikola Bartunkova",
+          "Sinja Kraus",
+          "Sonay Kartal",
+          "Xinran Sun",
+          "Zheng Qinwen"
+        ]
+      },
+      {
+        "tour": "wta",
+        "espnId": "1029-2026",
+        "name": "Suzhou Open",
+        "entrants": [
+          "Alevtina Ibragimova",
+          "Aliaksandra Sasnovich",
+          "Aliona Falei",
+          "Bai Zhuoxuan",
+          "Claire Liu",
+          "Darja Vidmanova",
+          "Darya Astakhova",
+          "Darya Khamutsianskaya",
+          "Elsa Jacquemot",
+          "Elvina Kalieva",
+          "Emerson Jones",
+          "Guo Hanyu",
+          "Katarina Zavatska",
+          "Kyoka Okamura",
+          "Linda Fruhvirtova",
+          "Lu Jia-Jing",
+          "Ma YeXin",
+          "Mai Hontama",
+          "Mananchaya Sawangkaew",
+          "Moyuka Uchijima",
+          "Oleksandra Oliynykova",
+          "Rebecca Sramkova",
+          "Renata Zarazua",
+          "Shao Yushan",
+          "Shi Han",
+          "Sofia Costoulas",
+          "Tamara Korpatsch",
+          "Tatiana Prozorova",
+          "Tyra Caterina Grant",
+          "Wei Sijia",
+          "Yang Yidi",
+          "Yao Xinxin",
+          "Yulia Putintseva",
+          "Zhang Ruien",
+          "Zheng Wushuang"
+        ]
+      },
+      {
+        "tour": "wta",
+        "espnId": "1036-2026",
+        "name": "Samsun Open",
+        "entrants": [
+          "Alana Smith",
+          "Alicia Dudeney",
+          "Anna Blinkova",
+          "Antonia Ruzic",
+          "Ayla Aksu",
+          "Aysegul Mert",
+          "Bianca Andreescu",
+          "Cagla Buyukakcay",
+          "Carole Monnet",
+          "Caroline Werner",
+          "Dalila Jakupovic",
+          "Dalma Galfi",
+          "Dominika Salkova",
+          "Elena Micic",
+          "Elena Pridankina",
+          "Elvin Egribel",
+          "Emiliana Arango",
+          "Fiona Crawley",
+          "Himeno Sakatsume",
+          "Julia Grabher",
+          "Leolia Jeanjean",
+          "Linda Klimovicova",
+          "Lola Radivojevic",
+          "Lucia Bronzetti",
+          "Lucrezia Stefanini",
+          "Mariam Bolkvadze",
+          "Mariia Tkacheva",
+          "Melisa Ercan",
+          "Noma Noha Akugue",
+          "Oksana Selekhmeteva",
+          "Polina Iatcenko",
+          "Simona Waltert",
+          "Suzan Lamens",
+          "Teodora Kostovic",
+          "Viktoria Hruncakova",
+          "Weronika Falkowska"
+        ]
+      }
+    ],
+    "unrated": [
+      {
+        "tour": "wta",
+        "event": "Samsun Open",
+        "espnId": "1036-2026",
+        "name": "Elvin Egribel",
+        "canonical": "Elvin Egribel",
+        "ratedCandidates": [],
+        "round": {
+          "id": "1",
+          "displayName": "Round 1"
+        }
+      }
+    ]
+  },
+  "sourceArtifacts": [
+    {
+      "file": "atp-brackets.json",
+      "sha256": "61b2843b5f9c2a588d875878c7f3b858de4f185f05d2f3451278f2d1fbab8bd8"
+    },
+    {
+      "file": "atp-meta.json",
+      "sha256": "2fe56c5fbdce29e2eb1dd1f4a22f95a8563250cc139f0ce237e4712a51e0643a"
+    },
+    {
+      "file": "atp-tournaments.json",
+      "sha256": "7b5169fee64d6af7d8339ff4f4635ce3827346475e3392e048c2f01178c3b175"
+    },
+    {
+      "file": "espn-04.json",
+      "sha256": "4df1addd37e17a01d6b7c3f542fab457010b1f32300d9bd4c7f813a1358d707f"
+    },
+    {
+      "file": "espn-05.json",
+      "sha256": "65281094cb6f2e5e4c06c63a52369386a0176570487d109e8a95af0b42e76b95"
+    },
+    {
+      "file": "espn-06.json",
+      "sha256": "65281094cb6f2e5e4c06c63a52369386a0176570487d109e8a95af0b42e76b95"
+    },
+    {
+      "file": "espn-07.json",
+      "sha256": "65281094cb6f2e5e4c06c63a52369386a0176570487d109e8a95af0b42e76b95"
+    },
+    {
+      "file": "espn-atp-20261004.json",
+      "sha256": "a1fd354ee2f8f9b893f5b8cd72836078771fbf518bb53580f66da45d30a5d8f7"
+    },
+    {
+      "file": "espn-atp-20261005.json",
+      "sha256": "617d0a15849c2e4232137e882697128c92666f86fb7b15aa252004b175404dff"
+    },
+    {
+      "file": "espn-atp-20261006.json",
+      "sha256": "617d0a15849c2e4232137e882697128c92666f86fb7b15aa252004b175404dff"
+    },
+    {
+      "file": "shanghai-qs.pdf",
+      "sha256": "bfddcfa3318bcd951503799f6678dcdba4546158e52834106bfca24e2dd1ec18"
+    },
+    {
+      "file": "suzhou-qs.pdf",
+      "sha256": "218a166fd533c24d6c07e3b827765b53e032ed14aaae85bdf6ec56cc8ff6284e"
+    },
+    {
+      "file": "suzhou.pdf",
+      "sha256": "a77b91293f4517929005eba1a7256256046c8f40b332d087f1ddf38bdadb09c2"
+    },
+    {
+      "file": "wta-brackets.json",
+      "sha256": "c003f50c76fcc3caf29002c2f2eb9faf8b50231fdf729ccf6db6cc0fdf823a9e"
+    },
+    {
+      "file": "wta-meta.json",
+      "sha256": "27de64a05831f7a7017b39c639fcf289de6bd646be81739fd6e764ca2a660c81"
+    },
+    {
+      "file": "wta-tournaments.json",
+      "sha256": "2b5bc5d69e9ed7a1a5b7ffdfdb28d39e7500944dc3026befcad5b906ae73d3b9"
+    }
+  ],
+  "officialSources": [
+    "https://wtafiles.wtatennis.com/pdf/draws/2026/1147/MDS.pdf",
+    "https://wtafiles.wtatennis.com/pdf/draws/2026/1147/QS.pdf",
+    "https://www.wtatennis.com/players/323087/hanyu-guo",
+    "https://www.wtatennis.com/players/333415/ruien-zhang",
+    "https://www.protennislive.com/posting/2026/5014/qs.pdf"
+  ],
+  "validation": {
+    "focusedPython": 127,
+    "webTests": 375,
+    "webLintErrors": 0,
+    "webLintExistingWarnings": 9,
+    "ruff": "passed",
+    "fullPython": 1947
+  },
+  "deployment": {
+    "status": "pending"
+  }
+}

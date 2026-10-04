@@ -9105,3 +9105,24 @@ Open draw despite the new Ma pairing. Re-plan shared before further implementati
   unpriced with no model history. All five previous China Open identity repairs persist.
 - [x] Final evidence saved in tasks/deploy/2026-09-30-repair.json. Only review documents
   remain to commit; tasks/** is excluded from push-triggered production refreshes.
+- 2026-10-04 deploy repair plan (current round)
+  - [ ] Reproduce Suzhou's blocked identities against official sources and retained history; audit current fields and qualifiers.
+  - [ ] Add reviewed aliases, advance the predictor population contract, and replay broken/clean captured entrants through the existing gate.
+  - [ ] Run validation, deploy, and independently verify the published data and serving checks.
+
+- [x] Confirmed Suzhou's two blocked identities via the official 1147 draw, WTA
+  profiles 323087/333415 and 60/5 retained appearances. The existing gate correctly
+  blocks all six resulting findings; no invariant relaxation is needed.
+- [x] Expanded the pre-rebuild audit to both tours' pending qualifiers. Shanghai
+  adds Xiao Linang, Te Rigele and Zhang Tianhui; exact official 5014 qualifying
+  pairings and retained IDs X01A/TG30/Z0D1 corroborate 29/105/9 appearances.
+- [x] Added all five direct aliases, population20 contracts and captured producer/gate
+  replays with known/unknown opponents. Focused final validation: 127 passed.
+  Web: 375 passed; lint has nine existing warnings and no errors. Ruff passes.
+  Both-tour pending audit now has no unresolved rated-player candidates; Samsun's
+  Elvin Egribel remains genuinely absent from the published model inventory.
+- [ ] Run the final full suite after the Shanghai additions, then publish and verify.
+
+- [x] Final full Python suite: 1,947 passed. Git history reconciled through d2fbe0e;
+  all remote changes since the last repair are automated ledger updates. The five
+  reviewed mappings and population20 rebuild are ready for guarded production deploy.

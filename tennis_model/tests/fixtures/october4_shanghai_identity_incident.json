@@ -1,0 +1,1400 @@
+{
+  "name": "Rolex Shanghai Masters",
+  "espnId": "315-2026",
+  "sourceUrl": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/atp/scoreboard?dates=20261005&limit=300",
+  "officialDrawUrl": "https://www.protennislive.com/posting/2026/5014/qs.pdf",
+  "officialSha256": "bfddcfa3318bcd951503799f6678dcdba4546158e52834106bfca24e2dd1ec18",
+  "officialSlots": [
+    "Linang Xiao",
+    "Federico Cina",
+    "Kyrian Jacquet",
+    "Tianhui Zhang",
+    "Adam Walton",
+    "Rigele Te"
+  ],
+  "matches": [
+    {
+      "id": "186314",
+      "date": "2026-10-05T04:00Z",
+      "players": [
+        "Federico Cina",
+        "Xiao Linang"
+      ]
+    },
+    {
+      "id": "186304",
+      "date": "2026-10-05T05:30Z",
+      "players": [
+        "Te Rigele",
+        "Adam Walton"
+      ]
+    },
+    {
+      "id": "186311",
+      "date": "2026-10-05T07:00Z",
+      "players": [
+        "Zhang Tianhui",
+        "Kyrian Jacquet"
+      ]
+    }
+  ],
+  "identityReview": [
+    {
+      "kind": "player_alias",
+      "tour": "atp",
+      "variant": "Xiao Linang",
+      "canonical": "Linang Xiao",
+      "same_person": true,
+      "falsifierRejection": null,
+      "atpId": "X01A",
+      "profileUrl": "https://www.atptour.com/en/players/linang-xiao/x01a/overview",
+      "counts": {
+        "Xiao Linang": 0,
+        "Linang Xiao": 29
+      },
+      "stableIds": {
+        "Xiao Linang": [],
+        "Linang Xiao": [
+          "X01A"
+        ]
+      }
+    },
+    {
+      "kind": "player_alias",
+      "tour": "atp",
+      "variant": "Te Rigele",
+      "canonical": "Rigele Te",
+      "same_person": true,
+      "falsifierRejection": null,
+      "atpId": "TG30",
+      "profileUrl": "https://www.atptour.com/en/players/rigele-te/tg30/overview",
+      "counts": {
+        "Te Rigele": 0,
+        "Rigele Te": 105
+      },
+      "stableIds": {
+        "Te Rigele": [],
+        "Rigele Te": [
+          "TG30"
+        ]
+      }
+    },
+    {
+      "kind": "player_alias",
+      "tour": "atp",
+      "variant": "Zhang Tianhui",
+      "canonical": "Tianhui Zhang",
+      "same_person": true,
+      "falsifierRejection": null,
+      "atpId": "Z0D1",
+      "profileUrl": "https://www.atptour.com/en/players/tianhui-zhang/z0d1/overview",
+      "counts": {
+        "Zhang Tianhui": 0,
+        "Tianhui Zhang": 9
+      },
+      "stableIds": {
+        "Zhang Tianhui": [],
+        "Tianhui Zhang": [
+          "Z0D1"
+        ]
+      }
+    }
+  ],
+  "historyRows": [
+    {
+      "winner_name": "Matheus Pucinelli De Almeida",
+      "loser_name": "Rigele Te",
+      "winner_id": "P0DF",
+      "loser_id": "TG30",
+      "tourney_id": "2023-M-DC-2023-WG1-PO-BRA-CHN-01",
+      "tourney_date": "20230203",
+      "sourceFile": "data/raw/atp/historical/2023.csv"
+    },
+    {
+      "winner_name": "Gustavo Heide",
+      "loser_name": "Rigele Te",
+      "winner_id": "H0DU",
+      "loser_id": "TG30",
+      "tourney_id": "2023-M-DC-2023-WG1-PO-BRA-CHN-01",
+      "tourney_date": "20230203",
+      "sourceFile": "data/raw/atp/historical/2023.csv"
+    },
+    {
+      "winner_name": "Rigele Te",
+      "loser_name": "Ernesto Escobedo",
+      "winner_id": "TG30",
+      "loser_id": "E873",
+      "tourney_id": "2023-M-DC-2023-WG2-M-MEX-CHN-01",
+      "tourney_date": "20230916",
+      "sourceFile": "data/raw/atp/historical/2023.csv"
+    },
+    {
+      "winner_name": "Jaume Munar",
+      "loser_name": "Rigele Te",
+      "winner_id": "MU94",
+      "loser_id": "TG30",
+      "tourney_id": "2023-5014",
+      "tourney_date": "20231002",
+      "sourceFile": "data/raw/atp/historical/2023.csv"
+    },
+    {
+      "winner_name": "Rigele Te",
+      "loser_name": "Ignacio Carou",
+      "winner_id": "TG30",
+      "loser_id": "C09G",
+      "tourney_id": "2022-M-DC-2022-WG2-M-URU-CHN-01",
+      "tourney_date": "20220916",
+      "sourceFile": "data/raw/atp/historical/2022.csv"
+    },
+    {
+      "winner_name": "Cezar Cretu",
+      "loser_name": "Rigele Te",
+      "winner_id": "C0B2",
+      "loser_id": "TG30",
+      "tourney_id": "2024-M-DC-2024-WG2-M-ROU-CHN-01",
+      "tourney_date": "20240913",
+      "sourceFile": "data/raw/atp/historical/2024.csv"
+    },
+    {
+      "winner_name": "Blake Ellis",
+      "loser_name": "Linang Xiao",
+      "winner_id": "EA27",
+      "loser_id": "X01A",
+      "tourney_id": "2026-3081",
+      "tourney_date": "20260413",
+      "sourceFile": "data/raw/atp/lower/2026_challenger.csv"
+    },
+    {
+      "winner_name": "Tung-Lin Wu",
+      "loser_name": "Rigele Te",
+      "winner_id": "W857",
+      "loser_id": "TG30",
+      "tourney_id": "2026-3083",
+      "tourney_date": "20260427",
+      "sourceFile": "data/raw/atp/lower/2026_challenger.csv"
+    },
+    {
+      "winner_name": "Dane Sweeny",
+      "loser_name": "Rigele Te",
+      "winner_id": "S0IA",
+      "loser_id": "TG30",
+      "tourney_id": "2026-2921",
+      "tourney_date": "20260504",
+      "sourceFile": "data/raw/atp/lower/2026_challenger.csv"
+    },
+    {
+      "winner_name": "Mikhail Kukushkin",
+      "loser_name": "Tianhui Zhang",
+      "winner_id": "K926",
+      "loser_id": "Z0D1",
+      "tourney_id": "2026-2921",
+      "tourney_date": "20260504",
+      "sourceFile": "data/raw/atp/lower/2026_challenger.csv"
+    },
+    {
+      "winner_name": "Chun-Hsin Tseng",
+      "loser_name": "Tianhui Zhang",
+      "winner_id": "T0AP",
+      "loser_id": "Z0D1",
+      "tourney_id": "2026-7783",
+      "tourney_date": "20260831",
+      "sourceFile": "data/raw/atp/lower/2026_challenger.csv"
+    },
+    {
+      "winner_name": "Linang Xiao",
+      "loser_name": "Kaichi Uchida",
+      "winner_id": "X01A",
+      "loser_id": "U120",
+      "tourney_id": "2026-6313",
+      "tourney_date": "20260907",
+      "sourceFile": "data/raw/atp/lower/2026_challenger.csv"
+    },
+    {
+      "winner_name": "Rio Noguchi",
+      "loser_name": "Rigele Te",
+      "winner_id": "N09U",
+      "loser_id": "TG30",
+      "tourney_id": "2026-6313",
+      "tourney_date": "20260907",
+      "sourceFile": "data/raw/atp/lower/2026_challenger.csv"
+    },
+    {
+      "winner_name": "Alexis Galarneau",
+      "loser_name": "Linang Xiao",
+      "winner_id": "GK06",
+      "loser_id": "X01A",
+      "tourney_id": "2026-6313",
+      "tourney_date": "20260907",
+      "sourceFile": "data/raw/atp/lower/2026_challenger.csv"
+    },
+    {
+      "winner_name": "Colin Sinclair",
+      "loser_name": "Linang Xiao",
+      "winner_id": "SQ79",
+      "loser_id": "X01A",
+      "tourney_id": "2026-2937",
+      "tourney_date": "20260914",
+      "sourceFile": "data/raw/atp/lower/2026_challenger.csv"
+    },
+    {
+      "winner_name": "Henri Laaksonen",
+      "loser_name": "Rigele Te",
+      "winner_id": "L949",
+      "loser_id": "TG30",
+      "tourney_id": "2016-6967",
+      "tourney_date": "20160926",
+      "sourceFile": "data/raw/atp/lower/2016_atp_quali.csv"
+    },
+    {
+      "winner_name": "Terence Atmane",
+      "loser_name": "Rigele Te",
+      "winner_id": "A0GC",
+      "loser_id": "TG30",
+      "tourney_id": "2025-6965",
+      "tourney_date": "20250428",
+      "sourceFile": "data/raw/atp/lower/2025_challenger.csv"
+    },
+    {
+      "winner_name": "Ilia Simakin",
+      "loser_name": "Rigele Te",
+      "winner_id": "S0O6",
+      "loser_id": "TG30",
+      "tourney_id": "2025-2921",
+      "tourney_date": "20250505",
+      "sourceFile": "data/raw/atp/lower/2025_challenger.csv"
+    },
+    {
+      "winner_name": "Rio Noguchi",
+      "loser_name": "Linang Xiao",
+      "winner_id": "N09U",
+      "loser_id": "X01A",
+      "tourney_id": "2025-7783",
+      "tourney_date": "20250825",
+      "sourceFile": "data/raw/atp/lower/2025_challenger.csv"
+    },
+    {
+      "winner_name": "Joshua Charlton",
+      "loser_name": "Rigele Te",
+      "winner_id": "C09Y",
+      "loser_id": "TG30",
+      "tourney_id": "2025-7783",
+      "tourney_date": "20250825",
+      "sourceFile": "data/raw/atp/lower/2025_challenger.csv"
+    },
+    {
+      "winner_name": "Christopher O'Connell",
+      "loser_name": "Rigele Te",
+      "winner_id": "O483",
+      "loser_id": "TG30",
+      "tourney_id": "2025-2937",
+      "tourney_date": "20250908",
+      "sourceFile": "data/raw/atp/lower/2025_challenger.csv"
+    },
+    {
+      "winner_name": "Petr Bar Biryukov",
+      "loser_name": "Tianhui Zhang",
+      "winner_id": "B0LQ",
+      "loser_id": "Z0D1",
+      "tourney_id": "2025-2937",
+      "tourney_date": "20250908",
+      "sourceFile": "data/raw/atp/lower/2025_challenger.csv"
+    },
+    {
+      "winner_name": "Oliver Crawford",
+      "loser_name": "Linang Xiao",
+      "winner_id": "C0AK",
+      "loser_id": "X01A",
+      "tourney_id": "2025-2937",
+      "tourney_date": "20250908",
+      "sourceFile": "data/raw/atp/lower/2025_challenger.csv"
+    },
+    {
+      "winner_name": "Hyeon Chung",
+      "loser_name": "Rigele Te",
+      "winner_id": "CH27",
+      "loser_id": "TG30",
+      "tourney_id": "2025-3027",
+      "tourney_date": "20251013",
+      "sourceFile": "data/raw/atp/lower/2025_challenger.csv"
+    },
+    {
+      "winner_name": "Pavel Kotov",
+      "loser_name": "Tianhui Zhang",
+      "winner_id": "K09F",
+      "loser_id": "Z0D1",
+      "tourney_id": "2025-3027",
+      "tourney_date": "20251013",
+      "sourceFile": "data/raw/atp/lower/2025_challenger.csv"
+    },
+    {
+      "winner_name": "Aoran Wang",
+      "loser_name": "Rigele Te",
+      "winner_id": "W741",
+      "loser_id": "TG30",
+      "tourney_id": "2025-3033",
+      "tourney_date": "20251020",
+      "sourceFile": "data/raw/atp/lower/2025_challenger.csv"
+    },
+    {
+      "winner_name": "Philip Sekulic",
+      "loser_name": "Rigele Te",
+      "winner_id": "S0TI",
+      "loser_id": "TG30",
+      "tourney_id": "2023-7496",
+      "tourney_date": "20230826",
+      "sourceFile": "data/raw/atp/lower/2023_challenger.csv"
+    },
+    {
+      "winner_name": "Rigele Te",
+      "loser_name": "Yunchaokete Bu",
+      "winner_id": "TG30",
+      "loser_id": "Y09V",
+      "tourney_id": "2023-7783",
+      "tourney_date": "20230828",
+      "sourceFile": "data/raw/atp/lower/2023_challenger.csv"
+    },
+    {
+      "winner_name": "Linang Xiao",
+      "loser_name": "Rio Noguchi",
+      "winner_id": "X01A",
+      "loser_id": "N09U",
+      "tourney_id": "2023-7783",
+      "tourney_date": "20230828",
+      "sourceFile": "data/raw/atp/lower/2023_challenger.csv"
+    },
+    {
+      "winner_name": "Mikalai Haliak",
+      "loser_name": "Linang Xiao",
+      "winner_id": "HH15",
+      "loser_id": "X01A",
+      "tourney_id": "2023-7783",
+      "tourney_date": "20230828",
+      "sourceFile": "data/raw/atp/lower/2023_challenger.csv"
+    },
+    {
+      "winner_name": "Rigele Te",
+      "loser_name": "Filip Peliwo",
+      "winner_id": "TG30",
+      "loser_id": "PF65",
+      "tourney_id": "2023-7783",
+      "tourney_date": "20230828",
+      "sourceFile": "data/raw/atp/lower/2023_challenger.csv"
+    },
+    {
+      "winner_name": "James McCabe",
+      "loser_name": "Rigele Te",
+      "winner_id": "M0OQ",
+      "loser_id": "TG30",
+      "tourney_id": "2023-7783",
+      "tourney_date": "20230828",
+      "sourceFile": "data/raw/atp/lower/2023_challenger.csv"
+    },
+    {
+      "winner_name": "Yunchaokete Bu",
+      "loser_name": "Rigele Te",
+      "winner_id": "Y09V",
+      "loser_id": "TG30",
+      "tourney_id": "2023-6313",
+      "tourney_date": "20230910",
+      "sourceFile": "data/raw/atp/lower/2023_challenger.csv"
+    },
+    {
+      "winner_name": "Lorenzo Giustino",
+      "loser_name": "Rigele Te",
+      "winner_id": "GA79",
+      "loser_id": "TG30",
+      "tourney_id": "2023-2897",
+      "tourney_date": "20231015",
+      "sourceFile": "data/raw/atp/lower/2023_challenger.csv"
+    },
+    {
+      "winner_name": "Coleman Wong",
+      "loser_name": "Linang Xiao",
+      "winner_id": "W0BH",
+      "loser_id": "X01A",
+      "tourney_id": "2023-2897",
+      "tourney_date": "20231015",
+      "sourceFile": "data/raw/atp/lower/2023_challenger.csv"
+    },
+    {
+      "winner_name": "Yu Hsiou Hsu",
+      "loser_name": "Rigele Te",
+      "winner_id": "H09F",
+      "loser_id": "TG30",
+      "tourney_id": "2023-7797",
+      "tourney_date": "20231015",
+      "sourceFile": "data/raw/atp/lower/2023_challenger.csv"
+    },
+    {
+      "winner_name": "James Duckworth",
+      "loser_name": "Rigele Te",
+      "winner_id": "D994",
+      "loser_id": "TG30",
+      "tourney_id": "2024-2897",
+      "tourney_date": "20240428",
+      "sourceFile": "data/raw/atp/lower/2024_challenger.csv"
+    },
+    {
+      "winner_name": "Paul Jubb",
+      "loser_name": "Linang Xiao",
+      "winner_id": "J0A4",
+      "loser_id": "X01A",
+      "tourney_id": "2024-2937",
+      "tourney_date": "20240429",
+      "sourceFile": "data/raw/atp/lower/2024_challenger.csv"
+    },
+    {
+      "winner_name": "Rigele Te",
+      "loser_name": "Yasutaka Uchiyama",
+      "winner_id": "TG30",
+      "loser_id": "U134",
+      "tourney_id": "2024-6965",
+      "tourney_date": "20240429",
+      "sourceFile": "data/raw/atp/lower/2024_challenger.csv"
+    },
+    {
+      "winner_name": "Beibit Zhukayev",
+      "loser_name": "Rigele Te",
+      "winner_id": "Z09Z",
+      "loser_id": "TG30",
+      "tourney_id": "2024-6965",
+      "tourney_date": "20240429",
+      "sourceFile": "data/raw/atp/lower/2024_challenger.csv"
+    },
+    {
+      "winner_name": "Rigele Te",
+      "loser_name": "Evgeny Donskoy",
+      "winner_id": "TG30",
+      "loser_id": "D864",
+      "tourney_id": "2024-2921",
+      "tourney_date": "20240512",
+      "sourceFile": "data/raw/atp/lower/2024_challenger.csv"
+    },
+    {
+      "winner_name": "Linang Xiao",
+      "loser_name": "Hanwen Li",
+      "winner_id": "X01A",
+      "loser_id": "L0FW",
+      "tourney_id": "2024-2921",
+      "tourney_date": "20240512",
+      "sourceFile": "data/raw/atp/lower/2024_challenger.csv"
+    },
+    {
+      "winner_name": "Yunchaokete Bu",
+      "loser_name": "Linang Xiao",
+      "winner_id": "Y09V",
+      "loser_id": "X01A",
+      "tourney_id": "2024-2921",
+      "tourney_date": "20240512",
+      "sourceFile": "data/raw/atp/lower/2024_challenger.csv"
+    },
+    {
+      "winner_name": "Remy Bertola",
+      "loser_name": "Rigele Te",
+      "winner_id": "BU70",
+      "loser_id": "TG30",
+      "tourney_id": "2024-2921",
+      "tourney_date": "20240512",
+      "sourceFile": "data/raw/atp/lower/2024_challenger.csv"
+    },
+    {
+      "winner_name": "Tung-Lin Wu",
+      "loser_name": "Linang Xiao",
+      "winner_id": "W857",
+      "loser_id": "X01A",
+      "tourney_id": "2024-7746",
+      "tourney_date": "20240824",
+      "sourceFile": "data/raw/atp/lower/2024_challenger.csv"
+    },
+    {
+      "winner_name": "Yosuke Watanuki",
+      "loser_name": "Rigele Te",
+      "winner_id": "WB08",
+      "loser_id": "TG30",
+      "tourney_id": "2024-6313",
+      "tourney_date": "20240908",
+      "sourceFile": "data/raw/atp/lower/2024_challenger.csv"
+    },
+    {
+      "winner_name": "Zachary Svajda",
+      "loser_name": "Tianhui Zhang",
+      "winner_id": "S0K7",
+      "loser_id": "Z0D1",
+      "tourney_id": "2024-2947",
+      "tourney_date": "20241013",
+      "sourceFile": "data/raw/atp/lower/2024_challenger.csv"
+    },
+    {
+      "winner_name": "Vadym Ursu",
+      "loser_name": "Rigele Te",
+      "winner_id": "U176",
+      "loser_id": "TG30",
+      "tourney_id": "2024-2947",
+      "tourney_date": "20241013",
+      "sourceFile": "data/raw/atp/lower/2024_challenger.csv"
+    },
+    {
+      "winner_name": "Alejandro Tabilo",
+      "loser_name": "Rigele Te",
+      "winner_id": "TE30",
+      "loser_id": "TG30",
+      "tourney_id": "2025-7581",
+      "tourney_date": "20250917",
+      "sourceFile": "data/raw/atp/lower/2025_atp_quali.csv"
+    },
+    {
+      "winner_name": "Eliot Spizzirri",
+      "loser_name": "Linang Xiao",
+      "winner_id": "S0JA",
+      "loser_id": "X01A",
+      "tourney_id": "2025-5014",
+      "tourney_date": "20251001",
+      "sourceFile": "data/raw/atp/lower/2025_atp_quali.csv"
+    },
+    {
+      "winner_name": "Ugo Blanchet",
+      "loser_name": "Rigele Te",
+      "winner_id": "BV16",
+      "loser_id": "TG30",
+      "tourney_id": "2025-5014",
+      "tourney_date": "20251001",
+      "sourceFile": "data/raw/atp/lower/2025_atp_quali.csv"
+    },
+    {
+      "winner_name": "Ruben Bemelmans",
+      "loser_name": "Rigele Te",
+      "winner_id": "BE54",
+      "loser_id": "TG30",
+      "tourney_id": "2018-7581",
+      "tourney_date": "20180924",
+      "sourceFile": "data/raw/atp/lower/2018_atp_quali.csv"
+    },
+    {
+      "winner_name": "Vasek Pospisil",
+      "loser_name": "Rigele Te",
+      "winner_id": "PD07",
+      "loser_id": "TG30",
+      "tourney_id": "2018-747",
+      "tourney_date": "20181001",
+      "sourceFile": "data/raw/atp/lower/2018_atp_quali.csv"
+    },
+    {
+      "winner_name": "Martin Klizan",
+      "loser_name": "Rigele Te",
+      "winner_id": "K966",
+      "loser_id": "TG30",
+      "tourney_id": "2018-5014",
+      "tourney_date": "20181007",
+      "sourceFile": "data/raw/atp/lower/2018_atp_quali.csv"
+    },
+    {
+      "winner_name": "Filip Peliwo",
+      "loser_name": "Rigele Te",
+      "winner_id": "PF65",
+      "loser_id": "TG30",
+      "tourney_id": "2018-7797",
+      "tourney_date": "20180318",
+      "sourceFile": "data/raw/atp/lower/2018_challenger.csv"
+    },
+    {
+      "winner_name": "Henri Laaksonen",
+      "loser_name": "Rigele Te",
+      "winner_id": "L949",
+      "loser_id": "TG30",
+      "tourney_id": "2018-7772",
+      "tourney_date": "20180730",
+      "sourceFile": "data/raw/atp/lower/2018_challenger.csv"
+    },
+    {
+      "winner_name": "Rigele Te",
+      "loser_name": "Filip Peliwo",
+      "winner_id": "TG30",
+      "loser_id": "PF65",
+      "tourney_id": "2018-7783",
+      "tourney_date": "20180909",
+      "sourceFile": "data/raw/atp/lower/2018_challenger.csv"
+    },
+    {
+      "winner_name": "Akira Santillan",
+      "loser_name": "Rigele Te",
+      "winner_id": "SQ80",
+      "loser_id": "TG30",
+      "tourney_id": "2018-7783",
+      "tourney_date": "20180909",
+      "sourceFile": "data/raw/atp/lower/2018_challenger.csv"
+    },
+    {
+      "winner_name": "Rigele Te",
+      "loser_name": "Viktor Durasovic",
+      "winner_id": "TG30",
+      "loser_id": "DC76",
+      "tourney_id": "2018-6313",
+      "tourney_date": "20180916",
+      "sourceFile": "data/raw/atp/lower/2018_challenger.csv"
+    },
+    {
+      "winner_name": "Aldin Setkic",
+      "loser_name": "Rigele Te",
+      "winner_id": "SF41",
+      "loser_id": "TG30",
+      "tourney_id": "2018-6313",
+      "tourney_date": "20180916",
+      "sourceFile": "data/raw/atp/lower/2018_challenger.csv"
+    },
+    {
+      "winner_name": "Rigele Te",
+      "loser_name": "Ze Zhang",
+      "winner_id": "TG30",
+      "loser_id": "Z272",
+      "tourney_id": "2018-7343",
+      "tourney_date": "20181021",
+      "sourceFile": "data/raw/atp/lower/2018_challenger.csv"
+    },
+    {
+      "winner_name": "Tatsuma Ito",
+      "loser_name": "Rigele Te",
+      "winner_id": "I230",
+      "loser_id": "TG30",
+      "tourney_id": "2018-7343",
+      "tourney_date": "20181021",
+      "sourceFile": "data/raw/atp/lower/2018_challenger.csv"
+    },
+    {
+      "winner_name": "Yasutaka Uchiyama",
+      "loser_name": "Rigele Te",
+      "winner_id": "U134",
+      "loser_id": "TG30",
+      "tourney_id": "2017-7496",
+      "tourney_date": "20170312",
+      "sourceFile": "data/raw/atp/lower/2017_challenger.csv"
+    },
+    {
+      "winner_name": "Blaz Kavcic",
+      "loser_name": "Rigele Te",
+      "winner_id": "K834",
+      "loser_id": "TG30",
+      "tourney_id": "2017-7797",
+      "tourney_date": "20170319",
+      "sourceFile": "data/raw/atp/lower/2017_challenger.csv"
+    },
+    {
+      "winner_name": "Duckhee Lee",
+      "loser_name": "Rigele Te",
+      "winner_id": "LE01",
+      "loser_id": "TG30",
+      "tourney_id": "2017-7701",
+      "tourney_date": "20170325",
+      "sourceFile": "data/raw/atp/lower/2017_challenger.csv"
+    },
+    {
+      "winner_name": "Tatsuma Ito",
+      "loser_name": "Rigele Te",
+      "winner_id": "I230",
+      "loser_id": "TG30",
+      "tourney_id": "2017-7343",
+      "tourney_date": "20171022",
+      "sourceFile": "data/raw/atp/lower/2017_challenger.csv"
+    },
+    {
+      "winner_name": "Markus Eriksson",
+      "loser_name": "Rigele Te",
+      "winner_id": "E688",
+      "loser_id": "TG30",
+      "tourney_id": "2017-7353",
+      "tourney_date": "20171029",
+      "sourceFile": "data/raw/atp/lower/2017_challenger.csv"
+    },
+    {
+      "winner_name": "Coleman Wong",
+      "loser_name": "Linang Xiao",
+      "winner_id": "W0BH",
+      "loser_id": "X01A",
+      "tourney_id": "2024-4713",
+      "tourney_date": "20240918",
+      "sourceFile": "data/raw/atp/lower/2024_atp_quali.csv"
+    },
+    {
+      "winner_name": "Rigele Te",
+      "loser_name": "Emilio Nava",
+      "winner_id": "TG30",
+      "loser_id": "N0AM",
+      "tourney_id": "2024-4713",
+      "tourney_date": "20240918",
+      "sourceFile": "data/raw/atp/lower/2024_atp_quali.csv"
+    },
+    {
+      "winner_name": "Coleman Wong",
+      "loser_name": "Rigele Te",
+      "winner_id": "W0BH",
+      "loser_id": "TG30",
+      "tourney_id": "2024-4713",
+      "tourney_date": "20240918",
+      "sourceFile": "data/raw/atp/lower/2024_atp_quali.csv"
+    },
+    {
+      "winner_name": "Roberto Carballes Baena",
+      "loser_name": "Rigele Te",
+      "winner_id": "CF59",
+      "loser_id": "TG30",
+      "tourney_id": "2024-747",
+      "tourney_date": "20240926",
+      "sourceFile": "data/raw/atp/lower/2024_atp_quali.csv"
+    },
+    {
+      "winner_name": "Linang Xiao",
+      "loser_name": "Shintaro Mochizuki",
+      "winner_id": "X01A",
+      "loser_id": "M0HU",
+      "tourney_id": "2024-5014",
+      "tourney_date": "20241002",
+      "sourceFile": "data/raw/atp/lower/2024_atp_quali.csv"
+    },
+    {
+      "winner_name": "Terence Atmane",
+      "loser_name": "Rigele Te",
+      "winner_id": "A0GC",
+      "loser_id": "TG30",
+      "tourney_id": "2024-5014",
+      "tourney_date": "20241002",
+      "sourceFile": "data/raw/atp/lower/2024_atp_quali.csv"
+    },
+    {
+      "winner_name": "Li Tu",
+      "loser_name": "Linang Xiao",
+      "winner_id": "TC01",
+      "loser_id": "X01A",
+      "tourney_id": "2024-5014",
+      "tourney_date": "20241002",
+      "sourceFile": "data/raw/atp/lower/2024_atp_quali.csv"
+    },
+    {
+      "winner_name": "Benjamin Lock",
+      "loser_name": "Linang Xiao",
+      "winner_id": "LC54",
+      "loser_id": "X01A",
+      "tourney_id": "2023-7581",
+      "tourney_date": "20230920",
+      "sourceFile": "data/raw/atp/lower/2023_atp_quali.csv"
+    },
+    {
+      "winner_name": "James McCabe",
+      "loser_name": "Linang Xiao",
+      "winner_id": "M0OQ",
+      "loser_id": "X01A",
+      "tourney_id": "2023-5014",
+      "tourney_date": "20231004",
+      "sourceFile": "data/raw/atp/lower/2023_atp_quali.csv"
+    },
+    {
+      "winner_name": "Aleksandr Nedovyesov",
+      "loser_name": "Rigele Te",
+      "winner_id": "N503",
+      "loser_id": "TG30",
+      "tourney_id": "2016-6572",
+      "tourney_date": "20160425",
+      "sourceFile": "data/raw/atp/lower/2016_challenger.csv"
+    },
+    {
+      "winner_name": "Rigele Te",
+      "loser_name": "Karunuday Singh",
+      "winner_id": "TG30",
+      "loser_id": "SK02",
+      "tourney_id": "2016-7553",
+      "tourney_date": "20160807",
+      "sourceFile": "data/raw/atp/lower/2016_challenger.csv"
+    },
+    {
+      "winner_name": "Duckhee Lee",
+      "loser_name": "Rigele Te",
+      "winner_id": "LE01",
+      "loser_id": "TG30",
+      "tourney_id": "2016-7553",
+      "tourney_date": "20160807",
+      "sourceFile": "data/raw/atp/lower/2016_challenger.csv"
+    },
+    {
+      "winner_name": "Rigele Te",
+      "loser_name": "Yecong He",
+      "winner_id": "TG30",
+      "loser_id": "HB59",
+      "tourney_id": "2016-7555",
+      "tourney_date": "20160814",
+      "sourceFile": "data/raw/atp/lower/2016_challenger.csv"
+    },
+    {
+      "winner_name": "Danilo Petrovic",
+      "loser_name": "Rigele Te",
+      "winner_id": "PE02",
+      "loser_id": "TG30",
+      "tourney_id": "2016-7555",
+      "tourney_date": "20160814",
+      "sourceFile": "data/raw/atp/lower/2016_challenger.csv"
+    },
+    {
+      "winner_name": "Jordan Thompson",
+      "loser_name": "Rigele Te",
+      "winner_id": "TC61",
+      "loser_id": "TG30",
+      "tourney_id": "2016-7027",
+      "tourney_date": "20160917",
+      "sourceFile": "data/raw/atp/lower/2016_challenger.csv"
+    },
+    {
+      "winner_name": "Andrew Whittington",
+      "loser_name": "Rigele Te",
+      "winner_id": "W630",
+      "loser_id": "TG30",
+      "tourney_id": "2016-7353",
+      "tourney_date": "20161030",
+      "sourceFile": "data/raw/atp/lower/2016_challenger.csv"
+    },
+    {
+      "winner_name": "Rigele Te",
+      "loser_name": "Fajing Sun",
+      "winner_id": "TG30",
+      "loser_id": "SX90",
+      "tourney_id": "2019-7027",
+      "tourney_date": "20190428",
+      "sourceFile": "data/raw/atp/lower/2019_challenger.csv"
+    },
+    {
+      "winner_name": "Ramkumar Ramanathan",
+      "loser_name": "Rigele Te",
+      "winner_id": "RB56",
+      "loser_id": "TG30",
+      "tourney_id": "2019-7027",
+      "tourney_date": "20190428",
+      "sourceFile": "data/raw/atp/lower/2019_challenger.csv"
+    },
+    {
+      "winner_name": "Rigele Te",
+      "loser_name": "Colin Fleming",
+      "winner_id": "TG30",
+      "loser_id": "F454",
+      "tourney_id": "2014-6967",
+      "tourney_date": "20140922",
+      "sourceFile": "data/raw/atp/lower/2014_atp_quali.csv"
+    },
+    {
+      "winner_name": "Martin Klizan",
+      "loser_name": "Rigele Te",
+      "winner_id": "K966",
+      "loser_id": "TG30",
+      "tourney_id": "2014-6967",
+      "tourney_date": "20140922",
+      "sourceFile": "data/raw/atp/lower/2014_atp_quali.csv"
+    },
+    {
+      "winner_name": "Danai Udomchoke",
+      "loser_name": "Rigele Te",
+      "winner_id": "U043",
+      "loser_id": "TG30",
+      "tourney_id": "2014-7027",
+      "tourney_date": "20140629",
+      "sourceFile": "data/raw/atp/lower/2014_challenger.csv"
+    },
+    {
+      "winner_name": "Adrian Menendez-Maceiras",
+      "loser_name": "Rigele Te",
+      "winner_id": "MB53",
+      "loser_id": "TG30",
+      "tourney_id": "2017-7581",
+      "tourney_date": "20170925",
+      "sourceFile": "data/raw/atp/lower/2017_atp_quali.csv"
+    },
+    {
+      "winner_name": "Rogerio Dutra Silva",
+      "loser_name": "Rigele Te",
+      "winner_id": "SC73",
+      "loser_id": "TG30",
+      "tourney_id": "2017-747",
+      "tourney_date": "20171002",
+      "sourceFile": "data/raw/atp/lower/2017_atp_quali.csv"
+    },
+    {
+      "winner_name": "Yen-Hsun Lu",
+      "loser_name": "Rigele Te",
+      "winner_id": "L575",
+      "loser_id": "TG30",
+      "tourney_id": "2017-5014",
+      "tourney_date": "20171008",
+      "sourceFile": "data/raw/atp/lower/2017_atp_quali.csv"
+    },
+    {
+      "winner_name": "Blake Ellis",
+      "loser_name": "Linang Xiao",
+      "winner_id": "EA27",
+      "loser_id": "X01A",
+      "tourney_id": "2026-3081",
+      "tourney_date": "20260413",
+      "sourceFile": "data/raw/atp/stats/2026_challenger.csv"
+    },
+    {
+      "winner_name": "Tung-Lin Wu",
+      "loser_name": "Rigele Te",
+      "winner_id": "W857",
+      "loser_id": "TG30",
+      "tourney_id": "2026-3083",
+      "tourney_date": "20260427",
+      "sourceFile": "data/raw/atp/stats/2026_challenger.csv"
+    },
+    {
+      "winner_name": "Dane Sweeny",
+      "loser_name": "Rigele Te",
+      "winner_id": "S0IA",
+      "loser_id": "TG30",
+      "tourney_id": "2026-2921",
+      "tourney_date": "20260504",
+      "sourceFile": "data/raw/atp/stats/2026_challenger.csv"
+    },
+    {
+      "winner_name": "Mikhail Kukushkin",
+      "loser_name": "Tianhui Zhang",
+      "winner_id": "K926",
+      "loser_id": "Z0D1",
+      "tourney_id": "2026-2921",
+      "tourney_date": "20260504",
+      "sourceFile": "data/raw/atp/stats/2026_challenger.csv"
+    },
+    {
+      "winner_name": "Terence Atmane",
+      "loser_name": "Rigele Te",
+      "winner_id": "A0GC",
+      "loser_id": "TG30",
+      "tourney_id": "2025-6965",
+      "tourney_date": "20250428",
+      "sourceFile": "data/raw/atp/stats/2025_challenger.csv"
+    },
+    {
+      "winner_name": "Ilia Simakin",
+      "loser_name": "Rigele Te",
+      "winner_id": "S0O6",
+      "loser_id": "TG30",
+      "tourney_id": "2025-2921",
+      "tourney_date": "20250505",
+      "sourceFile": "data/raw/atp/stats/2025_challenger.csv"
+    },
+    {
+      "winner_name": "Rio Noguchi",
+      "loser_name": "Linang Xiao",
+      "winner_id": "N09U",
+      "loser_id": "X01A",
+      "tourney_id": "2025-7783",
+      "tourney_date": "20250825",
+      "sourceFile": "data/raw/atp/stats/2025_challenger.csv"
+    },
+    {
+      "winner_name": "Joshua Charlton",
+      "loser_name": "Rigele Te",
+      "winner_id": "C09Y",
+      "loser_id": "TG30",
+      "tourney_id": "2025-7783",
+      "tourney_date": "20250825",
+      "sourceFile": "data/raw/atp/stats/2025_challenger.csv"
+    },
+    {
+      "winner_name": "Christopher O'Connell",
+      "loser_name": "Rigele Te",
+      "winner_id": "O483",
+      "loser_id": "TG30",
+      "tourney_id": "2025-2937",
+      "tourney_date": "20250908",
+      "sourceFile": "data/raw/atp/stats/2025_challenger.csv"
+    },
+    {
+      "winner_name": "Petr Bar Biryukov",
+      "loser_name": "Tianhui Zhang",
+      "winner_id": "B0LQ",
+      "loser_id": "Z0D1",
+      "tourney_id": "2025-2937",
+      "tourney_date": "20250908",
+      "sourceFile": "data/raw/atp/stats/2025_challenger.csv"
+    },
+    {
+      "winner_name": "Oliver Crawford",
+      "loser_name": "Linang Xiao",
+      "winner_id": "C0AK",
+      "loser_id": "X01A",
+      "tourney_id": "2025-2937",
+      "tourney_date": "20250908",
+      "sourceFile": "data/raw/atp/stats/2025_challenger.csv"
+    },
+    {
+      "winner_name": "Hyeon Chung",
+      "loser_name": "Rigele Te",
+      "winner_id": "CH27",
+      "loser_id": "TG30",
+      "tourney_id": "2025-3027",
+      "tourney_date": "20251013",
+      "sourceFile": "data/raw/atp/stats/2025_challenger.csv"
+    },
+    {
+      "winner_name": "Pavel Kotov",
+      "loser_name": "Tianhui Zhang",
+      "winner_id": "K09F",
+      "loser_id": "Z0D1",
+      "tourney_id": "2025-3027",
+      "tourney_date": "20251013",
+      "sourceFile": "data/raw/atp/stats/2025_challenger.csv"
+    },
+    {
+      "winner_name": "Aoran Wang",
+      "loser_name": "Rigele Te",
+      "winner_id": "W741",
+      "loser_id": "TG30",
+      "tourney_id": "2025-3033",
+      "tourney_date": "20251020",
+      "sourceFile": "data/raw/atp/stats/2025_challenger.csv"
+    },
+    {
+      "winner_name": "Matheus Pucinelli De Almeida",
+      "loser_name": "Rigele Te",
+      "winner_id": "P0DF",
+      "loser_id": "TG30",
+      "tourney_id": "2023-M-DC-2023-WG1-PO-BRA-CHN-01",
+      "tourney_date": "20230203",
+      "sourceFile": "data/raw/atp/stats/2023.csv"
+    },
+    {
+      "winner_name": "Gustavo Heide",
+      "loser_name": "Rigele Te",
+      "winner_id": "H0DU",
+      "loser_id": "TG30",
+      "tourney_id": "2023-M-DC-2023-WG1-PO-BRA-CHN-01",
+      "tourney_date": "20230203",
+      "sourceFile": "data/raw/atp/stats/2023.csv"
+    },
+    {
+      "winner_name": "Rigele Te",
+      "loser_name": "Ernesto Escobedo",
+      "winner_id": "TG30",
+      "loser_id": "E873",
+      "tourney_id": "2023-M-DC-2023-WG2-M-MEX-CHN-01",
+      "tourney_date": "20230916",
+      "sourceFile": "data/raw/atp/stats/2023.csv"
+    },
+    {
+      "winner_name": "Jaume Munar",
+      "loser_name": "Rigele Te",
+      "winner_id": "MU94",
+      "loser_id": "TG30",
+      "tourney_id": "2023-5014",
+      "tourney_date": "20231002",
+      "sourceFile": "data/raw/atp/stats/2023.csv"
+    },
+    {
+      "winner_name": "Rigele Te",
+      "loser_name": "Ignacio Carou",
+      "winner_id": "TG30",
+      "loser_id": "C09G",
+      "tourney_id": "2022-M-DC-2022-WG2-M-URU-CHN-01",
+      "tourney_date": "20220916",
+      "sourceFile": "data/raw/atp/stats/2022.csv"
+    },
+    {
+      "winner_name": "Philip Sekulic",
+      "loser_name": "Rigele Te",
+      "winner_id": "S0TI",
+      "loser_id": "TG30",
+      "tourney_id": "2023-7496",
+      "tourney_date": "20230826",
+      "sourceFile": "data/raw/atp/stats/2023_challenger.csv"
+    },
+    {
+      "winner_name": "Rigele Te",
+      "loser_name": "Yunchaokete Bu",
+      "winner_id": "TG30",
+      "loser_id": "Y09V",
+      "tourney_id": "2023-7783",
+      "tourney_date": "20230828",
+      "sourceFile": "data/raw/atp/stats/2023_challenger.csv"
+    },
+    {
+      "winner_name": "Linang Xiao",
+      "loser_name": "Rio Noguchi",
+      "winner_id": "X01A",
+      "loser_id": "N09U",
+      "tourney_id": "2023-7783",
+      "tourney_date": "20230828",
+      "sourceFile": "data/raw/atp/stats/2023_challenger.csv"
+    },
+    {
+      "winner_name": "Mikalai Haliak",
+      "loser_name": "Linang Xiao",
+      "winner_id": "HH15",
+      "loser_id": "X01A",
+      "tourney_id": "2023-7783",
+      "tourney_date": "20230828",
+      "sourceFile": "data/raw/atp/stats/2023_challenger.csv"
+    },
+    {
+      "winner_name": "Rigele Te",
+      "loser_name": "Filip Peliwo",
+      "winner_id": "TG30",
+      "loser_id": "PF65",
+      "tourney_id": "2023-7783",
+      "tourney_date": "20230828",
+      "sourceFile": "data/raw/atp/stats/2023_challenger.csv"
+    },
+    {
+      "winner_name": "James McCabe",
+      "loser_name": "Rigele Te",
+      "winner_id": "M0OQ",
+      "loser_id": "TG30",
+      "tourney_id": "2023-7783",
+      "tourney_date": "20230828",
+      "sourceFile": "data/raw/atp/stats/2023_challenger.csv"
+    },
+    {
+      "winner_name": "Yunchaokete Bu",
+      "loser_name": "Rigele Te",
+      "winner_id": "Y09V",
+      "loser_id": "TG30",
+      "tourney_id": "2023-6313",
+      "tourney_date": "20230910",
+      "sourceFile": "data/raw/atp/stats/2023_challenger.csv"
+    },
+    {
+      "winner_name": "Lorenzo Giustino",
+      "loser_name": "Rigele Te",
+      "winner_id": "GA79",
+      "loser_id": "TG30",
+      "tourney_id": "2023-2897",
+      "tourney_date": "20231015",
+      "sourceFile": "data/raw/atp/stats/2023_challenger.csv"
+    },
+    {
+      "winner_name": "Coleman Wong",
+      "loser_name": "Linang Xiao",
+      "winner_id": "W0BH",
+      "loser_id": "X01A",
+      "tourney_id": "2023-2897",
+      "tourney_date": "20231015",
+      "sourceFile": "data/raw/atp/stats/2023_challenger.csv"
+    },
+    {
+      "winner_name": "Yu Hsiou Hsu",
+      "loser_name": "Rigele Te",
+      "winner_id": "H09F",
+      "loser_id": "TG30",
+      "tourney_id": "2023-7797",
+      "tourney_date": "20231015",
+      "sourceFile": "data/raw/atp/stats/2023_challenger.csv"
+    },
+    {
+      "winner_name": "James Duckworth",
+      "loser_name": "Rigele Te",
+      "winner_id": "D994",
+      "loser_id": "TG30",
+      "tourney_id": "2024-2897",
+      "tourney_date": "20240428",
+      "sourceFile": "data/raw/atp/stats/2024_challenger.csv"
+    },
+    {
+      "winner_name": "Paul Jubb",
+      "loser_name": "Linang Xiao",
+      "winner_id": "J0A4",
+      "loser_id": "X01A",
+      "tourney_id": "2024-2937",
+      "tourney_date": "20240429",
+      "sourceFile": "data/raw/atp/stats/2024_challenger.csv"
+    },
+    {
+      "winner_name": "Rigele Te",
+      "loser_name": "Yasutaka Uchiyama",
+      "winner_id": "TG30",
+      "loser_id": "U134",
+      "tourney_id": "2024-6965",
+      "tourney_date": "20240429",
+      "sourceFile": "data/raw/atp/stats/2024_challenger.csv"
+    },
+    {
+      "winner_name": "Beibit Zhukayev",
+      "loser_name": "Rigele Te",
+      "winner_id": "Z09Z",
+      "loser_id": "TG30",
+      "tourney_id": "2024-6965",
+      "tourney_date": "20240429",
+      "sourceFile": "data/raw/atp/stats/2024_challenger.csv"
+    },
+    {
+      "winner_name": "Rigele Te",
+      "loser_name": "Evgeny Donskoy",
+      "winner_id": "TG30",
+      "loser_id": "D864",
+      "tourney_id": "2024-2921",
+      "tourney_date": "20240512",
+      "sourceFile": "data/raw/atp/stats/2024_challenger.csv"
+    },
+    {
+      "winner_name": "Linang Xiao",
+      "loser_name": "Hanwen Li",
+      "winner_id": "X01A",
+      "loser_id": "L0FW",
+      "tourney_id": "2024-2921",
+      "tourney_date": "20240512",
+      "sourceFile": "data/raw/atp/stats/2024_challenger.csv"
+    },
+    {
+      "winner_name": "Yunchaokete Bu",
+      "loser_name": "Linang Xiao",
+      "winner_id": "Y09V",
+      "loser_id": "X01A",
+      "tourney_id": "2024-2921",
+      "tourney_date": "20240512",
+      "sourceFile": "data/raw/atp/stats/2024_challenger.csv"
+    },
+    {
+      "winner_name": "Remy Bertola",
+      "loser_name": "Rigele Te",
+      "winner_id": "BU70",
+      "loser_id": "TG30",
+      "tourney_id": "2024-2921",
+      "tourney_date": "20240512",
+      "sourceFile": "data/raw/atp/stats/2024_challenger.csv"
+    },
+    {
+      "winner_name": "Tung-Lin Wu",
+      "loser_name": "Linang Xiao",
+      "winner_id": "W857",
+      "loser_id": "X01A",
+      "tourney_id": "2024-7746",
+      "tourney_date": "20240824",
+      "sourceFile": "data/raw/atp/stats/2024_challenger.csv"
+    },
+    {
+      "winner_name": "Yosuke Watanuki",
+      "loser_name": "Rigele Te",
+      "winner_id": "WB08",
+      "loser_id": "TG30",
+      "tourney_id": "2024-6313",
+      "tourney_date": "20240908",
+      "sourceFile": "data/raw/atp/stats/2024_challenger.csv"
+    },
+    {
+      "winner_name": "Zachary Svajda",
+      "loser_name": "Tianhui Zhang",
+      "winner_id": "S0K7",
+      "loser_id": "Z0D1",
+      "tourney_id": "2024-2947",
+      "tourney_date": "20241013",
+      "sourceFile": "data/raw/atp/stats/2024_challenger.csv"
+    },
+    {
+      "winner_name": "Vadym Ursu",
+      "loser_name": "Rigele Te",
+      "winner_id": "U176",
+      "loser_id": "TG30",
+      "tourney_id": "2024-2947",
+      "tourney_date": "20241013",
+      "sourceFile": "data/raw/atp/stats/2024_challenger.csv"
+    },
+    {
+      "winner_name": "Cezar Cretu",
+      "loser_name": "Rigele Te",
+      "winner_id": "C0B2",
+      "loser_id": "TG30",
+      "tourney_id": "2024-M-DC-2024-WG2-M-ROU-CHN-01",
+      "tourney_date": "20240913",
+      "sourceFile": "data/raw/atp/stats/2024.csv"
+    },
+    {
+      "winner_name": "Filip Peliwo",
+      "loser_name": "Rigele Te",
+      "winner_id": "PF65",
+      "loser_id": "TG30",
+      "tourney_id": "2018-7797",
+      "tourney_date": "20180318",
+      "sourceFile": "data/raw/atp/stats/2018_challenger.csv"
+    },
+    {
+      "winner_name": "Henri Laaksonen",
+      "loser_name": "Rigele Te",
+      "winner_id": "L949",
+      "loser_id": "TG30",
+      "tourney_id": "2018-7772",
+      "tourney_date": "20180730",
+      "sourceFile": "data/raw/atp/stats/2018_challenger.csv"
+    },
+    {
+      "winner_name": "Rigele Te",
+      "loser_name": "Filip Peliwo",
+      "winner_id": "TG30",
+      "loser_id": "PF65",
+      "tourney_id": "2018-7783",
+      "tourney_date": "20180909",
+      "sourceFile": "data/raw/atp/stats/2018_challenger.csv"
+    },
+    {
+      "winner_name": "Akira Santillan",
+      "loser_name": "Rigele Te",
+      "winner_id": "SQ80",
+      "loser_id": "TG30",
+      "tourney_id": "2018-7783",
+      "tourney_date": "20180909",
+      "sourceFile": "data/raw/atp/stats/2018_challenger.csv"
+    },
+    {
+      "winner_name": "Rigele Te",
+      "loser_name": "Viktor Durasovic",
+      "winner_id": "TG30",
+      "loser_id": "DC76",
+      "tourney_id": "2018-6313",
+      "tourney_date": "20180916",
+      "sourceFile": "data/raw/atp/stats/2018_challenger.csv"
+    },
+    {
+      "winner_name": "Aldin Setkic",
+      "loser_name": "Rigele Te",
+      "winner_id": "SF41",
+      "loser_id": "TG30",
+      "tourney_id": "2018-6313",
+      "tourney_date": "20180916",
+      "sourceFile": "data/raw/atp/stats/2018_challenger.csv"
+    },
+    {
+      "winner_name": "Rigele Te",
+      "loser_name": "Ze Zhang",
+      "winner_id": "TG30",
+      "loser_id": "Z272",
+      "tourney_id": "2018-7343",
+      "tourney_date": "20181021",
+      "sourceFile": "data/raw/atp/stats/2018_challenger.csv"
+    },
+    {
+      "winner_name": "Tatsuma Ito",
+      "loser_name": "Rigele Te",
+      "winner_id": "I230",
+      "loser_id": "TG30",
+      "tourney_id": "2018-7343",
+      "tourney_date": "20181021",
+      "sourceFile": "data/raw/atp/stats/2018_challenger.csv"
+    },
+    {
+      "winner_name": "Rigele Te",
+      "loser_name": "Fajing Sun",
+      "winner_id": "TG30",
+      "loser_id": "SX90",
+      "tourney_id": "2019-7027",
+      "tourney_date": "20190428",
+      "sourceFile": "data/raw/atp/stats/2019_challenger.csv"
+    },
+    {
+      "winner_name": "Ramkumar Ramanathan",
+      "loser_name": "Rigele Te",
+      "winner_id": "RB56",
+      "loser_id": "TG30",
+      "tourney_id": "2019-7027",
+      "tourney_date": "20190428",
+      "sourceFile": "data/raw/atp/stats/2019_challenger.csv"
+    }
+  ],
+  "officialSlotNumbers": [
+    3,
+    4,
+    9,
+    10,
+    25,
+    26
+  ]
+}

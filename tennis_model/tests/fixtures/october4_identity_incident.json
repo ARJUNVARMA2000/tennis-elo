@@ -1,0 +1,623 @@
+{
+  "name": "Suzhou Open",
+  "espnId": "1029-2026",
+  "sourceUrl": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard?dates=20261005&limit=300",
+  "officialDrawUrl": "https://wtafiles.wtatennis.com/pdf/draws/2026/1147/MDS.pdf",
+  "officialSha256": "a77b91293f4517929005eba1a7256256046c8f40b332d087f1ddf38bdadb09c2",
+  "officialSlots": [
+    "Hanyu Guo",
+    "Aliona Falei",
+    "Ruien Zhang",
+    "Tatiana Prozorova"
+  ],
+  "matches": [
+    {
+      "id": "185267",
+      "date": "2026-10-05T03:30Z",
+      "players": [
+        "Tatiana Prozorova",
+        "Zhang Ruien"
+      ]
+    },
+    {
+      "id": "185279",
+      "date": "2026-10-06T04:00Z",
+      "players": [
+        "Aliona Falei",
+        "Guo Hanyu"
+      ]
+    }
+  ],
+  "identityReview": [
+    {
+      "kind": "player_alias",
+      "tour": "wta",
+      "variant": "Guo Hanyu",
+      "canonical": "Hanyu Guo",
+      "same_person": true,
+      "falsifierRejection": null,
+      "counts": {
+        "Guo Hanyu": 0,
+        "Hanyu Guo": 60
+      }
+    },
+    {
+      "kind": "player_alias",
+      "tour": "wta",
+      "variant": "Zhang Ruien",
+      "canonical": "Ruien Zhang",
+      "same_person": true,
+      "falsifierRejection": null,
+      "counts": {
+        "Zhang Ruien": 0,
+        "Ruien Zhang": 5
+      }
+    }
+  ],
+  "historyRows": [
+    {
+      "winner_name": "Mccartney Kessler",
+      "loser_name": "Hanyu Guo",
+      "tourney_date": "2026/5/25",
+      "sourceFile": "data/raw/wta/fresh/2026.csv"
+    },
+    {
+      "winner_name": "Hanyu Guo",
+      "loser_name": "Yulia Putintseva",
+      "tourney_date": "2025/7/28",
+      "sourceFile": "data/raw/wta/fresh/2025.csv"
+    },
+    {
+      "winner_name": "Iga Swiatek",
+      "loser_name": "Hanyu Guo",
+      "tourney_date": "2025/7/30",
+      "sourceFile": "data/raw/wta/fresh/2025.csv"
+    },
+    {
+      "winner_name": "Eva Lys",
+      "loser_name": "Ruien Zhang",
+      "tourney_date": "2025/9/24",
+      "sourceFile": "data/raw/wta/fresh/2025.csv"
+    },
+    {
+      "winner_name": "Xiyu Wang",
+      "loser_name": "Hanyu Guo",
+      "tourney_date": "2025/9/25",
+      "sourceFile": "data/raw/wta/fresh/2025.csv"
+    },
+    {
+      "winner_name": "Liudmila Samsonova",
+      "loser_name": "Hanyu Guo",
+      "tourney_date": "2025/10/14",
+      "sourceFile": "data/raw/wta/fresh/2025.csv"
+    },
+    {
+      "winner_name": "Anna Bondar",
+      "loser_name": "Hanyu Guo",
+      "tourney_date": "2025/10/21",
+      "sourceFile": "data/raw/wta/fresh/2025.csv"
+    },
+    {
+      "winner_name": "Hanyu Guo",
+      "loser_name": "Alina Korneeva",
+      "tourney_date": "2025/10/27",
+      "sourceFile": "data/raw/wta/fresh/2025.csv"
+    },
+    {
+      "winner_name": "Zhuoxuan Bai",
+      "loser_name": "Hanyu Guo",
+      "tourney_date": "2025/10/30",
+      "sourceFile": "data/raw/wta/fresh/2025.csv"
+    },
+    {
+      "winner_name": "Lucia Bronzetti",
+      "loser_name": "Hanyu Guo",
+      "winner_id": "214459",
+      "loser_id": "215250",
+      "tourney_id": "2023-2008",
+      "tourney_date": "20231009",
+      "sourceFile": "data/raw/wta/historical/2023.csv"
+    },
+    {
+      "winner_name": "Leylah Fernandez",
+      "loser_name": "Hanyu Guo",
+      "winner_id": "220367",
+      "loser_id": "215250",
+      "tourney_id": "2023-1077",
+      "tourney_date": "20231016",
+      "sourceFile": "data/raw/wta/historical/2023.csv"
+    },
+    {
+      "winner_name": "Saisai Zheng",
+      "loser_name": "Hanyu Guo",
+      "winner_id": "202453",
+      "loser_id": "215250",
+      "tourney_id": "2018-1023",
+      "tourney_date": "20180917",
+      "sourceFile": "data/raw/wta/historical/2018.csv"
+    },
+    {
+      "winner_name": "Shuai Peng",
+      "loser_name": "Hanyu Guo",
+      "winner_id": "201397",
+      "loser_id": "215250",
+      "tourney_id": "2017-1076",
+      "tourney_date": "20171009",
+      "sourceFile": "data/raw/wta/historical/2017.csv"
+    },
+    {
+      "winner_name": "Eri Hozumi",
+      "loser_name": "Hanyu Guo",
+      "winner_id": "205815",
+      "loser_id": "215250",
+      "tourney_id": "2017-1099",
+      "tourney_date": "20170417",
+      "sourceFile": "data/raw/wta/historical/2017.csv"
+    },
+    {
+      "winner_name": "Maja Chwalinska",
+      "loser_name": "Hanyu Guo",
+      "winner_id": "325639",
+      "loser_id": "323087",
+      "tourney_id": "2026-W1049",
+      "tourney_date": "20260102",
+      "sourceFile": "data/raw/wta/lower/2026_wta_lower.csv"
+    },
+    {
+      "winner_name": "Dominika Salkova",
+      "loser_name": "Hanyu Guo",
+      "winner_id": "330149",
+      "loser_id": "323087",
+      "tourney_id": "2026-W901",
+      "tourney_date": "20260113",
+      "sourceFile": "data/raw/wta/lower/2026_wta_lower.csv"
+    },
+    {
+      "winner_name": "Hanyu Guo",
+      "loser_name": "Louisa Chirico",
+      "winner_id": "323087",
+      "loser_id": "320218",
+      "tourney_id": "2026-W2051",
+      "tourney_date": "20260217",
+      "sourceFile": "data/raw/wta/lower/2026_wta_lower.csv"
+    },
+    {
+      "winner_name": "Hanyu Guo",
+      "loser_name": "Elvina Kalieva",
+      "winner_id": "323087",
+      "loser_id": "327834",
+      "tourney_id": "2026-W2051",
+      "tourney_date": "20260220",
+      "sourceFile": "data/raw/wta/lower/2026_wta_lower.csv"
+    },
+    {
+      "winner_name": "Hanyu Guo",
+      "loser_name": "Mary Stoiana",
+      "winner_id": "323087",
+      "loser_id": "330265",
+      "tourney_id": "2026-W2051",
+      "tourney_date": "20260221",
+      "sourceFile": "data/raw/wta/lower/2026_wta_lower.csv"
+    },
+    {
+      "winner_name": "Alina Charaeva",
+      "loser_name": "Hanyu Guo",
+      "winner_id": "329198",
+      "loser_id": "323087",
+      "tourney_id": "2026-W2051",
+      "tourney_date": "20260222",
+      "sourceFile": "data/raw/wta/lower/2026_wta_lower.csv"
+    },
+    {
+      "winner_name": "Anastasia Gasanova",
+      "loser_name": "Hanyu Guo",
+      "winner_id": "322333",
+      "loser_id": "323087",
+      "tourney_id": "2026-W1160",
+      "tourney_date": "20260505",
+      "sourceFile": "data/raw/wta/lower/2026_wta_lower.csv"
+    },
+    {
+      "winner_name": "Veronika Podrez",
+      "loser_name": "Hanyu Guo",
+      "winner_id": "331197",
+      "loser_id": "323087",
+      "tourney_id": "2026-W2057",
+      "tourney_date": "20260511",
+      "sourceFile": "data/raw/wta/lower/2026_wta_lower.csv"
+    },
+    {
+      "winner_name": "Hanyu Guo",
+      "loser_name": "Miriam Bianca Bulgaru",
+      "winner_id": "323087",
+      "loser_id": "323119",
+      "tourney_id": "2026-W903",
+      "tourney_date": "20260518",
+      "sourceFile": "data/raw/wta/lower/2026_wta_lower.csv"
+    },
+    {
+      "winner_name": "Hanyu Guo",
+      "loser_name": "Despina Papamichail",
+      "winner_id": "323087",
+      "loser_id": "45139",
+      "tourney_id": "2026-W903",
+      "tourney_date": "20260520",
+      "sourceFile": "data/raw/wta/lower/2026_wta_lower.csv"
+    },
+    {
+      "winner_name": "Hanyu Guo",
+      "loser_name": "Sofia Costoulas",
+      "winner_id": "323087",
+      "loser_id": "330451",
+      "tourney_id": "2026-W903",
+      "tourney_date": "20260521",
+      "sourceFile": "data/raw/wta/lower/2026_wta_lower.csv"
+    },
+    {
+      "winner_name": "Hanyu Guo",
+      "loser_name": "Elsa Jacquemot",
+      "winner_id": "323087",
+      "loser_id": "328142",
+      "tourney_id": "2026-W1111",
+      "tourney_date": "20260607",
+      "sourceFile": "data/raw/wta/lower/2026_wta_lower.csv"
+    },
+    {
+      "winner_name": "Maddison Inglis",
+      "loser_name": "Hanyu Guo",
+      "winner_id": "321179",
+      "loser_id": "323087",
+      "tourney_id": "2026-W1111",
+      "tourney_date": "20260607",
+      "sourceFile": "data/raw/wta/lower/2026_wta_lower.csv"
+    },
+    {
+      "winner_name": "Xiyu Wang",
+      "loser_name": "Hanyu Guo",
+      "winner_id": "326160",
+      "loser_id": "323087",
+      "tourney_id": "2026-W904",
+      "tourney_date": "20260623",
+      "sourceFile": "data/raw/wta/lower/2026_wta_lower.csv"
+    },
+    {
+      "winner_name": "Kayla Day",
+      "loser_name": "Hanyu Guo",
+      "winner_id": "322534",
+      "loser_id": "323087",
+      "tourney_id": "2026-W806",
+      "tourney_date": "20260801",
+      "sourceFile": "data/raw/wta/lower/2026_wta_lower.csv"
+    },
+    {
+      "winner_name": "Yue Yuan",
+      "loser_name": "Hanyu Guo",
+      "winner_id": "324325",
+      "loser_id": "323087",
+      "tourney_id": "2026-W905",
+      "tourney_date": "20260825",
+      "sourceFile": "data/raw/wta/lower/2026_wta_lower.csv"
+    },
+    {
+      "winner_name": "Hanyu Guo",
+      "loser_name": "Eva Lys",
+      "winner_id": "323087",
+      "loser_id": "325826",
+      "tourney_id": "2025-W800",
+      "tourney_date": "20241227",
+      "sourceFile": "data/raw/wta/lower/2025_wta_lower.csv"
+    },
+    {
+      "winner_name": "Priscilla Hon",
+      "loser_name": "Hanyu Guo",
+      "winner_id": "320543",
+      "loser_id": "323087",
+      "tourney_id": "2025-W800",
+      "tourney_date": "20241228",
+      "sourceFile": "data/raw/wta/lower/2025_wta_lower.csv"
+    },
+    {
+      "winner_name": "Laura Siegemund",
+      "loser_name": "Hanyu Guo",
+      "winner_id": "310926",
+      "loser_id": "323087",
+      "tourney_id": "2025-W2014",
+      "tourney_date": "20250104",
+      "sourceFile": "data/raw/wta/lower/2025_wta_lower.csv"
+    },
+    {
+      "winner_name": "Hanyu Guo",
+      "loser_name": "Mihaela Buzarnescu",
+      "winner_id": "323087",
+      "loser_id": "312268",
+      "tourney_id": "2025-W806",
+      "tourney_date": "20250726",
+      "sourceFile": "data/raw/wta/lower/2025_wta_lower.csv"
+    },
+    {
+      "winner_name": "Hanyu Guo",
+      "loser_name": "Anca Todoni",
+      "winner_id": "323087",
+      "loser_id": "330442",
+      "tourney_id": "2025-W1017",
+      "tourney_date": "20250805",
+      "sourceFile": "data/raw/wta/lower/2025_wta_lower.csv"
+    },
+    {
+      "winner_name": "Laura Siegemund",
+      "loser_name": "Hanyu Guo",
+      "winner_id": "310926",
+      "loser_id": "323087",
+      "tourney_id": "2025-W1017",
+      "tourney_date": "20250806",
+      "sourceFile": "data/raw/wta/lower/2025_wta_lower.csv"
+    },
+    {
+      "winner_name": "Ruien Zhang",
+      "loser_name": "Xinxin Yao",
+      "winner_id": "333415",
+      "loser_id": "331361",
+      "tourney_id": "2025-W1144",
+      "tourney_date": "20251013",
+      "sourceFile": "data/raw/wta/lower/2025_wta_lower.csv"
+    },
+    {
+      "winner_name": "Priska Nugroho",
+      "loser_name": "Ruien Zhang",
+      "winner_id": "328797",
+      "loser_id": "333415",
+      "tourney_id": "2025-W1144",
+      "tourney_date": "20251013",
+      "sourceFile": "data/raw/wta/lower/2025_wta_lower.csv"
+    },
+    {
+      "winner_name": "Hanyu Guo",
+      "loser_name": "Polina Kudermetova",
+      "winner_id": "323087",
+      "loser_id": "328897",
+      "tourney_id": "2025-W2092",
+      "tourney_date": "20251011",
+      "sourceFile": "data/raw/wta/lower/2025_wta_lower.csv"
+    },
+    {
+      "winner_name": "Hanyu Guo",
+      "loser_name": "Kamilla Rakhimova",
+      "winner_id": "323087",
+      "loser_id": "325936",
+      "tourney_id": "2025-W2092",
+      "tourney_date": "20251012",
+      "sourceFile": "data/raw/wta/lower/2025_wta_lower.csv"
+    },
+    {
+      "winner_name": "Hanyu Guo",
+      "loser_name": "Ekaterina Ovcharenko",
+      "winner_id": "323087",
+      "loser_id": "325584",
+      "tourney_id": "2025-W1077",
+      "tourney_date": "20251025",
+      "sourceFile": "data/raw/wta/lower/2025_wta_lower.csv"
+    },
+    {
+      "winner_name": "Hanyu Guo",
+      "loser_name": "Han Shi",
+      "winner_id": "323087",
+      "loser_id": "329824",
+      "tourney_id": "2025-W1077",
+      "tourney_date": "20251026",
+      "sourceFile": "data/raw/wta/lower/2025_wta_lower.csv"
+    },
+    {
+      "winner_name": "Xiaodi You",
+      "loser_name": "Hanyu Guo",
+      "winner_id": "322451",
+      "loser_id": "323087",
+      "tourney_id": "2018-W1099",
+      "tourney_date": "20180414",
+      "sourceFile": "data/raw/wta/lower/2018_wta_lower.csv"
+    },
+    {
+      "winner_name": "Xiaodi You",
+      "loser_name": "Hanyu Guo",
+      "winner_id": "322451",
+      "loser_id": "323087",
+      "tourney_id": "2018-W1104",
+      "tourney_date": "20180501",
+      "sourceFile": "data/raw/wta/lower/2018_wta_lower.csv"
+    },
+    {
+      "winner_name": "Jana Cepelova",
+      "loser_name": "Hanyu Guo",
+      "winner_id": "316774",
+      "loser_id": "323087",
+      "tourney_id": "2018-W1076",
+      "tourney_date": "20181006",
+      "sourceFile": "data/raw/wta/lower/2018_wta_lower.csv"
+    },
+    {
+      "winner_name": "Hanyu Guo",
+      "loser_name": "Jiaxi Lu",
+      "winner_id": "323087",
+      "loser_id": "320849",
+      "tourney_id": "2017-W1099",
+      "tourney_date": "20170415",
+      "sourceFile": "data/raw/wta/lower/2017_wta_lower.csv"
+    },
+    {
+      "winner_name": "Hanyu Guo",
+      "loser_name": "Jacqueline Cako",
+      "winner_id": "323087",
+      "loser_id": "316222",
+      "tourney_id": "2017-W1099",
+      "tourney_date": "20170416",
+      "sourceFile": "data/raw/wta/lower/2017_wta_lower.csv"
+    },
+    {
+      "winner_name": "Eri Hozumi",
+      "loser_name": "Hanyu Guo",
+      "winner_id": "317138",
+      "loser_id": "323087",
+      "tourney_id": "2017-W1099",
+      "tourney_date": "20170417",
+      "sourceFile": "data/raw/wta/lower/2017_wta_lower.csv"
+    },
+    {
+      "winner_name": "Xinyu Gao",
+      "loser_name": "Hanyu Guo",
+      "winner_id": "322925",
+      "loser_id": "323087",
+      "tourney_id": "2017-W1023",
+      "tourney_date": "20170916",
+      "sourceFile": "data/raw/wta/lower/2017_wta_lower.csv"
+    },
+    {
+      "winner_name": "Hanyu Guo",
+      "loser_name": "Dalila Jakupovic",
+      "winner_id": "323087",
+      "loser_id": "315294",
+      "tourney_id": "2017-W1076",
+      "tourney_date": "20171007",
+      "sourceFile": "data/raw/wta/lower/2017_wta_lower.csv"
+    },
+    {
+      "winner_name": "Hanyu Guo",
+      "loser_name": "Nina Stojanovic",
+      "winner_id": "323087",
+      "loser_id": "319709",
+      "tourney_id": "2017-W1076",
+      "tourney_date": "20171008",
+      "sourceFile": "data/raw/wta/lower/2017_wta_lower.csv"
+    },
+    {
+      "winner_name": "Miyabi Inoue",
+      "loser_name": "Hanyu Guo",
+      "winner_id": "316082",
+      "loser_id": "323087",
+      "tourney_id": "2019-W1104",
+      "tourney_date": "20190420",
+      "sourceFile": "data/raw/wta/lower/2019_wta_lower.csv"
+    },
+    {
+      "winner_name": "Yuxuan Zhang",
+      "loser_name": "Hanyu Guo",
+      "winner_id": "317960",
+      "loser_id": "323087",
+      "tourney_id": "2019-W1076",
+      "tourney_date": "20191005",
+      "sourceFile": "data/raw/wta/lower/2019_wta_lower.csv"
+    },
+    {
+      "winner_name": "Hailey Baptiste",
+      "loser_name": "Ruien Zhang",
+      "winner_id": "327101",
+      "loser_id": "333415",
+      "tourney_id": "2024-W1020",
+      "tourney_date": "20240923",
+      "sourceFile": "data/raw/wta/lower/2024_wta_lower.csv"
+    },
+    {
+      "winner_name": "Hanyu Guo",
+      "loser_name": "Eva Lys",
+      "winner_id": "323087",
+      "loser_id": "325826",
+      "tourney_id": "2025-W800",
+      "tourney_date": "20241227",
+      "sourceFile": "data/raw/wta/lower/2024_wta_lower.csv"
+    },
+    {
+      "winner_name": "Priscilla Hon",
+      "loser_name": "Hanyu Guo",
+      "winner_id": "320543",
+      "loser_id": "323087",
+      "tourney_id": "2025-W800",
+      "tourney_date": "20241228",
+      "sourceFile": "data/raw/wta/lower/2024_wta_lower.csv"
+    },
+    {
+      "winner_name": "McCartney Kessler",
+      "loser_name": "Hanyu Guo",
+      "winner_id": "326678",
+      "loser_id": "323087",
+      "tourney_id": "2026-W903",
+      "tourney_date": "20260525",
+      "sourceFile": "data/raw/wta/stats/2026.csv"
+    },
+    {
+      "winner_name": "Hanyu Guo",
+      "loser_name": "Yulia Putintseva",
+      "winner_id": "323087",
+      "loser_id": "317683",
+      "tourney_id": "2025-W806",
+      "tourney_date": "20250728",
+      "sourceFile": "data/raw/wta/stats/2025.csv"
+    },
+    {
+      "winner_name": "Iga Swiatek",
+      "loser_name": "Hanyu Guo",
+      "winner_id": "326408",
+      "loser_id": "323087",
+      "tourney_id": "2025-W806",
+      "tourney_date": "20250730",
+      "sourceFile": "data/raw/wta/stats/2025.csv"
+    },
+    {
+      "winner_name": "Eva Lys",
+      "loser_name": "Ruien Zhang",
+      "winner_id": "325826",
+      "loser_id": "333415",
+      "tourney_id": "2025-W1020",
+      "tourney_date": "20250924",
+      "sourceFile": "data/raw/wta/stats/2025.csv"
+    },
+    {
+      "winner_name": "Xiyu Wang",
+      "loser_name": "Hanyu Guo",
+      "winner_id": "326160",
+      "loser_id": "323087",
+      "tourney_id": "2025-W1020",
+      "tourney_date": "20250925",
+      "sourceFile": "data/raw/wta/stats/2025.csv"
+    },
+    {
+      "winner_name": "Liudmila Samsonova",
+      "loser_name": "Hanyu Guo",
+      "winner_id": "322222",
+      "loser_id": "323087",
+      "tourney_id": "2025-W2092",
+      "tourney_date": "20251014",
+      "sourceFile": "data/raw/wta/stats/2025.csv"
+    },
+    {
+      "winner_name": "Anna Bondar",
+      "loser_name": "Hanyu Guo",
+      "winner_id": "322942",
+      "loser_id": "323087",
+      "tourney_id": "2025-W1023",
+      "tourney_date": "20251021",
+      "sourceFile": "data/raw/wta/stats/2025.csv"
+    },
+    {
+      "winner_name": "Hanyu Guo",
+      "loser_name": "Alina Korneeva",
+      "winner_id": "323087",
+      "loser_id": "331330",
+      "tourney_id": "2025-W1077",
+      "tourney_date": "20251027",
+      "sourceFile": "data/raw/wta/stats/2025.csv"
+    },
+    {
+      "winner_name": "Zhuoxuan Bai",
+      "loser_name": "Hanyu Guo",
+      "winner_id": "327196",
+      "loser_id": "323087",
+      "tourney_id": "2025-W1077",
+      "tourney_date": "20251030",
+      "sourceFile": "data/raw/wta/stats/2025.csv"
+    }
+  ],
+  "officialSlotNumbers": [
+    3,
+    4,
+    21,
+    22
+  ]
+}
