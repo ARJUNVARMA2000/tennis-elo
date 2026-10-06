@@ -467,3 +467,6 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - Both-tour entrant audits must query both tour source indexes, including unfinished
   qualifiers. See [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-10-04)
+
+- Released main draws need their own complete entrant audit, preserving original and
+  field-reconciled spellings. See [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-10-05)

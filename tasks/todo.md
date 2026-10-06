@@ -9143,3 +9143,26 @@ Open draw despite the new Ma pairing. Re-plan shared before further implementati
 - [x] Saved evidence in tasks/deploy/2026-10-04-repair.json and documented the
   both-source-index audit lesson. Git history reconciled through be9f08a; final
   changes are review documents only, excluded from push-triggered refreshes.
+
+### Deployment repair — 2026-10-05
+
+- [ ] Reproduce the Shanghai main-draw identity failure and audit all released draw entrants plus both tours' current source fields.
+- [ ] Verify Wu's official identity and retained history; repair the versioned mapping and capture broken/clean gate replays.
+- [ ] Diagnose the inaccurate watchdog timestamp, making a tested correction if reproduced.
+- [ ] Validate, deploy, verify current public artifacts and forecasts, and reconcile the alerts.
+
+- [x] Verified ATP WB32 against the official Shanghai main-draw slot 3 and retained
+  history (371 Yibing Wu / four Wu Yibing appearances); the falsifier accepts the alias.
+- [x] Audited six complete official draws, both tour scoreboards and unfinished
+  qualifying fields. Wu is the sole unresolved rated identity; Elvin Egribel remains
+  an unrated entrant. The full Shanghai replay covers both an unknown opponent and
+  a counterfactual rated qualifier while preserving its 96-player/128-position shape.
+- [x] Population21 mapping and rebuild contracts added. Focused Python: 132 passed;
+  web: 375 passed, zero lint errors / nine existing warnings; Ruff passes.
+- [x] Fresh watchdog API lookup correctly returns successful run 37249589100 from
+  October 5 00:58 UTC. The reported September 29 timestamp is not reproducible;
+  keep the existing reporter and verify it again after production recovery.
+
+- [x] Final full Python suite: 1,952 passed. Final source re-audit has no unresolved
+  rated entrants across the six official draws and both tour feeds. Git history
+  remains 472d1fe; ready to deploy the population21 repair with all checks green.

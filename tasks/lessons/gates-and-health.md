@@ -491,3 +491,12 @@ Indexed in [`../lessons.md`](../lessons.md).
   endpoints across current/upcoming dates, include unfinished qualifying matches,
   and distinguish eliminated historical names from entrants who can still advance.
   This caught Xiao/Te/Zhang before another rebuild could finish with latent aliases.
+
+- **A qualifying-field audit does not cover a newly released main draw.** (2026-10-05)
+  Shanghai's main-draw slot 3 introduced Wu Yibing beside an unknown qualifier after
+  the qualifying identities had been reviewed. Audit all named positions in each
+  released official main draw, alongside both source scoreboards. Preserve the PDF's
+  original spelling as well as the event-field-reconciled spelling: the resolver can
+  replace official Yibing Wu with the feed's Wu Yibing. Replay the whole 96-player /
+  128-position draw before and after qualifier assignment, without inventing a forecast
+  for an unreleased opponent.

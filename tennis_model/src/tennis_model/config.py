@@ -167,11 +167,12 @@ WTA_DUAL_STATE_GATE_THRESHOLD = 32
 # Version 18 joins newly qualified China Open entrant Bai Zhuoxuan to rated history.
 # Version 19 joins Jingshan's Lu and Ma's split histories; standardizes newcomer Lin's name.
 # Version 20 joins Suzhou's Guo/Zhang and Shanghai's Xiao/Te/Zhang to rated histories.
-MATCH_POPULATION_VERSION = 20
+# Version 21 joins Shanghai's newly released Wu main-draw identity to rated history.
+MATCH_POPULATION_VERSION = 21
 REVIEWED_RESULTS = {
-    'atp': {'sha256': 'c28344a33e737148184428c453abbed488d13adaee86392a6134c112663b03ee',
+    'atp': {'sha256': '6fe749bdc9d7f419fcca35b28f9519d8585060c378244f8882c1a8e7dadeb91e',
             'records': 0, 'quarantines': 0},
-    'wta': {'sha256': '6e999f8042b1a8cd7353d810b947935ca21a4a2e468abf9f3460773553e17424',
+    'wta': {'sha256': 'e98da28918b31194a4f6e37e2ed17f11331ddf6d699d4398d8066b4890300ff3',
             'records': 528, 'quarantines': 1},
 }
 
@@ -773,6 +774,9 @@ PLAYER_ALIASES: dict[str, str] = {
     "xiao linang": "Linang Xiao",
     "te rigele": "Rigele Te",
     "zhang tianhui": "Tianhui Zhang",
+    # Shanghai 2026 main-draw slot 3; ATP WB32 and retained match history agree.
+    # https://www.atptour.com/en/players/yibing-wu/wb32/overview
+    "wu yibing": "Yibing Wu",
     # Jingshan 2026 ESPN entrants; WTA profiles and retained match history agree.
     # https://www.wtatennis.com/players/333741/yuhan-wang
     # https://www.wtatennis.com/players/321329/wushuang-zheng
