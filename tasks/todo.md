@@ -9166,3 +9166,22 @@ Open draw despite the new Ma pairing. Re-plan shared before further implementati
 - [x] Final full Python suite: 1,952 passed. Final source re-audit has no unresolved
   rated entrants across the six official draws and both tour feeds. Git history
   remains 472d1fe; ready to deploy the population21 repair with all checks green.
+
+### Final deploy repair review — 2026-10-05
+
+- [x] All items in this round are complete. Repair 9cd829f deployed successfully in
+  full refresh 37409076707; retained automated ledger commit b1e70fb afterward.
+- [x] Local Python: 1,952 passed. CI Python: 1,951 passed / one skipped. Web: 375
+  passed. Ruff, build/browser checks, data integrity and all 22 live checks passed.
+  An independent live-serving rerun also passed all 22 checks.
+- [x] Verified accepted release 1dd37c90-5e9a-4bd6-b8dc-b15ce1216969, generated
+  2026-10-06T04:14:12Z: 463 artifacts, matching manifest and six core artifact hashes,
+  repair-commit producers, and both rebuilt population21 models.
+- [x] Browser and JSON agree: Shanghai's 96-player draw shows Yibing Wu in section
+  one beside an unreleased qualifier, correctly unpriced until the opponent is known.
+  The repaired identity is in the model inventory; the reversed spelling is absent.
+- [x] Identity alert #121 closed automatically. Watchdog rerun 37412943381 passed,
+  identified the current successful refresh and closed #122 without a reporter change.
+  No open issues remain. Health is OK with only the existing charting-age info note.
+- [x] Saved evidence in tasks/deploy/2026-10-05-repair.json. Git history reconciled
+  through b1e70fb; final changes are review documents only, excluded from deployment.
