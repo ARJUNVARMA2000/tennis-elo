@@ -9228,3 +9228,21 @@ Open draw despite the new Ma pairing. Re-plan shared before further implementati
 - [x] Follow-up validation: 1,960 Python tests pass; 236 focused tests plus the
   strengthened five-case producer/gate replay pass; Ruff and diff checks pass.
   No frontend code changed; prior 375 web tests and CI browser/build checks passed.
+
+### Final WTA integrity repair verification — 2026-10-11
+
+- [x] Both repair phases complete. Commits ce5dced and 17245ed are pushed; final
+  refresh 38166494377 succeeded, including integrity, data health, Firebase deployment
+  and workflow reporting. CI: 1,959 Python passed / one skipped; 375 web tests;
+  build, browser smoke and all 22 live checks passed.
+- [x] Independent live verifier passed 22/22. Accepted release
+  45b044ae-b102-49b6-94c5-32b0f20c75aa, generated 2026-10-11T19:29:18Z,
+  has a matching manifest and 18 verified core/schedule/evidence artifact hashes,
+  all produced by 17245ed. All 60 WTA match IDs are unique; orientation,
+  current/history probabilities and bracket parity agree. All 12 Lisboa pairs remain.
+- [x] Browser and JSON agree on Mallorca's Clay / WTA 125 metadata and Lisboa's
+  12-match schedule. Health is OK with only the existing ATP charting-age info note.
+  Issues #123–151 closed automatically; no open issues remain.
+- [x] Saved evidence in tasks/deploy/2026-10-11-repair.json. Remote history rechecked
+  through 17245ed; original DEUCE checkout and unrelated work remain unchanged.
+  Final changes are review documents only, excluded from deployment. No blockers remain.

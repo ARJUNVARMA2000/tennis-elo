@@ -1,0 +1,508 @@
+{
+  "failedRun": "https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/38152606548",
+  "rootCause": "Raw player-string deduplication retained five accented/reversed Lisboa draw pairs beside ESPN rows. Canonical prediction and lazy evidence identities then collided.",
+  "fix": "Canonical event/round/player source deduplication plus final canonical match-identity deduplication after model-name and bracket-round resolution; preserves ESPN scheduling/orientation and genuine rematches. Existing integrity gates unchanged for this failure.",
+  "followup": "Official 2026 Mallorca WTA draw establishes WTA 125 and Clay. Exact tour/edition metadata replaces historical name-matched Grass in schedule, live/pre-start projection and fallback cards. New blocking invariant rejects reviewed-surface conflicts in public cards, brackets and schedule.",
+  "commits": [
+    "ce5dced3090a470005c62676aa6ae5e963184ff3",
+    "17245ed8ce952382bd5dd02016a4d128ad4e5575"
+  ],
+  "tests": {
+    "localPython": "1960 passed",
+    "localFocused": "236 passed; strengthened 5-case surface replay passed",
+    "web": "375 passed",
+    "ruff": "passed",
+    "typecheck": "passed",
+    "webLint": "0 errors; 9 pre-existing warnings",
+    "ciPythonSummary": [
+      "1959 passed, 1 skipped in 205.62s (0:03:25)"
+    ],
+    "ciWebBuildAndBrowserSmoke": "passed",
+    "predeployIntegrityGate": "passed",
+    "independentLiveChecks": "22/22 passed"
+  },
+  "officialSource": {
+    "url": "https://wtafiles.wtatennis.com/pdf/draws/2026/1128/MDS.pdf",
+    "sha256": "181fad0163ca59bd86bbc60a7395605caad78684d950cd1d3905d41699128b28",
+    "eventId": "1020-2026",
+    "providerId": "1128",
+    "dates": "2026-10-12 through 2026-10-18",
+    "tier": "WTA 125",
+    "surface": "Clay"
+  },
+  "closedIssues": [
+    123,
+    124,
+    125,
+    126,
+    127,
+    128,
+    129,
+    130,
+    131,
+    132,
+    133,
+    134,
+    135,
+    136,
+    137,
+    138,
+    139,
+    140,
+    141,
+    142,
+    143,
+    144,
+    145,
+    146,
+    147,
+    148,
+    149,
+    150,
+    151
+  ],
+  "initialDeployment": {
+    "verifiedAt": "2026-10-11T18:57:03.941729+00:00",
+    "repairCommit": "ce5dced3090a470005c62676aa6ae5e963184ff3",
+    "deploymentRun": "https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/38164431594",
+    "generatedAt": "2026-10-11T18:55:07Z",
+    "ok": true,
+    "artifactLineage": {
+      "schema": "artifact-lineage-v1",
+      "status": "accepted",
+      "releaseId": "b7091218-0d30-45cd-b472-7ed9d7546b25",
+      "manifestSha256": "f2942bcde5dec31f98d4a5437dc7b9f64494e8b8e8ee990aa42b9161bb6c9582",
+      "tours": [
+        "atp",
+        "wta"
+      ]
+    },
+    "manifestArtifacts": 454,
+    "verifiedArtifactCount": 18,
+    "verifiedArtifacts": [
+      {
+        "path": "atp/brackets.json",
+        "sha256": "9d2b166237f8f6f1be3498c57fd76e6fd16b535ce657c9408e9d517c21aa30ef",
+        "producer": "tennis_model.pipeline@git:ce5dced3090a470005c62676aa6ae5e963184ff3"
+      },
+      {
+        "path": "atp/meta.json",
+        "sha256": "e05f503f39b9055c3eef43fdb5513ba89c7294dfd92bb7bc8a47269c73968645",
+        "producer": "tennis_model.pipeline@git:ce5dced3090a470005c62676aa6ae5e963184ff3"
+      },
+      {
+        "path": "atp/tournaments.json",
+        "sha256": "067059e3cab18fadb18ea6f33492d9570a71a7d21ef549909ac4f77b0b628b0b",
+        "producer": "tennis_model.pipeline@git:ce5dced3090a470005c62676aa6ae5e963184ff3"
+      },
+      {
+        "path": "atp/upcoming-event-315-2026.json",
+        "sha256": "7a4cde85b7104cf37bc5464c0e1b2ca98ada6b8d6f14a1b260f443488ddbdc88",
+        "producer": "tennis_model.pipeline@git:ce5dced3090a470005c62676aa6ae5e963184ff3"
+      },
+      {
+        "path": "atp/upcoming-evidence-315-2026.json",
+        "sha256": "06953ecd4263a6d6c23947ef902df77c8e5135f0f8a1375587e72d1b7a8f41d1",
+        "producer": "tennis_model.pipeline@git:ce5dced3090a470005c62676aa6ae5e963184ff3"
+      },
+      {
+        "path": "atp/upcoming-index.json",
+        "sha256": "e7478d45f251ca8363dc699d762df99e288be19727ca325161ac0aefef1a6a89",
+        "producer": "tennis_model.pipeline@git:ce5dced3090a470005c62676aa6ae5e963184ff3"
+      },
+      {
+        "path": "wta/brackets.json",
+        "sha256": "f4264485538eac9350f22146bfa2fe1174f5ff99dcbd0be92abcf5fc6873402f",
+        "producer": "tennis_model.pipeline@git:ce5dced3090a470005c62676aa6ae5e963184ff3"
+      },
+      {
+        "path": "wta/meta.json",
+        "sha256": "2f50fd685101d71b059d1a1e79a9f7d9cec165642b6c37be5d0453fc0a18622b",
+        "producer": "tennis_model.pipeline@git:ce5dced3090a470005c62676aa6ae5e963184ff3"
+      },
+      {
+        "path": "wta/tournaments.json",
+        "sha256": "d4af9380324cd6621c7da1c41ac9593a65f24941259a81a68870f28771530780",
+        "producer": "tennis_model.pipeline@git:ce5dced3090a470005c62676aa6ae5e963184ff3"
+      },
+      {
+        "path": "wta/upcoming-event-1020-2026.json",
+        "sha256": "50243be78aa2ea10c716730454572fc03811444be6f674146c8dcfb8a5a0c7c4",
+        "producer": "tennis_model.pipeline@git:ce5dced3090a470005c62676aa6ae5e963184ff3"
+      },
+      {
+        "path": "wta/upcoming-event-1025-2026.json",
+        "sha256": "36d2025725d8d9c02fb0bcc2eb599c3260414b916918ca1887fab8d2e433fe77",
+        "producer": "tennis_model.pipeline@git:ce5dced3090a470005c62676aa6ae5e963184ff3"
+      },
+      {
+        "path": "wta/upcoming-event-1079-2026.json",
+        "sha256": "9720289fe39bf8b4ee60a8f9abb8ea66a4615eaa4063a2fe0a85e2bb1fb31ac8",
+        "producer": "tennis_model.pipeline@git:ce5dced3090a470005c62676aa6ae5e963184ff3"
+      },
+      {
+        "path": "wta/upcoming-event-381-2026.json",
+        "sha256": "9980d74e1e5ef819b4f7c0e3c1758b90e15174eb7b7edad5351037bac3d754d3",
+        "producer": "tennis_model.pipeline@git:ce5dced3090a470005c62676aa6ae5e963184ff3"
+      },
+      {
+        "path": "wta/upcoming-evidence-1020-2026.json",
+        "sha256": "2a7ff3b2a7f5100a4c5466e57367a822cbd4d8f28b57b4b4eea7926a55432fa2",
+        "producer": "tennis_model.pipeline@git:ce5dced3090a470005c62676aa6ae5e963184ff3"
+      },
+      {
+        "path": "wta/upcoming-evidence-1025-2026.json",
+        "sha256": "7e53477c9cc5faadd421d0f03a34359e5fbece6ede89b84d9424e6a4cfa7973e",
+        "producer": "tennis_model.pipeline@git:ce5dced3090a470005c62676aa6ae5e963184ff3"
+      },
+      {
+        "path": "wta/upcoming-evidence-1079-2026.json",
+        "sha256": "17b2bb8481527c10a15b9979cfb4f60af22e8f705774c72b8ecb653f4a220883",
+        "producer": "tennis_model.pipeline@git:ce5dced3090a470005c62676aa6ae5e963184ff3"
+      },
+      {
+        "path": "wta/upcoming-evidence-381-2026.json",
+        "sha256": "ab23cfbb462dc16d3b03b9fe21bd6e2009e75a379ae28af99fc310329caa7b8c",
+        "producer": "tennis_model.pipeline@git:ce5dced3090a470005c62676aa6ae5e963184ff3"
+      },
+      {
+        "path": "wta/upcoming-index.json",
+        "sha256": "0cbff5d05168c2a61327bd9a879e46dee56b194f54b7939717df95a49259782f",
+        "producer": "tennis_model.pipeline@git:ce5dced3090a470005c62676aa6ae5e963184ff3"
+      }
+    ],
+    "wtaUpcomingMatches": 60,
+    "lisboaMatches": [
+      {
+        "matchId": "v2|espn:1079-2026|2026|R32|clara burel|lina gjorcheska",
+        "date": "2026-10-12",
+        "playerA": "Lina Gjorcheska",
+        "playerB": "Clara Burel",
+        "pA": 0.271
+      },
+      {
+        "matchId": "v2|espn:1079-2026|2026|R32|barbora palicova|jazmin ortenzi",
+        "date": "2026-10-12",
+        "playerA": "Jazmin Ortenzi",
+        "playerB": "Barbora Palicova",
+        "pA": 0.5822
+      },
+      {
+        "matchId": "v2|espn:1079-2026|2026|R32|alice rame|leyre romero gormaz",
+        "date": "2026-10-12",
+        "playerA": "Alice Rame",
+        "playerB": "Leyre Romero Gormaz",
+        "pA": 0.2717
+      },
+      {
+        "matchId": "v2|espn:1079-2026|2026|R32|jessica bouzas maneiro|milana ivantsiv",
+        "date": "2026-10-13",
+        "playerA": "Milana Ivantsiv",
+        "playerB": "Jessica Bouzas Maneiro",
+        "pA": 0.1466
+      },
+      {
+        "matchId": "v2|espn:1079-2026|2026|R32|beatriz castro|dalma galfi",
+        "date": "2026-10-13",
+        "playerA": "Beatriz Castro",
+        "playerB": "Dalma Galfi",
+        "pA": 0.1674
+      },
+      {
+        "matchId": "v2|espn:1079-2026|2026|R32|irene burillo|viktoria morvayova",
+        "date": "2026-10-13",
+        "playerA": "Viktoria Morvayova",
+        "playerB": "Irene Burillo",
+        "pA": 0.327
+      },
+      {
+        "matchId": "v2|espn:1079-2026|2026|R32|aurora zantedeschi|fiona ferro",
+        "date": "2026-10-13",
+        "playerA": "Fiona Ferro",
+        "playerB": "Aurora Zantedeschi",
+        "pA": 0.8299
+      },
+      {
+        "matchId": "v2|espn:1079-2026|2026|R32|francesca jones|martina colmegna",
+        "date": "2026-10-13",
+        "playerA": "Francesca Jones",
+        "playerB": "Martina Colmegna",
+        "pA": 0.8298
+      },
+      {
+        "matchId": "v2|espn:1079-2026|2026|R32|francisca jorge|zhibek kulambayeva",
+        "date": "2026-10-13",
+        "playerA": "Francisca Jorge",
+        "playerB": "Zhibek Kulambayeva",
+        "pA": 0.6337
+      },
+      {
+        "matchId": "v2|espn:1079-2026|2026|R32|lisa zaar|matilde jorge",
+        "date": "2026-10-13",
+        "playerA": "Matilde Jorge",
+        "playerB": "Lisa Zaar",
+        "pA": 0.4704
+      },
+      {
+        "matchId": "v2|espn:1079-2026|2026|R32|madalena matias|polona hercog",
+        "date": "2026-10-13",
+        "playerA": "Polona Hercog",
+        "playerB": "Madalena Matias",
+        "pA": 0.8263
+      },
+      {
+        "matchId": "v2|espn:1079-2026|2026|R32|giorgia pedone|martha matoula",
+        "date": "2026-10-13",
+        "playerA": "Giorgia Pedone",
+        "playerB": "Martha Matoula",
+        "pA": 0.4651
+      }
+    ],
+    "mallorcaTier": "WTA 125",
+    "findings": [
+      {
+        "schema": "health-finding-v1",
+        "fingerprint": "hf1:26bab57c67924ea7b792d37eca3e84762b51d6f5be9ed9a7611efb8b75c6bac3",
+        "revision": "hr1:6d38ae13ea6b661c3781c4a0b82b1c49ef2d219e12675767bba9e2bd25067fea",
+        "code": "source.charting.coverage_age",
+        "severity": "info",
+        "scope": "source",
+        "tour": "atp",
+        "entity": "match-charting:atp",
+        "evidence": {
+          "value": 143,
+          "limit": 90,
+          "unit": "d",
+          "date": "2026-05-21"
+        },
+        "message": "atp: Match charting (MCP): volunteer batch source; newest charted match is 143d old (coverage note after 90d)"
+      }
+    ]
+  },
+  "finalDeployment": {
+    "verifiedAt": "2026-10-11T19:31:37.881982+00:00",
+    "repairCommit": "17245ed8ce952382bd5dd02016a4d128ad4e5575",
+    "deploymentRun": "https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/38166494377",
+    "generatedAt": "2026-10-11T19:29:18Z",
+    "ok": true,
+    "artifactLineage": {
+      "schema": "artifact-lineage-v1",
+      "status": "accepted",
+      "releaseId": "45b044ae-b102-49b6-94c5-32b0f20c75aa",
+      "manifestSha256": "df446812c1132a7542571d26fcda4f81fc00f3f026c5b99faa09cb1fbe448c92",
+      "tours": [
+        "atp",
+        "wta"
+      ]
+    },
+    "manifestArtifacts": 454,
+    "verifiedArtifactCount": 18,
+    "verifiedArtifacts": [
+      {
+        "path": "atp/brackets.json",
+        "sha256": "79d9eed56079168f7d82d651a4ab43c98412044b84685af3cef53912acd323bb",
+        "producer": "tennis_model.pipeline@git:17245ed8ce952382bd5dd02016a4d128ad4e5575"
+      },
+      {
+        "path": "atp/meta.json",
+        "sha256": "d6e3a771e9dbadc446d56d3ebb168c1f7ac6cf47f6c6c80655fbd95af00ae054",
+        "producer": "tennis_model.pipeline@git:17245ed8ce952382bd5dd02016a4d128ad4e5575"
+      },
+      {
+        "path": "atp/tournaments.json",
+        "sha256": "4cfb6ae1c3a674f8a095d0fcee837e3397b7a9371a2d6251cb4ca80892dc6d5e",
+        "producer": "tennis_model.pipeline@git:17245ed8ce952382bd5dd02016a4d128ad4e5575"
+      },
+      {
+        "path": "atp/upcoming-event-315-2026.json",
+        "sha256": "d91776b119a04591e72f1a61a7194bb5179850b31d4bd54c6423b96b818ce53b",
+        "producer": "tennis_model.pipeline@git:17245ed8ce952382bd5dd02016a4d128ad4e5575"
+      },
+      {
+        "path": "atp/upcoming-evidence-315-2026.json",
+        "sha256": "f927093d5fa77ed439ccc5c81e21d6f92e8db7c7d2c3c5dc52c973ca375c7f2f",
+        "producer": "tennis_model.pipeline@git:17245ed8ce952382bd5dd02016a4d128ad4e5575"
+      },
+      {
+        "path": "atp/upcoming-index.json",
+        "sha256": "a2f43e661366f78d12fb217eea2d4c4412a541d27dd8d2a888ab49cd4f8c729a",
+        "producer": "tennis_model.pipeline@git:17245ed8ce952382bd5dd02016a4d128ad4e5575"
+      },
+      {
+        "path": "wta/brackets.json",
+        "sha256": "5ad383b393fe6a9e836b522f5a687844d30f9dc3b2cd2b6d2651d2ab01527024",
+        "producer": "tennis_model.pipeline@git:17245ed8ce952382bd5dd02016a4d128ad4e5575"
+      },
+      {
+        "path": "wta/meta.json",
+        "sha256": "81852d471810d19d198f9bf1921a871df74ff536b8eb228673918c3e9d88433b",
+        "producer": "tennis_model.pipeline@git:17245ed8ce952382bd5dd02016a4d128ad4e5575"
+      },
+      {
+        "path": "wta/tournaments.json",
+        "sha256": "4e1ec624d6360400c53fc9b7d31ff274cc1e340ff2047c85768d366d6686067e",
+        "producer": "tennis_model.pipeline@git:17245ed8ce952382bd5dd02016a4d128ad4e5575"
+      },
+      {
+        "path": "wta/upcoming-event-1020-2026.json",
+        "sha256": "16e9f7f5a78ce90124a9d5c9b12047fb7e1e1e0c2a739a9e9c268f7b285a3a83",
+        "producer": "tennis_model.pipeline@git:17245ed8ce952382bd5dd02016a4d128ad4e5575"
+      },
+      {
+        "path": "wta/upcoming-event-1025-2026.json",
+        "sha256": "5478c68e47875bcf9ac3717678ec4c8241d78059bfc75332bc52fa2780f81421",
+        "producer": "tennis_model.pipeline@git:17245ed8ce952382bd5dd02016a4d128ad4e5575"
+      },
+      {
+        "path": "wta/upcoming-event-1079-2026.json",
+        "sha256": "69349a31869a5b4557a9aafc6e6f1ca1fcf0fe1cf95e7b5bca3760622dada826",
+        "producer": "tennis_model.pipeline@git:17245ed8ce952382bd5dd02016a4d128ad4e5575"
+      },
+      {
+        "path": "wta/upcoming-event-381-2026.json",
+        "sha256": "6b5d69cd6ff431813365bcb126b4d0e76acea38f404945d972a1868743713699",
+        "producer": "tennis_model.pipeline@git:17245ed8ce952382bd5dd02016a4d128ad4e5575"
+      },
+      {
+        "path": "wta/upcoming-evidence-1020-2026.json",
+        "sha256": "5cbfd4c31c9eef37b0cb0875d0732cb929d4e334cf825e0192fbc9ea6f2936c4",
+        "producer": "tennis_model.pipeline@git:17245ed8ce952382bd5dd02016a4d128ad4e5575"
+      },
+      {
+        "path": "wta/upcoming-evidence-1025-2026.json",
+        "sha256": "4923b682cb76c61e3065a5f42db30b894566e0e4b3b68f50a290ad3adf851aa7",
+        "producer": "tennis_model.pipeline@git:17245ed8ce952382bd5dd02016a4d128ad4e5575"
+      },
+      {
+        "path": "wta/upcoming-evidence-1079-2026.json",
+        "sha256": "dc43a58f55156ae67418356e94f2f578dd7c80c3f3718362d6c3a16c5a1a1c82",
+        "producer": "tennis_model.pipeline@git:17245ed8ce952382bd5dd02016a4d128ad4e5575"
+      },
+      {
+        "path": "wta/upcoming-evidence-381-2026.json",
+        "sha256": "d944990422ff4c309299183d1842f983318848ef826cc868fc7e79c4c1a2abb5",
+        "producer": "tennis_model.pipeline@git:17245ed8ce952382bd5dd02016a4d128ad4e5575"
+      },
+      {
+        "path": "wta/upcoming-index.json",
+        "sha256": "1eb2d4ca974a4af2e249b6fac861f8730d75368e7739ec11236f88468cfc675f",
+        "producer": "tennis_model.pipeline@git:17245ed8ce952382bd5dd02016a4d128ad4e5575"
+      }
+    ],
+    "wtaUpcomingMatches": 60,
+    "lisboaMatches": [
+      {
+        "matchId": "v2|espn:1079-2026|2026|R32|clara burel|lina gjorcheska",
+        "date": "2026-10-12",
+        "playerA": "Lina Gjorcheska",
+        "playerB": "Clara Burel",
+        "pA": 0.271
+      },
+      {
+        "matchId": "v2|espn:1079-2026|2026|R32|barbora palicova|jazmin ortenzi",
+        "date": "2026-10-12",
+        "playerA": "Jazmin Ortenzi",
+        "playerB": "Barbora Palicova",
+        "pA": 0.5822
+      },
+      {
+        "matchId": "v2|espn:1079-2026|2026|R32|alice rame|leyre romero gormaz",
+        "date": "2026-10-12",
+        "playerA": "Alice Rame",
+        "playerB": "Leyre Romero Gormaz",
+        "pA": 0.2717
+      },
+      {
+        "matchId": "v2|espn:1079-2026|2026|R32|jessica bouzas maneiro|milana ivantsiv",
+        "date": "2026-10-13",
+        "playerA": "Milana Ivantsiv",
+        "playerB": "Jessica Bouzas Maneiro",
+        "pA": 0.1466
+      },
+      {
+        "matchId": "v2|espn:1079-2026|2026|R32|beatriz castro|dalma galfi",
+        "date": "2026-10-13",
+        "playerA": "Beatriz Castro",
+        "playerB": "Dalma Galfi",
+        "pA": 0.1674
+      },
+      {
+        "matchId": "v2|espn:1079-2026|2026|R32|irene burillo|viktoria morvayova",
+        "date": "2026-10-13",
+        "playerA": "Viktoria Morvayova",
+        "playerB": "Irene Burillo",
+        "pA": 0.327
+      },
+      {
+        "matchId": "v2|espn:1079-2026|2026|R32|aurora zantedeschi|fiona ferro",
+        "date": "2026-10-13",
+        "playerA": "Fiona Ferro",
+        "playerB": "Aurora Zantedeschi",
+        "pA": 0.8299
+      },
+      {
+        "matchId": "v2|espn:1079-2026|2026|R32|francesca jones|martina colmegna",
+        "date": "2026-10-13",
+        "playerA": "Francesca Jones",
+        "playerB": "Martina Colmegna",
+        "pA": 0.8298
+      },
+      {
+        "matchId": "v2|espn:1079-2026|2026|R32|francisca jorge|zhibek kulambayeva",
+        "date": "2026-10-13",
+        "playerA": "Francisca Jorge",
+        "playerB": "Zhibek Kulambayeva",
+        "pA": 0.6337
+      },
+      {
+        "matchId": "v2|espn:1079-2026|2026|R32|lisa zaar|matilde jorge",
+        "date": "2026-10-13",
+        "playerA": "Matilde Jorge",
+        "playerB": "Lisa Zaar",
+        "pA": 0.4704
+      },
+      {
+        "matchId": "v2|espn:1079-2026|2026|R32|madalena matias|polona hercog",
+        "date": "2026-10-13",
+        "playerA": "Polona Hercog",
+        "playerB": "Madalena Matias",
+        "pA": 0.8263
+      },
+      {
+        "matchId": "v2|espn:1079-2026|2026|R32|giorgia pedone|martha matoula",
+        "date": "2026-10-13",
+        "playerA": "Giorgia Pedone",
+        "playerB": "Martha Matoula",
+        "pA": 0.4651
+      }
+    ],
+    "mallorcaTier": "WTA 125",
+    "mallorcaSurface": "Clay",
+    "findings": [
+      {
+        "schema": "health-finding-v1",
+        "fingerprint": "hf1:26bab57c67924ea7b792d37eca3e84762b51d6f5be9ed9a7611efb8b75c6bac3",
+        "revision": "hr1:6d38ae13ea6b661c3781c4a0b82b1c49ef2d219e12675767bba9e2bd25067fea",
+        "code": "source.charting.coverage_age",
+        "severity": "info",
+        "scope": "source",
+        "tour": "atp",
+        "entity": "match-charting:atp",
+        "evidence": {
+          "value": 143,
+          "limit": 90,
+          "unit": "d",
+          "date": "2026-05-21"
+        },
+        "message": "atp: Match charting (MCP): volunteer batch source; newest charted match is 143d old (coverage note after 90d)"
+      }
+    ]
+  },
+  "browserVerification": {
+    "url": "https://deuce-forecast.web.app/schedule/?tour=wta",
+    "lisboaMatchCount": 12,
+    "mallorcaSurface": "Clay",
+    "mallorcaTier": "WTA 125"
+  },
+  "remainingBlockers": []
+}
