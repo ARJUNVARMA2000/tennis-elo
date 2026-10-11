@@ -500,3 +500,13 @@ Indexed in [`../lessons.md`](../lessons.md).
   replace official Yibing Wu with the feed's Wu Yibing. Replay the whole 96-player /
   128-position draw before and after qualifier assignment, without inventing a forecast
   for an unreleased opponent.
+
+- **Deduplicate on canonical match identity before pricing or attaching keyed evidence.**
+  (2026-10-11, Lisboa) A source merge used raw player strings while prediction and
+  upcoming shards used normalized names. Five accented, reversed draw pairs survived
+  alongside ESPN rows and collided only after pricing, overwriting lazy evidence and
+  disagreeing with forecast history/brackets. Use the existing canonical identity
+  rules for source pairs and recheck the final event/season/round/player identity
+  after model-name and bracket-round resolution. Preserve source date/orientation
+  precedence and real rematches; replay captured provider inputs through the producer
+  and unchanged gate, including a broken duplicate graph that must still block.

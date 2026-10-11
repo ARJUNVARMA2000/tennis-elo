@@ -1,0 +1,163 @@
+{
+  "source": "ESPN scoreboard and retained complete draw, captured 2026-10-11",
+  "failedRun": "https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/38152606548",
+  "espn": [
+    {
+      "tourney_name": "Lisboa Belem Open",
+      "espn_id": "1079-2026",
+      "tourney_date": "2026-10-12",
+      "round": "R32",
+      "playerA": "Lina Gjorcheska",
+      "playerB": "Clara Burel"
+    },
+    {
+      "tourney_name": "Lisboa Belem Open",
+      "espn_id": "1079-2026",
+      "tourney_date": "2026-10-12",
+      "round": "R32",
+      "playerA": "Jazmin Ortenzi",
+      "playerB": "Barbora Palicova"
+    },
+    {
+      "tourney_name": "Lisboa Belem Open",
+      "espn_id": "1079-2026",
+      "tourney_date": "2026-10-12",
+      "round": "R32",
+      "playerA": "Alice Rame",
+      "playerB": "Leyre Romero Gormaz"
+    },
+    {
+      "tourney_name": "Lisboa Belem Open",
+      "espn_id": "1079-2026",
+      "tourney_date": "2026-10-13",
+      "round": "R32",
+      "playerA": "Milana Ivantsiv",
+      "playerB": "Jessica Bouzas Maneiro"
+    },
+    {
+      "tourney_name": "Lisboa Belem Open",
+      "espn_id": "1079-2026",
+      "tourney_date": "2026-10-13",
+      "round": "R32",
+      "playerA": "Beatriz Castro",
+      "playerB": "Dalma Galfi"
+    },
+    {
+      "tourney_name": "Lisboa Belem Open",
+      "espn_id": "1079-2026",
+      "tourney_date": "2026-10-13",
+      "round": "R32",
+      "playerA": "Viktoria Morvayova",
+      "playerB": "Irene Burillo"
+    },
+    {
+      "tourney_name": "Lisboa Belem Open",
+      "espn_id": "1079-2026",
+      "tourney_date": "2026-10-13",
+      "round": "R32",
+      "playerA": "Fiona Ferro",
+      "playerB": "Aurora Zantedeschi"
+    },
+    {
+      "tourney_name": "Lisboa Belem Open",
+      "espn_id": "1079-2026",
+      "tourney_date": "2026-10-13",
+      "round": "R32",
+      "playerA": "Francesca Jones",
+      "playerB": "Martina Colmegna"
+    },
+    {
+      "tourney_name": "Lisboa Belem Open",
+      "espn_id": "1079-2026",
+      "tourney_date": "2026-10-13",
+      "round": "R32",
+      "playerA": "Francisca Jorge",
+      "playerB": "Zhibek Kulambayeva"
+    },
+    {
+      "tourney_name": "Lisboa Belem Open",
+      "espn_id": "1079-2026",
+      "tourney_date": "2026-10-13",
+      "round": "R32",
+      "playerA": "Matilde Jorge",
+      "playerB": "Lisa Zaar"
+    },
+    {
+      "tourney_name": "Lisboa Belem Open",
+      "espn_id": "1079-2026",
+      "tourney_date": "2026-10-13",
+      "round": "R32",
+      "playerA": "Polona Hercog",
+      "playerB": "Madalena Matias"
+    },
+    {
+      "tourney_name": "Lisboa Belem Open",
+      "espn_id": "1079-2026",
+      "tourney_date": "2026-10-13",
+      "round": "R32",
+      "playerA": "Giorgia Pedone",
+      "playerB": "Martha Matoula"
+    }
+  ],
+  "draw": {
+    "bestOf": 3,
+    "bracketSize": 32,
+    "drawSize": 32,
+    "end": "2026-10-19",
+    "espnId": "1079-2026",
+    "name": "Lisboa Belem Open",
+    "publishedDrawSize": null,
+    "retrieved": "2026-10-11",
+    "seeds": {
+      "Dalma Gálfi": 7,
+      "Darja Semeņistaja": 4,
+      "Fiona Ferro": 3,
+      "Francesca Jones": 2,
+      "Guiomar Maristany": 6,
+      "Jazmín Ortenzi": 8,
+      "Jéssica Bouzas Maneiro": 1,
+      "Leyre Romero Gormaz": 6
+    },
+    "slots": [
+      "Jéssica Bouzas Maneiro",
+      "Milana Ivantsiv",
+      "Irene Burillo",
+      "Viktória Morvayová",
+      "Madalena Matias",
+      "Polona Hercog",
+      "Barbora Palicová",
+      "Jazmín Ortenzi",
+      "Darja Semeņistaja",
+      "Qualifier/Unresolved 1",
+      "Clara Burel",
+      "Lina Gjorcheska",
+      "Martha Matoula",
+      "Giorgia Pedone",
+      "Qualifier/Unresolved 2",
+      "Guiomar Maristany",
+      "Leyre Romero Gormaz",
+      "Alice Ramé",
+      "Analu Freitas",
+      "Qualifier/Unresolved 3",
+      "Qualifier/Unresolved 4",
+      "Séléna Janicijevic",
+      "Aurora Zantedeschi",
+      "Fiona Ferro",
+      "Dalma Gálfi",
+      "Beatriz Castro",
+      "Lisa Zaar",
+      "Matilde Jorge",
+      "Zhibek Kulambayeva",
+      "Francisca Jorge",
+      "Martina Colmegna",
+      "Francesca Jones"
+    ],
+    "source": "wikipedia",
+    "sourceDrawSize": 32,
+    "sourceId": "2026 Lisboa Belém Open – Women's singles",
+    "sourceUrl": "https://en.wikipedia.org/wiki/2026_Lisboa_Bel%C3%A9m_Open_%E2%80%93_Women%27s_singles",
+    "start": "2026-10-11",
+    "title": "2026 Lisboa Belém Open – Women's singles",
+    "url": "https://en.wikipedia.org/wiki/2026_Lisboa_Bel%C3%A9m_Open_%E2%80%93_Women%27s_singles"
+  }
+}

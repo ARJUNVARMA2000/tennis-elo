@@ -8,6 +8,7 @@ win_prob, and drop matchups the model can't speak to (unknown or self-paired pla
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -20,6 +21,88 @@ from tennis_model.data.bracket_rounds import (
     unique_bracket_round,
 )
 from tennis_model.model.upcoming import enrich_upcoming, event_attrs
+
+
+def test_lisboa_accented_draw_merges_before_pricing_and_sharding(tmp_path, monkeypatch):
+    from tennis_model.model import export, upcoming
+
+    from tennis_model.data import draws, health
+
+    capture = json.loads((Path(__file__).parent / "fixtures" /
+                          "lisboa_upcoming_20261011.json").read_text())
+    pd.DataFrame(capture["espn"]).to_csv(tmp_path / "upcoming.csv", index=False)
+    monkeypatch.setattr(upcoming, "live_dir", lambda tour: tmp_path)
+    draw_rows = draws._rows_from_draws({"1079-2026": capture["draw"]}, today="2026-10-11")
+    monkeypatch.setattr(draws, "tournament_draw_upcoming_rows",
+                        lambda tour, **kwargs: draw_rows)
+    frame = upcoming.load_upcoming("wta")
+    # Five accented/reversed draw rows used to survive the raw-string source merge.
+    assert len(frame) == 12
+    assert frame.to_dict("records") == capture["espn"]  # ESPN owns dates and orientation
+
+    names = {n for row in capture["espn"] for n in (row["playerA"], row["playerB"])}
+    calls = []
+
+    class Predictor:
+        elo = type("Elo", (), {"overall": dict.fromkeys(names, 1500)})()
+
+        def prediction_components(self, a, b, **kwargs):
+            calls.append((a, b))
+            return {"combiner": 0.7}
+
+        def prediction_evidence(self, a, b, **kwargs):
+            return {"playerA": a, "playerB": b, "pA": 0.7}
+
+    rows = upcoming.enrich_upcoming(Predictor(), pd.DataFrame(), frame, "wta", bracket_index={})
+    assert len(rows) == len(calls) == 12
+    index, shards = export.build_upcoming_shards(rows, "lisboa-replay")
+    findings = []
+    health._check_upcoming_shards(findings, "wta", index, shards)
+    assert not findings
+    ref = index["events"][0]
+    matches = shards[ref["file"]]["matches"]
+    details = {r["matchId"]: r for r in shards[ref["evidenceFile"]]["details"]}
+    for row in matches:
+        evidence = details[row["matchId"]]["evidence"]
+        assert (evidence["playerA"], evidence["playerB"], evidence["pA"]) == (
+            row["playerA"], row["playerB"], row["pA"])
+    # The original duplicated graph remains a blocking error: no gate relaxation.
+    broken_index, broken_shards = export.build_upcoming_shards(rows + [rows[0]], "broken")
+    blocked = health._FindingCollector("output", "wta")
+    health._check_upcoming_shards(blocked, "wta", broken_index, broken_shards)
+    assert any(f.code == "output.upcoming_index.match_identity_duplicate"
+               and f.severity == "error" for f in blocked.findings)
+
+
+def test_canonical_schedule_dedup_preserves_rematches_and_source_priority(tmp_path, monkeypatch):
+    from tennis_model.model import upcoming
+
+    from tennis_model.data import draws
+
+    base = {"tourney_name": "Wimbledon", "espn_id": "540-2026",
+            "tourney_date": "2026-07-10", "round": "SF",
+            "playerA": "Carlos Alcaraz", "playerB": "Novak Djokovic"}
+    pd.DataFrame([base]).to_csv(tmp_path / "upcoming.csv", index=False)
+    monkeypatch.setattr(upcoming, "live_dir", lambda tour: tmp_path)
+    variants = [
+        {**base, "playerA": "Novak Djoković", "playerB": "Carlos Alcaraz",
+         "tourney_name": "Renamed Wimbledon", "tourney_date": "2026-07-01"},
+        {**base, "round": "F"},
+        {**base, "espn_id": "other-2026"},
+    ]
+    monkeypatch.setattr(draws, "tournament_draw_upcoming_rows", lambda *a, **k: variants)
+    frame = upcoming.load_upcoming("atp")
+    assert len(frame) == 3
+    assert frame.iloc[0].to_dict() == base
+    # A source round disagreement collapses only AFTER unique bracket evidence resolves it.
+    frame = pd.concat([frame, pd.DataFrame([{**base, "round": "R32"}])])
+    index = build_bracket_round_index([{"espnId": "540-2026", "rounds": [
+        {"round": "SF", "matches": [{"a": base["playerA"], "b": base["playerB"]}]}]}])
+    rows = upcoming.enrich_upcoming(_Pred(), _df(), frame, "atp", bracket_index=index)
+    assert len(rows) == 2  # same-event rounds reconciled; other event retained
+    assert (rows[0]["playerA"], rows[0]["date"]) == (base["playerA"], base["tourney_date"])
+    # Without that evidence a different round remains a distinct match.
+    assert len(upcoming.enrich_upcoming(_Pred(), _df(), frame, "atp", bracket_index={})) == 4
 
 # The events below resolve surface without any on-disk Wikipedia cache: "Wimbledon" via the
 # archive tier (surface_b in _df()), and the absent "Mystery Cup" via the season-by-month

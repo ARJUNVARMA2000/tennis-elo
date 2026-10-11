@@ -470,3 +470,6 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - Released main draws need their own complete entrant audit, preserving original and
   field-reconciled spellings. See [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-10-05)
+
+- Deduplicate on canonical match identity before pricing or attaching keyed evidence.
+  See [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-10-11)

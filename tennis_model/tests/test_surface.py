@@ -301,6 +301,18 @@ def test_loader_backfills_surface_from_wiki_cache_else_month():
     print("ok test_loader_backfills_surface_from_wiki_cache_else_month")
 
 
+def test_mallorca_2026_tier_is_scoped_to_verified_wta_edition(monkeypatch):
+    from tennis_model.data import surface
+
+    monkeypatch.setattr(surface, "wiki_categories_by_event_id", lambda tour: {})
+    monkeypatch.setattr(surface, "wiki_category", lambda *args: None)
+    assert surface.resolve_level("wta", "Mallorca", event_id="1020-2026") == "WTA 125"
+    assert surface.resolve_level("wta", "New sponsor", event_id="1020-2026") == "WTA 125"
+    assert surface.resolve_level("atp", "Mallorca", event_id="1020-2026") == "ATP Tour"
+    assert surface.resolve_level("wta", "Mallorca", event_id="1020-2027") == "WTA Tour"
+    assert surface.resolve_level("wta", "Mallorca") == "WTA Tour"
+
+
 if __name__ == "__main__":
     test_parse_surface_reads_infobox_and_canonicalizes()
     test_parse_surface_reads_one_word_link_targets()

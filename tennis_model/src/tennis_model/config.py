@@ -314,6 +314,16 @@ EVENT_TIER_FALLBACK: dict = {
     "Mifel Tennis Open": "250",
 }
 
+# Reviewed edition metadata for events whose article/category is absent. Scope by tour
+# and ESPN edition: Mallorca also names unrelated men's events and former WTA editions.
+EVENT_TIER_BY_ID: dict[str, dict[str, str]] = {
+    "wta": {
+        # Official 1128 draw: Oct 12–18, 2026; WTA 125; same 28 named ESPN entrants.
+        # https://wtafiles.wtatennis.com/pdf/draws/2026/1128/MDS.pdf
+        "1020-2026": "WTA 125",
+    },
+}
+
 # ---------------------------------------------------------------------------
 # Per-tour tuned overrides (eval/tune.py sweeps; tune window 2010-2019, validated
 # on 2020+). An empty dict keeps the shared defaults above. TIER_ANCHORS rescales

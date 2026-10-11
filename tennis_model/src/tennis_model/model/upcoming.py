@@ -21,6 +21,7 @@ from ..config import PLAYER_ALIASES, ROUND_ORDER, live_dir
 from ..data.bracket_rounds import (
     BracketRoundIndex,
     load_bracket_round_index,
+    player_identity_key,
     unique_bracket_round,
 )
 from ..data.results import _name_key as nkey
@@ -53,8 +54,9 @@ def _tier_context(level: str | None, tour: str) -> float:
 def load_upcoming(tour: str, *, status: dict | None = None) -> pd.DataFrame:
     """The tour's scheduled / in-progress matchups: ESPN's day-by-day feed unioned with the
     full first round from any released complete draw (so the board shows every opening-round
-    match at release, not just the handful ESPN has named). Deduped by event + unordered
-    player pair (ESPN wins ties). A missing or corrupt source is a no-op, never fatal."""
+    match at release, not just the handful ESPN has named). Deduped by event + round +
+    canonical unordered player pair (ESPN wins ties, including date and orientation).
+    A missing or corrupt source is a no-op, never fatal."""
     frames = []
     failures: list[dict[str, str]] = []
     path = live_dir(tour) / "upcoming.csv"
@@ -85,14 +87,18 @@ def load_upcoming(tour: str, *, status: dict | None = None) -> pd.DataFrame:
     if not frames:
         return pd.DataFrame(columns=UPCOMING_COLS)
     df = pd.concat(frames, ignore_index=True).reindex(columns=UPCOMING_COLS)
-    pair = [frozenset((str(a), str(b))) for a, b in zip(df["playerA"], df["playerB"])]
+    # Draws retain accents/punctuation and may reverse the ESPN player order. Use the
+    # same reviewed identity rules as prediction, before two raw rows become one priced
+    # match and overwrite each other's lazy evidence. Do not fuzzy-match player names.
+    pair = [frozenset((player_identity_key(a), player_identity_key(b)))
+            for a, b in zip(df["playerA"], df["playerB"])]
     # Dedup on the event ID where both rows carry one, else the name. The ESPN feed and the
     # complete-draw overlay can name the same event differently, so a first-round matchup was
     # only ever collapsed when the two happened to agree on the title.
     ev_key = df["espn_id"].astype("object").where(df["espn_id"].notna(),
                                                   df["tourney_name"].astype(str))
     df = df.assign(_ev=ev_key.astype(str), _pair=pair)
-    return (df[~df.duplicated(subset=["_ev", "_pair"])]
+    return (df[~df.duplicated(subset=["_ev", "round", "_pair"])]
             .drop(columns=["_ev", "_pair"]).reset_index(drop=True))
 
 
@@ -156,7 +162,9 @@ def enrich_upcoming(predictor, df: pd.DataFrame, up_df: pd.DataFrame | None, tou
             aliased = PLAYER_ALIASES.get(key, value)
             return key2name.get(nkey(aliased))
 
+        from ..eval.track import match_identity
         out = []
+        seen = set()
         for r in up_df.itertuples(index=False):
             a, b = resolve_player(r.playerA), resolve_player(r.playerB)
             if (not a or not b or nkey(a) == nkey(b)
@@ -168,6 +176,15 @@ def enrich_upcoming(predictor, df: pd.DataFrame, up_df: pd.DataFrame | None, tou
             tier_k = _tier_context(level, tour)
             bracket_round = unique_bracket_round(bracket_index, event_id, a, b)
             round_name = bracket_round if bracket_round is not None else r.round
+            # Model name resolution and bracket-round reconciliation can collapse rows
+            # that were distinct at the source merge. Price each final identity once,
+            # preserving source precedence and all genuine other-event/round rematches.
+            identity = match_identity({"event": str(r.tourney_name), "espnId": event_id,
+                                       "date": str(r.tourney_date), "round": round_name,
+                                       "playerA": a, "playerB": b})
+            if identity in seen:
+                continue
+            seen.add(identity)
             if bracket_round is not None and str(r.round) != bracket_round:
                 print(f"  round-reconcile/{tour}: upcoming {event_id} {a!r} vs {b!r} "
                       f"{r.round}->{bracket_round}")

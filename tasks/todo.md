@@ -9185,3 +9185,27 @@ Open draw despite the new Ma pairing. Re-plan shared before further implementati
   No open issues remain. Health is OK with only the existing charting-age info note.
 - [x] Saved evidence in tasks/deploy/2026-10-05-repair.json. Git history reconciled
   through b1e70fb; final changes are review documents only, excluded from deployment.
+
+### WTA schedule integrity repair — 2026-10-11
+
+- [x] Rechecked remote master, runs, local worktrees and process list; no concurrent
+  repair found. Isolated checkout preserves the original DEUCE project.
+- [x] Reproduced five Lisboa duplicates from captured ESPN and complete-draw inputs:
+  accented/reversed draw names survived raw-string deduplication, then canonical
+  prediction and shard identities collided. The existing gate correctly blocked.
+- [x] Canonicalize source-pair keys, retain distinct rounds, and enforce one final
+  match identity after model-name/round resolution. ESPN keeps date/orientation
+  precedence. Added captured producer/shard/gate replay and rematch coverage.
+- [x] Verified Mallorca's official 2026 WTA 1128 draw (28 named entrants, October
+  12–18, WTA 125) and added a tour/edition-scoped tier fallback for ESPN 1020-2026.
+- [ ] Complete both-tour rebuild, full validation, guarded push/deployment and live
+  release/forecast/health verification.
+
+- [x] Final local validation: 1,955 Python tests; 375 web tests; Ruff and TypeScript
+  pass; web lint has zero errors and nine existing warnings. Captured regression
+  failed with 17 rows before repair and passes with all 12 real matches retained.
+- [x] Refreshed both source caches locally. Stopped the isolated artifact rebuild
+  after the Mac's old predictor envelope required a redundant full retrain; the
+  production workflow will validate current cached models and all release gates.
+- [x] Git history rechecked through 5c513bb; no intervening remote changes or repair
+  runs. Ready for guarded production deployment.

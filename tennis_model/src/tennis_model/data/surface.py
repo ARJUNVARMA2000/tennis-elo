@@ -18,7 +18,7 @@ from __future__ import annotations
 import json
 import re
 
-from ..config import EVENT_TIER_FALLBACK, MONTH_SURFACE, live_dir
+from ..config import EVENT_TIER_BY_ID, EVENT_TIER_FALLBACK, MONTH_SURFACE, live_dir
 
 # Paired with the metadata writer invoked by data.draws.download_tournament_draws.
 _WIKI_SURFACE_FILE = "wiki_surface.json"
@@ -230,7 +230,7 @@ def resolve_level(tour: str, event: str, archive_level: str | None = None,
                   event_id: str | None = None) -> str:
     """Display tier for a live/upcoming event, mirroring resolve_surface:
         real archive level -> stable-id Wikipedia category -> name-keyed Wikipedia category
-        -> curated EVENT_TIER_FALLBACK -> '{TOUR} Tour'.
+        -> reviewed edition / curated EVENT_TIER_FALLBACK -> '{TOUR} Tour'.
     The caller passes ``archive_level`` only when the match frame gives a reliable current-edition
     level (else None, so a stale historical tier can't win). ``event_id`` bridges a current
     result label to the legacy sponsor-title-keyed category cache through the event registry.
@@ -241,6 +241,7 @@ def resolve_level(tour: str, event: str, archive_level: str | None = None,
     by_id = (wiki_categories_by_event_id(tour).get(stable)
              if stable and stable.lower() not in {"nan", "none", "<na>"} else None)
     for candidate in (archive_level, by_id, wiki_category(tour, event),
+                      EVENT_TIER_BY_ID.get(tour, {}).get(stable),
                       _fallback_tier(tour, event)):
         lv = normalize_level(candidate, tour)
         if lv and lv != generic:
