@@ -42,6 +42,7 @@ import pandas as pd
 
 from ..config import (
     DATA_DIR,
+    EVENT_SURFACE_BY_ID,
     HEALTH_CHARTING_COVERAGE_NOTE_DAYS,
     HEALTH_MAX_BUILD_AGE_DAYS,
     HEALTH_MAX_FORECAST_AGE_DAYS,
@@ -1722,6 +1723,22 @@ def output_findings(tour: str, oc: dict, now: pd.Timestamp,
         _check_upcoming_shards(out, tour, upcoming_index, oc.get("shards") or {})
 
     up = data.get("upcoming")
+    # A name-shared historic venue cannot override reviewed current-edition facts.
+    # Inspect every public prediction surface, including the reconstructed lazy schedule.
+    for artifact, rows in (("tournaments", ts), ("brackets", br), ("upcoming", up)):
+        if not isinstance(rows, list):
+            continue
+        for event_id, expected in EVENT_SURFACE_BY_ID.get(tour, {}).items():
+            wrong = sorted({str(row.get("surface")) for row in rows
+                            if isinstance(row, dict) and row.get("espnId") == event_id
+                            and row.get("surface") != expected})
+            if wrong:
+                _add_finding(
+                    out, "output.event.reviewed_surface_mismatch",
+                    f"{tour}: {artifact} surface {wrong!r} disagrees with reviewed "
+                    f"{expected} surface for {event_id}",
+                    entity=f"artifact:{artifact}.json#espn:{event_id}",
+                    evidence={"espnId": event_id, "expected": expected, "actual": wrong})
     if isinstance(up, list):
         if not up and not offseason:
             _add_finding(out, "output.upcoming.feed_empty",

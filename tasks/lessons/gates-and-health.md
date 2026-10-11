@@ -510,3 +510,11 @@ Indexed in [`../lessons.md`](../lessons.md).
   after model-name and bracket-round resolution. Preserve source date/orientation
   precedence and real rematches; replay captured provider inputs through the producer
   and unchanged gate, including a broken duplicate graph that must still block.
+
+- **A reviewed current edition outranks a name-matched historical venue.**
+  (2026-10-11, Mallorca) Fixing its missing WTA 125 tier still left the 2026 clay
+  tournament priced as the former grass event. Carry the exact tour/edition ID into
+  the shared surface resolver and every current-event prediction path, including
+  live and coverage-only cards. Gate the public schedule/cards/brackets against
+  independently reviewed edition facts; a consistently wrong set of artifacts can
+  pass cross-artifact parity. Keep older editions' real grass history intact.

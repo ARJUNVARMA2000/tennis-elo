@@ -779,9 +779,11 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
     # (archive_hint) -> Wikipedia infobox -> month guess. Taking `surface_b.mode()` outright
     # was the live half of the split that let an event change surface the day it started.
     surface, surface_src = _known_surface(main)
-    if surface is None:
-        surface, surface_src = resolve_surface_info(
-            tour, name, str(g["date"].min().date()), archive_surface=archive_hint)
+    resolved_surface, resolved_src = resolve_surface_info(
+        tour, name, str(g["date"].min().date()),
+        archive_surface=surface if surface is not None else archive_hint, event_id=espn_id)
+    if surface is None or resolved_src == "reviewed":
+        surface, surface_src = resolved_surface, resolved_src
     bo = pd.to_numeric(main["best_of"], errors="coerce").max()
     best_of = int(bo) if pd.notna(bo) else 3
     level = resolve_level(
@@ -1112,7 +1114,7 @@ def project_upcoming(predictor, name: str, wd: dict, tour: str, df: pd.DataFrame
         return None
     surface, _lvl, bo = _archive_attrs(df, name)
     surface, surface_src = resolve_surface_info(tour, name, wd.get("start") or "",
-                                                archive_surface=surface)
+                                                archive_surface=surface, event_id=espn_id)
     best_of = int(wd.get("bestOf") or bo or 3)
     level = resolve_level(tour, name, event_id=espn_id)
     slots = advance_slots(wslots, walkovers)

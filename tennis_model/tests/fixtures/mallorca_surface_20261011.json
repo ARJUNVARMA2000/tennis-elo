@@ -1,0 +1,172 @@
+{
+  "source": "https://wtafiles.wtatennis.com/pdf/draws/2026/1128/MDS.pdf",
+  "officialSurface": "Clay",
+  "draw": {
+    "bestOf": 3,
+    "bracketSize": 32,
+    "drawSize": 32,
+    "end": "2026-10-19",
+    "espnId": "1020-2026",
+    "evidenceFieldPlayers": 28,
+    "evidencePlayers": 28,
+    "name": "Vanda Pharmaceuticals Mallorca Women's Championships presented by Ecotrans Group",
+    "retrieved": "2026-10-11T18:32:31Z",
+    "seeds": {
+      "Andrea Lazaro Garcia": 5,
+      "Ekaterine Gorgodze": 8,
+      "Elizara Yaneva": 7,
+      "Julia Grabher": 1,
+      "Laura Samson": 2,
+      "Marina Bassols Ribera": 4,
+      "Noma Noha Akugue": 3,
+      "Tamara Zidansek": 6
+    },
+    "slots": [
+      "Julia Grabher",
+      "Deborah Chiesa",
+      "Qualifier 1",
+      "Qualifier 2",
+      "Tea Kovacevic",
+      "Ariana Geerlings",
+      "Lucia Cortez Llorca",
+      "Ekaterine Gorgodze",
+      "Marina Bassols Ribera",
+      "Qualifier 3",
+      "Eva Vedder",
+      "Francesca Curmi",
+      "Qualifier 4",
+      "Carole Monnet",
+      "Jennifer Ruggeri",
+      "Elizara Yaneva",
+      "Tamara Zidansek",
+      "Despina Papamichail",
+      "Mina Hodzic",
+      "Joelle Steur",
+      "Anastasiia Sobolieva",
+      "Ane Mintegi Del Olmo",
+      "Rebeka Masarova",
+      "Noma Noha Akugue",
+      "Andrea Lazaro Garcia",
+      "Yasmine Kabbaj",
+      "Laura Pigossi",
+      "Nuria Brancaccio",
+      "Caijsa Hennemann",
+      "Eva Bennemann",
+      "Aran Teixido Garcia",
+      "Laura Samson"
+    ],
+    "source": "wta",
+    "sourceEnd": "2026-10-18",
+    "sourceId": "1128",
+    "sourceStart": "2026-10-12",
+    "sourceTitle": "Vanda Pharmaceuticals Mallorca Women's",
+    "sourceUrl": "https://wtafiles.wtatennis.com/pdf/draws/2026/1128/MDS.pdf",
+    "start": "2026-10-11"
+  },
+  "espn": [
+    {
+      "tourney_name": "Vanda Pharmaceuticals Mallorca Women's Championships presented by Ecotrans Group",
+      "espn_id": "1020-2026",
+      "tourney_date": "2026-10-12",
+      "round": "R32",
+      "playerA": "Laura Samson",
+      "playerB": "Aran Teixido Garcia"
+    },
+    {
+      "tourney_name": "Vanda Pharmaceuticals Mallorca Women's Championships presented by Ecotrans Group",
+      "espn_id": "1020-2026",
+      "tourney_date": "2026-10-12",
+      "round": "R32",
+      "playerA": "Francesca Curmi",
+      "playerB": "Eva Vedder"
+    },
+    {
+      "tourney_name": "Vanda Pharmaceuticals Mallorca Women's Championships presented by Ecotrans Group",
+      "espn_id": "1020-2026",
+      "tourney_date": "2026-10-12",
+      "round": "R32",
+      "playerA": "Deborah Chiesa",
+      "playerB": "Julia Grabher"
+    },
+    {
+      "tourney_name": "Vanda Pharmaceuticals Mallorca Women's Championships presented by Ecotrans Group",
+      "espn_id": "1020-2026",
+      "tourney_date": "2026-10-12",
+      "round": "R32",
+      "playerA": "Elizara Yaneva",
+      "playerB": "Jennifer Ruggeri"
+    },
+    {
+      "tourney_name": "Vanda Pharmaceuticals Mallorca Women's Championships presented by Ecotrans Group",
+      "espn_id": "1020-2026",
+      "tourney_date": "2026-10-12",
+      "round": "R32",
+      "playerA": "Yasmine Kabbaj",
+      "playerB": "Andrea Lazaro Garcia"
+    },
+    {
+      "tourney_name": "Vanda Pharmaceuticals Mallorca Women's Championships presented by Ecotrans Group",
+      "espn_id": "1020-2026",
+      "tourney_date": "2026-10-13",
+      "round": "R32",
+      "playerA": "Ariana Geerlings",
+      "playerB": "Tea Kovacevic"
+    },
+    {
+      "tourney_name": "Vanda Pharmaceuticals Mallorca Women's Championships presented by Ecotrans Group",
+      "espn_id": "1020-2026",
+      "tourney_date": "2026-10-13",
+      "round": "R32",
+      "playerA": "Nuria Brancaccio",
+      "playerB": "Laura Pigossi"
+    },
+    {
+      "tourney_name": "Vanda Pharmaceuticals Mallorca Women's Championships presented by Ecotrans Group",
+      "espn_id": "1020-2026",
+      "tourney_date": "2026-10-13",
+      "round": "R32",
+      "playerA": "Ekaterine Gorgodze",
+      "playerB": "Lucia Cortez Llorca"
+    },
+    {
+      "tourney_name": "Vanda Pharmaceuticals Mallorca Women's Championships presented by Ecotrans Group",
+      "espn_id": "1020-2026",
+      "tourney_date": "2026-10-13",
+      "round": "R32",
+      "playerA": "Eva Bennemann",
+      "playerB": "Caijsa Hennemann"
+    },
+    {
+      "tourney_name": "Vanda Pharmaceuticals Mallorca Women's Championships presented by Ecotrans Group",
+      "espn_id": "1020-2026",
+      "tourney_date": "2026-10-13",
+      "round": "R32",
+      "playerA": "Joelle Steur",
+      "playerB": "Mina Hodzic"
+    },
+    {
+      "tourney_name": "Vanda Pharmaceuticals Mallorca Women's Championships presented by Ecotrans Group",
+      "espn_id": "1020-2026",
+      "tourney_date": "2026-10-13",
+      "round": "R32",
+      "playerA": "Ane Mintegi Del Olmo",
+      "playerB": "Anastasiia Sobolieva"
+    },
+    {
+      "tourney_name": "Vanda Pharmaceuticals Mallorca Women's Championships presented by Ecotrans Group",
+      "espn_id": "1020-2026",
+      "tourney_date": "2026-10-13",
+      "round": "R32",
+      "playerA": "Noma Noha Akugue",
+      "playerB": "Rebeka Masarova"
+    },
+    {
+      "tourney_name": "Vanda Pharmaceuticals Mallorca Women's Championships presented by Ecotrans Group",
+      "espn_id": "1020-2026",
+      "tourney_date": "2026-10-13",
+      "round": "R32",
+      "playerA": "Despina Papamichail",
+      "playerB": "Tamara Zidansek"
+    }
+  ]
+}

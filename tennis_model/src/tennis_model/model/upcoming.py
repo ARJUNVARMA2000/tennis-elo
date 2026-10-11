@@ -122,12 +122,13 @@ def event_attrs(df: pd.DataFrame, event: str) -> tuple:
             int(bo) if pd.notna(bo) else None)
 
 
-def _surface_best_of(df: pd.DataFrame, event: str, date: str, tour: str) -> tuple:
+def _surface_best_of(df: pd.DataFrame, event: str, date: str, tour: str,
+                     event_id: str | None = None) -> tuple:
     """Event surface / best-of. Surface: the archive value for a known event, else the
     Wikipedia main-article surface (data.surface), else a season-by-month fallback. Best-of
     defaults to 3 for a brand-new week's first matches not yet in the frame."""
     surface, bo = event_attrs(df, event)
-    surface = resolve_surface(tour, event, date, archive_surface=surface)
+    surface = resolve_surface(tour, event, date, archive_surface=surface, event_id=event_id)
     return surface, int(bo) if bo else 3
 
 
@@ -171,7 +172,7 @@ def enrich_upcoming(predictor, df: pd.DataFrame, up_df: pd.DataFrame | None, tou
                     or not can_predict_match(predictor, a, b)):
                 continue
             event_id = getattr(r, "espn_id", None)
-            surface, bo = _surface_best_of(df, r.tourney_name, r.tourney_date, tour)
+            surface, bo = _surface_best_of(df, r.tourney_name, r.tourney_date, tour, event_id)
             level = resolve_level(tour, str(r.tourney_name), event_id=event_id)
             tier_k = _tier_context(level, tour)
             bracket_round = unique_bracket_round(bracket_index, event_id, a, b)

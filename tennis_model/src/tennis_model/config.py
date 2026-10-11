@@ -324,6 +324,12 @@ EVENT_TIER_BY_ID: dict[str, dict[str, str]] = {
     },
 }
 
+# Exact current-edition evidence outranks name-matched historical or article surfaces.
+# The same official draw cited above says Clay; the former Mallorca WTA event was Grass.
+EVENT_SURFACE_BY_ID: dict[str, dict[str, str]] = {
+    "wta": {"1020-2026": "Clay"},
+}
+
 # ---------------------------------------------------------------------------
 # Per-tour tuned overrides (eval/tune.py sweeps; tune window 2010-2019, validated
 # on 2020+). An empty dict keeps the shared defaults above. TIER_ANCHORS rescales

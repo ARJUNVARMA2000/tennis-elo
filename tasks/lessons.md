@@ -473,3 +473,6 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - Deduplicate on canonical match identity before pricing or attaching keyed evidence.
   See [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-10-11)
+
+- A reviewed current edition outranks a name-matched historical venue. See
+  [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-10-11)

@@ -509,7 +509,7 @@ def _coverage_shell(event: dict, build_date: str, tour: str) -> dict:
     for name in names:
         candidate, source = resolve_surface_info(
             tour, str(name), event.get("start") or build_date,
-            archive_surface=archive_surface)
+            archive_surface=archive_surface, event_id=event.get("espnId"))
         if source != "month":
             surface, surface_source = candidate, source
             break

@@ -9209,3 +9209,22 @@ Open draw despite the new Ma pairing. Re-plan shared before further implementati
   production workflow will validate current cached models and all release gates.
 - [x] Git history rechecked through 5c513bb; no intervening remote changes or repair
   runs. Ready for guarded production deployment.
+
+- [x] First repair ce5dced passed CI (1,954 Python passed / one skipped; 375 web)
+  and deployed in 38164431594. Independent live checks: 22/22, accepted release
+  b7091218-0d30-45cd-b472-7ed9d7546b25 at 18:55:07Z, exact manifest and 18
+  current-commit artifact hashes, 60 unique WTA matches, all 12 Lisboa pairs consistent.
+  All 29 alerts (#123–151) closed automatically. The longer refresh was confirmed
+  to be a parentless full public-graph bootstrap from the failed candidate cache.
+- [x] Browser review caught a related Mallorca metadata error after that success:
+  the same official draw says Clay, but name-matched historical grass surfaced in
+  current forecasts. Added exact tour/edition surface evidence, carried the ID through
+  scheduled/live/pre-start/fallback projections, and a blocking public-artifact invariant.
+  Captured official-draw producer replay proves the old Grass card is rejected and
+  the corrected Clay projection/schedule is retained; other tours/years stay unchanged.
+- [ ] Complete follow-up full tests, deploy the Mallorca surface correction and repeat
+  live verification before finalizing this repair.
+
+- [x] Follow-up validation: 1,960 Python tests pass; 236 focused tests plus the
+  strengthened five-case producer/gate replay pass; Ruff and diff checks pass.
+  No frontend code changed; prior 375 web tests and CI browser/build checks passed.

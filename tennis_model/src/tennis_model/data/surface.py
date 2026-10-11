@@ -18,7 +18,7 @@ from __future__ import annotations
 import json
 import re
 
-from ..config import EVENT_TIER_BY_ID, EVENT_TIER_FALLBACK, MONTH_SURFACE, live_dir
+from ..config import EVENT_SURFACE_BY_ID, EVENT_TIER_BY_ID, EVENT_TIER_FALLBACK, MONTH_SURFACE, live_dir
 
 # Paired with the metadata writer invoked by data.draws.download_tournament_draws.
 _WIKI_SURFACE_FILE = "wiki_surface.json"
@@ -95,14 +95,18 @@ def wiki_surface_lookup(tour: str, names) -> dict:
 
 
 def resolve_surface_info(tour: str, event: str, date,
-                         archive_surface: str | None = None) -> tuple[str, str]:
+                         archive_surface: str | None = None,
+                         event_id: str | None = None) -> tuple[str, str]:
     """``(surface, source)`` — the single resolution chain, source in
-    ``archive`` | ``wiki`` | ``month``.
+    ``reviewed`` | ``archive`` | ``wiki`` | ``month``.
 
     The source is not decoration: a month value is a GUESS, and the callers that feed a
     resolved surface back in as ``archive_surface`` must not recycle a guess as though it
     were a fact. That loop is what pinned the DC Open to Grass while its Wikipedia infobox
     said Hard the whole time."""
+    reviewed = EVENT_SURFACE_BY_ID.get(tour, {}).get(str(event_id or "").strip())
+    if reviewed:
+        return reviewed, "reviewed"
     if archive_surface is not None:
         return archive_surface, "archive"
     cached = wiki_surface(tour, event)
@@ -112,13 +116,14 @@ def resolve_surface_info(tour: str, event: str, date,
     return MONTH_SURFACE.get(int(mm) if mm.isdigit() else 1, "Hard"), "month"
 
 
-def resolve_surface(tour: str, event: str, date, archive_surface: str | None = None) -> str:
-    """Surface for a live/upcoming event: real archive value -> Wikipedia cache -> month.
+def resolve_surface(tour: str, event: str, date, archive_surface: str | None = None,
+                    event_id: str | None = None) -> str:
+    """Surface: reviewed exact edition -> archive value -> Wikipedia cache -> month.
 
     ``archive_surface`` is whatever the caller resolved from the match archive by name (None
     if the event isn't in it). ``date`` is the event's start (any ISO-ish string); only its
     month is used for the final fallback."""
-    return resolve_surface_info(tour, event, date, archive_surface)[0]
+    return resolve_surface_info(tour, event, date, archive_surface, event_id)[0]
 
 
 def wiki_category_map(tour: str) -> dict:
