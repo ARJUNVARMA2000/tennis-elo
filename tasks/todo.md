@@ -9290,3 +9290,41 @@ Open draw despite the new Ma pairing. Re-plan shared before further implementati
 - [x] Saved final evidence in tasks/deploy/2026-10-12-repair.json. Git history
   reconciled through 4487cce; final changes are review documents only and do not
   trigger another deployment. No blockers remain.
+
+### Current tournament audit — 2026-10-12
+
+- [ ] Compare freshly captured ATP/WTA fields, qualifying entrants, schedules and results against the accepted public release by exact event ID.
+- [ ] Cross-check released official draws and event metadata; review every named entrant against the saved model inventory and inspect match/result parity.
+- [ ] Run live serving checks and record findings, including any genuine no-history players or source freshness differences.
+
+Read-only audit check-in: inspect all five current events and their available official draws before proposing any implementation change.
+
+### Audit follow-up: Shanghai walkover score — 2026-10-12
+
+- [ ] Preserve ESPN's explicit walkover status as W/O during ingestion and prevent missing-score sentinels from appearing in brackets.
+- [ ] Replay the captured de Minaur–Molcan result through the bracket producer; extend the pre-upload gate to reject invalid score text and priced walkovers.
+- [ ] Validate and publish the correction, then rerun the tournament audit and live checks.
+
+Check-in: the independent audit found an explicit ESPN STATUS_WALKOVER rendered as the literal string nan and assigned retrospective odds. The existing score parser already treats a missing numeric score as a walkover, so preserving W/O repairs published semantics without changing the model population policy.
+
+### Tournament audit and result-status repair review — 2026-10-12
+
+- [x] Reconciled all 248 named main-draw entrants in Shanghai (96), Wuhan (56), Mallorca,
+  Rovereto and Lisboa (32 each) against newly downloaded official draws and both ESPN
+  tour indexes. All official ordered seats match after existing name reconciliation.
+- [x] Compared all published upcoming pairs and completed source results: no missing,
+  duplicate or wrong-opponent pairs; one Rovereto result (Bronzetti–Barthel) completed
+  after the accepted snapshot. All four Lisboa qualifier seats are now also confirmed
+  by the updated official PDF. Surfaces and tournament tiers match official evidence.
+- [x] Gaia Maduzzi is the sole unrated main-draw entrant, correctly named and already
+  eliminated. Li Zongyu/Zongyu Li is an eliminated qualifying entrant, not a live
+  main-draw identity gap; no unverified aliases were added.
+- [x] Found and repaired an explicit Shanghai walkover rendered as `nan` with odds;
+  preserved source retirement markers for Shanghai and Wuhan. Added typed blocking
+  score/walkover invariants plus captured source → CSV → bracket/gate regression tests.
+- [x] Full local Python suite: 1,983 passed. Final explicit retirement handling passes
+  the targeted source/bracket regression suite. Pre-change public serving: 22/22 pass.
+- [ ] Publish and verify corrected scores, refreshed matches and final live integrity.
+
+History reconciled through 490dfb7 before this review. The repair changes source result
+labels and presentation validation; no player aliases, dependencies or population policy change.

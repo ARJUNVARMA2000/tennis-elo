@@ -195,6 +195,11 @@ def parse_events(events: list, gender: str) -> pd.DataFrame:
                 ln = _athlete_name(los)
                 if not wn or not ln:
                     continue
+                score = _score(win.get("linescores"), los.get("linescores"))
+                if stype.get("name") == "STATUS_WALKOVER":
+                    score = "W/O"
+                elif stype.get("name") == "STATUS_RETIRED":
+                    score = f"{score} RET".strip()
                 rows.append({
                     "tourney_name": name,
                     # The stable identity beside the display name: `tourney_name` is a
@@ -204,7 +209,7 @@ def parse_events(events: list, gender: str) -> pd.DataFrame:
                     "round": rnd,
                     "best_of": None, "surface": None, "tourney_level": None,
                     "winner_name": wn, "loser_name": ln,
-                    "score": _score(win.get("linescores"), los.get("linescores")),
+                    "score": score,
                 })
     df = pd.DataFrame(rows)
     if not df.empty:

@@ -1,0 +1,563 @@
+{
+  "capturedAt": "2026-10-12T19:37:43.844693+00:00",
+  "releaseId": "5efbb244-fd5a-4be3-9c55-249ffd3280d9",
+  "generatedAt": "2026-10-12T19:12:06Z",
+  "events": [
+    {
+      "tour": "atp",
+      "id": "315-2026",
+      "sourceName": "Rolex Shanghai Masters",
+      "displayName": "Shanghai Masters",
+      "surface": "Hard",
+      "level": "Masters 1000",
+      "drawSize": 96,
+      "sourcePlayers": 96,
+      "publicPlayers": 96,
+      "publicSchedule": 8,
+      "completedChecked": 80,
+      "scheduledChecked": 8,
+      "freshResults": [],
+      "sourceOnlyPending": [],
+      "publicOnlyPending": [],
+      "fieldDifferences": {
+        "sourceOnly": [],
+        "publicOnly": []
+      },
+      "official": {
+        "url": "https://www.protennislive.com/posting/2026/5014/mds.pdf",
+        "parsed": true,
+        "header": [
+          "                                                                                  Rolex Shanghai Masters",
+          "                                                                                              Shanghai, China",
+          "                                                                         7 October \u2014 18 October 2026 | USD 9 415 725 | Hard",
+          "                                                                                                                                                                        Main Draw Singles (Top Half)",
+          "",
+          "  1        1    ZVEREV, Alexander              GER       A. Zverev  1",
+          "  2             Bye                                                                 A. Zverev  1",
+          "  3    WC       WU, Yibing                     CHN       Y. Wu                      64 764                                                                                          ChampionChampion"
+        ],
+        "slots": 128,
+        "nameMappings": [
+          {
+            "original": "Alex De Minaur",
+            "canonical": "Alex de Minaur"
+          },
+          {
+            "original": "Al\u2026 Davidovich Fokina",
+            "canonical": "Alejandro Davidovich Fokina"
+          },
+          {
+            "original": "\u2026 Van De Zandschulp",
+            "canonical": "Botic van de Zandschulp"
+          },
+          {
+            "original": "Yunchaokete Bu",
+            "canonical": "Bu Yunchaokete"
+          },
+          {
+            "original": "Tomas M\u2026 Etcheverry",
+            "canonical": "Tomas Martin Etcheverry"
+          },
+          {
+            "original": "Juan Man\u2026 Cerundolo",
+            "canonical": "Juan Manuel Cerundolo"
+          }
+        ],
+        "slotDifferences": [],
+        "unresolvedSlots": []
+      }
+    },
+    {
+      "tour": "wta",
+      "id": "381-2026",
+      "sourceName": "Dongfeng Voyah Wuhan Open",
+      "displayName": "Wuhan",
+      "surface": "Hard",
+      "level": "WTA 1000",
+      "drawSize": 56,
+      "sourcePlayers": 56,
+      "publicPlayers": 56,
+      "publicSchedule": 18,
+      "completedChecked": 12,
+      "scheduledChecked": 18,
+      "freshResults": [],
+      "sourceOnlyPending": [],
+      "publicOnlyPending": [],
+      "fieldDifferences": {
+        "sourceOnly": [],
+        "publicOnly": []
+      },
+      "official": {
+        "url": "https://wtafiles.wtatennis.com/pdf/draws/2026/1075/MDS.pdf",
+        "parsed": true,
+        "header": [
+          "                                                      DONGFENG\u00b7VOYAH WUHAN OPEN",
+          "                                                                                      WUHAN, CHN",
+          "                                                                         October 12-18 2026      | $ 4,088,211    | Hard",
+          "",
+          "",
+          "                                                                                                                                                             SINGLES MAIN DRAW",
+          "",
+          " 1     1 SABALENKA, Aryna                          A. Sabalenka"
+        ],
+        "slots": 64,
+        "nameMappings": [],
+        "slotDifferences": [],
+        "unresolvedSlots": []
+      }
+    },
+    {
+      "tour": "wta",
+      "id": "1020-2026",
+      "sourceName": "Vanda Pharmaceuticals Mallorca Women's Championships presented by Ecotrans Group",
+      "displayName": "Mallorca",
+      "surface": "Clay",
+      "level": "WTA 125",
+      "drawSize": 32,
+      "sourcePlayers": 32,
+      "publicPlayers": 32,
+      "publicSchedule": 11,
+      "completedChecked": 5,
+      "scheduledChecked": 11,
+      "freshResults": [],
+      "sourceOnlyPending": [],
+      "publicOnlyPending": [],
+      "fieldDifferences": {
+        "sourceOnly": [],
+        "publicOnly": []
+      },
+      "official": {
+        "url": "https://wtafiles.wtatennis.com/pdf/draws/2026/1128/MDS.pdf",
+        "parsed": true,
+        "header": [
+          "                                                           Vanda Pharmaceuticals Mallorca Women's",
+          "                                                                                 Championships",
+          "                                                                                MALLORCA, ESP",
+          "                                                                      October 12-18 2026      | \u20ac 100,000   | Clay",
+          "",
+          "                                                                                                                                                     SINGLES MAIN DRAW",
+          "",
+          " 1     1 GRABHER, Julia                     AUT"
+        ],
+        "slots": 32,
+        "nameMappings": [],
+        "slotDifferences": [],
+        "unresolvedSlots": []
+      }
+    },
+    {
+      "tour": "wta",
+      "id": "1025-2026",
+      "sourceName": "RoveretOpen Citt\u00e0 della Pace",
+      "displayName": "RoveretOpen Citt\u00e0 della Pace",
+      "surface": "Hard",
+      "level": "WTA 125",
+      "drawSize": 32,
+      "sourcePlayers": 32,
+      "publicPlayers": 32,
+      "publicSchedule": 13,
+      "completedChecked": 5,
+      "scheduledChecked": 12,
+      "freshResults": [
+        {
+          "tourney_name": "RoveretOpen Citt\u00e0 della Pace",
+          "espn_id": "1025-2026",
+          "tourney_date": "2026-10-12",
+          "round": "R32",
+          "best_of": null,
+          "surface": null,
+          "tourney_level": null,
+          "winner_name": "Lucia Bronzetti",
+          "loser_name": "Mona Barthel",
+          "score": "3-6 6-1 6-0"
+        }
+      ],
+      "sourceOnlyPending": [],
+      "publicOnlyPending": [
+        {
+          "pair": [
+            "lucia bronzetti",
+            "mona barthel"
+          ],
+          "round": "R32",
+          "nowCompleted": true
+        }
+      ],
+      "fieldDifferences": {
+        "sourceOnly": [],
+        "publicOnly": []
+      },
+      "official": {
+        "url": "https://wtafiles.wtatennis.com/pdf/draws/2026/1140/MDS.pdf",
+        "parsed": true,
+        "header": [
+          "                                                        RoveretOpen Citta della Pace",
+          "                                                                                 ROVERETO, ITA",
+          "                                                           October 12-18 2026      | \u20ac 100,000   | Hard, Mapei Tns Comfort",
+          "",
+          "",
+          "                                                                                                                                                      SINGLES MAIN DRAW",
+          "",
+          " 1     1 RUZIC, Antonia                     CRO"
+        ],
+        "slots": 32,
+        "nameMappings": [],
+        "slotDifferences": [],
+        "unresolvedSlots": []
+      }
+    },
+    {
+      "tour": "wta",
+      "id": "1079-2026",
+      "sourceName": "Lisboa Belem Open",
+      "displayName": "Lisboa Belem Open",
+      "surface": "Clay",
+      "level": "WTA 125",
+      "drawSize": 32,
+      "sourcePlayers": 32,
+      "publicPlayers": 32,
+      "publicSchedule": 13,
+      "completedChecked": 3,
+      "scheduledChecked": 13,
+      "freshResults": [],
+      "sourceOnlyPending": [],
+      "publicOnlyPending": [],
+      "fieldDifferences": {
+        "sourceOnly": [],
+        "publicOnly": []
+      },
+      "official": {
+        "url": "https://wtafiles.wtatennis.com/pdf/draws/2026/1168/MDS.pdf",
+        "parsed": true,
+        "header": [
+          "                                                                      Lisboa Belem Open",
+          "                                                                                    LISBON, POR",
+          "                                                                  October 12-18 2026      | \u20ac 100,000    | Clay, Red Clay",
+          "",
+          "",
+          "                                                                                                                                                        SINGLES MAIN DRAW",
+          "",
+          " 1     1 BOUZAS MANEIRO, Jessica             ESP"
+        ],
+        "slots": 32,
+        "nameMappings": [
+          {
+            "original": "ESP Maristany Zuleta De Reales",
+            "canonical": "Guiomar Maristany Zuleta De Reales"
+          }
+        ],
+        "slotDifferences": [],
+        "unresolvedSlots": []
+      }
+    }
+  ],
+  "newEvents": [],
+  "issues": [
+    [
+      "315-2026",
+      "score difference",
+      "",
+      "nan",
+      [
+        "alex de minaur",
+        "alex molcan"
+      ]
+    ]
+  ],
+  "unknownPlayers": [
+    {
+      "tour": "wta",
+      "event": "1025-2026",
+      "name": "Gaia Maduzzi",
+      "canonical": "Gaia Maduzzi",
+      "role": "main-source",
+      "ratedTokenCandidates": []
+    },
+    {
+      "tour": "wta",
+      "event": "1025-2026",
+      "name": "Gaia Maduzzi",
+      "canonical": "Gaia Maduzzi",
+      "role": "main-public",
+      "ratedTokenCandidates": []
+    },
+    {
+      "tour": "wta",
+      "event": "1025-2026",
+      "name": "Li Zongyu",
+      "canonical": "Li Zongyu",
+      "role": "qualifier-winner-or-pending",
+      "ratedTokenCandidates": [
+        "Zongyu Li"
+      ]
+    },
+    {
+      "tour": "wta",
+      "event": "1025-2026",
+      "name": "Gaia Maduzzi",
+      "canonical": "Gaia Maduzzi",
+      "role": "official-reconciled",
+      "ratedTokenCandidates": []
+    }
+  ],
+  "sources": [
+    {
+      "file": "health.json",
+      "url": "https://deuce-forecast.web.app/data/health.json",
+      "sha256": "2cfefe295649af1c58236960d783091efde7c3b16338fd872c2ef1547f44417c",
+      "bytes": 12364
+    },
+    {
+      "file": "atp-meta.json",
+      "url": "https://deuce-forecast.web.app/data/atp/meta.json",
+      "sha256": "bc18f91be9739c00e315f951839cf2a5e751b85ef1600af70b3834111a126a64",
+      "bytes": 186126
+    },
+    {
+      "file": "atp-upcoming-index.json",
+      "url": "https://deuce-forecast.web.app/data/atp/upcoming-index.json",
+      "sha256": "5834c45f6f0da8fcb809f6ac0b70a93ce7c0f2564ec98248ed20dc940546056c",
+      "bytes": 3502
+    },
+    {
+      "file": "atp-brackets.json",
+      "url": "https://deuce-forecast.web.app/data/atp/brackets.json",
+      "sha256": "7ab3811555b31e1d99d881d95da58c9d40c587b3bd617b6754fc3ebad1cc87e4",
+      "bytes": 48054
+    },
+    {
+      "file": "atp-tournaments.json",
+      "url": "https://deuce-forecast.web.app/data/atp/tournaments.json",
+      "sha256": "da4760446c397e4206a4f94e235a56ed62d7e448bf33ca8e4b401a7fc6a45fb9",
+      "bytes": 44743
+    },
+    {
+      "file": "wta-tournaments.json",
+      "url": "https://deuce-forecast.web.app/data/wta/tournaments.json",
+      "sha256": "708011934ba23b6639bf79fa295c0693ec6359e3e6fb7f2d8e23764c3e934fd5",
+      "bytes": 95063
+    },
+    {
+      "file": "wta-meta.json",
+      "url": "https://deuce-forecast.web.app/data/wta/meta.json",
+      "sha256": "347d1bf5f7dadc0ddf2effdee924f1b7c759e4bc12750c20e170e36e4d1a9507",
+      "bytes": 142379
+    },
+    {
+      "file": "release-manifest.json",
+      "url": "https://deuce-forecast.web.app/data/release-manifest.json",
+      "sha256": "01f036e19279069d98f1e399f90455b5598a40cf68e951232980aa2906dafee5",
+      "bytes": 236407
+    },
+    {
+      "file": "wta-brackets.json",
+      "url": "https://deuce-forecast.web.app/data/wta/brackets.json",
+      "sha256": "325467c8eabd5f32c0efdedea0d73a612f61a595ca6a470dce68e44eff8809ee",
+      "bytes": 136718
+    },
+    {
+      "file": "wta-upcoming-index.json",
+      "url": "https://deuce-forecast.web.app/data/wta/upcoming-index.json",
+      "sha256": "ee296f44253b1d31a25e1835fa77dd80c8b4d6b4a81997c06a1ab0a810d124fe",
+      "bytes": 7214
+    },
+    {
+      "file": "atp-19.json",
+      "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/atp/scoreboard?dates=20261019&limit=300",
+      "sha256": "4cc93ccc8c242882991d6a1e1dcc881b40ba7e5505dd8b815e5d2dc9fa624244",
+      "bytes": 149802
+    },
+    {
+      "file": "atp-14.json",
+      "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/atp/scoreboard?dates=20261014&limit=300",
+      "sha256": "8801b4e9d464ddebf9335cb04468e7a3046aad9f4d176c47d8c66bb5f93bd3c8",
+      "bytes": 372596
+    },
+    {
+      "file": "wta-12.json",
+      "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard?dates=20261012&limit=300",
+      "sha256": "2e3bdb4ed7514ba2bfd651de411e96815869136b7fcf24320abe861cc57c4999",
+      "bytes": 495604
+    },
+    {
+      "file": "atp-18.json",
+      "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/atp/scoreboard?dates=20261018&limit=300",
+      "sha256": "8801b4e9d464ddebf9335cb04468e7a3046aad9f4d176c47d8c66bb5f93bd3c8",
+      "bytes": 372596
+    },
+    {
+      "file": "atp-12.json",
+      "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/atp/scoreboard?dates=20261012&limit=300",
+      "sha256": "8801b4e9d464ddebf9335cb04468e7a3046aad9f4d176c47d8c66bb5f93bd3c8",
+      "bytes": 372596
+    },
+    {
+      "file": "atp-13.json",
+      "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/atp/scoreboard?dates=20261013&limit=300",
+      "sha256": "8801b4e9d464ddebf9335cb04468e7a3046aad9f4d176c47d8c66bb5f93bd3c8",
+      "bytes": 372596
+    },
+    {
+      "file": "wta-13.json",
+      "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard?dates=20261013&limit=300",
+      "sha256": "2e3bdb4ed7514ba2bfd651de411e96815869136b7fcf24320abe861cc57c4999",
+      "bytes": 495604
+    },
+    {
+      "file": "wta-14.json",
+      "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard?dates=20261014&limit=300",
+      "sha256": "2e3bdb4ed7514ba2bfd651de411e96815869136b7fcf24320abe861cc57c4999",
+      "bytes": 495604
+    },
+    {
+      "file": "wta-19.json",
+      "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard?dates=20261019&limit=300",
+      "sha256": "2738c47df83c736bc3fb2b0e6a0a9a24a1fed6c64293ffa0ffac5d49da9b4a71",
+      "bytes": 150872
+    },
+    {
+      "file": "wta-18.json",
+      "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard?dates=20261018&limit=300",
+      "sha256": "2e3bdb4ed7514ba2bfd651de411e96815869136b7fcf24320abe861cc57c4999",
+      "bytes": 495604
+    },
+    {
+      "file": "atp-upcoming-event-315-2026.json",
+      "url": "https://deuce-forecast.web.app/data/atp/upcoming-event-315-2026.json",
+      "sha256": "e1129447897ba884b8273530e029e8d57172df19c9c01c28391d49e7014617af",
+      "bytes": 12546
+    },
+    {
+      "file": "wta-upcoming-event-1079-2026.json",
+      "url": "https://deuce-forecast.web.app/data/wta/upcoming-event-1079-2026.json",
+      "sha256": "34f50bd41e9e2a4ba62f496a202147c13faafe02ad46884f386bb4438984d9f3",
+      "bytes": 20232
+    },
+    {
+      "file": "wta-upcoming-event-381-2026.json",
+      "url": "https://deuce-forecast.web.app/data/wta/upcoming-event-381-2026.json",
+      "sha256": "68e3095fcd4a7e4a482c544ba8c2e2a3129d4b67e1baea1cebf6eb05d23bedb6",
+      "bytes": 27534
+    },
+    {
+      "file": "atp-upcoming-evidence-315-2026.json",
+      "url": "https://deuce-forecast.web.app/data/atp/upcoming-evidence-315-2026.json",
+      "sha256": "8a3a57c6a53f35e9f0581052ccaed06e2e90900eee54a8db717a3d9dae94696e",
+      "bytes": 231201
+    },
+    {
+      "file": "wta-upcoming-event-1025-2026.json",
+      "url": "https://deuce-forecast.web.app/data/wta/upcoming-event-1025-2026.json",
+      "sha256": "3a8614a9f9b27504f2d8087f638b453c4e8887219fc76e46b249724b662db8c7",
+      "bytes": 19859
+    },
+    {
+      "file": "wta-upcoming-evidence-1079-2026.json",
+      "url": "https://deuce-forecast.web.app/data/wta/upcoming-evidence-1079-2026.json",
+      "sha256": "224ad3961a9f4b7cea16e67df0f2e57a8cce29354562d9f33d31fa80e35f299c",
+      "bytes": 389692
+    },
+    {
+      "file": "wta-upcoming-evidence-1025-2026.json",
+      "url": "https://deuce-forecast.web.app/data/wta/upcoming-evidence-1025-2026.json",
+      "sha256": "9a6f52f937a6899794b5a252694fd7cd7eeb29445427c608436bba5a7a26bb85",
+      "bytes": 542509
+    },
+    {
+      "file": "wta-upcoming-evidence-381-2026.json",
+      "url": "https://deuce-forecast.web.app/data/wta/upcoming-evidence-381-2026.json",
+      "sha256": "3fac71e1412d9359e46a92150685423ec1602cb179a3c83a9040cc714c12e2a9",
+      "bytes": 838347
+    },
+    {
+      "file": "wta-upcoming-event-1020-2026.json",
+      "url": "https://deuce-forecast.web.app/data/wta/upcoming-event-1020-2026.json",
+      "sha256": "d10c69358b74c6d20ef92c7c1c48e38a2e3bc36865b0a646375c722ca01b4ad9",
+      "bytes": 17041
+    },
+    {
+      "file": "wta-upcoming-evidence-1020-2026.json",
+      "url": "https://deuce-forecast.web.app/data/wta/upcoming-evidence-1020-2026.json",
+      "sha256": "6624970a5aae2dcbff8c33a95f5d1184679712f481f7de66c09e45463b531de5",
+      "bytes": 348234
+    },
+    {
+      "file": "315-2026.pdf",
+      "url": "https://www.protennislive.com/posting/2026/5014/mds.pdf",
+      "sha256": "74bfe472fd464dfe961d23397dedff91d20e555856bed6e42b486a0559067d00",
+      "bytes": 400641
+    },
+    {
+      "file": "381-2026.pdf",
+      "url": "https://wtafiles.wtatennis.com/pdf/draws/2026/1075/MDS.pdf",
+      "sha256": "f37bcee74b8a8622294fbdb78c579296f7e7778b7204878aa4ffb8df64bf9697",
+      "bytes": 202428
+    },
+    {
+      "file": "1020-2026.pdf",
+      "url": "https://wtafiles.wtatennis.com/pdf/draws/2026/1128/MDS.pdf",
+      "sha256": "ee22dd5f69de2104d97df5cd75d97efc3b939da4be3dda4cb0bb1349e8d32765",
+      "bytes": 281608
+    },
+    {
+      "file": "1025-2026.pdf",
+      "url": "https://wtafiles.wtatennis.com/pdf/draws/2026/1140/MDS.pdf",
+      "sha256": "7a6eed37de4cbd6fa993863ba413d2968f2518eba9f544d2a7a3a24ab2a7eee0",
+      "bytes": 420437
+    },
+    {
+      "file": "1079-2026.pdf",
+      "url": "https://wtafiles.wtatennis.com/pdf/draws/2026/1168/MDS.pdf",
+      "sha256": "718411a631143fa15f4622e4fc88beb73b7292641851af0da94b4c4838ce3b6e",
+      "bytes": 165581
+    }
+  ],
+  "review": {
+    "mainDrawEntrants": 248,
+    "officialDrawSlotMismatches": 0,
+    "missingScheduledPairs": 0,
+    "duplicatePairs": 0,
+    "unratedMainEntrant": "Gaia Maduzzi (Rovereto), correctly named; lost to Susan Bandecchi",
+    "qualifierReview": "Li Zongyu is the source spelling of rated Zongyu Li, but she retired against Erika Andreeva in final qualifying and is not in the main draw. No alias adopted.",
+    "statusIssues": [
+      {
+        "event": "315-2026",
+        "pair": [
+          "Alex de Minaur",
+          "Alex Molcan"
+        ],
+        "sourceStatus": "STATUS_WALKOVER",
+        "priorScore": "nan",
+        "fixedScore": "W/O",
+        "fixedProbability": null
+      },
+      {
+        "event": "315-2026",
+        "pair": [
+          "Adrian Mannarino",
+          "Nikoloz Basilashvili"
+        ],
+        "sourceStatus": "STATUS_RETIRED",
+        "priorScore": "6-3 2-2",
+        "fixedScore": "6-3 2-2 RET"
+      },
+      {
+        "event": "381-2026",
+        "pair": [
+          "Marie Bouzkova",
+          "Clara Tauson"
+        ],
+        "sourceStatus": "STATUS_RETIRED",
+        "priorScore": "6-1 2-0",
+        "fixedScore": "6-1 2-0 RET"
+      }
+    ],
+    "tests": {
+      "fullPythonPassed": 1983,
+      "finalHealthSourceBracketPassed": 268,
+      "preRepairLiveChecksPassed": 22,
+      "ruff": "passed"
+    },
+    "deployment": "pending"
+  }
+}

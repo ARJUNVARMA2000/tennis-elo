@@ -529,3 +529,13 @@ Indexed in [`../lessons.md`](../lessons.md).
   both pre-start and live paths; replay the captured full draw through the producer
   and unchanged scheduled-match gate. Reviewed edition tiers must also reach result
   ingestion, not just display, so known WTA 125 rows stay explicitly excluded.
+
+- **A result's status is evidence separate from its set scores.** (2026-10-12, Shanghai/Wuhan)
+  ESPN's explicit walkover had no linescores. CSV readback made the empty score NaN;
+  bracket stringification published `nan` and treated the awarded match as priceable.
+  Retirements similarly lost their RET suffix. Preserve explicit STATUS_WALKOVER and
+  STATUS_RETIRED at ingestion, normalize missing scores to null without guessing an
+  outcome, and reject sentinel score text and priced/undecided W/O nodes at the gate.
+  Replay the captured full Shanghai event through CSV and the bracket producer, with
+  a broken public-artifact twin. Match an independent audit against provider status,
+  not only against the same parser that feeds production.

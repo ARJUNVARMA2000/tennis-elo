@@ -71,10 +71,10 @@ def _result_index(results) -> dict:
 
 
 def _clean_score(s: object) -> str | None:
-    if s is None:
+    if not isinstance(s, str):
         return None
-    t = str(s).strip()
-    return t or None
+    t = s.strip()
+    return None if t.casefold() in ("", "nan", "none", "null", "<na>") else t
 
 
 def _resolve_placeholders(slots: list, results) -> list:

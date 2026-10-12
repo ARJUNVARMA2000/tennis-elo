@@ -480,3 +480,7 @@ New lesson → append the entry to the matching topic file and add its lead line
 - Announced qualifiers need exact opening-round seats before their first results;
   reviewed edition tiers must reach ingestion as well as display. See
   [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-10-12)
+
+- Preserve explicit result status independently of set scores; missing-score sentinels
+  must not reach brackets or make walkovers priceable. See
+  [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-10-12)

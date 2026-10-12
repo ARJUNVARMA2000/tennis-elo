@@ -765,6 +765,23 @@ def _check_brackets(out: list, tour: str, brackets: list, tournaments, *, rated_
                         severity="error", entity=match_entity,
                         evidence={"winner": w})
                 p, src = m.get("p"), m.get("probSource")
+                score = m.get("score")
+                if score is not None and (not isinstance(score, str)
+                                          or score.strip().casefold() in
+                                          ("", "nan", "none", "null", "<na>")):
+                    _add_finding(
+                        out, "output.bracket.score_invalid",
+                        f"{tour}: bracket {name!r} has invalid score {score!r}",
+                        severity="error", entity=match_entity,
+                        evidence={"score": repr(score)})
+                if score == "W/O" and (w not in ("a", "b") or p is not None
+                                       or src is not None or m.get("upset") is not None):
+                    _add_finding(
+                        out, "output.bracket.walkover_invalid",
+                        f"{tour}: bracket {name!r} walkover must be decided and unpriced",
+                        severity="error", entity=match_entity,
+                        evidence={"winner": repr(w), "probability": repr(p),
+                                  "probabilitySource": repr(src), "upset": repr(m.get("upset"))})
                 if p is not None and not _is_prob(p):
                     _add_finding(
                         out, "output.bracket.probability_invalid",
