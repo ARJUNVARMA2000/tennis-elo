@@ -484,3 +484,7 @@ New lesson → append the entry to the matching topic file and add its lead line
 - Preserve explicit result status independently of set scores; missing-score sentinels
   must not reach brackets or make walkovers priceable. See
   [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-10-12)
+
+- Agreement between generated files cannot detect a shared ingestion mistake; bind
+  an independent provider snapshot to the candidate release. See
+  [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-10-12)

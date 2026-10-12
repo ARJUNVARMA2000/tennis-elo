@@ -317,8 +317,26 @@ def _run_variant(
     _materialize_base(root, tour, as_of)
     for patch in case["variants"][variant]["patches"]:
         _apply_patch(root, tour, patch)
+    # These historical incidents predate the independent tournament witness. Supply
+    # their unrelated acquisition contract on this fixture's filesystem, never from
+    # the developer's live cache. Source-to-candidate contradictions have captured
+    # broken/clean replays in test_health_source_audit.py.
+    from tennis_model.data.source_audit import capture_source
+    output = root / 'output' / tour
+    live_root = root / 'live' / tour
+    cards = json.loads((output / 'tournaments.json').read_text())
+    events = [{'id': str(c['espnId']), 'groupings': []} for c in cards if c.get('espnId')]
+    events = events or [{'id': 'replay-calendar-event', 'groupings': []}]
+    raw, proof = capture_source(tour, events, f'{as_of}T12:00:00Z')
+    (live_root / 'source_audit.json').write_bytes(raw)
+    receipt = json.loads((live_root / 'espn_acquisition.json').read_text())
+    receipt.update(sourceAudit=proof, eventCount=len(events))
+    _write_json(live_root / 'espn_acquisition.json', receipt)
+    meta = json.loads((output / 'meta.json').read_text())
+    meta.update(tournamentSourceAudit=proof, modelPlayerNames=['A', 'B', 'C', 'D', 'P0', 'P1', 'P2'])
+    _write_json(output / 'meta.json', meta)
     _bind_filesystem(monkeypatch, root)
-    now = pd.Timestamp(as_of)
+    now = pd.Timestamp(f'{as_of}T12:00:00')
 
     if case["seam"] == "source":
         state = health._tour_health_from_frame(tour, _source_frame(as_of), now)

@@ -9347,3 +9347,32 @@ labels and presentation validation; no player aliases, dependencies or populatio
 - [x] Health is OK, with only the existing informational ATP charting-age note; no open
   issues remain. Saved before/after evidence in tasks/deploy/2026-10-12-tournament-audit.json.
   History reconciled through 27f07eb. Final changes are audit documents only.
+
+### Automatic source-to-release tournament checks — 2026-10-12
+
+- [ ] Persist an independent same-acquisition ESPN source witness for both tours, retaining raw names, competition rounds, winners and result status.
+- [ ] Extend output_findings() to compare current source entrants, pairings, results and outcome markers with the candidate release by exact event ID; check cached draw entrants and duplicate identities while preserving genuine no-history players and qualifying scope.
+- [ ] Add captured broken/clean replays, missing/corrupt/stale witness checks and acquisition/workflow coverage; validate the current five-event release, then publish and verify the guarded deployment.
+
+Implementation check-in: add source-backed invariants to the existing pre-upload gate, which already runs before publishing in both modes. Reuse the acquisition snapshot used by the build so matches that finish during a rebuild do not create false mismatches. No automatic identity merges or tournament-name joins.
+
+### Automatic tournament checks — implementation review, 2026-10-12
+
+- [x] Preserve raw ESPN events before ingestion and bind their SHA-256/acquisition
+  timestamp to the acquisition receipt and exported metadata. Missing, corrupt,
+  stale or mixed-generation snapshots produce blocking typed findings.
+- [x] Compare exact event IDs, entrants, cached ordered seats, source pairings and
+  rounds, winners, set scores and explicit W/O/RET outcomes. Check unresolved rated
+  name variants among main-draw and still-eligible qualifying players while allowing
+  genuine newcomers and excluding eliminated qualifying-only names.
+- [x] Captured Shanghai regressions include errors shared by schedule and bracket,
+  plus acquisition, reader, cache ordering and both-mode workflow coverage. Adapted
+  historical replay fixtures to supply isolated same-generation source contracts.
+- [x] Current five-event public snapshot passes the independent source comparison
+  for both tours. Final full local Python suite: 2,014 passed; focused health/live
+  checks: 280 passed. Ruff and whitespace checks pass.
+- [ ] Publish and verify the first deployment with the mandatory source audit.
+
+History reconciled through 13587db. No identity aliases, model policy or dependencies
+changed. The pre-upload gate blocks publication; the previous accepted release stays
+live on failure. Existing post-deploy checks continue to validate serving integrity.

@@ -695,7 +695,8 @@ def build_meta(df, players, accuracy, trained_at: str | None = None,
                predictor_artifact_id: str | None = None,
                prediction_audit: dict | None = None,
                result_integrity: dict | None = None,
-               model_player_names: tuple[str, ...] | None = None) -> dict:
+               model_player_names: tuple[str, ...] | None = None,
+               tournament_source_audit: dict | None = None) -> dict:
     """`lastUpdated` is when this JSON was written; `modelTrainedAt` is when the predictor
     behind it was trained. They diverge on every quick refresh — which republishes the
     saved pickle — so only the latter can reveal a daily retrain that has been failing.
@@ -725,6 +726,7 @@ def build_meta(df, players, accuracy, trained_at: str | None = None,
         # Rollout marker for the private operational receipt. Health treats a missing
         # stage-status file as legacy-silent only when this producer marker is absent.
         "stageStatusSchema": STAGE_STATUS_SCHEMA,
+        "tournamentSourceAudit": tournament_source_audit,
         "matchPopulationVersion": MATCH_POPULATION_VERSION,
         # Unlike the data-policy version above, this comes from inside predictor.pkl.
         # Their equality proves cached rating state was walked over the rows now claimed.
@@ -1091,6 +1093,8 @@ def export_all(tour, df, elo, srv, meta, predictor, oos=None, *, full: bool = Tr
         _write(tour, "accuracy.json", accuracy)
     # Legacy attributes degrade to unknown rather than crashing. Quick mode normally rebuilds
     # an unknown population version first; the output gate independently rejects one.
+    from ..config import live_dir
+    from ..data.source_audit import read_source
     from .probability_audit import AUDIT_FILENAME, write_prediction_audit
     audit_meta = write_prediction_audit(predictor, df, players, output_dir(tour) / AUDIT_FILENAME)
     _write(tour, "meta.json", build_meta(
@@ -1103,6 +1107,7 @@ def export_all(tour, df, elo, srv, meta, predictor, oos=None, *, full: bool = Tr
         prediction_audit=audit_meta,
         result_integrity=result_integrity,
         model_player_names=predictor_player_names(predictor),
+        tournament_source_audit=read_source(live_dir(tour), tour).get('proof'),
     ))
     if static:
         _write(tour, "method.json", build_method(tour))

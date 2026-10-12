@@ -539,3 +539,15 @@ Indexed in [`../lessons.md`](../lessons.md).
   Replay the captured full Shanghai event through CSV and the bracket producer, with
   a broken public-artifact twin. Match an independent audit against provider status,
   not only against the same parser that feeds production.
+
+- **Agreement between generated files cannot detect a shared ingestion mistake.**
+  (2026-10-12) Capture the original provider event bytes before name, round and score
+  parsing, bind their hash and acquisition time into both the receipt and exported
+  metadata, and compare the candidate release against that same snapshot. Reject
+  missing, stale, corrupt or mixed-generation witnesses. Compare exact event IDs,
+  canonical player pairs, winners, set scores and explicit outcome labels; retain
+  ordered cached draw evidence for seating. Audit unresolved rated name variants
+  among main-draw and still-eligible qualifying entrants without treating eliminated
+  qualifiers or genuine newcomers as missing forecasts. Test jointly corrupted
+  public artifacts, not only a mismatch between two generated files. Historical
+  replay fixtures must supply this new filesystem contract within their own binder.

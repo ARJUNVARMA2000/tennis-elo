@@ -490,6 +490,11 @@ def download_live(tours=TOURS) -> dict[str, list]:
             continue
         try:
             fetched[tour] = events
+            # Keep the provider witness before any name, round or score transformation.
+            # The gate reads these bytes independently of parse_events/parse_upcoming.
+            from .source_audit import capture_source
+            witness, receipt["sourceAudit"] = capture_source(tour, events, receipt["completedAt"])
+            _write_atomic(d / "source_audit.json", lambda tmp, raw=witness: tmp.write_bytes(raw))
             df = parse_events(events, _gender(tour))
             fields = parse_fields(events, _gender(tour))
             upcoming = parse_upcoming(events, _gender(tour))

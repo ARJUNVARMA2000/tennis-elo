@@ -1039,6 +1039,8 @@ def read_outputs(tour: str) -> dict:
     from .raw_archive import missing_lower_history
     lower_history_missing = (missing_lower_history(lower_dir(tour)) if tour == "wta" else [])
     from .result_ledger import load_ledger
+    from .source_audit import read_source
+    source_audit = read_source(live_dir(tour), tour)
     try:
         load_ledger(tour)
         result_ledger_state = 'valid'
@@ -1050,6 +1052,7 @@ def read_outputs(tour: str) -> dict:
             "shards": shards, "missing_files": missing_files,
             "corrupt_files": corrupt_files,
             "draw_cache": draw_cache, "draw_cache_status": draw_cache_status,
+            "source_audit": source_audit,
             "forecast": forecast, "kalshi_ledger": ledger,
             "stage_status": stage_status, "prediction_audit": prediction_audit,
             "prediction_audit_sha256": prediction_audit_sha256}
@@ -1326,6 +1329,10 @@ def output_findings(tour: str, oc: dict, now: pd.Timestamp,
     """Typed produced-artifact findings; pure for one read_outputs() snapshot."""
     out = _FindingCollector("output", tour)
     data = oc.get("data", {})
+    if "source_audit" in oc:
+        from .source_audit import check_source
+        check_source(out, tour, oc["source_audit"], data, oc.get("draw_cache"),
+                     observed_at if observed_at is not None else now)
     prev = prev or {}
     meta = data.get("meta")
     current_predictor_id = meta.get("predictorArtifactId") if isinstance(meta, dict) else None
