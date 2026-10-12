@@ -9269,3 +9269,24 @@ Open draw despite the new Ma pairing. Re-plan shared before further implementati
 - [x] Final local suite: 1,969 Python tests passed; 33 focused regression checks,
   375 web tests, Ruff and diff checks pass. Git history remains c930d74. Ready for
   guarded deployment; the existing integrity gate remains unchanged and enforced.
+
+### Final deployment repair review — 2026-10-12
+
+- [x] All items in this round are complete. Commit 4487cce deployed successfully in
+  run 38293630471. The quick path regenerated the full public graph because the
+  failed candidate cache had no accepted parent; the saved model population remains 21.
+- [x] Local Python: 1,969 passed; 33 focused regressions; 375 web tests. CI Python:
+  1,968 passed / one skipped; 375 web tests. Ruff, build/browser checks, integrity
+  and all 22 live checks pass. Independent live verification also passed 22/22.
+- [x] Verified accepted release 5efbb244-fd5a-4be3-9c55-249ffd3280d9, generated
+  2026-10-12T19:12:06Z: 457 artifacts, matching manifest and ten core/schedule/evidence
+  hashes, all produced by 4487cce. Lisboa's four restored R32 matches have matching
+  oriented bracket/schedule probabilities and unique match/evidence identities.
+- [x] Browser sections one and two confirm Semenistaja–Lollia 54/46,
+  Feistel–Maristany 25/75, Freitas–Serban 22/78 and Nagy–Janicijevic 54/46.
+  Mallorca remains Clay / WTA 125; no unclassified WTA live rows remain.
+- [x] All five alerts (#59, #152–155) closed automatically; no open issues remain.
+  Health is OK with only the existing ATP charting-age information note.
+- [x] Saved final evidence in tasks/deploy/2026-10-12-repair.json. Git history
+  reconciled through 4487cce; final changes are review documents only and do not
+  trigger another deployment. No blockers remain.
