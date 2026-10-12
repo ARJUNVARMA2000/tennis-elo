@@ -9328,3 +9328,22 @@ Check-in: the independent audit found an explicit ESPN STATUS_WALKOVER rendered 
 
 History reconciled through 490dfb7 before this review. The repair changes source result
 labels and presentation validation; no player aliases, dependencies or population policy change.
+
+### Final tournament audit verification — 2026-10-12
+
+- [x] All audit and repair items in this round are complete. Commit 27f07eb deployed
+  successfully in run 38302239863, completed at 20:30:16Z. CI: 1,982 Python passed /
+  one skipped, 375 web tests, lint, build/types/browser smoke and 22 live checks passed.
+- [x] Independent live checks passed 22/22. Fresh accepted release
+  5635138f-f135-42f7-9456-bbfd6bf63d9d, generated at 20:28:04Z, contains 457 artifacts;
+  manifest and 18 core/schedule/evidence files matched their hashes and byte lengths.
+- [x] Repeated the complete source-to-public audit: all 248 entrants, 62 scheduled
+  matches and 106 completed results agree across Shanghai, Wuhan, Mallorca, Rovereto
+  and Lisboa. All five official ordered draws match; no missing/duplicate opponents,
+  wrong winners, score discrepancies, stale results or newly pending unmatched pairs.
+- [x] Browser confirms Shanghai's de Minaur–Molcan W/O with no odds, Mannarino–Basilashvili
+  6-3 2-2 RET, and Wuhan's Tauson–Bouzkova 6-1 2-0 RET. Bronzetti–Barthel is now correctly
+  completed in Rovereto. Gaia Maduzzi remains correctly named with no model history.
+- [x] Health is OK, with only the existing informational ATP charting-age note; no open
+  issues remain. Saved before/after evidence in tasks/deploy/2026-10-12-tournament-audit.json.
+  History reconciled through 27f07eb. Final changes are audit documents only.
