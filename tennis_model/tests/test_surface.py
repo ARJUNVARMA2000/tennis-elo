@@ -174,11 +174,13 @@ def test_resolve_level_normalizes_whichever_branch_wins():
     print("ok test_resolve_level_normalizes_whichever_branch_wins")
 
 
-def test_wiki_categories_resolve_to_stable_event_ids_across_renames():
+def test_wiki_categories_resolve_to_stable_event_ids_across_renames(monkeypatch):
     """The tier cache is legacy name-keyed, but result-policy decisions must join through
     ESPN identity. A sponsor rename after the tier was cached must still classify the event;
     conflicting aliases for one id are withheld rather than guessed."""
     from tennis_model.data import events as event_ids
+
+    monkeypatch.setattr(surf, "EVENT_TIER_BY_ID", {})
 
     orig = (surf.live_dir, event_ids.live_dir)
     try:

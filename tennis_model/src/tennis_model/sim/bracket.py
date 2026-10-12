@@ -105,6 +105,40 @@ def _resolve_placeholders(slots: list, results) -> list:
     return out
 
 
+def resolve_scheduled_placeholders(slots: list, opening_matchups: list) -> list:
+    """Seat unique opening-round opponents in explicit unresolved slots, never byes.
+
+    Callers must supply same-event, opening-round evidence. A candidate must be absent
+    from the released draw and claim exactly one slot; contradictory schedules stay open.
+    This changes entrant identity only, without awarding a result or moving a real player.
+    """
+    real_keys = {_name_key(s) for s in slots if is_real(s)}
+    opponents: dict = defaultdict(dict)
+    for a, b in opening_matchups:
+        if not (is_real(a) and is_real(b)):
+            continue
+        opponents[_name_key(a)][_name_key(b)] = b
+        opponents[_name_key(b)][_name_key(a)] = a
+    proposals = {}
+    for pos, slot in enumerate(slots):
+        if not _is_placeholder(slot):
+            continue
+        partner_pos = pos ^ 1
+        if partner_pos >= len(slots) or not is_real(slots[partner_pos]):
+            continue
+        candidates = opponents.get(_name_key(slots[partner_pos]), {})
+        # Even a conflicting scheduled incumbent is evidence against a unique pairing.
+        if len(candidates) == 1:
+            key, name = next(iter(candidates.items()))
+            if key not in real_keys and len(opponents.get(key, {})) == 1:
+                proposals[pos] = (key, name)
+    out = list(slots)
+    for pos, (key, name) in proposals.items():
+        if sum(other == key for other, _ in proposals.values()) == 1:
+            out[pos] = name
+    return out
+
+
 def _seed_of(seeds: dict | None, name: object) -> int | None:
     if not seeds or not is_real(name):
         return None

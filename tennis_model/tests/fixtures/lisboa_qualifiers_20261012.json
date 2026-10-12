@@ -1,0 +1,318 @@
+{
+  "capturedAt": "2026-10-12T18:40:59.011579+00:00",
+  "failedRun": 38287852147,
+  "draw": {
+    "bestOf": 3,
+    "bracketSize": 32,
+    "drawSize": 32,
+    "end": "2026-10-19",
+    "espnId": "1079-2026",
+    "name": "Lisboa Belem Open",
+    "publishedDrawSize": null,
+    "retrieved": "2026-10-12",
+    "seeds": {
+      "Dalma G\u00e1lfi": 7,
+      "Darja Seme\u0146istaja": 4,
+      "Fiona Ferro": 3,
+      "Francesca Jones": 2,
+      "Guiomar Maristany": 5,
+      "Jazm\u00edn Ortenzi": 8,
+      "J\u00e9ssica Bouzas Maneiro": 1,
+      "Leyre Romero Gormaz": 6
+    },
+    "slots": [
+      "J\u00e9ssica Bouzas Maneiro",
+      "Milana Ivantsiv",
+      "Irene Burillo",
+      "Vikt\u00f3ria Morvayov\u00e1",
+      "Madalena Matias",
+      "Polona Hercog",
+      "Barbora Palicov\u00e1",
+      "Jazm\u00edn Ortenzi",
+      "Darja Seme\u0146istaja",
+      "Qualifier/Unresolved 1",
+      "Clara Burel",
+      "Lina Gjorcheska",
+      "Martha Matoula",
+      "Giorgia Pedone",
+      "Qualifier/Unresolved 2",
+      "Guiomar Maristany",
+      "Leyre Romero Gormaz",
+      "Alice Ram\u00e9",
+      "Analu Freitas",
+      "Qualifier/Unresolved 3",
+      "Qualifier/Unresolved 4",
+      "S\u00e9l\u00e9na Janicijevic",
+      "Aurora Zantedeschi",
+      "Fiona Ferro",
+      "Dalma G\u00e1lfi",
+      "Beatriz Castro",
+      "Lisa Zaar",
+      "Matilde Jorge",
+      "Zhibek Kulambayeva",
+      "Francisca Jorge",
+      "Martina Colmegna",
+      "Francesca Jones"
+    ],
+    "source": "wikipedia",
+    "sourceDrawSize": 32,
+    "sourceId": "2026 Lisboa Bel\u00e9m Open \u2013 Women's singles",
+    "sourceUrl": "https://en.wikipedia.org/wiki/2026_Lisboa_Bel%C3%A9m_Open_%E2%80%93_Women%27s_singles",
+    "start": "2026-10-11",
+    "title": "2026 Lisboa Bel\u00e9m Open \u2013 Women's singles",
+    "url": "https://en.wikipedia.org/wiki/2026_Lisboa_Bel%C3%A9m_Open_%E2%80%93_Women%27s_singles"
+  },
+  "upcoming": [
+    {
+      "tourney_name": "Lisboa Belem Open",
+      "espn_id": "1079-2026",
+      "tourney_date": "2026-10-12",
+      "round": "R32",
+      "playerA": "Alice Rame",
+      "playerB": "Leyre Romero Gormaz"
+    },
+    {
+      "tourney_name": "Lisboa Belem Open",
+      "espn_id": "1079-2026",
+      "tourney_date": "2026-10-13",
+      "round": "R32",
+      "playerA": "Francesca Jones",
+      "playerB": "Martina Colmegna"
+    },
+    {
+      "tourney_name": "Lisboa Belem Open",
+      "espn_id": "1079-2026",
+      "tourney_date": "2026-10-13",
+      "round": "R32",
+      "playerA": "Mathilde Lollia",
+      "playerB": "Darja Semenistaja"
+    },
+    {
+      "tourney_name": "Lisboa Belem Open",
+      "espn_id": "1079-2026",
+      "tourney_date": "2026-10-13",
+      "round": "R32",
+      "playerA": "Matilde Jorge",
+      "playerB": "Lisa Zaar"
+    },
+    {
+      "tourney_name": "Lisboa Belem Open",
+      "espn_id": "1079-2026",
+      "tourney_date": "2026-10-13",
+      "round": "R32",
+      "playerA": "Selena Janicijevic",
+      "playerB": "Adrienn Nagy"
+    },
+    {
+      "tourney_name": "Lisboa Belem Open",
+      "espn_id": "1079-2026",
+      "tourney_date": "2026-10-13",
+      "round": "R32",
+      "playerA": "Fiona Ferro",
+      "playerB": "Aurora Zantedeschi"
+    },
+    {
+      "tourney_name": "Lisboa Belem Open",
+      "espn_id": "1079-2026",
+      "tourney_date": "2026-10-13",
+      "round": "R32",
+      "playerA": "Francisca Jorge",
+      "playerB": "Zhibek Kulambayeva"
+    },
+    {
+      "tourney_name": "Lisboa Belem Open",
+      "espn_id": "1079-2026",
+      "tourney_date": "2026-10-13",
+      "round": "R32",
+      "playerA": "Raluka Serban",
+      "playerB": "Analu Freitas"
+    },
+    {
+      "tourney_name": "Lisboa Belem Open",
+      "espn_id": "1079-2026",
+      "tourney_date": "2026-10-13",
+      "round": "R32",
+      "playerA": "Giorgia Pedone",
+      "playerB": "Martha Matoula"
+    },
+    {
+      "tourney_name": "Lisboa Belem Open",
+      "espn_id": "1079-2026",
+      "tourney_date": "2026-10-13",
+      "round": "R32",
+      "playerA": "Beatriz Castro",
+      "playerB": "Dalma Galfi"
+    },
+    {
+      "tourney_name": "Lisboa Belem Open",
+      "espn_id": "1079-2026",
+      "tourney_date": "2026-10-13",
+      "round": "R32",
+      "playerA": "Viktoria Morvayova",
+      "playerB": "Irene Burillo"
+    },
+    {
+      "tourney_name": "Lisboa Belem Open",
+      "espn_id": "1079-2026",
+      "tourney_date": "2026-10-13",
+      "round": "R32",
+      "playerA": "Polona Hercog",
+      "playerB": "Madalena Matias"
+    },
+    {
+      "tourney_name": "Lisboa Belem Open",
+      "espn_id": "1079-2026",
+      "tourney_date": "2026-10-13",
+      "round": "R32",
+      "playerA": "Guiomar Maristany Zuleta De Reales",
+      "playerB": "Gina Feistel"
+    },
+    {
+      "tourney_name": "Lisboa Belem Open",
+      "espn_id": "1079-2026",
+      "tourney_date": "2026-10-13",
+      "round": "R32",
+      "playerA": "Milana Ivantsiv",
+      "playerB": "Jessica Bouzas Maneiro"
+    }
+  ],
+  "results": [
+    {
+      "tourney_name": "Lisboa Belem Open",
+      "espn_id": "1079-2026",
+      "tourney_date": "2026-10-12",
+      "round": "R32",
+      "best_of": null,
+      "surface": null,
+      "tourney_level": null,
+      "winner_name": "Clara Burel",
+      "loser_name": "Lina Gjorcheska",
+      "score": "6-1 6-3"
+    },
+    {
+      "tourney_name": "Lisboa Belem Open",
+      "espn_id": "1079-2026",
+      "tourney_date": "2026-10-12",
+      "round": "R32",
+      "best_of": null,
+      "surface": null,
+      "tourney_level": null,
+      "winner_name": "Jazmin Ortenzi",
+      "loser_name": "Barbora Palicova",
+      "score": "6-4 7-6"
+    }
+  ],
+  "field": {
+    "field": [
+      "Adrienn Nagy",
+      "Alice Rame",
+      "Analu Freitas",
+      "Aurora Zantedeschi",
+      "Barbora Palicova",
+      "Beatriz Castro",
+      "Clara Burel",
+      "Dalma Galfi",
+      "Darja Semenistaja",
+      "Fiona Ferro",
+      "Francesca Jones",
+      "Francisca Jorge",
+      "Gina Feistel",
+      "Giorgia Pedone",
+      "Guiomar Maristany Zuleta De Reales",
+      "Irene Burillo",
+      "Jazmin Ortenzi",
+      "Jessica Bouzas Maneiro",
+      "Leyre Romero Gormaz",
+      "Lina Gjorcheska",
+      "Lisa Zaar",
+      "Madalena Matias",
+      "Martha Matoula",
+      "Martina Colmegna",
+      "Mathilde Lollia",
+      "Matilde Jorge",
+      "Milana Ivantsiv",
+      "Polona Hercog",
+      "Raluka Serban",
+      "Selena Janicijevic",
+      "Viktoria Morvayova",
+      "Zhibek Kulambayeva"
+    ],
+    "eliminated": [
+      "Barbora Palicova",
+      "Lina Gjorcheska"
+    ],
+    "espnId": "1079-2026"
+  },
+  "officialDraw": {
+    "url": "https://wtafiles.wtatennis.com/pdf/draws/2026/1168/MDS.pdf",
+    "sha256": "519ad01f4b78e26f5627470acb502f25abd6cca48dd9eb146f913ab8b1d3bd90",
+    "unresolvedPositions": [
+      10,
+      15,
+      20,
+      21
+    ]
+  },
+  "mallorcaResults": [
+    {
+      "tourney_name": "Vanda Pharmaceuticals Mallorca Women's Championships presented by Ecotrans Group",
+      "espn_id": "1020-2026",
+      "tourney_date": "2026-10-12",
+      "round": "R32",
+      "best_of": null,
+      "surface": null,
+      "tourney_level": null,
+      "winner_name": "Laura Samson",
+      "loser_name": "Aran Teixido Garcia",
+      "score": "6-3 2-6 6-3"
+    },
+    {
+      "tourney_name": "Vanda Pharmaceuticals Mallorca Women's Championships presented by Ecotrans Group",
+      "espn_id": "1020-2026",
+      "tourney_date": "2026-10-12",
+      "round": "R32",
+      "best_of": null,
+      "surface": null,
+      "tourney_level": null,
+      "winner_name": "Francesca Curmi",
+      "loser_name": "Eva Vedder",
+      "score": "4-6 7-5 6-0"
+    },
+    {
+      "tourney_name": "Vanda Pharmaceuticals Mallorca Women's Championships presented by Ecotrans Group",
+      "espn_id": "1020-2026",
+      "tourney_date": "2026-10-12",
+      "round": "R32",
+      "best_of": null,
+      "surface": null,
+      "tourney_level": null,
+      "winner_name": "Julia Grabher",
+      "loser_name": "Deborah Chiesa",
+      "score": "3-6 6-4 6-4"
+    },
+    {
+      "tourney_name": "Vanda Pharmaceuticals Mallorca Women's Championships presented by Ecotrans Group",
+      "espn_id": "1020-2026",
+      "tourney_date": "2026-10-12",
+      "round": "R32",
+      "best_of": null,
+      "surface": null,
+      "tourney_level": null,
+      "winner_name": "Elizara Yaneva",
+      "loser_name": "Jennifer Ruggeri",
+      "score": "1-6 7-6 6-1"
+    },
+    {
+      "tourney_name": "Vanda Pharmaceuticals Mallorca Women's Championships presented by Ecotrans Group",
+      "espn_id": "1020-2026",
+      "tourney_date": "2026-10-12",
+      "round": "R32",
+      "best_of": null,
+      "surface": null,
+      "tourney_level": null,
+      "winner_name": "Andrea Lazaro Garcia",
+      "loser_name": "Yasmine Kabbaj",
+      "score": "7-6 6-0"
+    }
+  ]
+}

@@ -476,3 +476,7 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - A reviewed current edition outranks a name-matched historical venue. See
   [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-10-11)
+
+- Announced qualifiers need exact opening-round seats before their first results;
+  reviewed edition tiers must reach ingestion as well as display. See
+  [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-10-12)

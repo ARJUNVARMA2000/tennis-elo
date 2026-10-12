@@ -9246,3 +9246,26 @@ Open draw despite the new Ma pairing. Re-plan shared before further implementati
 - [x] Saved evidence in tasks/deploy/2026-10-11-repair.json. Remote history rechecked
   through 17245ed; original DEUCE checkout and unrelated work remain unchanged.
   Final changes are review documents only, excluded from deployment. No blockers remain.
+
+### Deployment repair — 2026-10-12
+
+- [ ] Reproduce Lisboa's four missing scheduled pairings from current official draw and source evidence; inspect the unclassified WTA rows.
+- [ ] Repair the responsible producer with captured broken/clean gate replays, preserving exact event and player identity rules.
+- [ ] Run appropriate validation, deploy, verify the public bracket and forecasts, and record the final health review.
+
+- [x] Captured Lisboa's full 32-slot cached draw, official 1168 PDF and current
+  ESPN fields, schedules and results. Both draw sources still have four placeholders;
+  exact R32 opponent evidence seats Lollia, Feistel, Serban and Nagy without results.
+- [x] Added round-preserving, exact-event scheduled seating to live and pre-start
+  projections, with one-to-one ambiguity guards and no bye/result invention. The
+  pre-start path now shares existing event-field name reconciliation with the live path.
+- [x] Traced the five unclassified rows to Mallorca's first results. Reused its
+  committed WTA 125 edition review in ingestion; all five remain policy-excluded.
+- [x] Captured producer/gate and scope tests pass (33 focused checks); 375 web tests
+  pass and Ruff is clean. Both-tour current/upcoming field audit has no unresolved
+  rated candidates; Rovereto's Gaia Maduzzi is absent from the model inventory.
+- [ ] Finish full tests, publish and independently verify the repaired release.
+
+- [x] Final local suite: 1,969 Python tests passed; 33 focused regression checks,
+  375 web tests, Ruff and diff checks pass. Git history remains c930d74. Ready for
+  guarded deployment; the existing integrity gate remains unchanged and enforced.

@@ -139,7 +139,7 @@ def test_prestart_cached_draw_replacement_and_gate(monkeypatch, scheduled):
     monkeypatch.setattr(tournaments, "_load_fields", lambda tour: {
         "Sponsor title": {"espnId": "959-2026", "field": current_field, "eliminated": []}})
     monkeypatch.setattr(tournaments, "_load_upcoming", lambda tour: {
-        "959-2026": [("Ma YeXin", "Polina Kudermetova")] if scheduled else []})
+        "959-2026": [("Ma YeXin", "Polina Kudermetova", "R128")] if scheduled else []})
     monkeypatch.setattr(tournaments, "_load_upcoming_bounds", lambda tour: {})
     monkeypatch.setattr(tournaments, "_load_tournament_draws", lambda tour: {"959-2026": draw})
     monkeypatch.setattr(tournaments, "load_registry", lambda tour: {"events": {}})

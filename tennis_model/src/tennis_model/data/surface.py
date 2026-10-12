@@ -175,7 +175,8 @@ def wiki_categories_by_event_id(tour: str) -> dict[str, str]:
     title seen when Wikipedia was queried. Result ingestion cannot join on that name: ESPN
     titles change during an edition, while ``espnId`` does not. Resolve every legacy key
     through the registry's append-only alias table and keep an id only when all of its
-    aliases agree on one normalized tier. Unknown or contradictory evidence stays absent.
+    aliases agree on one normalized tier. Unknown or contradictory cached evidence stays
+    absent; independently reviewed edition tiers take precedence and need no cache entry.
     """
     from .events import EventResolver, load_registry
 
@@ -186,8 +187,13 @@ def wiki_categories_by_event_id(tour: str) -> dict[str, str]:
         level = normalize_level(raw_level, tour)
         if event_id and level:
             found.setdefault(event_id, set()).add(level)
-    return {event_id: next(iter(levels))
-            for event_id, levels in found.items() if len(levels) == 1}
+    resolved = {event_id: next(iter(levels))
+                for event_id, levels in found.items() if len(levels) == 1}
+    # The same reviewed edition used by current-event cards must classify ingestion.
+    # Mallorca's first results otherwise stayed "unknown" after its WTA 125 review.
+    resolved.update({event_id: level for event_id, raw in EVENT_TIER_BY_ID.get(tour, {}).items()
+                     if (level := normalize_level(raw, tour))})
+    return resolved
 
 
 def _level_candidate(value: object, tour: str) -> str | None:

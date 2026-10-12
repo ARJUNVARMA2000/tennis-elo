@@ -1,0 +1,102 @@
+{
+  "reviewedAt": "2026-10-12T18:50:26.167478+00:00",
+  "failedRun": 38287852147,
+  "baselineCommit": "c930d7461fbd75974fd98421d481c0ba49953c88",
+  "cause": "Lisboa retained four unresolved qualifier seats after the same-event R32 schedule named their exact opponents. The result-only resolver could not seat pending matches.",
+  "repairs": [
+    "Preserve scheduled round provenance and fill uniquely corroborated opening-round seats by exact ESPN event ID before both live and pre-start simulation.",
+    "Share existing event-field name reconciliation on the pre-start path.",
+    "Reuse reviewed edition tiers in ingestion; the five Mallorca rows remain excluded as WTA 125 rather than unknown."
+  ],
+  "incidentFixture": "tennis_model/tests/fixtures/lisboa_qualifiers_20261012.json",
+  "officialDraw": {
+    "url": "https://wtafiles.wtatennis.com/pdf/draws/2026/1168/MDS.pdf",
+    "sha256": "519ad01f4b78e26f5627470acb502f25abd6cca48dd9eb146f913ab8b1d3bd90",
+    "unresolvedPositions": [
+      10,
+      15,
+      20,
+      21
+    ]
+  },
+  "fieldAudit": {
+    "capturedAt": "2026-10-12T18:44:27.960048+00:00",
+    "events": [
+      {
+        "tour": "atp",
+        "event": "315-2026",
+        "name": "Rolex Shanghai Masters",
+        "players": 96
+      },
+      {
+        "tour": "wta",
+        "event": "381-2026",
+        "name": "Dongfeng Voyah Wuhan Open",
+        "players": 56
+      },
+      {
+        "tour": "wta",
+        "event": "1020-2026",
+        "name": "Vanda Pharmaceuticals Mallorca Women's Championships presented by Ecotrans Group",
+        "players": 32
+      },
+      {
+        "tour": "wta",
+        "event": "1025-2026",
+        "name": "RoveretOpen Citt\u00e0 della Pace",
+        "players": 32
+      },
+      {
+        "tour": "wta",
+        "event": "1079-2026",
+        "name": "Lisboa Belem Open",
+        "players": 32
+      }
+    ],
+    "unknown": [
+      {
+        "tour": "wta",
+        "event": "1025-2026",
+        "player": "Gaia Maduzzi",
+        "canonical": "Gaia Maduzzi",
+        "ratedCandidates": []
+      }
+    ],
+    "sources": [
+      {
+        "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/atp/scoreboard?dates=20261012&limit=300",
+        "sha256": "8801b4e9d464ddebf9335cb04468e7a3046aad9f4d176c47d8c66bb5f93bd3c8"
+      },
+      {
+        "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/atp/scoreboard?dates=20261013&limit=300",
+        "sha256": "8801b4e9d464ddebf9335cb04468e7a3046aad9f4d176c47d8c66bb5f93bd3c8"
+      },
+      {
+        "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/atp/scoreboard?dates=20261014&limit=300",
+        "sha256": "8801b4e9d464ddebf9335cb04468e7a3046aad9f4d176c47d8c66bb5f93bd3c8"
+      },
+      {
+        "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard?dates=20261012&limit=300",
+        "sha256": "2b01fe1be76536595f8a4943712d785ee501e753675347ae727b2daebbbbaf42"
+      },
+      {
+        "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard?dates=20261013&limit=300",
+        "sha256": "2b01fe1be76536595f8a4943712d785ee501e753675347ae727b2daebbbbaf42"
+      },
+      {
+        "url": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard?dates=20261014&limit=300",
+        "sha256": "2b01fe1be76536595f8a4943712d785ee501e753675347ae727b2daebbbbaf42"
+      }
+    ]
+  },
+  "validation": {
+    "pythonPassed": 1969,
+    "focusedPassed": 33,
+    "webPassed": 375,
+    "ruff": "passed",
+    "diffCheck": "passed"
+  },
+  "deployment": {
+    "status": "pending"
+  }
+}

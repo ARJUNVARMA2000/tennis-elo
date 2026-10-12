@@ -38,7 +38,14 @@ from ..data.participants import draw_is_meaningful, is_real_participant
 from ..data.results import _name_key
 from ..data.surface import resolve_level, resolve_surface_info
 from ..model.predict import can_predict_match, predictor_player_names
-from .bracket import bracket_is_meaningful, bracket_rounds, is_real, oriented_logged, price_bracket
+from .bracket import (
+    bracket_is_meaningful,
+    bracket_rounds,
+    is_real,
+    oriented_logged,
+    price_bracket,
+    resolve_scheduled_placeholders,
+)
 from .draws import advance_slots, draw_status, live_draw, standard_seed_draw
 
 _KO_ROUNDS = {"R128", "R64", "R32", "R16", "QF", "SF", "F"}
@@ -59,7 +66,7 @@ def _load_fields(tour: str) -> dict:
 
 
 def _load_upcoming(tour: str) -> dict:
-    """Scheduled/in-progress matchups, keyed BOTH ways: ``{event_name_or_id: [(a, b), ...]}``.
+    """Scheduled matchups, keyed both ways: ``{event_name_or_id: [(a, b, round), ...]}``.
 
     Reshapes the shared upcoming.csv loader into per-event matchup pairs so the live
     projector pairs survivors by who actually plays whom, not by seeding. Rows carrying an
@@ -68,7 +75,7 @@ def _load_upcoming(tour: str) -> dict:
     from ..model.upcoming import load_upcoming
     out: dict = {}
     for r in load_upcoming(tour).itertuples(index=False):
-        pair = (str(r.playerA), str(r.playerB))
+        pair = (str(r.playerA), str(r.playerB), str(getattr(r, "round", "")))
         out.setdefault(str(r.tourney_name), []).append(pair)
         eid = getattr(r, "espn_id", None)
         if eid is not None and str(eid) != "nan" and str(eid):
@@ -760,7 +767,8 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
                        matchups: list | None = None, tournament_draw: dict | None = None,
                        archive_hint: str | None = None, espn_id: str | None = None,
                        event_start: str | None = None, event_end: str | None = None, dmax=None,
-                       n_sims: int = 8000, seed: int = 11) -> dict | None:
+                       n_sims: int = 8000, seed: int = 11,
+                       opening_matchups: list | None = None) -> dict | None:
     # The ratings frame can include qualifying matches for state updates. Tournament
     # projections, however, describe the main draw only. ``draw_level`` filters modern lower-
     # ingestion rows, while the round filter also catches legacy/source rows whose Q1/Q2
@@ -852,6 +860,9 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
             (draw_canon.get(slot) or resolve(slot)) if slot else None
             for slot in tournament_draw["slots"]
         ]
+        if not completed:
+            resolved_draw_slots = resolve_scheduled_placeholders(
+                resolved_draw_slots, opening_matchups or [])
         # The released PDF is the draw as it stood at release. A player who withdrew before
         # hitting a ball was replaced in that slot by a lucky loser, and every result from
         # then on is the REPLACEMENT's. Substituting here — rather than treating the slot as
@@ -929,6 +940,7 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
                     predictor, name, trusted_main.copy(), tour,
                     known=known, top_set=top_set, espn_fields=espn_fields, resolve=resolve,
                     matchups=matchups, tournament_draw=tournament_draw,
+                    opening_matchups=opening_matchups,
                     archive_hint=archive_hint, espn_id=espn_id,
                     event_start=event_start, event_end=event_end, dmax=dmax,
                     n_sims=n_sims, seed=seed,
@@ -1089,11 +1101,14 @@ def project_tournament(predictor, name: str, g: pd.DataFrame, tour: str,
 def project_upcoming(predictor, name: str, wd: dict, tour: str, df: pd.DataFrame,
                      known: set | None, resolve, espn_id: str | None = None,
                      n_sims: int = 8000, seed: int = 11,
-                     espn_field=None, matchups: list | None = None) -> dict | None:
+                     espn_field=None, matchups: list | None = None,
+                     opening_matchups: list | None = None) -> dict | None:
     """Pre-start projection for an event whose complete draw is out but which hasn't
     played a match yet (so it's absent from the results-driven event list). The full real
     bracket, no eliminations -> honest 'real' pre-tournament title odds from release."""
-    wslots = [resolve(s) if s else None for s in (wd.get("slots") or [])]
+    draw_canon = _reconcile_draw_names(wd.get("slots") or [], list(espn_field or []), resolve)
+    wslots = [(draw_canon.get(s) or resolve(s)) if s else None for s in (wd.get("slots") or [])]
+    wslots = resolve_scheduled_placeholders(wslots, opening_matchups or [])
     # A player can withdraw between the draw release and the first ball. The released draw
     # still names them, so the pre-start board must drop them here too — otherwise an event
     # would list them as a contender right up until it goes live and the other path fixes it.
@@ -1131,7 +1146,7 @@ def project_upcoming(predictor, name: str, wd: dict, tour: str, df: pd.DataFrame
                                               n_sims, seed)
     else:
         proj, favorite = [], None
-    rseeds = {resolve(k): v for k, v in (wd.get("seeds") or {}).items()}
+    rseeds = {(draw_canon.get(k) or resolve(k)): v for k, v in (wd.get("seeds") or {}).items()}
     bracket = bracket_rounds(wslots, [], rseeds, withdrawn=walkovers)  # released draw, no results
     if unresolved_geometry or not bracket_is_meaningful(bracket, len(field_pool)):
         bracket = None                               # mostly-placeholder early draw -> not worth showing
@@ -1246,11 +1261,23 @@ def build_tournaments(predictor, df: pd.DataFrame, tour: str, *, build_date=None
     fields_by_id, fields_by_name = _split_by_key(espn_fields)
     up_by_id, up_by_name = _split_by_key(upcoming)
     bounds_by_id, bounds_by_name = _split_by_key(upcoming_bounds)
+
+    def schedule_for(eid, name, draw):
+        rows = _lookup(up_by_id, up_by_name, eid, name) or []
+        opening = {128: "R128", 64: "R64", 32: "R32", 16: "R16", 8: "QF"}.get(
+            len((draw or {}).get("slots") or []))
+        pairs = [(resolve(a), resolve(b)) for a, b, _ in rows]
+        # Name fallbacks may support legacy frontier display, but cannot prove a new
+        # entrant's seat when the schedule carries a different edition identity.
+        first = [(resolve(a), resolve(b)) for a, b, rnd in up_by_id.get(eid, [])
+                 if opening and rnd == opening]
+        return pairs, first
+
     out = []
     for name, g, eid in _coalesce_groups(
             recent_tournaments(df, build_date=build_date), resolver):
-        matchups = [(resolve(a), resolve(b))
-                    for a, b in (_lookup(up_by_id, up_by_name, eid, name) or [])]
+        tournament_draw = _lookup(draws_by_id, draws_by_name, eid, name)
+        matchups, opening_matchups = schedule_for(eid, name, tournament_draw)
         event_start, event_end = _event_bounds(
             eid, name, resolver, draws_by_id, draws_by_name, bounds_by_id, bounds_by_name)
         try:
@@ -1258,7 +1285,7 @@ def build_tournaments(predictor, df: pd.DataFrame, tour: str, *, build_date=None
                                    espn_fields=_fields_view(fields_by_id, fields_by_name,
                                                             eid, name),
                                    resolve=resolve, matchups=matchups,
-                                   tournament_draw=_lookup(draws_by_id, draws_by_name, eid, name),
+                                   tournament_draw=tournament_draw, opening_matchups=opening_matchups,
                                    archive_hint=_archive_attrs(df, name)[0],
                                    espn_id=eid,
                                    event_start=event_start, event_end=event_end,
@@ -1305,10 +1332,11 @@ def build_tournaments(predictor, df: pd.DataFrame, tour: str, *, build_date=None
             bounded["start"] = min(str(wd.get("start") or bound_start), bound_start)
         if bound_end:
             bounded["end"] = max(str(wd.get("end") or bound_end), bound_end)
+        matchups, opening_matchups = schedule_for(wd_id, name, wd)
         t = project_upcoming(predictor, name, bounded, tour, df, known, resolve,
                              espn_id=wd_id or resolver.id_of(name),
                              espn_field=(_lookup(fields_by_id, fields_by_name, wd_id, name) or {}).get("field"),
-                             matchups=_lookup(up_by_id, up_by_name, wd_id, name), **kw)
+                             matchups=matchups, opening_matchups=opening_matchups, **kw)
         if t:
             out.append(t)
     # The results loop groups by RAW tourney_name, so an event whose live/ESPN feed uses a

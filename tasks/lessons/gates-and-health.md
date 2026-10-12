@@ -518,3 +518,14 @@ Indexed in [`../lessons.md`](../lessons.md).
   live and coverage-only cards. Gate the public schedule/cards/brackets against
   independently reviewed edition facts; a consistently wrong set of artifacts can
   pass cross-artifact parity. Keep older editions' real grass history intact.
+
+- **An announced qualifier needs its seat before its first result.** (2026-10-12, Lisboa)
+  The official and fallback draws retained four unresolved seats after ESPN named all
+  four opening-round opponents. Result-only slot recovery therefore blocked the next
+  refresh. Preserve scheduled round provenance and seat only a unique, previously
+  unseated real entrant against its exact opening-slot opponent in the same event ID.
+  Reject conflicting or multiply claimed seats, later rounds, qualifying and byes.
+  Apply the same event-field name reconciliation and seating before simulation on
+  both pre-start and live paths; replay the captured full draw through the producer
+  and unchanged scheduled-match gate. Reviewed edition tiers must also reach result
+  ingestion, not just display, so known WTA 125 rows stay explicitly excluded.
