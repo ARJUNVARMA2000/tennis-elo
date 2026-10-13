@@ -9403,3 +9403,20 @@ live on failure. Existing post-deploy checks continue to validate serving integr
 
 History reconciled through 35fb95a. The first guarded deployment correctly left the
 previous release live. This fixes result-label provenance; the gate remains strict.
+
+### Completed-bracket audit scope — 2026-10-13 UTC
+
+- [ ] Keep checking every published bracket still present in the provider snapshot,
+  including completed events. An intervening scheduled run after UTC midnight exposed
+  that a calendar-only audit scope could age the China Open findings out before repair.
+- [ ] Add a next-day broken replay, validate both active and completed source comparisons,
+  and verify the final deployment and the three corrected China Open labels.
+
+Check-in: extend the same invariant across the retained source window rather than let
+the date transition resolve a still-published mismatch.
+
+- [x] Published completed brackets now remain in audit scope while their provider
+  witness is available. The next-day China Open regression still reports the same
+  three broken labels; the repaired merge clears them. All 260 health/outcome tests
+  pass, as do Ruff and whitespace checks. The full captured WTA window exposes only
+  those three known repair targets. History reconciled through 87f18c9.

@@ -130,7 +130,9 @@ def check_source(out, tour, source, data, draw_cache, now):
         eid = str(ev['id'])
         bracket = brackets.get(eid)
         card = cards.get(eid)
-        active = (card or {}).get('status') in ('live', 'upcoming')
+        # A published completed bracket still claims these results. Do not age an
+        # unresolved contradiction out at midnight while the source still witnesses it.
+        active = bracket is not None or (card or {}).get('status') in ('live', 'upcoming')
         try:
             active |= _utc(ev.get('date')).date() <= _utc(now).date() <= _utc(ev.get('endDate')).date()
         except (TypeError, ValueError):

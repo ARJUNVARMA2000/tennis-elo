@@ -24,14 +24,14 @@ def frames():
     return frame, keys
 
 
-def audit(bracket):
-    raw, proof = source_audit.capture_source('wta', [CAPTURE['event']], NOW)
+def audit(bracket, now=NOW):
+    raw, proof = source_audit.capture_source('wta', [CAPTURE['event']], now)
     names = [m[s] for m in bracket['rounds'][0]['matches'] for s in ('a', 'b') if m[s]]
     data = {'meta': {'modelPlayerNames': names, 'tournamentSourceAudit': proof},
             'tournaments': [bracket], 'brackets': [bracket], 'upcoming': []}
     out = _FindingCollector('output', 'wta')
     source_audit.check_source(out, 'wta', {'state': 'valid', 'witness': json.loads(raw), 'proof': proof},
-                              data, {}, NOW)
+                              data, {}, now)
     return out.findings
 
 
@@ -61,6 +61,12 @@ def test_captured_mirror_retirements_survive_real_merge_and_clear_unchanged_gate
         assert len(matches) == 1
         matches[0]['score'] = row.score
     assert not audit(bracket)
+
+
+def test_published_completed_bracket_does_not_age_out_at_midnight():
+    findings = audit(CAPTURE['publicBracket'], now='2026-10-13T01:00:00Z')
+    assert len(findings) == 3
+    assert all(f.code.endswith('outcome_mismatch') for f in findings)
 
 
 @pytest.mark.parametrize('fault', ['other_date', 'other_id', 'duplicate_live', 'no_bounds', 'conflicting_outcome'])

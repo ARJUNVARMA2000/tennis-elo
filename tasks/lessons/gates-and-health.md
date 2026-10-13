@@ -561,3 +561,9 @@ Indexed in [`../lessons.md`](../lessons.md).
   no conflicting IDs or multiple copies from one source. Preserve preferred set and
   tiebreak details. Replay captured mirror/provider records through the real merge
   and unchanged source gate; record bounds in the normalized-cache fingerprint.
+
+- **A date rollover cannot resolve a contradiction in a published bracket.**
+  (2026-10-13 UTC) Checking only active calendars let the China Open RET omissions
+  disappear from a later scheduled audit before their repair shipped. Continue
+  auditing completed public brackets for as long as the acquisition still provides
+  their results, and replay the broken snapshot on the following UTC day.
