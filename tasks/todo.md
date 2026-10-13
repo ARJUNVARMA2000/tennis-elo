@@ -9435,3 +9435,21 @@ not on each acquisition's lastSeen update. This preserves the existing cache con
   bounds reader as reconciliation. All 12 cache/outcome tests pass, including unchanged
   observation times and changed event bounds; Ruff and whitespace checks pass.
   History reconciled through 3d77f23. Final deployment verification remains pending.
+
+### Automatic tournament audit — final deployment review, 2026-10-13 UTC
+
+- [x] All items in the automatic-check, outcome repair, completed-bracket scope and
+  cache-dependency rounds are complete. Final production commit c2357b7 passed run
+  38332304584, completed at 01:54:23Z. Both quick/full paths share the mandatory gate.
+- [x] Final local Python suite: 2,023 passed. CI: 2,022 passed / one skipped, 375 web
+  tests, lint, type/build/browser checks and 22/22 live serving checks passed. The
+  unchanged gate rejected the three real China Open omissions before the repair.
+- [x] Independent serving verification passed 22/22 against the exact accepted
+  release 872a18d7-073c-4cd7-8d29-045f003ad810, generated at 01:52:25Z. Health is OK,
+  both tour metadata hashes match the 457-artifact manifest, and both carry bound
+  source-audit proofs from this acquisition. No open issues remain.
+- [x] Live China Open labels are now Sun–Lys 6-1 3-0 RET, Kraus–Potapova 4-1 RET and
+  Zheng–Kalinskaya 6-7(4) 6-4 3-0 RET. Completed brackets remain checked after the
+  date rolls over while the provider continues to witness their results.
+- [x] Saved final evidence in tasks/deploy/2026-10-13-source-audit.json. History
+  reconciled through c2357b7 before this review. Remaining changes are records only.

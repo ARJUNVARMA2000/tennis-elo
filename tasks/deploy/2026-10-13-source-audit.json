@@ -1,0 +1,73 @@
+{
+  "releaseId": "872a18d7-073c-4cd7-8d29-045f003ad810",
+  "generatedAt": "2026-10-13T01:52:25Z",
+  "manifestSha256": "3a480e1b4719e84eb054934315eeb90612e6195a2a788b726084b6579c1dcbf1",
+  "artifactCount": 457,
+  "sourceProofs": {
+    "atp": {
+      "sha256": "ec5d66b7e279f702b00fb94d0e436f6ecf35c1631db9efe549a5f12e35a7b97d",
+      "observedAt": "2026-10-13T01:37:48Z"
+    },
+    "wta": {
+      "sha256": "8b988b7970e497aa0fcb92304eadea24f2d1c5303e73a16d720ce65ffaa8936f",
+      "observedAt": "2026-10-13T01:37:50Z"
+    }
+  },
+  "healthOk": true,
+  "verifiedRetirements": [
+    {
+      "players": [
+        "Xinran Sun",
+        "Eva Lys"
+      ],
+      "score": "6-1 3-0 RET"
+    },
+    {
+      "players": [
+        "Sinja Kraus",
+        "Anastasia Potapova"
+      ],
+      "score": "4-1 RET"
+    },
+    {
+      "players": [
+        "Qinwen Zheng",
+        "Anna Kalinskaya"
+      ],
+      "score": "6-7(4) 6-4 3-0 RET"
+    }
+  ],
+  "commit": "c2357b7a8b09d1092461f4102f49f838e9235b75",
+  "run": "https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/38332304584",
+  "conclusion": "success",
+  "completedAt": "2026-10-13T01:54:23Z",
+  "tests": {
+    "localPythonPassed": 2023,
+    "ciPythonPassed": 2022,
+    "ciPythonSkipped": 1,
+    "ciWebPassed": 375,
+    "ciLiveChecksPassed": 22,
+    "independentLiveChecksPassed": 22
+  },
+  "openIssues": [],
+  "firstGuardedRun": {
+    "id": 38306813927,
+    "publicationBlocked": true,
+    "findings": [
+      "China Open Xinran Sun–Eva Lys: RET omitted",
+      "China Open Sinja Kraus–Anastasia Potapova: RET omitted",
+      "China Open Qinwen Zheng–Anna Kalinskaya: RET omitted"
+    ]
+  },
+  "invariants": [
+    "independent same-acquisition raw provider witness",
+    "source hash/time bound to candidate metadata",
+    "missing/corrupt/stale/mixed source evidence blocks publication",
+    "exact event identity and main/qualifying player checks",
+    "ordered cached seats and duplicate entrant checks",
+    "source pairing/round/winner/set-score/outcome parity",
+    "completed published brackets remain checked while witnessed",
+    "bounded outcome provenance survives preferred result copies",
+    "volatile registry observation times do not invalidate normalized results"
+  ]
+}
