@@ -9420,3 +9420,18 @@ the date transition resolve a still-published mismatch.
   three broken labels; the repaired merge clears them. All 260 health/outcome tests
   pass, as do Ruff and whitespace checks. The full captured WTA window exposes only
   those three known repair targets. History reconciled through 87f18c9.
+
+### Outcome cache dependency refinement — 2026-10-13 UTC
+
+- [ ] Fingerprint the exact event-bound evidence consumed by outcome reconciliation,
+  excluding volatile registry observation timestamps so unchanged hourly data can
+  reuse normalized results. Test timestamp stability and bound-change invalidation.
+- [ ] Verify the final combined deployment after the serialized repair run completes.
+
+Check-in: the new registry dependency must invalidate on changed edition evidence,
+not on each acquisition's lastSeen update. This preserves the existing cache contract.
+
+- [x] The fingerprint now includes only event start/end evidence, using the same
+  bounds reader as reconciliation. All 12 cache/outcome tests pass, including unchanged
+  observation times and changed event bounds; Ruff and whitespace checks pass.
+  History reconciled through 3d77f23. Final deployment verification remains pending.

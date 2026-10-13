@@ -150,6 +150,13 @@ def _effective_include_lower(tour: str, include_lower: bool | None) -> bool:
     return configured if include_lower is None else bool(include_lower)
 
 
+def _outcome_event_bounds(tour: str) -> dict:
+    from .events import load_registry
+    return {eid: {'start': event.get('start'), 'end': event.get('end')}
+            for eid, event in load_registry(tour).get('events', {}).items()
+            if isinstance(event, dict)}
+
+
 def _normalized_matches_fingerprint(tour: str, include_lower: bool) -> str:
     """Content identity for every source and implementation input of `load_matches`.
 
@@ -183,8 +190,10 @@ def _normalized_matches_fingerprint(tour: str, include_lower: bool) -> str:
     )
     paths = [path for root in roots for path in root.glob("*.csv")
              if path.name != "upcoming.csv"]
-    paths += [live_dir(tour) / "wiki_surface.json", live_dir(tour) / "wiki_category.json",
-              live_dir(tour) / "events.json"]
+    paths += [live_dir(tour) / "wiki_surface.json", live_dir(tour) / "wiki_category.json"]
+    # Outcome reconciliation depends only on edition bounds. lastSeen changes every
+    # acquisition and must not invalidate a byte-identical match population hourly.
+    digest.update(json.dumps(_outcome_event_bounds(tour), sort_keys=True).encode())
     from .result_ledger import LEDGER_DIR
     paths.append(LEDGER_DIR / f'{tour}.json')
     if tour == 'wta':
@@ -613,8 +622,7 @@ def merge_sources(tour: str, include_lower: bool | None = None) -> pd.DataFrame:
     df["__key"] = base_key + "|" + round_key
     from .result_ledger import partition_reviewed_duplicates
     df['__key'] = partition_reviewed_duplicates(df, df['__key'])
-    from .events import load_registry
-    df = _carry_live_outcomes(df, df['__key'], load_registry(tour))
+    df = _carry_live_outcomes(df, df['__key'], {'events': _outcome_event_bounds(tour)})
     # A validated result and an optional box score are separate facts. The reviewed
     # exact-result donor owns the outcome/score; a higher-priority stats payload may
     # omit RET or use placeholder sets without changing whether the match finished.

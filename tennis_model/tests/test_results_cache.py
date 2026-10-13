@@ -10,6 +10,20 @@ from pandas.testing import assert_frame_equal
 from tennis_model.data import results
 
 
+def test_outcome_bounds_invalidate_match_cache_but_observation_timestamps_do_not(monkeypatch, tmp_path):
+    from tennis_model.data import events
+    registry = {'events': {'959-2026': {'start': '2026-09-27', 'end': '2026-10-12',
+                                       'lastSeen': '2026-10-12T21:00:00Z'}}}
+    monkeypatch.setattr(events, 'load_registry', lambda tour: registry)
+    for kind in ('historical', 'stats', 'fresh', 'live', 'lower'):
+        monkeypatch.setattr(results, kind + '_dir', lambda tour, k=kind: tmp_path / k)
+    before = results._normalized_matches_fingerprint('atp', False)
+    registry['events']['959-2026']['lastSeen'] = '2026-10-13T01:00:00Z'
+    assert results._normalized_matches_fingerprint('atp', False) == before
+    registry['events']['959-2026']['end'] = '2026-10-11'
+    assert results._normalized_matches_fingerprint('atp', False) != before
+
+
 def _write(path, rows: list[dict]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     pd.DataFrame(rows).to_csv(path, index=False)
