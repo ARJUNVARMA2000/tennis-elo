@@ -183,7 +183,8 @@ def _normalized_matches_fingerprint(tour: str, include_lower: bool) -> str:
     )
     paths = [path for root in roots for path in root.glob("*.csv")
              if path.name != "upcoming.csv"]
-    paths += [live_dir(tour) / "wiki_surface.json", live_dir(tour) / "wiki_category.json"]
+    paths += [live_dir(tour) / "wiki_surface.json", live_dir(tour) / "wiki_category.json",
+              live_dir(tour) / "events.json"]
     from .result_ledger import LEDGER_DIR
     paths.append(LEDGER_DIR / f'{tour}.json')
     if tour == 'wta':
@@ -356,6 +357,44 @@ def _reconcile_exact_live_result(df: pd.DataFrame) -> pd.DataFrame:
         live_round = raw_round.strip().upper() if isinstance(raw_round, str) else ""
         if live_round:
             out.loc[group.index, "round"] = live_round
+    return out
+
+
+def _carry_live_outcomes(df: pd.DataFrame, match_keys: pd.Series, registry: dict) -> pd.DataFrame:
+    """A preferred score/stat payload must not erase an explicit same-match outcome.
+
+    Exact result keys alone span a year. Require one live donor, at most one row per
+    source, no conflicting event IDs, and every recorded date inside that donor's
+    independently recorded event window. Never bridge events by their display names.
+    """
+    donors = df[df.source_kind.eq('live') & df.espn_id.notna()
+                & df.score.astype('string').str.contains(r'\bRET\b|W/O', na=False)]
+    if donors.empty:
+        return df
+    out = df.copy()
+    eligible = match_keys.isin(set(match_keys.loc[donors.index]))
+    groups = dict(tuple(df.loc[eligible].groupby(match_keys.loc[eligible], sort=False)))
+    for idx, donor in donors.iterrows():
+        group = groups.get(match_keys.loc[idx])
+        if group is None or group.source_kind.nunique() != len(group):
+            continue
+        eid = str(donor.espn_id)
+        ids = set(group.espn_id.dropna().astype(str))
+        event = registry.get('events', {}).get(eid, {})
+        start = pd.to_datetime(event.get('start'), errors='coerce')
+        end = pd.to_datetime(event.get('end'), errors='coerce')
+        if (ids != {eid} or pd.isna(start) or pd.isna(end)
+                or not 0 <= (end - start).days <= 35
+                or not group.date.between(start, end).all()):
+            continue
+        marker = 'W/O' if 'W/O' in donor.score else 'RET'
+        for target in group.index:
+            score = out.at[target, 'score']
+            text = score.strip() if isinstance(score, str) else ''
+            # Conflicting explicit outcomes remain visible to the independent gate.
+            if re.search(r'\b(?:RET|DEF|ABD)\b|W[/-]O', text, re.I):
+                continue
+            out.at[target, 'score'] = 'W/O' if marker == 'W/O' else f'{text} RET'.strip()
     return out
 
 
@@ -574,6 +613,8 @@ def merge_sources(tour: str, include_lower: bool | None = None) -> pd.DataFrame:
     df["__key"] = base_key + "|" + round_key
     from .result_ledger import partition_reviewed_duplicates
     df['__key'] = partition_reviewed_duplicates(df, df['__key'])
+    from .events import load_registry
+    df = _carry_live_outcomes(df, df['__key'], load_registry(tour))
     # A validated result and an optional box score are separate facts. The reviewed
     # exact-result donor owns the outcome/score; a higher-priority stats payload may
     # omit RET or use placeholder sets without changing whether the match finished.

@@ -551,3 +551,13 @@ Indexed in [`../lessons.md`](../lessons.md).
   qualifiers or genuine newcomers as missing forecasts. Test jointly corrupted
   public artifacts, not only a mismatch between two generated files. Historical
   replay fixtures must supply this new filesystem contract within their own binder.
+
+- **Source preference for scores must preserve separately witnessed match outcomes.**
+  (2026-10-12, China Open) The first independent source gate blocked three RET labels
+  erased when the result mirror outranked ESPN. A mirror's uniform edition date can
+  differ from each match's played date, so exact-day donation alone misses the loss.
+  Carry explicit outcomes only within a unique canonical pair/round/games bucket
+  whose rows all lie inside the donor's independently recorded event bounds, with
+  no conflicting IDs or multiple copies from one source. Preserve preferred set and
+  tiebreak details. Replay captured mirror/provider records through the real merge
+  and unchanged source gate; record bounds in the normalized-cache fingerprint.

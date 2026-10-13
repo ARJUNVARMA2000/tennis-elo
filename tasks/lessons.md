@@ -488,3 +488,6 @@ New lesson → append the entry to the matching topic file and add its lead line
 - Agreement between generated files cannot detect a shared ingestion mistake; bind
   an independent provider snapshot to the candidate release. See
   [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-10-12)
+
+- Source preference for scores must preserve separately witnessed match outcomes.
+  See [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-10-12)

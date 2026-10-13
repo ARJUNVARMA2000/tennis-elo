@@ -9376,3 +9376,30 @@ Implementation check-in: add source-backed invariants to the existing pre-upload
 History reconciled through 13587db. No identity aliases, model policy or dependencies
 changed. The pre-upload gate blocks publication; the previous accepted release stays
 live on failure. Existing post-deploy checks continue to validate serving integrity.
+
+### Source audit first-run findings — revised plan, 2026-10-12
+
+- [x] Run 38306813927 blocked publication on three genuine China Open RET omissions.
+  The current result mirror uses an event-start date and omits retirement labels;
+  its preferred rows overwrite the explicit outcome in the ESPN result copy.
+- [ ] Preserve explicit live outcome labels across source preference only for a
+  unique exact pair/round/games bucket inside the independently recorded event bounds.
+  Keep existing score detail and statistics; refuse conflicting IDs and rematches.
+- [ ] Replay the three captured provider/mirror pairs, extend negative cases, run
+  regression checks and verify the guarded deployment succeeds without weakening the gate.
+
+### China Open source-preference repair review — 2026-10-12
+
+- [x] Captured the original ESPN China Open singles event and the mirror's three
+  unlabeled, event-start-dated result rows. Their set scores and winners agree.
+- [x] Preserve the explicit outcome across existing duplicate selection only with
+  unique source copies, matching result keys, consistent event ID and independently
+  bounded dates. Keep tiebreak details; cache fingerprints now include event evidence.
+- [x] Captured broken bracket yields exactly three outcome findings; the real merge
+  repairs all three and clears the unchanged source audit. Seven focused tests pass,
+  including walkover carry-through and ambiguous/conflicting-match refusals. Full
+  Python regression run: 2,020 passed; Ruff and whitespace checks pass.
+- [ ] Redeploy and verify the mandatory audit and live serving checks.
+
+History reconciled through 35fb95a. The first guarded deployment correctly left the
+previous release live. This fixes result-label provenance; the gate remains strict.
