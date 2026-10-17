@@ -9453,3 +9453,31 @@ not on each acquisition's lastSeen update. This preserves the existing cache con
   date rolls over while the provider continues to witness their results.
 - [x] Saved final evidence in tasks/deploy/2026-10-13-source-audit.json. History
   reconciled through c2357b7 before this review. Remaining changes are records only.
+
+### Recurring Shanghai result-chain failure — 2026-10-17
+
+- [ ] Capture failed/recovered run evidence and reproduce the recurring Shanghai chain loss through the real producer.
+- [ ] Repair the shared cause, preserving strict source checks, and add regression coverage for repeated refreshes and unaffected matches.
+- [ ] Run required validation, deploy the repair, and verify the live release and next-refresh behavior.
+- [ ] Record the root cause, evidence, review and lesson.
+
+Check-in: investigate why the same results disappear and recover without a code change; a green later run alone does not establish that the recurrence is fixed. Repository history reconciled through e2d9369.
+
+### Shanghai recurrence diagnosis and repair checkpoint — 2026-10-17
+
+- [x] Reproduced the failure and apparent recovery through real merge/build entry points:
+  a mirror-newer snapshot loses the Bu–Van Assche result plus four downstream results;
+  adding the observed ESPN semifinals reverses source-group recency and hides the loss.
+- [x] Reviewed Bu Yunchaokete → Yunchaokete Bu against ATP Y09V, both official name orders,
+  435 retained source rows, and the identity falsifier. The explicit alias applies at
+  shared ingest; population 22 invalidates saved predictors, with ledger metadata/hashes
+  migrated without changing reviewed result evidence.
+- [x] Extended source identity checks to rated/rated token-order splits. Added a captured
+  replay covering both recency states, repeated repaired refreshes, complete bracket
+  comparisons against the unchanged result gate, and raw-history falsification.
+- [ ] Complete full validation and production verification. History reconciled through
+  e2d9369; the previous claim of recovery did not establish a permanent repair.
+
+- [x] Validation: 2,029 Python tests passed in 201s; repository Ruff and whitespace
+  checks pass. Live ATP/WTA main-field inventory scan finds no other unreviewed token
+  reorderings. Both ledgers differ only in populationVersion. Deployment follows.

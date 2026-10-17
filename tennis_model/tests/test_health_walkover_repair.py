@@ -51,6 +51,7 @@ def test_captured_walkover_source_csv_producer_and_gate():
     for col in ('winner_name', 'loser_name'):
         frame[col] = frame[col].map(lambda n: PLAYER_ALIASES.get(name_key(n), n))
     slots = [m[s] for m in broken['rounds'][0]['matches'] for s in ('a', 'b')]
+    slots = [PLAYER_ALIASES.get(name_key(n), n) if n else n for n in slots]
     rounds = bracket_rounds(slots, frame.to_dict('records'))
     price_bracket(rounds, lambda a, b: .7, lambda a, b: .8)
     fixed = {**broken, 'rounds': rounds}

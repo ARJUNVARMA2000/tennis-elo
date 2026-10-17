@@ -22,6 +22,7 @@ def baseline():
     raw, proof = source_audit.capture_source('atp', [event], NOW)
     bracket = copy.deepcopy(CAPTURE['publicBracket'])
     slots = [m[s] for m in bracket['rounds'][0]['matches'] for s in ('a', 'b')]
+    slots = [PLAYER_ALIASES.get(name_key(n), n) if n else n for n in slots]
     frame = live.parse_events([event], 'mens')
     for col in ('winner_name', 'loser_name'):
         frame[col] = frame[col].map(lambda n: PLAYER_ALIASES.get(name_key(n), n))

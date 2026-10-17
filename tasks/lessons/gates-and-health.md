@@ -567,3 +567,14 @@ Indexed in [`../lessons.md`](../lessons.md).
   disappear from a later scheduled audit before their repair shipped. Continue
   auditing completed public brackets for as long as the acquisition still provides
   their results, and replay the broken snapshot on the following UTC day.
+
+- **A later green refresh does not resolve an identity split when source recency changes which copy wins.** (2026-10-17, Shanghai)
+  ESPN's Bu Yunchaokete and the mirror's Yunchaokete Bu both had ratings. The identity
+  gate skipped known names, while source coalescing ordered event groups by latest result.
+  When the mirror was newer, the one-match-per-player/round filter retained its variant
+  and dropped the ESPN copy; the ordered draw then lost the opening result and four
+  downstream results. A new ESPN semifinal made its group newer and hid the defect.
+  Review the alias against stable provider identity and retained history, normalize at
+  shared ingest, version/rebuild the saved population, and gate unreviewed token-order
+  variants even when both names are rated. Replay both recency states through the real
+  merge and tournament builder. A successful run proves recovery, not recurrence repair.

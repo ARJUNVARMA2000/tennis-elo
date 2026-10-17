@@ -494,3 +494,6 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - A date rollover cannot resolve a contradiction in a published bracket. See
   [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-10-13 UTC)
+
+- A green refresh can hide a rated identity split when source recency changes which copy wins.
+  See [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-10-17)

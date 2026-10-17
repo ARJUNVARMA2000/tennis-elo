@@ -168,11 +168,12 @@ WTA_DUAL_STATE_GATE_THRESHOLD = 32
 # Version 19 joins Jingshan's Lu and Ma's split histories; standardizes newcomer Lin's name.
 # Version 20 joins Suzhou's Guo/Zhang and Shanghai's Xiao/Te/Zhang to rated histories.
 # Version 21 joins Shanghai's newly released Wu main-draw identity to rated history.
-MATCH_POPULATION_VERSION = 21
+# Version 22 joins the recurring Shanghai Bu name-order split before source selection.
+MATCH_POPULATION_VERSION = 22
 REVIEWED_RESULTS = {
-    'atp': {'sha256': '6fe749bdc9d7f419fcca35b28f9519d8585060c378244f8882c1a8e7dadeb91e',
+    'atp': {'sha256': '944bda5f1e6a48d00afc6e70e40689427f60ebaeb0759ab48d765d62790e1e54',
             'records': 0, 'quarantines': 0},
-    'wta': {'sha256': 'e98da28918b31194a4f6e37e2ed17f11331ddf6d699d4398d8066b4890300ff3',
+    'wta': {'sha256': '61597c09729320d2eb7c8664c2d99ac9124b2fbdd3cd2ad59f0e390573dc4838',
             'records': 528, 'quarantines': 1},
 }
 
@@ -793,6 +794,9 @@ PLAYER_ALIASES: dict[str, str] = {
     # Shanghai 2026 main-draw slot 3; ATP WB32 and retained match history agree.
     # https://www.atptour.com/en/players/yibing-wu/wb32/overview
     "wu yibing": "Yibing Wu",
+    # Both ATP name orders identify Y09V; exact Shanghai opponents/results agree.
+    # https://www.atptour.com/es/players/bu-yunchaokete/y09v/overview
+    "bu yunchaokete": "Yunchaokete Bu",
     # Jingshan 2026 ESPN entrants; WTA profiles and retained match history agree.
     # https://www.wtatennis.com/players/333741/yuhan-wang
     # https://www.wtatennis.com/players/321329/wushuang-zheng

@@ -108,8 +108,13 @@ def check_source(out, tour, source, data, draw_cache, now):
 
     def identity(n, eid, role):
         k = _key(n)
-        candidates = tokens.get(tuple(sorted(k.split())), [])
-        if is_real_participant(n) and k not in rated and candidates and (eid, k) not in reviewed:
+        # A split history may already rate BOTH spellings. Being in the inventory
+        # does not resolve identity: source ordering can still pick the other copy
+        # and break an entire bracket chain. Reviewed aliases resolve candidates;
+        # unreviewed token-order variants require review, never an automatic merge.
+        candidates = [candidate for candidate in tokens.get(tuple(sorted(k.split())), [])
+                      if _key(candidate) != k]
+        if is_real_participant(n) and candidates and (eid, k) not in reviewed:
             reviewed.add((eid, k))
             fail('player_identity_unresolved', eid, player=n, candidates=candidates, role=role)
 
