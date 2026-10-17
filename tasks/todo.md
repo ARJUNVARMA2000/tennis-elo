@@ -9481,3 +9481,20 @@ Check-in: investigate why the same results disappear and recover without a code 
 - [x] Validation: 2,029 Python tests passed in 201s; repository Ruff and whitespace
   checks pass. Live ATP/WTA main-field inventory scan finds no other unreviewed token
   reorderings. Both ledgers differ only in populationVersion. Deployment follows.
+
+### Shanghai recurrence repair — final review, 2026-10-17
+
+- [x] All items in this repair round are complete. Repair commit 4ba5006 passed full
+  production run 39051071900 and the already-queued scheduled quick run 39052916234.
+- [x] CI passed 2,028 Python tests / one skip, 375 web tests, lint, type checks,
+  build and browser checks. Local Python: 2,029 passed. The full and quick runs both
+  passed the unchanged match-result integrity checks plus the extended identity gate.
+- [x] Independent full-release verification passed 22/22; both deployments' live
+  verifiers passed 22/22. The quick run hit both normalized caches, reused the same
+  rebuilt ATP/WTA models, and published a new accepted generation at 17:39:17Z.
+- [x] The final live inventory contains Yunchaokete Bu once, without Bu Yunchaokete;
+  both model/data populations are 22. Verified the five formerly lost results
+  (Bu–Van Assche and Ruud–Bu/Tien/Auger-Aliassime/Jodar), plus Jodar–Medvedev, with
+  correct winners and scores. No open deployment/data-health alerts remain.
+- [x] Evidence saved in tasks/deploy/2026-10-17-shanghai-identity-repair.json.
+  History reconciled through 5e603a7 before this review; remaining changes are records only.

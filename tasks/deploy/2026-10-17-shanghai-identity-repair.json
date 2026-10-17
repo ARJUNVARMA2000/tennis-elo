@@ -1,0 +1,249 @@
+{
+  "schema": "deploy-repair-review-v1",
+  "date": "2026-10-17",
+  "repairCommit": "4ba500656655173bd5e5fb85db22cb05ed8cccc2",
+  "rootCause": "Bu Yunchaokete and Yunchaokete Bu were separate rated identities. Source-group recency selected different copies of the opening result; the mirror-first case lost that result and four downstream results. A newer ESPN semifinal hid the identity split.",
+  "repair": "Reviewed ATP Y09V identity alias at shared ingestion; population 22 rebuild; pre-upload audit now detects unreviewed token-order variants even when both have ratings.",
+  "validation": {
+    "localPythonPassed": 2029,
+    "ciPythonPassed": 2028,
+    "ciPythonSkipped": 1,
+    "webTestsPassed": 375,
+    "ruff": "passed",
+    "browser": "passed",
+    "independentFullLiveChecks": "22/22",
+    "followupCiLiveChecks": "22/22",
+    "followupNormalizedCaches": {
+      "atp": "hit",
+      "wta": "hit"
+    },
+    "sameRebuiltModelsReused": true,
+    "openAlerts": []
+  },
+  "full": {
+    "run": {
+      "conclusion": "success",
+      "createdAt": "2026-10-17T16:49:18Z",
+      "databaseId": 39051071900,
+      "headSha": "4ba500656655173bd5e5fb85db22cb05ed8cccc2",
+      "status": "completed",
+      "updatedAt": "2026-10-17T17:35:03Z",
+      "url": "https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/39051071900"
+    },
+    "live": {
+      "commit": "4ba500656655173bd5e5fb85db22cb05ed8cccc2",
+      "generatedAt": "2026-10-17T17:32:58Z",
+      "release": {
+        "schema": "artifact-lineage-v1",
+        "status": "accepted",
+        "releaseId": "2858fc0f-13d5-4c6a-8c9d-dcebcc5c765f",
+        "manifestSha256": "dd7230ec4e688b6e773d0e08ec24ca747846f1e38e5c08066fe45ce32cc0b1a4",
+        "tours": [
+          "atp",
+          "wta"
+        ]
+      },
+      "metas": {
+        "atp": {
+          "population": 22,
+          "modelPopulation": 22,
+          "trainedAt": "2026-10-17T17:03:48Z",
+          "sourceAudit": {
+            "sha256": "f2cf138fb428cf4353671fe80bc43327730246b4f1cd19249065ea71406259bc",
+            "observedAt": "2026-10-17T16:57:36Z"
+          }
+        },
+        "wta": {
+          "population": 22,
+          "modelPopulation": 22,
+          "trainedAt": "2026-10-17T17:30:41Z",
+          "sourceAudit": {
+            "sha256": "1244c57e7c3de91de952ffad8da7c14e2094e3cf6591a80d23edd26a2633c5dd",
+            "observedAt": "2026-10-17T16:57:46Z"
+          }
+        }
+      },
+      "matches": [
+        {
+          "a": "Luca Van Assche",
+          "b": "Yunchaokete Bu",
+          "seedA": null,
+          "seedB": null,
+          "winner": "b",
+          "score": "7-6(3) 6-3",
+          "p": 0.4453,
+          "probSource": "model",
+          "upset": false,
+          "round": "R128"
+        },
+        {
+          "a": "Yunchaokete Bu",
+          "b": "Casper Ruud",
+          "seedA": null,
+          "seedB": 20,
+          "winner": "b",
+          "score": "6-1 7-6(2)",
+          "p": 0.3394,
+          "probSource": "model",
+          "upset": false,
+          "round": "R64"
+        },
+        {
+          "a": "Learner Tien",
+          "b": "Casper Ruud",
+          "seedA": 14,
+          "seedB": 20,
+          "winner": "b",
+          "score": "6-4 7-6(3)",
+          "p": 0.5458,
+          "probSource": "logged",
+          "upset": true,
+          "round": "R32"
+        },
+        {
+          "a": "Rafael Jodar",
+          "b": "Casper Ruud",
+          "seedA": 12,
+          "seedB": 20,
+          "winner": "a",
+          "score": "4-6 6-4 6-3",
+          "p": 0.5964,
+          "probSource": "logged",
+          "upset": false,
+          "round": "QF"
+        },
+        {
+          "a": "Rafael Jodar",
+          "b": "Daniil Medvedev",
+          "seedA": 12,
+          "seedB": 5,
+          "winner": "a",
+          "score": "6-3 6-4",
+          "p": 0.4433,
+          "probSource": "logged",
+          "upset": true,
+          "round": "SF"
+        }
+      ]
+    }
+  },
+  "followup": {
+    "run": {
+      "conclusion": "success",
+      "createdAt": "2026-10-17T17:15:00Z",
+      "databaseId": 39052916234,
+      "headSha": "4ba500656655173bd5e5fb85db22cb05ed8cccc2",
+      "status": "completed",
+      "updatedAt": "2026-10-17T17:41:10Z",
+      "url": "https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/39052916234"
+    },
+    "live": {
+      "commit": "4ba500656655173bd5e5fb85db22cb05ed8cccc2",
+      "generatedAt": "2026-10-17T17:39:17Z",
+      "release": {
+        "schema": "artifact-lineage-v1",
+        "status": "accepted",
+        "releaseId": "e553566a-5e71-4d4f-9aa1-3e7f42b46ce3",
+        "manifestSha256": "79c2552db931e1cc8be6896330bba5b8afbfb7c7c4208fd4b3bb67c4814dbcb2",
+        "tours": [
+          "atp",
+          "wta"
+        ]
+      },
+      "metas": {
+        "atp": {
+          "population": 22,
+          "modelPopulation": 22,
+          "trainedAt": "2026-10-17T17:03:48Z",
+          "sourceAudit": {
+            "sha256": "b65dff8d76c918d105d71f122730226bb2cf0459649e7821ba9d7e1abaa5cd21",
+            "observedAt": "2026-10-17T17:36:04Z"
+          }
+        },
+        "wta": {
+          "population": 22,
+          "modelPopulation": 22,
+          "trainedAt": "2026-10-17T17:30:41Z",
+          "sourceAudit": {
+            "sha256": "d5eba47e0ddae943f102f7d38933e3fbb5a3a2b89291e0a06c941793079b3c86",
+            "observedAt": "2026-10-17T17:36:08Z"
+          }
+        }
+      },
+      "matches": [
+        {
+          "a": "Luca Van Assche",
+          "b": "Yunchaokete Bu",
+          "seedA": null,
+          "seedB": null,
+          "winner": "b",
+          "score": "7-6(3) 6-3",
+          "p": 0.4453,
+          "probSource": "model",
+          "upset": false,
+          "round": "R128"
+        },
+        {
+          "a": "Yunchaokete Bu",
+          "b": "Casper Ruud",
+          "seedA": null,
+          "seedB": 20,
+          "winner": "b",
+          "score": "6-1 7-6(2)",
+          "p": 0.3394,
+          "probSource": "model",
+          "upset": false,
+          "round": "R64"
+        },
+        {
+          "a": "Learner Tien",
+          "b": "Casper Ruud",
+          "seedA": 14,
+          "seedB": 20,
+          "winner": "b",
+          "score": "6-4 7-6(3)",
+          "p": 0.5458,
+          "probSource": "logged",
+          "upset": true,
+          "round": "R32"
+        },
+        {
+          "a": "Casper Ruud",
+          "b": "Felix Auger-Aliassime",
+          "seedA": 20,
+          "seedB": 4,
+          "winner": "a",
+          "score": "5-2 RET",
+          "p": 0.3566,
+          "probSource": "logged",
+          "upset": true,
+          "round": "R16"
+        },
+        {
+          "a": "Rafael Jodar",
+          "b": "Casper Ruud",
+          "seedA": 12,
+          "seedB": 20,
+          "winner": "a",
+          "score": "4-6 6-4 6-3",
+          "p": 0.5964,
+          "probSource": "logged",
+          "upset": false,
+          "round": "QF"
+        },
+        {
+          "a": "Rafael Jodar",
+          "b": "Daniil Medvedev",
+          "seedA": 12,
+          "seedB": 5,
+          "winner": "a",
+          "score": "6-3 6-4",
+          "p": 0.4433,
+          "probSource": "logged",
+          "upset": true,
+          "round": "SF"
+        }
+      ]
+    }
+  }
+}
