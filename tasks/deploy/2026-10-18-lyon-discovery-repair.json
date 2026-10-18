@@ -1,0 +1,553 @@
+{
+  "repairCommit": "eb9eef4e0519b7c2afd93bfbe2eb4904030e43fa",
+  "failedRun": "https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/39168255062",
+  "successfulRun": "https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/39172869005",
+  "rootCause": "The name-keyed metadata view omitted observed empty ESPN listing 452-2026. Registry backfill attached the same Lyon draw to it and real event 110-2026; duplicate-source quarantine removed both.",
+  "regressions": [
+    "both provider listing orders",
+    "cold and wrongly warmed draw cache",
+    "repeated refreshes",
+    "empty listing absent but retained in registry",
+    "field-backed legitimate registry recovery",
+    "populated conflicting IDs still blocked",
+    "different edition is not displaced"
+  ],
+  "validation": {
+    "localFullPassed": 2041,
+    "finalFocusedPassed": 57,
+    "ciPythonPassed": 2041,
+    "ciPythonSkipped": 1,
+    "ciWebPassed": 375,
+    "ciLintTypesBuildBrowser": "passed",
+    "preDeployGate": "passed",
+    "ciLiveChecks": "22/22",
+    "independentLiveChecks": "22/22",
+    "openHealthIssues": 0
+  },
+  "generatedAt": "2026-10-18T22:44:54Z",
+  "release": {
+    "schema": "artifact-lineage-v1",
+    "status": "accepted",
+    "releaseId": "7cd72017-748e-425d-9248-2b3c45db08af",
+    "manifestSha256": "64a1c879d36fd53e8defafdb362f793d32f0c892ba3d3be33dbd160893edd2d6",
+    "tours": [
+      "atp",
+      "wta"
+    ]
+  },
+  "lyon": {
+    "espnId": "110-2026",
+    "absentEmptyId": "452-2026",
+    "name": "Grand Prix Auvergne-Rhône-Alpes",
+    "drawSize": 28,
+    "scheduledMatches": [
+      {
+        "event": "Grand Prix Auvergne-Rhône-Alpes",
+        "espnId": "110-2026",
+        "date": "2026-10-19",
+        "round": "R32",
+        "surface": "Hard",
+        "bestOf": 3,
+        "level": "ATP 250",
+        "playerA": "Felix Balshaw",
+        "playerB": "Jaime Faria",
+        "pA": 0.3916,
+        "watch": {
+          "schema": "watch-v1",
+          "score": 54.8,
+          "weights": {
+            "closeness": 30,
+            "quality": 25,
+            "styleContrast": 15,
+            "stakes": 15,
+            "titleLeverage": 15
+          },
+          "factors": {
+            "closeness": {
+              "score": 78.3,
+              "available": true,
+              "detail": "60.8%–39.2%"
+            },
+            "quality": {
+              "score": 96.9,
+              "available": true,
+              "detail": {
+                "eloA": 1694.9,
+                "eloB": 1823.6
+              }
+            },
+            "styleContrast": {
+              "score": 0,
+              "available": false,
+              "detail": {
+                "dimensions": 0
+              }
+            },
+            "stakes": {
+              "score": 47.5,
+              "available": true,
+              "detail": {
+                "tier": 55,
+                "round": 40
+              }
+            },
+            "titleLeverage": {
+              "score": 0,
+              "available": false,
+              "detail": null
+            }
+          },
+          "coverage": 3
+        },
+        "watchRank": 19,
+        "matchId": "v2|espn:110-2026|2026|R32|felix balshaw|jaime faria"
+      },
+      {
+        "event": "Grand Prix Auvergne-Rhône-Alpes",
+        "espnId": "110-2026",
+        "date": "2026-10-19",
+        "round": "R32",
+        "surface": "Hard",
+        "bestOf": 3,
+        "level": "ATP 250",
+        "playerA": "Lorenzo Musetti",
+        "playerB": "Matteo Arnaldi",
+        "pA": 0.7597,
+        "watch": {
+          "schema": "watch-v1",
+          "score": 50.4,
+          "weights": {
+            "closeness": 30,
+            "quality": 25,
+            "styleContrast": 15,
+            "stakes": 15,
+            "titleLeverage": 15
+          },
+          "factors": {
+            "closeness": {
+              "score": 48.1,
+              "available": true,
+              "detail": "76.0%–24.0%"
+            },
+            "quality": {
+              "score": 99,
+              "available": true,
+              "detail": {
+                "eloA": 1979.7,
+                "eloB": 1838.8
+              }
+            },
+            "styleContrast": {
+              "score": 27.6,
+              "available": true,
+              "detail": {
+                "dimensions": 8
+              }
+            },
+            "stakes": {
+              "score": 47.5,
+              "available": true,
+              "detail": {
+                "tier": 55,
+                "round": 40
+              }
+            },
+            "titleLeverage": {
+              "score": 0,
+              "available": false,
+              "detail": null
+            }
+          },
+          "coverage": 4
+        },
+        "watchRank": 24,
+        "matchId": "v2|espn:110-2026|2026|R32|lorenzo musetti|matteo arnaldi"
+      },
+      {
+        "event": "Grand Prix Auvergne-Rhône-Alpes",
+        "espnId": "110-2026",
+        "date": "2026-10-19",
+        "round": "R32",
+        "surface": "Hard",
+        "bestOf": 3,
+        "level": "ATP 250",
+        "playerA": "Moise Kouame",
+        "playerB": "Lorenzo Sonego",
+        "pA": 0.3695,
+        "watch": {
+          "schema": "watch-v1",
+          "score": 52.9,
+          "weights": {
+            "closeness": 30,
+            "quality": 25,
+            "styleContrast": 15,
+            "stakes": 15,
+            "titleLeverage": 15
+          },
+          "factors": {
+            "closeness": {
+              "score": 73.9,
+              "available": true,
+              "detail": "63.1%–37.0%"
+            },
+            "quality": {
+              "score": 94.4,
+              "available": true,
+              "detail": {
+                "eloA": 1610.8,
+                "eloB": 1808
+              }
+            },
+            "styleContrast": {
+              "score": 0,
+              "available": false,
+              "detail": {
+                "dimensions": 0
+              }
+            },
+            "stakes": {
+              "score": 47.5,
+              "available": true,
+              "detail": {
+                "tier": 55,
+                "round": 40
+              }
+            },
+            "titleLeverage": {
+              "score": 0,
+              "available": false,
+              "detail": null
+            }
+          },
+          "coverage": 3
+        },
+        "watchRank": 21,
+        "matchId": "v2|espn:110-2026|2026|R32|lorenzo sonego|moise kouame"
+      },
+      {
+        "event": "Grand Prix Auvergne-Rhône-Alpes",
+        "espnId": "110-2026",
+        "date": "2026-10-20",
+        "round": "R32",
+        "surface": "Hard",
+        "bestOf": 3,
+        "level": "ATP 250",
+        "playerA": "Corentin Moutet",
+        "playerB": "Ugo Humbert",
+        "pA": 0.3203,
+        "watch": {
+          "schema": "watch-v1",
+          "score": 56.8,
+          "weights": {
+            "closeness": 30,
+            "quality": 25,
+            "styleContrast": 15,
+            "stakes": 15,
+            "titleLeverage": 15
+          },
+          "factors": {
+            "closeness": {
+              "score": 64.1,
+              "available": true,
+              "detail": "68.0%–32.0%"
+            },
+            "quality": {
+              "score": 98.7,
+              "available": true,
+              "detail": {
+                "eloA": 1812.1,
+                "eloB": 1963.6
+              }
+            },
+            "styleContrast": {
+              "score": 38.6,
+              "available": true,
+              "detail": {
+                "dimensions": 8
+              }
+            },
+            "stakes": {
+              "score": 47.5,
+              "available": true,
+              "detail": {
+                "tier": 55,
+                "round": 40
+              }
+            },
+            "titleLeverage": {
+              "score": 0,
+              "available": false,
+              "detail": null
+            }
+          },
+          "coverage": 4
+        },
+        "watchRank": 17,
+        "matchId": "v2|espn:110-2026|2026|R32|corentin moutet|ugo humbert"
+      },
+      {
+        "event": "Grand Prix Auvergne-Rhône-Alpes",
+        "espnId": "110-2026",
+        "date": "2026-10-20",
+        "round": "R32",
+        "surface": "Hard",
+        "bestOf": 3,
+        "level": "ATP 250",
+        "playerA": "Titouan Droguet",
+        "playerB": "Daniel Altmaier",
+        "pA": 0.6726,
+        "watch": {
+          "schema": "watch-v1",
+          "score": 51.3,
+          "weights": {
+            "closeness": 30,
+            "quality": 25,
+            "styleContrast": 15,
+            "stakes": 15,
+            "titleLeverage": 15
+          },
+          "factors": {
+            "closeness": {
+              "score": 65.5,
+              "available": true,
+              "detail": "67.3%–32.7%"
+            },
+            "quality": {
+              "score": 98.3,
+              "available": true,
+              "detail": {
+                "eloA": 1888.6,
+                "eloB": 1777
+              }
+            },
+            "styleContrast": {
+              "score": 0,
+              "available": false,
+              "detail": {
+                "dimensions": 0
+              }
+            },
+            "stakes": {
+              "score": 47.5,
+              "available": true,
+              "detail": {
+                "tier": 55,
+                "round": 40
+              }
+            },
+            "titleLeverage": {
+              "score": 0,
+              "available": false,
+              "detail": null
+            }
+          },
+          "coverage": 3
+        },
+        "watchRank": 22,
+        "matchId": "v2|espn:110-2026|2026|R32|daniel altmaier|titouan droguet"
+      },
+      {
+        "event": "Grand Prix Auvergne-Rhône-Alpes",
+        "espnId": "110-2026",
+        "date": "2026-10-20",
+        "round": "R32",
+        "surface": "Hard",
+        "bestOf": 3,
+        "level": "ATP 250",
+        "playerA": "Brandon Nakashima",
+        "playerB": "Hamad Medjedovic",
+        "pA": 0.7518,
+        "watch": {
+          "schema": "watch-v1",
+          "score": 48.9,
+          "weights": {
+            "closeness": 30,
+            "quality": 25,
+            "styleContrast": 15,
+            "stakes": 15,
+            "titleLeverage": 15
+          },
+          "factors": {
+            "closeness": {
+              "score": 49.6,
+              "available": true,
+              "detail": "75.2%–24.8%"
+            },
+            "quality": {
+              "score": 99,
+              "available": true,
+              "detail": {
+                "eloA": 2014.6,
+                "eloB": 1833.2
+              }
+            },
+            "styleContrast": {
+              "score": 14.4,
+              "available": true,
+              "detail": {
+                "dimensions": 8
+              }
+            },
+            "stakes": {
+              "score": 47.5,
+              "available": true,
+              "detail": {
+                "tier": 55,
+                "round": 40
+              }
+            },
+            "titleLeverage": {
+              "score": 0,
+              "available": false,
+              "detail": null
+            }
+          },
+          "coverage": 4
+        },
+        "watchRank": 26,
+        "matchId": "v2|espn:110-2026|2026|R32|brandon nakashima|hamad medjedovic"
+      },
+      {
+        "event": "Grand Prix Auvergne-Rhône-Alpes",
+        "espnId": "110-2026",
+        "date": "2026-10-20",
+        "round": "R32",
+        "surface": "Hard",
+        "bestOf": 3,
+        "level": "ATP 250",
+        "playerA": "Martin Landaluce",
+        "playerB": "Stan Wawrinka",
+        "pA": 0.6798,
+        "watch": {
+          "schema": "watch-v1",
+          "score": 54.9,
+          "weights": {
+            "closeness": 30,
+            "quality": 25,
+            "styleContrast": 15,
+            "stakes": 15,
+            "titleLeverage": 15
+          },
+          "factors": {
+            "closeness": {
+              "score": 64,
+              "available": true,
+              "detail": "68.0%–32.0%"
+            },
+            "quality": {
+              "score": 97.8,
+              "available": true,
+              "detail": {
+                "eloA": 1784.8,
+                "eloB": 1810.7
+              }
+            },
+            "styleContrast": {
+              "score": 27.8,
+              "available": true,
+              "detail": {
+                "dimensions": 8
+              }
+            },
+            "stakes": {
+              "score": 47.5,
+              "available": true,
+              "detail": {
+                "tier": 55,
+                "round": 40
+              }
+            },
+            "titleLeverage": {
+              "score": 0,
+              "available": false,
+              "detail": null
+            }
+          },
+          "coverage": 4
+        },
+        "watchRank": 18,
+        "matchId": "v2|espn:110-2026|2026|R32|martin landaluce|stan wawrinka"
+      },
+      {
+        "event": "Grand Prix Auvergne-Rhône-Alpes",
+        "espnId": "110-2026",
+        "date": "2026-10-20",
+        "round": "R32",
+        "surface": "Hard",
+        "bestOf": 3,
+        "level": "ATP 250",
+        "playerA": "Cameron Norrie",
+        "playerB": "Benjamin Bonzi",
+        "pA": 0.6073,
+        "watch": {
+          "schema": "watch-v1",
+          "score": 59.6,
+          "weights": {
+            "closeness": 30,
+            "quality": 25,
+            "styleContrast": 15,
+            "stakes": 15,
+            "titleLeverage": 15
+          },
+          "factors": {
+            "closeness": {
+              "score": 78.5,
+              "available": true,
+              "detail": "60.7%–39.3%"
+            },
+            "quality": {
+              "score": 98.9,
+              "available": true,
+              "detail": {
+                "eloA": 1930.2,
+                "eloB": 1843.1
+              }
+            },
+            "styleContrast": {
+              "score": 27.8,
+              "available": true,
+              "detail": {
+                "dimensions": 8
+              }
+            },
+            "stakes": {
+              "score": 47.5,
+              "available": true,
+              "detail": {
+                "tier": 55,
+                "round": 40
+              }
+            },
+            "titleLeverage": {
+              "score": 0,
+              "available": false,
+              "detail": null
+            }
+          },
+          "coverage": 4
+        },
+        "watchRank": 11,
+        "matchId": "v2|espn:110-2026|2026|R32|benjamin bonzi|cameron norrie"
+      }
+    ]
+  },
+  "publicationSourceAudits": {
+    "atp": {
+      "sha256": "56c1eb8adf32b4377cea97fe735256918a163545a04a802ac6b6e405f10a5e5f",
+      "observedAt": "2026-10-18T22:40:03Z"
+    },
+    "wta": {
+      "sha256": "7fed1dc93890716bb2adc6d9d92968d847d01c888ed7c70bff291fa8d48511cf",
+      "observedAt": "2026-10-18T22:40:06Z"
+    }
+  },
+  "independentSourceComparison": {
+    "providerObservedAt": "2026-10-18T22:27:45Z",
+    "sourceProof": {
+      "sha256": "91bd38294b0a70eb21af10f0b2a8df7c198aacaf461c4d2837b5031c43497f88",
+      "observedAt": "2026-10-18T22:27:45Z"
+    },
+    "findings": [],
+    "comparison": "independent captured Lyon source versus live publication"
+  }
+}

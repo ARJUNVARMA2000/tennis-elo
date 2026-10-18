@@ -9526,3 +9526,20 @@ Check-in: latest failed run 39168255062 quarantines one Wikipedia draw attached 
   preference to the exact same calendar window, all 57 focused tests passed (including
   the additional different-edition control). Repository Ruff and whitespace checks pass.
   No model population or prediction-state contract changed. Deployment follows.
+
+### Lyon discovery repair — final review, 2026-10-18
+
+- [x] All items in this repair round are complete. Repair eb9eef4 passed production
+  run 39172869005; the quick refresh retained the real Lyon draw without a duplicate
+  attachment, and the unchanged pre-deploy integrity gate passed at 22:44:39Z.
+- [x] CI passed 2,041 Python tests / one skip, 375 web tests, lint, type checks,
+  build and browser checks. CI and independent live verification both passed 22/22.
+- [x] Independently verified accepted release 7cd72017-748e-425d-9248-2b3c45db08af,
+  generated 22:44:54Z: Lyon appears once as ESPN 110-2026, with its 28-player draw
+  and all eight scheduled matches joined to the bracket. Empty ID 452-2026 is absent.
+- [x] Compared the live publication against the separately captured Lyon provider
+  snapshot through the source audit: no findings. The health alert closed, and no
+  open issues remain. Cold/warm and repeated refresh behavior is covered by regression.
+- [x] Saved evidence in tasks/deploy/2026-10-18-lyon-discovery-repair.json and recorded
+  the discovery/backfill lesson. History reconciled through eb9eef4 before this review;
+  remaining changes are records only.
