@@ -433,6 +433,7 @@ def test_invalid_cache_and_failed_registry_backfill_degrade_until_clean_refresh(
     registry = {"events": {"99-2099": {
         "espnId": "99-2099", "name": "Backfill Open",
         "start": "2099-08-01", "end": "2099-08-08",
+        "sourceIds": {"atp": "99"},
     }}}
     provider = {"entry": None}
 

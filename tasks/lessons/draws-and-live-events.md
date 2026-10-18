@@ -463,3 +463,14 @@ Indexed in [`../lessons.md`](../lessons.md).
   Absence alone must not invent a walkover. The schedule gate must recognize a new
   opening-round entrant paired with an existing opponent, and a producer-level replay
   must cover the cached-draw fallback through the real `build_tournaments` entry point.
+
+- **An observed empty calendar ID is not a missing event eligible for registry recovery.**
+  (2026-10-18, Lyon) ESPN supplied the real singles draw under 110-2026 and an empty
+  same-name listing under 452-2026. Name-keyed metadata hid the empty ID; registry
+  backfill then attached the same Wikipedia draw to it, and duplicate quarantine
+  removed both. Track every raw observed ID before collapsing the legacy metadata
+  view, prefer actual singles evidence regardless of listing order, and require an
+  independently validated provider locator or an ID-bound field for registry recovery.
+  A same-name field/cache entry carrying a different ID is not evidence. Replay cold,
+  wrongly warmed and repeated refreshes, both source orders, and disappearance of the
+  empty listing. Keep duplicate quarantine and the independent missing-event gate strict.

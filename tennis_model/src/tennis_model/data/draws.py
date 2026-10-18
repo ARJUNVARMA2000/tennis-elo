@@ -461,7 +461,10 @@ def _lookup(cache: dict, name: str, meta: dict) -> dict | None:
     if event_id and event_id in cache:
         return cache[event_id]
     if name in cache:
-        return cache[name]
+        entry = cache[name]
+        if isinstance(entry, dict) and (
+                not event_id or not entry.get("espnId") or str(entry["espnId"]) == event_id):
+            return entry
     for entry in cache.values():
         if isinstance(entry, dict) and event_id and str(entry.get("espnId") or "") == event_id:
             return entry
@@ -471,12 +474,11 @@ def _lookup(cache: dict, name: str, meta: dict) -> dict | None:
 def _field_evidence(tour: str, name: str, meta: dict) -> list[str]:
     fields = _read_json(live_dir(tour) / "fields.json")
     event_id = str(meta.get("espnId") or "")
-    entry = fields.get(event_id) or fields.get(name)
-    if not entry and event_id:
-        entry = next((value for value in fields.values()
-                      if isinstance(value, dict) and str(value.get("espnId") or "") == event_id), None)
+    entry = _lookup(fields, name, meta)
     if not isinstance(entry, dict):
         return []
+    if event_id and str(entry.get("espnId") or "") != event_id:
+        return []  # another event's display name is not attachment evidence
     return [str(player) for player in entry.get("field") or []
             if is_real_participant(player, source=ParticipantSource.ESPN,
                                    context=ParticipantContext.ATHLETE)]
@@ -618,8 +620,10 @@ def download_tournament_draws(tours=TOURS,
         official_count = wiki_count = kept_count = 0
         unresolved_refresh = 0
         events = registry.get("events") or {}
-        current_ids = {str(event.get("espnId")) for event in meta.values()
-                       if event.get("espnId")}
+        # Include IDs omitted by the legacy name-keyed metadata view. An observed
+        # empty listing is not a missing event eligible for registry backfill.
+        current_ids = {str(event["id"]) for event in raw_events or [] if event.get("id")}
+        current_ids |= {str(event["espnId"]) for event in meta.values() if event.get("espnId")}
         current_names = {str(name).casefold() for name in meta}
 
         # Surface/tier metadata still comes from Wikipedia's main article, independently of
@@ -667,7 +671,7 @@ def download_tournament_draws(tours=TOURS,
         # id is trusted only because it was originally written after player/date validation.
         backfill_cutoff = (datetime.now(UTC) - timedelta(days=_REGISTRY_BACKFILL_DAYS)).strftime("%Y-%m-%d")
         present_ids = {str(entry.get("espnId")) for entry in out.values() if entry.get("espnId")}
-        present_ids |= {str(event.get("espnId")) for event in meta.values() if event.get("espnId")}
+        present_ids |= current_ids
         for event_id, event in events.items():
             ref = str(event.get("end") or event.get("start") or "")[:10]
             if not ref or ref < backfill_cutoff or str(event_id) in present_ids:
@@ -676,6 +680,12 @@ def download_tournament_draws(tours=TOURS,
             if not name:
                 continue
             backfill_meta = {"espnId": str(event_id), "start": event.get("start"), "end": event.get("end")}
+            if not ((event.get("sourceIds") or {}).get(tour)
+                    or len(_field_evidence(tour, name, backfill_meta)) >= 2):
+                # Registry names include unpopulated calendar shells. Without a
+                # previously validated provider locator or this ID's actual field,
+                # a name search can steal the draw from a currently observed event.
+                continue
             entry, rejected = _resolve_one(tour, name, backfill_meta, event, None)
             if entry:
                 out[str(event_id)] = entry

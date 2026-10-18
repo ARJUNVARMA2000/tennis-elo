@@ -497,3 +497,6 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - A green refresh can hide a rated identity split when source recency changes which copy wins.
   See [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-10-17)
+
+- An observed empty calendar ID is not a missing event eligible for registry recovery.
+  See [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md). (2026-10-18)

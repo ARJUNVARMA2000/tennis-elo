@@ -1,0 +1,1735 @@
+{
+  "observedAt": "2026-10-18T22:27:45Z",
+  "source": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/atp/scoreboard?dates=20261018",
+  "events": [
+    {
+      "id": "110-2026",
+      "date": "2026-10-18T04:00Z",
+      "endDate": "2026-10-26T03:59Z",
+      "name": "Grand Prix Auvergne-Rhône-Alpes",
+      "shortName": "Grand Prix Auvergne-Rhône-Alpes",
+      "groupings": [
+        {
+          "grouping": {
+            "id": "1",
+            "slug": "mens-singles",
+            "displayName": "Men's Singles"
+          },
+          "competitions": [
+            {
+              "id": "186991",
+              "date": "2026-10-18T09:00Z",
+              "status": {
+                "period": 3,
+                "type": {
+                  "id": "3",
+                  "name": "STATUS_FINAL",
+                  "state": "post",
+                  "completed": true,
+                  "description": "Final",
+                  "detail": "Final",
+                  "shortDetail": "Final"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "1613",
+                  "winner": true,
+                  "linescores": [
+                    {
+                      "value": 6.0,
+                      "tiebreak": 5,
+                      "winner": false
+                    },
+                    {
+                      "value": 7.0,
+                      "winner": true
+                    },
+                    {
+                      "value": 6.0,
+                      "winner": true
+                    }
+                  ],
+                  "athlete": {
+                    "displayName": "Pierre-Hugues Herbert",
+                    "shortName": "P. Herbert"
+                  }
+                },
+                {
+                  "id": "3204",
+                  "winner": false,
+                  "linescores": [
+                    {
+                      "value": 7.0,
+                      "tiebreak": 7,
+                      "winner": true
+                    },
+                    {
+                      "value": 5.0,
+                      "winner": false
+                    },
+                    {
+                      "value": 0.0,
+                      "winner": false
+                    }
+                  ],
+                  "athlete": {
+                    "displayName": "Jurij Rodionov",
+                    "shortName": "J. Rodionov"
+                  }
+                }
+              ],
+              "round": {
+                "id": "11",
+                "displayName": "Qualifying 1st Round"
+              }
+            },
+            {
+              "id": "186993",
+              "date": "2026-10-18T09:00Z",
+              "status": {
+                "period": 2,
+                "type": {
+                  "id": "3",
+                  "name": "STATUS_FINAL",
+                  "state": "post",
+                  "completed": true,
+                  "description": "Final",
+                  "detail": "Final",
+                  "shortDetail": "Final"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "4026",
+                  "winner": true,
+                  "linescores": [
+                    {
+                      "value": 6.0,
+                      "winner": true
+                    },
+                    {
+                      "value": 6.0,
+                      "winner": true
+                    }
+                  ],
+                  "athlete": {
+                    "displayName": "Vitaliy Sachko",
+                    "shortName": "V. Sachko"
+                  }
+                },
+                {
+                  "id": "4099",
+                  "winner": false,
+                  "linescores": [
+                    {
+                      "value": 4.0,
+                      "winner": false
+                    },
+                    {
+                      "value": 4.0,
+                      "winner": false
+                    }
+                  ],
+                  "athlete": {
+                    "displayName": "Otto Virtanen",
+                    "shortName": "O. Virtanen"
+                  }
+                }
+              ],
+              "round": {
+                "id": "11",
+                "displayName": "Qualifying 1st Round"
+              }
+            },
+            {
+              "id": "186990",
+              "date": "2026-10-18T10:30Z",
+              "status": {
+                "period": 2,
+                "type": {
+                  "id": "3",
+                  "name": "STATUS_FINAL",
+                  "state": "post",
+                  "completed": true,
+                  "description": "Final",
+                  "detail": "Final",
+                  "shortDetail": "Final"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "1769",
+                  "winner": false,
+                  "linescores": [
+                    {
+                      "value": 6.0,
+                      "tiebreak": 4,
+                      "winner": false
+                    },
+                    {
+                      "value": 6.0,
+                      "tiebreak": 5,
+                      "winner": false
+                    }
+                  ],
+                  "athlete": {
+                    "displayName": "Dusan Lajovic",
+                    "shortName": "D. Lajovic"
+                  }
+                },
+                {
+                  "id": "13747",
+                  "winner": true,
+                  "linescores": [
+                    {
+                      "value": 7.0,
+                      "tiebreak": 7,
+                      "winner": true
+                    },
+                    {
+                      "value": 7.0,
+                      "tiebreak": 7,
+                      "winner": true
+                    }
+                  ],
+                  "athlete": {
+                    "displayName": "Maxim Mrva",
+                    "shortName": "M. Mrva"
+                  }
+                }
+              ],
+              "round": {
+                "id": "11",
+                "displayName": "Qualifying 1st Round"
+              }
+            },
+            {
+              "id": "186997",
+              "date": "2026-10-18T10:30Z",
+              "status": {
+                "period": 2,
+                "type": {
+                  "id": "3",
+                  "name": "STATUS_FINAL",
+                  "state": "post",
+                  "completed": true,
+                  "description": "Final",
+                  "detail": "Final",
+                  "shortDetail": "Final"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "10033",
+                  "winner": false,
+                  "linescores": [
+                    {
+                      "value": 3.0,
+                      "winner": false
+                    },
+                    {
+                      "value": 5.0,
+                      "winner": false
+                    }
+                  ],
+                  "athlete": {
+                    "displayName": "Sascha Gueymard Wayenburg",
+                    "shortName": "S. Gueymard Wayenburg"
+                  }
+                },
+                {
+                  "id": "7509",
+                  "winner": true,
+                  "linescores": [
+                    {
+                      "value": 6.0,
+                      "winner": true
+                    },
+                    {
+                      "value": 7.0,
+                      "winner": true
+                    }
+                  ],
+                  "athlete": {
+                    "displayName": "Kyrian Jacquet",
+                    "shortName": "K. Jacquet"
+                  }
+                }
+              ],
+              "round": {
+                "id": "11",
+                "displayName": "Qualifying 1st Round"
+              }
+            },
+            {
+              "id": "186992",
+              "date": "2026-10-18T12:00Z",
+              "status": {
+                "period": 3,
+                "type": {
+                  "id": "3",
+                  "name": "STATUS_FINAL",
+                  "state": "post",
+                  "completed": true,
+                  "description": "Final",
+                  "detail": "Final",
+                  "shortDetail": "Final"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "3449",
+                  "winner": true,
+                  "linescores": [
+                    {
+                      "value": 4.0,
+                      "winner": false
+                    },
+                    {
+                      "value": 6.0,
+                      "winner": true
+                    },
+                    {
+                      "value": 7.0,
+                      "tiebreak": 8,
+                      "winner": true
+                    }
+                  ],
+                  "athlete": {
+                    "displayName": "Borna Gojo",
+                    "shortName": "B. Gojo"
+                  }
+                },
+                {
+                  "id": "7599",
+                  "winner": false,
+                  "linescores": [
+                    {
+                      "value": 6.0,
+                      "winner": true
+                    },
+                    {
+                      "value": 3.0,
+                      "winner": false
+                    },
+                    {
+                      "value": 6.0,
+                      "tiebreak": 6,
+                      "winner": false
+                    }
+                  ],
+                  "athlete": {
+                    "displayName": "Francesco Maestrelli",
+                    "shortName": "F. Maestrelli"
+                  }
+                }
+              ],
+              "round": {
+                "id": "11",
+                "displayName": "Qualifying 1st Round"
+              }
+            },
+            {
+              "id": "186995",
+              "date": "2026-10-18T12:00Z",
+              "status": {
+                "period": 3,
+                "type": {
+                  "id": "3",
+                  "name": "STATUS_FINAL",
+                  "state": "post",
+                  "completed": true,
+                  "description": "Final",
+                  "detail": "Final",
+                  "shortDetail": "Final"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "3512",
+                  "winner": true,
+                  "linescores": [
+                    {
+                      "value": 7.0,
+                      "tiebreak": 7,
+                      "winner": true
+                    },
+                    {
+                      "value": 6.0,
+                      "tiebreak": 3,
+                      "winner": false
+                    },
+                    {
+                      "value": 6.0,
+                      "winner": true
+                    }
+                  ],
+                  "athlete": {
+                    "displayName": "Clement Tabur",
+                    "shortName": "C. Tabur"
+                  }
+                },
+                {
+                  "id": "4022",
+                  "winner": false,
+                  "linescores": [
+                    {
+                      "value": 6.0,
+                      "tiebreak": 2,
+                      "winner": false
+                    },
+                    {
+                      "value": 7.0,
+                      "tiebreak": 7,
+                      "winner": true
+                    },
+                    {
+                      "value": 2.0,
+                      "winner": false
+                    }
+                  ],
+                  "athlete": {
+                    "displayName": "Valentin Royer",
+                    "shortName": "V. Royer"
+                  }
+                }
+              ],
+              "round": {
+                "id": "11",
+                "displayName": "Qualifying 1st Round"
+              }
+            },
+            {
+              "id": "186994",
+              "date": "2026-10-18T13:30Z",
+              "status": {
+                "period": 3,
+                "type": {
+                  "id": "3",
+                  "name": "STATUS_FINAL",
+                  "state": "post",
+                  "completed": true,
+                  "description": "Final",
+                  "detail": "Final",
+                  "shortDetail": "Final"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "13829",
+                  "winner": true,
+                  "linescores": [
+                    {
+                      "value": 3.0,
+                      "winner": false
+                    },
+                    {
+                      "value": 6.0,
+                      "winner": true
+                    },
+                    {
+                      "value": 6.0,
+                      "winner": true
+                    }
+                  ],
+                  "athlete": {
+                    "displayName": "Nicolai Budkov Kjaer",
+                    "shortName": "N. Budkov Kjaer"
+                  }
+                },
+                {
+                  "id": "10071",
+                  "winner": false,
+                  "linescores": [
+                    {
+                      "value": 6.0,
+                      "winner": true
+                    },
+                    {
+                      "value": 1.0,
+                      "winner": false
+                    },
+                    {
+                      "value": 3.0,
+                      "winner": false
+                    }
+                  ],
+                  "athlete": {
+                    "displayName": "Ugo Blanchet",
+                    "shortName": "U. Blanchet"
+                  }
+                }
+              ],
+              "round": {
+                "id": "11",
+                "displayName": "Qualifying 1st Round"
+              }
+            },
+            {
+              "id": "186996",
+              "date": "2026-10-18T13:30Z",
+              "status": {
+                "period": 3,
+                "type": {
+                  "id": "3",
+                  "name": "STATUS_FINAL",
+                  "state": "post",
+                  "completed": true,
+                  "description": "Final",
+                  "detail": "Final",
+                  "shortDetail": "Final"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "2625",
+                  "winner": true,
+                  "linescores": [
+                    {
+                      "value": 6.0,
+                      "winner": true
+                    },
+                    {
+                      "value": 6.0,
+                      "tiebreak": 3,
+                      "winner": false
+                    },
+                    {
+                      "value": 6.0,
+                      "winner": true
+                    }
+                  ],
+                  "athlete": {
+                    "displayName": "Michael Mmoh",
+                    "shortName": "M. Mmoh"
+                  }
+                },
+                {
+                  "id": "10640",
+                  "winner": false,
+                  "linescores": [
+                    {
+                      "value": 1.0,
+                      "winner": false
+                    },
+                    {
+                      "value": 7.0,
+                      "tiebreak": 7,
+                      "winner": true
+                    },
+                    {
+                      "value": 3.0,
+                      "winner": false
+                    }
+                  ],
+                  "athlete": {
+                    "displayName": "Jan Kumstat",
+                    "shortName": "J. Kumstat"
+                  }
+                }
+              ],
+              "round": {
+                "id": "11",
+                "displayName": "Qualifying 1st Round"
+              }
+            },
+            {
+              "id": "186999",
+              "date": "2026-10-19T09:00Z",
+              "status": {
+                "period": 1,
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "Mon, October 19th at 5:00 AM EDT",
+                  "shortDetail": "10/19 - 5:00 AM EDT"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "13747",
+                  "athlete": {
+                    "displayName": "Maxim Mrva",
+                    "shortName": "M. Mrva"
+                  }
+                },
+                {
+                  "id": "1613",
+                  "athlete": {
+                    "displayName": "Pierre-Hugues Herbert",
+                    "shortName": "P. Herbert"
+                  }
+                }
+              ],
+              "round": {
+                "id": "14",
+                "displayName": "Qualifying Final"
+              }
+            },
+            {
+              "id": "186998",
+              "date": "2026-10-19T10:00Z",
+              "status": {
+                "period": 1,
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "Mon, October 19th at 6:00 AM EDT",
+                  "shortDetail": "10/19 - 6:00 AM EDT"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "3449",
+                  "athlete": {
+                    "displayName": "Borna Gojo",
+                    "shortName": "B. Gojo"
+                  }
+                },
+                {
+                  "id": "4026",
+                  "athlete": {
+                    "displayName": "Vitaliy Sachko",
+                    "shortName": "V. Sachko"
+                  }
+                }
+              ],
+              "round": {
+                "id": "14",
+                "displayName": "Qualifying Final"
+              }
+            },
+            {
+              "id": "187001",
+              "date": "2026-10-19T10:30Z",
+              "status": {
+                "period": 1,
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "Mon, October 19th at 6:30 AM EDT",
+                  "shortDetail": "10/19 - 6:30 AM EDT"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "2625",
+                  "athlete": {
+                    "displayName": "Michael Mmoh",
+                    "shortName": "M. Mmoh"
+                  }
+                },
+                {
+                  "id": "7509",
+                  "athlete": {
+                    "displayName": "Kyrian Jacquet",
+                    "shortName": "K. Jacquet"
+                  }
+                }
+              ],
+              "round": {
+                "id": "14",
+                "displayName": "Qualifying Final"
+              }
+            },
+            {
+              "id": "187000",
+              "date": "2026-10-19T11:30Z",
+              "status": {
+                "period": 1,
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "Mon, October 19th at 7:30 AM EDT",
+                  "shortDetail": "10/19 - 7:30 AM EDT"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "13829",
+                  "athlete": {
+                    "displayName": "Nicolai Budkov Kjaer",
+                    "shortName": "N. Budkov Kjaer"
+                  }
+                },
+                {
+                  "id": "3512",
+                  "athlete": {
+                    "displayName": "Clement Tabur",
+                    "shortName": "C. Tabur"
+                  }
+                }
+              ],
+              "round": {
+                "id": "14",
+                "displayName": "Qualifying Final"
+              }
+            },
+            {
+              "id": "185098",
+              "date": "2026-10-19T13:00Z",
+              "status": {
+                "period": 1,
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "Mon, October 19th at 9:00 AM EDT",
+                  "shortDetail": "10/19 - 9:00 AM EDT"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "16102",
+                  "athlete": {
+                    "displayName": "Felix Balshaw",
+                    "shortName": "F. Balshaw"
+                  }
+                },
+                {
+                  "id": "10219",
+                  "athlete": {
+                    "displayName": "Jaime Faria",
+                    "shortName": "J. Faria"
+                  }
+                }
+              ],
+              "round": {
+                "id": "1",
+                "displayName": "Round 1"
+              }
+            },
+            {
+              "id": "185085",
+              "date": "2026-10-19T14:30Z",
+              "status": {
+                "period": 1,
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "Mon, October 19th at 10:30 AM EDT",
+                  "shortDetail": "10/19 - 10:30 AM EDT"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "3764",
+                  "athlete": {
+                    "displayName": "Lorenzo Musetti",
+                    "shortName": "L. Musetti"
+                  }
+                },
+                {
+                  "id": "3793",
+                  "athlete": {
+                    "displayName": "Matteo Arnaldi",
+                    "shortName": "M. Arnaldi"
+                  }
+                }
+              ],
+              "round": {
+                "id": "1",
+                "displayName": "Round 1"
+              }
+            },
+            {
+              "id": "185083",
+              "date": "2026-10-19T16:00Z",
+              "status": {
+                "period": 1,
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "Mon, October 19th at 12:00 PM EDT",
+                  "shortDetail": "10/19 - 12:00 PM EDT"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "15473",
+                  "athlete": {
+                    "displayName": "Moise Kouame",
+                    "shortName": "M. Kouame"
+                  }
+                },
+                {
+                  "id": "3052",
+                  "athlete": {
+                    "displayName": "Lorenzo Sonego",
+                    "shortName": "L. Sonego"
+                  }
+                }
+              ],
+              "round": {
+                "id": "1",
+                "displayName": "Round 1"
+              }
+            },
+            {
+              "id": "185096",
+              "date": "2026-10-20T04:00Z",
+              "status": {
+                "period": 1,
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "M/d - 'TBD'",
+                  "shortDetail": "TBD"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "-4",
+                  "athlete": {
+                    "displayName": "TBD",
+                    "shortName": "TBD"
+                  }
+                },
+                {
+                  "id": "8814",
+                  "athlete": {
+                    "displayName": "Luca Van Assche",
+                    "shortName": "L. Van Assche"
+                  }
+                }
+              ],
+              "round": {
+                "id": "1",
+                "displayName": "Round 1"
+              }
+            },
+            {
+              "id": "185087",
+              "date": "2026-10-20T04:00Z",
+              "status": {
+                "period": 1,
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "M/d - 'TBD'",
+                  "shortDetail": "TBD"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "2886",
+                  "athlete": {
+                    "displayName": "Corentin Moutet",
+                    "shortName": "C. Moutet"
+                  }
+                },
+                {
+                  "id": "3085",
+                  "athlete": {
+                    "displayName": "Ugo Humbert",
+                    "shortName": "U. Humbert"
+                  }
+                }
+              ],
+              "round": {
+                "id": "1",
+                "displayName": "Round 1"
+              }
+            },
+            {
+              "id": "185089",
+              "date": "2026-10-20T04:00Z",
+              "status": {
+                "period": 1,
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "M/d - 'TBD'",
+                  "shortDetail": "TBD"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "-4",
+                  "athlete": {
+                    "displayName": "TBD",
+                    "shortName": "TBD"
+                  }
+                },
+                {
+                  "id": "2622",
+                  "athlete": {
+                    "displayName": "Matteo Berrettini",
+                    "shortName": "M. Berrettini"
+                  }
+                }
+              ],
+              "round": {
+                "id": "1",
+                "displayName": "Round 1"
+              }
+            },
+            {
+              "id": "185090",
+              "date": "2026-10-20T04:00Z",
+              "status": {
+                "period": 1,
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "M/d - 'TBD'",
+                  "shortDetail": "TBD"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "8136",
+                  "athlete": {
+                    "displayName": "Titouan Droguet",
+                    "shortName": "T. Droguet"
+                  }
+                },
+                {
+                  "id": "3203",
+                  "athlete": {
+                    "displayName": "Daniel Altmaier",
+                    "shortName": "D. Altmaier"
+                  }
+                }
+              ],
+              "round": {
+                "id": "1",
+                "displayName": "Round 1"
+              }
+            },
+            {
+              "id": "185091",
+              "date": "2026-10-20T04:00Z",
+              "status": {
+                "period": 1,
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "M/d - 'TBD'",
+                  "shortDetail": "TBD"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "3774",
+                  "athlete": {
+                    "displayName": "Brandon Nakashima",
+                    "shortName": "B. Nakashima"
+                  }
+                },
+                {
+                  "id": "8325",
+                  "athlete": {
+                    "displayName": "Hamad Medjedovic",
+                    "shortName": "H. Medjedovic"
+                  }
+                }
+              ],
+              "round": {
+                "id": "1",
+                "displayName": "Round 1"
+              }
+            },
+            {
+              "id": "185092",
+              "date": "2026-10-20T04:00Z",
+              "status": {
+                "period": 1,
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "M/d - 'TBD'",
+                  "shortDetail": "TBD"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "3340",
+                  "athlete": {
+                    "displayName": "Sebastian Baez",
+                    "shortName": "S. Baez"
+                  }
+                },
+                {
+                  "id": "-3",
+                  "athlete": {
+                    "displayName": "TBD",
+                    "shortName": "TBD"
+                  }
+                }
+              ],
+              "round": {
+                "id": "1",
+                "displayName": "Round 1"
+              }
+            },
+            {
+              "id": "185105",
+              "date": "2026-10-20T04:00Z",
+              "status": {
+                "period": 1,
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "M/d - 'TBD'",
+                  "shortDetail": "TBD"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "-4",
+                  "athlete": {
+                    "displayName": "TBD",
+                    "shortName": "TBD"
+                  }
+                },
+                {
+                  "id": "8621",
+                  "athlete": {
+                    "displayName": "Arthur Fery",
+                    "shortName": "A. Fery"
+                  }
+                }
+              ],
+              "round": {
+                "id": "1",
+                "displayName": "Round 1"
+              }
+            },
+            {
+              "id": "185104",
+              "date": "2026-10-20T04:00Z",
+              "status": {
+                "period": 1,
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "M/d - 'TBD'",
+                  "shortDetail": "TBD"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "11640",
+                  "athlete": {
+                    "displayName": "Martin Landaluce",
+                    "shortName": "M. Landaluce"
+                  }
+                },
+                {
+                  "id": "264",
+                  "athlete": {
+                    "displayName": "Stan Wawrinka",
+                    "shortName": "S. Wawrinka"
+                  }
+                }
+              ],
+              "round": {
+                "id": "1",
+                "displayName": "Round 1"
+              }
+            },
+            {
+              "id": "185100",
+              "date": "2026-10-20T04:00Z",
+              "status": {
+                "period": 1,
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "M/d - 'TBD'",
+                  "shortDetail": "TBD"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "2366",
+                  "athlete": {
+                    "displayName": "Cameron Norrie",
+                    "shortName": "C. Norrie"
+                  }
+                },
+                {
+                  "id": "2355",
+                  "athlete": {
+                    "displayName": "Benjamin Bonzi",
+                    "shortName": "B. Bonzi"
+                  }
+                }
+              ],
+              "round": {
+                "id": "1",
+                "displayName": "Round 1"
+              }
+            },
+            {
+              "id": "185084",
+              "date": "2026-10-21T04:00Z",
+              "status": {
+                "period": 1,
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "M/d - 'TBD'",
+                  "shortDetail": "TBD"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "-4",
+                  "athlete": {
+                    "displayName": "TBD",
+                    "shortName": "TBD"
+                  }
+                },
+                {
+                  "id": "-3",
+                  "athlete": {
+                    "displayName": "TBD",
+                    "shortName": "TBD"
+                  }
+                }
+              ],
+              "round": {
+                "id": "2",
+                "displayName": "Round 2"
+              }
+            },
+            {
+              "id": "185086",
+              "date": "2026-10-21T04:00Z",
+              "status": {
+                "period": 1,
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "M/d - 'TBD'",
+                  "shortDetail": "TBD"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "-4",
+                  "athlete": {
+                    "displayName": "TBD",
+                    "shortName": "TBD"
+                  }
+                },
+                {
+                  "id": "9376",
+                  "athlete": {
+                    "displayName": "Valentin Vacherot",
+                    "shortName": "V. Vacherot"
+                  }
+                }
+              ],
+              "round": {
+                "id": "2",
+                "displayName": "Round 2"
+              }
+            },
+            {
+              "id": "185088",
+              "date": "2026-10-21T04:00Z",
+              "status": {
+                "period": 1,
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "M/d - 'TBD'",
+                  "shortDetail": "TBD"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "-4",
+                  "athlete": {
+                    "displayName": "TBD",
+                    "shortName": "TBD"
+                  }
+                },
+                {
+                  "id": "-3",
+                  "athlete": {
+                    "displayName": "TBD",
+                    "shortName": "TBD"
+                  }
+                }
+              ],
+              "round": {
+                "id": "2",
+                "displayName": "Round 2"
+              }
+            },
+            {
+              "id": "185097",
+              "date": "2026-10-21T04:00Z",
+              "status": {
+                "period": 1,
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "M/d - 'TBD'",
+                  "shortDetail": "TBD"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "-4",
+                  "athlete": {
+                    "displayName": "TBD",
+                    "shortName": "TBD"
+                  }
+                },
+                {
+                  "id": "7602",
+                  "athlete": {
+                    "displayName": "Flavio Cobolli",
+                    "shortName": "F. Cobolli"
+                  }
+                }
+              ],
+              "round": {
+                "id": "2",
+                "displayName": "Round 2"
+              }
+            },
+            {
+              "id": "185099",
+              "date": "2026-10-21T04:00Z",
+              "status": {
+                "period": 1,
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "M/d - 'TBD'",
+                  "shortDetail": "TBD"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "-4",
+                  "athlete": {
+                    "displayName": "TBD",
+                    "shortName": "TBD"
+                  }
+                },
+                {
+                  "id": "-3",
+                  "athlete": {
+                    "displayName": "TBD",
+                    "shortName": "TBD"
+                  }
+                }
+              ],
+              "round": {
+                "id": "2",
+                "displayName": "Round 2"
+              }
+            },
+            {
+              "id": "185101",
+              "date": "2026-10-21T04:00Z",
+              "status": {
+                "period": 1,
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "M/d - 'TBD'",
+                  "shortDetail": "TBD"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "2964",
+                  "athlete": {
+                    "displayName": "Tommy Paul",
+                    "shortName": "T. Paul"
+                  }
+                },
+                {
+                  "id": "-3",
+                  "athlete": {
+                    "displayName": "TBD",
+                    "shortName": "TBD"
+                  }
+                }
+              ],
+              "round": {
+                "id": "2",
+                "displayName": "Round 2"
+              }
+            },
+            {
+              "id": "185103",
+              "date": "2026-10-21T04:00Z",
+              "status": {
+                "period": 1,
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "M/d - 'TBD'",
+                  "shortDetail": "TBD"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "-4",
+                  "athlete": {
+                    "displayName": "TBD",
+                    "shortName": "TBD"
+                  }
+                },
+                {
+                  "id": "-3",
+                  "athlete": {
+                    "displayName": "TBD",
+                    "shortName": "TBD"
+                  }
+                }
+              ],
+              "round": {
+                "id": "2",
+                "displayName": "Round 2"
+              }
+            },
+            {
+              "id": "185106",
+              "date": "2026-10-21T04:00Z",
+              "status": {
+                "period": 1,
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "M/d - 'TBD'",
+                  "shortDetail": "TBD"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "2946",
+                  "athlete": {
+                    "displayName": "Taylor Fritz",
+                    "shortName": "T. Fritz"
+                  }
+                },
+                {
+                  "id": "-3",
+                  "athlete": {
+                    "displayName": "TBD",
+                    "shortName": "TBD"
+                  }
+                }
+              ],
+              "round": {
+                "id": "2",
+                "displayName": "Round 2"
+              }
+            },
+            {
+              "id": "185109",
+              "date": "2026-10-23T04:00Z",
+              "status": {
+                "period": 1,
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "M/d - 'TBD'",
+                  "shortDetail": "TBD"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "-4",
+                  "athlete": {
+                    "displayName": "TBD",
+                    "shortName": "TBD"
+                  }
+                },
+                {
+                  "id": "-3",
+                  "athlete": {
+                    "displayName": "TBD",
+                    "shortName": "TBD"
+                  }
+                }
+              ],
+              "round": {
+                "id": "5",
+                "displayName": "Quarterfinal"
+              }
+            },
+            {
+              "id": "185108",
+              "date": "2026-10-23T04:00Z",
+              "status": {
+                "period": 1,
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "M/d - 'TBD'",
+                  "shortDetail": "TBD"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "-4",
+                  "athlete": {
+                    "displayName": "TBD",
+                    "shortName": "TBD"
+                  }
+                },
+                {
+                  "id": "-3",
+                  "athlete": {
+                    "displayName": "TBD",
+                    "shortName": "TBD"
+                  }
+                }
+              ],
+              "round": {
+                "id": "5",
+                "displayName": "Quarterfinal"
+              }
+            },
+            {
+              "id": "185107",
+              "date": "2026-10-23T04:00Z",
+              "status": {
+                "period": 1,
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "M/d - 'TBD'",
+                  "shortDetail": "TBD"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "-4",
+                  "athlete": {
+                    "displayName": "TBD",
+                    "shortName": "TBD"
+                  }
+                },
+                {
+                  "id": "-3",
+                  "athlete": {
+                    "displayName": "TBD",
+                    "shortName": "TBD"
+                  }
+                }
+              ],
+              "round": {
+                "id": "5",
+                "displayName": "Quarterfinal"
+              }
+            },
+            {
+              "id": "185110",
+              "date": "2026-10-23T04:00Z",
+              "status": {
+                "period": 1,
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "M/d - 'TBD'",
+                  "shortDetail": "TBD"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "-4",
+                  "athlete": {
+                    "displayName": "TBD",
+                    "shortName": "TBD"
+                  }
+                },
+                {
+                  "id": "-3",
+                  "athlete": {
+                    "displayName": "TBD",
+                    "shortName": "TBD"
+                  }
+                }
+              ],
+              "round": {
+                "id": "5",
+                "displayName": "Quarterfinal"
+              }
+            },
+            {
+              "id": "185111",
+              "date": "2026-10-24T04:00Z",
+              "status": {
+                "period": 1,
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "M/d - 'TBD'",
+                  "shortDetail": "TBD"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "-4",
+                  "athlete": {
+                    "displayName": "TBD",
+                    "shortName": "TBD"
+                  }
+                },
+                {
+                  "id": "-3",
+                  "athlete": {
+                    "displayName": "TBD",
+                    "shortName": "TBD"
+                  }
+                }
+              ],
+              "round": {
+                "id": "6",
+                "displayName": "Semifinal"
+              }
+            },
+            {
+              "id": "185112",
+              "date": "2026-10-24T04:00Z",
+              "status": {
+                "period": 1,
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "M/d - 'TBD'",
+                  "shortDetail": "TBD"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "-4",
+                  "athlete": {
+                    "displayName": "TBD",
+                    "shortName": "TBD"
+                  }
+                },
+                {
+                  "id": "-3",
+                  "athlete": {
+                    "displayName": "TBD",
+                    "shortName": "TBD"
+                  }
+                }
+              ],
+              "round": {
+                "id": "6",
+                "displayName": "Semifinal"
+              }
+            },
+            {
+              "id": "185113",
+              "date": "2026-10-25T04:00Z",
+              "status": {
+                "period": 1,
+                "type": {
+                  "id": "1",
+                  "name": "STATUS_SCHEDULED",
+                  "state": "pre",
+                  "completed": false,
+                  "description": "Scheduled",
+                  "detail": "M/d - 'TBD'",
+                  "shortDetail": "TBD"
+                }
+              },
+              "competitors": [
+                {
+                  "id": "-4",
+                  "athlete": {
+                    "displayName": "TBD",
+                    "shortName": "TBD"
+                  }
+                },
+                {
+                  "id": "-3",
+                  "athlete": {
+                    "displayName": "TBD",
+                    "shortName": "TBD"
+                  }
+                }
+              ],
+              "round": {
+                "id": "7",
+                "displayName": "Final"
+              }
+            }
+          ]
+        }
+      ],
+      "venue": {
+        "displayName": "Lyon, France"
+      }
+    },
+    {
+      "id": "452-2026",
+      "date": "2026-10-18T04:00Z",
+      "endDate": "2026-10-26T03:59Z",
+      "name": "Grand Prix Auvergne-Rhône-Alpes",
+      "shortName": "Grand Prix Auvergne-Rhône-Alpes",
+      "groupings": []
+    }
+  ],
+  "registry": {
+    "version": 2,
+    "events": {
+      "452-2026": {
+        "names": [
+          "Grand Prix Auvergne-Rhône-Alpes"
+        ],
+        "firstSeen": "2026-10-07T01:36:28Z",
+        "name": "Grand Prix Auvergne-Rhône-Alpes",
+        "start": "2026-10-19",
+        "end": "2026-10-26",
+        "lastSeen": "2026-10-12T07:28:59Z"
+      }
+    }
+  },
+  "draw": {
+    "slots": [
+      "Flavio Cobolli",
+      null,
+      "Stan Wawrinka",
+      "Martín Landaluce",
+      "Matteo Berrettini",
+      "Qualifier/Unresolved 1",
+      "Hamad Medjedovic",
+      "Brandon Nakashima",
+      "Valentin Vacherot",
+      null,
+      "Luca Van Assche",
+      "Qualifier/Unresolved 2",
+      "Lorenzo Sonego",
+      "Moïse Kouamé",
+      "Matteo Arnaldi",
+      "Lorenzo Musetti",
+      "Ugo Humbert",
+      "Corentin Moutet",
+      "Jaime Faria",
+      "Felix Balshaw",
+      "Benjamin Bonzi",
+      "Cameron Norrie",
+      "Tommy Paul",
+      null,
+      "Arthur Fery",
+      "Qualifier/Unresolved 3",
+      "Daniel Altmaier",
+      "Titouan Droguet",
+      "Qualifier/Unresolved 4",
+      "Sebastián Báez",
+      "Taylor Fritz",
+      null
+    ],
+    "seeds": {
+      "Brandon Nakashima": 5,
+      "Lorenzo Musetti": 6,
+      "Ugo Humbert": 7,
+      "Arthur Fery": 8
+    },
+    "bestOf": 3,
+    "publishedDrawSize": 28,
+    "drawSize": 28,
+    "start": "2026-10-18",
+    "end": "2026-10-26",
+    "espnId": "110-2026",
+    "title": "2026 Grand Prix Auvergne-Rhône-Alpes – Singles",
+    "url": "https://en.wikipedia.org/wiki/2026_Grand_Prix_Auvergne-Rh%C3%B4ne-Alpes_%E2%80%93_Singles",
+    "retrieved": "2026-10-18"
+  }
+}

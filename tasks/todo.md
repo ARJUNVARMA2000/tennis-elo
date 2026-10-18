@@ -9498,3 +9498,31 @@ Check-in: investigate why the same results disappear and recover without a code 
   correct winners and scores. No open deployment/data-health alerts remain.
 - [x] Evidence saved in tasks/deploy/2026-10-17-shanghai-identity-repair.json.
   History reconciled through 5e603a7 before this review; remaining changes are records only.
+
+### Duplicate Lyon discovery blocks deployment — 2026-10-18
+
+- [ ] Replay the current provider snapshot and retained registry/cache to establish why ESPN 110-2026 loses its draw to the empty 452-2026 listing.
+- [ ] Repair discovery and cache recovery using explicit event evidence; preserve duplicate-source quarantine and add captured producer/gate regressions for both listing orders and repeated refreshes.
+- [ ] Run validation, deliberately deploy, verify accepted live artifacts, and record the review and lesson.
+
+Check-in: latest failed run 39168255062 quarantines one Wikipedia draw attached to IDs 110-2026 and 452-2026. The current source has real singles competitions under 110 and no groupings under 452. Investigate name-keyed discovery and registry backfill before changing attachment behavior; keep the independent missing-event gate strict. History reconciled through 8712a2a.
+
+### Lyon discovery repair checkpoint — 2026-10-18
+
+- [x] Replayed the pre-repair discovery function against the captured current source,
+  actual Wikipedia draw and retained registry: it attaches the draw to 110 and 452,
+  quarantines both, and produces the exact `output.source_audit.event_missing` failure.
+- [x] Discovery now tracks all observed IDs, selects singles-bearing metadata before
+  empty same-name listings, rejects cross-ID field/cache name fallbacks, and requires
+  provider/field evidence before registry recovery. The missing-event gate is unchanged.
+- [x] Captured regressions cover both listing orders, empty-listing disappearance,
+  wrongly warmed caches, repeated refreshes, valid field-backed recovery, and a
+  populated conflicting ID that must still fail the gate. Full validation is running.
+- [ ] Complete deployment and independent live verification. History reconciled through
+  8712a2a; current tests and source evidence are in test_health_lyon_discovery.py and
+  fixtures/lyon_duplicate_listing_20261018.json.
+
+- [x] Local validation passed: 2,041 full-suite tests; after restricting metadata
+  preference to the exact same calendar window, all 57 focused tests passed (including
+  the additional different-edition control). Repository Ruff and whitespace checks pass.
+  No model population or prediction-state contract changed. Deployment follows.

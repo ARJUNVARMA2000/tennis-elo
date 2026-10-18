@@ -374,10 +374,26 @@ def parse_event_meta(events: list) -> dict:
     even for not-yet-started, all-TBD events, which is what lets draws_wiki discover an
     upcoming tournament and stamp its projection before any match is played."""
     out: dict = {}
+    # The legacy metadata view is name-keyed. ESPN may expose an empty calendar
+    # listing beside a different ID with the actual singles draw (Lyon 2026).
+    # Prefer observed competition evidence for the same calendar window regardless
+    # of discovery order; do not transfer matches between IDs or reorder editions.
+    def has_singles(ev):
+        return any(str((g.get("grouping") or {}).get("slug", "")).endswith("-singles")
+                   and g.get("competitions") for g in ev.get("groupings", []) or [])
+
+    selected = {}
     for ev in events:
         name = ev.get("shortName") or ev.get("name")
-        if not name or name in out:
+        if not name:
             continue
+        previous = selected.get(name)
+        if previous and not (
+                not has_singles(previous) and has_singles(ev)
+                and ev.get("date") and ev.get("endDate")
+                and all(ev.get(k) == previous.get(k) for k in ("date", "endDate"))):
+            continue
+        selected[name] = ev
         venue = _event_venue(ev, name)
         out[str(name)] = {
             "espnId": ev.get("id"),
