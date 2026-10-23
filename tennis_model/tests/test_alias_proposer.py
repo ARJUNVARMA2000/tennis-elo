@@ -486,3 +486,29 @@ def test_ask_openrouter_never_lets_a_refusal_look_like_an_empty_answer():
     proposals, text = ap.ask_openrouter(
         [_pair("A B", "A B C")], opener=opener, api_key="test-openrouter-key")
     assert proposals == [] and "declined" in text
+
+
+@pytest.mark.parametrize('refutation', ['opponents', 'different_ids'])
+def test_reordered_name_candidate_is_rejected_by_match_evidence(unpatched_config, refutation):
+    frame = pd.DataFrame([
+        {'winner_name': 'Wei Zhang', 'loser_name': 'Opponent One', 'winner_id': 'A001'},
+        {'winner_name': 'Zhang Wei', 'loser_name': 'Opponent Two',
+         'winner_id': 'B002' if refutation == 'different_ids' else None},
+    ])
+    if refutation == 'opponents':
+        frame.loc[len(frame)] = {'winner_name': 'Wei Zhang', 'loser_name': 'Zhang Wei'}
+    evidence = ap.build_evidence(frame)
+    subject = ('Wei Zhang', 'Zhang Wei')
+    assert subject not in [q.subject for q in ap.player_questions(evidence, 'atp')]
+    proposal = {'kind': 'player_alias', 'tour': 'atp', 'variant': 'Zhang Wei',
+                'canonical': 'Wei Zhang', 'same_person': True}
+    assert ap.falsify(proposal, _asked(_pair(*subject)), evidence) is not None
+
+
+def test_token_reordering_preserves_repeated_name_parts(unpatched_config):
+    frame = _frame([
+        ('Ann Ann Lee', 'Opponent One', pd.Timestamp('2026-10-23')),
+        ('Lee Ann', 'Opponent Two', pd.Timestamp('2026-10-23')),
+    ])
+    assert ('Ann Ann Lee', 'Lee Ann') not in [
+        q.subject for q in ap.player_questions(ap.build_evidence(frame), 'wta')]

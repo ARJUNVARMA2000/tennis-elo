@@ -474,3 +474,13 @@ Indexed in [`../lessons.md`](../lessons.md).
   A same-name field/cache entry carrying a different ID is not evidence. Replay cold,
   wrongly warmed and repeated refreshes, both source orders, and disappearance of the
   empty listing. Keep duplicate quarantine and the independent missing-event gate strict.
+
+- **Candidate discovery must cover the identity shapes the publication gate rejects.**
+  (2026-10-23, Guangzhou qualifying) The source gate caught Hong Yi Cody Wong / Wong
+  Hong Yi Cody, already two rated histories, but the weekly proposer only considered
+  added/dropped name parts and spacing changes. Equal tokens in a different order
+  never reached review. Add exact token-multiset reordering as a candidate, retain
+  evidence adjudication and played-each-other/conflicting-ID rejection, and test the
+  captured candidate through discovery, falsification, canonical ingestion and the
+  independent source gate. A candidate is not permission to auto-merge. Population
+  and saved-predictor migrations remain mandatory for an adopted identity repair.

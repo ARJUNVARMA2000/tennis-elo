@@ -253,17 +253,20 @@ def player_questions(evidence: MatchEvidence, tour: str, limit: int = MAX_QUESTI
     are already handled. What survives it is a DROPPED OR ADDED SURNAME, which changes the
     key itself — the Umag 2026 shape, where one player shipped as two and the event exported
     drawSize 29 for a 28-draw. Inserting whitespace inside a compound given name also changes
-    token membership (``Soonwoo`` / ``Soon Woo``), so equal whitespace-stripped keys are the
-    second bounded candidate shape.
+    token membership (``Soonwoo`` / ``Soon Woo``), so equal whitespace-stripped keys are a
+    second bounded candidate shape. Equal token multisets in a different order are a
+    third: family-name-first feeds otherwise never propose the split the source gate finds.
 
     Note what this deliberately does NOT do: it never proposes a merge on shared-surname
     alone. "Alexander Zverev" and "Mischa Zverev" are not a subset pair and never become a
     question; a pair that has met across a net is dropped here rather than asked about."""
     keys = [k for k in evidence.counts if len(k.split()) >= 2]
     toks = {k: frozenset(k.split()) for k in keys}
+    token_order = {k: tuple(sorted(k.split())) for k in keys}
 
     def near(a: str, b: str) -> bool:
         return (toks[a] < toks[b] or toks[b] < toks[a]
+                or token_order[a] == token_order[b]
                 or a.replace(" ", "") == b.replace(" ", ""))
 
     cands: list[tuple[int, str, str, str]] = []
@@ -330,6 +333,8 @@ def player_questions(evidence: MatchEvidence, tour: str, limit: int = MAX_QUESTI
                 continue
             relation = ("differ only by whitespace inside a name part"
                         if first.replace(" ", "") == second.replace(" ", "")
+                        else "contain the same name parts in a different order"
+                        if token_order[first] == token_order[second]
                         else "differ only by a dropped/added name part")
             cands.append((min(evidence.counts[first], evidence.counts[second]), *subject,
                           f"{a!r} ({evidence.counts[first]} matches) and "

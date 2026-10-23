@@ -9543,3 +9543,32 @@ Check-in: latest failed run 39168255062 quarantines one Wikipedia draw attached 
 - [x] Saved evidence in tasks/deploy/2026-10-18-lyon-discovery-repair.json and recorded
   the discovery/backfill lesson. History reconciled through eb9eef4 before this review;
   remaining changes are records only.
+
+### Guangzhou qualifying identity blocks deployment — 2026-10-23
+
+- [ ] Capture the failing qualifier and review both Wong name orders against official identity and retained match history.
+- [ ] Repair the shared identity mapping, invalidate affected saved model state as required, and add broken/clean source-gate and ingestion regressions.
+- [ ] Run validation, deploy, verify the accepted live release, and record the review; preserve the separate ATP model-drift advisory.
+
+Check-in: latest run 39961633595 blocks on WTA `output.source_audit.player_identity_unresolved`, event 232-2026. ATP forecast drift is a warning, explicitly nonblocking in both the data gate and the serving verifier. Review the alias rather than weakening either gate or changing model parameters. History reconciled through cc131c3.
+
+### Guangzhou identity repair checkpoint — 2026-10-23
+
+- [x] Official WTA 326723 plus the identical Morvayova–Wong Hong Kong 2025 result
+  corroborate both names; 17 captured source rows pass the alias falsifier. The real
+  merge drops exactly one duplicate and preserves every other captured result.
+- [x] Added the reviewed alias, advanced population 23, migrated only ledger metadata
+  and hashes, and added source-gate/merge/stale-predictor regressions. 121 focused tests pass.
+- [ ] Extend the weekly proposer's deterministic candidate scan to exact token reorderings;
+  preserve model adjudication, match-evidence falsification, and separation from the pipeline.
+- [ ] Complete full validation and deployment verification, keeping the ATP drift warning.
+
+Check-in: the proposer's near-name predicate omits the same-token/different-order shape
+that the production gate already detects. Add candidate discovery and rejection controls,
+not automatic merging. History reconciled through cc131c3.
+
+- [x] Validation: 2,050 Python tests passed; the final scanner implementation also
+  passed all 39 focused proposer/Guangzhou tests. Repository Ruff and whitespace
+  checks pass. Both tours' current/future calendars and retained published brackets
+  have no unresolved token-order identities with the repair. Reviewed ledger payloads
+  differ only in populationVersion. Deployment follows and requires a full rebuild.

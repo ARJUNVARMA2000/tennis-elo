@@ -1,0 +1,2468 @@
+{
+  "observedAt": "2026-10-23T14:12:24Z",
+  "source": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard?dates=20261023",
+  "event": {
+    "id": "232-2026",
+    "date": "2026-10-23T04:00Z",
+    "endDate": "2026-11-02T04:59Z",
+    "name": "Guangzhou Open",
+    "shortName": "Guangzhou Open",
+    "groupings": [
+      {
+        "grouping": {
+          "id": "2",
+          "slug": "womens-singles",
+          "displayName": "Women's Singles"
+        },
+        "competitions": [
+          {
+            "id": "187132",
+            "date": "2026-10-24T03:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "Fri, October 23rd at 11:00 PM EDT",
+                "shortDetail": "10/23 - 11:00 PM EDT"
+              }
+            },
+            "competitors": [
+              {
+                "id": "14955",
+                "athlete": {
+                  "guid": "8347bdc9-d3fc-3f75-b7df-7b2a1a57f4b2",
+                  "displayName": "Alevtina Ibragimova",
+                  "links": [
+                    {
+                      "language": "en-US",
+                      "rel": [
+                        "playercard",
+                        "desktop",
+                        "athlete"
+                      ],
+                      "href": "https://www.espn.com/tennis/player/_/id/14955/alevtina-ibragimova",
+                      "text": "Player Card",
+                      "shortText": "Player Card",
+                      "isExternal": false,
+                      "isPremium": false,
+                      "isHidden": false
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "6413",
+                "athlete": {
+                  "guid": "c9ba38ce-6df7-3b07-b32b-74801479012b",
+                  "displayName": "Polina Kudermetova",
+                  "links": [
+                    {
+                      "language": "en-US",
+                      "rel": [
+                        "playercard",
+                        "desktop",
+                        "athlete"
+                      ],
+                      "href": "https://www.espn.com/tennis/player/_/id/6413/polina-kudermetova",
+                      "text": "Player Card",
+                      "shortText": "Player Card",
+                      "isExternal": false,
+                      "isPremium": false,
+                      "isHidden": false
+                    }
+                  ]
+                }
+              }
+            ],
+            "round": {
+              "id": "11",
+              "displayName": "Qualifying 1st Round"
+            }
+          },
+          {
+            "id": "187136",
+            "date": "2026-10-24T03:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "Fri, October 23rd at 11:00 PM EDT",
+                "shortDetail": "10/23 - 11:00 PM EDT"
+              }
+            },
+            "competitors": [
+              {
+                "id": "10858",
+                "athlete": {
+                  "guid": "3aac91c6-eb93-31e4-9854-95db62382893",
+                  "displayName": "Alexandra Shubladze",
+                  "links": [
+                    {
+                      "language": "en-US",
+                      "rel": [
+                        "playercard",
+                        "desktop",
+                        "athlete"
+                      ],
+                      "href": "https://www.espn.com/tennis/player/_/id/10858/alexandra-shubladze",
+                      "text": "Player Card",
+                      "shortText": "Player Card",
+                      "isExternal": false,
+                      "isPremium": false,
+                      "isHidden": false
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "17104",
+                "athlete": {
+                  "guid": "ce0bceff-65f4-3fa5-b7be-8a37ca765955",
+                  "displayName": "Polina Iatcenko",
+                  "links": [
+                    {
+                      "language": "en-US",
+                      "rel": [
+                        "playercard",
+                        "desktop",
+                        "athlete"
+                      ],
+                      "href": "https://www.espn.com/tennis/player/_/id/17104/polina-iatcenko",
+                      "text": "Player Card",
+                      "shortText": "Player Card",
+                      "isExternal": false,
+                      "isPremium": false,
+                      "isHidden": false
+                    }
+                  ]
+                }
+              }
+            ],
+            "round": {
+              "id": "11",
+              "displayName": "Qualifying 1st Round"
+            }
+          },
+          {
+            "id": "187140",
+            "date": "2026-10-24T04:30Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "Sat, October 23rd at 12:30 AM EDT",
+                "shortDetail": "10/24 - 12:30 AM EDT"
+              }
+            },
+            "competitors": [
+              {
+                "id": "14606",
+                "athlete": {
+                  "guid": "4de89c8d-9ddf-3bec-9ffc-9acc44333516",
+                  "displayName": "Tyra Caterina Grant",
+                  "links": [
+                    {
+                      "language": "en-US",
+                      "rel": [
+                        "playercard",
+                        "desktop",
+                        "athlete"
+                      ],
+                      "href": "https://www.espn.com/tennis/player/_/id/14606/tyra-caterina-grant",
+                      "text": "Player Card",
+                      "shortText": "Player Card",
+                      "isExternal": false,
+                      "isPremium": false,
+                      "isHidden": false
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "14946",
+                "athlete": {
+                  "guid": "6b2ce574-b19e-35d0-9a69-d38b82155235",
+                  "displayName": "Elena Pridankina",
+                  "links": [
+                    {
+                      "language": "en-US",
+                      "rel": [
+                        "playercard",
+                        "desktop",
+                        "athlete"
+                      ],
+                      "href": "https://www.espn.com/tennis/player/_/id/14946/elena-pridankina",
+                      "text": "Player Card",
+                      "shortText": "Player Card",
+                      "isExternal": false,
+                      "isPremium": false,
+                      "isHidden": false
+                    }
+                  ]
+                }
+              }
+            ],
+            "round": {
+              "id": "11",
+              "displayName": "Qualifying 1st Round"
+            }
+          },
+          {
+            "id": "187134",
+            "date": "2026-10-24T04:30Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "Sat, October 23rd at 12:30 AM EDT",
+                "shortDetail": "10/24 - 12:30 AM EDT"
+              }
+            },
+            "competitors": [
+              {
+                "id": "17105",
+                "athlete": {
+                  "guid": "f70bb035-9f14-35cb-8ae9-53522d8a5308",
+                  "displayName": "Carol Young Suh Lee",
+                  "links": [
+                    {
+                      "language": "en-US",
+                      "rel": [
+                        "playercard",
+                        "desktop",
+                        "athlete"
+                      ],
+                      "href": "https://www.espn.com/tennis/player/_/id/17105/carol-young-suh-lee",
+                      "text": "Player Card",
+                      "shortText": "Player Card",
+                      "isExternal": false,
+                      "isPremium": false,
+                      "isHidden": false
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "15755",
+                "athlete": {
+                  "guid": "b335c79a-cac7-3280-85d3-cf316c083d1f",
+                  "displayName": "Jeline Vandromme",
+                  "links": [
+                    {
+                      "language": "en-US",
+                      "rel": [
+                        "playercard",
+                        "desktop",
+                        "athlete"
+                      ],
+                      "href": "https://www.espn.com/tennis/player/_/id/15755/jeline-vandromme",
+                      "text": "Player Card",
+                      "shortText": "Player Card",
+                      "isExternal": false,
+                      "isPremium": false,
+                      "isHidden": false
+                    }
+                  ]
+                }
+              }
+            ],
+            "round": {
+              "id": "11",
+              "displayName": "Qualifying 1st Round"
+            }
+          },
+          {
+            "id": "187137",
+            "date": "2026-10-24T06:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "Sat, October 23rd at 2:00 AM EDT",
+                "shortDetail": "10/24 - 2:00 AM EDT"
+              }
+            },
+            "competitors": [
+              {
+                "id": "12287",
+                "athlete": {
+                  "guid": "5aa8b0b1-96d8-3909-bd1b-5514427511bb",
+                  "displayName": "Emerson Jones",
+                  "links": [
+                    {
+                      "language": "en-US",
+                      "rel": [
+                        "playercard",
+                        "desktop",
+                        "athlete"
+                      ],
+                      "href": "https://www.espn.com/tennis/player/_/id/12287/emerson-jones",
+                      "text": "Player Card",
+                      "shortText": "Player Card",
+                      "isExternal": false,
+                      "isPremium": false,
+                      "isHidden": false
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "5538",
+                "athlete": {
+                  "guid": "3a3791e4-804b-3288-9ac2-6d229385f336",
+                  "displayName": "Hong Yi Cody Wong",
+                  "links": [
+                    {
+                      "language": "en-US",
+                      "rel": [
+                        "playercard",
+                        "desktop",
+                        "athlete"
+                      ],
+                      "href": "https://www.espn.com/tennis/player/_/id/5538/hong-yi-cody-wong",
+                      "text": "Player Card",
+                      "shortText": "Player Card",
+                      "isExternal": false,
+                      "isPremium": false,
+                      "isHidden": false
+                    }
+                  ]
+                }
+              }
+            ],
+            "round": {
+              "id": "11",
+              "displayName": "Qualifying 1st Round"
+            }
+          },
+          {
+            "id": "187135",
+            "date": "2026-10-24T06:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "Sat, October 23rd at 2:00 AM EDT",
+                "shortDetail": "10/24 - 2:00 AM EDT"
+              }
+            },
+            "competitors": [
+              {
+                "id": "2282",
+                "athlete": {
+                  "guid": "06af8fd6-7904-5809-504c-f17eedee32b7",
+                  "displayName": "Ekaterine Gorgodze",
+                  "links": [
+                    {
+                      "language": "en-US",
+                      "rel": [
+                        "playercard",
+                        "desktop",
+                        "athlete"
+                      ],
+                      "href": "https://www.espn.com/tennis/player/_/id/2282/ekaterine-gorgodze",
+                      "text": "Player Card",
+                      "shortText": "Player Card",
+                      "isExternal": false,
+                      "isPremium": false,
+                      "isHidden": false
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "12846",
+                "athlete": {
+                  "guid": "49f49102-5352-3be8-8b0c-4a9c42d17b6c",
+                  "displayName": "Tatiana Prozorova",
+                  "links": [
+                    {
+                      "language": "en-US",
+                      "rel": [
+                        "playercard",
+                        "desktop",
+                        "athlete"
+                      ],
+                      "href": "https://www.espn.com/tennis/player/_/id/12846/tatiana-prozorova",
+                      "text": "Player Card",
+                      "shortText": "Player Card",
+                      "isExternal": false,
+                      "isPremium": false,
+                      "isHidden": false
+                    }
+                  ]
+                }
+              }
+            ],
+            "round": {
+              "id": "11",
+              "displayName": "Qualifying 1st Round"
+            }
+          },
+          {
+            "id": "187131",
+            "date": "2026-10-24T07:30Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "Sat, October 24th at 3:30 AM EDT",
+                "shortDetail": "10/24 - 3:30 AM EDT"
+              }
+            },
+            "competitors": [
+              {
+                "id": "19244",
+                "athlete": {
+                  "guid": "9a380138-013b-35e2-806e-5d594445d458",
+                  "displayName": "Cheuk Ying Shek",
+                  "links": [
+                    {
+                      "language": "en-US",
+                      "rel": [
+                        "playercard",
+                        "desktop",
+                        "athlete"
+                      ],
+                      "href": "https://www.espn.com/tennis/player/_/id/19244/cheuk-ying-shek",
+                      "text": "Player Card",
+                      "shortText": "Player Card",
+                      "isExternal": false,
+                      "isPremium": false,
+                      "isHidden": false
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "2200",
+                "athlete": {
+                  "guid": "a8294af7-4c05-5b17-ba48-b136a5560a60",
+                  "displayName": "Harriet Dart",
+                  "links": [
+                    {
+                      "language": "en-US",
+                      "rel": [
+                        "playercard",
+                        "desktop",
+                        "athlete"
+                      ],
+                      "href": "https://www.espn.com/tennis/player/_/id/2200/harriet-dart",
+                      "text": "Player Card",
+                      "shortText": "Player Card",
+                      "isExternal": false,
+                      "isPremium": false,
+                      "isHidden": false
+                    }
+                  ]
+                }
+              }
+            ],
+            "round": {
+              "id": "11",
+              "displayName": "Qualifying 1st Round"
+            }
+          },
+          {
+            "id": "187133",
+            "date": "2026-10-24T07:30Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "Sat, October 24th at 3:30 AM EDT",
+                "shortDetail": "10/24 - 3:30 AM EDT"
+              }
+            },
+            "competitors": [
+              {
+                "id": "2584",
+                "athlete": {
+                  "guid": "04d55b64-8a4d-3bae-a476-adaa67d3bf56",
+                  "displayName": "Maddison Inglis",
+                  "links": [
+                    {
+                      "language": "en-US",
+                      "rel": [
+                        "playercard",
+                        "desktop",
+                        "athlete"
+                      ],
+                      "href": "https://www.espn.com/tennis/player/_/id/2584/maddison-inglis",
+                      "text": "Player Card",
+                      "shortText": "Player Card",
+                      "isExternal": false,
+                      "isPremium": false,
+                      "isHidden": false
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "3705",
+                "athlete": {
+                  "guid": "84ea73a5-5f1f-c657-ddae-0ed0c40143b8",
+                  "displayName": "Joanna Garland",
+                  "links": [
+                    {
+                      "language": "en-US",
+                      "rel": [
+                        "playercard",
+                        "desktop",
+                        "athlete"
+                      ],
+                      "href": "https://www.espn.com/tennis/player/_/id/3705/joanna-garland",
+                      "text": "Player Card",
+                      "shortText": "Player Card",
+                      "isExternal": false,
+                      "isPremium": false,
+                      "isHidden": false
+                    }
+                  ]
+                }
+              }
+            ],
+            "round": {
+              "id": "11",
+              "displayName": "Qualifying 1st Round"
+            }
+          },
+          {
+            "id": "187130",
+            "date": "2026-10-24T09:30Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "Sat, October 24th at 5:30 AM EDT",
+                "shortDetail": "10/24 - 5:30 AM EDT"
+              }
+            },
+            "competitors": [
+              {
+                "id": "2603",
+                "athlete": {
+                  "guid": "47504e91-acd2-3e13-44f0-19644260ed59",
+                  "displayName": "You Xiaodi",
+                  "links": [
+                    {
+                      "language": "en-US",
+                      "rel": [
+                        "playercard",
+                        "desktop",
+                        "athlete"
+                      ],
+                      "href": "https://www.espn.com/tennis/player/_/id/2603/you-xiaodi",
+                      "text": "Player Card",
+                      "shortText": "Player Card",
+                      "isExternal": false,
+                      "isPremium": false,
+                      "isHidden": false
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "3142",
+                "athlete": {
+                  "guid": "f1f5e291-f3f1-c3b8-adf5-94c9ee20b48b",
+                  "displayName": "Dayana Yastremska",
+                  "links": [
+                    {
+                      "language": "en-US",
+                      "rel": [
+                        "playercard",
+                        "desktop",
+                        "athlete"
+                      ],
+                      "href": "https://www.espn.com/tennis/player/_/id/3142/dayana-yastremska",
+                      "text": "Player Card",
+                      "shortText": "Player Card",
+                      "isExternal": false,
+                      "isPremium": false,
+                      "isHidden": false
+                    }
+                  ]
+                }
+              }
+            ],
+            "round": {
+              "id": "11",
+              "displayName": "Qualifying 1st Round"
+            }
+          },
+          {
+            "id": "187129",
+            "date": "2026-10-24T10:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "Sat, October 24th at 6:00 AM EDT",
+                "shortDetail": "10/24 - 6:00 AM EDT"
+              }
+            },
+            "competitors": [
+              {
+                "id": "16002",
+                "athlete": {
+                  "guid": "ca370891-0413-3862-9637-1cfaa120eb76",
+                  "displayName": "Teodora Kostovic",
+                  "links": [
+                    {
+                      "language": "en-US",
+                      "rel": [
+                        "playercard",
+                        "desktop",
+                        "athlete"
+                      ],
+                      "href": "https://www.espn.com/tennis/player/_/id/16002/teodora-kostovic",
+                      "text": "Player Card",
+                      "shortText": "Player Card",
+                      "isExternal": false,
+                      "isPremium": false,
+                      "isHidden": false
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "15421",
+                "athlete": {
+                  "guid": "9ac9b399-7b01-3abb-b4d7-57bdc9d85f61",
+                  "displayName": "Qu Yihan",
+                  "links": [
+                    {
+                      "language": "en-US",
+                      "rel": [
+                        "playercard",
+                        "desktop",
+                        "athlete"
+                      ],
+                      "href": "https://www.espn.com/tennis/player/_/id/15421/qu-yihan",
+                      "text": "Player Card",
+                      "shortText": "Player Card",
+                      "isExternal": false,
+                      "isPremium": false,
+                      "isHidden": false
+                    }
+                  ]
+                }
+              }
+            ],
+            "round": {
+              "id": "11",
+              "displayName": "Qualifying 1st Round"
+            }
+          },
+          {
+            "id": "187139",
+            "date": "2026-10-24T10:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "Sat, October 24th at 6:00 AM EDT",
+                "shortDetail": "10/24 - 6:00 AM EDT"
+              }
+            },
+            "competitors": [
+              {
+                "id": "3889",
+                "athlete": {
+                  "guid": "0aa547c1-9cd6-e728-0e86-f0f64ba35d8f",
+                  "displayName": "Katarzyna Kawa",
+                  "links": [
+                    {
+                      "language": "en-US",
+                      "rel": [
+                        "playercard",
+                        "desktop",
+                        "athlete"
+                      ],
+                      "href": "https://www.espn.com/tennis/player/_/id/3889/katarzyna-kawa",
+                      "text": "Player Card",
+                      "shortText": "Player Card",
+                      "isExternal": false,
+                      "isPremium": false,
+                      "isHidden": false
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "6929",
+                "athlete": {
+                  "guid": "c2f3c623-cba2-31c1-a3bd-c3392f029d0a",
+                  "displayName": "Linda Fruhvirtova",
+                  "links": [
+                    {
+                      "language": "en-US",
+                      "rel": [
+                        "playercard",
+                        "desktop",
+                        "athlete"
+                      ],
+                      "href": "https://www.espn.com/tennis/player/_/id/6929/linda-fruhvirtova",
+                      "text": "Player Card",
+                      "shortText": "Player Card",
+                      "isExternal": false,
+                      "isPremium": false,
+                      "isHidden": false
+                    }
+                  ]
+                }
+              }
+            ],
+            "round": {
+              "id": "11",
+              "displayName": "Qualifying 1st Round"
+            }
+          },
+          {
+            "id": "187138",
+            "date": "2026-10-24T11:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "Sat, October 24th at 7:00 AM EDT",
+                "shortDetail": "10/24 - 7:00 AM EDT"
+              }
+            },
+            "competitors": [
+              {
+                "id": "15423",
+                "athlete": {
+                  "guid": "c171b510-c7d9-3fd5-8369-26a5a705093f",
+                  "displayName": "Zhang Ruien",
+                  "links": [
+                    {
+                      "language": "en-US",
+                      "rel": [
+                        "playercard",
+                        "desktop",
+                        "athlete"
+                      ],
+                      "href": "https://www.espn.com/tennis/player/_/id/15423/zhang-ruien",
+                      "text": "Player Card",
+                      "shortText": "Player Card",
+                      "isExternal": false,
+                      "isPremium": false,
+                      "isHidden": false
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "5775",
+                "athlete": {
+                  "guid": "cdb8b7e4-126d-360f-9a1c-56339e7c4783",
+                  "displayName": "Anastasia Zakharova",
+                  "links": [
+                    {
+                      "language": "en-US",
+                      "rel": [
+                        "playercard",
+                        "desktop",
+                        "athlete"
+                      ],
+                      "href": "https://www.espn.com/tennis/player/_/id/5775/anastasia-zakharova",
+                      "text": "Player Card",
+                      "shortText": "Player Card",
+                      "isExternal": false,
+                      "isPremium": false,
+                      "isHidden": false
+                    }
+                  ]
+                }
+              }
+            ],
+            "round": {
+              "id": "11",
+              "displayName": "Qualifying 1st Round"
+            }
+          },
+          {
+            "id": "185705",
+            "date": "2026-10-26T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "1",
+              "displayName": "Round 1"
+            }
+          },
+          {
+            "id": "187141",
+            "date": "2026-10-26T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "14",
+              "displayName": "Qualifying Final"
+            }
+          },
+          {
+            "id": "187142",
+            "date": "2026-10-26T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "14",
+              "displayName": "Qualifying Final"
+            }
+          },
+          {
+            "id": "187143",
+            "date": "2026-10-26T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "14",
+              "displayName": "Qualifying Final"
+            }
+          },
+          {
+            "id": "187144",
+            "date": "2026-10-26T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "14",
+              "displayName": "Qualifying Final"
+            }
+          },
+          {
+            "id": "187145",
+            "date": "2026-10-26T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "14",
+              "displayName": "Qualifying Final"
+            }
+          },
+          {
+            "id": "187146",
+            "date": "2026-10-26T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "14",
+              "displayName": "Qualifying Final"
+            }
+          },
+          {
+            "id": "185724",
+            "date": "2026-10-26T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "1",
+              "displayName": "Round 1"
+            }
+          },
+          {
+            "id": "185715",
+            "date": "2026-10-26T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "1",
+              "displayName": "Round 1"
+            }
+          },
+          {
+            "id": "185716",
+            "date": "2026-10-26T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "1",
+              "displayName": "Round 1"
+            }
+          },
+          {
+            "id": "185718",
+            "date": "2026-10-26T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "1",
+              "displayName": "Round 1"
+            }
+          },
+          {
+            "id": "185721",
+            "date": "2026-10-26T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "1",
+              "displayName": "Round 1"
+            }
+          },
+          {
+            "id": "185723",
+            "date": "2026-10-26T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "1",
+              "displayName": "Round 1"
+            }
+          },
+          {
+            "id": "185708",
+            "date": "2026-10-26T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "1",
+              "displayName": "Round 1"
+            }
+          },
+          {
+            "id": "185713",
+            "date": "2026-10-26T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "1",
+              "displayName": "Round 1"
+            }
+          },
+          {
+            "id": "185725",
+            "date": "2026-10-26T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "1",
+              "displayName": "Round 1"
+            }
+          },
+          {
+            "id": "185726",
+            "date": "2026-10-26T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "1",
+              "displayName": "Round 1"
+            }
+          },
+          {
+            "id": "185711",
+            "date": "2026-10-26T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "1",
+              "displayName": "Round 1"
+            }
+          },
+          {
+            "id": "185709",
+            "date": "2026-10-26T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "1",
+              "displayName": "Round 1"
+            }
+          },
+          {
+            "id": "185707",
+            "date": "2026-10-26T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "1",
+              "displayName": "Round 1"
+            }
+          },
+          {
+            "id": "185712",
+            "date": "2026-10-26T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "1",
+              "displayName": "Round 1"
+            }
+          },
+          {
+            "id": "185728",
+            "date": "2026-10-26T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "1",
+              "displayName": "Round 1"
+            }
+          },
+          {
+            "id": "185714",
+            "date": "2026-10-28T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "2",
+              "displayName": "Round 2"
+            }
+          },
+          {
+            "id": "185722",
+            "date": "2026-10-28T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "2",
+              "displayName": "Round 2"
+            }
+          },
+          {
+            "id": "185710",
+            "date": "2026-10-28T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "2",
+              "displayName": "Round 2"
+            }
+          },
+          {
+            "id": "185720",
+            "date": "2026-10-28T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "2",
+              "displayName": "Round 2"
+            }
+          },
+          {
+            "id": "185719",
+            "date": "2026-10-28T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "2",
+              "displayName": "Round 2"
+            }
+          },
+          {
+            "id": "185727",
+            "date": "2026-10-28T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "2",
+              "displayName": "Round 2"
+            }
+          },
+          {
+            "id": "185717",
+            "date": "2026-10-28T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "2",
+              "displayName": "Round 2"
+            }
+          },
+          {
+            "id": "185706",
+            "date": "2026-10-28T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "2",
+              "displayName": "Round 2"
+            }
+          },
+          {
+            "id": "185729",
+            "date": "2026-10-30T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "5",
+              "displayName": "Quarterfinal"
+            }
+          },
+          {
+            "id": "185730",
+            "date": "2026-10-30T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "5",
+              "displayName": "Quarterfinal"
+            }
+          },
+          {
+            "id": "185731",
+            "date": "2026-10-30T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "5",
+              "displayName": "Quarterfinal"
+            }
+          },
+          {
+            "id": "185732",
+            "date": "2026-10-30T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "5",
+              "displayName": "Quarterfinal"
+            }
+          },
+          {
+            "id": "185733",
+            "date": "2026-10-31T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "6",
+              "displayName": "Semifinal"
+            }
+          },
+          {
+            "id": "185734",
+            "date": "2026-10-31T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "6",
+              "displayName": "Semifinal"
+            }
+          },
+          {
+            "id": "185735",
+            "date": "2026-11-01T04:00Z",
+            "status": {
+              "period": 1,
+              "type": {
+                "id": "1",
+                "name": "STATUS_SCHEDULED",
+                "state": "pre",
+                "completed": false,
+                "description": "Scheduled",
+                "detail": "M/d - 'TBD'",
+                "shortDetail": "TBD"
+              }
+            },
+            "competitors": [
+              {
+                "id": "-4",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              },
+              {
+                "id": "-3",
+                "athlete": {
+                  "displayName": "TBD",
+                  "links": []
+                }
+              }
+            ],
+            "round": {
+              "id": "7",
+              "displayName": "Final"
+            }
+          }
+        ]
+      }
+    ],
+    "venue": {
+      "displayName": "Guangzhou, China PR"
+    }
+  },
+  "historyRows": [
+    {
+      "tourney_id": "2023-1074",
+      "tourney_name": "Hong Kong",
+      "surface": "Hard",
+      "tourney_level": "I",
+      "tourney_date": "20231009",
+      "match_num": "275",
+      "winner_id": "216139",
+      "winner_name": "Sofya Lansere",
+      "loser_id": "216587",
+      "loser_name": "Hong Yi Cody Wong",
+      "score": "6-4 6-0",
+      "best_of": "3",
+      "round": "R32",
+      "capturedSource": "historical/2023.csv"
+    },
+    {
+      "tourney_id": "2026-W1165",
+      "tourney_name": "Jiujiang 125",
+      "surface": "Hard",
+      "tourney_level": "Q",
+      "tourney_date": "20260502",
+      "match_num": "",
+      "round": "Q1",
+      "best_of": "3",
+      "score": "6-0 6-2",
+      "winner_name": "Hong Yi Cody Wong",
+      "loser_name": "Chengyiyi Yuan",
+      "winner_id": "326723",
+      "loser_id": "324575",
+      "draw_level": "qual",
+      "capturedSource": "lower/2026_wta_lower.csv"
+    },
+    {
+      "tourney_id": "2026-W1165",
+      "tourney_name": "Jiujiang 125",
+      "surface": "Hard",
+      "tourney_level": "Q",
+      "tourney_date": "20260503",
+      "match_num": "",
+      "round": "Q2",
+      "best_of": "3",
+      "score": "4-6 6-2 6-2",
+      "winner_name": "Hong Yi Cody Wong",
+      "loser_name": "Varvara Panshina",
+      "winner_id": "326723",
+      "loser_id": "334622",
+      "draw_level": "qual",
+      "capturedSource": "lower/2026_wta_lower.csv"
+    },
+    {
+      "tourney_id": "2026-W1165",
+      "tourney_name": "Jiujiang 125",
+      "surface": "Hard",
+      "tourney_level": "WTA125",
+      "tourney_date": "20260504",
+      "match_num": "",
+      "round": "R32",
+      "best_of": "3",
+      "score": "6-2 6-1",
+      "winner_name": "Xinxin Yao",
+      "loser_name": "Hong Yi Cody Wong",
+      "winner_id": "331361",
+      "loser_id": "326723",
+      "draw_level": "chall",
+      "capturedSource": "lower/2026_wta_lower.csv"
+    },
+    {
+      "tourney_id": "2026-W2064",
+      "tourney_name": "Vancouver 125",
+      "surface": "Hard",
+      "tourney_level": "Q",
+      "tourney_date": "20260726",
+      "match_num": "",
+      "round": "Q1",
+      "best_of": "3",
+      "score": "6-2 7-6(1)",
+      "winner_name": "Hong Yi Cody Wong",
+      "loser_name": "Dasha Plekhanova",
+      "winner_id": "326723",
+      "loser_id": "330298",
+      "draw_level": "qual",
+      "capturedSource": "lower/2026_wta_lower.csv"
+    },
+    {
+      "tourney_id": "2026-W2064",
+      "tourney_name": "Vancouver 125",
+      "surface": "Hard",
+      "tourney_level": "Q",
+      "tourney_date": "20260728",
+      "match_num": "",
+      "round": "Q2",
+      "best_of": "3",
+      "score": "5-7 6-3 6-1",
+      "winner_name": "Hong Yi Cody Wong",
+      "loser_name": "Sijia Wei",
+      "winner_id": "326723",
+      "loser_id": "328426",
+      "draw_level": "qual",
+      "capturedSource": "lower/2026_wta_lower.csv"
+    },
+    {
+      "tourney_id": "2026-W2064",
+      "tourney_name": "Vancouver 125",
+      "surface": "Hard",
+      "tourney_level": "WTA125",
+      "tourney_date": "20260729",
+      "match_num": "",
+      "round": "R32",
+      "best_of": "3",
+      "score": "2-6 6-3 7-5",
+      "winner_name": "Himeno Sakatsume",
+      "loser_name": "Hong Yi Cody Wong",
+      "winner_id": "326568",
+      "loser_id": "326723",
+      "draw_level": "chall",
+      "capturedSource": "lower/2026_wta_lower.csv"
+    },
+    {
+      "tourney_id": "2026-W1166",
+      "tourney_name": "Philadelphia 125",
+      "surface": "Hard",
+      "tourney_level": "WTA125",
+      "tourney_date": "20260823",
+      "match_num": "",
+      "round": "R32",
+      "best_of": "3",
+      "score": "6-2 6-1",
+      "winner_name": "Katie Volynets",
+      "loser_name": "Hong Yi Cody Wong",
+      "winner_id": "327391",
+      "loser_id": "326723",
+      "draw_level": "chall",
+      "capturedSource": "lower/2026_wta_lower.csv"
+    },
+    {
+      "tourney_id": "2025-W1143",
+      "tourney_name": "Jingshan 125",
+      "surface": "Hard",
+      "tourney_level": "WTA125",
+      "tourney_date": "20250923",
+      "match_num": "",
+      "round": "R32",
+      "best_of": "3",
+      "score": "6-4 6-1",
+      "winner_name": "Mei Yamaguchi",
+      "loser_name": "Hong Yi Cody Wong",
+      "winner_id": "325473",
+      "loser_id": "326723",
+      "draw_level": "chall",
+      "capturedSource": "lower/2025_wta_lower.csv"
+    },
+    {
+      "tourney_id": "2025-W1023",
+      "tourney_name": "Guangzhou",
+      "surface": "Hard",
+      "tourney_level": "Q",
+      "tourney_date": "20251019",
+      "match_num": "",
+      "round": "Q1",
+      "best_of": "3",
+      "score": "3-6 6-3 7-5",
+      "winner_name": "Hong Yi Cody Wong",
+      "loser_name": "Whitney Osuigwe",
+      "winner_id": "326723",
+      "loser_id": "326101",
+      "draw_level": "qual",
+      "capturedSource": "lower/2025_wta_lower.csv"
+    },
+    {
+      "tourney_id": "2025-W1023",
+      "tourney_name": "Guangzhou",
+      "surface": "Hard",
+      "tourney_level": "Q",
+      "tourney_date": "20251020",
+      "match_num": "",
+      "round": "Q2",
+      "best_of": "3",
+      "score": "5-7 7-6(5) 6-4",
+      "winner_name": "Katarzyna Kawa",
+      "loser_name": "Hong Yi Cody Wong",
+      "winner_id": "315806",
+      "loser_id": "326723",
+      "draw_level": "qual",
+      "capturedSource": "lower/2025_wta_lower.csv"
+    },
+    {
+      "tourney_id": "2018-W1074",
+      "tourney_name": "Hong Kong",
+      "surface": "Hard",
+      "tourney_level": "Q",
+      "tourney_date": "20181006",
+      "match_num": "",
+      "round": "Q1",
+      "best_of": "3",
+      "score": "6-3 6-1",
+      "winner_name": "Julia Glushko",
+      "loser_name": "Hong Yi Cody Wong",
+      "winner_id": "312889",
+      "loser_id": "326723",
+      "draw_level": "qual",
+      "capturedSource": "lower/2018_wta_lower.csv"
+    },
+    {
+      "tourney_id": "2017-W1074",
+      "tourney_name": "Hong Kong",
+      "surface": "Hard",
+      "tourney_level": "Q",
+      "tourney_date": "20171007",
+      "match_num": "",
+      "round": "Q1",
+      "best_of": "3",
+      "score": "6-4 6-4",
+      "winner_name": "Valentini Grammatikopoulou",
+      "loser_name": "Hong Yi Cody Wong",
+      "winner_id": "319250",
+      "loser_id": "326723",
+      "draw_level": "qual",
+      "capturedSource": "lower/2017_wta_lower.csv"
+    },
+    {
+      "tourney_id": "2024-W1109",
+      "tourney_name": "Hong Kong 125",
+      "surface": "Hard",
+      "tourney_level": "WTA125",
+      "tourney_date": "20240930",
+      "match_num": "",
+      "round": "R32",
+      "best_of": "3",
+      "score": "6-4 6-4",
+      "winner_name": "Anna Bondar",
+      "loser_name": "Hong Yi Cody Wong",
+      "winner_id": "322942",
+      "loser_id": "326723",
+      "draw_level": "chall",
+      "capturedSource": "lower/2024_wta_lower.csv"
+    },
+    {
+      "tourney_id": "2025-W1074",
+      "tourney_name": "Hong Kong",
+      "surface": "Hard",
+      "tourney_level": "WTA250",
+      "tourney_date": "20251027",
+      "match_num": "",
+      "round": "R32",
+      "best_of": "3",
+      "score": "6-1 6-0",
+      "winner_name": "Viktoria Morvayova",
+      "loser_name": "Hong Yi Cody Wong",
+      "winner_id": "324465",
+      "loser_id": "326723",
+      "capturedSource": "stats/2025.csv"
+    },
+    {
+      "tourney_id": "2024-W1074",
+      "tourney_name": "Hong Kong",
+      "surface": "Hard",
+      "tourney_level": "WTA250",
+      "tourney_date": "20241029",
+      "match_num": "",
+      "round": "R32",
+      "best_of": "3",
+      "score": "6-3 6-3",
+      "winner_name": "Cristina Bucsa",
+      "loser_name": "Hong Yi Cody Wong",
+      "winner_id": "321158",
+      "loser_id": "326723",
+      "capturedSource": "stats/2024.csv"
+    },
+    {
+      "tourney_name": "Hong Kong",
+      "tourney_level": "WTA250",
+      "tourney_date": "2025/10/27",
+      "surface": "Hard",
+      "round": "R32",
+      "best_of": "3",
+      "winner_name": "Viktoria Morvayova",
+      "loser_name": "Wong Hong Yi Cody",
+      "score": "6-1 6-0",
+      "capturedSource": "fresh/2025.csv"
+    }
+  ],
+  "identityReview": {
+    "kind": "player_alias",
+    "tour": "wta",
+    "variant": "Wong Hong Yi Cody",
+    "canonical": "Hong Yi Cody Wong",
+    "same_person": true,
+    "wtaId": "326723",
+    "sources": [
+      "https://www.wtatennis.com/players/326723/hong-yi-cody-wong/record",
+      "https://www.wtatennis.com/players/326723/hong-yi-cody-wong/"
+    ]
+  }
+}

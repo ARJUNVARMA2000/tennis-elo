@@ -169,11 +169,12 @@ WTA_DUAL_STATE_GATE_THRESHOLD = 32
 # Version 20 joins Suzhou's Guo/Zhang and Shanghai's Xiao/Te/Zhang to rated histories.
 # Version 21 joins Shanghai's newly released Wu main-draw identity to rated history.
 # Version 22 joins the recurring Shanghai Bu name-order split before source selection.
-MATCH_POPULATION_VERSION = 22
+# Version 23 joins Guangzhou qualifier Wong's reversed mirror name to her WTA history.
+MATCH_POPULATION_VERSION = 23
 REVIEWED_RESULTS = {
-    'atp': {'sha256': '944bda5f1e6a48d00afc6e70e40689427f60ebaeb0759ab48d765d62790e1e54',
+    'atp': {'sha256': 'c33fbf5d38752e45b4180a2383621f08563ccb2e191db9a25afa64edcdb58e2a',
             'records': 0, 'quarantines': 0},
-    'wta': {'sha256': '61597c09729320d2eb7c8664c2d99ac9124b2fbdd3cd2ad59f0e390573dc4838',
+    'wta': {'sha256': '42f29f3248675907be5ecd1bc7e46dab22168a6961f9c25ef94dae18eaa6dc65',
             'records': 528, 'quarantines': 1},
 }
 
@@ -838,6 +839,10 @@ PLAYER_ALIASES: dict[str, str] = {
     # Caldas ESPN uses family-name-first; its official PDF says GAO, Xinyu.
     # https://www.wtatennis.com/players/322925/xinyu-gao
     "gao xinyu": "Xinyu Gao",
+    # WTA 326723 and the 2025 Hong Kong Morvayova result corroborate the mirror's
+    # family-name-first spelling. Preserve the official/majority historical name.
+    # https://www.wtatennis.com/players/326723/hong-yi-cody-wong/record
+    "wong hong yi cody": "Hong Yi Cody Wong",
     # WTA profile 322451 and its 2026 US Open qualifying report use both orders.
     # https://www.wtatennis.com/players/322451/xiaodi-you
     "you xiaodi": "Xiaodi You",
