@@ -1,0 +1,273 @@
+{
+  "repairCommit": "7f93aeb089870aad6b0fc7f9bd52abd482284019",
+  "failedRun": "https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/39961633595",
+  "rootCause": "Guangzhou qualifying exposed the official and reordered Wong names as separate rated players. The source gate correctly blocked publication; the weekly alias proposer omitted exact-token reorderings from candidate discovery.",
+  "identityReview": {
+    "kind": "player_alias",
+    "tour": "wta",
+    "variant": "Wong Hong Yi Cody",
+    "canonical": "Hong Yi Cody Wong",
+    "same_person": true,
+    "wtaId": "326723",
+    "sources": [
+      "https://www.wtatennis.com/players/326723/hong-yi-cody-wong/record",
+      "https://www.wtatennis.com/players/326723/hong-yi-cody-wong/"
+    ]
+  },
+  "capturedAt": "2026-10-23T14:12:24Z",
+  "matchEvidence": {
+    "sourceRows": 17,
+    "mergedRows": 16,
+    "duplicateResultsRemoved": 1,
+    "unaffectedResultsPreserved": true
+  },
+  "repair": "Reviewed canonical alias; population 23 rebuild; exact-token multiset candidates enter the existing adjudication and falsification process, never an automatic merge.",
+  "regressions": [
+    "captured unfinished qualifier blocks before alias review and passes afterwards",
+    "both names already rated",
+    "official matching result and alias falsifier",
+    "real merge preserves all nonduplicate history and repeats identically",
+    "reordered names rejected when head-to-head or conflicting IDs refute identity",
+    "repeated name tokens are not discarded",
+    "stale saved predictors rejected"
+  ],
+  "validation": {
+    "localPythonPassed": 2050,
+    "finalFocusedPassed": 39,
+    "ciPythonPassed": 2049,
+    "ciPythonSkipped": 1,
+    "ciWebPassed": 375,
+    "ciLintTypesBuildBrowser": "passed",
+    "healthErrorCount": 0,
+    "closedIssues": [
+      172,
+      173
+    ],
+    "remainingWarningIssue": 170
+  },
+  "preDeploymentSourceIdentityScans": [
+    {
+      "tour": "atp",
+      "observedAt": "2026-10-23T14:17:49Z",
+      "events": 9,
+      "acquisition": "success",
+      "identityFindings": [],
+      "scope": "current/future source calendars plus retained published brackets",
+      "scopedSourceIds": [
+        "440-2026",
+        "708-2026",
+        "110-2026",
+        "452-2026",
+        "13-2026",
+        "10-2026",
+        "23-2026"
+      ],
+      "publishedBracketIds": [
+        "708-2026",
+        "440-2026",
+        "110-2026",
+        "13-2026",
+        "315-2026",
+        "5-2026"
+      ]
+    },
+    {
+      "tour": "wta",
+      "observedAt": "2026-10-23T14:17:50Z",
+      "events": 20,
+      "acquisition": "success",
+      "identityFindings": [],
+      "scope": "current/future source calendars plus retained published brackets",
+      "scopedSourceIds": [
+        "345-2026",
+        "963-2026",
+        "1037-2026",
+        "232-2026",
+        "264-2026",
+        "1083-2026",
+        "380-2026",
+        "889-2026",
+        "1007-2026",
+        "1082-2026",
+        "1034-2026",
+        "1080-2026",
+        "1081-2026"
+      ],
+      "publishedBracketIds": [
+        "963-2026",
+        "345-2026",
+        "889-2026",
+        "1007-2026",
+        "1079-2026",
+        "1020-2026",
+        "1025-2026",
+        "381-2026",
+        "959-2026",
+        "1036-2026",
+        "1029-2026"
+      ]
+    }
+  ],
+  "fullRebuild": {
+    "run": "https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/39969403010",
+    "attempt": 2,
+    "workflowConclusion": "failure",
+    "workflowFailureReason": "Existing report-data-health policy marks full runs red for active warnings; only ATP forecast drift remained. Publication and verification succeeded.",
+    "dataGate": "passed",
+    "ciLiveChecks": "22/22",
+    "independentLiveChecks": "22/22",
+    "generatedAt": "2026-10-23T15:07:47Z",
+    "release": {
+      "schema": "artifact-lineage-v1",
+      "status": "accepted",
+      "releaseId": "7986b13f-4782-4e83-b9fc-512a119d797d",
+      "manifestSha256": "dfcb36eb996bd435667c0a1f17e97446683ccf96b5175cba7fdf43aa23e259c1",
+      "tours": [
+        "atp",
+        "wta"
+      ]
+    },
+    "tours": {
+      "atp": {
+        "trainedAt": "2026-10-23T14:47:49Z",
+        "population": 23,
+        "modelPopulation": 23,
+        "sourceAudit": {
+          "sha256": "3c16536b97512cde4d089131ba0af922a06799b4f98435ac6db535b3b205fe5d",
+          "observedAt": "2026-10-23T14:42:42Z"
+        }
+      },
+      "wta": {
+        "trainedAt": "2026-10-23T15:05:21Z",
+        "population": 23,
+        "modelPopulation": 23,
+        "sourceAudit": {
+          "sha256": "b0c42cb3a348c32c718081f38977391f9992251f652b69702d767adbe8e8be22",
+          "observedAt": "2026-10-23T14:42:51Z"
+        }
+      }
+    },
+    "healthOk": false,
+    "findings": [
+      {
+        "schema": "health-finding-v1",
+        "fingerprint": "hf1:26bab57c67924ea7b792d37eca3e84762b51d6f5be9ed9a7611efb8b75c6bac3",
+        "revision": "hr1:da4cfd6bc580d6cb2ff05fe48c897e3d8c186b81517ec1c1fb6f2c230275a912",
+        "code": "source.charting.coverage_age",
+        "severity": "info",
+        "scope": "source",
+        "tour": "atp",
+        "entity": "match-charting:atp",
+        "evidence": {
+          "value": 155,
+          "limit": 90,
+          "unit": "d",
+          "date": "2026-05-21"
+        },
+        "message": "atp: Match charting (MCP): volunteer batch source; newest charted match is 155d old (coverage note after 90d)"
+      },
+      {
+        "schema": "health-finding-v1",
+        "fingerprint": "hf1:5569921c45af9514b4f608158363f168b080b21137d634d9ca3efa764e2feea3",
+        "revision": "hr1:4c9fb29ccff43d93111e0b3671ee138f7142cabdcc28b995680e4af22dc15f59",
+        "code": "output.model.forecast_drift",
+        "severity": "warning",
+        "scope": "output",
+        "tour": "atp",
+        "entity": "predictor:atp",
+        "evidence": {
+          "n": 650,
+          "windowDays": 90,
+          "logloss": 0.6344,
+          "expectedLogloss": 0.5873,
+          "d": 0.0472,
+          "t": 2.61
+        },
+        "message": "atp: forecast drift over last 650 graded (90d): live logloss 0.6344 vs self-expected 0.5873 (d=+0.0472, t=2.61) — model scoring worse than its stated confidence; re-tune recommended"
+      }
+    ]
+  },
+  "normalRefresh": {
+    "conclusion": "success",
+    "headSha": "8570d54341b817aec93d6d246f229a1e46fc3533",
+    "status": "completed",
+    "url": "https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/39976072659",
+    "mode": "quick",
+    "dataGate": "passed",
+    "ciLiveChecks": "22/22",
+    "independentLiveChecks": "22/22",
+    "reusedRebuiltModels": true,
+    "canonicalWtaInventoryCount": 1,
+    "variantInventoryCount": 0,
+    "generatedAt": "2026-10-23T15:16:03Z",
+    "release": {
+      "schema": "artifact-lineage-v1",
+      "status": "accepted",
+      "releaseId": "3cc6083a-f0fa-4a77-a7a4-177320ea42cc",
+      "manifestSha256": "06ceace16d48f47230472e04b587e64814e072543fdb548ade9b3be7c5c6bd17",
+      "tours": [
+        "atp",
+        "wta"
+      ]
+    },
+    "tours": {
+      "atp": {
+        "trainedAt": "2026-10-23T14:47:49Z",
+        "population": 23,
+        "modelPopulation": 23,
+        "sourceAudit": {
+          "sha256": "e559ced78e77c950c58f1edaa1609b36ecf6820ee9a56d0c74184d02bbfda232",
+          "observedAt": "2026-10-23T15:12:06Z"
+        }
+      },
+      "wta": {
+        "trainedAt": "2026-10-23T15:05:21Z",
+        "population": 23,
+        "modelPopulation": 23,
+        "sourceAudit": {
+          "sha256": "72d926a65a64e3ad4f2771a74aafae2cc1a9bbb374b5670fb4e6e32fa10501fd",
+          "observedAt": "2026-10-23T15:12:14Z"
+        }
+      }
+    },
+    "healthOk": false,
+    "findings": [
+      {
+        "schema": "health-finding-v1",
+        "fingerprint": "hf1:26bab57c67924ea7b792d37eca3e84762b51d6f5be9ed9a7611efb8b75c6bac3",
+        "revision": "hr1:da4cfd6bc580d6cb2ff05fe48c897e3d8c186b81517ec1c1fb6f2c230275a912",
+        "code": "source.charting.coverage_age",
+        "severity": "info",
+        "scope": "source",
+        "tour": "atp",
+        "entity": "match-charting:atp",
+        "evidence": {
+          "value": 155,
+          "limit": 90,
+          "unit": "d",
+          "date": "2026-05-21"
+        },
+        "message": "atp: Match charting (MCP): volunteer batch source; newest charted match is 155d old (coverage note after 90d)"
+      },
+      {
+        "schema": "health-finding-v1",
+        "fingerprint": "hf1:5569921c45af9514b4f608158363f168b080b21137d634d9ca3efa764e2feea3",
+        "revision": "hr1:78604b5531ee46f3a799063f307e63b8eb3ed77e3c4bd9bd801aacbfe9d02a8a",
+        "code": "output.model.forecast_drift",
+        "severity": "warning",
+        "scope": "output",
+        "tour": "atp",
+        "entity": "predictor:atp",
+        "evidence": {
+          "n": 651,
+          "windowDays": 90,
+          "logloss": 0.6338,
+          "expectedLogloss": 0.5871,
+          "d": 0.0467,
+          "t": 2.58
+        },
+        "message": "atp: forecast drift over last 651 graded (90d): live logloss 0.6338 vs self-expected 0.5871 (d=+0.0467, t=2.58) — model scoring worse than its stated confidence; re-tune recommended"
+      }
+    ]
+  }
+}

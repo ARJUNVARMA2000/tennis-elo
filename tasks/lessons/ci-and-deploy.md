@@ -328,3 +328,18 @@ Exercise committed benchmark history before release, not only synthetic current-
   cutoff in the main or enriched WTA state. Select one audit date at least as late as
   both cutoffs, include it in the evidence digest, and preserve the predictor's strict
   anti-rewind check. Test distinct branch cutoffs and same-day timestamps.
+
+- **An unchanged CI stage does not prove a stalled process.** (2026-10-23)
+  The browser-install step exposed no live CLI logs and remained active for eight
+  minutes. Cancellation revealed steady Ubuntu package downloads at about 40 KB/s,
+  near completion. Preserve a running preflight within its configured timeout unless
+  actual logs or another independent signal establish a stall; phase duration alone
+  is insufficient evidence to cancel. Slow progress and no progress need different action.
+
+- **Publication success and full-run alert status are separate contracts.** (2026-10-23)
+  The pre-upload gate blocks errors; report-data-health deliberately marks full runs
+  red for any active actionable finding, including a previously open warning. Guangzhou
+  repair 39969403010 published and passed 22 live checks but ended red solely for the
+  standing ATP forecast-drift warning. Normal refresh 39976072659 reused the rebuilt
+  models and passed green with the warning still represented. Read the reporter's
+  mode policy and state both outcomes; do not suppress an advisory to claim recovery.

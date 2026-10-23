@@ -9572,3 +9572,50 @@ not automatic merging. History reconciled through cc131c3.
   checks pass. Both tours' current/future calendars and retained published brackets
   have no unresolved token-order identities with the repair. Reviewed ledger payloads
   differ only in populationVersion. Deployment follows and requires a full rebuild.
+
+### Deployment setup replan — 2026-10-23
+
+- [x] Repair 7f93aeb passed Python CI; web tests, lint, types and static build passed.
+- [ ] Browser runtime installation in run 39969403010 remains in progress after more
+  than eight minutes, and neither the logs API nor the signed-out browser exposes its
+  live output. Stop this pre-publication attempt to collect logs, diagnose the setup
+  delay, and rerun all required affected checks before production work continues.
+
+- [x] Retrieved the stopped browser job log: Ubuntu's Azure mirror was downloading
+  packages at roughly 40 KB/s, with continuing progress. It was slow, not stalled;
+  cancellation based on the unchanged stage alone was premature. No application or
+  browser test had failed. Retrying affected jobs on a fresh runner with checks unchanged.
+
+### Guangzhou release verification checkpoint — 2026-10-23
+
+- [x] Repair 7f93aeb rebuilt both tours at population 23. Run 39969403010 attempt 2
+  passed the data gate, published accepted release 7986b13f-4782-4e83-b9fc-512a119d797d
+  at 15:07:47Z, and passed all 22 CI and independent live checks. The live WTA model
+  contains Hong Yi Cody Wong once and no separate Wong Hong Yi Cody. No health errors remain.
+- [x] Identity issue #172 and retry setup issue #173 closed. The full run's final status
+  is failure solely because the existing reporter intentionally reds full runs with any
+  active warning, including ATP forecast drift #170. Preserve that alert policy.
+- [ ] Verify a normal quick refresh using the rebuilt saved models, then record the
+  final release and checks. History reconciled through automatic forecast-log commit 8570d54.
+
+Check-in: verify warm-state recurrence and the normal refresh path without changing
+forecast thresholds, model parameters, or the reporter's documented full-run policy.
+
+### Guangzhou identity repair — final review, 2026-10-23
+
+- [x] All repair and verification items in this round are complete. The full rebuild
+  published the corrected data; normal refresh 39976072659 then completed successfully
+  using those saved models, with both population versions at 23 and unchanged training timestamps.
+- [x] Final accepted release 3cc6083a-f0fa-4a77-a7a4-177320ea42cc, generated 15:16:03Z,
+  passed the pre-upload gate and all 22 CI / 22 independent live checks. The canonical
+  WTA identity occurs once; the reordered variant is absent. No health errors remain.
+- [x] Validation: 2,050 local Python tests; final focused 39; CI 2,049 Python tests
+  passed / one skipped; 375 web tests, lint, types, build and browser checks passed.
+- [x] Issues #172 and #173 closed. Existing ATP forecast-drift warning #170 remains
+  open and visible. Full-run reporting still deliberately returns failure for that
+  warning; the subsequent normal refresh is green. No thresholds or alert policy changed.
+- [x] Candidate discovery now covers exact name-token reorderings, with adjudication
+  and evidence-based rejection retained. Saved fixture and regressions cover the gate,
+  duplicate-result merge, repeat ingestion, and stale model rejection.
+- [x] Evidence saved in tasks/deploy/2026-10-23-guangzhou-identity-repair.json. History
+  reconciled through 8570d54; remaining changes are verification records and lessons only.

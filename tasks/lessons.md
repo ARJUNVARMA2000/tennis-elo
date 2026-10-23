@@ -503,3 +503,9 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - Candidate discovery must cover the identity shapes the publication gate rejects.
   See [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md). (2026-10-23)
+
+- An unchanged CI stage does not prove a stalled process.
+  See [`lessons/ci-and-deploy.md`](lessons/ci-and-deploy.md). (2026-10-23)
+
+- Publication success and full-run alert status are separate contracts.
+  See [`lessons/ci-and-deploy.md`](lessons/ci-and-deploy.md). (2026-10-23)
