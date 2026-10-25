@@ -170,11 +170,12 @@ WTA_DUAL_STATE_GATE_THRESHOLD = 32
 # Version 21 joins Shanghai's newly released Wu main-draw identity to rated history.
 # Version 22 joins the recurring Shanghai Bu name-order split before source selection.
 # Version 23 joins Guangzhou qualifier Wong's reversed mirror name to her WTA history.
-MATCH_POPULATION_VERSION = 23
+# Version 24 joins Valle D'Aosta qualifier Li Zongyu to Zongyu Li's WTA history.
+MATCH_POPULATION_VERSION = 24
 REVIEWED_RESULTS = {
-    'atp': {'sha256': 'c33fbf5d38752e45b4180a2383621f08563ccb2e191db9a25afa64edcdb58e2a',
+    'atp': {'sha256': '8a9e0209e56197720b8d35e234972859568136339a9cc212b26b8c61dc411d3b',
             'records': 0, 'quarantines': 0},
-    'wta': {'sha256': '42f29f3248675907be5ecd1bc7e46dab22168a6961f9c25ef94dae18eaa6dc65',
+    'wta': {'sha256': '77349a70437b9bbee16482611790fa4aa663f5bf9a715638f73bea903cc2e935',
             'records': 528, 'quarantines': 1},
 }
 
@@ -843,6 +844,10 @@ PLAYER_ALIASES: dict[str, str] = {
     # family-name-first spelling. Preserve the official/majority historical name.
     # https://www.wtatennis.com/players/326723/hong-yi-cody-wong/record
     "wong hong yi cody": "Hong Yi Cody Wong",
+    # ESPN 13680 and WTA 331259 share first/last name, DOB, and the exact 2023
+    # Ningbo loss to Xiaodi You. Preserve the official name and retained lower history.
+    # https://www.wtatennis.com/players/331259/zongyu-li
+    "li zongyu": "Zongyu Li",
     # WTA profile 322451 and its 2026 US Open qualifying report use both orders.
     # https://www.wtatennis.com/players/322451/xiaodi-you
     "you xiaodi": "Xiaodi You",

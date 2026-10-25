@@ -9619,3 +9619,27 @@ forecast thresholds, model parameters, or the reporter's documented full-run pol
   duplicate-result merge, repeat ingestion, and stale model rejection.
 - [x] Evidence saved in tasks/deploy/2026-10-23-guangzhou-identity-repair.json. History
   reconciled through 8570d54; remaining changes are verification records and lessons only.
+
+### Valle D'Aosta qualifying identity repair — 2026-10-25
+
+- [x] Confirmed clean Mac checkout, fast-forwarded the sole remote ledger commit,
+  and verified issue #174 remains open. Run 40146352944 blocks publication on WTA
+  `output.source_audit.player_identity_unresolved` for ESPN 1081-2026 / Li Zongyu.
+- [x] ESPN athlete 13680 and WTA 331259 share first/last names and 2003-05-27 DOB;
+  ESPN's 2023 Ningbo loss to Xiaodi You, 6-3 7-5, exactly matches retained WTA history.
+  Captured the pending qualifier, both identity records and all 11 retained appearances.
+- [x] Added only the reviewed Li Zongyu -> Zongyu Li alias; advanced population 24,
+  migrated reviewed-ledger version metadata/hashes without changing their records,
+  and extended stale-predictor rejection to population 23. Integrity gates are unchanged.
+- [x] Regression replays block the original source with one or both identities rated,
+  pass after review, retain all history, collapse a cached reordered duplicate, and
+  repeat identically. The full captured ESPN event also clears the original identity
+  finding against the live model inventory after the alias.
+- [x] Local validation: 2,056 full Python tests; 194 focused tests; four final hermetic
+  incident tests; 37 alias/population checks; 375 web tests; Ruff, whitespace, web lint
+  (nine existing warnings) and TypeScript passed. No local tests failed or skipped.
+- [ ] Commit/push through the existing workflow, verify exact-commit CI and the
+  accepted live release, then observe a normal refresh reusing rebuilt predictors.
+
+History reconciled through 11ff728 before this checkpoint. Scope is #174 only;
+#171 cache export remains untouched and #170 drift diagnostics/tuning remain out of scope.
