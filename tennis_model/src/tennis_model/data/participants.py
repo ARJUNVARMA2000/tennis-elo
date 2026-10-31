@@ -49,7 +49,7 @@ _PLACEHOLDER_KINDS = frozenset({
 })
 _NUMBER = r"(?:\s*(?:(?:\#|no\.?\s*)?\d+|\(\s*\d+\s*\)))?"
 _COMBINED_RE = re.compile(
-    rf"^(?:q|qualifier)/(?:ll|lucky\s+loser){_NUMBER}$",
+    rf"^(?:q|qualifier)/(?:ll|lucky\s+loser|se|special\s+exempt){_NUMBER}$",
 )
 _QUALIFIER_RE = re.compile(rf"^(?:q|qualifier|qualifying){_NUMBER}$")
 _LUCKY_LOSER_RE = re.compile(rf"^(?:ll|lucky\s+loser){_NUMBER}$")
@@ -146,8 +146,8 @@ def classify_participant(
     elif not normalized:
         kind = ParticipantKind.UNRESOLVED
     elif _COMBINED_RE.fullmatch(normalized):
-        # Q/LL says that the final entrant role is not known yet; choosing either named role
-        # would discard provider information.
+        # Q/LL and Q/SE leave the final entrant role unknown. Choosing either named
+        # role would discard provider information.
         kind = ParticipantKind.UNRESOLVED
     elif _QUALIFIER_RE.fullmatch(normalized):
         kind = ParticipantKind.QUALIFIER

@@ -11,6 +11,27 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from tennis_model.data import draws
 
 
+def test_warm_cache_numbers_newly_recognized_roles_without_changing_other_seats():
+    raw = {
+        "source": "atp", "retrieved": "2026-10-30T19:00:00Z",
+        "slots": ["Arthur Gea", "Qualifier / Special Exempt", None,
+                  "Qualifier/Unresolved 1", "Qualifier / Special Exempt",
+                  "Qualifier/Unresolved 1", "Qualifier 7", "Carlos Alcaraz"],
+        "seeds": {"Carlos Alcaraz": 2}, "bestOf": 3,
+    }
+    clean = draws._normalize_entry("Paris Masters", raw)
+    assert clean["slots"] == [
+        "Arthur Gea", "Qualifier/Unresolved 2", None, "Qualifier/Unresolved 1",
+        "Qualifier/Unresolved 3", "Qualifier/Unresolved 4", "Qualifier 7", "Carlos Alcaraz",
+    ]
+    assert clean["drawSize"] == 7 and clean["bracketSize"] == 8
+    assert clean["seeds"] == raw["seeds"]
+    assert clean["retrieved"] == raw["retrieved"]
+    assert not draws._draw_is_settled(clean)
+    assert draws._normalize_entry("Paris Masters", clean) == clean
+    assert raw["slots"][1] == "Qualifier / Special Exempt"
+
+
 def test_draw_cache_reports_malformed_source_then_recovers_cleanly(tmp_path, monkeypatch):
     monkeypatch.setattr(draws, "live_dir", lambda _tour: tmp_path)
     cache = tmp_path / draws.CACHE_FILE

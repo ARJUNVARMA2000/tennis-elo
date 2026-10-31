@@ -9643,3 +9643,54 @@ forecast thresholds, model parameters, or the reporter's documented full-run pol
 
 History reconciled through 11ff728 before this checkpoint. Scope is #174 only;
 #171 cache export remains untouched and #170 drift diagnostics/tuning remain out of scope.
+
+### Paris special-exempt draw repair (2026-10-31)
+
+- [x] Traced latest open issue #185 to refresh 41206623263: acquisition and quick export
+  succeeded, then six Paris 13-2026 findings blocked publication. Issue #179 records eight
+  repeated `Qualifier / Special Exempt` labels; #178/#180 report 56 slots versus 49 entrants,
+  and #182–184 report missing Gea–Struff pairing/entrant evidence.
+- [x] Extended the shared Python/browser vocabulary for Q/SE and added collision-free,
+  repeatable placeholder numbering at the warm-cache boundary. Existing unique numbered
+  seats, real names, byes, seeds and acquisition timestamps remain intact.
+- [x] Reconstructed the incident geometry from the later official Paris PDF and issue
+  evidence, explicitly documenting that the original failing acquisition is unavailable.
+  Replaying the previous classifier reproduces all six blockers. Cold/warm and pre-start/live
+  repaired replays preserve 56 entrants, eight byes, the exact Gea–Struff seat and pending price,
+  and distinct unresolved opponents. No gate, model parameter or population version changed.
+- [x] Four producer/gate incident replays, participant/cache checks, 375 web tests, TypeScript
+  and Ruff passed. Web lint passes with nine existing warnings. The production build cannot
+  fetch Google Fonts from this restricted environment; no application compile error reported.
+- [ ] Full Python suite is running. Production deployment/recovery has not been verified.
+
+History reconciled through 812ca03 before this entry. Scope is the Paris blocker behind #185;
+existing WTA identity and odds-coverage incidents remain separate.
+
+### Paris repair validation complete (2026-10-31)
+
+- [x] Full Python suite completed: 2,063 passed in 228.46 seconds. Four final focused
+  incident replays also pass after extending the fixture to audit every tournament,
+  bracket and independent-source finding. Fixture field-overlap evidence is computed
+  using the official resolver rather than bypassing the provenance gate.
+- [x] Code and regression work is complete locally. Validation also includes 375 web
+  tests, TypeScript, Ruff and web lint with nine existing warnings. Production build
+  remains blocked on unavailable Google Fonts network access. No push or deployment
+  was performed, so #185 recovery is not claimed. Local history remains 812ca03.
+
+### Paris repair deployment — 2026-10-31
+
+- [ ] Reconcile the remote head and pending repair, confirm recorded validation,
+  and run the final focused regressions and whitespace checks.
+- [ ] Commit the reviewed repair and push master to trigger the production refresh.
+- [ ] Verify exact-commit CI, the accepted Firebase release and live serving checks;
+  append the final deployment review and any remaining findings.
+
+Check-in: the user explicitly requested pushing the current changes and redeploying.
+Use the existing production workflow and preserve both deployment gates. History
+reconciled through 812ca03 before this deployment round.
+
+Deployment preflight: all 61 focused Python tests and 26 bracket tests pass; whitespace
+checks are clean. Remote history through 4e45445 contains six automatic ledger-only
+commits, with no overlap with the repair. Fast-forward before committing. The latest
+scheduled refresh is already green (41230174924); still verify the repair's own push
+run and live release before claiming this deployment complete.

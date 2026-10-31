@@ -484,3 +484,14 @@ Indexed in [`../lessons.md`](../lessons.md).
   captured candidate through discovery, falsification, canonical ingestion and the
   independent source gate. A candidate is not permission to auto-merge. Population
   and saved-predictor migrations remain mandatory for an adopted identity repair.
+
+- **A newly recognized entrant role must repair retained cache seats as well as fresh parses.**
+  (2026-10-31, Paris; liveness #185 and draw findings #178–184) The official draw repeated
+  `Qualifier / Special Exempt` eight times. The closed participant vocabulary treated it
+  as a real player, so a set-backed 56-entrant field collapsed to 49 and the scheduled
+  Gea–Struff pair could not seat Struff. Recognize Q/SE as unresolved in Python and the
+  browser, and allocate unique placeholder labels when reading warm caches, reserving
+  existing numbered labels. Fixing only the parser leaves provider-outage fallbacks broken.
+  Replay both fresh parsing and retained-cache reads through the actual pre-start/live
+  tournament producer and unchanged gates. Label reconstructed incident fixtures honestly;
+  later provider bytes are not the original failing acquisition.

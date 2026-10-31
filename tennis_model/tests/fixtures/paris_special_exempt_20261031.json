@@ -1,0 +1,43 @@
+{
+  "provenance": {
+    "kind": "reconstructed-incident-replay",
+    "note": "Ordered field transcribed from the official October 31 PDF. Restore the eight repeated labels reported by issue 179, including the later Struff seat, to replay the earlier cache. This is not an archived copy of the failing acquisition.",
+    "drawUrl": "https://www.protennislive.com/posting/2026/352/mds.pdf",
+    "issues": [178, 179, 180, 182, 183, 184, 185],
+    "scheduledPair": ["Arthur Gea", "Jan-Lennard Struff"]
+  },
+  "draw": {
+    "name": "Rolex Paris Masters",
+    "espnId": "13-2026",
+    "source": "atp",
+    "sourceId": "352",
+    "sourceUrl": "https://www.protennislive.com/posting/2026/352/mds.pdf",
+    "sourceStart": "2026-11-02",
+    "sourceEnd": "2026-11-08",
+    "start": "2026-11-02",
+    "end": "2026-11-08",
+    "retrieved": "2026-10-30T19:00:00Z",
+    "bestOf": 3,
+    "drawSize": 56,
+    "bracketSize": 64,
+    "seeds": {"Alexander Zverev": 1, "Carlos Alcaraz": 2},
+    "slots": [
+      "Alexander Zverev", null, "Lorenzo Musetti", "Hubert Hurkacz",
+      "Luca Van Assche", "Mariano Navone", "Stefanos Tsitsipas", "Learner Tien",
+      "Novak Djokovic", "Valentin Vacherot", "Luciano Darderi", "Qualifier / Special Exempt",
+      "Andrey Rublev", "Tomas Ma… Etcheverry", null, "Alex De Minaur",
+      "Ben Shelton", null, "Cameron Norrie", "Matteo Arnaldi",
+      "Qualifier / Special Exempt", "Qualifier / Special Exempt", "Arthur Rinderknech", "Francisco Cerundolo",
+      "Tommy Paul", "Holger Rune", "Daniel Merida", "Alexander Blockx",
+      "Quentin Halys", "Arthur Fery", null, "Frances Tiafoe",
+      "Flavio Cobolli", null, "Qualifier / Special Exempt", "Arthur Gea",
+      "Casper Ruud", "Qualifier / Special Exempt", "Alejandro Tabilo", "Rafael Jodar",
+      "Al… Davidovich Fokina", "Moise Kouame", "Denis Shapovalov", "Karen Khachanov",
+      "Ignacio Buse", "Zizou Bergs", null, "Daniil Medvedev",
+      "Arthur Fils", null, "Kyrian Jacquet", "Qualifier / Special Exempt",
+      "Qualifier / Special Exempt", "Titouan Droguet", "Qualifier / Special Exempt", "Taylor Fritz",
+      "Brandon Nakashima", "Matteo Berrettini", "Ugo Humbert", "B… Van De Zandschulp",
+      "Alex Michelsen", "Jiri Lehecka", null, "Carlos Alcaraz"
+    ]
+  }
+}

@@ -80,7 +80,7 @@ const PLACEHOLDER_PATTERNS: [RegExp, string][] = [
   [new RegExp(`^(?:ll|lucky\\s+loser)${NUMBERED_ROLE}$`, "i"), "Lucky Loser"],
   [new RegExp(`^(?:(?:qualifier/)?(?:wc|wild\\s*card))${NUMBERED_ROLE}$`, "i"), "Wildcard"],
   [new RegExp(`^(?:(?:qualifier/)?(?:alt|alternate))${NUMBERED_ROLE}$`, "i"), "Alternate"],
-  [new RegExp(`^(?:q|qualifier)/(?:ll|lucky\\s+loser)${NUMBERED_ROLE}$`, "i"), "Unresolved"],
+  [new RegExp(`^(?:q|qualifier)/(?:ll|lucky\\s+loser|se|special\\s+exempt)${NUMBERED_ROLE}$`, "i"), "Unresolved"],
   [new RegExp(`^(?:qualifier/unresolved|(?:tbd|tba)(?:\\s*(?:[-–—:/]\\s*)?(?:opponent|player|winner))?|unknown|unresolved|pending|awaiting(?:\\s+(?:winner|opponent))?)${NUMBERED_ROLE}$`, "i"), "Unresolved"],
   [new RegExp(`^bye${NUMBERED_ROLE}$`, "i"), "Bye"],
 ];

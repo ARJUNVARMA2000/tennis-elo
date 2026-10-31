@@ -28,6 +28,7 @@ from .participants import (
     ParticipantKind,
     ParticipantSource,
     canonical_placeholder,
+    classify_participant,
     draw_is_settled,
     is_real_participant,
 )
@@ -195,6 +196,25 @@ def _normalize_entry(name: str, entry: dict, *, legacy: bool = False) -> dict | 
         return None
     if any(slot is not None and not isinstance(slot, str) for slot in slots):
         return None
+
+    # Warm caches may predate a newly recognized provider role. Give every unresolved
+    # seat a unique identity before set-backed consumers see it, even during an outage.
+    # Preserve existing unique numbered seats and reserve their labels before allocating.
+    participants = [classify_participant(slot, context=ParticipantContext.OPENING_DRAW_SLOT)
+                    for slot in slots]
+    reserved = {p.normalized for p in participants}
+    seen: set[str] = set()
+    for pos, participant in enumerate(participants):
+        if participant.is_placeholder and (
+                not participant.is_numbered_placeholder or participant.normalized in seen):
+            ordinal = 1
+            candidate = canonical_placeholder(participant.kind, ordinal)
+            while candidate.casefold() in reserved:
+                ordinal += 1
+                candidate = canonical_placeholder(participant.kind, ordinal)
+            slots[pos] = candidate
+            reserved.add(candidate.casefold())
+        seen.add(participant.normalized)
 
     raw_seeds = entry.get("seeds")
     if raw_seeds is None:

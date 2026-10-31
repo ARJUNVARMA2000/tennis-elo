@@ -72,6 +72,7 @@ describe("slot labels", () => {
       "Qualifier 7", "Lucky Loser 2", "Wildcard 3", "Alternate 1", "Unresolved 4",
       "Qualifier/Wildcard 3", "Qualifier/Alternate 1", "Qualifier/Unresolved 4",
       "Q/LL", "Qualifier (8)", "TBD opponent", "TBA - player", "Bye",
+      "Qualifier / Special Exempt", "Qualifier/Special Exempt 8", "Q/SE",
     ]) {
       expect(isPlaceholder(placeholder)).toBe(true);
       expect(isRealSlot(placeholder)).toBe(false);
@@ -89,6 +90,7 @@ describe("slot labels", () => {
     expect(sideLabel("Qualifier/Wildcard 1", 0)).toBe("Wildcard");
     expect(sideLabel("Qualifier/Alternate 4", 0)).toBe("Alternate");
     expect(sideLabel("Qualifier/Unresolved 3", 0)).toBe("Unresolved");
+    expect(sideLabel("Qualifier / Special Exempt", 0)).toBe("Unresolved");
     expect(sideLabel("Carlos Alcaraz", 2)).toBe("Carlos Alcaraz");
   });
 
