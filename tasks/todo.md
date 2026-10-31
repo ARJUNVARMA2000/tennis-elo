@@ -9694,3 +9694,23 @@ checks are clean. Remote history through 4e45445 contains six automatic ledger-o
 commits, with no overlap with the repair. Fast-forward before committing. The latest
 scheduled refresh is already green (41230174924); still verify the repair's own push
 run and live release before claiming this deployment complete.
+
+### Paris repair deployment — final review, 2026-10-31
+
+- [x] Reconciled the six automatic ledger commits through 4e45445, committed repair
+  00bc75b and pushed master. Exact-commit refresh 41232082232 completed successfully;
+  Python, web, refresh and terminal workflow-health jobs are all green.
+- [x] CI passed 2,064 Python tests (one skipped), 375 web tests, lint, TypeScript,
+  static export and real-browser smoke checks. Deployment preflight also passed
+  61 focused Python tests, 26 bracket tests and whitespace checks.
+- [x] The unchanged pre-upload gate passed. Firebase published accepted release
+  12995af9-09e0-472e-9e5e-db00835c4507, generated 2026-10-31T19:12:03Z.
+  CI and independent live verification each passed all 22 checks, including the exact
+  473-artifact graph and 22 known-absent paths. Live health is ok, with no errors or
+  warnings; the existing volunteer-charting coverage note is informational.
+- [x] Independent live Paris inspection joins on 13-2026 and confirms one event,
+  56 distinct entrants, 64 bracket slots, eight byes, and the opening-round Struff–Gea
+  pairing with model probability 0.3444 for Struff. No raw Q/SE label remains.
+- [x] Evidence saved in tasks/deploy/2026-10-31-paris-draw-repair.json. Deployment
+  work is complete; this review/evidence update is documentation only. History was
+  re-read and reconciled through 00bc75b before finalizing this record.
