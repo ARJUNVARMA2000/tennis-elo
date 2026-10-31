@@ -9714,3 +9714,30 @@ run and live release before claiming this deployment complete.
 - [x] Evidence saved in tasks/deploy/2026-10-31-paris-draw-repair.json. Deployment
   work is complete; this review/evidence update is documentation only. History was
   re-read and reconciled through 00bc75b before finalizing this record.
+
+### Post-deploy GitHub issue reconciliation — 2026-10-31
+
+- [ ] Read the open issue inventory and compare each claimed failure with the exact
+  deployed repair, authoritative health report and successful workflow evidence.
+- [ ] Close only issues whose resolution is supported by that evidence; preserve
+  unrelated incidents and distinguish recoveries that predate this deployment.
+- [ ] Verify final GitHub states and append the review with links and reasons.
+
+Check-in: the user explicitly requested reviewing open issues and closing those
+resolved by this deploy. Issue-state updates are authorized; no comments or messages
+will be sent without approval of a finished draft. History reconciled through dbfa8f3.
+
+### Post-deploy GitHub issue reconciliation — final review, 2026-10-31
+
+- [x] Reviewed the complete open inventory through both the connector and direct GitHub
+  issue listing: only #185 remained open. Its 38-hour liveness claim is superseded by
+  successful refresh 41232082232, completed 19:14:24Z, within the watchdog's 26-hour window.
+- [x] Closed #185 as completed at 20:04:27Z and read back the GitHub closure receipt.
+  Live health still reports accepted release 12995af9-09e0-472e-9e5e-db00835c4507,
+  ok=true, with no warning/error findings. No issue comments were sent.
+- [x] Paris draw findings #178, #179, #180, #182, #183 and #184 were already closed
+  automatically at 18:57–18:58Z, before repair deployment 41232082232. The unrelated
+  market-coverage issue #181 was also already closed; no closure is attributed to this repair.
+- [x] Final direct GitHub inventory contains zero open issues. Evidence is appended to
+  tasks/deploy/2026-10-31-paris-draw-repair.json. Git history was re-read through dbfa8f3
+  before finalizing this review; this update changes documentation only.

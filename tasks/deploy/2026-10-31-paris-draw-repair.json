@@ -95,5 +95,33 @@
     }
   },
   "fixtureProvenance": "The regression fixture reconstructs the incident from later official draw bytes and issue evidence; it is not the original failed acquisition.",
-  "historyReconciledThrough": "00bc75bf87741863214be7e3f0b84052fb821624"
+  "historyReconciledThrough": "00bc75bf87741863214be7e3f0b84052fb821624",
+  "issueReconciliation": {
+    "verifiedAt": "2026-10-31T20:04:27Z",
+    "openBefore": [
+      185
+    ],
+    "closedNow": [
+      {
+        "number": 185,
+        "url": "https://github.com/ARJUNVARMA2000/tennis-elo/issues/185",
+        "state": "closed",
+        "stateReason": "completed",
+        "closedAt": "2026-10-31T20:04:27Z",
+        "reason": "Successful refresh 41232082232 at 19:14:24Z clears the watchdog 26-hour liveness window; the exact accepted live release remains healthy."
+      }
+    ],
+    "parisIssuesAlreadyClosedBeforeRepairDeploy": [
+      178,
+      179,
+      180,
+      182,
+      183,
+      184
+    ],
+    "unrelatedIssueAlreadyClosed": 181,
+    "openAfter": [],
+    "commentsSent": false,
+    "historyReconciledThrough": "dbfa8f39997f22446eb933f3fef10d63775d6572"
+  }
 }
