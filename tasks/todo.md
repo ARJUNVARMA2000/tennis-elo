@@ -9770,3 +9770,32 @@ with nine pre-existing warnings. Build and real-browser smoke remain for CI. A f
 fetch still shows master and origin/master at 243d8b8, and no other active DEUCE repair
 or user changes were found. The staged repair contains no player-identity edits,
 workflow/gate changes, cache exports or odds work.
+
+### Angola official-draw locator repair — final review, 2026-11-01
+
+- [x] Committed and pushed repair 7abcb4fa12e38ea152b70692883f5d6b5279157b.
+  Remote master was read back at that exact SHA. No other repair was active and no
+  user changes were overwritten. Exact-commit refresh 41331854783 succeeded,
+  including both test jobs, refresh and terminal workflow-health reporting.
+- [x] CI passed 2,068 Python tests with one macOS /tmp-alias test skipped on Linux;
+  375 web tests, Ruff, web lint, TypeScript, static build and real-browser smoke passed.
+  Local Python passed all 2,069 tests. Web lint retains nine existing warnings.
+  This was the normal quick refresh; full retraining and the raw release snapshot
+  were skipped by the existing workflow policy. No manual workflow rerun was started.
+- [x] The unchanged integrity gate passed and accepted release
+  1d634220-ce80-45cc-b576-9b60c0fc8244, generated 2026-11-01T17:56:12Z, was published
+  to https://deuce-forecast.web.app. Both CI and independent live verification passed
+  all 22 checks: 462 exact accepted artifacts and 22 known-absent paths. Live health
+  is ok with no warnings/errors; only the existing volunteer-charting info remains.
+- [x] Independent live inspection confirms one upcoming Angola card keyed 1082-2026,
+  Hard / WTA 125, a real 32-position bracket from WTA 1176, all 28 named entrants
+  in their captured official seats, four distinct qualifier seats, and no main-draw
+  results invented from qualifying. Issue #186 was automatically closed as completed
+  at 17:58:10Z by the existing reporter.
+- [x] The same reporter also auto-closed old notices #176/#181. No odds code, data
+  repair, cache export or manual issue mutation was performed; those automatic
+  closures are not evidence that this patch repaired historical odds acquisition.
+- [x] Evidence saved in tasks/deploy/2026-11-01-angola-draw-repair.json. History was
+  re-read through 7abcb4f before this review. Keep this documentation-only receipt
+  local so it does not start another production deployment; the repair itself is
+  already pushed, deployed and verified. No deployment blocker remains.

@@ -1,0 +1,190 @@
+{
+  "incident": "https://github.com/ARJUNVARMA2000/tennis-elo/issues/186",
+  "failedRun": "https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/41328275195",
+  "repairCommit": "7abcb4fa12e38ea152b70692883f5d6b5279157b",
+  "deploymentRun": "https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/41331854783",
+  "source": {
+    "espnId": "1082-2026",
+    "wtaId": "1176",
+    "candidateRankBeforeOverride": 10,
+    "pdf": {
+      "url": "https://wtafiles.wtatennis.com/pdf/draws/2026/1176/MDS.pdf",
+      "sha256": "ec4f5be4376b8ca028cf3beaf15f8fb35c970390a9ca51e14f70ee1d1131700a"
+    },
+    "observedAt": "2026-11-01T17:25:35Z",
+    "sourceUrls": {
+      "espn": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard?dates=20261102&limit=300",
+      "wtaCatalog": "https://api.wtatennis.com/tennis/tournaments/?from=2026-01-01&to=2026-12-31"
+    },
+    "namedFieldMatches": 28,
+    "qualifierSeats": 4
+  },
+  "localValidation": {
+    "python": {
+      "passed": 2069,
+      "skipped": 0
+    },
+    "focusedDrawAndDiscovery": {
+      "passed": 31
+    },
+    "web": {
+      "passed": 375
+    },
+    "ruff": "passed",
+    "typescript": "passed",
+    "webLint": {
+      "errors": 0,
+      "existingWarnings": 9
+    }
+  },
+  "ciValidation": {
+    "python": {
+      "passed": 2068,
+      "skipped": 1,
+      "skipReason": "requires macOS /tmp filesystem alias"
+    },
+    "web": {
+      "passed": 375
+    },
+    "ruff": "passed",
+    "typescript": "passed",
+    "staticBuild": "passed",
+    "browserSmoke": "passed",
+    "preUploadIntegrityGate": "passed",
+    "acceptedPublication": "passed",
+    "dataHealth": "passed",
+    "liveServing": {
+      "passed": 22,
+      "failed": 0,
+      "exactArtifacts": 462,
+      "knownAbsentPaths": 22
+    },
+    "terminalWorkflowHealth": "passed"
+  },
+  "scope": "Edition-specific official provider locator only; date/player validation, source audit and identity gates unchanged. No old WTA patch, cache export, odds repair or manual workflow rerun.",
+  "verifiedAt": "2026-11-01T18:01:21Z",
+  "remoteHeadAtVerification": "7abcb4fa12e38ea152b70692883f5d6b5279157b",
+  "workflowConclusion": "success",
+  "live": {
+    "site": "https://deuce-forecast.web.app",
+    "generatedAt": "2026-11-01T17:56:12Z",
+    "artifactLineage": {
+      "schema": "artifact-lineage-v1",
+      "status": "accepted",
+      "releaseId": "1d634220-ce80-45cc-b576-9b60c0fc8244",
+      "manifestSha256": "32a34bba7e92e7eb9875ed965fba556cc4fd6ee76b56f2dcee81f5b113dbaa07",
+      "tours": [
+        "atp",
+        "wta"
+      ]
+    },
+    "card": {
+      "name": "Angola Ladies Open",
+      "espnId": "1082-2026",
+      "status": "upcoming",
+      "drawStatus": "real",
+      "drawSize": 32,
+      "mainDrawMatchCount": 0,
+      "hasBracket": true,
+      "level": "WTA 125",
+      "surface": "Hard"
+    },
+    "bracket": {
+      "drawSource": "wta",
+      "drawSourceId": "1176",
+      "drawSourceUrl": "https://wtafiles.wtatennis.com/pdf/draws/2026/1176/MDS.pdf",
+      "drawSourceStart": "2026-11-01",
+      "drawSourceEnd": "2026-11-08",
+      "drawEvidencePlayers": 28,
+      "drawEvidenceFieldPlayers": 28,
+      "bracketSize": 32
+    },
+    "slots": [
+      "Anna Blinkova",
+      "Farah Heddar",
+      "Zongyu Li",
+      "Qualifier 1",
+      "Diana Martynov",
+      "Sandra Samir",
+      "Jahnie Van Zyl",
+      "Yasmine Kabbaj",
+      "Suzan Lamens",
+      "Kristina Kroitor",
+      "Jian Ibrahim",
+      "Ksenia Zaytseva",
+      "Isabella Shinikova",
+      "Dune Vaissaud",
+      "Gina Feistel",
+      "Linda Klimovicova",
+      "Sofya Lansere",
+      "Angella Okutoyi",
+      "Warona Mdlulwa",
+      "Kristina Novak",
+      "Qualifier 2",
+      "Sada Nahimana",
+      "Qualifier 3",
+      "Martyna Kubka",
+      "Justina Mikulskyte",
+      "Maayan Laron",
+      "Tiphanie Lemaitre",
+      "Lamis Alhussein Abdel Aziz",
+      "Qualifier 4",
+      "Victoria Milovanova",
+      "Wozuko Mdlulwa",
+      "Noma Noha Akugue"
+    ],
+    "realEntrants": 28,
+    "findings": [
+      {
+        "schema": "health-finding-v1",
+        "fingerprint": "hf1:26bab57c67924ea7b792d37eca3e84762b51d6f5be9ed9a7611efb8b75c6bac3",
+        "revision": "hr1:48d55770915abac887b7a5f850b9a3ffefc3a02220b1a4a37108c3c9a17a1998",
+        "code": "source.charting.coverage_age",
+        "severity": "info",
+        "scope": "source",
+        "tour": "atp",
+        "entity": "match-charting:atp",
+        "evidence": {
+          "value": 164,
+          "limit": 90,
+          "unit": "d",
+          "date": "2026-05-21"
+        },
+        "message": "atp: Match charting (MCP): volunteer batch source; newest charted match is 164d old (coverage note after 90d)"
+      }
+    ]
+  },
+  "independentVerification": {
+    "liveServing": {
+      "passed": 22,
+      "failed": 0,
+      "exactArtifacts": 462,
+      "knownAbsentPaths": 22
+    },
+    "originalNamedEntrantsInExactSeats": 28,
+    "distinctQualifierSeats": 4,
+    "manifestDigestMatchesHealth": true,
+    "noWarningOrErrorFindings": true
+  },
+  "issue186": {
+    "state": "closed",
+    "stateReason": "completed",
+    "closedAt": "2026-11-01T17:58:10Z",
+    "actor": "existing workflow reporter"
+  },
+  "automaticReporterSideEffects": {
+    "alsoClosedIssues": [
+      176,
+      181
+    ],
+    "oddsRepairPerformed": false,
+    "note": "Observed only in the authorized deployment logs; no manual issue change, odds repair or independent odds investigation was performed."
+  },
+  "skippedWorkflowPaths": [
+    "full source download",
+    "full model retrain",
+    "forecast log persistence",
+    "raw release snapshot"
+  ],
+  "postDeployRecord": "Documentation-only verification receipt kept locally to avoid triggering an additional production deployment."
+}
