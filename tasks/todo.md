@@ -9741,3 +9741,32 @@ will be sent without approval of a finished draft. History reconciled through db
 - [x] Final direct GitHub inventory contains zero open issues. Evidence is appended to
   tasks/deploy/2026-10-31-paris-draw-repair.json. Git history was re-read through dbfa8f3
   before finalizing this review; this update changes documentation only.
+
+### Angola official-draw locator repair — 2026-11-01
+
+- [x] Confirmed a clean master at 243d8b8, no competing active repair and no pending
+  user changes. Issue #186 and run 41328275195 show exactly one pre-publication
+  source-audit blocker, espn:1082-2026; the existing gate prevented deployment.
+- [x] Independently captured ESPN's Angola event and WTA's nearby calendar. Official
+  LUANDA 125 id 1176 is candidate ten, outside the six-PDF request budget. The PDF
+  spans Nov 1–8, agrees with all 28 named ESPN entrants and has four distinct qualifier
+  seats. SHA256: ec4f5be4376b8ca028cf3beaf15f8fb35c970390a9ca51e14f70ee1d1131700a.
+- [x] Added only the reviewed 1082-2026 -> 1176 source locator, retaining all date,
+  player, identity and publication checks. Captured broken/clean replays exercise
+  acquisition, registry persistence, repeat refresh, pre-start card generation and
+  the unchanged output gate; wrong-date and unrelated-field PDFs remain rejected.
+- [ ] Complete validation, recheck concurrent changes, commit and push the narrow repair.
+- [ ] Verify exact-commit CI, accepted release data, live Angola bracket and live checks.
+
+Check-in: the standing personal-Gmail failure trigger authorizes repair, testing,
+commit, push and deployment. This round covers #186 only; the withdrawn WTA patch,
+restricted investigations, cache exports and odds repairs remain outside scope.
+Git history reconciled through 243d8b8 before recording this round.
+
+Angola pre-push review: all 2,069 Python tests pass locally (none skipped), including
+the four incident replays; the focused draw/discovery set passes all 31 tests. Ruff,
+375 web tests, TypeScript and whitespace checks pass. Web lint exits successfully
+with nine pre-existing warnings. Build and real-browser smoke remain for CI. A fresh
+fetch still shows master and origin/master at 243d8b8, and no other active DEUCE repair
+or user changes were found. The staged repair contains no player-identity edits,
+workflow/gate changes, cache exports or odds work.

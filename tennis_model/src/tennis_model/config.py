@@ -686,6 +686,10 @@ OFFICIAL_DRAW_ID_OVERRIDES: dict[str, dict[str, str]] = {
         # ESPN China Open vs WTA BEIJING falls outside the six-candidate probe window.
         # Official 2026 draw 1020 corroborated by dates and 95/96 current entrants.
         "959-2026": "1020",
+        # Angola Ladies Open / LUANDA 125 ranks tenth, outside the six-PDF probe window.
+        # The Nov 1–8 official draw matches all 28 named ESPN entrants (four qualifiers).
+        # https://wtafiles.wtatennis.com/pdf/draws/2026/1176/MDS.pdf
+        "1082-2026": "1176",
         "1005-2026": "1139",  # SP Open / Sao Paulo
         "888-2026": "1045",   # Washington DC
         "875-2026": "2064",   # Odlum Brown VanOpen / Vancouver 125
