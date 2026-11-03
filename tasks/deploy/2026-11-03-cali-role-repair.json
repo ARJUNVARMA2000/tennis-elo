@@ -83,6 +83,167 @@
     }
   },
   "deployment": {
-    "status": "ready for approved production push"
-  }
+    "status": "success",
+    "commit": "f8e38a92d505347947631b17c1336f20afc55913",
+    "runId": 41692866798,
+    "url": "https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/41692866798",
+    "ci": {
+      "python": {
+        "jobId": 126115663493,
+        "status": "success",
+        "passed": 2081,
+        "skipped": 1,
+        "seconds": 172.78
+      },
+      "web": {
+        "jobId": 126115663166,
+        "status": "success",
+        "passed": 375,
+        "browserChecksPassed": 10,
+        "lintWarnings": 9,
+        "lint": "success",
+        "typescript": "success",
+        "build": "success"
+      }
+    },
+    "refreshJobId": 126117735320,
+    "conclusion": "success",
+    "generatedAt": "2026-11-03T18:36:52Z",
+    "artifactLineage": {
+      "schema": "artifact-lineage-v1",
+      "status": "accepted",
+      "releaseId": "c429b149-6984-4a05-8257-d9bee8902e89",
+      "manifestSha256": "ec68051e399c838b261913384d9621e6e06f84ff4b418b8e01491feb43337775",
+      "tours": [
+        "atp",
+        "wta"
+      ]
+    },
+    "predeployGate": "success",
+    "publication": "success",
+    "ciLiveChecksPassed": 22,
+    "ciArtifactCount": 460,
+    "ciKnownAbsentPaths": 22,
+    "terminalWorkflowHealth": "success",
+    "fullRetrain": "skipped by normal quick policy",
+    "snapshot": "skipped by normal quick policy"
+  },
+  "previousAcceptedRelease": {
+    "generatedAt": "2026-11-03T01:45:12Z",
+    "artifactLineage": {
+      "schema": "artifact-lineage-v1",
+      "status": "accepted",
+      "releaseId": "f8ae711d-3470-48ed-aa40-39a76a19292a",
+      "manifestSha256": "78a78c278f98a73c53f424952ac1fea71fd98646bb60ac5ba32e954e21e5da03",
+      "tours": [
+        "atp",
+        "wta"
+      ]
+    },
+    "findings": [
+      {
+        "code": "source.charting.coverage_age",
+        "severity": "info",
+        "tour": "atp",
+        "entity": "match-charting:atp"
+      },
+      {
+        "code": "output.market.coverage_stale",
+        "severity": "warning",
+        "tour": "wta",
+        "entity": "market-benchmark:wta"
+      },
+      {
+        "code": "output.market.coverage_stale",
+        "severity": "warning",
+        "tour": "atp",
+        "entity": "market-benchmark:atp"
+      }
+    ]
+  },
+  "independentVerification": {
+    "generatedAt": "2026-11-03T18:36:52Z",
+    "artifactLineage": {
+      "schema": "artifact-lineage-v1",
+      "status": "accepted",
+      "releaseId": "c429b149-6984-4a05-8257-d9bee8902e89",
+      "manifestSha256": "ec68051e399c838b261913384d9621e6e06f84ff4b418b8e01491feb43337775",
+      "tours": [
+        "atp",
+        "wta"
+      ]
+    },
+    "healthOk": true,
+    "findings": [
+      {
+        "code": "source.charting.coverage_age",
+        "severity": "info",
+        "tour": "atp",
+        "entity": "match-charting:atp"
+      }
+    ],
+    "cali": {
+      "espnId": "1007-2026",
+      "drawSourceId": "1110",
+      "drawSize": 32,
+      "mainDrawMatchCount": 9,
+      "opening": {
+        "a": "Carolina Alves",
+        "b": "Maria Paulina Perez Garcia",
+        "seedA": null,
+        "seedB": null,
+        "winner": "a",
+        "score": "6-1 6-0",
+        "p": 0.8335,
+        "probSource": "logged",
+        "upset": false
+      },
+      "round16": {
+        "a": "Leolia Jeanjean",
+        "b": "Carolina Alves",
+        "seedA": 1,
+        "seedB": null,
+        "winner": null,
+        "score": null,
+        "p": 0.8582,
+        "probSource": "model",
+        "upset": null
+      }
+    },
+    "liveChecksPassed": 22,
+    "exactArtifacts": 460,
+    "knownAbsentPaths": 22,
+    "routes": 18,
+    "referencedShards": 426,
+    "command": "node scripts/verify-deploy.mjs --base https://deuce-forecast.web.app --expect-generated-at 2026-11-03T18:36:52Z --expected-health /tmp/deuce-cali-after-health.json",
+    "output": "\nDeploy verification \u2014 https://deuce-forecast.web.app\n\nok   routes 200 + text/html  (18 routes ok)\nok   crawl discovery: robots.txt + sitemap.xml  (17 canonical URLs)\nok   meta: every indexable route has a self-canonical URL  (17 self-canonicals)\nok   meta: Google Search Console ownership token  (exact token present)\nok   trailingSlash: /method -> 301 /method/  (301 -> /method/)\nok   unknown path -> 404 page  (404 served)\nok   cache-control: mutable content not stored, hashed static immutable  (no-store/immutable split correct)\nok   MIME: js/css/json not falling through to html  (js/css/json MIME ok)\nok   scroll shell: wheel input reaches the document scroller  (root-owned vertical scroll contract)\nok   freshness: live generatedAt == 2026-11-03T18:36:52Z  (generatedAt 2026-11-03T18:36:52Z (serving contract ok; data ok=true))\nok   release lineage: exact accepted artifact graph  (460 exact artifact(s), 22 known absent path(s), release c429b149-6984-4a05-8257-d9bee8902e89)\nok   coverage: every begun event is on the live site exactly once  (19 begun event(s), exact membership)\nok   bracket provenance: one draw source per ESPN event  (20 bracket source attachment(s) unique)\nok   sharded artifacts: every index reference is served at one generation  (426 referenced shard(s))\nok   player profiles: fail-closed links + responsive dossier contract  (fail-closed-links+single-radar+mobile-contained+expectation-v3)\nok   match center: upcoming Playing Style drill-in contract  (upcoming-style-links+forecast-history+watch+evidence+live-dedupe-v4)\nok   live/scheduled state: active matches excluded from upcoming surfaces  (exact event id + unordered player pair on overview/match center)\nok   home discovery: current tournaments open the bracket lab  (stable event id + actual/forecast/scenario links)\nok   prediction explanation: grouped evidence is explicitly non-causal  (grouped-evidence-not-causation-v2)\nok   bracket lab: actual draw + exact forecast/scenario contract  (exact forecast/scenario + remaining rounds, full draw, candidate details)\nok   expectation artifacts: live summary arithmetic  (ATP/WTA performance summaries consistent)\nok   meta: og:image absolute + on origin  (https://deuce-forecast.web.app/og.png)\n\n22/22 checks passed\n"
+  },
+  "issueReceipts": [
+    {
+      "number": 188,
+      "state": "closed",
+      "closedAt": "2026-11-03T18:38:43Z",
+      "url": "https://github.com/ARJUNVARMA2000/tennis-elo/issues/188"
+    },
+    {
+      "number": 189,
+      "state": "closed",
+      "closedAt": "2026-11-03T18:38:48Z",
+      "url": "https://github.com/ARJUNVARMA2000/tennis-elo/issues/189"
+    },
+    {
+      "number": 190,
+      "state": "closed",
+      "closedAt": "2026-11-03T18:38:51Z",
+      "url": "https://github.com/ARJUNVARMA2000/tennis-elo/issues/190"
+    },
+    {
+      "number": 191,
+      "state": "closed",
+      "closedAt": "2026-11-03T18:38:56Z",
+      "url": "https://github.com/ARJUNVARMA2000/tennis-elo/issues/191"
+    }
+  ],
+  "issueMutationNote": "All four incidents closed automatically through the existing health reporter; no manual issue updates or comments were sent. Prior market warnings also disappeared in the new authoritative snapshot; this patch changed no odds acquisition or market code.",
+  "finalReview": "Repair deployed and verified. This documentation-only receipt remains local, following the prior deployment-receipt convention."
 }

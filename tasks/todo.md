@@ -9814,9 +9814,9 @@ workflow/gate changes, cache exports or odds work.
   extend a gate only if the investigation reveals an uncovered failure class.
 - [x] Run the focused replays and appropriate Python/web checks; reconcile current
   remote history while preserving the local Angola deployment receipt commit.
-- [ ] Commit and push the reviewed repair, observe exact-commit CI and publication,
+- [x] Commit and push the reviewed repair, observe exact-commit CI and publication,
   then independently verify the accepted live release and corrected event bracket.
-- [ ] Append the final review with test results, deployment links and any remaining
+- [x] Append the final review with test results, deployment links and any remaining
   findings. Existing market-coverage alerts are separate from these four blockers.
 
 Check-in: implementation awaits the user's plan review, as required by AGENTS.md.
@@ -9847,3 +9847,36 @@ in progress. Merge f6df24d incorporates its ledger update and preserves local re
 d735a19; history was re-read before this review. The correction changes no gates,
 workflows, aliases, dependency pins or model populations. Evidence is saved in
 tasks/deploy/2026-11-03-cali-role-repair.json. User approval covers the production push.
+
+### WTA Cali blocked deployment repair — final review, 2026-11-03
+
+- [x] Pushed repair f8e38a92d505347947631b17c1336f20afc55913 to master and read
+  back that exact remote SHA. Exact-commit run 41692866798 completed successfully:
+  both test jobs, refresh and terminal workflow-health reporter are green.
+- [x] CI passed 2,081 Python tests with one platform-specific skip; all 375 web
+  tests, Ruff, TypeScript, static export and 10/10 real-browser checks passed.
+  Local full Python passed 2,077 tests; final focused validation passed 63 tests,
+  including five extra exact-key cases added after full-suite collection. Web lint
+  retains nine existing warnings. No dependency or workflow changes were needed.
+- [x] The unchanged pre-upload gate passed. The normal quick refresh published
+  accepted release c429b149-6984-4a05-8257-d9bee8902e89, generated
+  2026-11-03T18:36:52Z. Full retraining and recovery snapshot were skipped by policy.
+- [x] Both CI and independent live verification passed all 22 checks against that
+  exact generation, including 460 exact artifacts, 22 known-absent paths and 426
+  referenced shards. Live health is ok with no warnings/errors; only the existing
+  informational volunteer-charting coverage note remains.
+- [x] Independent public inspection joins on 1007-2026 and confirms the official
+  WTA 1110 32-player bracket, Alves's 6-1 6-0 R32 win over Perez Garcia and the
+  Jeanjean–Alves R16 pairing with model probability 0.8582 for Jeanjean. All nine
+  main-draw results then observed remain represented. No gates were relaxed.
+- [x] The existing reporter automatically closed #188–#191 at 18:38:43–18:38:56Z.
+  No manual issue mutation or comments were sent. The prior market warnings also
+  disappeared from the new authoritative snapshot; this repair changed no odds code
+  and does not establish a historical odds-acquisition repair.
+- [x] Evidence is saved in tasks/deploy/2026-11-03-cali-role-repair.json. Git history
+  was re-read through f8e38a9 before finalizing this review. Keep this documentation-only
+  receipt local, following the previous deployment-receipt convention; the repair itself
+  is already pushed, deployed and verified. No deployment blocker remains.
+
+Deployment: https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/41692866798
+Live site: https://deuce-forecast.web.app/
