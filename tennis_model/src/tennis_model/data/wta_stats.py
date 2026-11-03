@@ -38,7 +38,7 @@ from datetime import UTC, datetime, timedelta
 
 import pandas as pd
 
-from ..config import fresh_dir, historical_dir, lower_dir, stats_dir
+from ..config import WTA_MATCH_ROLE_REPAIRS, fresh_dir, historical_dir, lower_dir, stats_dir
 from .httpcache import ResponseCache
 from .results import CANON, _name_key, _score_key
 
@@ -206,6 +206,9 @@ def _match_draw_level(ev: dict, match: dict) -> str | None:
     """Classify one singles match independently of the directory it will use."""
     if match.get("DrawMatchType") != "S":
         return None
+    repair = WTA_MATCH_ROLE_REPAIRS.get((f"{ev['year']}-W{ev['id']}", str(match.get("MatchID"))))
+    if repair:
+        return repair[0]
     level = str(match.get("DrawLevelType") or "")
     if level == "Q":
         return "qual"
@@ -216,6 +219,9 @@ def _match_draw_level(ev: dict, match: dict) -> str | None:
 
 def _match_round(ev: dict, match: dict, draw_level: str | None) -> str | None:
     """Canonical round from the current catalogue, preserving unknown qualifying stage."""
+    repair = WTA_MATCH_ROLE_REPAIRS.get((f"{ev['year']}-W{ev['id']}", str(match.get("MatchID"))))
+    if repair and draw_level == repair[0]:
+        return repair[2]
     round_id = str(match.get("RoundID") or "")
     if draw_level == "qual" and round_id.isdigit():
         return f"Q{round_id}"
@@ -284,9 +290,7 @@ def _stats_row(ev: dict, m: dict, st: dict, draw_level: str | None = None) -> di
     except ValueError:
         timing = {}
     draw_level = draw_level or _match_draw_level(ev, m) or "main"
-    round_label = (f"Q{m.get('RoundID')}" if draw_level == "qual"
-                   and str(m.get("RoundID") or "").isdigit()
-                   else _round_label(str(m.get("RoundID")), int(ev["draw"] or 0)))
+    round_label = _match_round(ev, m, draw_level)
     row.update({
         **timing,
         "tourney_id": f"{ev['year']}-W{ev['id']}",

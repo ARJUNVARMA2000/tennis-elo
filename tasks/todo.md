@@ -9799,3 +9799,51 @@ workflow/gate changes, cache exports or odds work.
   re-read through 7abcb4f before this review. Keep this documentation-only receipt
   local so it does not start another production deployment; the repair itself is
   already pushed, deployed and verified. No deployment blocker remains.
+
+### WTA 1007-2026 blocked deployment repair — 2026-11-03
+
+- [x] Identify the latest failed refresh and distinguish publication failure from
+  live-serving failure. Run 41688347340 at remote master 3dd412d stopped at the
+  pre-upload integrity gate with four WTA 1007-2026 result/progression blockers;
+  deployment was skipped and the last accepted release remains live.
+- [x] Capture the provider event, ordered draw and relevant result records; reproduce
+  the Alves–Perez Garcia result loss and missing Alves–Jeanjean R16 progression
+  through the actual producer and existing health gate. Establish the exact cause.
+- [x] Repair the responsible ingestion/draw/result join with captured broken and
+  clean incident replays. Preserve the independent source and scheduled-match gates;
+  extend a gate only if the investigation reveals an uncovered failure class.
+- [x] Run the focused replays and appropriate Python/web checks; reconcile current
+  remote history while preserving the local Angola deployment receipt commit.
+- [ ] Commit and push the reviewed repair, observe exact-commit CI and publication,
+  then independently verify the accepted live release and corrected event bracket.
+- [ ] Append the final review with test results, deployment links and any remaining
+  findings. Existing market-coverage alerts are separate from these four blockers.
+
+Check-in: implementation awaits the user's plan review, as required by AGENTS.md.
+Read-only diagnosis may continue while awaiting that response. Latest failed run:
+https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/41688347340
+Related incident findings: #188–#191. Git history re-read through local d735a19
+and remote 3dd412d before recording this plan; the remote-only change is the daily
+forecast/benchmark ledger update.
+
+Implementation check-in: the user approved repair and production deployment. Current
+ESPN and official WTA main-draw PDF agree that Alves beat Perez Garcia 6-1 6-0 in
+R32; WTA API 1110/2026 incorrectly labels the same RS007 record qualifying. The
+retained Q row outranks ESPN's stat-less result and propagates its qualifying role,
+which the tournament builder correctly excludes. The exact edition/match correction
+now covers fresh acquisition, resumed catalogue metadata and persisted-row ingestion.
+The captured broken replay reproduces all four original gate findings; the repaired
+producer passes them without any gate changes. Main-only and lower-enriched model
+frames remain identical before/after; this corrects the excluded WTA 125 event view
+without changing model population/version or requiring a retrain. History re-read
+through d735a19/3dd412d before this update. Full validation is in progress.
+
+Cali pre-push review: 2,077 Python tests passed in 266.18 seconds. The final focused
+set passed 63 tests, including all 13 incident cases and five exact-key boundaries
+added after full-suite collection. All 375 web tests, Ruff, TypeScript and whitespace
+checks pass; web lint passes with nine existing warnings. Build/browser smoke remain
+for exact-commit CI. Remote master was rechecked at 3dd412d, with no competing refresh
+in progress. Merge f6df24d incorporates its ledger update and preserves local receipt
+d735a19; history was re-read before this review. The correction changes no gates,
+workflows, aliases, dependency pins or model populations. Evidence is saved in
+tasks/deploy/2026-11-03-cali-role-repair.json. User approval covers the production push.

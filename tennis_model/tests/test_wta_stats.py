@@ -125,8 +125,8 @@ def test_download_reclassifies_known_source_id_without_refetching_stats():
             ws.historical_dir = lambda tour: base / "historical"
 
             ev = _event()
-            # LS ids can legitimately appear in either store; RS ids are a
-            # qualifying-only provider family and have a separate ingestion guard.
+            # LS ids can legitimately appear in either store; ordinary RS ids have
+            # a separate qualifying guard plus exact independently reviewed exceptions.
             row = ws._stats_row(
                 ev, _match(draw="M", match_id="LS001"), _stats(), "main"
             )

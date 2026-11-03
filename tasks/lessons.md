@@ -512,3 +512,7 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - A newly recognized entrant role must repair retained cache seats as well as fresh parses.
   See [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md). (2026-10-31)
+
+- A provider match prefix is not an unconditional draw-role contract; bind reviewed
+  exceptions to exact edition + match IDs. See
+  [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md). (2026-11-03)

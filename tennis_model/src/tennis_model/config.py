@@ -140,6 +140,13 @@ WTA_LOWER_STATE_FIRST_YEAR = 2016
 # outside-top-50 (+0.00145±0.00059), and top-50 safety (-0.00007±0.00012).  ``None``
 # disables it without changing the model feature schema or main-draw combiner population.
 WTA_DUAL_STATE_GATE_THRESHOLD = 32
+# Exact provider metadata corrections, independently reviewed against the official draw
+# and ESPN results. Key = (canonical WTA edition, source match id); value = role/tier/round.
+# Cali's RS007 is Alves–Perez Garcia in the MAIN draw despite its Q catalogue label.
+# Evidence: tests/fixtures/cali_role_20261103.json and WTA 1110/2026/MDS.pdf.
+WTA_MATCH_ROLE_REPAIRS: dict[tuple[str, str], tuple[str, str, str]] = {
+    ("2026-W1110", "RS007"): ("chall", "WTA125", "R32"),
+}
 # Increment only when an intentional ingestion-policy change makes meta.matches
 # incomparable with the prior deploy. Health requires this exact value and resets its
 # run-over-run monotonic baseline only across a version boundary; the following run is

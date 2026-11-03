@@ -1,0 +1,88 @@
+{
+  "incidentDate": "2026-11-03",
+  "failedRun": {
+    "id": 41688347340,
+    "url": "https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/41688347340",
+    "sha": "3dd412d372fa5c2549a44de1dd56066501642dd5",
+    "failedStep": "Pre-deploy integrity gate",
+    "blockingFindings": [
+      "output.source_audit.winner_mismatch",
+      "output.source_audit.score_mismatch",
+      "output.source_audit.scheduled_pair_mismatch",
+      "output.bracket.scheduled_match_missing"
+    ],
+    "eventId": "1007-2026",
+    "issues": [
+      188,
+      189,
+      190,
+      191
+    ]
+  },
+  "authorization": "User approved plan, testing, commit, production push and live verification in this chat.",
+  "repair": {
+    "providerEdition": "2026-W1110",
+    "sourceMatchId": "RS007",
+    "role": [
+      "chall",
+      "WTA125",
+      "R32"
+    ],
+    "cause": "WTA catalogue publishes the main-draw Alves\u2013Perez Garcia result as qualifying; source-merge role propagation erases bracket progression.",
+    "boundaries": "Exact provider edition + match ID, WTA only. Existing generic RS qualifying guard retained.",
+    "population": "Both main-only and enriched model frames remain identical in captured broken/clean replay; model version unchanged.",
+    "gate": "Existing four blocking findings retained without changing invariants."
+  },
+  "capture": {
+    "note": "Provider bytes captured during repair, after failed run 41688347340; not the original CI acquisition. Draw cache from Nov 2 recovery snapshot.",
+    "observedAt": "2026-11-03T18:11:03.276265Z",
+    "fixture": "tennis_model/tests/fixtures/cali_role_20261103.json",
+    "fixtureSha256": "08b1bf66bcf78cb6c56e6dfdd98327da52bcc5fcbf3a4d786593bcefc06c6720",
+    "sources": {
+      "espn": "https://site.web.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard?dates=20261103",
+      "wta": "https://api.wtatennis.com/tennis/tournaments/1110/2026/matches",
+      "stats": "https://api.wtatennis.com/tennis/tournaments/1110/2026/matches/RS007/stats"
+    },
+    "officialDraw": {
+      "url": "https://wtafiles.wtatennis.com/pdf/draws/2026/1110/MDS.pdf",
+      "sha256": "6c6d4639181156a21cb5f0329fc9355e46887486532fc3bc2f247c3c81b05aab"
+    },
+    "recoveryArchiveSha256": "96b31dc53b9a6bd69f11ef8b26d43f4642ad4a9d0ecd9d55af9b314c39e0c907"
+  },
+  "localValidation": {
+    "incidentReplays": {
+      "passed": 13
+    },
+    "focusedPythonInitial": {
+      "passed": 58
+    },
+    "pythonSuite": {
+      "passed": 2077,
+      "seconds": 266.18,
+      "note": "Full suite collected before five extra exact-key boundary cases were added; final focused run covers all 13 incident cases."
+    },
+    "webTests": {
+      "passed": 375
+    },
+    "webLint": {
+      "exitCode": 0,
+      "existingWarnings": 9
+    },
+    "typescript": {
+      "exitCode": 0
+    },
+    "ruff": {
+      "exitCode": 0
+    },
+    "whitespace": {
+      "exitCode": 0
+    },
+    "focusedPythonFinal": {
+      "passed": 63,
+      "seconds": 4.76
+    }
+  },
+  "deployment": {
+    "status": "ready for approved production push"
+  }
+}

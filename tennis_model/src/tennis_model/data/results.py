@@ -32,6 +32,7 @@ from ..config import (
     TIER_ANCHORS,
     TIER_K_MULT,
     TIER_NAMES,
+    WTA_MATCH_ROLE_REPAIRS,
     fresh_dir,
     historical_dir,
     live_dir,
@@ -437,8 +438,8 @@ def _stamp_draw_level(df: pd.DataFrame, tour: str | None = None) -> pd.DataFrame
     # main draw, then corrected upstream to qualifying. Their saved explicit ``main`` stamp
     # otherwise outranked every derivation forever and started the released main draw four
     # days early. LS ids cover a mixture of tour main draws and WTA 125 main events, but RS
-    # is the provider's qualifying namespace throughout the stored lower archive; use only
-    # that one-directional fact as a load-time repair boundary.
+    # normally identifies qualifying. Exact independently reviewed exceptions are applied
+    # below; Cali's main-draw RS007 proves the prefix is not an unconditional role contract.
     source_ids = (df["source_match_id"].astype("string").str.strip().str.upper()
                   if "source_match_id" in df.columns
                   else pd.Series(pd.NA, index=df.index, dtype="string"))
@@ -453,6 +454,12 @@ def _stamp_draw_level(df: pd.DataFrame, tour: str | None = None) -> pd.DataFrame
             known_qual_round = df["round"].astype("string").isin(("Q1", "Q2", "Q3"))
             df.loc[provider_qual & ~known_qual_round, "round"] = pd.NA
     df["draw_level"] = resolved
+    if tour == "wta" and "tourney_id" in df.columns:
+        editions = df["tourney_id"].astype("string").str.strip()
+        for (edition, match_id), (role, level, rnd) in WTA_MATCH_ROLE_REPAIRS.items():
+            repaired = editions.eq(edition) & source_ids.eq(match_id)
+            if repaired.any():
+                df.loc[repaired, ["draw_level", "tourney_level", "round"]] = [role, level, rnd]
     return df
 
 

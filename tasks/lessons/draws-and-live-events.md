@@ -495,3 +495,13 @@ Indexed in [`../lessons.md`](../lessons.md).
   Replay both fresh parsing and retained-cache reads through the actual pre-start/live
   tournament producer and unchanged gates. Label reconstructed incident fixtures honestly;
   later provider bytes are not the original failing acquisition.
+
+- **A provider match prefix is not an unconditional draw-role contract.** (2026-11-03,
+  Cali #188–191) WTA published main-draw Alves–Perez Garcia as qualifying RS007/Q;
+  the lower-source role then contaminated the exact ESPN result at deduplication,
+  erasing its win and next-round pairing. Independently verify the official main draw
+  and second-provider result, bind any reviewed correction to exact edition + match ID,
+  and apply it to fresh acquisition, resumed metadata and already persisted rows.
+  Preserve the general qualifying guard and replay the producer against unchanged
+  source/schedule gates. Compare both model populations before claiming metadata-only
+  repair; an event-facing correction does not itself authorize a population change.
