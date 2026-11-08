@@ -9891,7 +9891,7 @@ Live site: https://deuce-forecast.web.app/
   results on a round-robin card and validate those fixtures against the source
   witness before upload. Verify the original shell and mislabelled schedule still
   block. The event card withholds knockout-based title probabilities.
-- [ ] Confirm full validation, production publication and the live serving checks.
+- [x] Confirm full validation, production publication and the live serving checks.
 
 November 8 live replay follow-up (checkout 9d31e3d; remote 5d7736a, rechecked):
 
@@ -9902,7 +9902,7 @@ November 8 live replay follow-up (checkout 9d31e3d; remote 5d7736a, rechecked):
 - [x] Preserve the last-played date for the progress gate. Carry the witnessed
   calendar end separately and use it to bound the scheduled matches. Replay the
   staggered ESPN dates and confirm a match beyond the calendar still blocks.
-- [ ] Reconcile the repair with the current remote ledger, verify the final
+- [x] Reconcile the repair with the current remote ledger, verify the final
   patch, then publish and check the exact GitHub Actions run and live Finals card.
 
 Check-in: the local patch is already present. Await the user's review before
@@ -9911,3 +9911,24 @@ implementing the calendar follow-up. The November 7 accepted release remains liv
 The user approved the calendar fix and production deployment. The current ESPN
 replay now passes all Finals-specific findings with all 12 named group fixtures.
 The regression test also rejects a match scheduled after the witnessed end date.
+
+### WTA Finals blocked deployment repair — final review, 2026-11-08
+
+- [x] Published commit 95bac1d4bede29281002c4c19b2bdfa5a4396f21 with the remote
+  ledger history preserved. GitHub Actions run 42521528815 finished green in
+  quick mode, including the Python and web jobs and both deployment gates.
+- [x] Local checks passed 2,087 Python tests and 375 web tests. CI passed 2,086
+  Python tests with one skip. The source replay exercised the staggered group
+  schedule and kept the last-played date separate from the calendar end.
+- [x] The accepted release 987cfd44-c9e0-41a7-ac7c-57ec566df003 was generated at
+  2026-11-08T21:04:14Z. CI and independent live verification passed all 22 checks,
+  including 454 exact artifacts and 420 referenced shards.
+- [x] A desktop and mobile browser each opened the public WTA Finals card for
+  ESPN 382-2026. The card showed Live, Nov 8–15, and all 12 named group fixtures.
+  The published schedule contained all 12 priced pairings at verification time.
+- [x] The live health report contains no WTA Finals findings. Its existing ATP
+  forecast-drift advisory and informational charting note remain. History was
+  rechecked through 95bac1d before recording this review.
+
+Deployment: https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/42521528815
+Live card: https://deuce-forecast.web.app/?tour=wta
