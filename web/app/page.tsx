@@ -289,6 +289,7 @@ export default function Tournaments() {
 
   if (hero) {
     const tier = tournamentTier(hero.level, hero.name);
+    const groupStage = hero.drawStatus === "round-robin";
     return (
       <div
         className="pb-16"
@@ -296,9 +297,11 @@ export default function Tournaments() {
         data-home-bracket-entry-contract="stable-event-id+actual+forecast+scenario-v1"
       >
         <PageHead
-          eyebrow={`${tour.toUpperCase()} · ${tier.short} · round-by-round forecast`}
+          eyebrow={`${tour.toUpperCase()} · ${tier.short} · ${groupStage ? "fixtures and results" : "round-by-round forecast"}`}
           title={hero.name}
-          sub={hero.status === "live"
+          sub={groupStage
+            ? "Follow the group matches and the knockout rounds as pairings and results are confirmed."
+            : hero.status === "live"
             ? "The model's live title odds — the leading contenders' chances of reaching each round, from the favourites on down. Updated as the draw thins."
             : "The model's pre-event title odds — the leading contenders' chances of reaching each round before play begins."}
         />
