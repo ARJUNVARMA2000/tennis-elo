@@ -505,3 +505,11 @@ Indexed in [`../lessons.md`](../lessons.md).
   Preserve the general qualifying guard and replay the producer against unchanged
   source/schedule gates. Compare both model populations before claiming metadata-only
   repair; an event-facing correction does not itself authorize a population change.
+
+- **Group stages require observed fixtures and results rather than knockout geometry.**
+  (2026-11-08, WTA Finals) ESPN round 15 represents round-robin play. Defaulting it
+  to R64 made twelve real fixtures invisible to the source audit. A group-stage loss
+  does not eliminate a player. Publish each named fixture and result under its ESPN
+  match ID, keep the actual semifinals and final separate, and audit that inventory
+  and the priced schedule independently. Replay both a match repeated in a later
+  round and a result missing from the public card.

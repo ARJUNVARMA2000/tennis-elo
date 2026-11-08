@@ -179,7 +179,20 @@ def _check_event(ev, eid, card, bracket, schedule, cached, slug, rated, identity
     if not card:
         fail('event_missing', eid, name=ev.get('name') or ev.get('shortName'))
         return
+    group_stage = any(str((c.get('round') or {}).get('id')) == '15' for c in main)
     bm = defaultdict(list)
+    group_fixtures = defaultdict(list)
+    if group_stage:
+        if (card.get('drawStatus') != 'round-robin' or card.get('coverageOnly')
+                or card.get('projection') or bracket or card.get('hasBracket')):
+            fail('group_stage_format_mismatch', eid)
+        calendar_end = (ev.get('calendar') or {}).get('endDate') or ev.get('endDate')
+        expected_end = _utc(calendar_end).date().isoformat()
+        if card.get('scheduledEnd') != expected_end:
+            fail('group_stage_calendar_end_mismatch', eid,
+                 expected=expected_end, actual=card.get('scheduledEnd'))
+        for m in card.get('roundRobinFixtures', []):
+            group_fixtures[str(m['id'])].append(m)
     if bracket:
         ordered = [m.get(s) for m in bracket['rounds'][0]['matches'] for s in ('a', 'b')]
         seats = [n for n in ordered if is_real_participant(n)]
@@ -220,6 +233,7 @@ def _check_event(ev, eid, card, bracket, schedule, cached, slug, rated, identity
     size = 1 << (size - 1).bit_length() if size else 0
     size = (bracket or {}).get('bracketSize') or size
     pending, completed = set(), set()
+    source_fixture_ids = set()
     for c in main:
         athletes = c.get('competitors') or []
         if len(athletes) != 2:
@@ -232,7 +246,7 @@ def _check_event(ev, eid, card, bracket, schedule, cached, slug, rated, identity
             stage = size >> (int(rid) - 1)
             rnd = {8: 'QF', 4: 'SF', 2: 'F'}.get(stage, f'R{stage}')
         else:
-            rnd = {'5': 'QF', '6': 'SF', '7': 'F'}.get(rid)
+            rnd = {'5': 'QF', '6': 'SF', '7': 'F', '15': 'RR'}.get(rid)
         if rnd is None:
             fail('round_unresolved', eid, matchId=c.get('id'))
             continue
@@ -246,6 +260,15 @@ def _check_event(ev, eid, card, bracket, schedule, cached, slug, rated, identity
             fail('event_malformed', eid, matchId=c.get('id'))
             continue
         matches = bm.get(key, [])
+        if group_stage:
+            match_id = str(c.get('id') or '')
+            source_fixture_ids.add(match_id)
+            matches = group_fixtures.get(match_id, [])
+            if (not match_id or len(matches) != 1 or matches[0].get('round') != rnd
+                    or _pair(matches[0].get('a'), matches[0].get('b')) != pair
+                    or matches[0].get('state') != status['state']):
+                fail('group_stage_fixture_mismatch', eid, round=rnd, players=names, matchId=match_id)
+                matches = []
         if status.get('completed'):
             completed.add(key)
             winners = [a for a in athletes if a.get('winner') is True]
@@ -253,7 +276,7 @@ def _check_event(ev, eid, card, bracket, schedule, cached, slug, rated, identity
                 fail('winner_unresolved', eid, players=names)
                 continue
             winner = winners[0]
-            if bracket and len(matches) != 1:
+            if (bracket or group_stage) and len(matches) != 1:
                 fail('result_missing', eid, round=rnd, players=names)
                 continue
             if not matches:
@@ -270,17 +293,27 @@ def _check_event(ev, eid, card, bracket, schedule, cached, slug, rated, identity
             marker = {'STATUS_WALKOVER': 'W/O', 'STATUS_RETIRED': 'RET'}.get(status.get('name'))
             if marker and marker not in str(m.get('score') or '').upper():
                 fail('outcome_mismatch', eid, players=names, expected=marker, actual=m.get('score'))
+            if group_stage and rnd == 'F' and (card.get('status') != 'completed'
+                    or _key(card.get('champion')) != _key(winner['athlete']['displayName'])
+                    or _key(card.get('runnerUp')) != _key(loser['athlete']['displayName'])):
+                fail('group_stage_final_mismatch', eid, players=names)
         elif status.get('state') in ('pre', 'in'):
             pending.add(key)
-            if bracket and (len(matches) != 1 or matches[0].get('winner') is not None):
+            if (bracket or group_stage) and (len(matches) != 1 or matches[0].get('winner') is not None):
                 fail('scheduled_pair_mismatch', eid, round=rnd, players=names)
             # A genuine newcomer may be factual but unpriced; rated variants block above.
             if all(_key(n) in rated for n in names) and len(sm.get(key, [])) != 1:
                 fail('scheduled_match_missing', eid, round=rnd, players=names)
+    if group_fixtures.keys() - source_fixture_ids:
+        fail('group_stage_fixture_unwitnessed', eid,
+             matchIds=sorted(group_fixtures.keys() - source_fixture_ids))
     for key in completed & sm.keys():
         fail('completed_match_scheduled', eid, round=key[0], players=list(key[1]))
     # Extra projected pairs are legitimate before the feed names their opponents.
     for key in sm.keys() - pending - completed:
+        if group_stage:
+            fail('group_stage_schedule_unwitnessed', eid, round=key[0], players=list(key[1]))
+            continue
         participants = {n for r, pair in pending | completed if r == key[0] for n in pair}
         if set(key[1]) & participants:
             fail('opponent_mismatch', eid, round=key[0], players=list(key[1]))

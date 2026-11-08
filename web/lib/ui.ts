@@ -31,8 +31,9 @@ export function drawCaveat(t: { status: string; drawStatus?: string }):
 /** Card copy for a coverage fallback. A settled result with no safely reconstructed field is
     not a draw that is still pending: the final is known even though historical odds are not. */
 export function tournamentDrawLabel(t: {
-  status: string; drawSize?: number | null; champion?: string | null;
+  status: string; drawStatus?: string; drawSize?: number | null; champion?: string | null;
 }): string {
+  if (t.drawStatus === "round-robin") return "group stage + knockout";
   if (t.drawSize) return `${t.drawSize} draw`;
   if (t.status === "completed" && t.champion) return "final recorded";
   return "draw pending";

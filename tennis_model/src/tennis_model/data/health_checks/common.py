@@ -138,7 +138,7 @@ def _is_real_name(x: object) -> bool:
 
 _STATUSES = {"live", "upcoming", "completed"}
 
-_DRAW_STATES = {"real", "partial", "seeded", "final", "unavailable"}
+_DRAW_STATES = {"real", "partial", "seeded", "final", "unavailable", "round-robin"}
 
 _REACH_ORDER = ("R128", "R64", "R32", "R16", "QF", "SF", "F", "Champion")
 

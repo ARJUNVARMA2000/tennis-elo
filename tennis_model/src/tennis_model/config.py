@@ -331,13 +331,15 @@ EVENT_TIER_BY_ID: dict[str, dict[str, str]] = {
         # Official 1128 draw: Oct 12–18, 2026; WTA 125; same 28 named ESPN entrants.
         # https://wtafiles.wtatennis.com/pdf/draws/2026/1128/MDS.pdf
         "1020-2026": "WTA 125",
+        # https://www.wtatennis.com/tournaments/808/fage-wta-finals-indian-wells/2026
+        "382-2026": "Tour Finals",
     },
 }
 
 # Exact current-edition evidence outranks name-matched historical or article surfaces.
 # The same official draw cited above says Clay; the former Mallorca WTA event was Grass.
 EVENT_SURFACE_BY_ID: dict[str, dict[str, str]] = {
-    "wta": {"1020-2026": "Clay"},
+    "wta": {"1020-2026": "Clay", "382-2026": "Hard"},
 }
 
 # ---------------------------------------------------------------------------
@@ -729,6 +731,7 @@ EVENT_DISPLAY_NAME_OVERRIDES: dict[str, dict[str, str]] = {
         "189": "US Open",
         "421-2026": "Toronto",
         "421": "Canada",
+        "382-2026": "WTA Finals",
     },
 }
 

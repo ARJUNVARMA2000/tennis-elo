@@ -13,17 +13,51 @@ import { bracketHref, pairHref } from "@/lib/url";
 import { closestUpcomingMatch, excludeLiveMatches, matchesForTournament, useUpcomingHighlights, worthWatching, type Upcoming } from "@/lib/upcoming";
 
 export type Proj = { name: string; champion: number; final: number | null; sf: number | null; reach?: Record<string, number> };
+type RoundRobinFixture = {
+  id: string; round: "RR" | "SF" | "F"; a: string; b: string;
+  state: "pre" | "in" | "post"; winner: "a" | "b" | null; score: string | null;
+};
 export type Tournament = {
   name: string; surface: string | null; level: string; bestOf: number;
-  start: string; end: string; status: "completed" | "live" | "upcoming";
-  drawStatus?: "real" | "partial" | "seeded" | "final" | "unavailable";
+  start: string; end: string; scheduledEnd?: string; status: "completed" | "live" | "upcoming";
+  drawStatus?: "real" | "partial" | "seeded" | "final" | "unavailable" | "round-robin";
   espnId?: string | null;
   drawSize: number | null; aliveCount: number | null;
   champion: string | null; runnerUp: string | null;
   modelFavorite: string | null; favoritePicked: boolean;
   projection: Proj[];
+  roundRobinFixtures?: RoundRobinFixture[];
   scenario?: { file?: string | null } | null;
 };
+
+function RoundRobinFixtures({ fixtures }: { fixtures: RoundRobinFixture[] }) {
+  const stages = { RR: "Group stage", SF: "Semifinals", F: "Final" } as const;
+  return (
+    <details className="mt-4 rounded-lg border border-[var(--color-line)] px-3 py-2">
+      <summary className="cursor-pointer text-sm">Fixtures and results ({fixtures.length})</summary>
+      {Object.entries(stages).map(([round, label]) => {
+        const matches = fixtures.filter((match) => match.round === round);
+        if (!matches.length) return null;
+        return (
+          <section key={round} className="mt-3">
+            <h3 className="eyebrow">{label}</h3>
+            <ul className="mt-1 divide-y divide-[var(--color-line)] text-xs">
+              {matches.map((match) => (
+                <li key={match.id} className="flex flex-wrap justify-between gap-x-3 py-1.5">
+                  <span>{match.winner === "b" ? match.b : match.a}
+                    {match.winner ? " def. " : " vs. "}{match.winner === "b" ? match.a : match.b}</span>
+                  <span className="mono text-[var(--color-muted)]">
+                    {match.score || (match.state === "in" ? "In progress" : match.state === "post" ? "Final" : "Scheduled")}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        );
+      })}
+    </details>
+  );
+}
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 function dateRange(start: string, end: string): string {
@@ -565,7 +599,7 @@ function SlamHero({
           </div>
           <h2 className="display mt-2 text-3xl leading-tight sm:text-4xl">{t.name}</h2>
           <div className="mono mt-1 text-[11px] text-[var(--color-faint)]">
-            {dateRange(t.start, t.end)} · {tournamentDrawLabel(t)}
+            {dateRange(t.start, t.status === "completed" ? t.end : t.scheduledEnd ?? t.end)} · {tournamentDrawLabel(t)}
           </div>
         </div>
         {t.status === "completed" ? (
@@ -613,7 +647,9 @@ function SlamHero({
           unresolved qualifiers (sim/tournaments.projection_is_meaningful): odds computed
           over default-rated placeholders describe nobody, and used to inflate the real
           favourite to 53-56% on day one. The card still carries the schedule facts. */}
-      {t.projection.length === 0 ? (
+      {t.roundRobinFixtures?.length ? (
+        <RoundRobinFixtures fixtures={t.roundRobinFixtures} />
+      ) : t.projection.length === 0 ? (
         <div className="mono mt-5 text-[11px] text-[var(--color-faint)]">
           {emptyProjectionNote(t)}
         </div>
@@ -805,7 +841,7 @@ export function Card({
           </div>
           <h3 className="display mt-2 text-2xl leading-tight">{t.name}</h3>
           <div className="mono mt-1 text-[11px] text-[var(--color-faint)]">
-            {dateRange(t.start, t.end)} · {tournamentDrawLabel(t)}
+            {dateRange(t.start, t.status === "completed" ? t.end : t.scheduledEnd ?? t.end)} · {tournamentDrawLabel(t)}
           </div>
         </div>
         {t.status === "completed" ? (
@@ -852,7 +888,9 @@ export function Card({
       {/* Projection. Withheld while the draw is mostly unresolved qualifiers — see the
           matching guard on the hero card and sim/tournaments.projection_is_meaningful. */}
       <div className="mt-4 flex-1">
-        {t.projection.length === 0 ? (
+        {t.roundRobinFixtures?.length ? (
+          <RoundRobinFixtures fixtures={t.roundRobinFixtures} />
+        ) : t.projection.length === 0 ? (
           <div className="mono text-[11px] text-[var(--color-faint)]">
             {emptyProjectionNote(t)}
           </div>

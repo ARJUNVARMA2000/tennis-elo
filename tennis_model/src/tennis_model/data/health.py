@@ -1616,7 +1616,7 @@ def output_findings(tour: str, oc: dict, now: pd.Timestamp,
                          entity="artifact:profile-index.json")
 
     ts = data.get("tournaments")
-    event_ranges: dict[str, tuple[pd.Timestamp, pd.Timestamp, str]] = {}
+    event_ranges: dict[str, tuple[pd.Timestamp, pd.Timestamp, pd.Timestamp, str]] = {}
     if isinstance(ts, list):
         schedule_gap = any(start <= str(now.date()) <= end
                            for start, end in HEALTH_SCHEDULE_GAPS.get(tour, ()))
@@ -1655,7 +1655,14 @@ def output_findings(tour: str, oc: dict, now: pd.Timestamp,
             start = pd.to_datetime(t.get("start"), errors="coerce")
             end = pd.to_datetime(t.get("end"), errors="coerce")
             if pd.notna(start) and pd.notna(end):
-                event_ranges[str(t["espnId"])] = (start, end, str(t.get("name") or ""))
+                # The round-robin card carries a separate ESPN calendar bound.
+                # Its last-played date still bounds results and measures live progress.
+                scheduled_end = end
+                if t.get("drawStatus") == "round-robin":
+                    calendar_end = pd.to_datetime(t.get("scheduledEnd"), format="%Y-%m-%d", errors="coerce")
+                    if pd.notna(calendar_end):
+                        scheduled_end = calendar_end
+                event_ranges[str(t["espnId"])] = (start, end, scheduled_end, str(t.get("name") or ""))
         # A live event that HAD a bracket and now doesn't: the cached complete draw pinning
         # its field has gone. That is the 2026-07-27 Wimbledon class — the draw aged out of
         # the ESPN discovery window, the field fell back to a noisy results union and padded
@@ -1790,7 +1797,7 @@ def output_findings(tour: str, oc: dict, now: pd.Timestamp,
             eid = str(m.get("espnId") or "")
             day = pd.to_datetime(m.get("date"), errors="coerce")
             if eid in event_ranges and pd.notna(day):
-                start, end, event_name = event_ranges[eid]
+                start, _, end, event_name = event_ranges[eid]
                 if day < start or day > end:
                     _add_finding(out, "output.upcoming.date_outside_event",
                                  f"{tour}: upcoming match on {m.get('date')} falls outside "
@@ -1875,7 +1882,7 @@ def output_findings(tour: str, oc: dict, now: pd.Timestamp,
             eid = str(f.get("espnId") or "")
             day = pd.to_datetime(f.get("date"), errors="coerce")
             if eid in event_ranges and pd.notna(day):
-                start, end, event_name = event_ranges[eid]
+                start, end, _, event_name = event_ranges[eid]
                 if day < start or day > end:
                     _add_finding(out, "output.fixture.date_outside_event",
                                  f"{tour}: completed fixture on {f.get('date')} falls outside "

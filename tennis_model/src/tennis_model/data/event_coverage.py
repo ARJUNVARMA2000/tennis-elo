@@ -24,13 +24,14 @@ import pandas as pd
 
 from ..config import live_dir
 from .events import EventResolver, display_event_name, is_event_id, load_registry, norm_event_name
+from .live import round_robin_fixtures
 from .participants import is_real_participant
 from .results import _name_key
 from .surface import resolve_level, resolve_surface_info
 
 COVERAGE_VERSION = 1
 COVERAGE_RETENTION_DAYS = 18
-_KO_ROUNDS = frozenset({"R128", "R64", "R32", "R16", "QF", "SF", "F"})
+_MAIN_ROUNDS = frozenset({"RR", "R128", "R64", "R32", "R16", "QF", "SF", "F"})
 _MAIN_LEVELS = frozenset({
     "G", "M", "A", "F", "D", "O",
     "250", "500", "1000", "125",
@@ -192,7 +193,7 @@ def _result_candidates(df: pd.DataFrame, ref: pd.Timestamp, resolver: EventResol
     # days matches the projector's capture window; the GROUP end decides retention.
     frame = frame[(frame["_coverage_date"] >= ref - pd.Timedelta(days=40))
                   & (frame["_coverage_date"] <= ref)
-                  & frame["round"].isin(_KO_ROUNDS)]
+                  & frame["round"].isin(_MAIN_ROUNDS)]
     out: list[dict] = []
     for raw_name, group in frame.groupby("tourney_name", sort=False):
         if group["_coverage_date"].max() < ref - pd.Timedelta(days=COVERAGE_RETENTION_DAYS):
@@ -540,6 +541,39 @@ def _coverage_shell(event: dict, build_date: str, tour: str) -> dict:
         "drawEvidenceFieldPlayers": None,
         "coverageKey": event["key"], "coverageOnly": True,
     }
+
+
+def add_round_robin_cards(tournaments: list[dict], source: dict, tour: str, build_date: str) -> None:
+    """Use observed fixtures for group-stage events, including their actual knockout rounds."""
+    for event in (source.get("witness") or {}).get("events", []):
+        fixtures = round_robin_fixtures(event, tour)
+        if not fixtures:
+            continue
+        event_id = str(event["id"])
+        name = display_event_name(tour, event.get("shortName") or event.get("name"), event_id)
+        calendar = event.get("calendar") or {}
+        start = _iso(calendar.get("startDate") or event.get("date")) or build_date
+        end = _iso(calendar.get("endDate") or event.get("endDate")) or start
+        played = [match for match in fixtures if match["state"] in ("in", "post")]
+        final = next((m for m in played if m["round"] == "F" and m["winner"]), None)
+        status = "completed" if final or end < build_date else "live" if played else "upcoming"
+        last_played = max((m["date"] for m in played if m["date"]), default=start)
+        surface, surface_source = resolve_surface_info(tour, name, start, event_id=event_id)
+        card = {
+            "name": name, "espnId": event_id, "status": status, "drawStatus": "round-robin",
+            "surface": surface, "surfaceSource": surface_source, "bestOf": 3,
+            "level": resolve_level(tour, name, event_id=event_id),
+            "start": start, "end": last_played if played else end, "scheduledEnd": end,
+            "drawSize": len({m[side] for m in fixtures for side in ("a", "b")}),
+            "mainDrawMatchCount": len(played), "aliveCount": 1 if final else None,
+            "champion": final[final["winner"]] if final else None,
+            "runnerUp": final["b" if final["winner"] == "a" else "a"] if final else None,
+            "finalRecorded": bool(final) if status == "completed" else None,
+            "modelFavorite": None, "favoritePicked": False, "projection": [],
+            "roundRobinFixtures": fixtures,
+        }
+        tournaments[:] = [t for t in tournaments if str(t.get("espnId")) != event_id]
+        tournaments.append(card)
 
 
 def finalize_event_coverage(manifest: dict, tournaments: list[dict]) -> dict:

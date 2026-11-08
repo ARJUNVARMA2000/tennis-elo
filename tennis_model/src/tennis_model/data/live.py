@@ -68,6 +68,8 @@ def _round_label(disp: str) -> str | None:
     d = (disp or "").lower()
     if "qualif" in d:
         return None
+    if d in ("group stage", "round robin", "round-robin"):
+        return "RR"
     if d.startswith("final"):
         return "F"
     if "semi" in d:
@@ -125,7 +127,7 @@ def _round_code(rnd: dict, draw: int) -> str | None:
     The numbered main-draw rounds (ESPN ids 1-4, labelled "Round N") are draw-relative and
     resolved against `draw`; qualifying is dropped; everything else (QF/SF/F, or any other
     wording) falls to the draw-agnostic name map. Keeps the historical vocabulary
-    (R128/R64/R32/R16/QF/SF/F)."""
+    (RR/R128/R64/R32/R16/QF/SF/F)."""
     disp = (rnd or {}).get("displayName", "")
     if "qualif" in disp.lower():
         return None
@@ -145,6 +147,52 @@ def _score(win_ls: list, los_ls: list) -> str:
         except (TypeError, ValueError):
             continue
     return " ".join(sets)
+
+
+def _completed_score(winner: dict, loser: dict, status: dict) -> str:
+    score = _score(winner.get("linescores"), loser.get("linescores"))
+    if status.get("name") == "STATUS_WALKOVER":
+        return "W/O"
+    if status.get("name") == "STATUS_RETIRED":
+        return f"{score} RET".strip()
+    return score
+
+
+def round_robin_fixtures(event: dict, tour: str) -> list[dict]:
+    """Known singles pairings from a group-stage event, including its knockout finish."""
+    slug = f"{_gender(tour)}-singles"
+    comps = [comp for group in event.get("groupings", []) or []
+             if (group.get("grouping") or {}).get("slug") == slug
+             for comp in group.get("competitions", []) or []]
+    rounds = [_round_code(comp.get("round") or {}, 0) for comp in comps]
+    if "RR" not in rounds:
+        return []
+    venue = _event_venue(event, event.get("name"))
+    fixtures = []
+    for comp, rnd in zip(comps, rounds, strict=True):
+        if rnd not in ("RR", "SF", "F"):
+            continue
+        players = comp.get("competitors") or []
+        if len(players) != 2:
+            continue
+        a, b = map(_athlete_name, players)
+        if not a or not b:
+            continue
+        status = (comp.get("status") or {}).get("type") or {}
+        winner, score = None, None
+        if status.get("completed"):
+            winners = [i for i, player in enumerate(players) if player.get("winner") is True]
+            if len(winners) == 1:
+                index = winners[0]
+                winner = "ab"[index]
+                score = _completed_score(players[index], players[1 - index], status)
+        fixtures.append({
+            "id": str(comp.get("id") or ""), "round": rnd, "a": a, "b": b,
+            "state": status.get("state"), "winner": winner, "score": score,
+            "date": (local_date(comp.get("date"), venue)
+                     if comp.get("timeValid") or status.get("state") in ("in", "post") else None),
+        })
+    return fixtures
 
 
 def _fetch(tour: str, datestr: str | None = None) -> list:
@@ -195,11 +243,7 @@ def parse_events(events: list, gender: str) -> pd.DataFrame:
                 ln = _athlete_name(los)
                 if not wn or not ln:
                     continue
-                score = _score(win.get("linescores"), los.get("linescores"))
-                if stype.get("name") == "STATUS_WALKOVER":
-                    score = "W/O"
-                elif stype.get("name") == "STATUS_RETIRED":
-                    score = f"{score} RET".strip()
+                score = _completed_score(win, los, stype)
                 rows.append({
                     "tourney_name": name,
                     # The stable identity beside the display name: `tourney_name` is a
@@ -213,7 +257,8 @@ def parse_events(events: list, gender: str) -> pd.DataFrame:
                 })
     df = pd.DataFrame(rows)
     if not df.empty:
-        df = df.drop_duplicates(subset=["tourney_name", "winner_name", "loser_name", "score"])
+        df = df.drop_duplicates(subset=["tourney_name", "espn_id", "round",
+                                        "winner_name", "loser_name", "score"])
     return df
 
 
@@ -307,14 +352,16 @@ def parse_fields(events: list, gender: str) -> dict:
             comps = grp.get("competitions", []) or []
             draw = _draw_size(comps)
             for comp in comps:
-                if _round_code(comp.get("round") or {}, draw) is None:
+                rnd = _round_code(comp.get("round") or {}, draw)
+                if rnd is None:
                     continue                                  # skip qualifying
                 cs = comp.get("competitors") or []
                 for c in cs:
                     nm = _athlete_name(c)
                     if nm:
                         field.add(nm)
-                if ((comp.get("status") or {}).get("type") or {}).get("completed"):
+                if (rnd != "RR"
+                        and ((comp.get("status") or {}).get("type") or {}).get("completed")):
                     lc = next((c for c in cs if c.get("winner") is False), None)
                     ln = _athlete_name(lc)
                     if ln:
@@ -363,7 +410,7 @@ def parse_upcoming(events: list, gender: str) -> pd.DataFrame:
                 })
     df = pd.DataFrame(rows)
     if not df.empty:
-        df = df.drop_duplicates(subset=["tourney_name", "playerA", "playerB"])
+        df = df.drop_duplicates(subset=["tourney_name", "espn_id", "round", "playerA", "playerB"])
     return df
 
 

@@ -394,7 +394,7 @@ def build_fixtures(df, predictor, n=60, *, tour: str | None = None,
     return out
 
 
-_ROUND_DEPTH = {r: i for i, r in enumerate(["R128", "R64", "R32", "R16", "QF", "SF", "F"])}
+_ROUND_DEPTH = {r: i for i, r in enumerate(["RR", "R128", "R64", "R32", "R16", "QF", "SF", "F"])}
 
 
 def _load_scenario_products(tour: str) -> tuple[dict | None, dict[str, dict]]:
@@ -993,7 +993,9 @@ def build_event_outputs(predictor, df: pd.DataFrame, tour: str) -> tuple[dict, l
     know that those tournaments started or completed. Keep this split at one export seam so
     profiles, fixtures, metadata and every trained state continue to use ``df`` unchanged.
     """
+    from ..config import live_dir
     from ..data import event_coverage, results
+    from ..data.source_audit import read_source
     from ..sim import tournaments
 
     with timed(tour, "event_projection"):
@@ -1001,6 +1003,8 @@ def build_event_outputs(predictor, df: pd.DataFrame, tour: str) -> tuple[dict, l
         coverage = event_coverage.build_event_coverage(event_df, tour)
         cards = tournaments.build_tournaments(
             predictor, event_df, tour, build_date=coverage["buildDate"])
+        event_coverage.add_round_robin_cards(
+            cards, read_source(live_dir(tour), tour), tour, coverage["buildDate"])
         coverage = event_coverage.finalize_event_coverage(coverage, cards)
     return coverage, cards
 

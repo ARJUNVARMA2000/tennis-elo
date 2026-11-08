@@ -9880,3 +9880,34 @@ tasks/deploy/2026-11-03-cali-role-repair.json. User approval covers the producti
 
 Deployment: https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/41692866798
 Live site: https://deuce-forecast.web.app/
+
+### WTA Finals blocked deployment repair, 2026-11-08
+
+- [x] Trace the blocked refresh 42516442509 to ESPN edition 382-2026. ESPN round
+  15 is Group Stage. WTA 808 confirms a hard-court Tour Finals with two groups
+  and a knockout finish. Remote master 5d7736a differs from the checkout's remote
+  base only by forecast and benchmark ledger updates.
+- [x] Recognize RR in live results and scheduling. Publish factual fixtures and
+  results on a round-robin card and validate those fixtures against the source
+  witness before upload. Verify the original shell and mislabelled schedule still
+  block. The event card withholds knockout-based title probabilities.
+- [ ] Confirm full validation, production publication and the live serving checks.
+
+November 8 live replay follow-up (checkout 9d31e3d; remote 5d7736a, rechecked):
+
+- [x] Replay the local patch with ESPN's current 382-2026 scoreboard. The card
+  has all 12 real group fixtures, but ten future matches still fail the date
+  gate: the card's `end` tracks November 8 play while the calendar runs through
+  November 15.
+- [x] Preserve the last-played date for the progress gate. Carry the witnessed
+  calendar end separately and use it to bound the scheduled matches. Replay the
+  staggered ESPN dates and confirm a match beyond the calendar still blocks.
+- [ ] Reconcile the repair with the current remote ledger, verify the final
+  patch, then publish and check the exact GitHub Actions run and live Finals card.
+
+Check-in: the local patch is already present. Await the user's review before
+implementing the calendar follow-up. The November 7 accepted release remains live.
+
+The user approved the calendar fix and production deployment. The current ESPN
+replay now passes all Finals-specific findings with all 12 named group fixtures.
+The regression test also rejects a match scheduled after the witnessed end date.

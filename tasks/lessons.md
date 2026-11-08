@@ -516,3 +516,6 @@ New lesson → append the entry to the matching topic file and add its lead line
 - A provider match prefix is not an unconditional draw-role contract; bind reviewed
   exceptions to exact edition + match IDs. See
   [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md). (2026-11-03)
+
+- Group stages require observed fixtures and results rather than knockout geometry.
+  See [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md). (2026-11-08)
