@@ -146,6 +146,12 @@ WTA_DUAL_STATE_GATE_THRESHOLD = 32
 # Evidence: tests/fixtures/cali_role_20261103.json and WTA 1110/2026/MDS.pdf.
 WTA_MATCH_ROLE_REPAIRS: dict[tuple[str, str], tuple[str, str, str]] = {
     ("2026-W1110", "RS007"): ("chall", "WTA125", "R32"),
+    # WTA Finals group results corroborated by ESPN 382-2026. Preserve the round
+    # after ESPN's rolling results file no longer covers the event.
+    ("2026-W808", "LS010"): ("main", "Finals", "RR"),  # ESPN 187373
+    ("2026-W808", "LS011"): ("main", "Finals", "RR"),  # ESPN 187374
+    ("2026-W808", "LS018"): ("main", "Finals", "RR"),  # ESPN 187381
+    ("2026-W808", "LS019"): ("main", "Finals", "RR"),  # ESPN 187382
 }
 # Increment only when an intentional ingestion-policy change makes meta.matches
 # incomparable with the prior deploy. Health requires this exact value and resets its
