@@ -338,9 +338,10 @@ def _reconcile_exact_live_result(df: pd.DataFrame) -> pd.DataFrame:
     twice at one event.  It cannot be trusted as the *only* separator across providers,
     though: a bye-heavy draw can make one provider call the same match R64 and another
     R32.  The safe bridge is deliberately narrow: same ordered players, local calendar
-    date and games-only score; exactly one row per source; and exactly one live ESPN row
-    carrying the stable event id.  More than one row from any source makes the bucket
-    ambiguous (for example a round-robin/final rematch), so it is left untouched.
+    date and games-only score; exactly one result per source; and exactly one live ESPN
+    row carrying the stable event id. Repeated fresh mirror rows count as one result only
+    if their payloads match apart from the round and their known round agrees with ESPN.
+    Other repeated rows leave the bucket ambiguous (e.g. a group-stage/final rematch).
 
     The live round is safe to apply only at this seam because ``live._draw_size`` has
     already resolved it from every populated stage.  ``fixtures.json`` carries the same
@@ -356,15 +357,26 @@ def _reconcile_exact_live_result(df: pd.DataFrame) -> pd.DataFrame:
                 + "|" + df["date"].astype(str) + "|" + score_key)
     out = df.copy()
     for _, group in out.loc[usable].groupby(evidence.loc[usable], sort=False):
-        if len(group) < 2 or group["__src"].nunique() != len(group):
+        if len(group) < 2:
             continue
         live_rows = group[(group["__src"] == 3) & group["espn_id"].notna()]
         ids = group["espn_id"].dropna().astype(str).str.strip()
         if len(live_rows) != 1 or ids.nunique() != 1 or not ids.iloc[0]:
             continue
-        out.loc[group.index, "espn_id"] = ids.iloc[0]
         raw_round = live_rows.iloc[0].get("round")
         live_round = raw_round.strip().upper() if isinstance(raw_round, str) else ""
+        if group["__src"].duplicated().any():
+            fresh = group.loc[group["__src"].eq(2)]
+            other_sources = group.loc[~group["__src"].eq(2), "__src"]
+            # The Nov 9 WTA mirror published Noskova–Kostyuk twice, once with RR
+            # and once with no round. Both had the same original date, source file,
+            # score and ranks. The copies had blocked the ordinary ESPN round repair.
+            if len(fresh) < 2 or other_sources.duplicated().any() or not live_round:
+                continue
+            rounds = fresh["round"].dropna().astype(str).str.strip().str.upper()
+            if set(rounds) - {""} != {live_round} or len(fresh.drop(columns="round").drop_duplicates()) != 1:
+                continue
+        out.loc[group.index, "espn_id"] = ids.iloc[0]
         if live_round:
             out.loc[group.index, "round"] = live_round
     return out
