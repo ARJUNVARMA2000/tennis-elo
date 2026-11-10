@@ -9964,3 +9964,11 @@ copies only with one ESPN result and matching known round; genuinely distinct
 known rounds stay separate. The failed November 10 full run 42794847744 saved a
 predictor trained before the gate rejected those rows, so the repair must rebuild
 the predictor before publishing. No model settings or gate rules change.
+
+Retained-source follow-up: ESPN's results window rolls forward, so the repair
+also records the confirmed RR round for the four exact WTA 808/2026 group matches
+already completed. Both fresh WTA acquisition and saved source rows use that
+reviewed round. The replay with no ESPN file still returns one Noskova–Kostyuk
+result with its serve statistics. The earlier CI tree passed local full Python
+(2,091 tests); re-run branch CI on the final tree. History rechecked through
+97aeaff and remote e420179 before recording this follow-up.

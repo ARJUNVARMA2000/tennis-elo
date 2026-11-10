@@ -108,7 +108,7 @@ def normalize_result(event, match, *, outcome=None, score=None):
     if name_key(names[0]) == name_key(names[1]) or ids[0] == ids[1]:
         raise ValueError('invalid self-pair')
     rnd = _match_round(event, match, 'main')
-    if rnd not in ('R128', 'R64', 'R32', 'R16', 'QF', 'SF', 'F'):
+    if rnd not in ('RR', 'R128', 'R64', 'R32', 'R16', 'QF', 'SF', 'F'):
         raise ValueError('unresolved round')
     score = _winner_first_score(match, w == 'A') if score is None else score
     if outcome is None:
