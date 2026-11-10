@@ -9932,3 +9932,35 @@ The regression test also rejects a match scheduled after the witnessed end date.
 
 Deployment: https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/42521528815
 Live card: https://deuce-forecast.web.app/?tour=wta
+
+### WTA Finals duplicate-result deploy repair, 2026-11-10
+
+- [x] Locate the blocker in refresh run 42869620524: the pre-upload gate reported
+  duplicate completed results for Noskova–Kostyuk (issues #196 and #197). The
+  last accepted release, generated at 2026-11-10T01:45:17Z, is still live.
+- [x] Replay the completed match from WTA edition 808/2026 and ESPN edition
+  382-2026. Identify how new and retained provider rows reach the public fixtures
+  as separate results, then repair the input normalization or merge at that seam.
+  Keep source statistics and preserve genuine group-stage/knockout rematches.
+- [x] Add a regression replay that exercises the unchanged gate. Both populations
+  now retain one stat-bearing result, and an ambiguous mirror payload still blocks.
+- [ ] Pass local tests and the branch CI on the repair tree, with remote ledger
+  updates incorporated.
+- [ ] Promote the tested tree with the automatic quick run skipped, then explicitly
+  dispatch a full refresh on master. Verify the gate, the rebuilt predictor, and
+  the exact public release; record the outcome here.
+
+WTA LS010 labels the 6-2 6-4 win with numeric round 1; ESPN 187373 explicitly
+labels it Group Stage. WTA also uses numeric round 0 for another group match in
+this edition. Checkout history was rechecked at db3e797; the GitHub comparison
+shows remote e420179 differs from local base 95bac1d only by ledger updates.
+
+The user approved implementation and deployment after checks pass. The captured
+November 9 mirror has two otherwise identical rows for the match, with RR and a
+blank round. The merge rejected cross-source reconciliation because the mirror
+contributed twice; QF and RR then made the blank round ambiguous. The original
+producer reproduces both gate findings. The repaired merge recognizes the mirror
+copies only with one ESPN result and matching known round; genuinely distinct
+known rounds stay separate. The failed November 10 full run 42794847744 saved a
+predictor trained before the gate rejected those rows, so the repair must rebuild
+the predictor before publishing. No model settings or gate rules change.
