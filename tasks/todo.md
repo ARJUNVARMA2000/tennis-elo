@@ -9944,9 +9944,9 @@ Live card: https://deuce-forecast.web.app/?tour=wta
   Keep source statistics and preserve genuine group-stage/knockout rematches.
 - [x] Add a regression replay that exercises the unchanged gate. Both populations
   now retain one stat-bearing result, and an ambiguous mirror payload still blocks.
-- [ ] Pass local tests and the branch CI on the repair tree, with remote ledger
+- [x] Pass local tests and the branch CI on the repair tree, with remote ledger
   updates incorporated.
-- [ ] Promote the tested tree with the automatic quick run skipped, then explicitly
+- [x] Promote the tested tree with the automatic quick run skipped, then explicitly
   dispatch a full refresh on master. Verify the gate, the rebuilt predictor, and
   the exact public release; record the outcome here.
 
@@ -9972,3 +9972,35 @@ reviewed round. The replay with no ESPN file still returns one Noskova–Kostyuk
 result with its serve statistics. The earlier CI tree passed local full Python
 (2,091 tests); re-run branch CI on the final tree. History rechecked through
 97aeaff and remote e420179 before recording this follow-up.
+
+Preflight: final branch CI 42874950552 passed on 23b392a (2,092 Python tests and
+one platform skip, 375 web tests, lint, type-check, static export and browser
+smoke). The identical tree passed 2,093 Python tests locally. Replayed all four
+completed Finals matches from the current source feeds in both model populations.
+Production master was updated to 3d1eb15 and the explicit full refresh is
+42875932594. No production result has been claimed yet.
+
+### WTA Finals duplicate-result deploy repair — review, 2026-11-10
+
+- [x] Full run 42875932594 on 3d1eb15 passed the unchanged pre-upload gate and
+  deployed accepted release 4295d2af-bf56-40fc-954f-3e61dffd3688, with health
+  generation 2026-11-10T19:11:51Z. CI and an independent verification each
+  passed 22/22 checks, including 455 exact artifacts and 417 referenced shards.
+- [x] The public results and the Finals card each show one Noskova–Kostyuk
+  group result (6-2 6-4, ESPN event 382-2026 and match 187373 on the card).
+  The card has all four completed group matches. The new public WTA predictor
+  dd308854-59c7-4a74-9783-4491d5e46450 was trained at 19:08:53Z. Its population
+  version and match count agree with the prior accepted release (24, 129,733).
+- [x] The authoritative reporter closed #196 and #197 automatically. The full
+  run's only failed step was the full-mode data-health reporter, for the existing
+  ATP forecast-drift and ATP/WTA odds coverage warnings. Neither gate was relaxed.
+  Git history was reconciled through 079209c, the run's ledger-only follow-up.
+- [x] Standard quick refresh 42883313953 ran on 079209c and finished green,
+  including the terminal workflow-health reporter and all 22 live checks. Its
+  accepted release 8017ba50-22c9-46c0-ad94-282ea90568aa is live at generation
+  2026-11-10T19:21:40Z and names the verified full release as parent. Public
+  readback confirmed the same rebuilt predictor and one correct group result.
+  Remote master and Git history were rechecked through 079209c.
+
+Full deployment: https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/42875932594
+Quick verification: https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/42883313953

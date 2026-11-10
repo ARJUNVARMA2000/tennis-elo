@@ -519,3 +519,6 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - Group stages require observed fixtures and results rather than knockout geometry.
   See [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md). (2026-11-08)
+
+- A failed publication gate can cache a predictor trained on rejected rows.
+  See [`lessons/ci-and-deploy.md`](lessons/ci-and-deploy.md). (2026-11-10)

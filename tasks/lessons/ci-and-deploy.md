@@ -343,3 +343,12 @@ Exercise committed benchmark history before release, not only synthetic current-
   standing ATP forecast-drift warning. Normal refresh 39976072659 reused the rebuilt
   models and passed green with the warning still represented. Read the reporter's
   mode policy and state both outcomes; do not suppress an advisory to claim recovery.
+
+- **A failed publication gate can cache a predictor trained on rejected rows.**
+  (2026-11-10, WTA Finals #196–197) The daily full run fit and saved the model
+  before the integrity gate blocked duplicate match rows. Subsequent quick runs
+  could reuse that model even after the source merge was repaired. Inspect the
+  first failed run's mode and cache outcome. When the rejected rows entered a
+  saved predictor, rebuild it before publishing and verify the deployed model ID
+  and training timestamp as well as the corrected data. An input repair alone
+  does not require a new population version if the last accepted release was correct.
