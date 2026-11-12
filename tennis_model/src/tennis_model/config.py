@@ -967,6 +967,9 @@ PLAYER_ALIASES: dict[str, str] = {
     # The same cross-source Cincinnati evidence uses ESPN's full name for the stable/archive
     # nickname. Keep the 133-match historical spelling, not the five-match live fragment.
     "catherine mcnally": "Caty Mcnally",
+    # 2026-11-09 alias-proposer: The official WTA player profile id 327252 appears under both spellings with the same birthdate and biography, and current WTA player lists use Yeonwoo Ku.
+    # https://www.wtatennis.com/players/327252/yeon-ku
+    "yeon woo ku": "Yeonwoo Ku",
 }
 
 
