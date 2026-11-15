@@ -63,6 +63,7 @@ def _healthy_bracket() -> dict:
         "drawSize": 4, "bracketSize": 4, "champion": "A", "runnerUp": "C",
         "drawSource": "wikipedia", "drawSourceId": "Mini Open draw",
         "drawSourceUrl": "https://en.wikipedia.org/wiki/Mini_Open_draw",
+        "drawSourceStart": "2026-07-01", "drawSourceEnd": "2026-07-06",
         "rounds": [
             {"round": "SF", "matches": [
                 {"a": "A", "b": "B", "seedA": 1, "seedB": None, "winner": "a",
@@ -1539,6 +1540,7 @@ def test_output_bracket_early_draw_with_qualifiers_is_clean():
         "drawSize": 28, "bracketSize": 32, "champion": None, "runnerUp": None,
         "drawSource": "wikipedia", "drawSourceId": "Gstaad draw",
         "drawSourceUrl": "https://en.wikipedia.org/wiki/Gstaad_draw",
+        "drawSourceStart": "2026-07-14", "drawSourceEnd": "2026-07-20",
         "rounds": rounds,
     }]
     d["tournaments"] = [{"name": "Gstaad", "surface": "Clay", "level": "ATP 250",

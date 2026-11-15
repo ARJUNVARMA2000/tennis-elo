@@ -174,6 +174,16 @@ def test_resolve_level_normalizes_whichever_branch_wins():
     print("ok test_resolve_level_normalizes_whichever_branch_wins")
 
 
+def test_finals_category_labels_are_exact_and_tour_specific():
+    for tour in ("atp", "wta"):
+        assert surf.normalize_level(f"{tour.upper()} Finals", tour) == "Tour Finals"
+        assert surf.normalize_level(f"  {tour}  FINALS ", tour) == "Tour Finals"
+        other = "wta" if tour == "atp" else "atp"
+        assert surf.normalize_level(f"{other.upper()} Finals", tour) is None
+        assert surf.normalize_level("Next Gen ATP Finals", tour) is None
+        assert surf.normalize_level("Exhibition ATP Finals", tour) is None
+
+
 def test_wiki_categories_resolve_to_stable_event_ids_across_renames(monkeypatch):
     """The tier cache is legacy name-keyed, but result-policy decisions must join through
     ESPN identity. A sponsor rename after the tier was cached must still classify the event;

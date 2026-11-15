@@ -10004,3 +10004,57 @@ Production master was updated to 3d1eb15 and the explicit full refresh is
 
 Full deployment: https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/42875932594
 Quick verification: https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/42883313953
+
+### November 15 deploy-health repair — plan, 2026-11-15
+
+- [x] Inspect the latest production runs and independently verify the live release.
+  Refresh 43716943043 is green; full refresh 43706952859 published successfully
+  and failed only its data-health reporter. Independent live verification passed
+  22/22 checks for release 6aaf39fd-b100-476d-b969-0fc83946ea4d, generated at
+  2026-11-15T13:07:14Z, including 454 exact artifacts and 416 referenced shards.
+- [x] After the user's implementation check-in, repair the verified tournament
+  metadata: WTA ESPN 904-2026 is the clay-court WTA 125 LP Open, and ATP ESPN
+  339-2026 is Tour Finals. Fix the Finals category normalizer and keep reviewed
+  metadata keyed by tour and exact edition rather than mutable display names.
+- [x] Reproduce Austin ESPN 1031-2026's late-live warning from captured provider
+  evidence. Investigate the March official Austin draw apparently attached to the
+  empty November ESPN calendar record; repair edition validation and lifecycle
+  handling without inferring results from elapsed dates or admitting WTA 125 rows
+  to the main model population.
+- [x] Add broken/clean producer replays and extend the appropriate integrity gate
+  for any newly established wrong-edition failure class. Preserve real upcoming
+  events with unreleased fields and test retained draw caches as well as new fetches.
+- [x] Confirm the odds outage and repair acquisition only if a supported equivalent
+  source/transport is verified. The latest full run received HTTP 403 for both
+  tours' 2025/2026 odds downloads and retained cached data. Keep truthful stale-odds
+  findings while the source is unavailable. ATP forecast drift remains subject to
+  the full walk-forward adoption gate; this repair does not change model settings.
+- [ ] Run relevant Python regressions, ruff and required CI checks; reconcile
+  production's ledger-only commits, then deploy the tested tree after approval.
+  Rebuild predictors if the repair changes admitted match inputs; otherwise use
+  the appropriate standard refresh. Verify the exact accepted public release,
+  repaired cards and issue recovery, then append the final review here.
+
+The user approved implementation and deployment after checks pass. Production's
+ledger-only commits through 3d07440 have been merged into the repair branch.
+
+Latest green run: https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/43716943043
+Latest failed full run: https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/43706952859
+Reviewed LP Open edition: https://www.wtatennis.com/tournaments/2076/colina-125/2026/
+
+Baseline verification: the 59 existing surface, Wikipedia category and draw tests
+pass locally. Austin's unsupported card is created by the complete-draw upcoming
+projector; an empty ESPN calendar record alone does not create it. The official
+March event uses a distinct ESPN edition, 1063-2026, from November's 1031-2026.
+
+Implementation preflight: the focused draw/edition suite passes 56 tests; metadata
+producer replays pass, and the public Austin replay blocks both missing source
+dates and the independently witnessed March dates. The existing all-source calendar
+finding now guards Wikipedia too, and a reviewed-tier finding guards every public
+prediction surface. Real-source verification rejected Austin's March 9–14 source
+for November and preserved Valle D'Aosta's October 26–November 1 source. The 375 web
+tests, lint, type-check and repository ruff checks pass. Full Python and branch CI
+are pending. These projection/metadata repairs do not change admitted result inputs,
+so deploy with the standard quick refresh and verify retained predictor identities.
+
+Review: pending implementation checks and production verification.

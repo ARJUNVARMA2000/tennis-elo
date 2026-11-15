@@ -1,0 +1,143 @@
+{{TennisEventInfo|2026|Valle D'Aosta Ladies Open|
+| date=26 October–1 November
+| edition=2nd
+| category=[[WTA 125 tournaments|WTA 125]]
+| prize_money=€100,000
+| draw= 32S / 8Q / 8D
+| surface=[[Tennis court#Indoor courts|Hard (Indoor)]]
+| location=[[Courmayeur]], [[Italy]] 
+| venue=Courmayeur Sport Center
+| champs={{flagicon|ARM}} [[Alina Charaeva]]
+| champd={{flagicon|USA}} [[Catherine Harrison (tennis)|Catherine Harrison]] / {{flagicon|USA}} [[Dalayna Hewitt]]
+| before_name = Courmayeur Ladies Open
+| before_year = 2021
+| main_name   = Courmayeur Ladies Open
+}}
+
+The '''2026 [[Courmayeur Ladies Open|Valle D'Aosta Ladies Open]]''' was a professional women's [[tennis]] tournament played on indoor [[hard court|hard courts]]. It was the second edition of the tournament and first as a [[WTA 125 tournaments|WTA 125]] event, which was part of the [[2026 WTA 125 Circuit]]. It was held at the Courmayeur Sport Center in [[Courmayeur]], Italy, from 26 October until 1 November, 2026.<ref>{{cite web|url=https://www.wtatennis.com/tournaments/1174/courmayeur-125/2026|title=Valle D'Aosta Ladies Open Overview|website=wtatennis.com}}</ref><ref>{{cite web|url=https://www.tennis.com/tournaments/valle-daosta-ladies-open/draws|title=WTA 125K Courmayeur, Italy|website=tennis.com}}</ref><ref>{{cite web|url=https://www.courmayeurmontblanc.it/event/wta125-ladies-open/|title=WTA 125 Valle d'Aosta Ladies Open|website=courmayeurmontblanc.it}}</ref> The first edition was held as a [[WTA 250 tournaments|WTA 250]] tournament in 2021.<ref>{{cite web|url=https://www.ansa.it/sito/notizie/sport/tennis/2026/08/12/tennis-a-fine-ottobre-torna-il-valle-daosta-ladies-open_218a9afd-c80c-4c50-ab2a-fea580845025.html|title=Tennis, a fine ottobre torna il Valle d'Aosta Ladies Open|website=ansa.it}}</ref><ref>{{cite web|url=https://www.sbircialanotizia.it/articoli/2026/08/13/valle-aosta-ladies-open-d5ry6/|title=Valle d’Aosta Ladies Open, Courmayeur torna nel circuito WTA|website=sbircialanotizia.it}}</ref>
+
+==Singles main draw entrants==
+
+===Seeds===
+{|class="wikitable"
+|-
+! width="70"| Country
+! width="175"| Player
+! Rank<sup>1</sup> 
+! Seed
+|-
+|{{flag|FRA}}
+|[[Anna Blinkova]]
+|72
+|1
+|-style="background:#cfc;"
+|{{flag|ARM}}
+|[[Alina Charaeva]]
+|97
+|2
+|-
+|{{flag|ESP}}
+|[[Oksana Selekhmeteva]]
+|101
+|3
+|-
+|{{flag|ITA}}
+|[[Lucrezia Stefanini]]
+|107
+|4
+|-
+|{{flag|ITA}}
+|[[Lisa Pigato]]
+|108
+|5
+|-style="background:#fcc;"
+|{{flag|GER}}
+|[[Noma Noha Akugue]]
+|127
+|6
+|-
+|{{flag|ESP}}
+|[[Marina Bassols Ribera]]
+|130
+|7
+|-
+|{{flag|SUI}}
+|[[Susan Bandecchi]]
+|139
+|8
+|}
+* Rankings are as of 19 October 2026.<ref>{{cite web|url=https://www.wtatennis.com/tournaments/1174/courmayeur-125/2026/player-list|title=Valle D'Aosta Ladies Open Player List|website=wtatennis.com}}</ref>
+
+===Other entrants===
+The following players received [[Wild card (sports)|wildcards]] into the main draw:
+* {{flagicon|MNE}} [[Danka Kovinić]]
+* {{flagicon|ITA}} [[Laura Mair]]
+* {{flagicon|ITA}} [[Jessica Pieri]] 
+* {{flagicon|ITA}} [[Isabella Maria Șerban]]
+
+The following players received entry from the qualifying draw:
+* {{flagicon|ITA}} [[Enola Chiesa]] 
+* {{flagicon|UKR}} [[Yelyzaveta Kotliar]]
+* {{flagicon|ITA}} [[Gaia Maduzzi]] 
+* {{flagicon|HUN}} [[Adrienn Nagy]]
+
+===Withdrawals===
+;Before the tournament
+* {{flagicon|ITA}} [[Samira De Stefano]] → replaced by {{flagicon|GER}} [[Caroline Werner]]
+* {{flagicon|CZE}} [[Lucie Havlíčková]] → replaced by {{flagicon|UKR}} [[Katarina Zavatska]]
+* {{flagicon|CZE}} [[Dominika Šalková]] → replaced by {{flagicon|SWE}} [[Lisa Zaar]]
+
+==Doubles main draw entrants==
+
+===Seeds===
+{|class="sortable wikitable"
+|-
+! width="70"| Country
+! width="175"| Player
+! width="70"| Country
+! width="175"| Player
+! Rank<sup>1</sup>
+! Seed
+|-style="background:#cfc;"
+|{{flag|USA}}
+|[[Catherine Harrison (tennis)|Catherine Harrison]]
+|{{flag|USA}}
+|[[Dalayna Hewitt]]
+|224
+|1
+|-style="background:#fcc;"
+|{{flag|GBR}}
+|[[Madeleine Brooks]]
+|{{flag|SWE}}
+|[[Lisa Zaar]]
+|277
+|2
+|}
+* Rankings are as of 19 October 2026.
+
+===Other entrants===
+The following pairs received wildcards into the doubles main draw:
+* {{flagicon|ITA}} [[Laura Mair]] / {{flagicon|ITA}} [[Isabella Maria Șerban]] 
+
+==Champions==
+===Singles===
+{{main|2026 Valle D'Aosta Ladies Open – Singles}}
+* {{flagicon|ARM}} '''[[Alina Charaeva]]''' def. {{flagicon|GER}} [[Noma Noha Akugue]] 6–3, 6–4
+
+===Doubles===
+{{main|2026 Valle D'Aosta Ladies Open – Doubles}}
+* {{flagicon|USA}} '''[[Catherine Harrison (tennis)|Catherine Harrison]]''' / {{flagicon|USA}} '''[[Dalayna Hewitt]]''' def. {{flagicon|GBR}} [[Madeleine Brooks]] / {{flagicon|SWE}} [[Lisa Zaar]] 6–4, 6–4
+
+== References ==
+{{Reflist}}
+
+==External links==
+*[https://vdatennisopen.com/en/homepage/ Official website]
+
+{{2026 WTA 125 tournaments}}
+
+[[Category:2026 WTA 125 tournaments|Valle D'Aosta Ladies Open]]
+[[Category:2026 in Italian women's sport]]
+[[Category:2026 in Italian tennis]]
+[[Category:October 2026 sports events in Italy]]
+[[Category:Sport in Courmayeur]]

@@ -513,3 +513,13 @@ Indexed in [`../lessons.md`](../lessons.md).
   match ID, keep the actual semifinals and final separate, and audit that inventory
   and the priced schedule independently. Replay both a match repeated in a later
   round and a result missing from the public card.
+
+- **A same-year article and a settled draw do not establish an event edition.**
+  (2026-11-15, Austin #198) An empty November ESPN calendar attached March's
+  Wikipedia draw because its title matched Austin and 2026. The warm-cache path
+  repeated that identity check, while ended settled caches skipped it entirely.
+  Carry independently witnessed article dates, validate substantial calendar
+  overlap before fresh attachment and every cache shortcut, and migrate legacy
+  proof from the exact source article rather than copying requested ESPN dates.
+  Gate the published source dates too. Test cold, warm, ended and orphan retention,
+  while preserving a valid pre-start draw and real ESPN schedule rows.

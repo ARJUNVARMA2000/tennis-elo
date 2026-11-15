@@ -43,6 +43,7 @@ import pandas as pd
 from ..config import (
     DATA_DIR,
     EVENT_SURFACE_BY_ID,
+    EVENT_TIER_BY_ID,
     HEALTH_CHARTING_COVERAGE_NOTE_DAYS,
     HEALTH_MAX_BUILD_AGE_DAYS,
     HEALTH_MAX_FORECAST_AGE_DAYS,
@@ -1751,6 +1752,17 @@ def output_findings(tour: str, oc: dict, now: pd.Timestamp,
                     out, "output.event.reviewed_surface_mismatch",
                     f"{tour}: {artifact} surface {wrong!r} disagrees with reviewed "
                     f"{expected} surface for {event_id}",
+                    entity=f"artifact:{artifact}.json#espn:{event_id}",
+                    evidence={"espnId": event_id, "expected": expected, "actual": wrong})
+        for event_id, expected in EVENT_TIER_BY_ID.get(tour, {}).items():
+            wrong = sorted({str(row.get("level")) for row in rows
+                            if isinstance(row, dict) and row.get("espnId") == event_id
+                            and row.get("level") != expected})
+            if wrong:
+                _add_finding(
+                    out, "output.event.reviewed_tier_mismatch",
+                    f"{tour}: {artifact} tier {wrong!r} disagrees with reviewed "
+                    f"{expected} tier for {event_id}",
                     entity=f"artifact:{artifact}.json#espn:{event_id}",
                     evidence={"espnId": event_id, "expected": expected, "actual": wrong})
     if isinstance(up, list):

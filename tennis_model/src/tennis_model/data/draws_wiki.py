@@ -298,6 +298,57 @@ def _parse_bracket(wikitext: str) -> dict | None:
     return {"slots": slots, "seeds": seeds, "bestOf": best_of}
 
 
+def _article_dates(wikitext: str, year: int) -> tuple[str, str] | None:
+    """Independent edition dates from the article's tennis infobox, never caller metadata."""
+    import mwparserfromhell
+
+    from .draws_official import parse_date_span
+
+    for template in mwparserfromhell.parse(wikitext).filter_templates():
+        name = " ".join(str(template.name).strip().casefold().split())
+        if not (name.startswith("infobox tennis") or name == "tenniseventinfo"):
+            continue
+        infobox_year = None
+        for year_field in ("year", "1"):
+            if template.has(year_field):
+                found = re.search(r"\b(?:19|20)\d{2}\b", str(template.get(year_field).value))
+                if found:
+                    infobox_year = int(found[0])
+                    break
+        for field in ("date", "dates"):
+            if not template.has(field):
+                continue
+            value = str(template.get(field).value.strip_code()).strip()
+            # Year is commonly supplied by the infobox's separate positional argument.
+            # Never replace a source's explicit year with the requested edition year.
+            years = re.findall(r"\b(?:19|20)\d{2}\b", value)
+            source_year = int(years[-1]) if years else (infobox_year or year)
+            if years and infobox_year and source_year != infobox_year:
+                continue
+            span = parse_date_span(value if years else f"{value} {source_year}", source_year)
+            if span:
+                return tuple(day.isoformat() for day in span)
+    return None
+
+
+def _draw_article_dates(title: str, wikitext: str, year: int) -> tuple[str, str] | None:
+    """Singles pages often omit dates; their exact parent article carries the edition."""
+    source_years = re.findall(r"\b(?:19|20)\d{2}\b", title)
+    if len(set(source_years)) != 1:
+        return None
+    # The fallback year belongs to the source title, not the ESPN request. Legacy rows
+    # may carry a previous year's title even when their copied event dates look current.
+    source_year = int(source_years[0])
+    dates = _article_dates(wikitext, source_year)
+    if dates:
+        return dates
+    main_title = _main_article_title(title)
+    if main_title == title:
+        return None
+    main = _wikitext(main_title)
+    return _article_dates(main, source_year) if main else None
+
+
 def fetch_draw(event: str, year: int, tour: str, meta: dict) -> dict | None:
     """Resolve + parse one event's Wikipedia fallback draw, or ``None``."""
     title = resolve_title(event, year, tour, str(meta.get("espnId") or "") or None)
@@ -306,6 +357,12 @@ def fetch_draw(event: str, year: int, tour: str, meta: dict) -> dict | None:
     wt = _wikitext(title)
     if not wt:
         return None
+    from .draws_official import official_dates_match
+
+    dates = _draw_article_dates(title, wt, year)
+    if not dates or not official_dates_match(
+            meta.get("start"), meta.get("end") or meta.get("start"), *dates):
+        return None  # a same-name, same-year draw can belong to a different edition
     draw = _parse_bracket(wt)
     if not draw:
         return None                               # article exists but no draw posted yet
@@ -326,6 +383,7 @@ def fetch_draw(event: str, year: int, tour: str, meta: dict) -> dict | None:
         "publishedDrawSize": published_size,
         "drawSize": sum(slot is not None for slot in draw["slots"]),
         "start": meta.get("start"), "end": meta.get("end"), "espnId": meta.get("espnId"),
+        "sourceStart": dates[0], "sourceEnd": dates[1],
         "title": title,
         "url": "https://en.wikipedia.org/wiki/" + urllib.parse.quote(title.replace(" ", "_")),
         "retrieved": datetime.now(UTC).strftime("%Y-%m-%d"),

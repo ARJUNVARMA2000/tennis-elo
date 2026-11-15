@@ -120,6 +120,31 @@ def test_category_cache_refetches_a_poisoned_cross_tour_value(tmp_path, monkeypa
     assert out["Swiss Open Gstaad"] == "ATP 250"     # a still-valid entry is untouched
 
 
+def test_atp_finals_infobox_survives_category_cache_and_sponsor_rename(tmp_path, monkeypatch):
+    """The real ATP Finals dialect was fetched successfully, then rejected as unknown."""
+    from tennis_model.data import draws_wiki as dw
+    from tennis_model.data import events
+
+    infobox = "{{Infobox tennis tournament event\n|category=[[ATP Finals]]\n|surface=[[Hardcourt|Hard]] (indoor)\n}}"
+    assert _parse_category(infobox, "atp") == "ATP Finals"
+    assert _parse_category(infobox, "wta") is None
+    # Exercise the source category rather than letting the independent reviewed fallback
+    # conceal a parser/normalizer regression. No network or developer cache is consulted.
+    monkeypatch.setattr(surface, "EVENT_TIER_BY_ID", {})
+    monkeypatch.setattr(surface, "live_dir", lambda tour: tmp_path)
+    monkeypatch.setattr(events, "live_dir", lambda tour: tmp_path)
+    monkeypatch.setattr(dw, "event_meta", lambda *args: ("Hard", _parse_category(infobox, "atp")))
+    dw._download_wiki_meta("atp", tmp_path, {
+        "Nitto ATP Finals": {"start": "2026-11-15", "end": "2026-11-22", "espnId": "339-2026"},
+    })
+    (tmp_path / "events.json").write_text(json.dumps({
+        "version": 1,
+        "events": {"339-2026": {"name": "ATP Finals", "names": ["Nitto ATP Finals", "ATP Finals"]}},
+    }), encoding="utf-8")
+    assert surface.wiki_categories_by_event_id("atp") == {"339-2026": "Tour Finals"}
+    assert surface.resolve_level("atp", "ATP Finals", event_id="339-2026") == "Tour Finals"
+
+
 def test_resolve_level_fallback(monkeypatch):
     # No wiki category -> curated fallback (numeric -> "{TOUR} 250"); unlisted -> generic.
     monkeypatch.setattr(surface, "wiki_category", lambda tour, event: None)

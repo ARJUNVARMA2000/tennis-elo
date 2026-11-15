@@ -554,7 +554,9 @@ def _check_brackets(out: list, tour: str, brackets: list, tournaments, *, rated_
         # Provenance is part of a published bracket, not optional decoration. It makes the
         # first-party/Wikipedia fallback observable and prevents a source-specific field from
         # silently becoming authoritative again. Official artifacts additionally carry the
-        # date/player evidence that attached the provider id to this ESPN event.
+        # player evidence that attached the provider id to this ESPN event. Every source
+        # needs independent calendar evidence: a year/name-matched Wikipedia article can
+        # describe a different edition in the same season (Austin, November 2026).
         source, source_id, source_url = (
             ev.get("drawSource"), ev.get("drawSourceId"), ev.get("drawSourceUrl"))
         espn_id = str(ev.get("espnId") or "")
@@ -606,18 +608,21 @@ def _check_brackets(out: list, tour: str, brackets: list, tournaments, *, rated_
                     severity="error", entity=event_entity,
                     evidence={"matchedPlayers": repr(evidence),
                               "fieldPlayers": repr(field_evidence), "minimumFraction": 0.75})
+        if source in _DRAW_SOURCE_HOSTS:
+            event_end = (ev.get("scheduledEnd") or (t or {}).get("scheduledEnd")
+                         or ev.get("end") or ev.get("start"))
             if not official_dates_match(
-                    ev.get("start"), ev.get("end") or ev.get("start"),
+                    ev.get("start"), event_end,
                     ev.get("drawSourceStart"), ev.get("drawSourceEnd")):
                 _add_finding(
                     out, "output.bracket.calendar_evidence_insufficient",
-                    f"{tour}: bracket {name!r} official draw calendar overlap is too small for "
+                    f"{tour}: bracket {name!r} {source} draw calendar overlap is too small for "
                     f"the tournament ({ev.get('drawSourceStart')}..{ev.get('drawSourceEnd')} "
-                    f"vs {ev.get('start')}..{ev.get('end')})",
+                    f"vs {ev.get('start')}..{event_end})",
                     severity="error", entity=event_entity,
                     evidence={"drawStart": ev.get("drawSourceStart"),
                               "drawEnd": ev.get("drawSourceEnd"), "eventStart": ev.get("start"),
-                              "eventEnd": ev.get("end")})
+                              "eventEnd": event_end, "source": source})
 
         # structure: power-of-two size, rounds halve to a single final, labels match width
         if not _pow2(size):

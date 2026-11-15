@@ -305,13 +305,14 @@ def _normalize_entry(name: str, entry: dict, *, legacy: bool = False) -> dict | 
     return normalized
 
 
-def load_tournament_draws(
+def _read_tournament_draws(
     tour: str,
     *,
     status: dict | None = None,
     include_refresh_status: bool = True,
+    for_refresh: bool = False,
 ) -> dict:
-    """Read the normalized cache, falling back to an in-memory legacy migration."""
+    """Read cache inventory; only acquisition may inspect entries awaiting date migration."""
     directory = live_dir(tour)
     failures: list[dict[str, str]] = (
         draw_cache_refresh_failures(tour, directory=directory)
@@ -342,11 +343,27 @@ def load_tournament_draws(
         if not normalized:
             failures.append({"source": payload_source, "errorType": "SchemaError"})
             continue
+        if (not for_refresh and normalized.get("source") == "wikipedia"
+                and not _wikipedia_calendar_is_valid(normalized)):
+            # Readers must not revive a rejected attachment through the legacy fallback,
+            # retained cache, pre-start projector or synthesized opening-round schedule.
+            continue
         event_id = str(normalized.get("espnId") or "")
         out[event_id if event_id else str(key)] = normalized
     if status is not None:
         status["failures"] = _bounded_cache_failures(failures)
     return out
+
+
+def load_tournament_draws(
+    tour: str,
+    *,
+    status: dict | None = None,
+    include_refresh_status: bool = True,
+) -> dict:
+    """Read only corroborated draws, including when migrating the legacy cache format."""
+    return _read_tournament_draws(
+        tour, status=status, include_refresh_status=include_refresh_status)
 
 
 def _draw_is_settled(entry: dict | None) -> bool:
@@ -381,6 +398,40 @@ def _official_evidence_is_valid(entry: dict | None, tour: str) -> bool:
             and official_dates_match(
                 entry.get("start"), entry.get("end") or entry.get("start"),
                 entry.get("sourceStart"), entry.get("sourceEnd")))
+
+
+def _wikipedia_calendar_is_valid(entry: dict, meta: dict | None = None) -> bool:
+    """A source's own edition dates must corroborate the attached ESPN calendar."""
+    from .draws_official import official_dates_match
+
+    event = entry if meta is None else meta
+    return official_dates_match(
+        event.get("start"), event.get("end") or event.get("start"),
+        entry.get("sourceStart"), entry.get("sourceEnd"))
+
+
+def _upgrade_wikipedia_calendar(entry: dict, meta: dict) -> dict | None:
+    """One-time legacy proof migration, using the exact previously attached source article."""
+    if _wikipedia_calendar_is_valid(entry, meta):
+        return entry
+    # Explicit contradictory evidence must be rejected, never replaced by a newer page.
+    if entry.get("sourceStart") or entry.get("sourceEnd"):
+        return None
+    from .draws_wiki import _draw_article_dates, _wikitext
+
+    title = entry.get("sourceId")
+    if not isinstance(title, str) or not title:
+        return None
+    try:
+        raw = _wikitext(title)
+        dates = _draw_article_dates(title, raw, int(str(meta.get("start"))[:4])) if raw else None
+    except Exception:  # noqa: BLE001 - unavailable proof cannot authorize a retained draw
+        return None
+    if dates:
+        upgraded = {**entry, "sourceStart": dates[0], "sourceEnd": dates[1]}
+        if _wikipedia_calendar_is_valid(upgraded, meta):
+            return upgraded
+    return None
 
 
 def _canonical_source_url(value: object) -> str:
@@ -534,7 +585,8 @@ def _wikipedia_evidence_is_valid(entry: dict | None, name: str, year: int,
     """
     from .draws_wiki import resolve_title
 
-    if not isinstance(entry, dict) or entry.get("source") != "wikipedia":
+    if (not isinstance(entry, dict) or entry.get("source") != "wikipedia"
+            or not _wikipedia_calendar_is_valid(entry, meta)):
         return False
     expected = resolve_title(
         name, year, tour, str(meta.get("espnId") or "") or None)
@@ -564,6 +616,14 @@ def _resolve_one(tour: str, name: str, meta: dict, registry_entry: dict,
     if previous and previous.get("source") == tour and not _official_evidence_is_valid(previous, tour):
         previous = None  # generated/legacy official entry without strong attachment evidence
 
+    # Validate before the ended/settled shortcut: ageing cannot turn an unsupported or
+    # wrong-edition attachment into historical evidence. Missing legacy proof forces a fetch.
+    cache_rejected: list[str] = []
+    if previous and previous.get("source") == "wikipedia":
+        previous = _upgrade_wikipedia_calendar(previous, meta)
+        if previous is None:
+            cache_rejected.append("wikipedia cache calendar does not match this event")
+
     # Do not spend provider requests upgrading a settled fallback after its event is over.
     # New/live draws move to first-party; retained historical brackets remain valid Wikipedia
     # provenance and are naturally replaced next edition.
@@ -573,7 +633,6 @@ def _resolve_one(tour: str, name: str, meta: dict, registry_entry: dict,
         return _with_event(previous, name, meta), []
 
     year = int(str(meta.get("start") or datetime.now(UTC).year)[:4])
-    cache_rejected: list[str] = []
     if previous and previous.get("source") == "wikipedia":
         try:
             valid_wiki = _wikipedia_evidence_is_valid(previous, name, year, tour, meta)
@@ -634,8 +693,8 @@ def download_tournament_draws(tours=TOURS,
         directory = live_dir(tour)
         prior_cache_failures = draw_cache_refresh_failures(tour, directory=directory)
         cache_status: dict = {}
-        cache = load_tournament_draws(
-            tour, status=cache_status, include_refresh_status=False)
+        cache = _read_tournament_draws(
+            tour, status=cache_status, include_refresh_status=False, for_refresh=True)
         out: dict = {}
         official_count = wiki_count = kept_count = 0
         unresolved_refresh = 0
@@ -684,6 +743,10 @@ def download_tournament_draws(tours=TOURS,
             currently_tracked = entry_id in current_ids or entry_name in current_names
             if (key not in out and not currently_tracked and not invalid_official
                     and _retained(entry, cutoff)):
+                if source == "wikipedia":
+                    entry = _upgrade_wikipedia_calendar(entry, entry)
+                    if entry is None:
+                        continue
                 out[key] = entry
                 kept_count += 1
 

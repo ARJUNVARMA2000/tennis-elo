@@ -112,6 +112,8 @@ def test_legacy_wikipedia_cache_migrates_to_generic_provenance(tmp_path, monkeyp
         "espnId": "7-2026", "slots": [f"P{i}" for i in range(28)] + [None] * 4,
         "seeds": {"P0": 1}, "bestOf": 3, "drawSize": 32,
         "title": "2026 Old Open – Singles", "url": "https://en.wikipedia.org/wiki/Old",
+        "start": "2026-08-01", "end": "2026-08-08",
+        "sourceStart": "2026-08-01", "sourceEnd": "2026-08-08",
     }}
     (tmp_path / "wiki_draws.json").write_text(json.dumps(legacy), encoding="utf-8")
     monkeypatch.setattr(draws, "live_dir", lambda tour: tmp_path)
@@ -227,6 +229,8 @@ def test_failed_wikipedia_refresh_retains_explicit_uncertainty(tmp_path, monkeyp
             "slots": [f"Player {index}" for index in range(7)] + [None],
             "drawSize": 7,
             "bracketSize": 8,
+            "start": "2099-08-01", "end": "2099-08-08",
+            "sourceStart": "2099-08-01", "sourceEnd": "2099-08-08",
         },
     }
     (tmp_path / draws.CACHE_FILE).write_text(json.dumps(cached), encoding="utf-8")
@@ -314,6 +318,7 @@ def _wikipedia_draw(source_id: str, source_url: str) -> dict:
         "slots": [f"Player {i}" for i in range(8)], "seeds": {}, "bestOf": 3,
         "drawSize": 8, "bracketSize": 8,
         "start": "2026-08-25", "end": "9999-09-13",
+        "sourceStart": "2026-08-25", "sourceEnd": "2026-09-13",
     }
 
 
@@ -396,6 +401,7 @@ def test_rejected_current_cache_entry_is_not_restored_by_retention(tmp_path, mon
     old = {
         **wrong, "name": "Wimbledon", "espnId": "188-2026",
         "start": "2026-06-22", "end": "9999-07-13",
+        "sourceStart": "2026-06-22", "sourceEnd": "2026-07-13",
     }
     (tmp_path / draws.CACHE_FILE).write_text(json.dumps({
         "188-2026": old,
@@ -426,6 +432,7 @@ def test_duplicate_only_cache_is_overwritten_with_empty_quarantine(tmp_path, mon
         "sourceUrl": "https://en.wikipedia.org/wiki/Wrong_draw",
         "slots": [f"P{i}" for i in range(8)], "drawSize": 8,
         "start": "2026-08-01", "end": "9999-09-01",
+        "sourceStart": "2026-08-01", "sourceEnd": "2026-08-08",
     }
     (tmp_path / draws.CACHE_FILE).write_text(json.dumps({
         "1-2026": {**duplicate, "espnId": "1-2026", "name": "One"},
@@ -454,6 +461,7 @@ def test_invalid_cache_and_failed_registry_backfill_degrade_until_clean_refresh(
     registry = {"events": {"99-2099": {
         "espnId": "99-2099", "name": "Backfill Open",
         "start": "2099-08-01", "end": "2099-08-08",
+        "sourceStart": "2099-08-01", "sourceEnd": "2099-08-08",
         "sourceIds": {"atp": "99"},
     }}}
     provider = {"entry": None}

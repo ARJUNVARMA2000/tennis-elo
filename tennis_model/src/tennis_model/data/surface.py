@@ -206,6 +206,10 @@ def _level_candidate(value: object, tour: str) -> str | None:
     t = tour.upper()
     if low in ("g", "grand", "grandslam") or "grand slam" in low:
         return "Grand Slam"
+    # Wikipedia's exact category names omit "Tour". Match the whole own-tour label:
+    # "Next Gen ATP Finals" is a separate event and must not inherit this tier.
+    if low in ("atp finals", "wta finals"):
+        return "Tour Finals" if low == f"{tour} finals" else None
     if low == "f" or "tour finals" in low:
         return "Tour Finals"
     if low == "o" or "olympic" in low:
@@ -240,8 +244,8 @@ def _fallback_tier(tour: str, event: str) -> str | None:
 def resolve_level(tour: str, event: str, archive_level: str | None = None,
                   event_id: str | None = None) -> str:
     """Display tier for a live/upcoming event, mirroring resolve_surface:
-        real archive level -> stable-id Wikipedia category -> name-keyed Wikipedia category
-        -> reviewed edition / curated EVENT_TIER_FALLBACK -> '{TOUR} Tour'.
+        reviewed exact edition -> real archive level -> stable-id Wikipedia category
+        -> name-keyed Wikipedia category -> curated EVENT_TIER_FALLBACK -> '{TOUR} Tour'.
     The caller passes ``archive_level`` only when the match frame gives a reliable current-edition
     level (else None, so a stale historical tier can't win). ``event_id`` bridges a current
     result label to the legacy sponsor-title-keyed category cache through the event registry.
@@ -251,8 +255,8 @@ def resolve_level(tour: str, event: str, archive_level: str | None = None,
     stable = str(event_id).strip() if event_id is not None else ""
     by_id = (wiki_categories_by_event_id(tour).get(stable)
              if stable and stable.lower() not in {"nan", "none", "<na>"} else None)
-    for candidate in (archive_level, by_id, wiki_category(tour, event),
-                      EVENT_TIER_BY_ID.get(tour, {}).get(stable),
+    for candidate in (EVENT_TIER_BY_ID.get(tour, {}).get(stable),
+                      archive_level, by_id, wiki_category(tour, event),
                       _fallback_tier(tour, event)):
         lv = normalize_level(candidate, tour)
         if lv and lv != generic:

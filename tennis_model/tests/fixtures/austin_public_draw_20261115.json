@@ -1,0 +1,401 @@
+{
+  "capturedAt": "2026-11-15T16:32:10.472Z",
+  "description": "Exact Austin bracket read from the live November 15 release, not the original failing acquisition. The paired source fixture independently dates its Wikipedia article to March.",
+  "url": "https://deuce-forecast.web.app/data/wta/brackets.json",
+  "releaseId": "6aaf39fd-b100-476d-b969-0fc83946ea4d",
+  "bracket": {
+    "name": "Austin",
+    "surface": "Hard",
+    "level": "WTA 125",
+    "bestOf": 3,
+    "start": "2026-11-07",
+    "end": "2026-11-15",
+    "status": "upcoming",
+    "espnId": "1031-2026",
+    "drawSize": 32,
+    "bracketSize": 32,
+    "champion": null,
+    "runnerUp": null,
+    "drawSource": "wikipedia",
+    "drawSourceId": "2026 Austin Challenger – Singles",
+    "drawSourceUrl": "https://en.wikipedia.org/wiki/2026_Austin_Challenger_%E2%80%93_Singles",
+    "drawSourceStart": null,
+    "drawSourceEnd": null,
+    "drawEvidencePlayers": null,
+    "drawEvidenceFieldPlayers": null,
+    "scenario": {
+      "file": "scenario-1031-2026.json",
+      "generation": "2026-11-15T13:04:17Z",
+      "modelGeneration": "2026-11-15T11:28:53Z"
+    },
+    "scenarioFile": "scenario-1031-2026.json",
+    "rounds": [
+      {
+        "round": "R32",
+        "matches": [
+          {
+            "a": "Emma Navarro",
+            "b": "Lulu Sun",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.7877,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Paula Badosa",
+            "b": "Elena Gabriela Ruse",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.5754,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Lucrezia Stefanini",
+            "b": "Sinja Kraus",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.5204,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Yue Yuan",
+            "b": "Oksana Selekhmeteva",
+            "seedA": null,
+            "seedB": 7,
+            "winner": null,
+            "score": null,
+            "p": 0.5527,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Solana Sierra",
+            "b": "Bianca Andreescu",
+            "seedA": 3,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.521,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Renata Zarazua",
+            "b": "Anna Blinkova",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.4432,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Maddison Inglis",
+            "b": "Emerson Jones",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.4684,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Donna Vekic",
+            "b": "Petra Marcinko",
+            "seedA": null,
+            "seedB": 8,
+            "winner": null,
+            "score": null,
+            "p": 0.6901,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Caty Mcnally",
+            "b": "Yuliia Starodubtseva",
+            "seedA": 5,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.6872,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Dalma Galfi",
+            "b": "Lanlana Tararudee",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.2681,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Anastasia Zakharova",
+            "b": "Viktorija Golubic",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.5603,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Linda Fruhvirtova",
+            "b": "Beatriz Haddad Maia",
+            "seedA": null,
+            "seedB": 4,
+            "winner": null,
+            "score": null,
+            "p": 0.6461,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Kimberly Birrell",
+            "b": "Ella Seidel",
+            "seedA": 6,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.717,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Suzan Lamens",
+            "b": "Kamilla Rakhimova",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.3212,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Himeno Sakatsume",
+            "b": "Kaja Juvan",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.6162,
+            "probSource": "model",
+            "upset": null
+          },
+          {
+            "a": "Simona Waltert",
+            "b": "Mccartney Kessler",
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": 0.4375,
+            "probSource": "model",
+            "upset": null
+          }
+        ]
+      },
+      {
+        "round": "R16",
+        "matches": [
+          {
+            "a": null,
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": null,
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": null,
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": null,
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": null,
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": null,
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": null,
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": null,
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          }
+        ]
+      },
+      {
+        "round": "QF",
+        "matches": [
+          {
+            "a": null,
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": null,
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": null,
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": null,
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          }
+        ]
+      },
+      {
+        "round": "SF",
+        "matches": [
+          {
+            "a": null,
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          },
+          {
+            "a": null,
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          }
+        ]
+      },
+      {
+        "round": "F",
+        "matches": [
+          {
+            "a": null,
+            "b": null,
+            "seedA": null,
+            "seedB": null,
+            "winner": null,
+            "score": null,
+            "p": null,
+            "probSource": null,
+            "upset": null
+          }
+        ]
+      }
+    ]
+  }
+}

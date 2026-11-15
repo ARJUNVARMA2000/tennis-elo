@@ -333,19 +333,27 @@ EVENT_TIER_FALLBACK: dict = {
 # Reviewed edition metadata for events whose article/category is absent. Scope by tour
 # and ESPN edition: Mallorca also names unrelated men's events and former WTA editions.
 EVENT_TIER_BY_ID: dict[str, dict[str, str]] = {
+    "atp": {
+        # Official ATP calendar: Nov 15–22, 2026; ATP Finals in Turin.
+        # https://www.atptour.com/en/tournaments/nitto-atp-finals/605/overview
+        "339-2026": "Tour Finals",
+    },
     "wta": {
         # Official 1128 draw: Oct 12–18, 2026; WTA 125; same 28 named ESPN entrants.
         # https://wtafiles.wtatennis.com/pdf/draws/2026/1128/MDS.pdf
         "1020-2026": "WTA 125",
         # https://www.wtatennis.com/tournaments/808/fage-wta-finals-indian-wells/2026
         "382-2026": "Tour Finals",
+        # LP Open by IND / Colina: Nov 16–22, 2026; WTA 125 on outdoor clay.
+        # https://www.wtatennis.com/tournaments/2076/colina-125/2026/
+        "904-2026": "WTA 125",
     },
 }
 
 # Exact current-edition evidence outranks name-matched historical or article surfaces.
 # The same official draw cited above says Clay; the former Mallorca WTA event was Grass.
 EVENT_SURFACE_BY_ID: dict[str, dict[str, str]] = {
-    "wta": {"1020-2026": "Clay", "382-2026": "Hard"},
+    "wta": {"1020-2026": "Clay", "382-2026": "Hard", "904-2026": "Clay"},
 }
 
 # ---------------------------------------------------------------------------

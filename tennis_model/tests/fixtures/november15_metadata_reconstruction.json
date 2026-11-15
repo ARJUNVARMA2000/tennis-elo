@@ -1,0 +1,416 @@
+{
+  "capture": {
+    "generatedAt": "2026-11-15T13:07:14Z",
+    "note": "Producer inputs reconstructed from the published release, not original provider bytes. LP slots/seeds are the exact public opening bracket. ATP competition objects reconstruct the exact public fixture ids/pairs/states; known dates use synthetic noon UTC timestamps. Official tier/surface facts were independently reviewed.",
+    "publicSources": [
+      "https://deuce-forecast.web.app/data/wta/brackets.json",
+      "https://deuce-forecast.web.app/data/atp/tournaments.json"
+    ],
+    "officialSources": [
+      "https://www.wtatennis.com/tournaments/2076/colina-125/2026/",
+      "https://www.atptour.com/en/tournaments/nitto-atp-finals/605/overview"
+    ]
+  },
+  "lpDraw": {
+    "name": "LP Open by IND",
+    "espnId": "904-2026",
+    "start": "2026-11-15",
+    "end": "2026-11-23",
+    "bestOf": 3,
+    "drawSize": 32,
+    "slots": [
+      "Leyre Romero Gormaz",
+      "Ipek Oz",
+      "Nadia Podoroska",
+      "Varvara Lepchenko",
+      "Katrina Scott",
+      "Anastasia Zolotareva",
+      "Irene Burillo",
+      "Darja Semenistaja",
+      "Lucia Bronzetti",
+      "Alicia Herrero Linana",
+      "Victoria Jimenez Kasintseva",
+      "Carole Monnet",
+      "Qualifier 1",
+      "Anastasia Tikhonova",
+      "Maria Lourdes Carle",
+      "Veronika Erjavec",
+      "Guiomar Maristany Zuleta De Reales",
+      "Qualifier 2",
+      "Sofia Costoulas",
+      "Nuria Brancaccio",
+      "Fernanda Labrana",
+      "Antonia Vergara Rivera",
+      "Barbara Gatica",
+      "Andrea Lazaro Garcia",
+      "Rebeka Masarova",
+      "Qualifier 3",
+      "Polona Hercog",
+      "Miriam Bulgaru",
+      "Luisina Giovannini",
+      "Qualifier 4",
+      "Despina Papamichail",
+      "Laura Samson"
+    ],
+    "seeds": {
+      "Leyre Romero Gormaz": 1,
+      "Darja Semenistaja": 8,
+      "Lucia Bronzetti": 3,
+      "Veronika Erjavec": 7,
+      "Guiomar Maristany Zuleta De Reales": 5,
+      "Andrea Lazaro Garcia": 4,
+      "Rebeka Masarova": 6,
+      "Laura Samson": 2
+    },
+    "source": "wta",
+    "sourceId": "2076",
+    "sourceUrl": "https://wtafiles.wtatennis.com/pdf/draws/2026/2076/MDS.pdf",
+    "sourceStart": "2026-11-16",
+    "sourceEnd": "2026-11-22",
+    "evidencePlayers": 28,
+    "evidenceFieldPlayers": 28
+  },
+  "atpSourceEvent": {
+    "id": "339-2026",
+    "name": "Nitto ATP Finals",
+    "date": "2026-11-15T12:00Z",
+    "endDate": "2026-11-22T23:00Z",
+    "calendar": {
+      "startDate": "2026-11-15T12:00Z",
+      "endDate": "2026-11-22T12:00Z"
+    },
+    "groupings": [
+      {
+        "grouping": {
+          "slug": "mens-singles"
+        },
+        "competitions": [
+          {
+            "id": "187505",
+            "round": {
+              "id": "15",
+              "displayName": "Group Stage"
+            },
+            "date": "2026-11-15T12:00Z",
+            "timeValid": true,
+            "status": {
+              "type": {
+                "state": "pre",
+                "completed": false
+              }
+            },
+            "competitors": [
+              {
+                "athlete": {
+                  "displayName": "Rafael Jodar"
+                }
+              },
+              {
+                "athlete": {
+                  "displayName": "Alexander Zverev"
+                }
+              }
+            ]
+          },
+          {
+            "id": "187506",
+            "round": {
+              "id": "15",
+              "displayName": "Group Stage"
+            },
+            "date": "2026-11-15T12:00Z",
+            "timeValid": true,
+            "status": {
+              "type": {
+                "state": "pre",
+                "completed": false
+              }
+            },
+            "competitors": [
+              {
+                "athlete": {
+                  "displayName": "Arthur Fils"
+                }
+              },
+              {
+                "athlete": {
+                  "displayName": "Ben Shelton"
+                }
+              }
+            ]
+          },
+          {
+            "id": "187510",
+            "round": {
+              "id": "15",
+              "displayName": "Group Stage"
+            },
+            "date": "2026-11-15T12:00Z",
+            "timeValid": false,
+            "status": {
+              "type": {
+                "state": "pre",
+                "completed": false
+              }
+            },
+            "competitors": [
+              {
+                "athlete": {
+                  "displayName": "Flavio Cobolli"
+                }
+              },
+              {
+                "athlete": {
+                  "displayName": "Carlos Alcaraz"
+                }
+              }
+            ]
+          },
+          {
+            "id": "187514",
+            "round": {
+              "id": "15",
+              "displayName": "Group Stage"
+            },
+            "date": "2026-11-15T12:00Z",
+            "timeValid": false,
+            "status": {
+              "type": {
+                "state": "pre",
+                "completed": false
+              }
+            },
+            "competitors": [
+              {
+                "athlete": {
+                  "displayName": "Frances Tiafoe"
+                }
+              },
+              {
+                "athlete": {
+                  "displayName": "Flavio Cobolli"
+                }
+              }
+            ]
+          },
+          {
+            "id": "187511",
+            "round": {
+              "id": "15",
+              "displayName": "Group Stage"
+            },
+            "date": "2026-11-16T12:00Z",
+            "timeValid": true,
+            "status": {
+              "type": {
+                "state": "pre",
+                "completed": false
+              }
+            },
+            "competitors": [
+              {
+                "athlete": {
+                  "displayName": "Frances Tiafoe"
+                }
+              },
+              {
+                "athlete": {
+                  "displayName": "Carlos Alcaraz"
+                }
+              }
+            ]
+          },
+          {
+            "id": "187512",
+            "round": {
+              "id": "15",
+              "displayName": "Group Stage"
+            },
+            "date": "2026-11-16T12:00Z",
+            "timeValid": true,
+            "status": {
+              "type": {
+                "state": "pre",
+                "completed": false
+              }
+            },
+            "competitors": [
+              {
+                "athlete": {
+                  "displayName": "Flavio Cobolli"
+                }
+              },
+              {
+                "athlete": {
+                  "displayName": "Daniil Medvedev"
+                }
+              }
+            ]
+          },
+          {
+            "id": "187504",
+            "round": {
+              "id": "15",
+              "displayName": "Group Stage"
+            },
+            "date": "2026-11-15T12:00Z",
+            "timeValid": false,
+            "status": {
+              "type": {
+                "state": "pre",
+                "completed": false
+              }
+            },
+            "competitors": [
+              {
+                "athlete": {
+                  "displayName": "Arthur Fils"
+                }
+              },
+              {
+                "athlete": {
+                  "displayName": "Alexander Zverev"
+                }
+              }
+            ]
+          },
+          {
+            "id": "187513",
+            "round": {
+              "id": "15",
+              "displayName": "Group Stage"
+            },
+            "date": "2026-11-15T12:00Z",
+            "timeValid": false,
+            "status": {
+              "type": {
+                "state": "pre",
+                "completed": false
+              }
+            },
+            "competitors": [
+              {
+                "athlete": {
+                  "displayName": "Frances Tiafoe"
+                }
+              },
+              {
+                "athlete": {
+                  "displayName": "Daniil Medvedev"
+                }
+              }
+            ]
+          },
+          {
+            "id": "187509",
+            "round": {
+              "id": "15",
+              "displayName": "Group Stage"
+            },
+            "date": "2026-11-15T12:00Z",
+            "timeValid": false,
+            "status": {
+              "type": {
+                "state": "pre",
+                "completed": false
+              }
+            },
+            "competitors": [
+              {
+                "athlete": {
+                  "displayName": "Daniil Medvedev"
+                }
+              },
+              {
+                "athlete": {
+                  "displayName": "Carlos Alcaraz"
+                }
+              }
+            ]
+          },
+          {
+            "id": "187508",
+            "round": {
+              "id": "15",
+              "displayName": "Group Stage"
+            },
+            "date": "2026-11-15T12:00Z",
+            "timeValid": false,
+            "status": {
+              "type": {
+                "state": "pre",
+                "completed": false
+              }
+            },
+            "competitors": [
+              {
+                "athlete": {
+                  "displayName": "Rafael Jodar"
+                }
+              },
+              {
+                "athlete": {
+                  "displayName": "Arthur Fils"
+                }
+              }
+            ]
+          },
+          {
+            "id": "187507",
+            "round": {
+              "id": "15",
+              "displayName": "Group Stage"
+            },
+            "date": "2026-11-15T12:00Z",
+            "timeValid": false,
+            "status": {
+              "type": {
+                "state": "pre",
+                "completed": false
+              }
+            },
+            "competitors": [
+              {
+                "athlete": {
+                  "displayName": "Rafael Jodar"
+                }
+              },
+              {
+                "athlete": {
+                  "displayName": "Ben Shelton"
+                }
+              }
+            ]
+          },
+          {
+            "id": "187503",
+            "round": {
+              "id": "15",
+              "displayName": "Group Stage"
+            },
+            "date": "2026-11-15T12:00Z",
+            "timeValid": false,
+            "status": {
+              "type": {
+                "state": "pre",
+                "completed": false
+              }
+            },
+            "competitors": [
+              {
+                "athlete": {
+                  "displayName": "Ben Shelton"
+                }
+              },
+              {
+                "athlete": {
+                  "displayName": "Alexander Zverev"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
