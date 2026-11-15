@@ -10058,3 +10058,12 @@ are pending. These projection/metadata repairs do not change admitted result inp
 so deploy with the standard quick refresh and verify retained predictor identities.
 
 Review: pending implementation checks and production verification.
+
+Release preflight: final tree 9794f47 passed all 2,131 Python tests locally and
+branch CI 43736642042, including Python lint/tests, 375 web tests, web lint,
+type-check, static export and browser smoke. Historical Lyon/China replay binders
+now explicitly supply reconstructed calendar evidence without relabeling their
+original captures. Production master remains 3d07440 before promotion. Promote
+the identical application tree with automatic CI skipped, then explicitly dispatch
+a quick refresh on master; both publication gates still run. Production verification
+is pending and no repair release has been claimed yet.
