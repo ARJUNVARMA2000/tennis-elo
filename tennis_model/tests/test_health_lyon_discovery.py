@@ -22,6 +22,13 @@ EID = '110-2026'
 SHELL = '452-2026'
 
 
+def clean_draw():
+    # Reconstructed calendar proof for the clean provider stub. The historical capture
+    # predates independent source-date fields; these values are not captured source bytes.
+    return {**copy.deepcopy(CAPTURE['draw']),
+            'sourceStart': '2026-10-19', 'sourceEnd': '2026-10-25'}
+
+
 class Clock(datetime):
     @classmethod
     def now(cls, tz=None):
@@ -38,7 +45,7 @@ def bind(monkeypatch, tmp_path, observed):
     monkeypatch.setattr(draws_wiki, '_download_wiki_meta', lambda *args: None)
     monkeypatch.setattr(draws_official, 'fetch_official_draw', lambda *args: (None, ['captured fallback']))
     monkeypatch.setattr(draws_wiki, 'resolve_title', lambda *args: CAPTURE['draw']['title'])
-    monkeypatch.setattr(draws_wiki, 'fetch_draw', lambda *args: copy.deepcopy(CAPTURE['draw']))
+    monkeypatch.setattr(draws_wiki, 'fetch_draw', lambda *args: clean_draw())
     monkeypatch.setattr(tournaments, 'resolve_surface_info', lambda *a, **kw: ('Hard', 'wikipedia'))
     monkeypatch.setattr(tournaments, 'resolve_level', lambda *a, **kw: 'ATP 250')
     schedule = live.parse_upcoming(observed, 'mens')
@@ -82,7 +89,7 @@ def test_lyon_discovery_survives_order_cache_and_shell_disappearance(
     schedule = bind(monkeypatch, tmp_path, observed)
     if warm:
         # A prior name-only discovery may have cached the draw under the empty ID.
-        wrong = draws._normalize_entry(NAME, CAPTURE['draw'], legacy=True)
+        wrong = draws._normalize_entry(NAME, clean_draw(), legacy=True)
         wrong['espnId'] = SHELL
         (tmp_path / draws.CACHE_FILE).write_text(json.dumps({SHELL: wrong}))
     assert live.parse_event_meta(observed)[NAME]['espnId'] == EID
@@ -101,7 +108,7 @@ def test_lyon_discovery_survives_order_cache_and_shell_disappearance(
 def test_quarantined_duplicate_still_blocks_the_missing_real_event(monkeypatch, tmp_path):
     observed = copy.deepcopy(CAPTURE['events'])
     schedule = bind(monkeypatch, tmp_path, observed)
-    draw = draws._normalize_entry(NAME, CAPTURE['draw'], legacy=True)
+    draw = draws._normalize_entry(NAME, clean_draw(), legacy=True)
     broken = {eid: {**draw, 'espnId': eid} for eid in (EID, SHELL)}
     cache, duplicate_findings = draws._quarantine_duplicate_sources(broken)
     assert duplicate_findings and not cache

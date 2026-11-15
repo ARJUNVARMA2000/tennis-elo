@@ -96,7 +96,10 @@ def test_unfinished_china_draw_keeps_published_size_without_inventing_byes(monke
 
     raw = (Path(__file__).parent / "fixtures/september27_china_draw.wiki").read_text()
     monkeypatch.setattr(draws_wiki, "resolve_title", lambda *a: "2026 China Open – Women's singles")
-    monkeypatch.setattr(draws_wiki, "_wikitext", lambda *a: raw)
+    # The archived singles fixture predates independent calendar capture. Supply an
+    # explicit synthetic parent infobox here so this replay still isolates draw geometry.
+    parent = "{{Infobox tennis event|2026|China Open|date=27 September–12 October}}"
+    monkeypatch.setattr(draws_wiki, "_wikitext", lambda title: raw if "singles" in title else parent)
     meta = dict(espnId="959-2026", start="2026-09-27", end="2026-10-12")
     draw = draws._wiki_draw("China Open", 2026, "wta", meta)
     # The source proves only two byes. Other missing positions stay unresolved.
