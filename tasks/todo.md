@@ -10029,7 +10029,7 @@ Quick verification: https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/42
   tours' 2025/2026 odds downloads and retained cached data. Keep truthful stale-odds
   findings while the source is unavailable. ATP forecast drift remains subject to
   the full walk-forward adoption gate; this repair does not change model settings.
-- [ ] Run relevant Python regressions, ruff and required CI checks; reconcile
+- [x] Run relevant Python regressions, ruff and required CI checks; reconcile
   production's ledger-only commits, then deploy the tested tree after approval.
   Rebuild predictors if the repair changes admitted match inputs; otherwise use
   the appropriate standard refresh. Verify the exact accepted public release,
@@ -10057,7 +10057,7 @@ tests, lint, type-check and repository ruff checks pass. Full Python and branch 
 are pending. These projection/metadata repairs do not change admitted result inputs,
 so deploy with the standard quick refresh and verify retained predictor identities.
 
-Review: pending implementation checks and production verification.
+Review: completed below after implementation checks and production verification.
 
 Release preflight: final tree 9794f47 passed all 2,131 Python tests locally and
 branch CI 43736642042, including Python lint/tests, 375 web tests, web lint,
@@ -10067,3 +10067,40 @@ original captures. Production master remains 3d07440 before promotion. Promote
 the identical application tree with automatic CI skipped, then explicitly dispatch
 a quick refresh on master; both publication gates still run. Production verification
 is pending and no repair release has been claimed yet.
+
+### November 15 deploy-health repair — review, 2026-11-15
+
+- [x] Final application tree 9794f47 passed 2,131 Python tests locally. CI
+  43736642042 passed 2,130 with one platform skip, repository ruff, 375 web tests,
+  lint, type-check, static export and browser smoke. Promoted the identical
+  application tree as 6985376 and dispatched quick production run 43737335223.
+- [x] Production run 43737335223 finished green, including the pre-upload gate,
+  Firebase deploy, all 22 live checks, both health reporters and terminal workflow
+  health. Independent verification also passed 22/22 for accepted release
+  19af2ee6-bbc9-4aaf-86f1-faba4dfb0d6c, generated at 2026-11-15T17:00:02Z:
+  453 exact artifacts, 415 referenced shards, 18 known absent paths and all 15
+  independently expected begun events. History was reconciled through 6985376.
+- [x] Public readback confirms LP Open 904-2026 is Clay / WTA 125 in its card,
+  bracket and all 12 priced pairings; ATP Finals 339-2026 is Tour Finals and has
+  transitioned to live group play. Unsupported November Austin 1031-2026 is absent
+  from cards, brackets and the lazy schedule index. The valid Valle D'Aosta bracket
+  1081-2026 remains, with independently parsed source dates October 26–November 1.
+- [x] The accepted ATP and WTA predictors are unchanged: f27ae087-eeac-49bf-8bb5-60a88191a390
+  (trained 11:09:46Z) and cb9a4454-e954-43a1-aa22-d6f310df87d8 (trained 11:28:53Z).
+  Population version stays 24. ATP acquired one new real result (287,643 matches);
+  WTA remains 129,743. The long refresh was the normalized-input cache rebuild,
+  including 578 seconds of WTA cleaning, rather than predictor retraining.
+- [x] The authoritative reporter automatically closed #198, #199, #200 and #201;
+  an independent connector read confirmed each is completed. Only the existing
+  ATP forecast-drift and ATP/WTA stale-market warnings remain, plus charting info.
+  Neither reporter policy nor warning thresholds were relaxed.
+
+Retained-source limitation: a read-only audit of the older November 9 recovery
+snapshot found Lisboa 1079-2026's combined article has separate women/men date
+spans. That unsupported date dialect is safely withheld rather than assigned
+guessed proof; the event ended October 19 and is outside current public coverage.
+Current public Wikipedia sources were checked independently; Austin is rejected
+and Valle is preserved. The historical snapshot is not the live Actions cache.
+
+Deployment: https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/43737335223
+Preflight: https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/43736642042
