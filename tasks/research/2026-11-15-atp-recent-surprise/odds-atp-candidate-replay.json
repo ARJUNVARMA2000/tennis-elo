@@ -1,0 +1,217 @@
+{
+  "tour": "atp",
+  "years": [
+    2010,
+    2026
+  ],
+  "matched": 31316,
+  "oosEnd": "2026-11-15",
+  "lastMatchedDate": "2026-11-13",
+  "sources": {
+    "preference": [
+      "ps",
+      "b365",
+      "avg"
+    ],
+    "byYear": {
+      "2010": {
+        "avg": 7,
+        "b365": 7,
+        "ps": 1946
+      },
+      "2011": {
+        "avg": 3,
+        "b365": 4,
+        "ps": 1864
+      },
+      "2012": {
+        "avg": 5,
+        "b365": 9,
+        "ps": 1834
+      },
+      "2013": {
+        "avg": 1,
+        "b365": 11,
+        "ps": 1779
+      },
+      "2014": {
+        "avg": 3,
+        "b365": 8,
+        "ps": 1803
+      },
+      "2015": {
+        "avg": 3,
+        "ps": 1890
+      },
+      "2016": {
+        "avg": 1,
+        "b365": 3,
+        "ps": 1902
+      },
+      "2017": {
+        "avg": 3,
+        "b365": 7,
+        "ps": 1864
+      },
+      "2018": {
+        "avg": 9,
+        "b365": 8,
+        "ps": 2068
+      },
+      "2019": {
+        "avg": 6,
+        "b365": 1,
+        "ps": 1837
+      },
+      "2020": {
+        "avg": 5,
+        "b365": 3,
+        "ps": 962
+      },
+      "2021": {
+        "avg": 5,
+        "b365": 1,
+        "ps": 1764
+      },
+      "2022": {
+        "avg": 4,
+        "b365": 5,
+        "ps": 1917
+      },
+      "2023": {
+        "b365": 6,
+        "ps": 1755
+      },
+      "2024": {
+        "avg": 2,
+        "b365": 4,
+        "ps": 1856
+      },
+      "2025": {
+        "avg": 5,
+        "b365": 71,
+        "ps": 1622
+      },
+      "2026": {
+        "avg": 14,
+        "b365": 1598,
+        "ps": 62,
+        "valuebetennis": 769
+      }
+    },
+    "label": "Tennis-Data historical closes; Valuebetennis-recorded Pinnacle supplement",
+    "providers": {
+      "tennis-data": 30547,
+      "valuebetennis": 769
+    },
+    "attribution": {
+      "label": "Valuebetennis, Tennis results and odds since 2021 (CC BY 4.0)",
+      "url": "https://www.valuebetennis.com/en/donnees.htm"
+    },
+    "acquisitions": [
+      {
+        "source": "https://www.valuebetennis.com/en/donnees.htm",
+        "url": "https://www.valuebetennis.com/datasets/valuebetennis-matchs-2026.csv",
+        "license": "CC BY 4.0",
+        "attribution": "Valuebetennis, Tennis results and odds since 2021 (CC BY 4.0)",
+        "observedAt": "2026-11-16T02:21:52.561323+00:00",
+        "sha256": "6b18e0be325169777766815e34fdc7f46e8a93891f04ad12954b340b5494b120",
+        "year": 2026,
+        "usableRows": {
+          "atp": 2007,
+          "wta": 2116
+        }
+      }
+    ]
+  },
+  "model": {
+    "n": 31316,
+    "acc": 0.6824,
+    "logloss": 0.5843,
+    "brier": 0.2007
+  },
+  "market": {
+    "n": 31316,
+    "acc": 0.6943,
+    "logloss": 0.5747,
+    "brier": 0.1967
+  },
+  "recent": {
+    "windowDays": 90,
+    "n": 616,
+    "from": "2026-08-15",
+    "to": "2026-11-13",
+    "model": {
+      "n": 616,
+      "acc": 0.6607,
+      "logloss": 0.6195,
+      "brier": 0.2147
+    },
+    "market": {
+      "n": 616,
+      "acc": 0.6575,
+      "logloss": 0.6103,
+      "brier": 0.2113
+    },
+    "dLl": -0.0092,
+    "dLlSe": 0.0049
+  },
+  "betting": {
+    "edgeMin": 0.05,
+    "nBets": 13115,
+    "roi": -0.0064,
+    "note": "flat stake on model edge vs market; illustrative, closing odds"
+  },
+  "stack": {
+    "fit": {
+      "a_model": 0.15,
+      "b_market": 0.921,
+      "c": -0.006,
+      "tuneYears": [
+        2010,
+        2019
+      ],
+      "valStart": 2020,
+      "nTune": 18886,
+      "nVal": 12430
+    },
+    "val": {
+      "model": {
+        "n": 12430,
+        "acc": 0.6662,
+        "logloss": 0.5977,
+        "brier": 0.2067
+      },
+      "market": {
+        "n": 12430,
+        "acc": 0.6808,
+        "logloss": 0.588,
+        "brier": 0.2025
+      },
+      "stack": {
+        "n": 12430,
+        "acc": 0.6786,
+        "logloss": 0.5905,
+        "brier": 0.2036
+      }
+    },
+    "bettingVal": {
+      "flatModel": {
+        "nBets": 4868,
+        "roi": -0.0025
+      },
+      "flatStack": {
+        "nBets": 3,
+        "roi": 1.6867
+      },
+      "kellyModel": {
+        "nBets": 9953,
+        "roi": -0.0265
+      },
+      "kellyStack": {
+        "nBets": 2073,
+        "roi": -0.1839
+      }
+    }
+  }
+}

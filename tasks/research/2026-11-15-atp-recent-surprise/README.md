@@ -29,9 +29,9 @@ queries and resumed walks also match exactly at three historical cutoffs. NumPy
 scalar accumulation preserves the evaluated arithmetic across Python versions.
 
 `audit_drift.py` replays immutable first sightings against a frozen current result
-frame and reports confidence, surface, horizon, year and predictor-cohort slices.
-Tier was not retained by the old forecasts, and result dates are not independent
-first-serve timing evidence. The source refresh differs from the prior deployment;
+frame and reports confidence, surface, tier, horizon, year and predictor-cohort slices.
+Tier is reconstructed from unambiguous result date/player-pair/event identity;
+result dates are not independent first-serve timing evidence. The source refresh differs from the prior deployment;
 this is a diagnostic replay rather than a claim to reproduce its exact 647 rows.
 A demonstrated bug allowed a forecast with a known ESPN event ID to settle against
 a result from a different known event. The grader now leaves such rows pending and
@@ -59,8 +59,10 @@ registered paths to replay. The original isolated runtime used the 42-feature mo
 code from commit `3979e33`; use that reference checkout and pinned requirements for
 the historical comparison. `production_parity.py.txt` uses the integrated model.
 Frozen raw inputs, feature frames, OOS predictions and fitted research state remain
-under `.research/2026-11-15-remaining-warnings/` and the result frame under
-`/tmp/deuce-remaining-warnings/atp-current.pkl`; large binary data is not committed.
+under `.research/2026-11-15-remaining-warnings/`, including a hash-verified durable
+copy of `atp-current.pkl`. The original registered result-frame path is
+`/tmp/deuce-remaining-warnings/atp-current.pkl`; restore that path from the durable
+copy when replaying the exact scripts. Large binary data is not committed.
 The later forecast-ledger-only commit `fbc0306` is reconciled before release.
 
 ## Release review
@@ -75,3 +77,17 @@ lint, TypeScript, static build and browser checks passed. Local Python3.13 passe
 2,156 tests. The promotion changes documentation only from that tested application
 tree. A full refresh is required to rebuild the ATP saved predictor and both market
 scorecards. Production verification remains pending; this is not a recovery claim.
+
+
+The final join replay against the qualified candidate is retained in
+`odds-atp-candidate-replay.json`: 31,316 matched decisions, 30,547 Tennis-Data plus
+769 Valuebetennis, coverage through November 13 against OOS through November 15.
+It uses the frozen odds source snapshot, not the newer production acquisition.
+The recent 616-match model/market comparison remains worse for the model in log
+loss (0.6195 vs 0.6103); source recovery is not a claim of a betting advantage.
+The original `odds-atp-replay.json` remains as the earlier join assessment.
+
+Follow-up commit `28ce67a` fixes the provider-only label to name only the source
+actually used. Its [CI run 43908591398](https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/43908591398)
+passed Python and all web checks; 20 focused odds tests also passed locally.
+The added tier diagnostic leaves the monitor and graded sample unchanged.

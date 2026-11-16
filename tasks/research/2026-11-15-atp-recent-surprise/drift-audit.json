@@ -69,10 +69,25 @@
       }
     },
     "tier": {
-      "unrecorded": {
-        "n": 627,
-        "d": 0.05437331858985539,
-        "se": 0.019770635434115474
+      "atp250": {
+        "n": 205,
+        "d": 0.05924246846351155,
+        "se": 0.028607339458734612
+      },
+      "atp500": {
+        "n": 111,
+        "d": 0.023114601417551058,
+        "se": 0.043194215501251576
+      },
+      "grand_slam": {
+        "n": 122,
+        "d": 0.04252471522111023,
+        "se": 0.05288082590201957
+      },
+      "masters": {
+        "n": 189,
+        "d": 0.0750985645846341,
+        "se": 0.039315907984903364
       }
     },
     "horizon": {
@@ -503,7 +518,7 @@
     }
   },
   "limitations": [
-    "Tier was not retained in the immutable forecast records.",
+    "Tier is reconstructed only from unambiguous result date/player-pair/event identity, not forecast-time metadata.",
     "Horizon uses source result calendar dates, not independently observed first-serve times.",
     "Slice SE assumes independent matches; repeated players/events can add dependence.",
     "This refreshed-source replay is not the exact prior production result snapshot."

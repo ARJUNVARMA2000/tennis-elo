@@ -10195,3 +10195,12 @@ lint, TypeScript, static build and browser checks passed. Local Python3.13 passe
 2,156 tests. The promotion changes documentation only from that tested application
 tree. A full refresh is required to rebuild the ATP saved predictor and both market
 scorecards. Production verification remains pending; this is not a recovery claim.
+
+
+Remaining warnings release follow-up, 2026-11-16: full rebuild 43906413969 has
+passed source acquisition and is retraining. A provider-only attribution edge case
+was repaired in isolated commit `28ce67a`; full CI 43908591398 is green. It will
+ship with a quick refresh after the full rebuild finishes. Final candidate odds
+replay recovers coverage to November 13 with 769 supplement matches; the frozen
+inputs and the final join result are preserved with the research record. The tier
+audit reconstructs all 627 result tiers without changing grading or drift.

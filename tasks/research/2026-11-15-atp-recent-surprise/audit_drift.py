@@ -47,7 +47,24 @@ records["horizon"] = (records.date - pd.to_datetime(records.as_of, utc=True, for
 records["horizon"] = pd.cut(records.horizon, [-2, 0, 2, 7, 21]).astype(str)
 records["year"] = records.date.dt.year.astype(str)
 records["cohort"] = records.get("predictor_artifact_id", pd.Series(index=records.index, dtype=str)).fillna("legacy-unidentified")
-records["tier"] = records.get("tier", pd.Series(index=records.index, dtype=str)).fillna("unrecorded")
+tiers = {}
+for row in frame.itertuples():
+    key = (pd.Timestamp(row.date).strftime("%Y-%m-%d"),
+           frozenset((track.player_identity_key(row.winner_name), track.player_identity_key(row.loser_name))),
+           track._clean_id(row.espn_id))
+    if pd.notna(row.tier):
+        tiers.setdefault(key, set()).add(str(row.tier))
+
+
+def result_tier(row):
+    key = (row.date.strftime("%Y-%m-%d"),
+           frozenset((track.player_identity_key(row.playerA), track.player_identity_key(row.playerB))),
+           track._clean_id(row.resultEspnId))
+    values = tiers.get(key, set())
+    return next(iter(values)) if len(values) == 1 else "unresolved"
+
+
+records["tier"] = records.apply(result_tier, axis=1)
 
 
 def metric(group):
@@ -66,7 +83,7 @@ result = {
     "monitor": report["matchForecasts"]["drift"],
     "slices": {column: {str(key): metric(group) for key, group in records.groupby(column)}
                for column in ["confidence", "surface", "tier", "horizon", "year", "cohort"]},
-    "limitations": ["Tier was not retained in the immutable forecast records.",
+    "limitations": ["Tier is reconstructed only from unambiguous result date/player-pair/event identity, not forecast-time metadata.",
                     "Horizon uses source result calendar dates, not independently observed first-serve times.",
                     "Slice SE assumes independent matches; repeated players/events can add dependence.",
                     "This refreshed-source replay is not the exact prior production result snapshot."],
