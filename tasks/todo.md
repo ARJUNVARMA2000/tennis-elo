@@ -10230,3 +10230,17 @@ shows a quick parentless bootstrap would omit newly computed optional market and
 accuracy outputs. Use the standard **full** release path again, not a quick retry;
 its complete evaluation graph is required for this odds repair. No alternate
 acceptance path or relaxation of lineage checks is introduced.
+
+
+Timeline repair `5860c3a` passed [required CI 43911355831](https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/43911355831), including all Python and web checks. The focused migration/health run passed
+211 tests. The first full candidate 43906413969 completed both retrains and current
+market acquisition (ATP 20,286 matched, WTA 18,702; both through November 15) but
+was never published: the separate forecast-timeline gate rejected valid ATP schema6
+observations. The gate now derives current schema from the producer and retains
+strict generation checks. A standard full retry preserves market/accuracy lineage;
+a quick parentless bootstrap would omit those optional outputs.
+
+Reproducibility check: research and CI use identical pinned NumPy2.5.0, pandas3.0.3,
+XGBoost3.3.0 and scikit-learn1.9.0. Research ran Python3.13.14 on macOS; production
+rebuilds on Python3.12.16/Linux. No model pickle is copied between these runtimes.
+Production verification is still pending.
