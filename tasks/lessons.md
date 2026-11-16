@@ -528,3 +528,6 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - A known different event cannot settle a forecast merely because its date fits.
   See [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-11-16)
+
+- A model schema migration must update timeline validators and preserve complete retry lineage.
+  See [`lessons/ci-and-deploy.md`](lessons/ci-and-deploy.md). (2026-11-16)

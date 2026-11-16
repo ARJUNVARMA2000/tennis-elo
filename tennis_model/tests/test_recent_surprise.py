@@ -16,6 +16,36 @@ from tennis_model.model.recent_surprise import (
 from test_probability import predictor
 
 
+@pytest.mark.parametrize("schema,current,invalid", [
+    (6, True, False), (6, False, False), (5, False, False),
+    (5, True, True), (7, True, True), (7, False, True),
+    ("6", True, True), (None, False, False),
+])
+def test_atp_timeline_migration_uses_canonical_schema(schema, current, invalid):
+    from tennis_model.data.health import _FindingCollector
+    from tennis_model.data.health_checks.predictions import _check_forecast_history
+    from tennis_model.eval.track import _forecast_history
+
+    current_id = "11111111-1111-4111-8111-111111111111"
+    old_id = "22222222-2222-4222-8222-222222222222"
+    model = predictor()
+    evidence = model.prediction_evidence("Alfa One", "Bravo Two", as_of="2026-08-01")
+    record = {"type": "match", "playerA": "Alfa One", "playerB": "Bravo Two",
+              "p": evidence["probabilityA"], "as_of": "2026-08-01T00:00:00Z", "evidence": evidence,
+              "predictor_artifact_id": current_id if current else old_id}
+    if schema is not None:
+        record["inference_schema_version"] = schema
+    original = copy.deepcopy(record)
+    history = _forecast_history([record], "Alfa One")
+    assert record == original
+    out = _FindingCollector("output", "atp")
+    _check_forecast_history(out, "atp", "incident", history, current_predictor_id=current_id)
+    codes = {f.code for f in out.findings}
+    assert ("output.forecast.inference_schema_invalid" in codes) is invalid
+    if not invalid:
+        assert not out.findings
+
+
 def history():
     return pd.DataFrame(
         dict(

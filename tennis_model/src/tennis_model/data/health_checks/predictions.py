@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from ...model.features import inference_schema_for
 from .common import (
     _EVIDENCE_KEYS,
     _UUID4_RE,
@@ -502,9 +503,10 @@ def _check_forecast_history(out: list, tour: str, label: str, forecast: object,
             schema = point.get("inferenceSchemaVersion")
             is_current = (current_predictor_id is not None
                           and point.get("predictorArtifactId") == current_predictor_id)
-            supported = {5, 6} if tour == "wta" else {5}
+            current_schema = inference_schema_for(tour)
+            supported = {5, current_schema}
             if (schema is not None and (type(schema) is not int or schema not in supported
-                    or (is_current and schema != (6 if tour == "wta" else 5)))):
+                    or (is_current and schema != current_schema))):
                 _add_finding(
                     out, "output.forecast.inference_schema_invalid",
                     f"{tour}: {label} timeline point {index} has an incompatible inference schema",

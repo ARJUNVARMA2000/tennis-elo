@@ -352,3 +352,13 @@ Exercise committed benchmark history before release, not only synthetic current-
   saved predictor, rebuild it before publishing and verify the deployed model ID
   and training timestamp as well as the corrected data. An input repair alone
   does not require a new population version if the last accepted release was correct.
+
+
+- **A model schema migration includes immutable timeline validators.** (2026-11-16)
+  ATP metadata, artifacts and live verifier accepted schema6, but the forecast-history
+  gate still hardcoded ATP schema5 and blocked nine valid current observations in
+  run 43906413969. Derive the current timeline schema from `inference_schema_for`;
+  explicitly test old-generation schema5, current schema6, stale-current schema5
+  and unknown schemas. Preserve old observations instead of rewriting their tags.
+  A gate-rejected parentless candidate also requires a full retry when optional
+  market/evaluation files must ship: quick bootstrap removes unproduced evaluations.

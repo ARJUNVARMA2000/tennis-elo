@@ -10204,3 +10204,29 @@ ship with a quick refresh after the full rebuild finishes. Final candidate odds
 replay recovers coverage to November 13 with 769 supplement matches; the frozen
 inputs and the final join result are preserved with the research record. The tier
 audit reconstructs all 627 result tiers without changing grading or drift.
+
+
+### Release retry plan after gate rejection — 2026-11-16
+
+Full run 43906413969 completed both retrains and fresh market reports (both through
+November 15), then correctly blocked publication on nine ATP timeline schema findings.
+The separate timeline validator still hardcodes current ATP schema5 and rejects new
+schema6 observations. No model-input defect was found. The cache saved both rebuilt
+predictors and their new evaluation outputs; the last accepted production release is live.
+Existing implementation/deployment authorization covers this migration repair.
+
+- [ ] Derive current timeline schema from the canonical producer contract; retain
+  explicit historical schema5 compatibility and reject stale current/unknown schemas.
+- [ ] Add broken/clean ATP timeline replays, run focused checks and required branch CI.
+- [ ] Promote the verified gate repair plus provider-label follow-up. Run a quick
+  refresh from the completed model cache, verify parentless graph bootstrap if needed,
+  and confirm neither model requires another fit merely for this validator repair.
+- [ ] Verify live contracts, current odds, artifact closure and authoritative alerts;
+  preserve the real historical drift advisory and append the final release review.
+
+
+Retry-plan correction: inspection of `_remove_unproduced_bootstrap_evaluations`
+shows a quick parentless bootstrap would omit newly computed optional market and
+accuracy outputs. Use the standard **full** release path again, not a quick retry;
+its complete evaluation graph is required for this odds repair. No alternate
+acceptance path or relaxation of lineage checks is introduced.
