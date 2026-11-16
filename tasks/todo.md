@@ -10186,3 +10186,12 @@ updates immutable evaluation ledgers and will be retained before production prom
 
 The historical drift advisory must remain until the unchanged monitor has evidence
 of recovery; neither a retrain nor this small backtest improvement establishes that.
+
+
+Production promotion approved under the existing user authorization. Required branch
+CI [43905449360](https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/43905449360)
+passed at tested commit `c2659f3`: Python3.12 2,155 passed/one skipped; web tests,
+lint, TypeScript, static build and browser checks passed. Local Python3.13 passed
+2,156 tests. The promotion changes documentation only from that tested application
+tree. A full refresh is required to rebuild the ATP saved predictor and both market
+scorecards. Production verification remains pending; this is not a recovery claim.
