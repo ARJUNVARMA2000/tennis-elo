@@ -1978,6 +1978,17 @@ def output_findings(tour: str, oc: dict, now: pd.Timestamp,
         # verdict; we only surface it. Advisory, never deploy-blocking — like market lag,
         # a re-tune recommendation is a benchmark signal, not a build dependency.
         dr = mf.get("drift")
+        grading = mf.get("gradingEvidence")
+        if grading is not None:
+            valid_grading = (isinstance(grading, list) and len(grading) == mf.get("graded")
+                             and all(isinstance(row, dict) and row.get("matchId")
+                                     and not (row.get("forecastEventId") and row.get("resultEventId")
+                                              and row["forecastEventId"] != row["resultEventId"])
+                                     for row in grading))
+            if not valid_grading:
+                _add_finding(out, "output.forecast.grading_identity_invalid",
+                             f"{tour}: forecast grading has contradictory event identity or incomplete evidence",
+                             entity=f"forecast-grading:{tour}")
         if isinstance(dr, dict) and dr.get("status") == "drift":
             _add_finding(out, "output.model.forecast_drift",
                          f"{tour}: forecast drift over last {dr.get('n')} graded "
@@ -1999,6 +2010,26 @@ def output_findings(tour: str, oc: dict, now: pd.Timestamp,
 
     mk = data.get("market")
     if isinstance(mk, dict):
+        sources = mk.get("sources") or {}
+        providers = sources.get("providers")
+        if providers is not None:
+            valid = (isinstance(providers, dict) and all(
+                key in {"tennis-data", "valuebetennis"} and type(n) is int and n >= 0
+                for key, n in providers.items()) and sum(providers.values()) == mk.get("matched"))
+            if valid and providers.get("valuebetennis", 0):
+                from .valuebetennis import SOURCE_URL
+                attribution = sources.get("attribution") or {}
+                receipts = sources.get("acquisitions")
+                valid = (attribution.get("url") == SOURCE_URL
+                         and "CC BY 4.0" in str(attribution.get("label"))
+                         and isinstance(receipts, list) and bool(receipts)
+                         and all(isinstance(r, dict) and r.get("license") == "CC BY 4.0"
+                                 and isinstance(r.get("sha256"), str) and len(r["sha256"]) == 64
+                                 for r in receipts))
+            if not valid:
+                _add_finding(out, "output.market.provider_provenance_invalid",
+                             f"{tour}: market benchmark provider census or attribution is invalid",
+                             entity=f"market-benchmark:{tour}")
         # matched-odds window trailing the scored matches by months = a book left the
         # odds feed and the benchmark silently froze mid-window (Pinnacle, Jan 2026).
         # Advisory, not deploy-blocking: odds are a benchmark, never a build dependency.

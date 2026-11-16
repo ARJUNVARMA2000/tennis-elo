@@ -14,7 +14,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from tennis_model.model.features import ANTISYM, FEATURES, SYMMETRIC
+from tennis_model.model.features import SYMMETRIC, antisymmetric_for, features_for
 from tennis_model.model.train import (
     IdentityCalibrator,
     IsotonicCalibrator,
@@ -31,6 +31,10 @@ from tennis_model.model.train import (
 
 def _sigmoid(z):
     return 1.0 / (1.0 + np.exp(-z))
+
+
+ANTISYM = antisymmetric_for("atp")
+FEATURES = features_for("atp")
 
 
 def test_platt_monotone_and_improves_overconfident():
@@ -185,6 +189,9 @@ def test_state_gate_reuses_one_baseline_combiner_and_keeps_protected_rows_exact(
     import tennis_model.model.train as train_module
 
     base = _synthetic_feat(n=7000, seed=9)
+    base = base.drop(columns=["recent_surprise_diff"])
+    base["surface_recent_diff"] = 0.
+    base["tour"] = "wta"
     base["p_blend"] = 0.6
     base["p_point"] = 0.6
     base["date"] = pd.Timestamp("2020-01-01")

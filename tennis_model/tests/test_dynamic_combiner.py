@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from tennis_model.model import dynamic_research as dr
-from tennis_model.model.features import FEATURES, make_oriented_xy
+from tennis_model.model.features import FEATURES
 from tennis_model.model.probability import paired_probability
 
 
@@ -29,7 +29,7 @@ def test_orientation_preserves_incumbent_columns_and_adds_one_signed_signal():
     frame["surface_recent_diff"] = np.arange(len(frame))
     before = frame.copy()
     x, y = dr.oriented(frame, 2010)
-    original, original_y = make_oriented_xy(frame[FEATURES], seed=2010)
+    original, original_y = dr.frozen_oriented_xy(frame[FEATURES], seed=2010)
     pd.testing.assert_frame_equal(x[FEATURES], original, check_exact=True)
     np.testing.assert_array_equal(y, original_y)
     np.testing.assert_array_equal(x[dr.DYNAMIC_FEATURE], frame[dr.DYNAMIC_FEATURE]*np.where(y==0,-1,1))
@@ -45,8 +45,14 @@ def test_probability_exchanges_exactly_and_disabled_path_matches_incumbent():
     forward = dr.probability(clf, cal, frame)
     backward = dr.probability(clf, cal, dr.reverse(frame))
     np.testing.assert_allclose(forward+backward, 1, rtol=0, atol=1e-15)
-    np.testing.assert_array_equal(dr.probability(clf, cal, frame[FEATURES], enabled=False),
-                                  paired_probability(clf, cal, frame[FEATURES]))
+    legacy = frame[FEATURES].copy()
+    flipped = legacy.copy(); flipped.loc[:, dr.ANTISYM] *= -1
+    both = pd.concat([legacy, flipped], ignore_index=True)
+    p = cal.predict(clf.predict_proba(both)[:, 1]); n = len(legacy)
+    np.testing.assert_array_equal(dr.probability(clf, cal, legacy, enabled=False),
+                                  .5*(p[:n]+(1-p[n:])))
+    with pytest.raises(ValueError, match='exact ordered feature schema'):
+        paired_probability(clf, cal, legacy)
     pd.testing.assert_frame_equal(frame, before, check_exact=True)
 
 

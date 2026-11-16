@@ -36,6 +36,7 @@ from .features import (
     use_lower_state,
 )
 from .probability import paired_probability
+from .recent_surprise import SURPRISE_FEATURE, RecentSurpriseState
 from .surface_exposure import SURFACE_FEATURE, SURFACE_WINDOW_DAYS, SurfaceExposureState
 from .train import train_final
 
@@ -103,7 +104,7 @@ EVIDENCE_GROUPS: dict[str, tuple[str, ...]] = {
     "h2h": ("h2h_diff", "h2h_surface_diff", "log1p_h2h_total"),
     "style": tuple(STYLE_DIFFS),
 }
-# Schema 5 remains ATP; WTA schema 6 adds the adopted surface state and feature.
+# Schema 6: ATP adds recent surprise; WTA carries its adopted surface exposure.
 
 
 class TennisPredictor:
@@ -301,6 +302,11 @@ class TennisPredictor:
             if type(state) is not SurfaceExposureState:
                 raise RuntimeError("selected WTA surface state is absent or incompatible")
             row[SURFACE_FEATURE] = state.query(a, b, surface, asof)
+        else:
+            state = getattr(ctx, "recent_surprise", None)
+            if type(state) is not RecentSurpriseState:
+                raise RuntimeError("selected ATP recent surprise state is absent or incompatible")
+            row[SURPRISE_FEATURE] = state.query(a, b, asof)
         return row
 
     def features(self, a: str, b: str, surface: str = "Hard", best_of: int = 3,
@@ -317,7 +323,9 @@ class TennisPredictor:
 
     @property
     def evidence_groups(self):
-        return {**EVIDENCE_GROUPS, "recentSurface": (SURFACE_FEATURE,)} if self.tour == "wta" else EVIDENCE_GROUPS
+        if self.tour == "wta":
+            return {**EVIDENCE_GROUPS, "recentSurface": (SURFACE_FEATURE,)}
+        return {**EVIDENCE_GROUPS, "form": (*EVIDENCE_GROUPS["form"], SURPRISE_FEATURE)}
 
     def _combiner_probability(self, frame):
         """One dispatch point shared by every public prediction path."""

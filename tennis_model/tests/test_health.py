@@ -18,7 +18,9 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import tennis_model.data.health as health
-from tennis_model.model.features import FEATURES
+from tennis_model.model.features import features_for
+
+FEATURES = features_for("atp")
 
 NOW = pd.Timestamp("2026-07-09")   # mid-season, deterministic (July)
 

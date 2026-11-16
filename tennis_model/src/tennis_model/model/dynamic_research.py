@@ -9,12 +9,10 @@ import numpy as np
 import pandas as pd
 
 from tennis_model.eval.protocol import require_paired
-from tennis_model.model.features import ANTISYM, FEATURES, make_oriented_xy
-from tennis_model.model.probability import paired_probability
+from tennis_model.model.features import ANTISYM, FEATURES, SYMMETRIC
 from tennis_model.model.train import (
     BaggedClassifier,
     PlattCalibrator,
-    _fit_fold,
     _xgb,
     full_xgb_params,
     xgb_params_for,
@@ -24,6 +22,18 @@ from tennis_model.ratings.dynamic import DYNAMIC_FEATURE
 SCHEMA = 'dynamic-combiner-research-v1'
 COLUMNS = [*FEATURES, DYNAMIC_FEATURE]
 SIGNED_COLUMNS = [*ANTISYM, DYNAMIC_FEATURE]
+
+
+def frozen_oriented_xy(frame, seed):
+    """The registered 42-column reference, independent of later production schemas."""
+    flip = np.random.default_rng(seed).random(len(frame)) < .5
+    sign = np.where(flip, -1., 1.)
+    x = pd.DataFrame(index=frame.index)
+    for column in ANTISYM:
+        x[column] = frame[column].to_numpy() * sign
+    for column in SYMMETRIC:
+        x[column] = frame[column].to_numpy()
+    return x[FEATURES], np.where(flip, 0, 1).astype(int)
 
 
 def checked(frame):
@@ -36,7 +46,7 @@ def checked(frame):
 
 
 def oriented(frame, seed, *, enabled=True):
-    original, y = make_oriented_xy(frame[FEATURES], seed=seed)
+    original, y = frozen_oriented_xy(frame[FEATURES], seed=seed)
     if not enabled:
         return original, y
     out = original.copy()
@@ -51,12 +61,18 @@ def reverse(frame):
 
 
 def probability(clf, calibrator, frame, *, enabled=True):
-    if not enabled:
-        return paired_probability(clf, calibrator, frame)
-    forward = checked(frame)
+    if enabled:
+        forward = checked(frame)
+    else:
+        if list(frame.columns) != FEATURES or not np.isfinite(frame.to_numpy(dtype=float)).all():
+            raise ValueError('invalid frozen reference schema')
+        forward = frame
     if forward.empty:
         return np.empty(0, dtype=np.float64)
-    both = pd.concat([forward, reverse(forward)], ignore_index=True)
+    backward = reverse(forward) if enabled else forward.copy()
+    if not enabled:
+        backward.loc[:, ANTISYM] *= -1
+    both = pd.concat([forward, backward], ignore_index=True)
     raw = np.asarray(clf.predict_proba(both), dtype=np.float64)
     if raw.shape != (len(both), 2) or not np.isfinite(raw).all() or np.any((raw < 0) | (raw > 1)):
         raise ValueError('invalid research classifier probabilities')
@@ -67,21 +83,18 @@ def probability(clf, calibrator, frame, *, enabled=True):
     return 0.5 * (p[:n] + (1.0 - p[n:]))
 
 
-def fit_fold(core, cal, seed, *, enabled=True, n_bag=5):
-    overrides = xgb_params_for('wta')
-    if not enabled:
-        return _fit_fold(core, cal, seed=seed, calibrator='platt',
-                         xgb_overrides=overrides, n_bag=n_bag)
-    if n_bag != 5:
+def fit_fold(core, cal, seed, *, enabled=True, n_bag=5, tour='wta'):
+    overrides = xgb_params_for(tour)
+    if enabled and n_bag != 5:
         raise ValueError('registered dynamic research requires five bags')
-    xcal, ycal = oriented(cal, seed + 1)
+    xcal, ycal = oriented(cal, seed + 1, enabled=enabled)
     clfs = []
     for k in range(n_bag):
-        xtr, ytr = oriented(core, seed + 100_000 * k)
+        xtr, ytr = oriented(core, seed + 100_000 * k, enabled=enabled)
         clf = _xgb(**full_xgb_params(overrides, bag_index=k))
         clf.fit(xtr, ytr, sample_weight=None, eval_set=[(xcal, ycal)], verbose=False)
         clfs.append(clf)
-    model = BaggedClassifier(clfs)
+    model = clfs[0] if n_bag == 1 else BaggedClassifier(clfs)
     calibration = PlattCalibrator().fit(model.predict_proba(xcal)[:, 1], ycal)
     return model, calibration
 

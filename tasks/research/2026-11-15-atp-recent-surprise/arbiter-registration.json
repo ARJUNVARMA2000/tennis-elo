@@ -1,0 +1,32 @@
+{
+  "registeredAt": "2026-11-16T02:28:23.019624+00:00",
+  "candidate": {
+    "id": "ATP-RESIDUAL-90",
+    "column": "recent_surprise_diff",
+    "delta": 0.00018380187745419964,
+    "se": 8.646745468040797e-05,
+    "firstHalf": 0.00019369754121874563,
+    "secondHalf": 0.00017374650407894966,
+    "byYear": {
+      "2010": 7.306483096304283e-05,
+      "2011": -0.0003242144794036022,
+      "2012": 0.00032383337805822263,
+      "2013": 0.00012524390025586425,
+      "2014": 0.0007934809552432361,
+      "2015": 0.00013270821196538263,
+      "2016": 0.00034219188717567596,
+      "2017": 7.064991642525334e-05,
+      "2018": 0.00020355964808098614,
+      "2019": 0.00011249035734510482
+    },
+    "eligible": true
+  },
+  "inputs": {
+    "/Users/varma/Projects/DEUCE/.research/2026-11-15-remaining-warnings/signal-round/selection.json": "c8fd0bfafdf471bc17769ceeb70cd395d29a8e2d85515ba18876aa62ce8c7dfb",
+    "/Users/varma/Projects/DEUCE/.research/2026-11-15-remaining-warnings/signal-round/features.pkl": "6a1aa412e76f39c432fb2f0caae311cf32c4e55658fc6d465acf535395e2754e",
+    "/Users/varma/Projects/DEUCE/.research/2026-11-15-remaining-warnings/baseline/oos.pkl": "6da1dc566411b9c1ab394373e4fd37540ab33b10490ddd0c035a53c8057dfe3c",
+    "/Users/varma/Projects/DEUCE/.research/2026-11-15-remaining-warnings/tools/atp_signals_validate.py": "0f16967510b96272e1291f240995ed535c3d23bd134b4e388d65d92ed16c95c3"
+  },
+  "bags": 5,
+  "candidateValidationViewed": false
+}

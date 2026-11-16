@@ -1,0 +1,68 @@
+# ATP recent form and odds-source repair — November 15–16, 2026
+
+The user approved implementation, historical research and deployment. Release checks
+and production observations are appended below when complete.
+
+The bounded ATP round selected `recent_surprise_diff`: for each player, sum the
+pre-match Elo outcome residuals of their last ten completed matches within 90 days,
+divide by `5 + n`, then take the difference. Every row is emitted before its result
+updates state. The feature uses the existing adopted ATP lower-tier history.
+
+| Candidate | Tune d ± SE, log loss | Stability | Decision |
+| --- | --- | --- | --- |
+| ATP-RESIDUAL-90 | +0.0001838 ± 0.0000865 | Both halves positive; 9/10 positive years | Selected |
+| ATP-RANK-TRAJECTORY | +0.0000769 ± 0.0000730 | First half negative | Rejected before validation |
+
+Positive d means the candidate has lower paired log loss. Selection used only
+2010–19; `selection.json` froze the finalist before viewing its 2020+ results.
+The full five-seed production arbiter paired all 46,684 decisions: tuning n=28,357,
+validation n=18,327, validation **+0.0001624 ± 0.0001034 SE**. This passes the existing
+`d_tune > 0 && d_val > -SE` gate. Per-year and block uncertainty, including negative
+2022 performance and intervals spanning zero, remain in `arbiter-result.json`.
+The effect is modest and does not demonstrate future live drift recovery.
+
+Production now uses 43 features/schema6 for ATP, with strict saved-state policy
+validation and inference parity tests. The WTA feature contract is unchanged.
+`production-parity.json` confirms all 42 common features plus the new signal are
+bit-identical to the evaluated frame over 153,990 main-history rows. Saved-prefix
+queries and resumed walks also match exactly at three historical cutoffs. NumPy
+scalar accumulation preserves the evaluated arithmetic across Python versions.
+
+`audit_drift.py` replays immutable first sightings against a frozen current result
+frame and reports confidence, surface, horizon, year and predictor-cohort slices.
+Tier was not retained by the old forecasts, and result dates are not independent
+first-serve timing evidence. The source refresh differs from the prior deployment;
+this is a diagnostic replay rather than a claim to reproduce its exact 647 rows.
+A demonstrated bug allowed a forecast with a known ESPN event ID to settle against
+a result from a different known event. The grader now leaves such rows pending and
+publishes event-identity proof checked by the pre-upload gate. No forecasts, losses,
+model versions or monitor thresholds are rewritten to obtain recovery.
+
+Odds recovery adds the [Valuebetennis CC BY 4.0 seasonal data](https://www.valuebetennis.com/en/donnees.htm)
+as an explicitly attributed, evaluation-only Pinnacle supplement. Source documentation
+defines the quotes as the last recorded before the match; it does not guarantee
+equivalence to other providers' closing snapshots. Intake excludes qualifying,
+lower categories, invalid outcomes/prices and ambiguous identities. Exact canonical
+full names, date and surface corroborate joins; legacy valid quotes retain priority.
+Content-addressed acquisition and a final atomic receipt preserve the last good
+generation on failure. Both receipt and source bytes bind stage provenance. Raw odds
+are already covered by the release recovery archive. Public output/UI carry credit
+and the provider census. Staleness thresholds remain unchanged.
+
+## Reproduction and retained evidence
+
+Registrations, the frozen selection, reference identity, full arbiter and production
+parity receipts are committed here. `tools/*.py.txt` retain the exact executed
+research drivers (including their input hashes and original local paths), rather
+than silently rewriting them after the experiment. Copy them back to `.py` at the
+registered paths to replay. The original isolated runtime used the 42-feature model
+code from commit `3979e33`; use that reference checkout and pinned requirements for
+the historical comparison. `production_parity.py.txt` uses the integrated model.
+Frozen raw inputs, feature frames, OOS predictions and fitted research state remain
+under `.research/2026-11-15-remaining-warnings/` and the result frame under
+`/tmp/deuce-remaining-warnings/atp-current.pkl`; large binary data is not committed.
+The later forecast-ledger-only commit `fbc0306` is reconciled before release.
+
+## Release review
+
+Pending final checks and production verification.

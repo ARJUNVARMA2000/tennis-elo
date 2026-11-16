@@ -1085,7 +1085,7 @@ it.each((["atp", "wta"] as const).flatMap((tour) => [
     if (caseName === "old chronology") {
       (meta.chronology as Record<string, unknown>).policy = "retrospective-verified-date-or-recorded-event-round-v1";
     }
-    if (caseName === "wrong tour schema") meta.inferenceSchemaVersion = tour === "wta" ? 5 : 6;
+    if (caseName === "wrong tour schema") meta.inferenceSchemaVersion = 5;
     if (caseName === "reordered features") (meta.features as string[]).reverse();
     if (caseName === "missing features") delete meta.features;
     const raw = lineageBytes(meta);

@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 from historical_signals import SIGNALS, SignalState, attach_signals, walk_signals
 from signal_combiner import columns, oriented, probability, reverse
-from tennis_model.model.features import FEATURES, make_oriented_xy
+from tennis_model.model.features import ANTISYM, FEATURES
 
 
 def history():
@@ -107,7 +107,10 @@ def test_orientation_mirrors_incumbent(extra):
     for s in SIGNALS:
         f[s] = np.arange(20) / 10
     x, y = oriented(f, 2010, extra)
-    old, oldy = make_oriented_xy(f[FEATURES], seed=2010)
+    flip = np.random.default_rng(2010).random(len(f)) < .5
+    old = f[FEATURES].copy()
+    old.loc[:, ANTISYM] *= np.where(flip, -1., 1.)[:, None]
+    oldy = np.where(flip, 0, 1).astype(int)
     pd.testing.assert_frame_equal(x[FEATURES], old)
     np.testing.assert_array_equal(y, oldy)
     for s in extra:

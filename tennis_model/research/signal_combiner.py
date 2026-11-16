@@ -4,12 +4,13 @@ import numpy as np
 import pandas as pd
 from historical_signals import SIGNALS
 from tennis_model.eval.protocol import require_paired
-from tennis_model.model.features import ANTISYM, FEATURES, make_oriented_xy, select_dual_state_features
-from tennis_model.model.probability import paired_probability
+from tennis_model.model.dynamic_research import fit_fold as frozen_fit_fold
+from tennis_model.model.dynamic_research import frozen_oriented_xy
+from tennis_model.model.dynamic_research import probability as frozen_probability
+from tennis_model.model.features import ANTISYM, FEATURES, select_dual_state_features
 from tennis_model.model.train import (
     BaggedClassifier,
     PlattCalibrator,
-    _fit_fold,
     _xgb,
     full_xgb_params,
     xgb_params_for,
@@ -29,7 +30,7 @@ def checked(frame, extra=()):
 
 
 def oriented(frame, seed, extra=()):
-    x, y = make_oriented_xy(frame[FEATURES], seed=seed)
+    x, y = frozen_oriented_xy(frame[FEATURES], seed=seed)
     for name in extra:
         x[name] = frame[name].to_numpy() * np.where(y == 0, -1., 1.)
     return checked(x, extra), y
@@ -44,7 +45,7 @@ def reverse(frame, extra=()):
 def probability(clf, calibrator, frame, extra=()):
     checked(frame, extra)
     if not extra:
-        return paired_probability(clf, calibrator, frame)
+        return frozen_probability(clf, calibrator, frame, enabled=False)
     if frame.empty:
         return np.empty(0, dtype=float)
     both = pd.concat([frame, reverse(frame, extra)], ignore_index=True)
@@ -68,8 +69,7 @@ def fit_fold(core, cal, seed, extra=(), tour="wta"):
     columns(extra)
     overrides = xgb_params_for(tour)
     if not extra:
-        return _fit_fold(core, cal, seed=seed, calibrator="platt", n_bag=5,
-                         xgb_overrides=overrides)
+        return frozen_fit_fold(core, cal, seed, enabled=False, n_bag=5, tour=tour)
     xcal, ycal = oriented(cal, seed + 1, extra)
     clfs = []
     for k in range(5):

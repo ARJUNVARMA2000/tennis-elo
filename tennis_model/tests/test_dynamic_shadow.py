@@ -127,7 +127,7 @@ def test_ordinary_schema_and_probabilities_stay_exact(tour, tmp_path):
     predictor = _valid_predictor(tour)
     feature = predictor.features("A", "B", **CONTEXT)
     assert list(feature) == features_for(tour)
-    assert len(feature.columns) == (43 if tour == "wta" else 42)
+    assert len(feature.columns) == 43
     expected = paired_probability(predictor.clf, predictor.iso, feature)[0]
     assert predictor.win_prob("A", "B", **CONTEXT) == expected
     predictor.save(tmp_path / "predictor.pkl")

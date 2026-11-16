@@ -1,0 +1,33 @@
+import hashlib,json
+from pathlib import Path
+from datetime import UTC,datetime
+import pandas as pd
+import numpy as np
+from signal_combiner import walk_forward
+from tennis_model.eval.protocol import require_paired,paired_report
+
+root=Path('/Users/varma/Projects/DEUCE/.research/2026-11-15-remaining-warnings')
+run=root/'signal-round';selection=json.loads((run/'selection.json').read_text())
+choice=selection['selected'];assert choice and choice['eligible']
+outdir=run/'arbiter';outdir.mkdir(exist_ok=False)
+hashes={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in
+        [run/'selection.json',run/'features.pkl',root/'baseline/oos.pkl',Path(__file__)]}
+(outdir/'registration.json').write_text(json.dumps({'registeredAt':datetime.now(UTC).isoformat(),
+ 'candidate':choice,'inputs':hashes,'bags':5,'candidateValidationViewed':False},indent=2))
+frame=pd.read_pickle(run/'features.pkl')
+out,folds=walk_forward(frame,frame,(choice['column'],),tour='atp',end_test=2026)
+reference=pd.read_pickle(root/'baseline/oos.pkl');require_paired(reference,out)
+tune=out[out.year.between(2010,2019)].reset_index(drop=True)
+frozen=pd.read_pickle(run/(choice['id']+'.pkl'));require_paired(tune,frozen)
+np.testing.assert_array_equal(tune.p_combiner,frozen.p_combiner)
+out.to_pickle(outdir/'oos.pkl')
+d=np.log(out.p_combiner)-np.log(reference.p_combiner)
+def metric(mask):
+ x=d[mask].to_numpy();return {'n':len(x),'d':float(x.mean()),'se':float(x.std(ddof=1)/np.sqrt(len(x)))}
+tm=metric(reference.year.between(2010,2019));vm=metric(reference.year.ge(2020))
+result={'candidate':choice,'tune':tm,'validation':vm,'gatePass':tm['d']>0 and vm['d']>-vm['se'],
+ 'byYear':{str(y):metric(reference.year.eq(y)) for y in range(2010,2027)},
+ 'pairedReport':paired_report(reference,out),'folds':folds,'tuneReplayBitIdentical':True}
+assert all(hashlib.sha256(Path(p).read_bytes()).hexdigest()==h for p,h in hashes.items())
+(outdir/'completion.json').write_text(json.dumps(result,indent=2))
+print(json.dumps({k:result[k] for k in ['candidate','tune','validation','gatePass']},indent=2),flush=True)

@@ -525,3 +525,6 @@ New lesson → append the entry to the matching topic file and add its lead line
 
 - A same-year article and a settled draw do not establish an event edition. See
   [`lessons/draws-and-live-events.md`](lessons/draws-and-live-events.md). (2026-11-15)
+
+- A known different event cannot settle a forecast merely because its date fits.
+  See [`lessons/gates-and-health.md`](lessons/gates-and-health.md). (2026-11-16)

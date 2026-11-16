@@ -1,0 +1,32 @@
+{
+  "registeredAt": "2026-11-16T02:25:17.331173+00:00",
+  "grid": [
+    {
+      "id": "ATP-RESIDUAL-90",
+      "column": "recent_surprise_diff"
+    },
+    {
+      "id": "ATP-RANK-TRAJECTORY",
+      "column": "rank_trend_diff"
+    }
+  ],
+  "inputs": {
+    "/Users/varma/Projects/DEUCE/.research/2026-11-15-remaining-warnings/features.pkl": "f5c89da82fea42b66f8659115b1e9250aff5f04186bc6ef0d1db805116e69bf1",
+    "/Users/varma/Projects/DEUCE/.research/2026-11-15-remaining-warnings/baseline/oos.pkl": "6da1dc566411b9c1ab394373e4fd37540ab33b10490ddd0c035a53c8057dfe3c",
+    "/tmp/deuce-remaining-warnings/atp-current.pkl": "096afc002b243fb466b08c4836ca8ed404a44795ff10acb574fe183dd1747e2c",
+    "/Users/varma/Projects/DEUCE/.research/2026-11-15-remaining-warnings/tools/atp_signals.py": "dce880a120fd979865ac3a38f571489c5627fb9600efd3087ffae583da68e260",
+    "/Users/varma/Projects/DEUCE/.research/2026-11-15-remaining-warnings/tools/historical_signals.py": "14d22fb2b3c4c9274c8e5ee0e35b73168883544f650e0a2036a7a2396fc5597e",
+    "/Users/varma/Projects/DEUCE/.research/2026-11-15-remaining-warnings/tools/signal_combiner.py": "1a07b7799840355aa5e81e68e29b64438e1c3e0620df4e4f73cdd35e50496a4e"
+  },
+  "selectionYears": [
+    2010,
+    2019
+  ],
+  "validationYears": [
+    2020,
+    2026
+  ],
+  "selectionRule": "positive tune; >=6/10 positive years; positive 2010-14 and 2015-19; largest tune gain then fixed ID",
+  "productionBags": 5,
+  "note": "No rerun of ATP surface-count candidate previously rejected on tune. No live-window fitting."
+}

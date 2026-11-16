@@ -18,7 +18,10 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import tennis_model.model.predict as predict
-from tennis_model.model.features import FEATURES
+from tennis_model.model.features import features_for
+from tennis_model.model.recent_surprise import RecentSurpriseState
+
+FEATURES = features_for("atp")
 from tennis_model.model.predict import TennisPredictor, can_predict_match
 
 
@@ -59,6 +62,9 @@ class _Srv:
 
 
 class _Ctx:
+    def __init__(self):
+        self.recent_surprise = RecentSurpriseState()
+
     def record(self, a, b):
         return (2, 1)
 

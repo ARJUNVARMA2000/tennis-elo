@@ -1,7 +1,7 @@
 // Explicit serving contracts; checked against the Python producer in tests.
 export const MODEL_CONTRACTS = {
   "atp": {
-    "inferenceSchema": 5,
+    "inferenceSchema": 6,
     "features": [
       "elo_diff",
       "elo_overall_diff",
@@ -44,7 +44,8 @@ export const MODEL_CONTRACTS = {
       "log_min_srv_pts",
       "log_min_matches",
       "has_style",
-      "log1p_h2h_total"
+      "log1p_h2h_total",
+      "recent_surprise_diff"
     ]
   },
   "wta": {

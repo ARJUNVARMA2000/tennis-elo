@@ -32,6 +32,9 @@ def predictor(tour="atp", lower=False):
     if tour == "wta":
         from tennis_model.model.surface_exposure import SurfaceExposureState
         ctx.surface_exposure = SurfaceExposureState(through=pd.Timestamp(elo.last_date))
+    else:
+        from tennis_model.model.recent_surprise import RecentSurpriseState
+        ctx.recent_surprise = RecentSurpriseState(through=pd.Timestamp(elo.last_date))
     kw = dict(lower_elo=elo, lower_srv=srv, lower_ctx=ctx, dual_state_threshold=32) if lower else {}
     pred = TennisPredictor(AsymmetricClassifier(), AsymmetricCalibrator(), elo, srv, ctx,
                            {}, tour=tour, **kw)

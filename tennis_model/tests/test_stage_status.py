@@ -733,6 +733,15 @@ def test_every_stage_source_identity_is_sensitive_to_its_mutable_inputs(
 
     market = lambda: pipeline._market_scorecard_source_identity("atp")
     assert_mutation(market, paths["odds"], "v\n2\n")
+    supplement = paths["odds"].parent.parent / "valuebetennis"
+    objects = supplement / "objects"
+    objects.mkdir(parents=True)
+    receipt = supplement / "2026.receipt.json"
+    receipt.write_text('{}')
+    assert_mutation(market, receipt, '{"sha256":"changed"}')
+    source = objects / "source.csv"
+    source.write_text("original")
+    assert_mutation(market, source, "replacement")
 
     upcoming_sources = lambda: pipeline._upcoming_source_identity("atp")
     assert_mutation(

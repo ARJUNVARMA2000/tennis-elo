@@ -32,7 +32,8 @@ from ..eval.metrics import score
 from ..model.train import load_or_build_features, walk_forward
 
 _ODDS_TAGS = ("ps", "b365", "avg")               # per-row preference order
-_BOOK = {"ps": "Pinnacle", "b365": "Bet365", "avg": "book-average"}
+_BOOK = {"ps": "Pinnacle", "b365": "Bet365", "avg": "book-average",
+         "valuebetennis": "Valuebetennis-recorded Pinnacle"}
 RECENT_DAYS = 90                                  # era-matched slice for the scorecard
 
 
@@ -48,7 +49,8 @@ def _coalesce_odds(odds: pd.DataFrame) -> pd.DataFrame:
         w, l = f"odds_w_{tag}", f"odds_l_{tag}"
         if w not in odds or l not in odds:
             continue
-        take = out["odds_w"].isna() & odds[w].notna() & odds[l].notna()
+        take = (out["odds_w"].isna() & odds[w].gt(1) & odds[w].lt(np.inf)
+                & odds[l].gt(1) & odds[l].lt(np.inf))
         out.loc[take, "odds_w"] = odds.loc[take, w]
         out.loc[take, "odds_l"] = odds.loc[take, l]
         out.loc[take, "odds_src"] = tag
@@ -69,7 +71,7 @@ def _sources_block(merged: pd.DataFrame) -> dict:
         label = "Pinnacle closing odds"
     elif last_ps is not None and all(b != "ps" for y, b in maj.items() if y > last_ps):
         tail = {b for y, b in maj.items() if y > last_ps}
-        names = "/".join(_BOOK[t] for t in _ODDS_TAGS if t in tail)
+        names = "/".join(_BOOK[t] for t in (*_ODDS_TAGS, "valuebetennis") if t in tail)
         label = f"Pinnacle close through {last_ps}, {names} close after"
     elif len(books) == 1:
         label = f"{_BOOK[books.pop()]} closing odds"
@@ -173,14 +175,43 @@ def scorecard_from_oos(tour: str, oos: pd.DataFrame, edge_min: float = 0.05,
                      l_key=oos["loser_name"].map(normalize_name),
                      d=oos["date"].dt.normalize())
 
-    odds = load_odds(tour, years=range(start, end + 1))
+    from ..data.valuebetennis import load as load_supplement
+    supplement = load_supplement(tour, range(start, end + 1))
+    try:
+        odds = load_odds(tour, years=range(start, end + 1))
+    except FileNotFoundError:
+        if supplement.empty:
+            raise
+        odds = pd.DataFrame({"date": pd.Series(dtype="datetime64[ns]"),
+                             "w_key": pd.Series(dtype=str), "l_key": pd.Series(dtype=str),
+                             "odds_w_ps": pd.Series(dtype=float), "odds_l_ps": pd.Series(dtype=float)})
     odds = _coalesce_odds(odds.assign(d=odds["date"].dt.normalize()))
 
     # join on winner/loser keys within a few days (tournament dates can differ by source)
-    merged = oos.merge(odds[["d", "w_key", "l_key", "odds_w", "odds_l", "odds_src"]],
+    oos = oos.reset_index(drop=True).assign(_decision=lambda frame: frame.index)
+    quotes = odds[["d", "w_key", "l_key", "odds_w", "odds_l", "odds_src"]].drop_duplicates()
+    quotes = quotes.reset_index(drop=True).assign(_quote=lambda frame: frame.index)
+    merged = oos.merge(quotes,
                        on=["w_key", "l_key"], suffixes=("", "_o"))
     merged = merged[(merged["d"] - merged["d_o"]).abs() <= pd.Timedelta(days=4)]
-    merged = merged.drop_duplicates(subset=["d", "w_key", "l_key"])
+    merged = merged[~merged._decision.duplicated(keep=False) & ~merged._quote.duplicated(keep=False)]
+    merged = merged.assign(provider="tennis-data")
+    if not supplement.empty:
+        from ..data.valuebetennis import _key
+        # Full canonical names, date and surface corroborate independent provider IDs.
+        # Refuse ambiguous many-to-many rematches rather than selecting by file order.
+        eligible = oos.assign(winner_key=oos.winner_name.map(_key),
+                              loser_key=oos.loser_name.map(_key))
+        extra = eligible.merge(supplement.rename(columns={"date": "source_date",
+                                                        "surface": "source_surface"}),
+                               on=["winner_key", "loser_key"])
+        extra = extra[(extra.d - extra.source_date).abs() <= pd.Timedelta(days=1)]
+        if "surface" in extra:
+            extra = extra[extra.surface.eq(extra.source_surface)]
+        extra = extra[~extra._decision.duplicated(keep=False)
+                      & ~extra.provider_match_id.duplicated(keep=False)]
+        extra = extra.assign(odds_src="valuebetennis", provider="valuebetennis")
+        merged = pd.concat([merged, extra], ignore_index=True).drop_duplicates("_decision")
     if merged.empty:
         return {"matched": 0, "note": "no name/date matches — check odds files"}
 
@@ -200,6 +231,12 @@ def scorecard_from_oos(tour: str, oos: pd.DataFrame, edge_min: float = 0.05,
         "model": {k: round(v, 4) for k, v in score(model).items()},
         "market": {k: round(v, 4) for k, v in score(mkt).items()},
     }
+    sc["sources"]["providers"] = {str(provider): int(n) for provider, n in merged.provider.value_counts().items()}
+    if "valuebetennis" in set(merged.provider):
+        from ..data.valuebetennis import ATTRIBUTION, SOURCE_URL
+        sc["sources"]["attribution"] = {"label": ATTRIBUTION, "url": SOURCE_URL}
+        sc["sources"]["acquisitions"] = supplement.attrs.get("receipts", [])
+        sc["sources"]["label"] = "Tennis-Data historical closes; Valuebetennis-recorded Pinnacle supplement"
     recent = _recent_block(merged, model, mkt)
     if recent is not None:
         sc["recent"] = recent

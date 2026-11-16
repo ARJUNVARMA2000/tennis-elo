@@ -1,0 +1,59 @@
+"""Frozen ATP-only signal round; no candidate validation before selection."""
+import hashlib
+import json
+import pickle
+from pathlib import Path
+from datetime import UTC, datetime
+
+import numpy as np
+import pandas as pd
+from historical_signals import attach_signals, walk_signals
+from signal_combiner import walk_forward
+from tennis_model.eval.protocol import require_paired
+from tennis_model.model.features import main_rows
+from tennis_model.ratings.build import run_elo
+from tennis_model.ratings.elo import params_for
+
+ROOT=Path('/Users/varma/Projects/DEUCE/.research/2026-11-15-remaining-warnings')
+def write(path,value):
+    with path.open('x') as stream:json.dump(value,stream,indent=2)
+def sha(path):return hashlib.sha256(path.read_bytes()).hexdigest()
+grid=[{'id':'ATP-RESIDUAL-90','column':'recent_surprise_diff'},
+      {'id':'ATP-RANK-TRAJECTORY','column':'rank_trend_diff'}]
+run=ROOT/'signal-round';run.mkdir(exist_ok=False)
+inputs={str(p):sha(p) for p in [ROOT/'features.pkl',ROOT/'baseline/oos.pkl',
+    Path('/tmp/deuce-remaining-warnings/atp-current.pkl'),Path(__file__),
+    Path(__file__).with_name('historical_signals.py'),Path(__file__).with_name('signal_combiner.py')]}
+write(run/'registration.json',{'registeredAt':datetime.now(UTC).isoformat(),'grid':grid,
+ 'inputs':inputs,'selectionYears':[2010,2019],'validationYears':[2020,2026],
+ 'selectionRule':'positive tune; >=6/10 positive years; positive 2010-14 and 2015-19; largest tune gain then fixed ID',
+ 'productionBags':5,'note':'No rerun of ATP surface-count candidate previously rejected on tune. No live-window fitting.'})
+history=pd.read_pickle('/tmp/deuce-remaining-warnings/atp-current.pkl')
+feat=main_rows(pd.read_pickle(ROOT/'features.pkl')).reset_index(drop=True)
+_,elo=run_elo(history,params=params_for('atp'))
+state,signals=walk_signals(history,elo.p_blend.to_numpy())
+frame=attach_signals(feat,history,signals)
+frame.to_pickle(run/'features.pkl')
+with (run/'state.pkl').open('xb') as stream:pickle.dump(state,stream)
+ref=pd.read_pickle(ROOT/'baseline/oos.pkl');ref=ref[ref.year.between(2010,2019)].reset_index(drop=True)
+identity,_=walk_forward(frame,frame,(),tour='atp',end_test=2019)
+require_paired(ref,identity);np.testing.assert_array_equal(ref.p_combiner,identity.p_combiner)
+write(run/'identity.json',{'probabilitiesBitIdentical':True,'n':len(ref)})
+results=[]
+for choice in grid:
+    output,_=walk_forward(frame,frame,(choice['column'],),tour='atp',end_test=2019)
+    require_paired(ref,output)
+    output.to_pickle(run/(choice['id']+'.pkl'))
+    d=np.log(np.clip(output.p_combiner.to_numpy(),1e-12,1))-np.log(np.clip(ref.p_combiner.to_numpy(),1e-12,1))
+    by_year={str(year):float(d[ref.year.eq(year)].mean()) for year in range(2010,2020)}
+    first=float(d[ref.year.le(2014)].mean());second=float(d[ref.year.ge(2015)].mean())
+    eligible=float(d.mean())>0 and sum(x>0 for x in by_year.values())>=6 and first>0 and second>0
+    result={**choice,'delta':float(d.mean()),'se':float(d.std(ddof=1)/np.sqrt(len(d))),
+        'firstHalf':first,'secondHalf':second,'byYear':by_year,'eligible':eligible}
+    results.append(result);write(run/(choice['id']+'.json'),result)
+    print('TRIAL',json.dumps(result),flush=True)
+winner=sorted((r for r in results if r['eligible']),key=lambda r:(-r['delta'],r['id']))
+write(run/'selection.json',{'results':results,'selected':winner[0] if winner else None,
+    'candidateValidationViewed':False})
+assert all(sha(Path(path))==digest for path,digest in inputs.items())
+print('SELECTION',winner[:1],flush=True)

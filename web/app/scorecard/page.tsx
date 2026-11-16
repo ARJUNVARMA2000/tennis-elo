@@ -30,7 +30,8 @@ type Track = {
 type Market = {
   years: [number, number]; matched: number;
   lastMatchedDate?: string;
-  sources?: { label: string; byYear: Record<string, Record<string, number>> };
+  sources?: { label: string; byYear: Record<string, Record<string, number>>;
+    attribution?: { label: string; url: string } };
   recent?: { windowDays: number; n: number; from: string; to: string; model: Metrics; market: Metrics; dLl: number; dLlSe: number };
   stack?: { fit?: { valStart: number; nVal: number }; val?: { model: Metrics; market: Metrics; stack: Metrics } };
 };
@@ -408,7 +409,8 @@ export default function ScorecardPage() {
                 </p>
               )}
               <p className="mono mt-3 text-[11px] leading-relaxed text-[var(--color-faint)]">
-                The “market” here is {marketLabel} — Pinnacle, the sharpest book in tennis, left the odds feed in Jan 2026. The Kalshi numbers are a <span className="text-[var(--color-muted)]">morning</span> line on a favorite-heavy subset — a weaker bar than any close.{recent ? " The era-matched row above is the like-for-like comparison." : ""}
+                The market benchmark uses {marketLabel}. The Kalshi numbers are a <span className="text-[var(--color-muted)]">morning</span> line on a favorite-heavy subset.{recent ? " The era-matched row above compares the same period." : ""}{" "}
+                {market?.sources?.attribution && <a href={market.sources.attribution.url} target="_blank" rel="noreferrer">{market.sources.attribution.label}</a>}
               </p>
             </div>
           </div>

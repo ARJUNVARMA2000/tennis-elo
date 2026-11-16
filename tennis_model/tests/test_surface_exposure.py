@@ -49,7 +49,7 @@ def test_supported_tour_contract_matches_live_verifier():
     contracts = json.loads(script.read_text().split("export const MODEL_CONTRACTS = ")[1].rstrip(";\n"))
     for tour in ("atp", "wta"):
         assert contracts[tour] == {"inferenceSchema": inference_schema_for(tour), "features": features_for(tour)}
-    assert features_for("atp") == FEATURES
+    assert features_for("atp") == [*FEATURES, "recent_surprise_diff"]
     assert features_for("wta") == [*FEATURES, SURFACE_FEATURE]
     assert SURFACE_FEATURE in antisymmetric_for("wta")
     assert SURFACE_FEATURE not in antisymmetric_for("atp")
@@ -214,7 +214,7 @@ def test_output_gate_rejects_wrong_feature_order_and_tour_schema(tour):
     assert "output.meta.inference_schema_mismatch" not in codes()
     meta["features"].reverse()
     assert "output.meta.feature_schema_mismatch" in codes()
-    meta["inferenceSchemaVersion"] = 5 if tour == "wta" else 6
+    meta["inferenceSchemaVersion"] = 5
     assert "output.meta.inference_schema_mismatch" in codes()
 
 

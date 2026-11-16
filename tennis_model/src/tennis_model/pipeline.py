@@ -395,6 +395,10 @@ def _health_manifest_source_identity(tour: str) -> dict:
 def _market_scorecard_source_identity(tour: str) -> dict:
     return {
         "odds": _directory_input_identity(odds_dir(tour), ("*.xlsx", "*.csv")),
+        "supplementReceipts": _directory_input_identity(
+            odds_dir(tour).parent / "valuebetennis", ("*.receipt.json",)),
+        "supplementObjects": _directory_input_identity(
+            odds_dir(tour).parent / "valuebetennis" / "objects", ("*.csv",)),
     }
 
 
@@ -535,6 +539,7 @@ def _release_source_identity(
         "upcoming": _upcoming_source_identity(tour),
         "forecastLog": _forecast_log_input_identity(tour),
         "odds": _directory_input_identity(odds_dir(tour), ("*.xlsx", "*.csv")),
+        "supplementOdds": _market_scorecard_source_identity(tour),
         "kalshiLedger": _file_input_identity(
             KALSHI_LEDGER_DIR / f"{tour}.csv"
         ),

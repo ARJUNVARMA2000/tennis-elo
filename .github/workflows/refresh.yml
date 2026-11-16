@@ -146,8 +146,8 @@ jobs:
         env:
           PYTHONPATH: src
         run: |
-          python -m tennis_model.data.download --kind all --strict
           python -m tennis_model.data.odds --tour all || true
+          python -m tennis_model.data.download --kind all --strict
 
       - name: Full retrain (re-walk ratings + refit combiner, both tours)
         id: retrain

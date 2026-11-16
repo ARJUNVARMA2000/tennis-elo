@@ -40,6 +40,7 @@ from ..ratings.build import RatingState
 from ..ratings.elo import params_for
 from .features import H2HState, feat_params_for, features_for, inference_schema_for
 from .probability import PROBABILITY_POLICY
+from .recent_surprise import SURPRISE_POLICY, RecentSurpriseState, validate_surprise_state
 from .surface_exposure import SURFACE_POLICY, SurfaceExposureState, validate_surface_state
 from .train import (
     BaggedClassifier,
@@ -222,6 +223,7 @@ def predictor_contract(tour: str) -> dict[str, Any]:
             "chronologyPolicy": CHRONOLOGY_POLICY,
             "dualStateGateThreshold": gate,
             **({"surfaceExposurePolicy": SURFACE_POLICY} if tour == "wta" else {}),
+            **({"recentSurprisePolicy": SURPRISE_POLICY} if tour == "atp" else {}),
         },
         "classes": {
             "predictor": _class_name(TennisPredictor),
@@ -234,6 +236,7 @@ def predictor_contract(tour: str) -> dict[str, Any]:
             "serveReturnState": _class_name(ServeReturnState),
             "contextState": _class_name(H2HState),
             **({"surfaceExposureState": _class_name(SurfaceExposureState)} if tour == "wta" else {}),
+            **({"recentSurpriseState": _class_name(RecentSurpriseState)} if tour == "atp" else {}),
             "styleSnapshot": _class_name(StyleSnapshot),
             "servePriorState": _class_name(ServePriorState),
         },
@@ -346,6 +349,8 @@ def _validate_contract_shape(contract: Any, expected: dict[str, Any]) -> None:
             _fail_schema(f"contract.inference.{field} must be a string")
     if "surfaceExposurePolicy" in expected["inference"] and type(inference["surfaceExposurePolicy"]) is not str:
         _fail_schema("contract.inference.surfaceExposurePolicy must be a string")
+    if "recentSurprisePolicy" in expected["inference"] and type(inference["recentSurprisePolicy"]) is not str:
+        _fail_schema("contract.inference.recentSurprisePolicy must be a string")
     gate = inference["dualStateGateThreshold"]
     if gate is not None and type(gate) is not int:
         _fail_schema("contract.inference.dualStateGateThreshold is invalid")
@@ -910,6 +915,14 @@ def _validate_state_bundle(predictor: Any, tour: str) -> None:
                                              f"{name} surface state: {exc}") from exc
         elif hasattr(ctx, "surface_exposure"):
             raise PredictorArtifactError(PredictorArtifactReason.STATE_INVALID, "ATP carries WTA surface state")
+        if tour == "atp":
+            try:
+                validate_surprise_state(getattr(ctx, "recent_surprise", None), elo.last_date)
+            except (ValueError, TypeError, AttributeError, OverflowError) as exc:
+                raise PredictorArtifactError(PredictorArtifactReason.STATE_INVALID,
+                                             f"{name} recent surprise state: {exc}") from exc
+        elif hasattr(ctx, "recent_surprise"):
+            raise PredictorArtifactError(PredictorArtifactReason.STATE_INVALID, "WTA carries ATP recent surprise state")
 
 
     if vars(predictor)["fp"] != expected_fp:

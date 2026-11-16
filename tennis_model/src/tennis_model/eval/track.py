@@ -716,6 +716,8 @@ def _grade_matches(matches: list, df: pd.DataFrame) -> list:
             continue
         event_id = _clean_id(r.get("espnId", r.get("espn_id")))
         if event_id:
+            # A known different edition is contradictory evidence, never a fallback.
+            valid = [c for c in valid if c["espnId"] in (None, event_id)]
             same_event = [c for c in valid if c["espnId"] == event_id]
             if same_event:
                 valid = same_event
@@ -730,6 +732,7 @@ def _grade_matches(matches: list, df: pd.DataFrame) -> list:
         p_a = float(r["p"])
         graded.append({
             **r, "date": date.strftime("%Y-%m-%d"), "actualWinner": winner,
+            "resultEspnId": result["espnId"],
             "match_id": _match_key(r), "walkover": result["walkover"],
             "p_a": p_a, "a_won": a_won,
             "p_winner": p_a if a_won else 1.0 - p_a,        # winner-oriented (metrics.score)
@@ -965,6 +968,9 @@ def grade(tour: str, df: pd.DataFrame, *, status: dict | None = None) -> dict:
             "overall": _score_or_empty([g["p_winner"] for g in graded]),
             "calibration": cal, "byMonth": by_month_out, "bySurface": by_surface,
             "recent": recent,
+            "gradingEvidence": [{"matchId": g["match_id"],
+                "forecastEventId": _clean_id(g.get("espnId")),
+                "resultEventId": g.get("resultEspnId")} for g in graded],
             "drift": _drift_block(graded, _read_json(output_dir(tour) / "accuracy.json")),
         },
         "tournamentOdds": _grade_tournaments(tourns, tour),

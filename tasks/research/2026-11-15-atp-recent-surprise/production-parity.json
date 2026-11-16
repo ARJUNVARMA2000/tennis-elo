@@ -1,0 +1,28 @@
+{
+  "mainRows": 153990,
+  "allCommonFeaturesAndNewSignalBitIdentical": true,
+  "checks": [
+    {
+      "cutoffYear": 2009,
+      "prefixExact": true,
+      "queryExact": true,
+      "nondestructive": true,
+      "resumeRows": 150
+    },
+    {
+      "cutoffYear": 2015,
+      "prefixExact": true,
+      "queryExact": true,
+      "nondestructive": true,
+      "resumeRows": 150
+    },
+    {
+      "cutoffYear": 2023,
+      "prefixExact": true,
+      "queryExact": true,
+      "nondestructive": true,
+      "resumeRows": 150
+    }
+  ],
+  "featuresSHA256": "06f520c279b015dd6af9df4910379ccb9be7581beec225d39fe7edbcbd071515"
+}

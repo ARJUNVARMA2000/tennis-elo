@@ -10104,3 +10104,85 @@ and Valle is preserved. The historical snapshot is not the live Actions cache.
 
 Deployment: https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/43737335223
 Preflight: https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/43736642042
+
+### Remaining odds-source and ATP drift repair — plan, 2026-11-15
+
+- [x] Inspect the remaining warnings, odds loader/comparison, drift grader and
+  historical adoption protocol. History checked through 3979e33. Tennis-Data's
+  last full-run downloads returned 403; retained odds end in August. Downloaded
+  Valuebetennis's public 2026 CSV for assessment: 79,194 rows; main-event-category
+  rows with both closing prices reach November 14 for ATP and WTA. These are raw
+  provider counts, not yet validated model-match coverage.
+- [ ] After the user's implementation check-in, integrate the attributed CC BY 4.0
+  provider as an explicitly identified benchmark source. Preserve Tennis-Data's
+  historical coverage and book/provider provenance. Use valid pre-match closing
+  odds only, exact tour/population filters, canonical identities and unambiguous
+  result/date/round joins; do not equate independent provider IDs or use odds as
+  prediction features. Exclude invalid outcomes and conflicting/ambiguous records.
+- [ ] Add validated atomic acquisition, dated source receipts, provider/book census,
+  attribution in public benchmark output/UI, and recovery snapshot/CI support.
+  Test missing/invalid prices, duplicates, identity collisions, failed acquisition,
+  mixed providers, future-date contamination and a fresh file whose matched main
+  sample is stale. Demonstrate genuine matched coverage recovery through the
+  unchanged staleness check and add integrity findings for new failure classes.
+- [ ] Reconstruct the ATP drift window from immutable forecasts and current results.
+  Audit first-sighting selection, duplicate identities, exact event/round grading,
+  walkovers/retirements, time eligibility and model cohorts before attributing the
+  signal to model quality. Report confidence-bin, surface, tier, horizon and year
+  slices with uncertainty. Repair any demonstrated measurement bug with paired
+  broken/clean regressions; preserve original forecasts and legitimate losses.
+- [ ] If drift is genuine, register a bounded predictive research round informed
+  by those diagnostics and prior rejected experiments. Select candidates solely
+  on 2010–19, including temporal stability checks; freeze a finalist before
+  checking 2020+. Recent live results provide diagnosis, not a fitting target.
+  Do not substitute infrastructure work or a failed small shortlist for predictive
+  experimentation. Preserve negative results and register further rounds if needed.
+- [ ] Adopt a model change only after the complete production walk-forward arbiter
+  with five-bag fits, paired d±SE and per-year diagnostics passes the established
+  gate. Ship any walk-time feature with prediction-time state and parity tests.
+  Rebuild affected saved predictors and verify exact model identity after deploy.
+  A retrain or version bump alone does not demonstrate drift recovery; preserve
+  old-cohort evidence and require sufficient new evidence for a recovery claim.
+- [ ] Run required Python/web/CI checks, publish the verified odds repair and any
+  independently qualified model improvement, and verify exact public artifacts
+  and authoritative issue transitions. Do not weaken thresholds or erase history
+  to clear either warning. Append the final review and outstanding evidence here.
+
+Source documentation: https://www.valuebetennis.com/en/donnees.htm
+Methodology: https://www.valuebetennis.com/en/methodologie.htm
+Downloaded assessment input: /tmp/deuce-remaining-warnings/valuebetennis-2026.csv
+
+Check-in pending: no application code changed. Full model evaluation may require
+extended compute; a real historical drift finding may remain visible until the
+underlying defect is corrected or qualified future forecasts establish recovery.
+
+Review: pending implementation, research evidence and production verification.
+
+
+### Remaining warnings — approved implementation review, 2026-11-16
+
+Approval received: “Approve implementation, research and deployment.” This supersedes
+this round’s earlier pending check-in. Remote history was re-read: `fbc0306` only
+updates immutable evaluation ledgers and will be retained before production promotion.
+
+- [x] Integrate validated, attributed Valuebetennis closing-odds supplement with
+  atomic receipts, strict identity joins, provider census, UI credit and source binding.
+  Prior valid Tennis-Data quotes retain priority; odds remain evaluation-only.
+- [x] Audit genuine ATP drift and repair contradictory known-event grading, with
+  public grading evidence and a blocking pre-upload invariant. The frozen refreshed
+  replay still signals drift: n=627, d=0.0544, SE=0.0198, t=2.75; no walkovers in-window.
+  This is not the exact old production snapshot. Immutable forecasts remain intact.
+- [x] Register two ATP hypotheses, select using 2010–19 only, freeze the residual-form
+  finalist and complete the five-seed annual arbiter through 2026. Rank trajectory
+  failed split stability. Selected d_tune=+0.0001838±0.0000865 SE;
+  d_val=+0.0001624±0.0001034 SE. Record all trials and uncertainty under
+  `tasks/research/2026-11-15-atp-recent-surprise/`.
+- [x] Integrate the qualified ATP feature with saved prediction state and strict
+  artifact contract. Full-history feature parity is bit-identical over 153,990 main
+  rows; prefix/pickle/resume parity passes at three historical cutoffs.
+- [x] Web: 375 tests, lint (nine existing warnings), and TypeScript checks pass.
+- [ ] Finish Python/branch CI, publish a full rebuild, verify live artifact identities,
+  genuine odds coverage recovery and issue transitions, then append final review.
+
+The historical drift advisory must remain until the unchanged monitor has evidence
+of recovery; neither a retrain nor this small backtest improvement establishes that.

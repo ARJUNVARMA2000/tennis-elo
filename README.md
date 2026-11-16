@@ -17,7 +17,7 @@ web product that turns live tour data into calibrated match, set-score, and tour
 | | |
 |---|---|
 | **Product** | Live ATP/WTA scores and forecasts, real tournament brackets, exact what-if scenarios, player dossiers, rankings, and model-vs-market reporting |
-| **Model** | 42-feature ATP / 43-feature WTA hybrid: surface Elo + opponent-adjusted serve/return Markov model + context and Match Charting style, fused by a five-seed XGBoost ensemble and Platt calibration |
+| **Model** | 43-feature ATP / 43-feature WTA hybrid: surface Elo + opponent-adjusted serve/return Markov model + context and Match Charting style, fused by a five-seed XGBoost ensemble and Platt calibration |
 | **Evidence** | Reference 42-feature annual walk-forward evaluation; corrected 2010–2026 Brier of 0.1963 ATP and 0.2042 WTA, with explicit date-availability limits |
 | **Operations** | Hourly data refresh and deployment, daily retraining, weekly recoverable data snapshots, two deployment gates, deduplicated alerts, and an independent liveness watchdog |
 | **Stack** | Python, pandas, NumPy, scikit-learn, XGBoost, Next.js 16, React 19, TypeScript, GitHub Actions, and Firebase Hosting |
@@ -94,13 +94,20 @@ without changing production predictions or automatically adopting a candidate.
 
 The WTA integration adds one feature: the difference in log-transformed completed
 match counts on the same surface during the preceding 60 days (inclusive). Each main
-and enriched state owns its corresponding history. ATP remains at 42 features/schema5;
-WTA uses 43/schema6 and rejects the older saved WTA contract. The fixed candidate
+and enriched state owns its corresponding history. Both tours now use 43 features/schema6 with distinct feature lists and saved-state
+contracts. The fixed candidate
 improved tuning log loss by 0.000810 ± 0.000209 SE and later-year log loss by
 0.000561 ± 0.000321 SE; the latter week-block 95% interval includes zero. Accuracy
 was essentially unchanged. These are retrospective results, not live timing proof.
 See the [integration and release record](tasks/research/2026-09-11-wta-production-release.md) for the exact comparison,
 verification and deployment status.
+
+ATP adds opponent-adjusted recent form: the difference in shrunk Elo outcome
+residuals over each player’s last ten completed matches within 90 days. The full
+five-seed walk-forward gate improved paired log loss by 0.000184 ± 0.000086 SE
+on 2010–19 and 0.000162 ± 0.000103 SE on 2020–26. This modest retrospective
+improvement does not establish live drift recovery; historical forecasts remain
+unchanged. See the [research and release record](tasks/research/2026-11-15-atp-recent-surprise/README.md).
 
 ## Architecture
 
@@ -116,7 +123,7 @@ historical + current match data
       └─ context and style
            rest, workload, form, H2H, hand, rank, age, home advantage, Match Charting profile
                               │
-                 ATP 42 / WTA 43 features → XGBoost ensemble (5 fits)
+                 ATP 43 / WTA 43 features → XGBoost ensemble (5 fits)
                               │
                        Platt calibration
                               │

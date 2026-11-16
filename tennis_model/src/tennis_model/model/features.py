@@ -116,11 +116,12 @@ FEATURES = ANTISYM + SYMMETRIC
 
 
 def features_for(tour: str) -> list[str]:
-    """Explicit ordered production schema; the legacy shared list remains ATP's."""
+    """Explicit ordered production schema; FEATURES retains the frozen 42-column reference."""
+    from .recent_surprise import SURPRISE_FEATURE
     from .surface_exposure import SURFACE_FEATURE
     if tour not in {"atp", "wta"}:
         raise ValueError(f"unsupported feature tour: {tour!r}")
-    return [*FEATURES, SURFACE_FEATURE] if tour == "wta" else list(FEATURES)
+    return [*FEATURES, SURFACE_FEATURE if tour == "wta" else SURPRISE_FEATURE]
 
 
 def antisymmetric_for(tour: str) -> list[str]:
@@ -140,7 +141,7 @@ def frame_tour(frame: pd.DataFrame) -> str:
 
 def inference_schema_for(tour: str) -> int:
     features_for(tour)  # Validate rather than treating an unknown tour as ATP.
-    return 6 if tour == "wta" else 5
+    return 6
 
 # Pre-registered WTA dual-state gate candidates.  Selection is tune-only (2010-19),
 # after which exactly one threshold is frozen for the 2020+ arbiter.  Keeping this
@@ -282,6 +283,10 @@ def _run_all(df: pd.DataFrame, state_only_lower: bool = False):
         ctx_state.surface_exposure, signal = walk_surface_exposure(
             df, population="enriched" if state_only_lower else "main")
         frame[SURFACE_FEATURE] = signal
+    else:
+        from .recent_surprise import SURPRISE_FEATURE, walk_recent_surprise
+        ctx_state.recent_surprise, signal = walk_recent_surprise(df, elo.p_blend.to_numpy())
+        frame[SURPRISE_FEATURE] = signal
     return frame, elo_state, srv_state, ctx_state
 
 

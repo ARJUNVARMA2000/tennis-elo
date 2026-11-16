@@ -104,6 +104,8 @@ def _dual_frames() -> tuple[pd.DataFrame, pd.DataFrame]:
     n = 3
     base = pd.DataFrame({c: np.arange(n, dtype=float) + i
                          for i, c in enumerate(FEATURES)})
+    base["tour"] = "wta"
+    base["surface_recent_diff"] = np.arange(n, dtype=float)
     base["p_blend"] = [0.51, 0.52, 0.53]
     base["p_point"] = [0.54, 0.55, 0.56]
     base["date"] = pd.date_range("2024-01-01", periods=n)
@@ -128,7 +130,7 @@ def test_dual_state_gate_selects_complete_bundle_at_strict_boundary():
     base, enriched = _dual_frames()
     out = select_dual_state_features(base, enriched, threshold=16)
     assert list(out["uses_lower_state"]) == [True, False, True]
-    state_columns = FEATURES + ["p_blend", "p_point"]
+    state_columns = [*FEATURES, "surface_recent_diff", "p_blend", "p_point"]
     assert np.array_equal(out.loc[[0, 2], state_columns].to_numpy(),
                           enriched.loc[[0, 2], state_columns].to_numpy())
     assert np.array_equal(out.loc[[1], state_columns].to_numpy(),
@@ -203,13 +205,14 @@ def test_run_context_respects_params():
 
 
 def test_make_oriented_xy_flip_contract():
+    from tennis_model.model.features import antisymmetric_for, features_for
     rng = np.random.default_rng(11)
     n = 400
-    feat = pd.DataFrame({c: rng.normal(size=n) for c in ANTISYM})
+    feat = pd.DataFrame({c: rng.normal(size=n) for c in antisymmetric_for("atp")})
     for c in SYMMETRIC:
         feat[c] = rng.uniform(0, 1, n)
     X, y = make_oriented_xy(feat, seed=5)
-    assert list(X.columns) == list(FEATURES)
+    assert list(X.columns) == features_for("atp")
     flip = np.random.default_rng(5).random(n) < 0.5     # reproduce the internal mask
     assert np.array_equal(y, np.where(flip, 0, 1))
     for c in ANTISYM:

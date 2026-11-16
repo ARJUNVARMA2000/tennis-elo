@@ -578,3 +578,11 @@ Indexed in [`../lessons.md`](../lessons.md).
   shared ingest, version/rebuild the saved population, and gate unreviewed token-order
   variants even when both names are rated. Replay both recency states through the real
   merge and tournament builder. A successful run proves recovery, not recurrence repair.
+
+
+- **A known different event is contradictory grading evidence, not a fallback.**
+  (2026-11-16) A Basel Fils–Fritz forecast could settle against their Paris result
+  inside the date window when its own event had no result. Exclude candidates with
+  contradictory known ESPN IDs before preferring exact IDs. Publish the forecast/
+  result identity pair for every graded row and gate contradictions/incomplete proof.
+  Preserve immutable first sightings and legitimate historical losses.

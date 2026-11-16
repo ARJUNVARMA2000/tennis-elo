@@ -42,6 +42,7 @@ class _Iso:
 
 
 def _predictor():
+    from tennis_model.model.recent_surprise import RecentSurpriseState
     ctx = H2HState(
         {("A", "B"): [2, 1]}, {(('A', 'B'), "Hard"): [1, 0]},
         {"A": [1, 1, 0], "B": [0, 1, 0]},
@@ -50,6 +51,7 @@ def _predictor():
     )
     meta = {"A": {"rank_points": 3000, "age": 25, "ht": 185, "hand": "R", "ioc": "USA"},
             "B": {"rank_points": 2000, "age": 27, "ht": 188, "hand": "L", "ioc": "ESP"}}
+    ctx.recent_surprise = RecentSurpriseState()
     return TennisPredictor(_Clf(), _Iso(), _Elo(), _Srv(), ctx, meta, tour="atp")
 
 

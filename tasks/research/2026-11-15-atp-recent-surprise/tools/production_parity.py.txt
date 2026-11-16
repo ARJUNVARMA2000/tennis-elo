@@ -1,0 +1,32 @@
+import json,pickle,hashlib
+from pathlib import Path
+import numpy as np
+import pandas as pd
+from tennis_model.model.features import build_feature_frame,main_rows,FEATURES
+from tennis_model.model.recent_surprise import walk_recent_surprise,validate_surprise_state
+root=Path('/Users/varma/Projects/DEUCE/.research/2026-11-15-remaining-warnings')
+history=pd.read_pickle('/tmp/deuce-remaining-warnings/atp-current.pkl')
+full=build_feature_frame(history,tour='atp')
+main=main_rows(full).reset_index(drop=True)
+reference=pd.read_pickle(root/'signal-round/features.pkl').reset_index(drop=True)
+columns=[*FEATURES,'recent_surprise_diff','date','winner_name','loser_name','round']
+for c in columns:
+ pd.testing.assert_series_equal(main[c],reference[c],check_names=False,check_exact=True)
+checks=[]
+for year in [2009,2015,2023]:
+ n=int(history.date.dt.year.le(year).sum())
+ state,values=walk_recent_surprise(history.iloc[:n],full.p_blend.to_numpy()[:n])
+ np.testing.assert_array_equal(values,full.recent_surprise_diff.iloc[:n])
+ state=pickle.loads(pickle.dumps(state));before=pickle.dumps(state);row=history.iloc[n]
+ value=state.query(row.winner_name,row.loser_name,row.date)
+ assert value==full.recent_surprise_diff.iloc[n]
+ assert before==pickle.dumps(state)
+ validate_surprise_state(state,state.through)
+ _,tail=walk_recent_surprise(history.iloc[n:n+150],full.p_blend.to_numpy()[n:n+150],state)
+ np.testing.assert_array_equal(tail,full.recent_surprise_diff.iloc[n:n+150])
+ checks.append({'cutoffYear':year,'prefixExact':True,'queryExact':True,'nondestructive':True,'resumeRows':len(tail)})
+full.to_pickle(root/'production-features.pkl')
+result={'mainRows':len(main),'allCommonFeaturesAndNewSignalBitIdentical':True,'checks':checks,
+ 'featuresSHA256':hashlib.sha256((root/'production-features.pkl').read_bytes()).hexdigest()}
+(root/'production-parity.json').write_text(json.dumps(result,indent=2))
+print(json.dumps(result,indent=2),flush=True)

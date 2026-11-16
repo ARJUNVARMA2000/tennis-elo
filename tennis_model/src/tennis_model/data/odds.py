@@ -105,6 +105,13 @@ if __name__ == "__main__":
                     help="pull the full archive (ATP 2001+, WTA 2007+), not just recent years")
     args = ap.parse_args()
     this_year = datetime.now(UTC).year
+    from .valuebetennis import download as download_valuebetennis
+    for year in range(max(2021, this_year - 1), this_year + 1):
+        try:
+            download_valuebetennis(year)
+            print(f"  odds/valuebetennis: downloaded {year}")
+        except Exception as exc:  # noqa: BLE001 - retain the validated last-good season
+            print(f"  odds/valuebetennis/{year}: {exc}")
     for t in (TOURS if args.tour == "all" else (args.tour,)):
         first = (2001 if t == "atp" else 2007) if args.archive else this_year - 1
         done = download_odds(t, range(first, this_year + 1))

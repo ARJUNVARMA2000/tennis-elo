@@ -70,6 +70,8 @@ def test_saved_style_features_ignore_current_global_profiles(monkeypatch):
     elo.last_date = np.datetime64('2025-01-03')
     pred = TennisPredictor(None, None, elo, ServeReturnState(), H2HState({}), {},
                            style_snapshot=snapshot)
+    from tennis_model.model.recent_surprise import RecentSurpriseState
+    pred.ctx.recent_surprise = RecentSurpriseState(through=pd.Timestamp(elo.last_date))
     restored = pickle.loads(pickle.dumps(pred))
     monkeypatch.setattr(charting, 'build_profiles', lambda tour: pytest.fail('global style read'))
     before = restored.features('Alfa One','Bravo Two',as_of='2025-01-04')

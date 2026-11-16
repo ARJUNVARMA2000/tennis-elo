@@ -77,7 +77,24 @@ def _valid_predictor(tour: str = "atp") -> TennisPredictor:
         from tennis_model.model.surface_exposure import SurfaceExposureState
         predictor.ctx.surface_exposure = SurfaceExposureState()
         predictor.lower_ctx.surface_exposure = SurfaceExposureState(population="enriched")
+    else:
+        from tennis_model.model.recent_surprise import RecentSurpriseState
+        predictor.ctx.recent_surprise = RecentSurpriseState()
     return predictor
+
+
+def test_old_atp_contract_rejected_before_deserialization(tmp_path, monkeypatch):
+    path = tmp_path / "predictor.pkl"
+    _valid_predictor().save(path)
+    envelope_path = predictor_envelope_path(path)
+    envelope = json.loads(envelope_path.read_text())
+    envelope["contract"]["features"] = FEATURES
+    envelope["contract"]["inference"]["schemaVersion"] = 5
+    envelope["contract"]["inference"].pop("recentSurprisePolicy")
+    envelope_path.write_text(json.dumps(envelope))
+    monkeypatch.setattr(artifact, "_deserialize", lambda _: pytest.fail("deserialized stale ATP model"))
+    with pytest.raises(PredictorArtifactError):
+        TennisPredictor.load("atp", path)
 
 
 
@@ -143,7 +160,7 @@ def test_roundtrip_keeps_plain_pickle_and_stable_generation_id(valid_artifact, t
     assert envelope["payloadSha256"] == hashlib.sha256(path.read_bytes()).hexdigest()
     assert envelope["contract"] == predictor_contract("atp")
     contract = envelope["contract"]
-    assert contract["features"] == list(FEATURES)
+    assert contract["features"] == features_for("atp")
     assert (
         contract["featureParams"]["fatigue_window_days"]
         == feat_params_for("atp").fatigue_window_days
@@ -156,12 +173,13 @@ def test_roundtrip_keeps_plain_pickle_and_stable_generation_id(valid_artifact, t
     from tennis_model.config import REVIEWED_RESULTS
     assert contract['population']['reviewedResultsSHA256'] == REVIEWED_RESULTS['atp']['sha256']
     assert contract["inference"] == {
-        "schemaVersion": 5,
+        "schemaVersion": 6,
         "probabilityPolicy": "calibrated-pair-average-v1",
         "stylePolicy": "mcp-retrospective-played-date-strict-before-v1",
         "servePriorPolicy": "available-date-strict-before-v1",
         "chronologyPolicy": "retrospective-verified-date-or-recorded-event-round-v2",
         "dualStateGateThreshold": None,
+        "recentSurprisePolicy": "last-10-completed-90-day-elo-residual-sum-over-5-plus-n-pre-row-v1",
     }
     assert contract["classes"]["combiner"].endswith(".BaggedClassifier")
     assert contract["classes"]["calibrator"].endswith(".PlattCalibrator")
@@ -645,7 +663,7 @@ def test_preunpickle_identity_helper_binds_completed_pair(
     assert identity == {
         **{key: envelope[key]
            for key in ("artifactId", "tour", "trainedAt", "payloadBytes", "payloadSha256")},
-        "inferenceSchema": 5,
+        "inferenceSchema": 6,
     }
     assert identity["artifactId"] == artifact_id
     assert calls == []

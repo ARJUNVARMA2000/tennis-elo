@@ -84,7 +84,7 @@ const XGB_LABEL: Record<string, string> = {
   regAlpha: "reg_alpha", regLambda: "reg_lambda", gamma: "gamma",
 };
 
-/** The 42 combiner inputs, collapsed by default — long and code-ish. */
+/** The tour's combiner inputs, collapsed by default — long and code-ish. */
 function FeatureList({ features }: { features: string[] }) {
   const [open, setOpen] = useState(false);
   return (

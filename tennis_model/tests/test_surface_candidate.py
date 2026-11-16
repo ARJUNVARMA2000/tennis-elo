@@ -151,7 +151,7 @@ def test_production_schema_and_probabilities_stay_exact(tour, tmp_path):
     features = predictor.features("A", "B", **CONTEXT)
     expected = paired_probability(predictor.clf, predictor.iso, features)[0]
     assert list(features) == features_for(tour)
-    assert len(features.columns) == (43 if tour == "wta" else 42)
+    assert len(features.columns) == 43
     assert predictor.win_prob("A", "B", **CONTEXT) == expected
     path = tmp_path / "predictor.pkl"
     predictor.save(path)

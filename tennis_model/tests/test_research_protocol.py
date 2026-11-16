@@ -85,11 +85,11 @@ def test_feature_cache_tracks_content_and_runtime_feature_overrides(monkeypatch,
 
 def test_old_feature_cache_is_rebuilt_then_current_identity_reused(monkeypatch,tmp_path):
     from tennis_model.model import feature_cache, train
-    from tennis_model.model.features import FEATURES
+    from tennis_model.model.features import features_for
 
     monkeypatch.setattr(train,'OUTPUT_DIR',tmp_path)
     monkeypatch.setattr(feature_cache,'feature_cache_identity',lambda tour:'frozen-test-input')
-    frame=pd.DataFrame({c:[0.] for c in FEATURES})
+    frame=pd.DataFrame({c:[0.] for c in features_for('atp')})
     frame.to_pickle(train._cache_path('atp'))  # old schema-only cache must miss
     calls=[]
     monkeypatch.setattr(train,'build_feature_frame',lambda **kw:(calls.append(kw) or frame))
