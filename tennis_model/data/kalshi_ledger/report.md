@@ -1,35 +1,35 @@
 # Model vs Kalshi — match-by-match scorecard
 
-_Generated 2026-11-16T11:51:54Z. Positive d = model better than Kalshi (paired per-match; SE = std/√n, tune.py convention). Kalshi price = de-vigged bid/ask mid at 08:00 UTC on match day (morning-of line — always pre-match; Kalshi's own start timestamps mutate on settled markets and cannot be trusted), from 1-min candlesticks; markets with spread > 0.10 excluded. Do not compare these numbers to the closing-line scorecard (market.json): different price time, different match mix. Live model forecasts are the latest saved snapshot at or before that quote; legacy first-sighting-only rows remain in coverage but are excluded from scoring._
+_Generated 2026-11-16T17:09:35Z. Positive d = model better than Kalshi (paired per-match; SE = std/√n, tune.py convention). Kalshi price = de-vigged bid/ask mid at 08:00 UTC on match day (morning-of line — always pre-match; Kalshi's own start timestamps mutate on settled markets and cannot be trusted), from 1-min candlesticks; markets with spread > 0.10 excluded. Do not compare these numbers to the closing-line scorecard (market.json): different price time, different match mix. Live model forecasts are the latest saved snapshot at or before that quote; legacy first-sighting-only rows remain in coverage but are excluded from scoring._
 
 ## Coverage
 
 | tour | events | matched | pending | unmatched | cancelled | ambiguous | walkovers | retirements | no price | range |
 |---|---|---|---|---|---|---|---|---|---|---|
-| atp | 2440 | 2338 | 10 | 19 | 73 | 0 | 18 | 31 | 59 | 2026-05-03..2026-11-17 |
+| atp | 2440 | 2339 | 9 | 19 | 73 | 0 | 18 | 31 | 58 | 2026-05-03..2026-11-17 |
 | wta | 2558 | 1559 | 0 | 918 | 81 | 0 | 12 | 24 | 32 | 2026-05-02..2026-11-15 |
 
 ## Headline (scored set)
 
 | slice | n | model LL | kalshi LL | d_ll ±SE | d_brier ±SE | acc model | acc kalshi |
 |---|---|---|---|---|---|---|---|
-| pooled | 1948 | 0.6130 | 0.5915 | -0.0215 ±0.0049 | -0.0086 ±0.0020 | 0.659 | 0.673 |
-| atp | 985 | 0.6230 | 0.6115 | -0.0114 ±0.0065 | -0.0045 ±0.0026 | 0.646 | 0.661 |
+| pooled | 1949 | 0.6128 | 0.5912 | -0.0215 ±0.0049 | -0.0086 ±0.0020 | 0.659 | 0.673 |
+| atp | 986 | 0.6224 | 0.6110 | -0.0114 ±0.0065 | -0.0045 ±0.0026 | 0.646 | 0.662 |
 | wta | 963 | 0.6028 | 0.5709 | -0.0319 ±0.0074 | -0.0128 ±0.0031 | 0.673 | 0.684 |
-| pooled/live_aligned | 1010 | 0.6196 | 0.5784 | -0.0412 ±0.0072 | -0.0156 ±0.0029 | 0.659 | 0.678 |
+| pooled/live_aligned | 1011 | 0.6191 | 0.5779 | -0.0412 ±0.0072 | -0.0156 ±0.0029 | 0.660 | 0.679 |
 | pooled/backtest | 938 | 0.6059 | 0.6056 | -0.0003 ±0.0066 | -0.0011 ±0.0027 | 0.659 | 0.667 |
 
 ## Segments (pooled)
 
 | segment | n | d_ll ±SE | d_brier ±SE | t | acc model | acc kalshi | |
 |---|---|---|---|---|---|---|---|
-| pred_source: live aligned | 1010 | -0.0412 ±0.0072 | -0.0156 ±0.0029 | -5.7 | 0.659 | 0.678 | |
+| pred_source: live aligned | 1011 | -0.0412 ±0.0072 | -0.0156 ±0.0029 | -5.7 | 0.660 | 0.679 | |
 | pred_source: backtest | 938 | -0.0003 ±0.0066 | -0.0011 ±0.0027 | -0.1 | 0.659 | 0.667 | |
-| top-20 involved | 712 | -0.0014 ±0.0073 | -0.0010 ±0.0026 | -0.2 | 0.723 | 0.723 | |
+| top-20 involved | 713 | -0.0014 ±0.0073 | -0.0010 ±0.0026 | -0.2 | 0.723 | 0.723 | |
 | no top-20 player | 1236 | -0.0331 ±0.0065 | -0.0130 ±0.0028 | -5.1 | 0.623 | 0.644 | |
-| both inside top-50 | 532 | -0.0175 ±0.0090 | -0.0064 ±0.0037 | -2.0 | 0.634 | 0.640 | |
+| both inside top-50 | 533 | -0.0174 ±0.0089 | -0.0064 ±0.0037 | -2.0 | 0.635 | 0.641 | |
 | someone outside top-50 | 1416 | -0.0231 ±0.0059 | -0.0094 ±0.0024 | -3.9 | 0.668 | 0.685 | |
-| best rank 1-10 | 417 | +0.0077 ±0.0095 | +0.0022 ±0.0032 | +0.8 | 0.734 | 0.729 | |
+| best rank 1-10 | 418 | +0.0077 ±0.0095 | +0.0022 ±0.0032 | +0.8 | 0.734 | 0.730 | |
 | best rank 11-20 | 295 | -0.0143 ±0.0116 | -0.0056 ±0.0045 | -1.2 | 0.707 | 0.714 | |
 | best rank 21-50 | 654 | -0.0308 ±0.0079 | -0.0124 ±0.0034 | -3.9 | 0.647 | 0.685 | |
 | best rank 51-100 | 466 | -0.0306 ±0.0113 | -0.0119 ±0.0047 | -2.7 | 0.598 | 0.602 | |
@@ -37,12 +37,12 @@ _Generated 2026-11-16T11:51:54Z. Positive d = model better than Kalshi (paired p
 | kalshi favorite 0.5-0.6 | 542 | -0.0243 ±0.0082 | -0.0112 ±0.0038 | -3.0 | 0.505 | 0.532 | |
 | kalshi favorite 0.6-0.7 | 559 | -0.0129 ±0.0082 | -0.0051 ±0.0037 | -1.6 | 0.612 | 0.615 | |
 | kalshi favorite 0.7-0.8 | 460 | -0.0156 ±0.0103 | -0.0057 ±0.0041 | -1.5 | 0.732 | 0.741 | |
-| kalshi favorite 0.8-0.9 | 259 | -0.0090 ±0.0141 | -0.0037 ±0.0049 | -0.6 | 0.834 | 0.838 | |
+| kalshi favorite 0.8-0.9 | 260 | -0.0090 ±0.0140 | -0.0037 ±0.0048 | -0.6 | 0.835 | 0.838 | |
 | kalshi favorite 0.9-1.0 | 128 | -0.0940 ±0.0304 | -0.0336 ±0.0100 | -3.1 | 0.906 | 0.938 | |
-| surface: Hard | 1098 | -0.0364 ±0.0069 | -0.0136 ±0.0028 | -5.3 | 0.658 | 0.671 | |
+| surface: Hard | 1099 | -0.0364 ±0.0069 | -0.0136 ±0.0028 | -5.3 | 0.658 | 0.672 | |
 | surface: Clay | 522 | +0.0019 ±0.0087 | -0.0009 ±0.0034 | +0.2 | 0.674 | 0.687 | |
 | surface: Grass | 328 | -0.0090 ±0.0111 | -0.0042 ±0.0048 | -0.8 | 0.640 | 0.655 | |
-| tier: atp250 | 821 | -0.0324 ±0.0084 | -0.0124 ±0.0034 | -3.9 | 0.620 | 0.637 | |
+| tier: atp250 | 822 | -0.0324 ±0.0084 | -0.0124 ±0.0034 | -3.9 | 0.620 | 0.637 | |
 | tier: atp500 | 278 | -0.0183 ±0.0117 | -0.0074 ±0.0051 | -1.6 | 0.644 | 0.653 | |
 | tier: challenger | 1 | +0.1138 ±0.0000 | +0.0539 ±0.0000 | +0.0 | 1.000 | 1.000 | ⚠ small n |
 | tier: grand_slam | 510 | -0.0092 ±0.0091 | -0.0053 ±0.0034 | -1.0 | 0.732 | 0.743 | |
@@ -52,18 +52,18 @@ _Generated 2026-11-16T11:51:54Z. Positive d = model better than Kalshi (paired p
 | round late (QF-F) | 295 | -0.0084 ±0.0117 | -0.0035 ±0.0050 | -0.7 | 0.654 | 0.647 | |
 | round mid (R32-R16) | 954 | -0.0267 ±0.0075 | -0.0105 ±0.0030 | -3.6 | 0.631 | 0.649 | |
 | round other/qual | 22 | -0.0056 ±0.0318 | -0.0022 ±0.0151 | -0.2 | 0.500 | 0.545 | ⚠ small n |
-| round round robin | 13 | -0.0210 ±0.0257 | -0.0093 ±0.0124 | -0.8 | 0.615 | 0.615 | ⚠ small n |
+| round round robin | 14 | -0.0194 ±0.0238 | -0.0086 ±0.0115 | -0.8 | 0.643 | 0.643 | ⚠ small n |
 | month 2026-05 | 499 | +0.0030 ±0.0089 | -0.0003 ±0.0035 | +0.3 | 0.677 | 0.688 | |
 | month 2026-06 | 338 | -0.0071 ±0.0108 | -0.0039 ±0.0046 | -0.7 | 0.630 | 0.648 | |
 | month 2026-07 | 27 | -0.0308 ±0.0600 | -0.0055 ±0.0250 | -0.5 | 0.778 | 0.741 | ⚠ small n |
 | month 2026-08 | 276 | -0.0103 ±0.0104 | -0.0038 ±0.0044 | -1.0 | 0.627 | 0.621 | |
 | month 2026-09 | 320 | -0.0429 ±0.0105 | -0.0177 ±0.0044 | -4.1 | 0.703 | 0.728 | |
 | month 2026-10 | 346 | -0.0523 ±0.0162 | -0.0189 ±0.0065 | -3.2 | 0.639 | 0.669 | |
-| month 2026-11 | 142 | -0.0389 ±0.0155 | -0.0138 ±0.0061 | -2.5 | 0.655 | 0.648 | |
-| agree (<0.05) | 1014 | -0.0008 ±0.0023 | -0.0007 ±0.0008 | -0.4 | 0.697 | 0.695 | |
+| month 2026-11 | 143 | -0.0386 ±0.0153 | -0.0137 ±0.0060 | -2.5 | 0.657 | 0.650 | |
+| agree (<0.05) | 1015 | -0.0008 ±0.0023 | -0.0007 ±0.0008 | -0.4 | 0.698 | 0.696 | |
 | mild disagree (0.05-0.10) | 586 | -0.0097 ±0.0073 | -0.0039 ±0.0028 | -1.3 | 0.641 | 0.654 | |
 | big disagree (>=0.1) | 348 | -0.1020 ±0.0233 | -0.0396 ±0.0097 | -4.4 | 0.579 | 0.638 | |
-| tour: atp | 985 | -0.0114 ±0.0065 | -0.0045 ±0.0026 | -1.7 | 0.646 | 0.661 | |
+| tour: atp | 986 | -0.0114 ±0.0065 | -0.0045 ±0.0026 | -1.7 | 0.646 | 0.662 | |
 | tour: wta | 963 | -0.0319 ±0.0074 | -0.0128 ±0.0031 | -4.3 | 0.673 | 0.684 | |
 
 When they disagree by >= 0.1: model closer to the outcome in **131/348** matches.
@@ -82,7 +82,7 @@ When they disagree by >= 0.1: model closer to the outcome in **131/348** matches
 | 0.5-0.6 | 294 | 0.551 | 0.551 |
 | 0.6-0.7 | 284 | 0.648 | 0.616 |
 | 0.7-0.8 | 230 | 0.751 | 0.770 |
-| 0.8-0.9 | 158 | 0.845 | 0.772 |
+| 0.8-0.9 | 159 | 0.845 | 0.774 |
 | 0.9-1.0 | 70 | 0.931 | 0.900 |
 
 ### Kalshi
@@ -97,21 +97,21 @@ When they disagree by >= 0.1: model closer to the outcome in **131/348** matches
 | 0.5-0.6 | 271 | 0.555 | 0.528 |
 | 0.6-0.7 | 303 | 0.649 | 0.630 |
 | 0.7-0.8 | 248 | 0.748 | 0.742 |
-| 0.8-0.9 | 156 | 0.846 | 0.833 |
+| 0.8-0.9 | 157 | 0.846 | 0.834 |
 | 0.9-1.0 | 78 | 0.936 | 0.949 |
 
 ## Where we win / where we lose (by t, n >= 10)
 
 | segment | n | d_ll ±SE | d_brier ±SE | t | acc model | acc kalshi | |
 |---|---|---|---|---|---|---|---|
-| best rank 1-10 | 417 | +0.0077 ±0.0095 | +0.0022 ±0.0032 | +0.8 | 0.734 | 0.729 | |
+| best rank 1-10 | 418 | +0.0077 ±0.0095 | +0.0022 ±0.0032 | +0.8 | 0.734 | 0.730 | |
 | month 2026-05 | 499 | +0.0030 ±0.0089 | -0.0003 ±0.0035 | +0.3 | 0.677 | 0.688 | |
 | surface: Clay | 522 | +0.0019 ±0.0087 | -0.0009 ±0.0034 | +0.2 | 0.674 | 0.687 | |
 | pred_source: backtest | 938 | -0.0003 ±0.0066 | -0.0011 ±0.0027 | -0.1 | 0.659 | 0.667 | |
 | round other/qual | 22 | -0.0056 ±0.0318 | -0.0022 ±0.0151 | -0.2 | 0.500 | 0.545 | ⚠ small n |
-| top-20 involved | 712 | -0.0014 ±0.0073 | -0.0010 ±0.0026 | -0.2 | 0.723 | 0.723 | |
+| top-20 involved | 713 | -0.0014 ±0.0073 | -0.0010 ±0.0026 | -0.2 | 0.723 | 0.723 | |
 | tier: tour_finals | 14 | -0.0089 ±0.0277 | -0.0030 ±0.0132 | -0.3 | 0.571 | 0.571 | ⚠ small n |
-| agree (<0.05) | 1014 | -0.0008 ±0.0023 | -0.0007 ±0.0008 | -0.4 | 0.697 | 0.695 | |
+| agree (<0.05) | 1015 | -0.0008 ±0.0023 | -0.0007 ±0.0008 | -0.4 | 0.698 | 0.696 | |
 
 …worst:
 
@@ -123,16 +123,16 @@ When they disagree by >= 0.1: model closer to the outcome in **131/348** matches
 | tour: wta | 963 | -0.0319 ±0.0074 | -0.0128 ±0.0031 | -4.3 | 0.673 | 0.684 | |
 | big disagree (>=0.1) | 348 | -0.1020 ±0.0233 | -0.0396 ±0.0097 | -4.4 | 0.579 | 0.638 | |
 | no top-20 player | 1236 | -0.0331 ±0.0065 | -0.0130 ±0.0028 | -5.1 | 0.623 | 0.644 | |
-| surface: Hard | 1098 | -0.0364 ±0.0069 | -0.0136 ±0.0028 | -5.3 | 0.658 | 0.671 | |
-| pred_source: live aligned | 1010 | -0.0412 ±0.0072 | -0.0156 ±0.0029 | -5.7 | 0.659 | 0.678 | |
+| surface: Hard | 1099 | -0.0364 ±0.0069 | -0.0136 ±0.0028 | -5.3 | 0.658 | 0.672 | |
+| pred_source: live aligned | 1011 | -0.0412 ±0.0072 | -0.0156 ±0.0029 | -5.7 | 0.660 | 0.679 | |
 
 ## QA / leak sentinel
 
-- T-5 vs T-30 price divergence: n=1948, mean |Δ|=0.0067, p95=0.0127, >0.05 in 55 rows (systemic divergence ⇒ early starts leaking in-play info ⇒ flip LEAD_MIN to 30).
-- T-5 vs T-30 by month (a month-local p95 spike = in-play prints the pooled stats hide): 2026-05 p95=0.0091 (n=499, >0.05: 1) | 2026-06 p95=0.0087 (n=338, >0.05: 0) | 2026-07 p95=0.0088 (n=27, >0.05: 0) | 2026-08 p95=0.0086 (n=276, >0.05: 1) | 2026-09 p95=0.0660 (n=320, >0.05: 19) | 2026-10 p95=0.1324 (n=346, >0.05: 29) | 2026-11 p95=0.0173 (n=142, >0.05: 5)
+- T-5 vs T-30 price divergence: n=1949, mean |Δ|=0.0067, p95=0.0127, >0.05 in 55 rows (systemic divergence ⇒ early starts leaking in-play info ⇒ flip LEAD_MIN to 30).
+- T-5 vs T-30 by month (a month-local p95 spike = in-play prints the pooled stats hide): 2026-05 p95=0.0091 (n=499, >0.05: 1) | 2026-06 p95=0.0087 (n=338, >0.05: 0) | 2026-07 p95=0.0088 (n=27, >0.05: 0) | 2026-08 p95=0.0086 (n=276, >0.05: 1) | 2026-09 p95=0.0660 (n=320, >0.05: 19) | 2026-10 p95=0.1324 (n=346, >0.05: 29) | 2026-11 p95=0.0168 (n=143, >0.05: 5)
 - Scored quotes stamped after their 08:00 anchor: 0 (must be 0 — requoter + health gate enforce; >0 means the pending-race freeze escaped again).
 - Our winner vs Kalshi settlement disagreements: 0 (join bugs surface here; these rows are auto-healed, so a persistent nonzero means healing failed).
-- Sensitivity incl. retirements: n=1962, d_ll -0.0215 ±0.0049
+- Sensitivity incl. retirements: n=1963, d_ll -0.0215 ±0.0049
 - Unmatched qualifying markets: 720 (structural — no qualifying results source for that tour/era).
 - Unmatched by event (clusters = structural gaps, singletons = alias candidates): {'French Open': 65, 'US Open': 57, 'Billie Jean King Cup Qualifiers Round': 56, 'WTA Memphis': 9, 'WTA Washington': 8, 'WTA Hamburg': 6, 'WTA Iasi': 5, 'ATP Stockholm': 3}
 - Unmatched Kalshi names, main draw (40): AYNUR MOVLYAMOVA, Adrian Mannarino, Aishath Karin Saizan, Akasha Urhobo, Aleksandr Shevchenko, Alexander Bublik, Alexandra Eala, Alexandra Shubladze, Aliaksandra Sasnovich, Alice Rame, Alice Tubello, Alina Charaeva, Alina Korneeva, Aliona Falei, Amandine Monnot, Ana Sofia Sanchez, Anastasia Gasanova, Anastasiia Sobolieva, Andrea Lazaro Garcia, Angela Fita Boluda, Anhelina Kalinina, Ankita Raina, Anna Abualhaj, Anna Frey, Anna Siskova, Anna-Lena Friedsam, Annika Penickova, Anouk Koevermans, Aoi Ito, Aran Teixido Garcia, Arantxa Rus, Ashlyn Krueger, Astra Sharma, Ayana Akli, Aylara Kakabayeva, Bella Payne, Bianca Andreescu, Cadence Brace, Camila Soares, Carol Young Suh Lee
