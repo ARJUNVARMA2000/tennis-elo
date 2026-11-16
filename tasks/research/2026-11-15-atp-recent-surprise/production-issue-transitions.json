@@ -1,0 +1,77 @@
+{
+  "observedAfterRun": 43912569501,
+  "issues": [
+    {
+      "number": 181,
+      "state": "closed",
+      "closedAt": "2026-11-16T17:12:32Z",
+      "title": "[data-health] ATP · output.market.coverage_stale · market-benchmark:atp"
+    },
+    {
+      "number": 176,
+      "state": "closed",
+      "closedAt": "2026-11-16T17:12:25Z",
+      "title": "[data-health] WTA · output.market.coverage_stale · market-benchmark:wta"
+    },
+    {
+      "number": 170,
+      "state": "open",
+      "closedAt": null,
+      "title": "[data-health] ATP · output.model.forecast_drift · predictor:atp"
+    },
+    {
+      "number": 202,
+      "state": "closed",
+      "closedAt": "2026-11-16T17:12:12Z",
+      "title": "[data-health] ATP · output.forecast.inference_schema_invalid · match:v2|espn:339-2026|2026|RR|daniil medvedev|flavio cobolli"
+    },
+    {
+      "number": 203,
+      "state": "closed",
+      "closedAt": "2026-11-16T17:12:15Z",
+      "title": "[data-health] ATP · output.forecast.inference_schema_invalid · match:v2|espn:339-2026|2026|RR|arthur fils|rafael jodar"
+    },
+    {
+      "number": 204,
+      "state": "closed",
+      "closedAt": "2026-11-16T17:12:17Z",
+      "title": "[data-health] ATP · output.forecast.inference_schema_invalid · match:v2|espn:339-2026|2026|RR|flavio cobolli|frances tiafoe"
+    },
+    {
+      "number": 205,
+      "state": "closed",
+      "closedAt": "2026-11-16T17:12:19Z",
+      "title": "[data-health] ATP · output.forecast.inference_schema_invalid · match:v2|espn:339-2026|2026|RR|daniil medvedev|frances tiafoe"
+    },
+    {
+      "number": 206,
+      "state": "closed",
+      "closedAt": "2026-11-16T17:12:23Z",
+      "title": "[data-health] ATP · output.forecast.inference_schema_invalid · match:v2|espn:339-2026|2026|RR|carlos alcaraz|flavio cobolli"
+    },
+    {
+      "number": 207,
+      "state": "closed",
+      "closedAt": "2026-11-16T17:12:28Z",
+      "title": "[data-health] ATP · output.forecast.inference_schema_invalid · match:v2|espn:339-2026|2026|RR|carlos alcaraz|daniil medvedev"
+    },
+    {
+      "number": 208,
+      "state": "closed",
+      "closedAt": "2026-11-16T17:12:30Z",
+      "title": "[data-health] ATP · output.forecast.inference_schema_invalid · match:v2|espn:339-2026|2026|RR|alexander zverev|arthur fils"
+    },
+    {
+      "number": 209,
+      "state": "closed",
+      "closedAt": "2026-11-16T17:12:34Z",
+      "title": "[data-health] ATP · output.forecast.inference_schema_invalid · match:v2|espn:339-2026|2026|RR|ben shelton|rafael jodar"
+    },
+    {
+      "number": 210,
+      "state": "closed",
+      "closedAt": "2026-11-16T17:12:36Z",
+      "title": "[data-health] ATP · output.forecast.inference_schema_invalid · match:v2|espn:339-2026|2026|RR|alexander zverev|ben shelton"
+    }
+  ]
+}

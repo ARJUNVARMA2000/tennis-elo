@@ -1,7 +1,8 @@
 # ATP recent form and odds-source repair — November 15–16, 2026
 
-The user approved implementation, historical research and deployment. Release checks
-and production observations are appended below when complete.
+Status: **deployed and independently verified on November 16, 2026**. The user
+approved implementation, historical research and deployment. Both odds warnings
+are closed; the historical ATP drift advisory remains visible pending new evidence.
 
 The bounded ATP round selected `recent_surprise_diff`: for each player, sum the
 pre-match Elo outcome residuals of their last ten completed matches within 90 days,
@@ -67,7 +68,8 @@ The later forecast-ledger-only commit `fbc0306` is reconciled before release.
 
 ## Release review
 
-Pending final checks and production verification.
+The complete release and final quick refresh passed their publication and serving
+checks. The final verification and remaining advisory are recorded below.
 
 
 Production promotion approved under the existing user authorization. Required branch
@@ -105,3 +107,42 @@ Reproducibility check: research and CI use identical pinned NumPy2.5.0, pandas3.
 XGBoost3.3.0 and scikit-learn1.9.0. Research ran Python3.13.14 on macOS; production
 rebuilds on Python3.12.16/Linux. No model pickle is copied between these runtimes.
 Production verification is still pending.
+
+
+## Final production review — November 16, 2026
+
+- Required final [CI 43913989612](https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/43913989612):
+  2,165 Python tests passed, one skipped; 375 web tests, lint, TypeScript, static
+  build and browser checks passed. The final odds checks passed 22 tests locally.
+- [Full production retry 43912569501](https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/43912569501)
+  passed source acquisition, both retrains, the pre-upload gate, publication and all
+  22 live checks. Its only failed step was the full-mode health reporter for the
+  preserved ATP drift advisory. The 70 MB recovery snapshot was uploaded.
+- [Final quick refresh 43915628131](https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/43915628131)
+  completed **green**, preserving both rebuilt predictor IDs and training timestamps.
+  Full and quick releases also passed independent 22/22 serving checks: 452 exact
+  public artifacts, 414 referenced shards, and 18 known private/absent paths.
+- Final release `3d4af4e8-586a-435a-8d21-076c4b9f311c` is generated at `2026-11-16T17:16:19Z` and carries accepted
+  full parent `c93f11c7-f216-4546-9ecd-3cbb8ad36df1`.
+
+| Tour | Predictor artifact | Trained UTC | Features/schema | Matched odds | Last matched / OOS end | Providers |
+| --- | --- | --- | --- | --- | --- | --- |
+| ATP | `946c1a49-3fab-446b-a7de-3427b8f6c507` | 2026-11-16T17:01:20Z | 43 / 6 | 20,286 | 2026-11-15 / 2026-11-16 | Tennis-Data 19,370; Valuebetennis 916 |
+| WTA | `8398343d-7785-4a1a-aa98-d0faf1b0a892` | 2026-11-16T17:07:21Z | 43 / 6 | 18,702 | 2026-11-15 / 2026-11-15 | Tennis-Data 18,004; Valuebetennis 698 |
+
+The attribution, acquisition receipts, unchanged predictor identities and live
+contract checks are retained in `production-full-verification.json` and
+`production-quick-verification.json`. The grading proof covers all 1,032 ATP and
+1,051 WTA graded decisions with zero contradictory known event IDs.
+
+Odds alerts [#181](https://github.com/ARJUNVARMA2000/tennis-elo/issues/181) and
+[#176](https://github.com/ARJUNVARMA2000/tennis-elo/issues/176) closed automatically,
+as did all nine rollout schema alerts (#202–210). Exact transitions are retained in
+`production-issue-transitions.json`.
+
+Remaining condition: [ATP drift #170](https://github.com/ARJUNVARMA2000/tennis-elo/issues/170)
+is still open: 621 graded matches in the 90-day window, realized log loss 0.6259
+versus expected 0.5719, d=0.0540, SE=0.0198, t=2.73. This remains evidence about
+historical immutable forecasts. The newly adopted improvement passed the historical
+arbiter; recovery requires new forecast results. Thresholds, forecast probabilities,
+model version and history were not reset to clear it.

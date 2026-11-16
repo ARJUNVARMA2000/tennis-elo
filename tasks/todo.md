@@ -10244,3 +10244,32 @@ Reproducibility check: research and CI use identical pinned NumPy2.5.0, pandas3.
 XGBoost3.3.0 and scikit-learn1.9.0. Research ran Python3.13.14 on macOS; production
 rebuilds on Python3.12.16/Linux. No model pickle is copied between these runtimes.
 Production verification is still pending.
+
+
+### Remaining odds and ATP drift repairs — final review, 2026-11-16
+
+- [x] Implement attributed, validated odds acquisition and genuine matched-coverage
+  recovery. ATP is current through November 15 against OOS November 16 (one day lag),
+  WTA through November 15 against November 15. Both source-coverage alerts closed.
+- [x] Repair contradictory known-event grading and preserve all immutable forecasts.
+  Public proof covers 1,032 ATP / 1,051 WTA grades with zero known ID contradictions.
+- [x] Complete registered tune-only selection, frozen finalist, full five-bag arbiter,
+  model/state integration and exact production feature parity. Both saved predictors
+  were rebuilt; the new ATP feature is live at 43 features/schema6.
+- [x] Repair the separate timeline schema validator, test historical/current/unknown
+  generations, and preserve rejected-candidate provenance through a standard full retry.
+- [x] Final required CI: 2,165 Python tests passed/one skipped; all 375 web tests,
+  lint, TypeScript, static build and browser checks passed. All 22 focused odds tests
+  passed; fresh source files cannot conceal stale matched main-tour coverage.
+- [x] Publish and independently verify the accepted full graph and a subsequent
+  green quick refresh. Both phases passed 22/22 live checks, with 452 exact artifacts,
+  414 referenced shards and 18 private/absent probes. Final generation 17:16:19Z,
+  release `3d4af4e8-586a-435a-8d21-076c4b9f311c`; both rebuilt model IDs unchanged
+  on the quick refresh. Odds #176/#181 and schema #202–210 closed automatically.
+
+The full retry’s health-report step remained red solely for the legitimate ATP
+historical drift warning; publication and serving passed. The final quick run is
+fully green with that advisory still visible. #170 remains open (n=621, d=0.0540,
+t=2.73), as approved: neither a backtest improvement nor a version reset establishes
+future recovery. Research, negative trial, exact release identities and source receipts
+are retained in `tasks/research/2026-11-15-atp-recent-surprise/`. Lessons are committed.

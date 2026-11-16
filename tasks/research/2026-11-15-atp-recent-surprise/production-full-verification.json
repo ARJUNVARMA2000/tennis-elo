@@ -1,0 +1,179 @@
+{
+  "observedAt": "2026-11-16T17:13:19.178108+00:00",
+  "generatedAt": "2026-11-16T17:10:05Z",
+  "releaseId": "c93f11c7-f216-4546-9ecd-3cbb8ad36df1",
+  "artifactLineage": {
+    "schema": "artifact-lineage-v1",
+    "status": "accepted",
+    "releaseId": "c93f11c7-f216-4546-9ecd-3cbb8ad36df1",
+    "manifestSha256": "339715bdb1bc4c7a15ad3ba8e52153fd2c375da9593dffb863c4b0e04cd0f823",
+    "tours": [
+      "atp",
+      "wta"
+    ]
+  },
+  "artifactCount": 452,
+  "tours": {
+    "atp": {
+      "predictorArtifactId": "946c1a49-3fab-446b-a7de-3427b8f6c507",
+      "modelTrainedAt": "2026-11-16T17:01:20Z",
+      "features": 43,
+      "inferenceSchemaVersion": 6,
+      "matched": 20286,
+      "lastMatchedDate": "2026-11-15",
+      "oosEnd": "2026-11-16",
+      "marketLagDays": 1,
+      "providers": {
+        "tennis-data": 19370,
+        "valuebetennis": 916
+      },
+      "attribution": {
+        "label": "Valuebetennis, Tennis results and odds since 2021 (CC BY 4.0)",
+        "url": "https://www.valuebetennis.com/en/donnees.htm"
+      },
+      "acquisitions": [
+        {
+          "source": "https://www.valuebetennis.com/en/donnees.htm",
+          "url": "https://www.valuebetennis.com/datasets/valuebetennis-matchs-2025.csv",
+          "license": "CC BY 4.0",
+          "attribution": "Valuebetennis, Tennis results and odds since 2021 (CC BY 4.0)",
+          "observedAt": "2026-11-16T16:55:10.671485+00:00",
+          "sha256": "46bd9c25673228aeb279f653b508a6e1c8f0b5291645614de6912a581f217d21",
+          "year": 2025,
+          "usableRows": {
+            "atp": 2568,
+            "wta": 2348
+          }
+        },
+        {
+          "source": "https://www.valuebetennis.com/en/donnees.htm",
+          "url": "https://www.valuebetennis.com/datasets/valuebetennis-matchs-2026.csv",
+          "license": "CC BY 4.0",
+          "attribution": "Valuebetennis, Tennis results and odds since 2021 (CC BY 4.0)",
+          "observedAt": "2026-11-16T16:55:11.926523+00:00",
+          "sha256": "bd4042f19ee9110c057b81e3c96db7a1a522160117efb54763294b3574eefe38",
+          "year": 2026,
+          "usableRows": {
+            "atp": 2304,
+            "wta": 2203
+          }
+        }
+      ],
+      "graded": 1032,
+      "gradingIdentityContradictions": 0,
+      "drift": {
+        "status": "drift",
+        "windowDays": 90,
+        "modelVersion": "0.1.0",
+        "n": 621,
+        "logloss": 0.6259,
+        "expectedLogloss": 0.5719,
+        "d": 0.054,
+        "se": 0.0198,
+        "t": 2.73,
+        "baseline": {
+          "logloss": 0.588,
+          "n": 29560,
+          "window": "2016-2026",
+          "dLogloss": 0.0379
+        },
+        "worstBin": {
+          "bin": "0.6-0.7",
+          "n": 68,
+          "pred": 0.659,
+          "actual": 0.4853,
+          "gap": 0.1737
+        }
+      }
+    },
+    "wta": {
+      "predictorArtifactId": "8398343d-7785-4a1a-aa98-d0faf1b0a892",
+      "modelTrainedAt": "2026-11-16T17:07:21Z",
+      "features": 43,
+      "inferenceSchemaVersion": 6,
+      "matched": 18702,
+      "lastMatchedDate": "2026-11-15",
+      "oosEnd": "2026-11-15",
+      "marketLagDays": 0,
+      "providers": {
+        "tennis-data": 18004,
+        "valuebetennis": 698
+      },
+      "attribution": {
+        "label": "Valuebetennis, Tennis results and odds since 2021 (CC BY 4.0)",
+        "url": "https://www.valuebetennis.com/en/donnees.htm"
+      },
+      "acquisitions": [
+        {
+          "source": "https://www.valuebetennis.com/en/donnees.htm",
+          "url": "https://www.valuebetennis.com/datasets/valuebetennis-matchs-2025.csv",
+          "license": "CC BY 4.0",
+          "attribution": "Valuebetennis, Tennis results and odds since 2021 (CC BY 4.0)",
+          "observedAt": "2026-11-16T16:55:10.671485+00:00",
+          "sha256": "46bd9c25673228aeb279f653b508a6e1c8f0b5291645614de6912a581f217d21",
+          "year": 2025,
+          "usableRows": {
+            "atp": 2568,
+            "wta": 2348
+          }
+        },
+        {
+          "source": "https://www.valuebetennis.com/en/donnees.htm",
+          "url": "https://www.valuebetennis.com/datasets/valuebetennis-matchs-2026.csv",
+          "license": "CC BY 4.0",
+          "attribution": "Valuebetennis, Tennis results and odds since 2021 (CC BY 4.0)",
+          "observedAt": "2026-11-16T16:55:11.926523+00:00",
+          "sha256": "bd4042f19ee9110c057b81e3c96db7a1a522160117efb54763294b3574eefe38",
+          "year": 2026,
+          "usableRows": {
+            "atp": 2304,
+            "wta": 2203
+          }
+        }
+      ],
+      "graded": 1051,
+      "gradingIdentityContradictions": 0,
+      "drift": {
+        "status": "ok",
+        "windowDays": 90,
+        "modelVersion": "0.1.0",
+        "n": 621,
+        "logloss": 0.6064,
+        "expectedLogloss": 0.5747,
+        "d": 0.0317,
+        "se": 0.0176,
+        "t": 1.8,
+        "baseline": {
+          "logloss": 0.5999,
+          "n": 26918,
+          "window": "2016-2026",
+          "dLogloss": 0.0065
+        },
+        "worstBin": {
+          "bin": "0.3-0.4",
+          "n": 85,
+          "pred": 0.3504,
+          "actual": 0.4588,
+          "gap": 0.1085
+        }
+      }
+    }
+  },
+  "ci": {
+    "runId": 43912569501,
+    "url": "https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/43912569501",
+    "predeployGate": "passed",
+    "firebaseDeploy": "passed",
+    "liveServingChecks": 22,
+    "failedSteps": [
+      "Report data health"
+    ],
+    "failureReason": "Existing historical ATP drift advisory remains active; publication and serving passed."
+  },
+  "independentServingVerification": {
+    "checksPassed": 22,
+    "exactArtifacts": 452,
+    "referencedShards": 414,
+    "knownAbsentPaths": 18
+  }
+}
