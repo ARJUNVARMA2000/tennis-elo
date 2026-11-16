@@ -236,7 +236,9 @@ def scorecard_from_oos(tour: str, oos: pd.DataFrame, edge_min: float = 0.05,
         from ..data.valuebetennis import ATTRIBUTION, SOURCE_URL
         sc["sources"]["attribution"] = {"label": ATTRIBUTION, "url": SOURCE_URL}
         sc["sources"]["acquisitions"] = supplement.attrs.get("receipts", [])
-        sc["sources"]["label"] = "Tennis-Data historical closes; Valuebetennis-recorded Pinnacle supplement"
+        sc["sources"]["label"] = (
+            "Tennis-Data historical closes; Valuebetennis-recorded Pinnacle supplement"
+            if "tennis-data" in set(merged.provider) else "Valuebetennis-recorded Pinnacle closing odds")
     recent = _recent_block(merged, model, mkt)
     if recent is not None:
         sc["recent"] = recent

@@ -143,7 +143,9 @@ def test_supplement_works_without_legacy_files_and_rejects_ambiguous_rematches(m
         raise FileNotFoundError
 
     monkeypatch.setattr(compare, "load_odds", absent)
-    assert compare.scorecard_from_oos("atp", oos)["matched"] == 1
+    scorecard = compare.scorecard_from_oos("atp", oos)
+    assert scorecard["matched"] == 1
+    assert scorecard["sources"]["label"] == "Valuebetennis-recorded Pinnacle closing odds"
     # One independently observed quote must never settle two model decisions.
     rematch = pd.concat([oos, oos.assign(date=pd.Timestamp("2025-06-02"))])
     assert compare.scorecard_from_oos("atp", rematch)["matched"] == 0
