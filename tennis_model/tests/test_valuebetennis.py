@@ -43,6 +43,7 @@ def payload(**changes):
     "changes",
     [
         dict(cote1_cloture=1),
+        dict(cote1_cloture=None),
         dict(cote1_cloture=float("inf")),
         dict(categorie="ITF"),
         dict(tour=1),
@@ -152,3 +153,30 @@ def test_supplement_works_without_legacy_files_and_rejects_ambiguous_rematches(m
     # Initials collide under the historical provider's key; full names must agree.
     collision = oos.assign(winner_name="Alfred One")
     assert compare.scorecard_from_oos("atp", collision)["matched"] == 0
+
+
+def test_fresh_provider_file_does_not_hide_stale_matched_main_sample(monkeypatch):
+    raw = pd.read_csv(io.BytesIO(payload()), sep=";")
+    # A genuinely current source row is ineligible for the model's main-tour benchmark.
+    raw = pd.concat([raw, raw.iloc[:1].assign(
+        match_id="recent-itf", date="2025-11-15 12:00:00", categorie="ITF")])
+    extra = vb.parse(raw.to_csv(sep=";", index=False).encode(), "atp", 2025,
+                     now=pd.Timestamp("2025-11-16", tz="UTC"))
+    extra.attrs["receipts"] = [dict(sha256="a" * 64, license="CC BY 4.0",
+                                    observedAt="2025-11-16T00:00:00Z")]
+    monkeypatch.setattr(vb, "load", lambda *a: extra)
+
+    def absent(*a, **kw):
+        raise FileNotFoundError
+
+    monkeypatch.setattr(compare, "load_odds", absent)
+    oos = _oos().assign(surface="Hard", year=2025)
+    oos["date"] = pd.to_datetime(["2025-06-01", "2025-06-02", "2025-11-15"])
+    scorecard = compare.scorecard_from_oos("atp", oos)
+    assert scorecard["matched"] == 1 and scorecard["lastMatchedDate"] == "2025-06-01"
+    assert scorecard["oosEnd"] == "2025-11-15"
+    data = _healthy_data()
+    data["market"] = scorecard
+    hits = [f for f in health.output_findings("atp", _oc(data=data), NOW)
+            if f.code == "output.market.coverage_stale"]
+    assert hits and hits[0].severity == "warning"
