@@ -10282,12 +10282,42 @@ are retained in `tasks/research/2026-11-15-atp-recent-surprise/`. Lessons are co
   and forecast export skipped, then release sealing rejected the missing ATP
   upcoming index. Firebase still serves the November 22 generation; its ATP
   schedule has one fixture, the Alcaraz–Zverev final.
-- [ ] Trace the rejected row against the retained ESPN schedule, draw inputs,
+- [x] Trace the rejected row against the retained ESPN schedule, draw inputs,
   source receipt, and saved model cutoff. Reproduce the transition from the last
   pending fixture to a completed event in a regression test.
-- [ ] Repair the input that supplies the obsolete or invalid fixture. Cover an
+- [x] Repair the input that supplies the obsolete or invalid fixture. Cover an
   authoritative empty schedule, a provider outage, and valid pending fixtures.
   Preserve the model chronology guard and required release index.
 - [ ] Exercise tracking, index export, and release validation together. Run
   required CI, deploy the tested repair, and verify the new public generation
   and both tours' schedules. Record the production result here.
+
+#### ATP repair review
+
+Production's last accepted run cached one ATP fixture. The next complete ESPN
+sweep observed the finished final and kept that old schedule. The reproduction
+failed on the old writer. Replaying the published Alcaraz–Zverev row with 28/28
+successful live requests per tour produced zero ATP and 11 WTA scheduled rows.
+Required CI 45240041017 passed 2,167 Python tests (one skipped) and 375 web tests,
+plus lint, build, type and browser checks. Master `0bae636` has the tested tree.
+Full refresh 45240857519 exported the empty ATP schedule, graded 1,040 forecasts
+and sealed 450 artifacts. Publication stopped at seven WTA coverage errors. The
+November 22 release remains live.
+
+#### Revised plan for the WTA publication blocker
+
+- [x] Reproduce the seven November Billie Jean King Cup play-off ties from the
+  candidate's source rows. Verify their competition format and how the coverage
+  inventory admitted them to a board that expects individual tournament draws.
+- [x] Apply the existing singles-board scope at the event producer. Preserve
+  the underlying singles results and check adjacent supported tournaments,
+  including the tour finals. Add an incident replay through the integrity gate.
+- [ ] Run required CI, rebuild the full release, and verify publication, both
+  schedules and both tours' evaluation files against Firebase. Record the outcome.
+
+The current WTA fresh CSV contains 23 singles rubbers across the seven ties,
+all coded level D and round RR. Before the change the coverage inventory created
+seven shells while the projector created zero tournaments. The replay now yields
+zero shells and preserves all 23 rows. A real WTA Finals RR result remains
+eligible. The new producer-to-gate regression failed on the original code;
+all 240 focused tests and lint pass with the change.
