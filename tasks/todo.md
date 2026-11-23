@@ -10288,7 +10288,7 @@ are retained in `tasks/research/2026-11-15-atp-recent-surprise/`. Lessons are co
 - [x] Repair the input that supplies the obsolete or invalid fixture. Cover an
   authoritative empty schedule, a provider outage, and valid pending fixtures.
   Preserve the model chronology guard and required release index.
-- [ ] Exercise tracking, index export, and release validation together. Run
+- [x] Exercise tracking, index export, and release validation together. Run
   required CI, deploy the tested repair, and verify the new public generation
   and both tours' schedules. Record the production result here.
 
@@ -10312,7 +10312,7 @@ November 22 release remains live.
 - [x] Apply the existing singles-board scope at the event producer. Preserve
   the underlying singles results and check adjacent supported tournaments,
   including the tour finals. Add an incident replay through the integrity gate.
-- [ ] Run required CI, rebuild the full release, and verify publication, both
+- [x] Run required CI, rebuild the full release, and verify publication, both
   schedules and both tours' evaluation files against Firebase. Record the outcome.
 
 The current WTA fresh CSV contains 23 singles rubbers across the seven ties,
@@ -10321,3 +10321,21 @@ seven shells while the projector created zero tournaments. The replay now yields
 zero shells and preserves all 23 rows. A real WTA Finals RR result remains
 eligible. The new producer-to-gate regression failed on the original code;
 all 240 focused tests and lint pass with the change.
+
+#### Production review — November 23
+
+- [Required CI](https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/45259405053)
+  passed on `e41a537` with 2,168 Python tests, one skipped, and 375 web tests.
+  Lint, TypeScript, static build and browser checks passed.
+- The [full rebuild](https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/45260338041)
+  passed the publication gate and all 22 live checks. Firebase served release
+  `0d2c98a0-6c2e-4d4a-848c-25029dc26884`. Only the data-health reporter
+  ended red for the standing ATP forecast-drift warning (#170); the existing
+  full-path issue #213 awaits a wholly green full run.
+- The [quick refresh](https://github.com/ARJUNVARMA2000/tennis-elo/actions/runs/45268087779)
+  completed green. Its verified release `27f79435-9899-41b9-aefa-a3f52f1cce71`
+  descends from that full release. All 22 live checks passed for 450 artifacts.
+  Direct checks matched both tours' schedules, cards, coverage and five evaluation
+  file digests per tour to the manifest. The 21:25:26Z generation has zero ATP
+  fixtures, 10 WTA Argentina Open fixtures, the completed WTA Finals card and zero
+  coverage shells. The WTA coverage and quick-path alerts closed automatically.
