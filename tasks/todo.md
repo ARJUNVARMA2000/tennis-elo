@@ -10273,3 +10273,21 @@ fully green with that advisory still visible. #170 remains open (n=621, d=0.0540
 t=2.73), as approved: neither a backtest improvement nor a version reset establishes
 future recovery. Research, negative trial, exact release identities and source receipts
 are retained in `tasks/research/2026-11-15-atp-recent-surprise/`. Lessons are committed.
+
+### November 23 — restore production refreshes after the ATP Finals
+
+- [x] Confirm the production failure. Full run 45179096032 and quick run
+  45219226300 both stopped before publication. In the quick run, ATP schedule
+  pricing queried recent-surprise state with an invalid or earlier date. Tracking
+  and forecast export skipped, then release sealing rejected the missing ATP
+  upcoming index. Firebase still serves the November 22 generation; its ATP
+  schedule has one fixture, the Alcaraz–Zverev final.
+- [ ] Trace the rejected row against the retained ESPN schedule, draw inputs,
+  source receipt, and saved model cutoff. Reproduce the transition from the last
+  pending fixture to a completed event in a regression test.
+- [ ] Repair the input that supplies the obsolete or invalid fixture. Cover an
+  authoritative empty schedule, a provider outage, and valid pending fixtures.
+  Preserve the model chronology guard and required release index.
+- [ ] Exercise tracking, index export, and release validation together. Run
+  required CI, deploy the tested repair, and verify the new public generation
+  and both tours' schedules. Record the production result here.

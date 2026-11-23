@@ -24,13 +24,12 @@ from ..data.bracket_rounds import (
     player_identity_key,
     unique_bracket_round,
 )
+from ..data.live import UPCOMING_COLS
 from ..data.results import _name_key as nkey
 from ..data.results import tier_mults
 from ..data.surface import resolve_level, resolve_surface
 from ..timing import timed
 from .predict import can_predict_match, predictor_player_names
-
-UPCOMING_COLS = ["tourney_name", "espn_id", "tourney_date", "round", "playerA", "playerB"]
 
 
 def _tier_context(level: str | None, tour: str) -> float:
