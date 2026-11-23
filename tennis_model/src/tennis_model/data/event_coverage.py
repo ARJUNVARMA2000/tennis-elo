@@ -32,8 +32,10 @@ from .surface import resolve_level, resolve_surface_info
 COVERAGE_VERSION = 1
 COVERAGE_RETENTION_DAYS = 18
 _MAIN_ROUNDS = frozenset({"RR", "R128", "R64", "R32", "R16", "QF", "SF", "F"})
+# Archive level D denotes singles rubbers in a national team tie. It is
+# valid rating evidence, but cannot establish an individual tournament draw.
 _MAIN_LEVELS = frozenset({
-    "G", "M", "A", "F", "D", "O",
+    "G", "M", "A", "F", "O",
     "250", "500", "1000", "125",
     "ATP250", "ATP500", "ATP1000", "WTA125", "WTA250", "WTA500", "WTA1000",
     "GRAND SLAM", "MASTERS 1000", "TOUR FINALS", "OLYMPICS",

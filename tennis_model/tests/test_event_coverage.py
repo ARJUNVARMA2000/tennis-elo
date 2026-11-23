@@ -79,6 +79,31 @@ def test_qualifying_only_results_do_not_create_main_draw_coverage():
     assert [event["key"] for event in manifest["events"]] == ["espn:999-2026"]
 
 
+def test_cup_rubbers_do_not_create_singles_tournaments_but_finals_groups_do():
+    from tennis_model.data.health_checks.products import _check_event_coverage
+
+    # Two round-robin singles rows from the November 2026 WTA archive.
+    results = pd.DataFrame([
+        {"tourney_name": "Billie Jean King Cup Play-Offs: Japan Vs. Argentina",
+         "date": "2026-11-21", "round": "RR", "tourney_level": "D", "tier": "davis_cup",
+         "winner_name": "Mai Hontama", "loser_name": "Justina Maria Gonzalez Daniele"},
+        {"tourney_name": "Wta Finals", "date": "2026-11-08", "round": "RR",
+         "tourney_level": "F", "tier": "tour_finals", "winner_name": "Coco Gauff",
+         "loser_name": "Jessica Pegula"},
+    ])
+    original = results.copy()
+    manifest = build_event_coverage(results, "wta", build_date="2026-11-23",
+                                    registry={}, draws={}, upcoming_df=pd.DataFrame())
+    cards = [{"name": "Wta Finals", "start": "2026-11-08", "end": "2026-11-15",
+              "projection": [{"name": "Coco Gauff"}, {"name": "Jessica Pegula"}]}]
+    finalized = finalize_event_coverage(manifest, cards)
+    findings = []
+    _check_event_coverage(findings, "wta", finalized, cards)
+    assert not findings, findings
+    assert [event["name"] for event in manifest["events"]] == ["Wta Finals"]
+    pd.testing.assert_frame_equal(results, original)
+
+
 def test_completed_fallback_preserves_a_known_final_result():
     results = pd.DataFrame([
         {"tourney_name": "Settled Open", "espn_id": "999-2026", "date": "2026-07-20",
