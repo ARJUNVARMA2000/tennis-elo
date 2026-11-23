@@ -645,6 +645,52 @@ def test_success_empty_does_not_refresh_retained_overlay_age(tmp_path, monkeypat
     assert receipt["overlay"]["lastGoodAt"] == "2026-08-20T09:00:00Z"
 
 
+def test_final_disappears_from_cached_schedule_only_after_successful_sweep(tmp_path, monkeypatch):
+    from tennis_model.model import upcoming
+    from tennis_model.model.export import build_upcoming_shards
+
+    from tennis_model.data import draws
+
+    final = _pending("Final", "Carlos Alcaraz", "Alexander Zverev", date="2026-11-22T17:15Z")
+    matches = [final]
+    events = [{"id": "339-2026", "shortName": "Nitto ATP Finals", "groupings": [{
+        "grouping": {"slug": "mens-singles"}, "competitions": matches,
+    }]}]
+    monkeypatch.setattr(live, "live_dir", lambda tour: tmp_path)
+    monkeypatch.setattr(upcoming, "live_dir", lambda tour: tmp_path)
+    monkeypatch.setattr(draws, "tournament_draw_upcoming_rows", lambda tour, status: [])
+    monkeypatch.setattr("tennis_model.data.events.update_registry", lambda tour, meta: None)
+    monkeypatch.setattr(live, "_fetch", lambda tour, datestr=None: events)
+    live.download_live(("atp",))
+    assert upcoming.load_upcoming("atp")["playerA"].tolist() == ["Carlos Alcaraz"]
+    original = (tmp_path / "upcoming.csv").read_bytes()
+
+    matches[:] = [_completed("Final", "Carlos Alcaraz", (6, 6), "Alexander Zverev",
+                             (4, 4), date=final["date"])]
+
+    def partial(tour, datestr=None):
+        if datestr is None:
+            raise OSError("featured scoreboard unavailable")
+        return events
+
+    monkeypatch.setattr(live, "_fetch", partial)
+    live.download_live(("atp",))
+    assert (tmp_path / "upcoming.csv").read_bytes() == original
+
+    for observed in (events, []):
+        (tmp_path / "upcoming.csv").write_bytes(original)
+        monkeypatch.setattr(live, "_fetch", lambda tour, datestr=None, result=observed: result)
+        live.download_live(("atp",))
+        receipt = json.loads((tmp_path / "espn_acquisition.json").read_bytes())
+        assert "upcoming.csv" in receipt["overlay"]["updatedFiles"]
+        status = {}
+        schedule = upcoming.load_upcoming("atp", status=status)
+        assert schedule.empty and not status["failures"]
+        rows = upcoming.enrich_upcoming(None, None, schedule, "atp")
+        index, shards = build_upcoming_shards(rows, receipt["completedAt"])
+        assert index["count"] == 0 and index["events"] == [] and shards == {}
+
+
 def test_http_200_without_an_events_list_is_not_success_empty(monkeypatch):
     class _Response:
         def __enter__(self):

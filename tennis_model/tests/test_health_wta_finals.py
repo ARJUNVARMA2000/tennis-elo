@@ -168,6 +168,22 @@ def test_opening_placeholder_replays_gate_errors(monkeypatch, tmp_path):
     } <= incident_blockers(oc)
 
 
+def test_completed_finals_fixture_cannot_remain_scheduled_after_event_end(monkeypatch, tmp_path):
+    after_end = "2026-11-17T12:00:00Z"
+    oc = candidate(monkeypatch, tmp_path, "final")
+    event = event_at_phase("final")
+    raw, proof = source_audit.capture_source("wta", [event], after_end)
+    oc["source_audit"] = {"state": "valid", "witness": json.loads(raw), "proof": proof}
+    oc["data"]["meta"]["tournamentSourceAudit"] = proof
+    final = event["groupings"][0]["competitions"][-1]
+    a, b = [p["athlete"]["displayName"] for p in final["competitors"]]
+    oc["data"]["upcoming"].append({**oc["data"]["upcoming"][0], "round": "F",
+                                   "date": final["date"][:10], "playerA": a, "playerB": b})
+    assert any(f.code == "output.source_audit.completed_match_scheduled"
+               and health._gate_blocks(f)
+               for f in health.output_findings("wta", oc, pd.Timestamp(after_end)))
+
+
 def test_opening_schedule_is_bounded_by_the_witnessed_calendar(monkeypatch, tmp_path):
     oc = candidate(monkeypatch, tmp_path, "opening")
     assert {row["date"] for row in oc["data"]["upcoming"]} > {"2026-11-08"}

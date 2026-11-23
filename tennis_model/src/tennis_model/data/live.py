@@ -37,6 +37,7 @@ SCOREBOARD = "https://site.web.api.espn.com/apis/site/v2/sports/tennis/{tour}/sc
 _ACQUISITION_SCHEMA = "espn-acquisition-v1"
 _ACQUISITION_FILE = "espn_acquisition.json"
 _OVERLAY_FILES = ("live.csv", "fields.json", "upcoming.csv")
+UPCOMING_COLS = ["tourney_name", "espn_id", "tourney_date", "round", "playerA", "playerB"]
 
 class ScoreboardUnavailable(RuntimeError):
     """Every scoreboard query failed — the overlay is blind, not merely idle."""
@@ -408,7 +409,7 @@ def parse_upcoming(events: list, gender: str) -> pd.DataFrame:
                     "tourney_date": local_date(comp.get("date"), venue),
                     "round": rnd, "playerA": names[0], "playerB": names[1],
                 })
-    df = pd.DataFrame(rows)
+    df = pd.DataFrame(rows, columns=UPCOMING_COLS)
     if not df.empty:
         df = df.drop_duplicates(subset=["tourney_name", "espn_id", "round", "playerA", "playerB"])
     return df
@@ -585,7 +586,11 @@ def download_live(tours=TOURS) -> dict[str, list]:
                 _write_fields(d / "fields.json", fields)
                 updated.append("fields.json")
                 print(f"  live/{tour}: fields for {len(fields)} event(s) -> {d / 'fields.json'}")
-            if not upcoming.empty:
+            # A complete sweep supersedes the cached schedule even after the last
+            # fixture settles. An incomplete sweep cannot establish that it is empty.
+            clear_cached_schedule = ("upcoming.csv" in before
+                                     and receipt["status"] in ("success", "success_empty"))
+            if not upcoming.empty or clear_cached_schedule:
                 _write_frame(d / "upcoming.csv", upcoming)
                 updated.append("upcoming.csv")
                 print(f"  upcoming/{tour}: {len(upcoming)} scheduled matchups across "
