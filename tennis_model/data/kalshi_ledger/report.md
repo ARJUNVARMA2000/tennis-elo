@@ -1,13 +1,13 @@
 # Model vs Kalshi — match-by-match scorecard
 
-_Generated 2026-11-23T20:54:14Z. Positive d = model better than Kalshi (paired per-match; SE = std/√n, tune.py convention). Kalshi price = de-vigged bid/ask mid at 08:00 UTC on match day (morning-of line — always pre-match; Kalshi's own start timestamps mutate on settled markets and cannot be trusted), from 1-min candlesticks; markets with spread > 0.10 excluded. Do not compare these numbers to the closing-line scorecard (market.json): different price time, different match mix. Live model forecasts are the latest saved snapshot at or before that quote; legacy first-sighting-only rows remain in coverage but are excluded from scoring._
+_Generated 2026-11-24T11:30:51Z. Positive d = model better than Kalshi (paired per-match; SE = std/√n, tune.py convention). Kalshi price = de-vigged bid/ask mid at 08:00 UTC on match day (morning-of line — always pre-match; Kalshi's own start timestamps mutate on settled markets and cannot be trusted), from 1-min candlesticks; markets with spread > 0.10 excluded. Do not compare these numbers to the closing-line scorecard (market.json): different price time, different match mix. Live model forecasts are the latest saved snapshot at or before that quote; legacy first-sighting-only rows remain in coverage but are excluded from scoring._
 
 ## Coverage
 
 | tour | events | matched | pending | unmatched | cancelled | ambiguous | walkovers | retirements | no price | range |
 |---|---|---|---|---|---|---|---|---|---|---|
 | atp | 2443 | 2351 | 0 | 19 | 73 | 0 | 18 | 31 | 49 | 2026-05-03..2026-11-22 |
-| wta | 2586 | 1571 | 1 | 918 | 96 | 0 | 12 | 24 | 32 | 2026-05-02..2026-11-23 |
+| wta | 2586 | 1571 | 0 | 919 | 96 | 0 | 12 | 24 | 32 | 2026-05-02..2026-11-23 |
 
 ## Headline (scored set)
 
@@ -135,5 +135,5 @@ When they disagree by >= 0.1: model closer to the outcome in **133/353** matches
 - Our winner vs Kalshi settlement disagreements: 0 (join bugs surface here; these rows are auto-healed, so a persistent nonzero means healing failed).
 - Sensitivity incl. retirements: n=1985, d_ll -0.0213 ±0.0049
 - Unmatched qualifying markets: 720 (structural — no qualifying results source for that tour/era).
-- Unmatched by event (clusters = structural gaps, singletons = alias candidates): {'French Open': 65, 'US Open': 57, 'Billie Jean King Cup Qualifiers Round': 56, 'WTA Memphis': 9, 'WTA Washington': 8, 'WTA Hamburg': 6, 'WTA Iasi': 5, 'ATP Stockholm': 3}
-- Unmatched Kalshi names, main draw (40): AYNUR MOVLYAMOVA, Adrian Mannarino, Aishath Karin Saizan, Akasha Urhobo, Aleksandr Shevchenko, Alexander Bublik, Alexandra Eala, Alexandra Shubladze, Aliaksandra Sasnovich, Alice Rame, Alice Tubello, Alina Charaeva, Alina Korneeva, Aliona Falei, Amandine Monnot, Ana Sofia Sanchez, Anastasia Gasanova, Anastasiia Sobolieva, Andrea Lazaro Garcia, Angela Fita Boluda, Anhelina Kalinina, Ankita Raina, Anna Abualhaj, Anna Frey, Anna Siskova, Anna-Lena Friedsam, Annika Penickova, Anouk Koevermans, Aoi Ito, Aran Teixido Garcia, Arantxa Rus, Ashlyn Krueger, Astra Sharma, Ayana Akli, Aylara Kakabayeva, Bella Payne, Bianca Andreescu, Cadence Brace, Camila Soares, Carol Young Suh Lee
+- Unmatched by event (clusters = structural gaps, singletons = alias candidates): {'French Open': 65, 'Billie Jean King Cup Qualifiers Round': 57, 'US Open': 57, 'WTA Memphis': 9, 'WTA Washington': 8, 'WTA Hamburg': 6, 'WTA Iasi': 5, 'ATP Stockholm': 3}
+- Unmatched Kalshi names, main draw (40): AYNUR MOVLYAMOVA, Adrian Mannarino, Aishath Karin Saizan, Akasha Urhobo, Aleksandr Shevchenko, Alexander Bublik, Alexandra Eala, Alexandra Shubladze, Aliaksandra Sasnovich, Alice Rame, Alice Tubello, Alina Charaeva, Alina Korneeva, Aliona Falei, Amandine Monnot, Ana Sofia Sanchez, Anastasia Gasanova, Anastasiia Sobolieva, Andrea Lazaro Garcia, Angela Fita Boluda, Anhelina Kalinina, Ankita Raina, Anna Abualhaj, Anna Frey, Anna Siskova, Anna-Lena Friedsam, Annika Penickova, Anouk Koevermans, Aoi Ito, Aran Teixido Garcia, Arantxa Rus, Ashlyn Krueger, Astra Sharma, Ayana Akli, Aylara Kakabayeva, Bella Payne, Bianca Andreescu, Cadence Brace, Caijsa Wilda Hennemann, Camila Soares
